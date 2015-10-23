@@ -235,7 +235,7 @@ public class ConstantOperationReordererPhase implements IPhase {
 			// add the new one after
 			list.insertBefore(opInsn, cstInsn);
 			// swap the operation sign
-			opInsn.setOpcode(invertOpcode(opInsn.opcode()));
+			opInsn.setOpcode(invertOpcode(type, opInsn.opcode()));
 		}
 	}
 	
@@ -262,7 +262,7 @@ public class ConstantOperationReordererPhase implements IPhase {
 			// remove the previous constant insn
 			list.remove(cstInsn);
 			// swap the operation sign
-			opInsn.setOpcode(invertOpcode(opInsn.opcode()));
+			opInsn.setOpcode(invertOpcode(type, opInsn.opcode()));
 		}
 	}
 	
@@ -361,14 +361,30 @@ public class ConstantOperationReordererPhase implements IPhase {
 		}
 	}
 	
-	private static int invertOpcode(int opcode) {
+	private static int invertOpcode(Class<? extends Number> type, int opcode) {
 		if(opcode >= Opcodes.IADD && opcode <= Opcodes.DADD) {
-			return opcode + 4;
+			if(type == Byte.class || type == Short.class || type == Integer.class) {
+				return Opcodes.ISUB;
+			} else if(type == Long.class) {
+				return Opcodes.LSUB;
+			} else if(type == Float.class) {
+				return Opcodes.FSUB;
+			} else if(type == Double.class) {
+				return Opcodes.DSUB;
+			}
 		} else if(opcode >= Opcodes.ISUB && opcode <= Opcodes.DSUB) {
-			return opcode - 4;
-		} else {
-			throw new IllegalStateException(Printer.OPCODES[opcode]);
+			if(type == Byte.class || type == Short.class || type == Integer.class) {
+				return Opcodes.IADD;
+			} else if(type == Long.class) {
+				return Opcodes.LADD;
+			} else if(type == Float.class) {
+				return Opcodes.FADD;
+			} else if(type == Double.class) {
+				return Opcodes.DADD;
+			}
 		}
+		
+		throw new IllegalStateException(Printer.OPCODES[opcode]);
 	}
 	
 	private static AbstractInsnNode numberToNode(Class<? extends Number> type, Number number) {
