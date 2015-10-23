@@ -9,6 +9,7 @@ import java.util.List;
 import org.objectweb.asm.tree.ClassNode;
 import org.rsdeob.byteio.CompleteResolvingJarDumper;
 import org.rsdeob.deobimpl.ConstantComparisonReordererPhase;
+import org.rsdeob.deobimpl.ConstantOperationReordererPhase;
 import org.rsdeob.deobimpl.EmptyParameterFixerPhase;
 import org.rsdeob.deobimpl.OldschoolDummyMethodPhase;
 import org.rsdeob.deobimpl.OpaquePredicateRemoverPhase;
@@ -69,6 +70,6 @@ public class Boot {
 	}
 
 	private static IPhase[] loadPhases() {
-		return new IPhase[] { new OldschoolDummyMethodPhase(), new UnusedFieldsPhase(), new RTECatchBlockRemoverPhase(), new ConstantComparisonReordererPhase(), new OpaquePredicateRemoverPhase(), new EmptyParameterFixerPhase() };
+		return new IPhase[] { new OldschoolDummyMethodPhase(), new UnusedFieldsPhase(), new RTECatchBlockRemoverPhase(), new ConstantComparisonReordererPhase(), new OpaquePredicateRemoverPhase(), new EmptyParameterFixerPhase(), new ConstantOperationReordererPhase() };
 	}
 }

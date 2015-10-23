@@ -121,6 +121,8 @@ public class ConstantComparisonReordererPhase implements IPhase, Opcodes {
 	
 	class OperandSwap {
 		final MethodNode method;
+		// [0] = the constant insn
+		// [1] = the jump insn
 		final AbstractInsnNode[] insns;
 		final OperandSwapType type;
 
