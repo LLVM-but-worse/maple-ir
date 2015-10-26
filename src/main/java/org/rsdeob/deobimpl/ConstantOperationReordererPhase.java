@@ -1,6 +1,5 @@
 package org.rsdeob.deobimpl;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -43,15 +42,28 @@ public class ConstantOperationReordererPhase implements IPhase {
 		for(ClassNode cn : cxt.getNodes().values()) {
 			for(MethodNode m : cn.methods) {
 				TREE_BUILDER.build(m).accept(nv);
-				actorMap.put(m, Collections.unmodifiableSet(nv.actors));
+				actorMap.put(m, new HashSet<ReorderActor>(nv.actors));
 				nv.actors.clear();
 			}
 		}
 		
 		for(Entry<MethodNode, Set<ReorderActor>> e : actorMap.entrySet()) {
+			MethodNode m = e.getKey();
+
+//			if(m.toString().equals("f.u(Lee;Ljava/awt/Component;II)Lbg;")) {
+//				InstructionPrinter.consolePrint(m);
+//				System.err.println("done");
+//				System.out.println(TREE_BUILDER.build(m));
+//				System.err.println("done");
+//			}
+			
 			for(ReorderActor actor : e.getValue()) {
-				actor.reorder(e.getKey());
+				actor.reorder(m);
 			}
+			
+//			if(m.toString().equals("f.u(Lee;Ljava/awt/Component;II)Lbg;")) {
+//				InstructionPrinter.consolePrint(m);
+//			}
 		}
 		
 		System.out.printf("   Reordered:%n");
@@ -70,9 +82,10 @@ public class ConstantOperationReordererPhase implements IPhase {
 		
 		@Override
 		public void visitOperation(ArithmeticNode an) {
-			if(an.children() < 2) {
+			if(an.size() < 2) {
 				return;
 			}
+			
 			NumberNode nn = an.firstNumber();
 			if(nn == null || !nn.isInt()) {
 				return;
@@ -87,9 +100,10 @@ public class ConstantOperationReordererPhase implements IPhase {
 				// var - - const fringe case.
 				if((an.subtracting() || an.adding()) && nn.longNumber() < 0) {
 					Number num = nn.nNumber();
-					Number inverse = invertNumber(num.getClass(), num);
+					Class<? extends Number> type = getOperationType(an);
+					Number inverse = invertNumber(type, num);
 					if(num != inverse) {
-						actors.add(new NegateNegativeReorderer(new AbstractInsnNode[]{nn.insn(), an.insn()}, nn, inverse.getClass(), inverse));
+						actors.add(new NegateNegativeReorderer(an, new AbstractInsnNode[]{nn.insn(), an.insn()}, nn, type, inverse));
 						if(an.subtracting()) {
 							negsub++;
 						} else {
@@ -97,7 +111,7 @@ public class ConstantOperationReordererPhase implements IPhase {
 						}
 					} else {
 						inegsub++;
-						System.out.println(an);
+						System.out.println("inegsub: " + an);
 					}
 				}
 				return;
@@ -143,17 +157,18 @@ public class ConstantOperationReordererPhase implements IPhase {
 				 */
 				
 				if(nn.longNumber() >= 0) {
-					actors.add(new SimpleOperationReorderer(new AbstractInsnNode[]{nn.insn(), an.insn()}, nn));
+					actors.add(new SimpleOperationReorderer(an, new AbstractInsnNode[]{nn.insn(), an.insn()}, nn));
 					adds++;
 				} else {
 					Number num = nn.nNumber();
-					Number inverse = invertNumber(num.getClass(), num);
+					Class<? extends Number> type = getOperationType(an);
+					Number inverse = invertNumber(type, num);
 					if(num != inverse) {
-						actors.add(new AdditionToSubtractionReorderer(new AbstractInsnNode[]{nn.insn(), an.insn()}, nn, inverse.getClass(), inverse));
+						actors.add(new AdditionToSubtractionReorderer(an, new AbstractInsnNode[]{nn.insn(), an.insn()}, nn, type, inverse));
 						subswitch++;
 					} else {
 						// doesn't seem to happen in the client atm.
-						actors.add(new SimpleOperationReorderer(new AbstractInsnNode[]{nn.insn(), an.insn()}, nn));
+						actors.add(new SimpleOperationReorderer(an, new AbstractInsnNode[]{nn.insn(), an.insn()}, nn));
 						subadds++;
 					}
 				}
@@ -177,7 +192,10 @@ public class ConstantOperationReordererPhase implements IPhase {
 				 *         <->
 				 *   var    *  const
 				 */
-				actors.add(new SimpleOperationReorderer(new AbstractInsnNode[]{nn.insn(), an.insn()}, nn));
+//				if(an.method().toString().equals("f.u(Lee;Ljava/awt/Component;II)Lbg;")) {
+//					System.out.println(an);
+//				}
+				actors.add(new SimpleOperationReorderer(an, new AbstractInsnNode[]{nn.insn(), an.insn()}, nn));
 				mults++;
 			}
 		}
@@ -185,10 +203,12 @@ public class ConstantOperationReordererPhase implements IPhase {
 
 	abstract class ReorderActor {
 		
+		final ArithmeticNode an;
 		final AbstractInsnNode[] insns;
 		final NumberNode cst;
 		
-		ReorderActor(AbstractInsnNode[] insns, NumberNode cst) {
+		ReorderActor(ArithmeticNode an, AbstractInsnNode[] insns, NumberNode cst) {
+			this.an = an;
 			this.insns = insns;
 			this.cst = cst;
 		}
@@ -198,17 +218,20 @@ public class ConstantOperationReordererPhase implements IPhase {
 	
 	class SimpleOperationReorderer extends ReorderActor {
 
-		SimpleOperationReorderer(AbstractInsnNode[] insns, NumberNode cst) {
-			super(insns, cst);
+		SimpleOperationReorderer(ArithmeticNode an, AbstractInsnNode[] insns, NumberNode cst) {
+			super(an, insns, cst);
 		}
 
 		@Override
 		void reorder(MethodNode m) {
-			InsnList list = m.instructions;
-			AbstractInsnNode cstInsn = insns[0];
-			AbstractInsnNode opInsn = insns[1];
-			list.remove(cstInsn);
-			list.insert(opInsn.getPrevious(), cstInsn);
+//			InsnList list = m.instructions;
+//			AbstractInsnNode cstInsn = insns[0];
+//			AbstractInsnNode opInsn = insns[1];
+//			if(m.toString().equals("f.u(Lee;Ljava/awt/Component;II)Lbg;")) {
+//				System.out.println(cstInsn + "  " + opInsn);
+//			}
+//			list.remove(cstInsn);
+//			list.insertBefore(opInsn, cstInsn);
 		}
 	}
 	
@@ -217,8 +240,8 @@ public class ConstantOperationReordererPhase implements IPhase {
 		final Class<? extends Number> type;
 		final Number newNumber;
 		
-		public AdditionToSubtractionReorderer(AbstractInsnNode[] insns, NumberNode cst, Class<? extends Number> type, Number newNumber) {
-			super(insns, cst);
+		public AdditionToSubtractionReorderer(ArithmeticNode an, AbstractInsnNode[] insns, NumberNode cst, Class<? extends Number> type, Number newNumber) {
+			super(an, insns, cst);
 			this.type = type;
 			this.newNumber = newNumber;
 		}
@@ -244,8 +267,8 @@ public class ConstantOperationReordererPhase implements IPhase {
 		final Class<? extends Number> type;
 		final Number newNumber;
 		
-		public NegateNegativeReorderer(AbstractInsnNode[] insns, NumberNode cst, Class<? extends Number> type, Number newNumber) {
-			super(insns, cst);
+		public NegateNegativeReorderer(ArithmeticNode an, AbstractInsnNode[] insns, NumberNode cst, Class<? extends Number> type, Number newNumber) {
+			super(an, insns, cst);
 			this.type = type;
 			this.newNumber = newNumber;
 		}
@@ -307,7 +330,7 @@ public class ConstantOperationReordererPhase implements IPhase {
 					return Long.valueOf(Math.abs((long)val));
 				} else {
 					// guaranteed to be in the int range
-					return Integer.valueOf((short)Math.abs((int)val));
+					return Integer.valueOf((int)Math.abs((int)val));
 				}
 			}
 		} else if(type == Long.class) {
@@ -387,6 +410,23 @@ public class ConstantOperationReordererPhase implements IPhase {
 		throw new IllegalStateException(Printer.OPCODES[opcode]);
 	}
 	
+	private static Class<? extends Number> getOperationType(ArithmeticNode an) {
+		int opcode = an.opcode();
+		String name = Printer.OPCODES[opcode];
+		switch(name.charAt(0)) {
+			case 'I':
+				return Integer.class;
+			case 'J':
+				return Long.class;
+			case 'D':
+				return Double.class;
+			case 'F':
+				return Float.class;
+			default:
+				throw new RuntimeException(name);
+		}
+	}
+	
 	private static AbstractInsnNode numberToNode(Class<? extends Number> type, Number number) {
 		if(type == Byte.class) {
 			byte val = number.byteValue();
@@ -407,7 +447,7 @@ public class ConstantOperationReordererPhase implements IPhase {
 		} else if(type == Integer.class) {
 			int val = number.intValue();
 			if(val >= -1 && val <= 5) {
-				return new InsnNode(Opcodes.ICONST_M1 + val);
+				return new InsnNode(Opcodes.ICONST_0 + val);
 			} else if(val >= Byte.MIN_VALUE && val <= Byte.MAX_VALUE) {
 				return new IntInsnNode(Opcodes.BIPUSH, val);
 			} else if(val >= Short.MIN_VALUE && val <= Short.MAX_VALUE) {
