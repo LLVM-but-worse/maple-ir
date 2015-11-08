@@ -240,7 +240,7 @@ public class AbstractNode extends Tree<AbstractNode> implements Opcodes {
 		for (AbstractNode n : this) {
 			sb.append('\n');
 			for (int i = 0; i < tab; i++) {
-				sb.append('\t');
+				sb.append("  ");
 			}
 			sb.append(n.toString(tab + 1));
 		}

@@ -12,6 +12,7 @@ public class JumpNode extends AbstractNode {
 		super(tree, insn, collapsed, producing);
 	}
 
+	@Override
 	public JumpInsnNode insn() {
 		return (JumpInsnNode) super.insn();
 	}
@@ -46,7 +47,7 @@ public class JumpNode extends AbstractNode {
 		for (AbstractNode n : this) {
 			sb.append('\n');
 			for (int i = 0; i < tab; i++) {
-				sb.append('\t');
+				sb.append("  ");
 			}
 			sb.append(n.toString(tab + 1));
 		}

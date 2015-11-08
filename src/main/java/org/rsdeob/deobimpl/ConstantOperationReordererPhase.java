@@ -23,6 +23,7 @@ import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.util.Printer;
 import org.rsdeob.stdlib.IContext;
 import org.rsdeob.stdlib.deob.IPhase;
+import org.topdank.banalysis.asm.insn.InstructionPrinter;
 
 public class ConstantOperationReordererPhase implements IPhase {
 	
@@ -49,21 +50,21 @@ public class ConstantOperationReordererPhase implements IPhase {
 		
 		for(Entry<MethodNode, Set<ReorderActor>> e : actorMap.entrySet()) {
 			MethodNode m = e.getKey();
-
-//			if(m.toString().equals("f.u(Lee;Ljava/awt/Component;II)Lbg;")) {
-//				InstructionPrinter.consolePrint(m);
-//				System.err.println("done");
-//				System.out.println(TREE_BUILDER.build(m));
-//				System.err.println("done");
-//			}
+			
+			if(m.toString().equals("f.u(Lee;Ljava/awt/Component;II)Lbg;")) {
+				InstructionPrinter.consolePrint(m);
+				System.err.println("done");
+				System.out.println(TREE_BUILDER.build(m));
+				System.err.println("done");
+			}
 			
 			for(ReorderActor actor : e.getValue()) {
 				actor.reorder(m);
 			}
 			
-//			if(m.toString().equals("f.u(Lee;Ljava/awt/Component;II)Lbg;")) {
-//				InstructionPrinter.consolePrint(m);
-//			}
+			if(m.toString().equals("f.u(Lee;Ljava/awt/Component;II)Lbg;")) {
+				InstructionPrinter.consolePrint(m);
+			}
 		}
 		
 		System.out.printf("   Reordered:%n");
@@ -192,9 +193,9 @@ public class ConstantOperationReordererPhase implements IPhase {
 				 *         <->
 				 *   var    *  const
 				 */
-//				if(an.method().toString().equals("f.u(Lee;Ljava/awt/Component;II)Lbg;")) {
-//					System.out.println(an);
-//				}
+				if(an.method().toString().equals("f.u(Lee;Ljava/awt/Component;II)Lbg;")) {
+					System.out.println(an);
+				}
 				actors.add(new SimpleOperationReorderer(an, new AbstractInsnNode[]{nn.insn(), an.insn()}, nn));
 				mults++;
 			}
@@ -227,8 +228,19 @@ public class ConstantOperationReordererPhase implements IPhase {
 //			InsnList list = m.instructions;
 //			AbstractInsnNode cstInsn = insns[0];
 //			AbstractInsnNode opInsn = insns[1];
-//			if(m.toString().equals("f.u(Lee;Ljava/awt/Component;II)Lbg;")) {
+//			if(m.toString().equals("f.u(Lee;Ljava/awt/Component;IIB)Lbg;")) {
 //				System.out.println(cstInsn + "  " + opInsn);
+//				BasicInterpreter ba = new BasicInterpreter();
+//				Analyzer<BasicValue> analyser = new Analyzer<BasicValue>(ba);
+//				try {
+//					analyser.analyze(m.owner.name, m);
+//				} catch (AnalyzerException e1) {
+//					e1.printStackTrace();
+//					System.out.println("at: " + e1.node);
+//				}
+//				Frame<BasicValue> frame = analyser.getFrames()[list.indexOf(opInsn)];
+//				System.out.println(frame.getStackSize());
+//				
 //			}
 //			list.remove(cstInsn);
 //			list.insertBefore(opInsn, cstInsn);
@@ -416,7 +428,7 @@ public class ConstantOperationReordererPhase implements IPhase {
 		switch(name.charAt(0)) {
 			case 'I':
 				return Integer.class;
-			case 'J':
+			case 'L':
 				return Long.class;
 			case 'D':
 				return Double.class;

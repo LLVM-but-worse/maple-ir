@@ -30,7 +30,7 @@ public class Boot {
 			return;
 		}
 		
-		int rev = 95;
+		int rev = 98;
 		if(args.length > 0) {
 			rev = Integer.parseInt(args[0]);
 		}
