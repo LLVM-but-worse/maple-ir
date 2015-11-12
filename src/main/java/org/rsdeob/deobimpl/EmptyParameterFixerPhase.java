@@ -299,7 +299,18 @@ public class EmptyParameterFixerPhase implements IPhase {
 								// the pop expression popper could probably weed this out but
 								// it could also pop the constant within a proper calculation
 								// and end up messing up the flow, so this needs to be done ASAP.
-								m.instructions.insertBefore(min, new InsnNode(Opcodes.POP));
+								// EDIT: fixed, thanks ImFrizzy.
+								AbstractInsnNode node = min.getPrevious();
+								if (node.opcode() == Opcodes.ICONST_M1 || node.opcode() == Opcodes.ICONST_0
+										|| node.opcode() == Opcodes.ICONST_1 || node.opcode() == Opcodes.ICONST_2
+										|| node.opcode() == Opcodes.ICONST_3 || node.opcode() == Opcodes.ICONST_4
+										|| node.opcode() == Opcodes.ICONST_5 || node.opcode() == Opcodes.BIPUSH
+										|| node.opcode() == Opcodes.SIPUSH || node.opcode() == Opcodes.LDC) {
+									m.instructions.remove(node);
+								} else {
+									m.instructions.insertBefore(min, new InsnNode(Opcodes.POP));
+								}
+								
 								callnames++;
 							} else {
 								unchanged++;
