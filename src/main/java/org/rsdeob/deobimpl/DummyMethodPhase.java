@@ -19,8 +19,6 @@ import org.rsdeob.stdlib.klass.ClassTree;
 public abstract class DummyMethodPhase implements IPhase {
 
 	public static final String KEY_ID = DummyMethodPhase.class.getCanonicalName();
-
-	private int used = 0;
 	
 	@Override
 	public String getId() {
@@ -29,35 +27,68 @@ public abstract class DummyMethodPhase implements IPhase {
 
 	@Override
 	public void accept(IContext cxt, IPhase prev, List<IPhase> completed) {
-		int total = 0;
+		int total = 0, removed = 0, prot = 0;
 		
 		ClassTree tree = new ClassTree(cxt.getNodes().values());
+		// create a new map each time or just clear it each pass?
 		Map<ClassNode, DirectedGraph<MethodNode, MethodNode>> callgraphs = new HashMap<ClassNode, DirectedGraph<MethodNode, MethodNode>>();
 
-		List<MethodNode> entries = new ArrayList<>();
-		// find methods we want to keep and build callgraphs for all of the nodes
-		for (ClassNode cn : tree) {
-			total += cn.methods.size();
-			entries.addAll(findRealCandidates(tree, cn));
-			callgraphs.put(cn, new DirectedGraph<MethodNode, MethodNode>());
-		}
-		System.out.printf("   %d protected methods.%n", entries.size());
-		// follow calls and graph called methods appending them to the reserved list.
-		entries.forEach(e -> search(callgraphs, tree, e));
+		int lastRemoved = 0, i = 1;
+		
+		// "Added a second pass to the method remover as i noticed this:
+		// 
+		//    final boolean method1193() {
+        //       return this.config != null;
+        //    }
+        //    
+        //    final boolean method1156(int var1) {
+        //       return this.config != null;
+        //    }
+        //    
+        //  If the method was inherited and the super method wasn't 
+        //  used and was removed, the method wasn't removed from the sub class." - 8/11/15, 07:11 PM Friz.
+		//
+		// https://github.com/im-frizzy/redeob-rs/commit/3d835fe6bc15a17659dd33b7ebc8ffc9561a272e#diff-4baed776c81b103cb4f6ba619714252e
+		
+		// remove methods while there are still more to be removed, thanks friz.
+		do {
+			lastRemoved = removed;
+			List<MethodNode> entries = new ArrayList<>();
+			// find methods we want to keep and build callgraphs for all of the nodes
+			for (ClassNode cn : tree) {
+				total += cn.methods.size();
+				entries.addAll(findRealCandidates(tree, cn));
+				callgraphs.put(cn, new DirectedGraph<MethodNode, MethodNode>());
+			}
+			prot += entries.size();
+			// follow calls and graph called methods appending them to the reserved list.
+			entries.forEach(e -> search(callgraphs, tree, e));
 
-		// remove the ungraphed/unreserved methods
-		for (ClassNode cn : tree) {
-			ListIterator<MethodNode> lit = cn.methods.listIterator();
-			while (lit.hasNext()) {
-				MethodNode mn = lit.next();
-				DirectedGraph<MethodNode, MethodNode> cg = callgraphs.get(cn);
-				if (!cg.containsVertex(mn)) {
-					lit.remove();
+			// remove the ungraphed/unreserved methods
+			for (ClassNode cn : tree) {
+				ListIterator<MethodNode> lit = cn.methods.listIterator();
+				while (lit.hasNext()) {
+					MethodNode mn = lit.next();
+					DirectedGraph<MethodNode, MethodNode> cg = callgraphs.get(cn);
+					if (!cg.containsVertex(mn)) {
+						lit.remove();
+						removed++;
+					}
 				}
 			}
-		}
-		
-		System.out.printf("   Found %d/%d used methods (removed %d dummy methods).%n", used, total, total - used);
+			callgraphs.clear();
+			
+			int d = removed - lastRemoved;
+			if(d > 0) {
+				System.out.printf("   Pass %d: removed %d methods%n", i, d);
+			}
+			
+			i++;
+		} while((removed - lastRemoved) != 0);
+
+		System.out.printf("   %d protected methods.%n", prot);
+		// verified that (total - removed) == used
+		System.out.printf("   Found %d/%d used methods (removed %d dummy methods).%n", (total - removed), total, removed);
 	}
 
 	private void search(Map<ClassNode, DirectedGraph<MethodNode, MethodNode>> callgraphs, ClassTree tree, MethodNode vertex) {
@@ -69,8 +100,6 @@ public abstract class DummyMethodPhase implements IPhase {
 		if (cg.containsVertex(vertex))
 			return;
 		cg.addVertex(vertex);
-		
-		used++;
 		
 		outer: for (AbstractInsnNode ain : vertex.instructions.toArray()) {
 			if (ain instanceof MethodInsnNode) {
