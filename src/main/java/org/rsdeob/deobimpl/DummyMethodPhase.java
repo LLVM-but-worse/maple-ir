@@ -56,7 +56,10 @@ public abstract class DummyMethodPhase implements IPhase {
 			List<MethodNode> entries = new ArrayList<>();
 			// find methods we want to keep and build callgraphs for all of the nodes
 			for (ClassNode cn : tree) {
-				total += cn.methods.size();
+				/* So the total methods are only counted on the first pass */
+				if (i == 1)
+					total += cn.methods.size();
+				
 				entries.addAll(findRealCandidates(tree, cn));
 				callgraphs.put(cn, new DirectedGraph<MethodNode, MethodNode>());
 			}
