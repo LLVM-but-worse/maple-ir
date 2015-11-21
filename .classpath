@@ -5,6 +5,7 @@
 	<classpathentry kind="src" path="src/topdank/java"/>
 	<classpathentry kind="src" path="src/gson/java"/>
 	<classpathentry kind="src" path="src/modasm/java"/>
+	<classpathentry kind="src" path="src/cfg/java"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
