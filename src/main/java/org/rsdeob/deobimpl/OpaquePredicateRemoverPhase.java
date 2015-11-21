@@ -124,7 +124,6 @@ public class OpaquePredicateRemoverPhase implements IPhase, Opcodes {
 				if (ParameterUtil.isDummy(mn)) {
 					PairCollector visitor = new PairCollector();
 					visitor.targetVar = ParameterUtil.calculateLastParameterIndex(Type.getArgumentTypes(mn.desc), Modifier.isStatic(mn.access));
-
 					TREE_BUILDER.build(mn).accept(visitor);
 
 					Set<ComparisonPair> pairs = visitor.pairs;

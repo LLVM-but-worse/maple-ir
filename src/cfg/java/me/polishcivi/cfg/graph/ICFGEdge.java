@@ -5,19 +5,9 @@ package me.polishcivi.cfg.graph;
  */
 public interface ICFGEdge extends Cloneable {
 
-    /**
-     * @return
-     */
-    String label();
+	String label();
 
-    /**
-     * @return
-     */
-    ICFGEdge clone();
+	ICFGEdge clone();
 
-    /**
-     * @param other
-     * @return
-     */
-    boolean checkEquality(ICFGEdge other);
+	boolean checkEquality(ICFGEdge other);
 }

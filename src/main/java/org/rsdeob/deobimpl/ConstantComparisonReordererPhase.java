@@ -54,10 +54,10 @@ public class ConstantComparisonReordererPhase implements IPhase, Opcodes {
 		int c = 0;
 		for(OperandSwap swap : nv.swaps) {
 			/* Remove the aconst_null or the constant and add it after. */
-			swap.method.instructions.remove(swap.insns[0]);
-			swap.method.instructions.insert(swap.insns[1], swap.insns[0]);
+			swap.method.instructions.remove(swap.cst);
+			swap.method.instructions.insertBefore(swap.jmp, swap.cst);
 			
-			if(swap.type == OperandSwapType.NULL) {
+			if(swap.type == OperandSwap.NULL) {
 				n++;
 			} else {
 				c++;
@@ -73,7 +73,8 @@ public class ConstantComparisonReordererPhase implements IPhase, Opcodes {
 	class NodeVisitorImpl extends NodeVisitor {
 		final Set<OperandSwap> swaps = new HashSet<OperandSwap>();
 		@Override
-		public void visitJump(JumpNode jn) {   
+		public void visitJump(JumpNode jn) {
+			
 			/*
 			 * aconst_null
 			 * getstatic Client.jz:Widget
@@ -87,13 +88,13 @@ public class ConstantComparisonReordererPhase implements IPhase, Opcodes {
 			AbstractNode first = jn.child(0);
 			if(jn.opcode() == IF_ACMPEQ || jn.opcode() == IF_ACMPNE) {
 				if(first.opcode() == ACONST_NULL) {
-					OperandSwap swap = new OperandSwap(first.method(), new AbstractInsnNode[]{first.insn(), jn.child(1).insn()}, OperandSwapType.NULL);
+					OperandSwap swap = new OperandSwap(first.method(), jn.insn(), first.insn(), OperandSwap.NULL);
 					swaps.add(swap);
 				}
 			} else if(jn.opcode() == IF_ICMPEQ || jn.opcode() == IF_ICMPNE) {
 				NumberNode nn = jn.firstNumber();
 				if(nn != null && nn == first) { // ref check
-					OperandSwap swap = new OperandSwap(first.method(), new AbstractInsnNode[]{first.insn(), jn.child(1).insn()}, OperandSwapType.CST);
+					OperandSwap swap = new OperandSwap(first.method(), jn.insn(), first.insn(), OperandSwap.CST);
 					swaps.add(swap);
 				}
 			}/* else if(jn.opcode() == IFNONNULL) {
@@ -120,20 +121,17 @@ public class ConstantComparisonReordererPhase implements IPhase, Opcodes {
 	}
 	
 	class OperandSwap {
+		public static final int NULL = 0x1, CST = 0x2;
 		final MethodNode method;
-		// [0] = the constant insn
-		// [1] = the jump insn
-		final AbstractInsnNode[] insns;
-		final OperandSwapType type;
+		final AbstractInsnNode jmp;
+		final AbstractInsnNode cst;
+		final int type;
 
-		OperandSwap(MethodNode method, AbstractInsnNode[] insns, OperandSwapType type) {
+		OperandSwap(MethodNode method, AbstractInsnNode jmp, AbstractInsnNode cst, int type) {
 			this.method = method;
-			this.insns = insns;
+			this.jmp = jmp;
+			this.cst = cst;
 			this.type = type;
 		}
-	}
-	
-	enum OperandSwapType {
-		NULL, CST;
 	}
 }
