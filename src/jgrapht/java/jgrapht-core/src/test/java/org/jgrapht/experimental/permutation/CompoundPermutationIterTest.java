@@ -1,0 +1,129 @@
+/* ==========================================
+ * JGraphT : a free Java graph-theory library
+ * ==========================================
+ *
+ * Project Info:  http://jgrapht.sourceforge.net/
+ * Project Creator:  Barak Naveh (http://sourceforge.net/users/barak_naveh)
+ *
+ * (C) Copyright 2003-2008, by Barak Naveh and Contributors.
+ *
+ * This program and the accompanying materials are dual-licensed under
+ * either
+ *
+ * (a) the terms of the GNU Lesser General Public License version 2.1
+ * as published by the Free Software Foundation, or (at your option) any
+ * later version.
+ *
+ * or (per the licensee's choosing)
+ *
+ * (b) the terms of the Eclipse Public License v1.0 as published by
+ * the Eclipse Foundation.
+ */
+/* -----------------
+ * CompoundPermutationIterTest.java
+ * -----------------
+ * (C) Copyright 2005-2008, by Assaf Lehr and Contributors.
+ *
+ * Original Author:  Assaf Lehr
+ * Contributor(s):   -
+ *
+ * $Id$
+ *
+ * Changes
+ * -------
+ */
+package org.jgrapht.experimental.permutation;
+
+import java.util.*;
+
+import junit.framework.*;
+
+
+/**
+ * @author Assaf
+ * @since May 30, 2005
+ */
+public class CompoundPermutationIterTest
+    extends TestCase
+{
+    //~ Instance fields --------------------------------------------------------
+
+    private CompoundPermutationIter complexPerm;
+
+    //~ Methods ----------------------------------------------------------------
+
+    /**
+     * Asserts that the number of permutations is the same as getMax. It also
+     * verifies that the number is the same when using different internal order
+     * of the permutation components. Note: The prints and timer can be unmarked
+     * to see performance results and the permutations array themselves.
+     */
+    public void testGetNext()
+    {
+        // System.out.println("testing complex perm {1,1,1,2,2,3,4,5} ");
+        // StopperTimer timer = new StopperTimer();
+        // timer.start();
+
+        this.complexPerm =
+            new CompoundPermutationIter(
+                new int[] {
+                    1,
+                    1,
+                    1,
+                    2,
+                    2,
+                    3,
+                    4,
+                    5
+                });
+        int maxPermNum = this.complexPerm.getMax();
+
+        // System.out.println(Arrays.toString(this.complexPerm.getPermAsArray()));
+        int counter = 0;
+        while (this.complexPerm.hasNext()) {
+            int [] resultArray = this.complexPerm.getNext();
+
+            if (false) {
+                System.out.println(Arrays.toString(resultArray));
+            }
+            counter++;
+        }
+
+        // System.out.println(counter);
+        assertEquals(maxPermNum, counter);
+
+        // timer.stopAndReport();
+
+        // timer.start();
+        this.complexPerm =
+            new CompoundPermutationIter(
+                new int[] {
+                    5,
+                    4,
+                    3,
+                    2,
+                    2,
+                    1,
+                    1,
+                    1
+                });
+
+        // System.out.println("testing complex perm {5,4,3,2,2,1,1,1} ");
+        // System.out.println(Arrays.toString(this.complexPerm.getPermAsArray()));
+        counter = 0;
+        while (this.complexPerm.hasNext()) {
+            int [] resultArray = this.complexPerm.getNext();
+
+            if (false) {
+                System.out.println(Arrays.toString(resultArray));
+            }
+            counter++;
+        }
+
+        // System.out.println(counter);
+        assertEquals(maxPermNum, counter);
+        // timer.stopAndReport();
+    }
+}
+
+// End CompoundPermutationIterTest.java

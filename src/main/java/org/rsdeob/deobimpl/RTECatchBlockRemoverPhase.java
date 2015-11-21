@@ -24,7 +24,7 @@ public class RTECatchBlockRemoverPhase implements IPhase, Opcodes {
 	@Override
 	public void accept(IContext cxt, IPhase prev, List<IPhase> completed) {
 		int catchblockkills = 0;
-
+		// dog wrote this
 		for (ClassNode cn : cxt.getNodes().values()) {
 			for (MethodNode mn : cn.methods) {
 				List<TryCatchBlockNode> remove = mn.tryCatchBlocks.stream().filter(tcb -> tcb.type != null && tcb.type.contains("RuntimeException"))
