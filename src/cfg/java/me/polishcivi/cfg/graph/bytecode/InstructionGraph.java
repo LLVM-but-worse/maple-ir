@@ -7,6 +7,7 @@ import me.polishcivi.cfg.graph.ICFGEdge;
 import me.polishcivi.cfg.graph.edge.DecisionEdge;
 import me.polishcivi.cfg.graph.edge.GOTOEdge;
 import me.polishcivi.cfg.graph.edge.ImmediateEdge;
+import me.polishcivi.cfg.graph.edge.SwitchEdge;
 
 import org.jgrapht.DirectedGraph;
 import org.jgrapht.graph.AbstractBaseGraph;
@@ -70,9 +71,58 @@ public class InstructionGraph extends AbstractBaseGraph<InstructionVertex, ICFGE
 						}
 						this.addEdge(vertex, targetBlock, vertex.getInstruction().opcode() == GOTO ? new GOTOEdge() : new DecisionEdge(true));
 					} else if (instruction instanceof TableSwitchInsnNode) {
-						throw new RuntimeException("//TODO IMPLEMENT ME");
+						TableSwitchInsnNode tsin = (TableSwitchInsnNode) instruction;
+						for(int i=tsin.min; i <= tsin.max; i++) {
+							int index = i - tsin.min;
+							LabelNode label = tsin.labels.get(index);
+							
+							AbstractInsnNode targetInsn = nextRealInstruction(label);
+							InstructionVertex targetBlock;
+							if (!instructionToVertex.containsKey(targetInsn)) {
+								instructionToVertex.put(targetInsn, targetBlock = new InstructionVertex(targetInsn));
+								this.addVertex(targetBlock);
+							} else {
+								targetBlock = instructionToVertex.get(targetInsn);
+							}
+							this.addEdge(vertex, targetBlock, new SwitchEdge.TableSwitchEdge(i, tsin.min, tsin.max));
+						}
+						
+						LabelNode dflt = tsin.dflt;
+						AbstractInsnNode targetInsn = nextRealInstruction(dflt);
+						InstructionVertex targetBlock;
+						if (!instructionToVertex.containsKey(targetInsn)) {
+							instructionToVertex.put(targetInsn, targetBlock = new InstructionVertex(targetInsn));
+							this.addVertex(targetBlock);
+						} else {
+							targetBlock = instructionToVertex.get(targetInsn);
+						}
+						this.addEdge(vertex, targetBlock, new SwitchEdge(true));
 					} else if (instruction instanceof LookupSwitchInsnNode) {
-						throw new RuntimeException("//TODO IMPLEMENT ME");
+						LookupSwitchInsnNode lsin = (LookupSwitchInsnNode) instruction;
+						for(int i=0; i < lsin.keys.size(); i++) {
+							LabelNode label = lsin.labels.get(i);
+							
+							AbstractInsnNode targetInsn = nextRealInstruction(label);
+							InstructionVertex targetBlock;
+							if (!instructionToVertex.containsKey(targetInsn)) {
+								instructionToVertex.put(targetInsn, targetBlock = new InstructionVertex(targetInsn));
+								this.addVertex(targetBlock);
+							} else {
+								targetBlock = instructionToVertex.get(targetInsn);
+							}
+							this.addEdge(vertex, targetBlock, new SwitchEdge.LookupSwitchEdge(lsin.keys.get(i), lsin.keys));
+						}
+						
+						LabelNode dflt = lsin.dflt;
+						AbstractInsnNode targetInsn = nextRealInstruction(dflt);
+						InstructionVertex targetBlock;
+						if (!instructionToVertex.containsKey(targetInsn)) {
+							instructionToVertex.put(targetInsn, targetBlock = new InstructionVertex(targetInsn));
+							this.addVertex(targetBlock);
+						} else {
+							targetBlock = instructionToVertex.get(targetInsn);
+						}
+						this.addEdge(vertex, targetBlock, new SwitchEdge(true));
 					}
 				} else {
 					vertex = instructionToVertex.get(instruction);
@@ -81,7 +131,7 @@ public class InstructionGraph extends AbstractBaseGraph<InstructionVertex, ICFGE
 				if (previous != null) {
 					InstructionVertex previousBlock = instructionToVertex.get(previous);
 					if (previous.type() == AbstractInsnNode.JUMP_INSN && previous.opcode() != GOTO && previous.opcode() != JSR) {
-						// if previous is decision block, the sequent
+						// if previous is decision block, the next
 						// instruction to it its false successor of that
 						// instruction.
 						this.addEdge(previousBlock, vertex, new DecisionEdge(false));
