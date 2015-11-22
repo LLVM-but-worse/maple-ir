@@ -1,14 +1,15 @@
 package me.polishcivi.cfg.test;
 
+import java.io.File;
+import java.io.IOException;
+
 import me.polishcivi.cfg.graph.basicblock.BasicBlockGraph;
 import me.polishcivi.cfg.graph.bytecode.InstructionGraph;
 import me.polishcivi.cfg.utils.DOTExporter;
+
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
-
-import java.io.File;
-import java.io.IOException;
 
 /**
  * Created by polish on 21.11.15.
@@ -70,8 +71,12 @@ public class CFGTestCases {
         for (MethodNode method : node.methods) {
             InstructionGraph instructionGraph = new InstructionGraph(method);
             BasicBlockGraph basicBlockGraph = new BasicBlockGraph(instructionGraph);
-            DOTExporter.exportDOT(new File(full, "cfg - " + method.name + ".dot"), "test - " + method.name + method.desc, instructionGraph);
-            DOTExporter.exportDOT(new File(basicblock, "cfg - " + method.name + ".dot"), "test - " + method.name + method.desc, basicBlockGraph);
+            DOTExporter.exportDOT(new File(full, "cfg - " + cleanse(method.name) + ".dot"), "test - " + cleanse(method.name + method.desc), instructionGraph);
+            DOTExporter.exportDOT(new File(basicblock, "cfg - " + cleanse(method.name) + ".dot"), "test - " + cleanse(method.name + method.desc), basicBlockGraph);
         }
+    }
+    
+    private static String cleanse(String str) {
+    	return str.replaceAll("[\\\\/:\"?*\\<\\>\\|]", "");
     }
 }
