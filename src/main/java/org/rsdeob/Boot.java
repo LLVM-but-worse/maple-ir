@@ -30,7 +30,7 @@ public class Boot {
 			return;
 		}
 		
-		int rev = 100;
+		int rev = 104;
 		if(args.length > 0) {
 			rev = Integer.parseInt(args[0]);
 		}
@@ -64,7 +64,7 @@ public class Boot {
 		}
 		
 		CompleteResolvingJarDumper dumper = new CompleteResolvingJarDumper(dl.getJarContents());
-		File outFile = new File(String.format("out/%d/%d.jar", rev, rev));
+		File outFile = new File(String.format("out/%d/%s.jar", rev, "transformer"));
 		outFile.mkdirs();
 		dumper.dump(outFile);
 	}
