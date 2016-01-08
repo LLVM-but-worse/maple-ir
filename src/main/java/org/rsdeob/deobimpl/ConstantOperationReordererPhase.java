@@ -468,13 +468,13 @@ public class ConstantOperationReordererPhase implements IPhase {
 				return new LdcInsnNode(val);
 			}
 		} else if(type == Long.class) {
-			int val = number.intValue();
+			long val = number.longValue();
 			if(val == 0 || val == 1) {
-				return new InsnNode(Opcodes.LCONST_0 + val);
+				return new InsnNode(Opcodes.LCONST_0 + (int) val);
 			} else if(val >= Byte.MIN_VALUE && val <= Byte.MAX_VALUE) {
-				return new IntInsnNode(Opcodes.BIPUSH, val);
+				return new IntInsnNode(Opcodes.BIPUSH, (int) val);
 			} else if(val >= Short.MIN_VALUE && val <= Short.MAX_VALUE) {
-				return new IntInsnNode(Opcodes.SIPUSH, val);
+				return new IntInsnNode(Opcodes.SIPUSH, (int) val);
 			} else {
 				return new LdcInsnNode(val);
 			}
