@@ -64,7 +64,7 @@ public class Boot {
 		}
 		
 		CompleteResolvingJarDumper dumper = new CompleteResolvingJarDumper(dl.getJarContents());
-		File outFile = new File(String.format("out/%d/%s.jar", rev, "transformer"));
+		File outFile = new File(String.format("out/%d/%d.jar", rev, rev));
 		outFile.mkdirs();
 		dumper.dump(outFile);
 	}
