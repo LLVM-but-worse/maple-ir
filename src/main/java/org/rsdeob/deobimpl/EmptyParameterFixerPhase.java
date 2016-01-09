@@ -68,7 +68,7 @@ public class EmptyParameterFixerPhase implements IPhase {
 
 	public static final String KEY_ID = EmptyParameterFixerPhase.class.getCanonicalName();
 
-	private int startSize, endSize;
+	private int total = 0, pass = 1, removed = 0;
 	private int callnames, unchanged, nulls;
 	private final List<MethodNode> skipped = new ArrayList<MethodNode>();
 	private final Set<MethodNode> changed = new HashSet<MethodNode>();
@@ -82,106 +82,110 @@ public class EmptyParameterFixerPhase implements IPhase {
 	public void accept(IContext cxt, IPhase prev, List<IPhase> completed) {
 		ClassTree tree = new ClassTree(cxt.getNodes());
 		
-		Map<MethodNode, String> map = new HashMap<MethodNode, String>();
+		do {
+			Map<MethodNode, String> map = new HashMap<MethodNode, String>();
 
-		for (ClassNode cn : tree) {
-			for (MethodNode m : cn.methods) {
-				if (m.name.equals("<init>") || m.desc.equals("<clinit>") || !ParameterUtil.isDummy(m))
-					continue;
+			for (ClassNode cn : tree) {
+				for (MethodNode m : cn.methods) {
+					if (m.name.equals("<init>") || m.desc.equals("<clinit>") || !ParameterUtil.isDummy(m))
+						continue;
 
-				if (m.name.length() > 2) {
-					skipped.add(m);
-					continue;
-				}
+					if (m.name.length() > 2 && (!m.name.contains("get") && !m.name.contains("set")
+							&& !m.name.contains("add") && !m.name.contains("process") && !m.name.contains("read")
+							&& !m.name.contains("write") && !m.name.contains("val") && !m.name.contains("load")
+							&& !m.name.contains("apply") && !m.name.contains("transform"))) {
+						skipped.add(m);
+						continue;
+					}
 
-				int targetVar = ParameterUtil.calculateLastParameterIndex(Type.getArgumentTypes(m.desc), Modifier.isStatic(m.access));
-				// System.out.printf("%s (%b) -> %d.%n", m, Modifier.isStatic(m.access), targetVar);
-				if (isUnused(m, targetVar)) {
-					String newDesc = newDesc(m.desc);
-					// fixes.put(m.key(), newDesc);
-					map.put(m, newDesc);
-					// System.out.println(m.desc + " -> " + newDesc);
+					int targetVar = ParameterUtil.calculateLastParameterIndex(Type.getArgumentTypes(m.desc),
+							Modifier.isStatic(m.access));
+					// System.out.printf("%s (%b) -> %d.%n", m,
+					// Modifier.isStatic(m.access), targetVar);
+					if (isUnused(m, targetVar)) {
+						String newDesc = newDesc(m.desc);
+						// fixes.put(m.key(), newDesc);
+						map.put(m, newDesc);
+						// System.out.println(m.desc + " -> " + newDesc);
+					}
 				}
 			}
-		}
 
-		InheritedMethodMap mmp = new InheritedMethodMap(tree, true);
-		MethodCache cache = new MethodCache(tree.getClasses().values());
+			InheritedMethodMap mmp = new InheritedMethodMap(tree, true);
+			MethodCache cache = new MethodCache(tree.getClasses().values());
 
-		startSize = map.size();
+			//startSize = map.size();
 
-		/*
-		 * We have to validate the methods. Since a method can be overridden or
-		 * inherited, before we change the description of one method, we have to
-		 * check the super and delegate methods to verify that they also have
-		 * their last parameter as a dummy parameter.
-		 */
-		Set<MethodNode> invalid = new HashSet<MethodNode>();
-		Collection<MethodNode> methods = map.keySet();
-		for (MethodNode m : methods) {
-			Set<MethodNode> ms = mmp.getData(m).getAggregates();
-			if (ms.size() > 0) {
-				/*
-				 * Since we've gone through all the classes already and found
-				 * the dummy parameter methods, if any of the aggregate methods
-				 * aren't in the collected set, then we can't reduce any of
-				 * them.
-				 */
-				add(invalid, m, ms);
-			}
-		}
-
-		// FIXME: Is something going wrong?
-
-		System.out.printf("   Check 1: discarding %d methods.%n", invalid.size());
-
-		/*
-		 * If we want a deob for src code, then we don't want to be aggressive
-		 * as we won't get recompilable code (duplicate parameter methods) but
-		 * for analysis, it's fine.
-		 */
-		boolean aggressive = false;
-		if (!aggressive) {
-			for (Entry<MethodNode, String> e : map.entrySet()) {
-				MethodNode m = e.getKey();
-				String newKey = calculateParamKey(m.name, e.getValue());
+			/*
+			 * We have to validate the methods. Since a method can be overridden
+			 * or inherited, before we change the description of one method, we
+			 * have to check the super and delegate methods to verify that they
+			 * also have their last parameter as a dummy parameter.
+			 */
+			Set<MethodNode> invalid = new HashSet<MethodNode>();
+			Collection<MethodNode> methods = map.keySet();
+			for (MethodNode m : methods) {
 				Set<MethodNode> ms = mmp.getData(m).getAggregates();
-
-				Set<MethodNode> collisions = checkCollisions(map, m, newKey);
-				if (!collisions.isEmpty()) {
-					add(invalid, m, collisions, ms);
-					// continue topFor;
-				}
-
 				if (ms.size() > 0) {
-					for (MethodNode m1 : ms) {
-						/* Collision, don't rename any of the methods. */
-						collisions = checkCollisions(map, m1, newKey);
-						if (!collisions.isEmpty()) {
-							add(invalid, m1, collisions, ms);
+					/*
+					 * Since we've gone through all the classes already and
+					 * found the dummy parameter methods, if any of the
+					 * aggregate methods aren't in the collected set, then we
+					 * can't reduce any of them.
+					 */
+					add(invalid, m, ms);
+				}
+			}
+
+			// FIXME: Is something going wrong?
+
+			/*
+			 * If we want a deob for src code, then we don't want to be
+			 * aggressive as we won't get recompilable code (duplicate parameter
+			 * methods) but for analysis, it's fine.
+			 */
+			boolean aggressive = false;
+			if (!aggressive) {
+				for (Entry<MethodNode, String> e : map.entrySet()) {
+					MethodNode m = e.getKey();
+					String newKey = calculateParamKey(m.name, e.getValue());
+					Set<MethodNode> ms = mmp.getData(m).getAggregates();
+
+					Set<MethodNode> collisions = checkCollisions(map, m, newKey);
+					if (!collisions.isEmpty()) {
+						add(invalid, m, collisions, ms);
+						// continue topFor;
+					}
+
+					if (ms.size() > 0) {
+						for (MethodNode m1 : ms) {
+							/* Collision, don't rename any of the methods. */
+							collisions = checkCollisions(map, m1, newKey);
+							if (!collisions.isEmpty()) {
+								add(invalid, m1, collisions, ms);
+							}
 						}
 					}
 				}
 			}
-		}
 
-		System.out.printf("   Check 2: discarding %d methods.%n", invalid.size());
-		System.out.println("   Got: " + invalid);
+			for (MethodNode m : invalid) {
+				map.remove(m);
+			}
+			
+			invalid.clear();
+			fix(tree, mmp, cache, map);
+			
+			removed = map.size();
+			total += removed;
+			pass++;
 
-		for (MethodNode m : invalid) {
-			map.remove(m);
-		}
-
-		endSize = map.size();
-
-		invalid.clear();
-
-		// System.out.printf("start=%d, end=%d.%n", startSize, map.size());
-		fix(tree, mmp, cache, map);
-
-		System.out.printf("   Skipped methods: %s.%n", skipped);
-		System.out.printf("   map.start=%d, map.end=%d.%n", startSize, endSize);
-		System.out.printf("   %d empty parameter methods changed.%n", endSize);
+			if (removed > 0)
+				System.out.println("   Pass " + pass + ": removed " + removed + " parameters");
+			
+		} while (removed != 0);
+		
+		System.out.printf("   %d empty parameter methods changed.%n", total);
 		System.out.printf("   %d calls changed.%n", callnames);
 		System.out.printf("   %d unchanged calls and %d nulls.%n", unchanged, nulls);
 
