@@ -6,7 +6,8 @@ import org.objectweb.asm.tree.FieldInsnNode;
 import org.objectweb.asm.tree.MethodInsnNode;
 import org.objectweb.asm.tree.MethodNode;
 
-public class ReferenceNode extends AbstractNode {
+@SuppressWarnings("serial")
+public abstract class ReferenceNode extends AbstractNode {
 
     public ReferenceNode(NodeTree tree, AbstractInsnNode insn, int collapsed, int producing) {
         super(tree, insn, collapsed, producing);

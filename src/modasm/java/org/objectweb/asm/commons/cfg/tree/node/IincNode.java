@@ -7,6 +7,7 @@ import org.objectweb.asm.tree.IincInsnNode;
 /**
  * @author Tyler Sedlar
  */
+@SuppressWarnings("serial")
 public class IincNode extends AbstractNode {
 
 	public IincNode(NodeTree tree, AbstractInsnNode insn, int collapsed, int producing) {

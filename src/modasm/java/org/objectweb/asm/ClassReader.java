@@ -1881,7 +1881,7 @@ public class ClassReader {
                 return readAnnotationValues(v - 2, buf, false,
                         av.visitArray(name));
             }
-            switch (this.b[v++] & 0xFF) {
+            switch (b[v++] & 0xFF) {
             case 'B':
                 byte[] bv = new byte[size];
                 for (i = 0; i < size; i++) {

@@ -467,7 +467,7 @@ class MethodWriter extends MethodVisitor {
         }
         this.name = cw.newUTF8(name);
         this.desc = cw.newUTF8(desc);
-        this.descriptor = desc;
+        descriptor = desc;
         if (ClassReader.SIGNATURES) {
             this.signature = signature;
         }
@@ -478,7 +478,7 @@ class MethodWriter extends MethodVisitor {
                 this.exceptions[i] = cw.newClass(exceptions[i]);
             }
         }
-        this.compute = computeFrames ? FRAMES : (computeMaxs ? MAXS : NOTHING);
+        compute = computeFrames ? FRAMES : (computeMaxs ? MAXS : NOTHING);
         if (computeMaxs || computeFrames) {
             // updates maxLocals
             int size = Type.getArgumentsAndReturnSizes(descriptor) >> 2;
@@ -1423,7 +1423,7 @@ class MethodWriter extends MethodVisitor {
                 // h is an exception handler
                 h.status |= Label.TARGET;
                 // adds 'h' as a successor of labels between 'start' and 'end'
-                while (l != e) {
+                while (l != e && l != null) {
                     // creates an edge to 'h'
                     Edge b = new Edge();
                     b.info = kind;
@@ -1473,6 +1473,9 @@ class MethodWriter extends MethodVisitor {
                 Edge e = l.successors;
                 while (e != null) {
                     Label n = e.successor.getFirst();
+                    if(n.frame == null) {
+                    	System.out.println("frame at " + l.hashCode() + " " + l.position);
+                    }
                     boolean change = f.merge(cw, n.frame, e.info);
                     if (change && n.next == null) {
                         // if n has changed and is not already in the 'changed'

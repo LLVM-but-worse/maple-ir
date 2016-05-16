@@ -4,6 +4,7 @@ import org.objectweb.asm.commons.cfg.tree.NodeTree;
 import org.objectweb.asm.commons.util.Assembly;
 import org.objectweb.asm.tree.JumpInsnNode;
 
+@SuppressWarnings("serial")
 public class JumpNode extends AbstractNode {
 
 	private TargetNode target;
@@ -42,13 +43,14 @@ public class JumpNode extends AbstractNode {
 	protected String toString(int tab) {
 		StringBuilder sb = new StringBuilder();
 		sb.append(Assembly.toString(insn()));
-		sb.append(' ').append('>').append(' ');
-		sb.append(target);
+		sb.append(' ').append('>').append(" #");
+		sb.append(target.realTarget().index);
 		for (AbstractNode n : this) {
 			sb.append('\n');
 			for (int i = 0; i < tab; i++) {
 				sb.append("  ");
 			}
+			sb.append(n.insn().index).append(". ");
 			sb.append(n.toString(tab + 1));
 		}
 		return sb.toString();

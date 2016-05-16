@@ -40,17 +40,17 @@ import java.util.Set;
  * 
  * @author Eric Bruneton
  */
-class SmallSet<E> extends AbstractSet<E> implements Iterator<E> {
+public class SmallSet<E> extends AbstractSet<E> implements Iterator<E> {
 
     // if e1 is null, e2 must be null; otherwise e2 must be different from e1
 
     E e1, e2;
 
-    static final <T> Set<T> emptySet() {
+    public static final <T> Set<T> emptySet() {
         return new SmallSet<T>(null, null);
     }
 
-    SmallSet(final E e1, final E e2) {
+    public SmallSet(final E e1, final E e2) {
         this.e1 = e1;
         this.e2 = e2;
     }
@@ -73,11 +73,13 @@ class SmallSet<E> extends AbstractSet<E> implements Iterator<E> {
     // Implementation of the Iterator interface
     // -------------------------------------------------------------------------
 
-    public boolean hasNext() {
+    @Override
+	public boolean hasNext() {
         return e1 != null;
     }
 
-    public E next() {
+    @Override
+	public E next() {
         if (e1 == null) {
             throw new NoSuchElementException();
         }
@@ -87,7 +89,8 @@ class SmallSet<E> extends AbstractSet<E> implements Iterator<E> {
         return e;
     }
 
-    public void remove() {
+    @Override
+	public void remove() {
     }
 
     // -------------------------------------------------------------------------

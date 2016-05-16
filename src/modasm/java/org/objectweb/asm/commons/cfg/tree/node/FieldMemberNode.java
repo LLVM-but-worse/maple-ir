@@ -7,6 +7,7 @@ import org.objectweb.asm.tree.FieldInsnNode;
 /**
  * @author Tyler Sedlar
  */
+@SuppressWarnings("serial")
 public class FieldMemberNode extends ReferenceNode {
 
 	public FieldMemberNode(NodeTree tree, AbstractInsnNode insn, int collapsed, int producing) {

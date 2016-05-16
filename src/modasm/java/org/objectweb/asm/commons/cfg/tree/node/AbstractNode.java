@@ -34,6 +34,7 @@ import org.objectweb.asm.tree.LdcInsnNode;
 import org.objectweb.asm.tree.MethodInsnNode;
 import org.objectweb.asm.tree.MethodNode;
 
+@SuppressWarnings("serial")
 public class AbstractNode extends Tree<AbstractNode> implements Opcodes {
 
 	public static final String CHILD = ">";
@@ -236,12 +237,13 @@ public class AbstractNode extends Tree<AbstractNode> implements Opcodes {
 
 	protected String toString(int tab) {
 		StringBuilder sb = new StringBuilder();
-		sb.append(Assembly.toString(insn));
+		sb.append(insn == null ? ("[root=" + method() + "]") : Assembly.toString(insn));
 		for (AbstractNode n : this) {
 			sb.append('\n');
 			for (int i = 0; i < tab; i++) {
 				sb.append("  ");
 			}
+			sb.append(n.insn().index).append(". ");
 			sb.append(n.toString(tab + 1));
 		}
 		return sb.toString();
@@ -267,6 +269,7 @@ public class AbstractNode extends Tree<AbstractNode> implements Opcodes {
 		return method().instructions.indexOf(insn());//insn.insnIndex;
 	}
 	
+	@SuppressWarnings("unchecked")
 	public <T extends AbstractNode> T t_first(int opcode) {
 		for (AbstractNode n : this) {
 			if (n.opcode() == opcode) return (T) n;
@@ -446,6 +449,7 @@ public class AbstractNode extends Tree<AbstractNode> implements Opcodes {
 		return previous(opcode, 5);
 	}
 
+	@SuppressWarnings("unchecked")
 	public <T extends AbstractNode> List<T> t_deepFindChildren(int opcode) {
 		List<T> children = new ArrayList<T>();
 		for (AbstractNode n : traverse()) {
@@ -454,6 +458,7 @@ public class AbstractNode extends Tree<AbstractNode> implements Opcodes {
 		return !children.isEmpty() ? children : null;
 	}
 	
+	@SuppressWarnings("unchecked")
 	public <T extends AbstractNode> List<T> t_findChildren(int opcode) {
 		List<T> children = new ArrayList<T>();
 		for (AbstractNode n : this) {

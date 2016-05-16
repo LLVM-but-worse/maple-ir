@@ -6,6 +6,7 @@ import org.objectweb.asm.tree.AbstractInsnNode;
 /**
  * @author Tyler Sedlar
  */
+@SuppressWarnings("serial")
 public class ArithmeticNode extends AbstractNode {
 
     public ArithmeticNode(NodeTree tree, AbstractInsnNode insn, int collapsed, int producing) {

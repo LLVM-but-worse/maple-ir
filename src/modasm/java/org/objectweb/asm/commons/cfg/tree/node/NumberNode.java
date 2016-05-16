@@ -5,6 +5,7 @@ import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.IntInsnNode;
 import org.objectweb.asm.tree.LdcInsnNode;
 
+@SuppressWarnings("serial")
 public class NumberNode extends AbstractNode {
 
 	public NumberNode(NodeTree tree, AbstractInsnNode insn, int collapsed, int producing) {

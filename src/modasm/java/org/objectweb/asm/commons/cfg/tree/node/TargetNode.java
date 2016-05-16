@@ -1,12 +1,13 @@
 package org.objectweb.asm.commons.cfg.tree.node;
 
+import java.util.LinkedList;
+import java.util.List;
+
 import org.objectweb.asm.commons.cfg.tree.NodeTree;
 import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.LabelNode;
 
-import java.util.LinkedList;
-import java.util.List;
-
+@SuppressWarnings("serial")
 public class TargetNode extends AbstractNode {
 
 	private final List<JumpNode> nodes = new LinkedList<>();
@@ -19,6 +20,14 @@ public class TargetNode extends AbstractNode {
 		nodes.add(jn);
 	}
 
+	public AbstractInsnNode realTarget() {
+		AbstractInsnNode ain = insn();
+		while(ain.opcode() == -1) {
+			ain = ain.getNext();
+		}
+		return ain;
+	}
+	
 	public LabelNode label() {
 		return (LabelNode) insn();
 	}

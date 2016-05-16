@@ -7,6 +7,7 @@ import org.objectweb.asm.tree.LdcInsnNode;
 /**
  * @author Tyler Sedlar
  */
+@SuppressWarnings("serial")
 public class ConstantNode extends AbstractNode {
 
 	public ConstantNode(NodeTree tree, AbstractInsnNode insn, int collapsed, int producing) {

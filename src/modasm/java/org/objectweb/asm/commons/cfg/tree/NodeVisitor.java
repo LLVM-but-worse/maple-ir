@@ -1,25 +1,25 @@
 package org.objectweb.asm.commons.cfg.tree;
 
 import org.objectweb.asm.Opcodes;
-import org.objectweb.asm.commons.cfg.BlockVisitor;
-import org.objectweb.asm.commons.cfg.tree.node.*;
+import org.objectweb.asm.commons.cfg.tree.node.AbstractNode;
+import org.objectweb.asm.commons.cfg.tree.node.ArithmeticNode;
+import org.objectweb.asm.commons.cfg.tree.node.ConstantNode;
+import org.objectweb.asm.commons.cfg.tree.node.ConversionNode;
+import org.objectweb.asm.commons.cfg.tree.node.FieldMemberNode;
+import org.objectweb.asm.commons.cfg.tree.node.IincNode;
+import org.objectweb.asm.commons.cfg.tree.node.JumpNode;
+import org.objectweb.asm.commons.cfg.tree.node.MethodMemberNode;
+import org.objectweb.asm.commons.cfg.tree.node.NumberNode;
+import org.objectweb.asm.commons.cfg.tree.node.TypeNode;
+import org.objectweb.asm.commons.cfg.tree.node.VariableNode;
 
 public abstract class NodeVisitor implements Opcodes {
 
 	private NodeVisitor nv;
-    private BlockVisitor bv;
-
-    public boolean validate() {
-        return bv == null || bv.validate();
-    }
 
 	public NodeVisitor() {
-        this.nv = null;
+        nv = null;
 	}
-
-    public NodeVisitor(BlockVisitor bv) {
-        this.bv = bv;
-    }
 
 	public NodeVisitor(NodeVisitor nv) {
 		this.nv = nv;

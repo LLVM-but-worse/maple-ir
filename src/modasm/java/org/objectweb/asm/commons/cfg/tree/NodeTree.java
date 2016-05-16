@@ -4,7 +4,6 @@ import static org.objectweb.asm.tree.AbstractInsnNode.LABEL;
 
 import java.util.Arrays;
 
-import org.objectweb.asm.commons.cfg.Block;
 import org.objectweb.asm.commons.cfg.tree.node.AbstractNode;
 import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.MethodNode;
@@ -12,6 +11,7 @@ import org.objectweb.asm.tree.MethodNode;
 /**
  * @author Tyler Sedlar
  */
+@SuppressWarnings("serial")
 public class NodeTree extends AbstractNode {
 
     private final MethodNode mn;
@@ -21,10 +21,6 @@ public class NodeTree extends AbstractNode {
         this.mn = mn;
     }
 
-    public NodeTree(Block block) {
-        this(block.owner);
-    }
-
     @Override
 	public MethodNode method() {
         return mn;
@@ -32,7 +28,7 @@ public class NodeTree extends AbstractNode {
 
     @Override
 	public void accept(NodeVisitor nv) {
-        if (!nv.validate()) return;
+//        if (!nv.validate()) return;
         nv.visitCode();
         for (AbstractNode node : this)
             accept(nv, node);
@@ -40,7 +36,7 @@ public class NodeTree extends AbstractNode {
     }
 
     private void accept(NodeVisitor nv, AbstractNode n) {
-        if (!nv.validate()) return;
+//        if (!nv.validate()) return;
         n.accept(nv);
         for (AbstractNode node : n)
             accept(nv, node);

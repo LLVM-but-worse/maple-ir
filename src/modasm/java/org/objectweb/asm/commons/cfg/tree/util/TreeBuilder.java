@@ -18,8 +18,8 @@ import static org.objectweb.asm.Opcodes.PUTSTATIC;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
-import org.objectweb.asm.commons.cfg.Block;
 import org.objectweb.asm.commons.cfg.tree.NodeTree;
 import org.objectweb.asm.commons.cfg.tree.node.AbstractNode;
 import org.objectweb.asm.commons.cfg.tree.node.ArithmeticNode;
@@ -30,6 +30,7 @@ import org.objectweb.asm.commons.cfg.tree.node.IincNode;
 import org.objectweb.asm.commons.cfg.tree.node.JumpNode;
 import org.objectweb.asm.commons.cfg.tree.node.MethodMemberNode;
 import org.objectweb.asm.commons.cfg.tree.node.NumberNode;
+import org.objectweb.asm.commons.cfg.tree.node.TargetNode;
 import org.objectweb.asm.commons.cfg.tree.node.TypeNode;
 import org.objectweb.asm.commons.cfg.tree.node.VariableNode;
 import org.objectweb.asm.tree.AbstractInsnNode;
@@ -256,7 +257,10 @@ public class TreeBuilder {
         } else if (ain instanceof VarInsnNode) {
             return new VariableNode(tree, ain, size.collapsing, size.producing);
         } else if (ain instanceof JumpInsnNode) {
-            return new JumpNode(tree, (JumpInsnNode) ain, size.collapsing, size.producing);
+        	TargetNode target = new TargetNode(tree, ((JumpInsnNode) ain).label, 0, 0);
+            JumpNode jn = new JumpNode(tree, (JumpInsnNode) ain, size.collapsing, size.producing);
+            jn.setTarget(target);
+            return jn;
         } else if (ain instanceof FieldInsnNode) {
             return new FieldMemberNode(tree, ain, size.collapsing, size.producing);
         } else if (ain instanceof MethodInsnNode) {
@@ -292,7 +296,9 @@ public class TreeBuilder {
             return null;
         }
         AbstractNode node = nodes.get(treeIndex--);
-        if (node.collapsed == 0) {
+        // System.out.println("node: " + node.opname());
+
+        if (node.collapsed == 0 && node.opcode() != Opcodes.GOTO) {
             return node;
         }
         int c = node.collapsed;
@@ -301,6 +307,7 @@ public class TreeBuilder {
             if (n == null) {
                 break;
             }
+        	// System.out.println("it: " + node.opname() + "  " + n.opname());
             int op = n.opcode();
             if (op == MONITOREXIT && node.opcode() == ATHROW)
                 n.producing = 1;
@@ -329,26 +336,6 @@ public class TreeBuilder {
             	nodes.add(createNode(ain, tree, getTreeSize(ain)));
             }
         }
-        long end = System.nanoTime();
-        create += (end - start);
-        treeIndex = nodes.size() - 1;
-        AbstractNode node;
-        start = System.nanoTime();
-        while ((node = iterate(nodes)) != null)
-            tree.addFirst(node);
-        end = System.nanoTime();
-        iterate += (end - start);
-        return tree;
-    }
-
-    public NodeTree build(Block block) {
-        NodeTree tree = new NodeTree(block);
-        List<AbstractNode> nodes = new ArrayList<>();
-        long start = System.nanoTime();
-        for (AbstractInsnNode ain : block.instructions)
-            if(ain.opcode() != -1) {
-            	nodes.add(createNode(ain, tree, getTreeSize(ain)));
-            }
         long end = System.nanoTime();
         create += (end - start);
         treeIndex = nodes.size() - 1;

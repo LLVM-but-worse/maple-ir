@@ -6,6 +6,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.concurrent.CopyOnWriteArrayList;
 
+@SuppressWarnings("serial")
 public class Tree<E extends Tree<E>> extends CopyOnWriteArrayList<E> {
 
 	protected Tree<E> parent;

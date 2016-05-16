@@ -6,6 +6,7 @@ import org.objectweb.asm.tree.AbstractInsnNode;
 /**
  * @author Tyler Sedlar
  */
+@SuppressWarnings("serial")
 public class ConversionNode extends AbstractNode {
 
 	public ConversionNode(NodeTree tree, AbstractInsnNode insn, int collapsed, int producing) {

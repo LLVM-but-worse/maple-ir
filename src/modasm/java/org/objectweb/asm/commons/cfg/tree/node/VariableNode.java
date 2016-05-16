@@ -7,6 +7,7 @@ import org.objectweb.asm.tree.VarInsnNode;
 /**
  * @author Tyler Sedlar
  */
+@SuppressWarnings("serial")
 public class VariableNode extends AbstractNode {
 
 	public VariableNode(NodeTree tree, AbstractInsnNode insn, int collapsed, int producing) {

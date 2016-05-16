@@ -29,9 +29,11 @@
  */
 package org.objectweb.asm.tree.analysis;
 
+import java.util.Iterator;
 import java.util.Set;
 
 import org.objectweb.asm.tree.AbstractInsnNode;
+import org.objectweb.asm.util.Printer;
 
 /**
  * A {@link Value} that is represented by its type in a two types type system.
@@ -69,7 +71,7 @@ public class SourceValue implements Value {
 
     public SourceValue(final int size, final AbstractInsnNode insn) {
         this.size = size;
-        this.insns = new SmallSet<AbstractInsnNode>(insn, null);
+        insns = new SmallSet<AbstractInsnNode>(insn, null);
     }
 
     public SourceValue(final int size, final Set<AbstractInsnNode> insns) {
@@ -77,7 +79,8 @@ public class SourceValue implements Value {
         this.insns = insns;
     }
 
-    public int getSize() {
+    @Override
+	public int getSize() {
         return size;
     }
 
@@ -93,5 +96,19 @@ public class SourceValue implements Value {
     @Override
     public int hashCode() {
         return insns.hashCode();
+    }
+    
+    @Override
+	public String toString() {
+    	StringBuilder sb = new StringBuilder();
+    	Iterator<AbstractInsnNode> it = insns.iterator();
+    	while(it.hasNext()) {
+    		AbstractInsnNode ain = it.next();
+    		sb.append(Printer.OPCODES[ain.opcode()]);
+    		if(it.hasNext()) {
+    			sb.append(", ");
+    		}
+    	}
+    	return sb.toString();
     }
 }

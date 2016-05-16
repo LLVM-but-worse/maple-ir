@@ -614,8 +614,8 @@ public class ClassWriter extends ClassVisitor {
         key2 = new Item();
         key3 = new Item();
         key4 = new Item();
-        this.computeMaxs = (flags & COMPUTE_MAXS) != 0;
-        this.computeFrames = (flags & COMPUTE_FRAMES) != 0;
+        computeMaxs = (flags & COMPUTE_MAXS) != 0;
+        computeFrames = (flags & COMPUTE_FRAMES) != 0;
     }
 
     /**
@@ -653,7 +653,7 @@ public class ClassWriter extends ClassVisitor {
     public ClassWriter(final ClassReader classReader, final int flags) {
         this(flags);
         classReader.copyPool(this);
-        this.cr = classReader;
+        cr = classReader;
     }
 
     // ------------------------------------------------------------------------

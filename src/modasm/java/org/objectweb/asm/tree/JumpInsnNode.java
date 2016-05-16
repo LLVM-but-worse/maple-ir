@@ -74,7 +74,8 @@ public class JumpInsnNode extends AbstractInsnNode {
      *            IF_ICMPGE, IF_ICMPGT, IF_ICMPLE, IF_ACMPEQ, IF_ACMPNE, GOTO,
      *            JSR, IFNULL or IFNONNULL.
      */
-    public void setOpcode(final int opcode) {
+    @Override
+	public void setOpcode(final int opcode) {
         this.opcode = opcode;
     }
 

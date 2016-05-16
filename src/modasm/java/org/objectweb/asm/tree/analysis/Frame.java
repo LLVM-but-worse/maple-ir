@@ -100,6 +100,10 @@ public class Frame<V extends Value> {
         init(src);
     }
 
+    public V[] getValues() {
+    	return values;
+    }
+    
     /**
      * Copies the state of the given frame into this frame.
      * 
@@ -584,9 +588,10 @@ public class Frame<V extends Value> {
             interpreter.returnOperation(insn, value1, returnValue);
             break;
         case Opcodes.RETURN:
-            if (returnValue != null) {
-                throw new AnalyzerException(insn, "Incompatible return type");
-            }
+        	//FIXME: solution for this
+//            if (returnValue != null) {
+//                throw new AnalyzerException(insn, "Incompatible return type");
+//            }
             break;
         case Opcodes.GETSTATIC:
             push(interpreter.newOperation(insn));
