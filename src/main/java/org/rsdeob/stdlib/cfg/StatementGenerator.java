@@ -68,7 +68,7 @@ public class StatementGenerator implements Opcodes {
 	Set<BasicBlock> analysedBlocks;
 	LinkedList<BasicBlock> queue;
 	RootStatement root;
-//	VarVersionsMap variables;
+	VarVersionsMap variables;
 	int stackBase;
 
 	transient volatile BasicBlock currentBlock;
@@ -84,8 +84,8 @@ public class StatementGenerator implements Opcodes {
 	
 	public void init(int base) {
 		stackBase = base;
-//		variables = new VarVersionsMap(graph);
-		root = new RootStatement(m/*, variables*/);
+		variables = new VarVersionsMap(graph);
+		root = new RootStatement(m, variables);
 		
 		queueEntryBlocks();
 	}
@@ -99,6 +99,7 @@ public class StatementGenerator implements Opcodes {
 				root.write(n);
 			}
 		}
+		graph.setRoot(root);
 		return root;
 	}
 
@@ -146,27 +147,52 @@ public class StatementGenerator implements Opcodes {
 		createStackVariables(block, stack, stack.size());
 	}
 	
+	int getNextStackIndex(Set<Integer> contained, int stackIndex) {
+		while(contained.contains(stackIndex)) {
+			stackIndex--;
+		}
+		return stackIndex;
+	}
+	
 	void createStackVariables(BasicBlock block, ExpressionStack stack, int depth) {
 		// stack(t->b) = [x, y, z]
 		// exprs (2)   = [x, y]
-		// stack(t->b) = [z]
+		// stack(t->b) = [z], so we then have to push expressions starting from y, then x.
 		int stackIndex = stackBase;
 		Expression[] exprs = new Expression[depth];
-		for(int i=0; i < exprs.length; i++) {
-//		for (int i = exprs.length - 1; i >= 0; i--) {
-			exprs[i] = stack.pop1();
-			stackIndex += exprs[i].getType().getSize();
+		// collect top (n=depth) items.
+//		for(int i=0; i < exprs.length; i++) {
+		
+		// first collect vars that are on the stack after the
+		// depth target.
+		Set<Integer> contained = new HashSet<>();
+		for(int i=0; i < (stack.size() - depth/*remaining vars*/); i++) {
+			Expression expr = stack.peek(i + depth);
+			if(expr instanceof StackLoadExpression) {
+				contained.add(((StackLoadExpression) expr).getIndex());
+			}
 		}
 		
+		System.out.println("Contained: " + contained);
+
+		stackIndex += stack.size();
 		for (int i = exprs.length - 1; i >= 0; i--) {
-//		for (int i = 0; i < exprs.length; i++) {
+			exprs[i] = stack.pop1();
+			// stackIndex += exprs[i].getType().getSize();
+		}
+
+		for(int i=0; i < exprs.length; i++) {
+//		for (int i = exprs.length - 1; i >= 0; i--) {
 			Expression e = exprs[i];
 			Type type = TypeUtils.asSimpleType(e.getType());
 
+			stackIndex = getNextStackIndex(contained, stackIndex);
+			
 			if(e instanceof StackLoadExpression) {
 				if(((StackLoadExpression) e).getIndex() == stackIndex) {
 					stack.push(e);
-					stackIndex -= e.getType().getSize();
+					// stackIndex -= e.getType().getSize();
+					stackIndex--;
 					continue;
 				}
 			}
@@ -174,10 +200,12 @@ public class StatementGenerator implements Opcodes {
 			block.getStatements().add(new StackDumpStatement(e, stackIndex, type));
 			stack.push(new StackLoadExpression(stackIndex, type, true));
 			System.out.println("  Creating save couple: " + block.getStatements().get(block.getStatements().size() - 1));
-			stackIndex -= e.getType().getSize();
+//			stackIndex -= e.getType().getSize();
+
+			stackIndex--;
 		}
 		
-		System.out.println("   Couplestack: " + stack);
+		System.out.println("   Couplestack: " + stack + " for " + depth + " items.");
 	}
 
 	Statement getLastStatement(BasicBlock b) {
@@ -797,7 +825,7 @@ public class StatementGenerator implements Opcodes {
 		}
 		InvocationExpression callExpr = new InvocationExpression(op, args, owner, name, desc);
 		if(callExpr.getType() == Type.VOID_TYPE) {
-			createStackVariables(currentBlock, currentStack);
+//			createStackVariables(currentBlock, currentStack);
 			addStmt(new PopStatement(callExpr));
 		} else {
 			push(callExpr);

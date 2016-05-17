@@ -28,6 +28,9 @@ import org.rsdeob.stdlib.cfg.ControlFlowGraphBuilder;
 import org.rsdeob.stdlib.cfg.ControlFlowGraphDeobfuscator;
 import org.rsdeob.stdlib.cfg.RootStatement;
 import org.rsdeob.stdlib.cfg.StatementGenerator;
+import org.rsdeob.stdlib.cfg.expr.StackLoadExpression;
+import org.rsdeob.stdlib.cfg.stat.Statement;
+import org.rsdeob.stdlib.cfg.stat.base.IStackDumpNode;
 import org.rsdeob.stdlib.cfg.util.GraphUtils;
 import org.rsdeob.stdlib.collections.NodeTable;
 import org.rsdeob.stdlib.deob.IPhase;
@@ -82,8 +85,30 @@ public class Boot implements Opcodes {
 				gen.init(m.maxLocals);
 				gen.createExpressions();
 				RootStatement root = gen.buildRoot();
+				root.getVariables().build();
 				
 				System.out.println(root);
+//				System.out.println(root.getVariables());
+				
+				for(BasicBlock b : cfg.blocks()) {
+					System.out.println();
+					System.out.println(b);
+					System.out.println(b.getState());
+					for(Statement stmt : b.getStatements()) {
+						if(stmt instanceof IStackDumpNode) {
+							if(((IStackDumpNode) stmt).isRedundant()) {
+								continue;
+							}
+						} else if (stmt instanceof StackLoadExpression) {
+							if(((StackLoadExpression) stmt).isStackVariable()) {
+								System.out.println("   st: [STACKVAR]" + stmt);
+								continue;
+							}
+						}
+						System.out.println("   st: " + stmt);
+					}
+				}
+				
 //				System.out.println("=============");
 //				System.out.println("=============");
 //				System.out.println("=============");

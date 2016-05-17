@@ -12,12 +12,12 @@ import org.rsdeob.stdlib.cfg.util.TabbedStringWriter;
 public class RootStatement extends Statement {
 
 	private final MethodNode method;
-//	private final VarVersionsMap variables;
+	private final VarVersionsMap variables;
 	private final Map<BasicBlock, BlockHeaderStatement> blockStatements;
 	
-	public RootStatement(MethodNode method/*, VarVersionsMap variables*/) {
+	public RootStatement(MethodNode method, VarVersionsMap variables) {
 		this.method = method;
-//		this.variables = variables;
+		this.variables = variables;
 		blockStatements = new HashMap<>();
 	}
 	
@@ -29,9 +29,9 @@ public class RootStatement extends Statement {
 		return method;
 	}
 	
-//	public VarVersionsMap getVariables() {
-//		return variables;
-//	}
+	public VarVersionsMap getVariables() {
+		return variables;
+	}
 	
 	@Override
 	public void onChildUpdated(int ptr) {

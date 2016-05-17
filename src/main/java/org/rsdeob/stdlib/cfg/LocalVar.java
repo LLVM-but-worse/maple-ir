@@ -61,7 +61,7 @@ public class LocalVar {
 				sb.append("   u:").append(u).append(" (").append(u.hashCode()).append(")").append("\n");
 			}
 			for(Statement d : var.getDefinitions()) {
-				sb.append("   u:").append(d).append(" (").append(d.hashCode()).append(")").append("\n");
+				sb.append("   d:").append(d).append(" (").append(d.hashCode()).append(")").append("\n");
 			}
 		}
 		return sb.toString();
