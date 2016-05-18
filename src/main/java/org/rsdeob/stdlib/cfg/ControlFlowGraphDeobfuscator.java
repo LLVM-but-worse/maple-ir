@@ -62,12 +62,17 @@ public class ControlFlowGraphDeobfuscator {
 		for(BasicBlock b : blocks) {
 			labelTracking.put(b.getLabel(), b.getLabel());
 		}
-		
+
 		while(true) {
 			boolean change = false;
 			
 			for(BasicBlock b : new ArrayList<>(blocks)) {
 				if((b.getPredecessors().size() == 0 && b != cfg.getEntry())) {
+//					System.out.println("block: ");
+//					System.out.println(b);
+//					StringBuilder sb= new StringBuilder();
+//					GraphUtils.printBlock(cfg, blocks, sb, b, 0);
+//					System.out.println(sb);
 					cfg.removeVertex(b);
 					blocks.remove(b);
 					change = true;
