@@ -64,7 +64,7 @@ public class Boot implements Opcodes {
 				
 //				GraphUtils.output(cfg, new ArrayList<>(cfg.blocks()), GRAPH_FOLDER, "pre");
 
-//				System.out.println(cfg);
+				System.out.println(cfg);
 				GraphUtils.output(cfg, new ArrayList<>(cfg.blocks()), GRAPH_FOLDER, "pre");
 				ControlFlowGraphDeobfuscator cleaner = new ControlFlowGraphDeobfuscator();
 				List<BasicBlock> blocks = cleaner.deobfuscate(cfg);
