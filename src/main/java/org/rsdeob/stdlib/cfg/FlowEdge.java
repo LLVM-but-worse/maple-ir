@@ -81,6 +81,7 @@ public abstract class FlowEdge {
 		
 		private void recalcHashcode() {
 			hashcode = 31 + (erange == null ? 0 : erange.hashCode());
+			hashcode += (src.getId() + " " + dst.getId()).hashCode();
 		}
 
 		@Override
