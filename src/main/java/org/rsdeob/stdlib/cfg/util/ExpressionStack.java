@@ -69,4 +69,20 @@ public class ExpressionStack {
 		sb.append("]");
 		return sb.toString();
 	}
+	
+	public String toTypeString() {
+		StringBuilder sb = new StringBuilder();
+		sb.append("top->btm[");
+		for (int i = size - 1; i >= 0; i--) {
+			Expression n = stack[i];
+			if (n != null) {
+				sb.append(n.getType());
+				if(i != 0 && stack[i - 1] != null) {
+					sb.append(", ");
+				}
+			}
+		}
+		sb.append("]");
+		return sb.toString();
+	}
 }
