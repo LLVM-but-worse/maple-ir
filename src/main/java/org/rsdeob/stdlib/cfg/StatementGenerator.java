@@ -119,6 +119,19 @@ public class StatementGenerator implements Opcodes {
 		currentStack.push(e);
 	}
 
+	
+	public static void assertTypeLen(Expression expr, int size) {
+		if(expr.getType().getSize() != size) {
+			throw new IllegalArgumentException(expr + " of length " + expr.getType().getSize() + " with expected size of " + size + ".");
+		}
+	}
+	
+	public void assertStackSize(int size) {
+		if(currentStack.size() != size) {
+			throw new IllegalArgumentException(currentStack.size() + " mismatches with expected " + size + ".");
+		}
+	}
+	
 	public void createExpressions() {
 		while (queue.size() > 0) {
 			BasicBlock b = queue.removeFirst();
@@ -129,6 +142,7 @@ public class StatementGenerator implements Opcodes {
 
 				// check merge exit stack with next input stack
 				if (b.getImmediate() != null) {
+					// FIXME: alloc or create vars?
 					createStackVariables(b, stack);
 					queue.addFirst(b.getImmediate());
 				}
@@ -318,7 +332,7 @@ public class StatementGenerator implements Opcodes {
 	}
 
 	ExpressionStack process(BasicBlock b) {
-		 System.out.println("Processing " + b.getId());
+		// System.out.println("Processing " + b.getId());
 		updatedStacks.add(b);
 		ExpressionStack stack = b.getInputStack().copy();
 
@@ -328,8 +342,8 @@ public class StatementGenerator implements Opcodes {
 		for (AbstractInsnNode ain : b.getInsns()) {
 			int opcode = ain.opcode();
 			if(opcode != -1) {
-				 System.out.println("Executing " + Printer.OPCODES[ain.opcode()]);
-				 System.out.println(" Prestack : " + stack);
+				// System.out.println("Executing " + Printer.OPCODES[ain.opcode()]);
+				// System.out.println(" Prestack : " + stack);
 			}
 			switch (opcode) {
 				case -1: {
@@ -500,22 +514,28 @@ public class StatementGenerator implements Opcodes {
 					break;
 					
 				case DUP:
+					// System.out.println(currentStack.toTypeString());
 					_dup();
 					break;
 				case DUP_X1:
+					// System.out.println(currentStack.toTypeString());
 					_dup_x1();
 					break;
 				case DUP_X2:
+					// System.out.println(currentStack.toTypeString());
 					_dup_x2();
 					break;
 
 				case DUP2:
+					// System.out.println(currentStack.toTypeString());
 					_dup2();
 					break;
 				case DUP2_X1:
+					// System.out.println(currentStack.toTypeString());
 					_dup2_x1();
 					break;
 				case DUP2_X2:
+					// System.out.println(currentStack.toTypeString());
 					_dup2_x2();
 					break;
 					
@@ -645,8 +665,8 @@ public class StatementGenerator implements Opcodes {
 					break;
 			}
 			
-			 System.out.println(" Poststack: " + stack);
-			 System.out.println();
+			// System.out.println(" Poststack: " + stack);
+			// System.out.println();
 		}
 
 		return stack;
@@ -725,6 +745,7 @@ public class StatementGenerator implements Opcodes {
 
 	void _return(Type type) {
 		if (type == Type.VOID_TYPE) {
+			assertStackSize(0);
 			addStmt(new ReturnStatement());
 		} else {
 			addStmt(new ReturnStatement(type, pop()));
@@ -732,6 +753,7 @@ public class StatementGenerator implements Opcodes {
 	}
 
 	void _throw() {
+		assertStackSize(1);
 		addStmt(new ThrowStatement(pop()));
 	}
 
@@ -765,33 +787,49 @@ public class StatementGenerator implements Opcodes {
 	}
 	
 	void _pop(int amt) {
-		if(currentStack.size() > amt) {
-			createStackVariables(currentBlock, currentStack);
-		}
+		// if(currentStack.size() > amt) {
+		// 	createStackVariables(currentBlock, currentStack);
+		//}
 		
-		for(int i=0; i < amt; i++) {
-			addStmt(new PopStatement(pop()));
+		while(amt > 0) {
+			Expression expr = pop();
+			addStmt(new PopStatement(expr));
+			amt -= expr.getType().getSize();
+		}
+		if(amt < 0) {
+			throw new UnsupportedOperationException("invalid pop lengths.");
 		}
 	}
 	
 	void _dup() {
+		assertTypeLen(peek().copy(), 1);
 		push(peek().copy());
 		allocStack(currentBlock, currentStack, 1, 1);
 	}
 
 	void _dup2() {
-		Expression expr2 = pop();
-		Expression expr1 = pop();
-		push(expr1);
-		push(expr2);
-		push(expr1.copy());
-		push(expr2.copy());
+		Expression first = pop();
+		
+		if(first.getType().getSize() == 2) {
+			push(first);
+			push(first.copy());
+		} else {
+			Expression second = pop();
+			push(second);
+			push(first);
+			push(second.copy());
+			push(first.copy());
+		}
+
+		// FIXME: stack alloc
 		allocStack(currentBlock, currentStack, 2, 2);
 	}
 
 	void _dup_x1() {
 		Expression expr2 = pop();
+		assertTypeLen(expr2, 1);
 		Expression expr1 = pop();
+		assertTypeLen(expr1, 1);
 		push(expr2.copy());
 		push(expr1);
 		push(expr2);
@@ -799,45 +837,106 @@ public class StatementGenerator implements Opcodes {
 	}
 
 	void _dup_x2() {
-		Expression expr2 = pop();
-		Expression expr1 = pop();
-		Expression expr0 = pop();
-		System.out.println(expr2 + "   " + expr1 + "   " + expr0);
-
-		push(expr2.copy());
-		push(expr0);
-		push(expr1);
-		push(expr2);
-		allocStack(currentBlock, currentStack, 1, 3);
+		// [a, b, c] -> [a, b, c, a]
+		Expression first = pop();
+		assertTypeLen(first, 1);
+		Expression second = pop();
+		
+		if(second.getType().getSize() == 2) {
+			// second = {b, c}
+			push(first.copy());
+			push(second);
+			push(first);
+			// FIXME: stack alloc
+		} else {
+			// second = {b}
+			Expression third = pop(); // {c}
+			push(first.copy());
+			push(third);
+			push(second);
+			push(first);
+			// FIXME: stack alloc
+			allocStack(currentBlock, currentStack, 1, 3);
+		}
 	}
 
 	void _dup2_x1() {
-		Expression expr2 = pop();
-		Expression expr1 = pop();
-		Expression expr0 = pop();
-		push(expr1.copy());
-		push(expr2.copy());
-		push(expr0);
-		push(expr1);
-		push(expr2);
-		allocStack(currentBlock, currentStack, 2, 3);
+		Expression first = pop();
+		
+		if(first.getType().getSize() == 2) {
+			Expression second = pop();
+			push(second.copy());
+			push(first.copy());
+			push(second);
+			push(first);
+			// FIXME: stack alloc
+		} else {
+			Expression second = pop();
+			Expression third = pop();
+			push(second.copy());
+			push(first.copy());
+			push(third);
+			push(second);
+			push(first);
+			allocStack(currentBlock, currentStack, 2, 3);
+		}
 	}
 
 	void _dup2_x2() {
-		Expression expr3 = pop();
-		Expression expr2 = pop();
-		Expression expr1 = pop();
-		Expression expr0 = pop();
-		push(expr2.copy());
-		push(expr3.copy());
-		push(expr0);
-		push(expr1);
-		push(expr2);
-		push(expr3);
-		allocStack(currentBlock, currentStack, 4, 4);
+		// [a, b, c, d] -> [a, b, c, d, a, b]
+		Expression first = pop();
+		
+		if(first.getType().getSize() == 2) {
+			// first = {a, b}
+			Expression second = pop();
+			if(second.getType().getSize() == 2) {
+				// second = {c, d}
+				push(first.copy());
+				push(second);
+				push(first);
+				// FIXME: stack alloc
+			} else {
+				// second = {c}
+				Expression third = pop(); // {d}
+				push(first.copy());
+				push(third);
+				push(second);
+				push(first);
+				// FIXME: stack alloc
+			}
+		} else {
+			// first = {a}
+			Expression second = pop(); // {b}
+			// if the first len is 1, then the second
+			// must also be 1.
+			assertTypeLen(second, 1);
+			Expression third = pop();
+			if(third.getType().getSize() == 2) {
+				// {a} {b} {c,d}
+				// i.e. {c, d} are one type
+				push(second.copy()); // [b]
+				push(first.copy());  // [a, b]
+				push(third);         // [c, d, a, b]
+				push(second);        // [b, c, d, a, b]
+				push(first);         // [a, b, {c, d}, a, b]
+				// FIXME: stack alloc
+			} else {
+				// {a} {b} {c} {d}
+				Expression fourth = pop();
+				
+				push(second.copy()); // [b]
+				push(first.copy());  // [a, b]
+				push(fourth);        // [d, a, b]
+				push(third);         // [c, d, a, b]
+				push(second);        // [b, c, d, a, b]
+				push(first);         // [a, b, c, d, a, b]
+				allocStack(currentBlock, currentStack, 4, 4);
+			}
+		}
 	}
 	
 	void _swap() {
+		// FIXME:
 		createStackVariables(currentBlock, currentStack);
 		Expression expr2 = pop();
 		Expression expr1 = pop();
