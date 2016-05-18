@@ -29,11 +29,11 @@ public class ControlFlowGraphBuilder {
 //	private static final Pass[] ROOT_PASSES = new Pass[] {new VariableMergerPass(), new UnusedVariablesPass(), new NewObjectPass()};
 	
 	private final MethodNode method;
-	public final ControlFlowGraph graph;
-	int count = 0;
-	BitSet finished;
-	InsnList insns;
-	LinkedList<LabelNode> queue;
+	private final ControlFlowGraph graph;
+	private final BitSet finished;
+	private final LinkedList<LabelNode> queue;
+	private InsnList insns;
+	private int count = 0;
 	
 	public ControlFlowGraphBuilder(MethodNode method) {
 		this.method = method;
@@ -45,9 +45,11 @@ public class ControlFlowGraphBuilder {
 		 * we can create the block reference and then handle
 		 * the creation mechanism later. */
 		finished = new BitSet();
-
-		prepare();
 		queue = new LinkedList<>();
+	}
+	
+	void init() {
+		checkLabel();
 		LabelNode firstLabel = (LabelNode) insns.getFirst();
 		BasicBlock entry = makeBlock(++count, firstLabel);
 		graph.setEntry(entry);
@@ -61,7 +63,7 @@ public class ControlFlowGraphBuilder {
 	}
 
 
-	void prepare() {
+	void checkLabel() {
 		AbstractInsnNode first = insns.getFirst();
 		if(!(first instanceof LabelNode)) {
 			LabelNode nFirst = new LabelNode();
@@ -199,7 +201,7 @@ public class ControlFlowGraphBuilder {
 		}
 	}
 	
-	public void processQueue() {
+	void processQueue() {
 		while(!queue.isEmpty()) {
 			LabelNode label = queue.removeFirst();
 			process(label);
@@ -216,6 +218,14 @@ public class ControlFlowGraphBuilder {
 		});
 		GraphUtils.naturaliseGraph(graph, blocks);
 		setranges(blocks);
+	}
+	
+	public ControlFlowGraph build() {
+		if(count == 0) { // no blocks created
+			init();
+			processQueue();
+		}
+		return graph;
 	}
 	
 	public static ControlFlowGraph create(MethodNode method) {

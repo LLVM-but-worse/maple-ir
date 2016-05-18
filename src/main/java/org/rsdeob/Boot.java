@@ -60,8 +60,7 @@ public class Boot implements Opcodes {
 //			if(m.name.equals("t2")) {
 				InstructionPrinter.consolePrint(m);
 				ControlFlowGraphBuilder builder = new ControlFlowGraphBuilder(m);
-				ControlFlowGraph cfg = builder.graph;
-				builder.processQueue();
+				ControlFlowGraph cfg = builder.build();
 				
 //				GraphUtils.output(cfg, new ArrayList<>(cfg.blocks()), GRAPH_FOLDER, "pre");
 				
