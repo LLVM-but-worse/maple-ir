@@ -31,7 +31,6 @@ public class ControlFlowGraphBuilder {
 	private final MethodNode method;
 	public final ControlFlowGraph graph;
 	int count = 0;
-	Map<LabelNode, BasicBlock> created;
 	BitSet finished;
 	InsnList insns;
 	LinkedList<LabelNode> queue;
@@ -40,11 +39,11 @@ public class ControlFlowGraphBuilder {
 		this.method = method;
 		graph = new ControlFlowGraph(method);
 		insns = method.instructions;
-		/* a block can exist in the map but not be populated yet.
+		/* a block can exist in the map in the graph 
+		 * but not be populated yet.
 		 * we do this so that when a flow function is reached, 
 		 * we can create the block reference and then handle
 		 * the creation mechanism later. */
-		created = new HashMap<>();
 		finished = new BitSet();
 
 		prepare();
@@ -74,11 +73,11 @@ public class ControlFlowGraphBuilder {
 	void setranges(List<BasicBlock> order) {
 		Map<String, ExceptionRange> ranges = new HashMap<>();
 		for(TryCatchBlockNode tc : method.tryCatchBlocks) {
-			int start = LabelHelper.numeric(created.get(tc.start).getId());
-			int end = LabelHelper.numeric(created.get(tc.end).getId()) - 1;
+			int start = LabelHelper.numeric(graph.getBlock(tc.start).getId());
+			int end = LabelHelper.numeric(graph.getBlock(tc.end).getId()) - 1;
 			
 			List<BasicBlock> range = GraphUtils.range(order, start, end);
-			BasicBlock handler = created.get(tc.handler);
+			BasicBlock handler = graph.getBlock(tc.handler);
 			String key = String.format("%s:%s:%s", LabelHelper.createBlockName(start), LabelHelper.createBlockName(end), handler.getId());
 			
 			ExceptionRange erange;
@@ -108,27 +107,22 @@ public class ControlFlowGraphBuilder {
 	
 	BasicBlock makeBlock(int index, LabelNode label) {
 		BasicBlock b = new BasicBlock(graph, LabelHelper.createBlockName(index), label);
-		created.put(label, b);
 		queue.add(label);
 		graph.addVertex(b);
 		return b;
 	}
 	
 	BasicBlock resolveTarget(LabelNode label, InsnList insns) {
-		if(created.containsKey(label)) {
-			return created.get(label);
-		} else {
-			return makeBlock(++count, label);
+		BasicBlock block = graph.getBlock(label);
+		if(block == null) {
+			block = makeBlock(++count, label);
 		}
+		return block;
 	}
 	
 	void process(LabelNode label) {
-		BasicBlock block = null;
-		
 		/* it may not be properly initialised yet, however. */
-		if(created.containsKey(label)) {
-			block = created.get(label);
-		} 
+		BasicBlock block = graph.getBlock(label);
 		
 		/* if it is, we don't need to process it. */
 		if(block != null && finished.get(LabelHelper.numeric(block.getId()))) {
@@ -211,7 +205,7 @@ public class ControlFlowGraphBuilder {
 			process(label);
 		}
 		
-		List<BasicBlock> blocks = new ArrayList<>(created.values());
+		List<BasicBlock> blocks = new ArrayList<>(graph.blocks());
 		Collections.sort(blocks, new Comparator<BasicBlock>() {
 			@Override
 			public int compare(BasicBlock o1, BasicBlock o2) {
