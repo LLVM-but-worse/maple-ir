@@ -61,7 +61,7 @@ public abstract class FlowEdge {
 
 			@Override
 			public String toString() {
-				return String.format("TryCatch handler: %s <- range: %s (%s)", dst.getId(), rangetoString(erange.getBlocks()), erange.getTypes());
+				return String.format("TryCatch handler: %s <- range: %s from %s (%s)", dst.getId(), rangetoString(erange.getBlocks()), src.getId(), erange.getTypes());
 			}
 
 			@Override
