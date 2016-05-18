@@ -136,7 +136,7 @@ public class StatementGenerator implements Opcodes {
 				for (FlowEdge _succ : b.getSuccessors()) {
 					if (!(_succ instanceof TryCatchEdge)) {
 						BasicBlock succ = _succ.dst;
-						updateTargetStack(succ, stack);
+						updateTargetStack(b, succ, stack);
 					}
 				}
 			}
@@ -173,7 +173,7 @@ public class StatementGenerator implements Opcodes {
 			}
 		}
 		
-		System.out.println("Contained: " + contained);
+		// System.out.println("Contained: " + contained);
 
 		stackIndex += stack.size();
 		for (int i = exprs.length - 1; i >= 0; i--) {
@@ -199,20 +199,64 @@ public class StatementGenerator implements Opcodes {
 			
 			block.getStatements().add(new StackDumpStatement(e, stackIndex, type));
 			stack.push(new StackLoadExpression(stackIndex, type, true));
-			System.out.println("  Creating save couple: " + block.getStatements().get(block.getStatements().size() - 1));
+			// System.out.println("  Creating save couple: " + block.getStatements().get(block.getStatements().size() - 1));
 //			stackIndex -= e.getType().getSize();
 
 			stackIndex--;
 		}
 		
-		System.out.println("   Couplestack: " + stack + " for " + depth + " items.");
+		// System.out.println("   Couplestack: " + stack + " for " + depth + " items.");
+	}
+
+	void allocStack(BasicBlock block, ExpressionStack stack, int depth, int startdepth) {
+		// layout of exprs:
+		// +- 0 (top of stack)
+		// |  1
+		// |  2
+		// | ...
+		// +- startdepth
+		// |  startdepth + 1
+		// |  startdepth + 2
+		// |  ...
+		// +- startdepth + depth - 1 (bottom of stack)
+
+		int stackIndex = stackBase;
+
+		// Populate exprs and empty relevant parts of the stack
+		Expression[] exprs = new Expression[depth + startdepth];
+		for (int i = 0; i < exprs.length; i++) {
+			exprs[i] = stack.pop1();
+			stackIndex += exprs[i].getType().getSize();
+		}
+
+		// Repopulate stack
+		for (int i = exprs.length - 1; i >= 0; i--) {
+			Expression e = exprs[i];
+			Type type = TypeUtils.asSimpleType(e.getType());
+
+			boolean skip = i < startdepth; // Ignore stack above startdepth; just push it back on
+			skip = skip || e instanceof StackLoadExpression && ((StackLoadExpression) e).getIndex() == stackIndex; // Ignore identical stack variables
+			if(skip) {
+				stack.push(e);
+				stackIndex -= e.getType().getSize();
+				continue;
+			}
+
+			// Allocate new variable
+			block.getStatements().add(new StackDumpStatement(e, stackIndex, type));
+			stack.push(new StackLoadExpression(stackIndex, type, true));
+			// System.out.println("  Creating save couple: " + block.getStatements().get(block.getStatements().size() - 1));
+			stackIndex -= e.getType().getSize();
+		}
+
+		// System.out.println("   Couplestack: " + stack);
 	}
 
 	Statement getLastStatement(BasicBlock b) {
 		return b.getStatements().get(b.getStatements().size() - 1);
 	}
 
-	void updateTargetStack(BasicBlock target, ExpressionStack stack) {
+	void updateTargetStack(BasicBlock b, BasicBlock target, ExpressionStack stack) {
 		// called just before a jump to a successor block may
 		// happen. any operations, such as comparisons, that
 		// happen before the jump are expected to have already
@@ -228,8 +272,8 @@ public class StatementGenerator implements Opcodes {
 			// if the targets input stack is finalised and
 			// the new stack cannot merge into it, then there
 			// is an error in the bytecode (verifier error).
-			System.out.println("Current: " + stack);
-			System.out.println("Target : " + target.getInputStack());
+			System.out.println("Current: " + stack + " in " + b.getId());
+			System.out.println("Target : " + target.getInputStack() + " in " + target.getId());
 			throw new IllegalStateException("Stack coherency mistmatch into #" + target.getId());
 		}
 	}
@@ -274,7 +318,7 @@ public class StatementGenerator implements Opcodes {
 	}
 
 	ExpressionStack process(BasicBlock b) {
-		System.out.println("Processing " + b.getId());
+		 System.out.println("Processing " + b.getId());
 		updatedStacks.add(b);
 		ExpressionStack stack = b.getInputStack().copy();
 
@@ -284,8 +328,8 @@ public class StatementGenerator implements Opcodes {
 		for (AbstractInsnNode ain : b.getInsns()) {
 			int opcode = ain.opcode();
 			if(opcode != -1) {
-				System.out.println("Executing " + Printer.OPCODES[ain.opcode()]);
-				System.out.println(" Prestack : " + stack);
+				 System.out.println("Executing " + Printer.OPCODES[ain.opcode()]);
+				 System.out.println(" Prestack : " + stack);
 			}
 			switch (opcode) {
 				case -1: {
@@ -601,15 +645,15 @@ public class StatementGenerator implements Opcodes {
 					break;
 			}
 			
-			System.out.println(" Poststack: " + stack);
-			System.out.println();
+			 System.out.println(" Poststack: " + stack);
+			 System.out.println();
 		}
 
 		return stack;
 	}
 
 	void _jump_compare(BasicBlock target, ComparisonType type, Expression left, Expression right) {
-		updateTargetStack(target, currentStack);
+		updateTargetStack(currentBlock, target, currentStack);
 		addStmt(new ConditionalJumpStatement(left, right, target, type));
 	}
 	
@@ -644,7 +688,7 @@ public class StatementGenerator implements Opcodes {
 
 	void _jump_uncond(BasicBlock target) {
 		createStackVariables(currentBlock, currentStack);
-		updateTargetStack(target, currentStack);
+		updateTargetStack(currentBlock, target, currentStack);
 		addStmt(new UnconditionalJumpStatement(target));
 	}
 
@@ -731,44 +775,43 @@ public class StatementGenerator implements Opcodes {
 	}
 	
 	void _dup() {
-		createStackVariables(currentBlock, currentStack, 1);
 		push(peek().copy());
+		allocStack(currentBlock, currentStack, 1, 1);
 	}
-	
+
 	void _dup2() {
-		createStackVariables(currentBlock, currentStack, 2);
 		Expression expr2 = pop();
 		Expression expr1 = pop();
 		push(expr1);
 		push(expr2);
 		push(expr1.copy());
 		push(expr2.copy());
+		allocStack(currentBlock, currentStack, 2, 2);
 	}
-	
+
 	void _dup_x1() {
-		createStackVariables(currentBlock, currentStack, 2);
 		Expression expr2 = pop();
 		Expression expr1 = pop();
 		push(expr2.copy());
 		push(expr1);
 		push(expr2);
+		allocStack(currentBlock, currentStack, 1, 2);
 	}
-	
+
 	void _dup_x2() {
-		createStackVariables(currentBlock, currentStack, 3);
 		Expression expr2 = pop();
 		Expression expr1 = pop();
 		Expression expr0 = pop();
 		System.out.println(expr2 + "   " + expr1 + "   " + expr0);
-		
+
 		push(expr2.copy());
 		push(expr0);
 		push(expr1);
 		push(expr2);
+		allocStack(currentBlock, currentStack, 1, 3);
 	}
-	
+
 	void _dup2_x1() {
-		createStackVariables(currentBlock, currentStack, 3);
 		Expression expr2 = pop();
 		Expression expr1 = pop();
 		Expression expr0 = pop();
@@ -777,10 +820,10 @@ public class StatementGenerator implements Opcodes {
 		push(expr0);
 		push(expr1);
 		push(expr2);
+		allocStack(currentBlock, currentStack, 2, 3);
 	}
-	
+
 	void _dup2_x2() {
-		createStackVariables(currentBlock, currentStack, 4);
 		Expression expr3 = pop();
 		Expression expr2 = pop();
 		Expression expr1 = pop();
@@ -791,6 +834,7 @@ public class StatementGenerator implements Opcodes {
 		push(expr1);
 		push(expr2);
 		push(expr3);
+		allocStack(currentBlock, currentStack, 4, 4);
 	}
 	
 	void _swap() {
@@ -838,16 +882,16 @@ public class StatementGenerator implements Opcodes {
 		}
 		Expression expr = pop();
 		for(Entry<Integer, BasicBlock> e : targets.entrySet()) {
-			updateTargetStack(e.getValue(), currentStack);
+			updateTargetStack(currentBlock, e.getValue(), currentStack);
 		}
-		updateTargetStack(dflt, currentStack);
+		updateTargetStack(currentBlock, dflt, currentStack);
 		addStmt(new SwitchStatement(expr, targets, dflt));
 	}
 
 	void _store_field(int opcode, String owner, String name, String desc) {
 		if(opcode == PUTFIELD) {
 			if(currentStack.size() > 2) {
-				createStackVariables(currentBlock, currentStack);
+				//createStackVariables(currentBlock, currentStack);
 			}
 			
 			Expression val = pop();
@@ -855,7 +899,7 @@ public class StatementGenerator implements Opcodes {
 			addStmt(new FieldStoreExpression(inst, val, owner, name, desc));
 		} else if(opcode == PUTSTATIC) {
 			if(currentStack.size() > 1) {
-				createStackVariables(currentBlock, currentStack);
+				//createStackVariables(currentBlock, currentStack);
 			}
 			Expression val = pop();
 			addStmt(new FieldStoreExpression(null, val, owner, name, desc));

@@ -26,14 +26,10 @@ import org.rsdeob.stdlib.cfg.BasicBlock;
 import org.rsdeob.stdlib.cfg.ControlFlowGraph;
 import org.rsdeob.stdlib.cfg.ControlFlowGraphBuilder;
 import org.rsdeob.stdlib.cfg.ControlFlowGraphDeobfuscator;
-import org.rsdeob.stdlib.cfg.RootStatement;
-import org.rsdeob.stdlib.cfg.StatementGenerator;
-import org.rsdeob.stdlib.cfg.expr.StackLoadExpression;
-import org.rsdeob.stdlib.cfg.stat.Statement;
-import org.rsdeob.stdlib.cfg.stat.base.IStackDumpNode;
 import org.rsdeob.stdlib.cfg.util.GraphUtils;
 import org.rsdeob.stdlib.collections.NodeTable;
 import org.rsdeob.stdlib.deob.IPhase;
+import org.topdank.banalysis.asm.insn.InstructionPrinter;
 import org.topdank.byteengineer.commons.data.JarInfo;
 import org.topdank.byteio.in.SingleJarDownloader;
 
@@ -52,13 +48,32 @@ public class Boot implements Opcodes {
 		while(it.hasNext()) {
 			MethodNode m = it.next();
 			
+			if(!m.toString().equals("a/a/f/a.H(La/a/f/o;J)V")) {
+				continue;
+			}
+			
 //			if(!m.name.equals("t3")) {
 //				continue;
 //			}
 			
 			System.err.println(m);
 //			if(m.name.equals("t2")) {
-				ControlFlowGraph cfg = ControlFlowGraphBuilder.create(m);
+				InstructionPrinter.consolePrint(m);
+				ControlFlowGraphBuilder builder = new ControlFlowGraphBuilder(m);
+				ControlFlowGraph cfg = builder.graph;
+				builder.processQueue();
+				
+				GraphUtils.output(cfg, new ArrayList<>(cfg.blocks()), GRAPH_FOLDER, "pre");
+				
+				ControlFlowGraphDeobfuscator cleaner = new ControlFlowGraphDeobfuscator();
+				List<BasicBlock> blocks = cleaner.deobfuscate(cfg);
+//				GraphUtils.output(cfg, blocks, GRAPH_FOLDER, "pre1");
+//				cleaner.removeEmptyBlocks(cfg, blocks);
+				GraphUtils.naturaliseGraph(cfg, blocks);
+				GraphUtils.output(cfg, blocks, GRAPH_FOLDER, "post");
+				System.out.println(cfg);
+//				ControlFlowGraph cfg = ControlFlowGraphBuilder.create(m);
+//				GraphUtils.output(cfg, new ArrayList<>(cfg.blocks()), GRAPH_FOLDER, "");
 //				System.out.println(cfg.getRoot());
 //				System.out.println(cfg);
 //				RootStatement root = cfg.getRoot();
@@ -80,34 +95,34 @@ public class Boot implements Opcodes {
 //				};
 //				vis.visit();
 //				root.dump(m);
-				System.out.println(cfg);
-				StatementGenerator gen = new StatementGenerator(cfg);
-				gen.init(m.maxLocals);
-				gen.createExpressions();
-				RootStatement root = gen.buildRoot();
-				root.getVariables().build();
-				
-				System.out.println(root);
+//				System.out.println(cfg);
+//				StatementGenerator gen = new StatementGenerator(cfg);
+//				gen.init(m.maxLocals);
+//				gen.createExpressions();
+//				RootStatement root = gen.buildRoot();
+//				root.getVariables().build();
+//				
+//				System.out.println(root);
 //				System.out.println(root.getVariables());
 				
-				for(BasicBlock b : cfg.blocks()) {
-					System.out.println();
-					System.out.println(b);
-					System.out.println(b.getState());
-					for(Statement stmt : b.getStatements()) {
-						if(stmt instanceof IStackDumpNode) {
-							if(((IStackDumpNode) stmt).isRedundant()) {
-								continue;
-							}
-						} else if (stmt instanceof StackLoadExpression) {
-							if(((StackLoadExpression) stmt).isStackVariable()) {
-								System.out.println("   st: [STACKVAR]" + stmt);
-								continue;
-							}
-						}
-						System.out.println("   st: " + stmt);
-					}
-				}
+//				for(BasicBlock b : cfg.blocks()) {
+//					System.out.println();
+//					System.out.println(b);
+//					System.out.println(b.getState());
+//					for(Statement stmt : b.getStatements()) {
+//						if(stmt instanceof IStackDumpNode) {
+//							if(((IStackDumpNode) stmt).isRedundant()) {
+//								continue;
+//							}
+//						} else if (stmt instanceof StackLoadExpression) {
+//							if(((StackLoadExpression) stmt).isStackVariable()) {
+//								System.out.println("   st: [STACKVAR]" + stmt);
+//								continue;
+//							}
+//						}
+//						System.out.println("   st: " + stmt);
+//					}
+//				}
 				
 //				System.out.println("=============");
 //				System.out.println("=============");
@@ -124,7 +139,7 @@ public class Boot implements Opcodes {
 //				InstructionPrinter.consolePrint(m);
 //			}
 				
-				break;
+//				break;
 		}
 		
 		ClassWriter clazz = new ClassWriter(0);

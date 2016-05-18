@@ -67,7 +67,11 @@ public class ControlFlowGraphDeobfuscator {
 			boolean change = false;
 			
 			for(BasicBlock b : new ArrayList<>(blocks)) {
-				if(b.cleanSize() == 0) {
+				if((b.getPredecessors().size() == 0 && b != cfg.getEntry())) {
+					cfg.removeVertex(b);
+					blocks.remove(b);
+					change = true;
+				} else if(b.cleanSize() == 0) {
 					// implies 1 immediate successor
 					// transfer predecessor edges to its successor
 //					ImmediateEdge succ = b.getImmediateEdge();

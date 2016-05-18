@@ -31,7 +31,7 @@ public class BasicBlock {
 	private List<Statement> statements;
 	private BlockState state;
 	
-	void rename(String id) {
+	public void rename(String id) {
 		this.id = id;
 		hashcode = 31 + id.hashCode();
 	}

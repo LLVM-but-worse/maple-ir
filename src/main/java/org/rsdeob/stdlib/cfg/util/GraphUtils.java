@@ -722,4 +722,29 @@ public class GraphUtils {
 		cfg.removeEdge(pred, e);
 		// mergeTrys(cfg, order, pred, b);
 	}
+	
+	public static void naturaliseGraph(ControlFlowGraph cfg, List<BasicBlock> blocks) {
+		// copy edge sets
+		Collection<Set<FlowEdge>> _edgeSets = cfg.edges();
+		Set<FlowEdge> edges = new HashSet<>();
+		for(Set<FlowEdge> set : _edgeSets) {
+			edges.addAll(set);
+		}
+		// clean graph
+		cfg.clear();
+		// rename and add blocks
+		int label = 1;
+		for(BasicBlock b : blocks) {
+			String id = LabelHelper.createBlockName(label);
+			label++;
+			
+			b.rename(id);
+			cfg.addVertex(b);
+		}
+		
+		for(FlowEdge e : edges) {
+			BasicBlock src = e.src;
+			cfg.addEdge(src, e);
+		}
+	}
 }
