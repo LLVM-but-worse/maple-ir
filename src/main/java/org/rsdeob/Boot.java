@@ -22,11 +22,15 @@ import org.rsdeob.deobimpl.DummyMethodPhase;
 import org.rsdeob.deobimpl.RTECatchBlockRemoverPhase;
 import org.rsdeob.deobimpl.UnusedFieldsPhase;
 import org.rsdeob.stdlib.IContext;
-import org.rsdeob.stdlib.cfg.*;
+import org.rsdeob.stdlib.cfg.BasicBlock;
+import org.rsdeob.stdlib.cfg.ControlFlowGraph;
+import org.rsdeob.stdlib.cfg.ControlFlowGraphBuilder;
+import org.rsdeob.stdlib.cfg.ControlFlowGraphDeobfuscator;
+import org.rsdeob.stdlib.cfg.RootStatement;
+import org.rsdeob.stdlib.cfg.StatementGenerator;
 import org.rsdeob.stdlib.cfg.util.GraphUtils;
 import org.rsdeob.stdlib.collections.NodeTable;
 import org.rsdeob.stdlib.deob.IPhase;
-import org.topdank.banalysis.asm.insn.InstructionPrinter;
 import org.topdank.byteengineer.commons.data.JarInfo;
 import org.topdank.byteio.in.SingleJarDownloader;
 
@@ -45,29 +49,29 @@ public class Boot implements Opcodes {
 		while(it.hasNext()) {
 			MethodNode m = it.next();
 			
-			if(!m.toString().equals("a/a/f/a.H(La/a/f/o;J)V")) {
-				continue;
-			}
-			
-//			if(!m.name.equals("t3")) {
+//			if(!m.toString().equals("a/a/f/a.H(La/a/f/o;J)V")) {
 //				continue;
 //			}
 			
-			System.err.println(m);
+			System.out.println(m);
 //			if(m.name.equals("t2")) {
-				InstructionPrinter.consolePrint(m);
+				// InstructionPrinter.consolePrint(m);
 				ControlFlowGraphBuilder builder = new ControlFlowGraphBuilder(m);
 				ControlFlowGraph cfg = builder.build();
 				
-//				GraphUtils.output(cfg, new ArrayList<>(cfg.blocks()), GRAPH_FOLDER, "pre");
-				
-				ControlFlowGraphDeobfuscator cleaner = new ControlFlowGraphDeobfuscator();
-				List<BasicBlock> blocks = cleaner.deobfuscate(cfg);
-//				GraphUtils.output(cfg, blocks, GRAPH_FOLDER, "pre1");
-//				cleaner.removeEmptyBlocks(cfg, blocks);
+				ControlFlowGraphDeobfuscator deobber = new ControlFlowGraphDeobfuscator();
+				List<BasicBlock> blocks = deobber.deobfuscate(cfg);
+				deobber.removeEmptyBlocks(cfg, blocks);
 				GraphUtils.naturaliseGraph(cfg, blocks);
-//				GraphUtils.output(cfg, blocks, GRAPH_FOLDER, "post");
-				System.out.println(cfg);
+				
+				StatementGenerator gen = new StatementGenerator(cfg);
+				gen.init(m.maxLocals);
+				gen.createExpressions();
+				
+				RootStatement root = gen.buildRoot();
+				System.out.println(root);
+				System.out.println();
+				
 //				ControlFlowGraph cfg = ControlFlowGraphBuilder.create(m);
 //				GraphUtils.output(cfg, new ArrayList<>(cfg.blocks()), GRAPH_FOLDER, "");
 //				System.out.println(cfg.getRoot());
@@ -92,14 +96,14 @@ public class Boot implements Opcodes {
 //				vis.visit();
 //				root.dump(m);
 //				System.out.println(cfg);
-				StatementGenerator gen = new StatementGenerator(cfg);
-				gen.init(m.maxLocals);
-				gen.createExpressions();
-				RootStatement root = gen.buildRoot();
-				root.getVariables().build();
+//				StatementGenerator gen = new StatementGenerator(cfg);
+//				gen.init(m.maxLocals);
+//				gen.createExpressions();
+//				RootStatement root = gen.buildRoot();
+//				root.getVariables().build();
 //				
-				System.out.println(root);
-				System.out.println(root.getVariables());
+//				System.out.println(root);
+//				System.out.println(root.getVariables());
 				
 //				for(BasicBlock b : cfg.blocks()) {
 //					System.out.println();

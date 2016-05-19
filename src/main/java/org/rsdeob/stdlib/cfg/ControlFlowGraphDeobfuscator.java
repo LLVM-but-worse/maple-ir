@@ -62,43 +62,43 @@ public class ControlFlowGraphDeobfuscator {
 		for(BasicBlock b : blocks) {
 			labelTracking.put(b.getLabel(), b.getLabel());
 		}
-		
+
 		while(true) {
 			boolean change = false;
 			
 			for(BasicBlock b : new ArrayList<>(blocks)) {
-				if((b.getPredecessors().size() == 0 && b != cfg.getEntry())) {
+				if(b.getPredecessors().size() == 0 && b != cfg.getEntry()) {
 					cfg.removeVertex(b);
 					blocks.remove(b);
 					change = true;
 				} else if(b.cleanSize() == 0) {
+					// TODO:
 					// implies 1 immediate successor
 					// transfer predecessor edges to its successor
-//					ImmediateEdge succ = b.getImmediateEdge();
-//					Set<FlowEdge> allSuccs = b.getSuccessors(e -> !(e instanceof TryCatchEdge));
-//					if(succ == null || allSuccs.size() != 1) {
-//						throw new IllegalStateException(succ + " " + allSuccs);
-//					}
-//					
-//					cfg.removeEdge(b, succ);
-//					
-//					Set<FlowEdge> preds = b.getPredecessors();
-//					for(FlowEdge e : preds) {
-//						FlowEdge cloned = e.clone(e.src, succ.dst);
-//						cfg.addEdge(e.src, cloned);
-//					}
-//					
-//					cfg.removeVertex(b);
-//					change = true;
-//					break;
+					// ImmediateEdge succ = b.getImmediateEdge();
+					// Set<FlowEdge> allSuccs = b.getSuccessors(e -> !(e instanceof TryCatchEdge));
+					// if(succ == null || allSuccs.size() != 1) {
+					// throw new IllegalStateException(succ + " " + allSuccs);
+					// }
+					//
+					// cfg.removeEdge(b, succ);
+					//
+					// Set<FlowEdge> preds = b.getPredecessors();
+					// for(FlowEdge e : preds) {
+					// FlowEdge cloned = e.clone(e.src, succ.dst);
+					// cfg.addEdge(e.src, cloned);
+					// }
+					//
+					// cfg.removeVertex(b);
+					// change = true;
+					// break;
 				} else {
 					FlowEdge incomingImmediate = b.getIncomingImmediateEdge();
 					if(incomingImmediate != null && b.getPredecessors().size() == 1) {
 						BasicBlock pred = incomingImmediate.src;
-						
+	
 						if(!GraphUtils.isFlowBlock(pred)) {
 							// check that the exceptions are the same
-						
 							List<ExceptionRange> predRanges = pred.getProtectingRanges();
 							List<ExceptionRange> blockRanges = b.getProtectingRanges();
 							if(predRanges.equals(blockRanges)) {
