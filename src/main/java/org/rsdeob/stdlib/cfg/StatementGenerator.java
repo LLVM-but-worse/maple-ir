@@ -220,16 +220,14 @@ public class StatementGenerator implements Opcodes {
 		// |  ...
 		// +- startdepth + depth - 1 (bottom of stack)
 
-		int stackIndex = stackBase;
-
 		// Populate exprs and empty relevant parts of the stack
-		Expression[] exprs = new Expression[depth + startdepth];
+		Expression[] exprs = new Expression[stack.indexDepth(depth + startdepth)];
 		for (int i = 0; i < exprs.length; i++) {
 			exprs[i] = stack.pop1();
-			stackIndex += exprs[i].getType().getSize();
 		}
 
 		// Repopulate stack
+		int stackIndex = depth + startdepth + stackBase;
 		for (int i = exprs.length - 1; i >= 0; i--) {
 			Expression e = exprs[i];
 			Type type = TypeUtils.asSimpleType(e.getType());
@@ -780,61 +778,51 @@ public class StatementGenerator implements Opcodes {
 	}
 
 	void _dup2() {
-		Expression expr2 = pop();
-		Expression expr1 = pop();
-		push(expr1);
-		push(expr2);
-		push(expr1.copy());
-		push(expr2.copy());
+		Expression expr1 = currentStack.peek();
+		currentStack.insertBelow(expr1.copy(), 2);
+		if (expr1.getType().getSize() == 2)
+		{
+			Expression expr2 = currentStack.peek(1);
+			currentStack.insertBelow(expr2.copy(), 2);
+		}
+		System.out.println(currentStack);
 		allocStack(currentBlock, currentStack, 2, 2);
 	}
 
 	void _dup_x1() {
-		Expression expr2 = pop();
-		Expression expr1 = pop();
-		push(expr2.copy());
-		push(expr1);
-		push(expr2);
+		currentStack.insertBelow(peek().copy(), 2);
+		System.out.println(currentStack);
 		allocStack(currentBlock, currentStack, 1, 2);
 	}
 
 	void _dup_x2() {
-		Expression expr2 = pop();
-		Expression expr1 = pop();
-		Expression expr0 = pop();
-		System.out.println(expr2 + "   " + expr1 + "   " + expr0);
-
-		push(expr2.copy());
-		push(expr0);
-		push(expr1);
-		push(expr2);
+		currentStack.insertBelow(peek().copy(), 3);
+		System.out.println(currentStack);
 		allocStack(currentBlock, currentStack, 1, 3);
 	}
 
 	void _dup2_x1() {
-		Expression expr2 = pop();
-		Expression expr1 = pop();
-		Expression expr0 = pop();
-		push(expr1.copy());
-		push(expr2.copy());
-		push(expr0);
-		push(expr1);
-		push(expr2);
+		Expression expr1 = currentStack.peek();
+		currentStack.insertBelow(expr1.copy(), 3);
+		if (expr1.getType().getSize() == 2)
+		{
+			Expression expr2 = currentStack.peek(1);
+			currentStack.insertBelow(expr2.copy(), 3);
+		}
+		System.out.println(currentStack);
 		allocStack(currentBlock, currentStack, 2, 3);
 	}
 
 	void _dup2_x2() {
-		Expression expr3 = pop();
-		Expression expr2 = pop();
-		Expression expr1 = pop();
-		Expression expr0 = pop();
-		push(expr2.copy());
-		push(expr3.copy());
-		push(expr0);
-		push(expr1);
-		push(expr2);
-		push(expr3);
-		allocStack(currentBlock, currentStack, 4, 4);
+		Expression expr1 = currentStack.peek();
+		currentStack.insertBelow(expr1.copy(), 3);
+		if (expr1.getType().getSize() == 2)
+		{
+			Expression expr2 = currentStack.peek(1);
+			currentStack.insertBelow(expr2.copy(), 4);
+		}
+		System.out.println(currentStack);
+		allocStack(currentBlock, currentStack, 2, 4);
 	}
 	
 	void _swap() {
