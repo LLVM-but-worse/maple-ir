@@ -22,10 +22,7 @@ import org.rsdeob.deobimpl.DummyMethodPhase;
 import org.rsdeob.deobimpl.RTECatchBlockRemoverPhase;
 import org.rsdeob.deobimpl.UnusedFieldsPhase;
 import org.rsdeob.stdlib.IContext;
-import org.rsdeob.stdlib.cfg.BasicBlock;
-import org.rsdeob.stdlib.cfg.ControlFlowGraph;
-import org.rsdeob.stdlib.cfg.ControlFlowGraphBuilder;
-import org.rsdeob.stdlib.cfg.ControlFlowGraphDeobfuscator;
+import org.rsdeob.stdlib.cfg.*;
 import org.rsdeob.stdlib.cfg.util.GraphUtils;
 import org.rsdeob.stdlib.collections.NodeTable;
 import org.rsdeob.stdlib.deob.IPhase;
@@ -95,14 +92,14 @@ public class Boot implements Opcodes {
 //				vis.visit();
 //				root.dump(m);
 //				System.out.println(cfg);
-//				StatementGenerator gen = new StatementGenerator(cfg);
-//				gen.init(m.maxLocals);
-//				gen.createExpressions();
-//				RootStatement root = gen.buildRoot();
-//				root.getVariables().build();
+				StatementGenerator gen = new StatementGenerator(cfg);
+				gen.init(m.maxLocals);
+				gen.createExpressions();
+				RootStatement root = gen.buildRoot();
+				root.getVariables().build();
 //				
-//				System.out.println(root);
-//				System.out.println(root.getVariables());
+				System.out.println(root);
+				System.out.println(root.getVariables());
 				
 //				for(BasicBlock b : cfg.blocks()) {
 //					System.out.println();
