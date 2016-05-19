@@ -32,6 +32,25 @@ public class ExpressionStack {
 		stack[size++] = expr;
 	}
 
+	public int indexDepth(int sizedDepth) {
+		int exprCount = 0;
+		for (int stackIndex = 0; stackIndex < sizedDepth; exprCount++) {
+			stackIndex += peek(exprCount).getType().getSize();
+		}
+		return exprCount;
+	}
+
+	public void insertBelow(Expression expr, int depth) {
+		int endIndex = size - indexDepth(depth);
+		int j = size;
+		while (j > endIndex) {
+			stack[j] = stack[j - 1];
+			j--;
+		}
+		stack[j] = expr;
+		size++;
+	}
+
 	public ExpressionStack copy() {
 		ExpressionStack stack = new ExpressionStack(this.stack.length);
 		stack.size = size;
@@ -61,6 +80,7 @@ public class ExpressionStack {
 			Expression n = stack[i];
 			if (n != null) {
 				sb.append(n);
+				sb.append(":").append(n.getType().getSize());
 				if(i != 0 && stack[i - 1] != null) {
 					sb.append(", ");
 				}
