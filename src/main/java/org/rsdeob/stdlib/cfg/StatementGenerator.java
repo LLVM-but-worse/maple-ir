@@ -780,7 +780,7 @@ public class StatementGenerator implements Opcodes {
 	void _dup2() {
 		Expression expr1 = currentStack.peek();
 		currentStack.insertBelow(expr1.copy(), 2);
-		if (expr1.getType().getSize() == 2)
+		if (expr1.getType().getSize() == 1)
 		{
 			Expression expr2 = currentStack.peek(1);
 			currentStack.insertBelow(expr2.copy(), 2);
@@ -804,7 +804,7 @@ public class StatementGenerator implements Opcodes {
 	void _dup2_x1() {
 		Expression expr1 = currentStack.peek();
 		currentStack.insertBelow(expr1.copy(), 3);
-		if (expr1.getType().getSize() == 2)
+		if (expr1.getType().getSize() == 1)
 		{
 			Expression expr2 = currentStack.peek(1);
 			currentStack.insertBelow(expr2.copy(), 3);
@@ -816,7 +816,7 @@ public class StatementGenerator implements Opcodes {
 	void _dup2_x2() {
 		Expression expr1 = currentStack.peek();
 		currentStack.insertBelow(expr1.copy(), 3);
-		if (expr1.getType().getSize() == 2)
+		if (expr1.getType().getSize() == 1)
 		{
 			Expression expr2 = currentStack.peek(1);
 			currentStack.insertBelow(expr2.copy(), 4);
