@@ -6,9 +6,12 @@ import java.io.FileWriter;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.function.Predicate;
 
@@ -725,10 +728,9 @@ public class GraphUtils {
 	
 	public static void naturaliseGraph(ControlFlowGraph cfg, List<BasicBlock> blocks) {
 		// copy edge sets
-		Collection<Set<FlowEdge>> _edgeSets = cfg.edges();
-		Set<FlowEdge> edges = new HashSet<>();
-		for(Set<FlowEdge> set : _edgeSets) {
-			edges.addAll(set);
+		Map<BasicBlock, Set<FlowEdge>> edges = new HashMap<>();
+		for(BasicBlock b : blocks) {
+			edges.put(b, cfg.getEdges(b));
 		}
 		// clean graph
 		cfg.clear();
@@ -742,9 +744,11 @@ public class GraphUtils {
 			cfg.addVertex(b);
 		}
 		
-		for(FlowEdge e : edges) {
-			BasicBlock src = e.src;
-			cfg.addEdge(src, e);
+		for(Entry<BasicBlock, Set<FlowEdge>> e : edges.entrySet()) {
+			BasicBlock b = e.getKey();
+			for(FlowEdge fe : e.getValue()) {
+				cfg.addEdge(b, fe);
+			}
 		}
 	}
 }

@@ -61,7 +61,7 @@ public abstract class FlowEdge {
 
 			@Override
 			public String toString() {
-				return String.format("TryCatch handler: %s <- range: %s (%s)", dst.getId(), rangetoString(erange.getBlocks()), erange.getTypes());
+				return String.format("TryCatch handler: %s <- range: %s from %s (%s)", dst.getId(), rangetoString(erange.getBlocks()), src.getId(), erange.getTypes());
 			}
 
 			@Override
@@ -81,6 +81,7 @@ public abstract class FlowEdge {
 		
 		private void recalcHashcode() {
 			hashcode = 31 + (erange == null ? 0 : erange.hashCode());
+			hashcode += (src.getId() + " " + dst.getId()).hashCode();
 		}
 
 		@Override
