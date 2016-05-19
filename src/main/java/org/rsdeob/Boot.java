@@ -38,8 +38,6 @@ public class Boot implements Opcodes {
 	public static final File GRAPH_FOLDER = new File("C://Users//Bibl//Desktop//cfg testing");
 
 	public static void main(String[] args) throws Exception {
-//		Boot.class.getCanonicalName()
-//		"res/a.class"
 		InputStream i = new FileInputStream(new File("res/a.class"));
 		ClassReader cr = new ClassReader(i);
 		ClassNode cn = new ClassNode();
@@ -53,93 +51,86 @@ public class Boot implements Opcodes {
 //				continue;
 //			}
 			
-			System.out.println(m);
-//			if(m.name.equals("t2")) {
-				// InstructionPrinter.consolePrint(m);
-				ControlFlowGraphBuilder builder = new ControlFlowGraphBuilder(m);
-				ControlFlowGraph cfg = builder.build();
-				
-				ControlFlowGraphDeobfuscator deobber = new ControlFlowGraphDeobfuscator();
-				List<BasicBlock> blocks = deobber.deobfuscate(cfg);
-				deobber.removeEmptyBlocks(cfg, blocks);
-				GraphUtils.naturaliseGraph(cfg, blocks);
-				
-				StatementGenerator gen = new StatementGenerator(cfg);
-				gen.init(m.maxLocals);
-				gen.createExpressions();
-				
-				RootStatement root = gen.buildRoot();
-				System.out.println(root);
+			System.out.println("\n\n\nProcessing " + m + ": ");
+
+			// System.out.println("Instruction listing for " + m + ": ");
+			// InstructionPrinter.consolePrint(m);
+
+			ControlFlowGraphBuilder builder = new ControlFlowGraphBuilder(m);
+			ControlFlowGraph cfg = builder.build();
+
+			ControlFlowGraphDeobfuscator deobber = new ControlFlowGraphDeobfuscator();
+			List<BasicBlock> blocks = deobber.deobfuscate(cfg);
+			deobber.removeEmptyBlocks(cfg, blocks);
+			GraphUtils.naturaliseGraph(cfg, blocks);
+
+			System.out.println("Execution log of " + m + ":");
+			StatementGenerator gen = new StatementGenerator(cfg);
+			gen.init(m.maxLocals);
+			gen.createExpressions();
+			RootStatement root = gen.buildRoot();
+
+			System.out.println("IR representation of " + m + ":");
+			System.out.println(root);
+			System.out.println();
+
+			/*
+			ControlFlowGraph cfg = ControlFlowGraphBuilder.create(m);
+			GraphUtils.output(cfg, new ArrayList<>(cfg.blocks()), GRAPH_FOLDER, "");
+			System.out.println(cfg.getRoot());
+			System.out.println(cfg);
+			RootStatement root = cfg.getRoot();
+			System.out.println(root);
+			StatementVisitor vis = new StatementVisitor(root) {
+				@Override
+				public void visit(Statement stmt) {
+					if(stmt instanceof ConstantExpression) {
+						Object obj = ((ConstantExpression) stmt).getConstant();
+						if(obj instanceof String) {
+							if(obj.toString().equals("=============")) {
+								((ConstantExpression) stmt).setConstant("hiiiiiiiiiiiii");
+							}
+						}
+					} else if(stmt instanceof ConditionalJumpStatement) {
+						System.out.println(stmt);
+					}
+				}
+			};
+			vis.visit();
+			root.dump(m);
+			System.out.println(cfg);
+			StatementGenerator gen = new StatementGenerator(cfg);
+			gen.init(m.maxLocals);
+			gen.createExpressions();
+			RootStatement root = gen.buildRoot();
+			root.getVariables().build();
+
+			System.out.println(root);
+			System.out.println(root.getVariables());
+
+			for(BasicBlock b : cfg.blocks()) {
 				System.out.println();
-				
-//				ControlFlowGraph cfg = ControlFlowGraphBuilder.create(m);
-//				GraphUtils.output(cfg, new ArrayList<>(cfg.blocks()), GRAPH_FOLDER, "");
-//				System.out.println(cfg.getRoot());
-//				System.out.println(cfg);
-//				RootStatement root = cfg.getRoot();
-//				System.out.println(root);
-//				StatementVisitor vis = new StatementVisitor(root) {
-//					@Override
-//					public void visit(Statement stmt) {
-//						if(stmt instanceof ConstantExpression) {
-//							Object obj = ((ConstantExpression) stmt).getConstant();
-//							if(obj instanceof String) {
-//								if(obj.toString().equals("=============")) {
-//									((ConstantExpression) stmt).setConstant("hiiiiiiiiiiiii");
-//								}
-//							}
-//						} else if(stmt instanceof ConditionalJumpStatement) {
-////							System.out.println(stmt);
-//						}
-//					}
-//				};
-//				vis.visit();
-//				root.dump(m);
-//				System.out.println(cfg);
-//				StatementGenerator gen = new StatementGenerator(cfg);
-//				gen.init(m.maxLocals);
-//				gen.createExpressions();
-//				RootStatement root = gen.buildRoot();
-//				root.getVariables().build();
-//				
-//				System.out.println(root);
-//				System.out.println(root.getVariables());
-				
-//				for(BasicBlock b : cfg.blocks()) {
-//					System.out.println();
-//					System.out.println(b);
-//					System.out.println(b.getState());
-//					for(Statement stmt : b.getStatements()) {
-//						if(stmt instanceof IStackDumpNode) {
-//							if(((IStackDumpNode) stmt).isRedundant()) {
-//								continue;
-//							}
-//						} else if (stmt instanceof StackLoadExpression) {
-//							if(((StackLoadExpression) stmt).isStackVariable()) {
-//								System.out.println("   st: [STACKVAR]" + stmt);
-//								continue;
-//							}
-//						}
-//						System.out.println("   st: " + stmt);
-//					}
-//				}
-				
-//				System.out.println("=============");
-//				System.out.println("=============");
-//				System.out.println("=============");
-//				System.out.println("=============");
-//				System.out.println("=============");
-//				System.out.println("=============");
-//				System.out.println("=============");
-//				System.out.println("=============");
-//				System.out.println("=============");
-//				System.out.println("=============");
-//				System.out.println("=============");
-//				System.out.println("=============");
-//				InstructionPrinter.consolePrint(m);
-//			}
-				
-//				break;
+				System.out.println(b);
+				System.out.println(b.getState());
+				for(Statement stmt : b.getStatements()) {
+					if(stmt instanceof IStackDumpNode) {
+						if(((IStackDumpNode) stmt).isRedundant()) {
+							continue;
+						}
+					} else if (stmt instanceof StackLoadExpression) {
+						if(((StackLoadExpression) stmt).isStackVariable()) {
+							System.out.println("   st: [STACKVAR]" + stmt);
+							continue;
+						}
+					}
+					System.out.println("   st: " + stmt);
+				}
+			}
+			*/
+
+			System.out.println("End of processing log for " + m);
+			System.out.println("============================================================");
+			System.out.println("============================================================\n\n");
 		}
 		
 		ClassWriter clazz = new ClassWriter(0);
