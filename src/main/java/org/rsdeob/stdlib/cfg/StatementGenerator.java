@@ -272,7 +272,7 @@ public class StatementGenerator implements Opcodes {
 			// is an error in the bytecode (verifier error).
 			System.out.println("Current: " + stack + " in " + b.getId());
 			System.out.println("Target : " + target.getInputStack() + " in " + target.getId());
-			throw new IllegalStateException("Stack coherency mistmatch into #" + target.getId());
+			throw new IllegalStateException("Stack coherency mismatch into #" + target.getId());
 		}
 	}
 
@@ -925,6 +925,6 @@ public class StatementGenerator implements Opcodes {
 		createStackVariables(currentBlock, currentStack);
 		StackLoadExpression load = new StackLoadExpression(index, Type.INT_TYPE);
 		ArithmeticExpression inc = new ArithmeticExpression(new ConstantExpression(amt), load, Operator.ADD);
-		addStmt(inc);
+		addStmt(new StackDumpStatement(inc, index, Type.INT_TYPE));
 	}
 }
