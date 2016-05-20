@@ -62,8 +62,13 @@ import org.rsdeob.stdlib.cfg.util.TypeUtils.ArrayType;
 
 public class StatementGenerator implements Opcodes {
 
+	private static final int[] EMPTY_STACK_HEIGHTS = new int[]{};
+	private static final int[] SINGLE_RETURN_HEIGHTS = new int[]{1};
+	private static final int[] DOUBLE_RETURN_HEIGHTS = new int[]{2};
+	
 	private static final int[] DUP_HEIGHTS = new int[]{1};
 	private static final int[] DUP_X1_HEIGHTS = new int[]{1, 1};
+	private static final int[] DUP2_SINGLE_HEIGHTS = new int[]{1, 1};
 	
 	MethodNode m;
 	ControlFlowGraph graph;
@@ -632,13 +637,20 @@ public class StatementGenerator implements Opcodes {
 
 	void _return(Type type) {
 		if (type == Type.VOID_TYPE) {
+			currentStack.assertHeights(EMPTY_STACK_HEIGHTS);
 			addStmt(new ReturnStatement());
 		} else {
+			if(type.getSize() == 2) {
+				currentStack.assertHeights(DOUBLE_RETURN_HEIGHTS);
+			} else {
+				currentStack.assertHeights(SINGLE_RETURN_HEIGHTS);
+			}
 			addStmt(new ReturnStatement(type, pop()));
 		}
 	}
 
 	void _throw() {
+		currentStack.assertHeights(SINGLE_RETURN_HEIGHTS);
 		addStmt(new ThrowStatement(pop()));
 	}
 
@@ -677,6 +689,7 @@ public class StatementGenerator implements Opcodes {
 		}
 	}
 	
+	// TODO: verify dup and dup2
 	void _dup() {
 		currentStack.assertHeights(DUP_HEIGHTS);
 		int index = currentStack.height() + 1;
@@ -689,21 +702,34 @@ public class StatementGenerator implements Opcodes {
 		Type topType = peek().getType();
 		
 		if(topType.getSize() == 2) {
+			// TODO: Currently untested
+			
 			// [x:2, y, z] -> [x:2, x:2, y, z]
-			int index = currentStack.size();
+			// [var2, var1, var0] -> [var3, var3, var1, var0]
+			//  statements:
+			//       var3 = var2
+			int index = currentStack.height() + 1;
 			assign_stack(pop(), index);
 			push(load_stack(index, topType)); // copy
 			push(load_stack(index, topType)); // original
 		} else {
+			currentStack.assertHeights(DUP2_SINGLE_HEIGHTS);
 			// [x:1, y:1, z] -> [x:1, y:1, x:1, y:1]
-			int xIndex = currentStack.size() - 0;
-			int yIndex = currentStack.size() - 1;
+			// [var2, var1, var0] -> [var4, var3, var4, var3, var0]
+			//  statements:
+			//       var3 = var1
+			//       var4 = var2
+			int xIndex = currentStack.height() - 0; // var2
+			int yIndex = currentStack.height() - 1; // var1
 			Expression x = pop();
 			Expression y = pop();
-			Type xType = x.getType();
-			Type yType = y.getType();
-			assign_stack(x, xIndex);
-			assign_stack(y, yIndex);
+			// stack height here is (xIndex - 2), delta=-2
+			// move each index up by 2 places
+			xIndex += 2;
+			yIndex += 2;
+			// swap creation order
+			Type yType = assign_stack(y, yIndex);
+			Type xType = assign_stack(x, xIndex);
 			push(load_stack(yIndex, yType)); // y copy
 			push(load_stack(xIndex, xType)); // x copy
 			push(load_stack(yIndex, yType)); // y original
@@ -711,7 +737,6 @@ public class StatementGenerator implements Opcodes {
 		}
 	}
 
-	
 	void _dup_x1() {
 		currentStack.assertHeights(DUP_X1_HEIGHTS);
 		// [x, y, z] -> [x, y, x, z]
