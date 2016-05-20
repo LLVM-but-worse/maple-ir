@@ -682,14 +682,10 @@ public class StatementGenerator implements Opcodes {
 			//  statements:
 			//       var3 = var1
 			//       var4 = var2
-			int xIndex = currentStack.height() - 0; // var2
-			int yIndex = currentStack.height() - 1; // var1
+			int xIndex = currentStack.height() +2; // var2
+			int yIndex = currentStack.height() +1; // var1
 			Expression x = pop();
 			Expression y = pop();
-			// stack height here is (xIndex - 2), delta=-2
-			// move each index up by 2 places
-			xIndex += 2;
-			yIndex += 2;
 			// swap creation order
 			Type yType = assign_stack(y, yIndex);
 			Type xType = assign_stack(x, xIndex);
@@ -756,33 +752,15 @@ public class StatementGenerator implements Opcodes {
 	}
 
 	void _dup2_x1() {
-		// [w, x, y, z] -> [w, x, w, w, y, z]
-		Expression top = currentStack.peek();
-		currentStack.insertBelow(top.copy(), 3);
-		if (top.getType().getSize() == 1)
-		{
-			Expression expr2 = currentStack.peek(1);
-			currentStack.insertBelow(expr2.copy(), 3);
-		}
-		System.out.println(currentStack);
+		throw new UnsupportedOperationException();
 	}
 
 	void _dup2_x2() {
-		Expression expr1 = currentStack.peek();
-		currentStack.insertBelow(expr1.copy(), 3);
-		if (expr1.getType().getSize() == 1)
-		{
-			Expression expr2 = currentStack.peek(1);
-			currentStack.insertBelow(expr2.copy(), 4);
-		}
-		System.out.println(currentStack);
+		throw new UnsupportedOperationException();
 	}
 	
 	void _swap() {
-		Expression expr2 = pop();
-		Expression expr1 = pop();
-		push(expr2);
-		push(expr1);
+		throw new UnsupportedOperationException();
 	}
 	
 	void _cast(Type type) {
