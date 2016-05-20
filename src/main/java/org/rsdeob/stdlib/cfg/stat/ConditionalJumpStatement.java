@@ -117,7 +117,7 @@ public class ConditionalJumpStatement extends Statement {
 		right.toString(printer);
 		printer.print(')');
 		printer.tab();
-		printer.print("\nGOTO   :" + trueSuccessor.getId());
+		printer.print("\ngoto:   " + trueSuccessor.getId());
 		printer.untab();
 	}
 
