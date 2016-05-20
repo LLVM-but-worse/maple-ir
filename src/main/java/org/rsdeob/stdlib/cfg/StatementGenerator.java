@@ -62,6 +62,9 @@ import org.rsdeob.stdlib.cfg.util.TypeUtils.ArrayType;
 
 public class StatementGenerator implements Opcodes {
 
+	private static final int[] DUP_HEIGHTS = new int[]{1};
+	private static final int[] DUP_X1_HEIGHTS = new int[]{1, 1};
+	
 	MethodNode m;
 	ControlFlowGraph graph;
 	Set<BasicBlock> updatedStacks;
@@ -129,7 +132,6 @@ public class StatementGenerator implements Opcodes {
 
 				// check merge exit stack with next input stack
 				if (b.getImmediate() != null) {
-					createStackVariables(b, stack);
 					queue.addFirst(b.getImmediate());
 				}
 
@@ -141,113 +143,6 @@ public class StatementGenerator implements Opcodes {
 				}
 			}
 		}
-	}
-
-	void createStackVariables(BasicBlock block, ExpressionStack stack) {
-		createStackVariables(block, stack, stack.size());
-	}
-	
-	int getNextStackIndex(Set<Integer> contained, int stackIndex) {
-		while(contained.contains(stackIndex)) {
-			stackIndex--;
-		}
-		return stackIndex;
-	}
-	
-	void createStackVariables(BasicBlock block, ExpressionStack stack, int depth) {
-		// stack(t->b) = [x, y, z]
-		// exprs (2)   = [x, y]
-		// stack(t->b) = [z], so we then have to push expressions starting from y, then x.
-		int stackIndex = stackBase;
-		Expression[] exprs = new Expression[depth];
-		// collect top (n=depth) items.
-//		for(int i=0; i < exprs.length; i++) {
-		
-		// first collect vars that are on the stack after the
-		// depth target.
-		Set<Integer> contained = new HashSet<>();
-		for(int i=0; i < (stack.size() - depth/*remaining vars*/); i++) {
-			Expression expr = stack.peek(i + depth);
-			if(expr instanceof StackLoadExpression) {
-				contained.add(((StackLoadExpression) expr).getIndex());
-			}
-		}
-		
-		// System.out.println("Contained: " + contained);
-
-		stackIndex += stack.size();
-		for (int i = exprs.length - 1; i >= 0; i--) {
-			exprs[i] = stack.pop1();
-			// stackIndex += exprs[i].getType().getSize();
-		}
-
-		for(int i=0; i < exprs.length; i++) {
-//		for (int i = exprs.length - 1; i >= 0; i--) {
-			Expression e = exprs[i];
-			Type type = TypeUtils.asSimpleType(e.getType());
-
-			stackIndex = getNextStackIndex(contained, stackIndex);
-			
-			if(e instanceof StackLoadExpression) {
-				if(((StackLoadExpression) e).getIndex() == stackIndex) {
-					stack.push(e);
-					// stackIndex -= e.getType().getSize();
-					stackIndex--;
-					continue;
-				}
-			}
-			
-			block.getStatements().add(new StackDumpStatement(e, stackIndex, type));
-			stack.push(new StackLoadExpression(stackIndex, type, true));
-			// System.out.println("  Creating save couple: " + block.getStatements().get(block.getStatements().size() - 1));
-//			stackIndex -= e.getType().getSize();
-
-			stackIndex--;
-		}
-		
-		// System.out.println("   Couplestack: " + stack + " for " + depth + " items.");
-	}
-
-	void allocStack(BasicBlock block, ExpressionStack stack, int depth, int startdepth) {
-		// layout of exprs:
-		// +- 0 (top of stack)
-		// |  1
-		// |  2
-		// | ...
-		// +- startdepth
-		// |  startdepth + 1
-		// |  startdepth + 2
-		// |  ...
-		// +- startdepth + depth - 1 (bottom of stack)
-
-		// Populate exprs and empty relevant parts of the stack
-		Expression[] exprs = new Expression[stack.indexDepth(depth + startdepth)];
-		for (int i = 0; i < exprs.length; i++) {
-			exprs[i] = stack.pop1();
-		}
-
-		// Repopulate stack
-		int stackIndex = depth + startdepth + stackBase;
-		for (int i = exprs.length - 1; i >= 0; i--) {
-			Expression e = exprs[i];
-			Type type = TypeUtils.asSimpleType(e.getType());
-
-			boolean skip = i < startdepth; // Ignore stack above startdepth; just push it back on
-			skip = skip || e instanceof StackLoadExpression && ((StackLoadExpression) e).getIndex() == stackIndex; // Ignore identical stack variables
-			if(skip) {
-				stack.push(e);
-				stackIndex -= e.getType().getSize();
-				continue;
-			}
-
-			// Allocate new variable
-			block.getStatements().add(new StackDumpStatement(e, stackIndex, type));
-			stack.push(new StackLoadExpression(stackIndex, type, true));
-			// System.out.println("  Creating save couple: " + block.getStatements().get(block.getStatements().size() - 1));
-			stackIndex -= e.getType().getSize();
-		}
-
-		// System.out.println("   Couplestack: " + stack);
 	}
 
 	Statement getLastStatement(BasicBlock b) {
@@ -278,12 +173,12 @@ public class StatementGenerator implements Opcodes {
 
 	boolean canSucceed(ExpressionStack s, ExpressionStack succ) {
 		// quick check stack heights
-		if (s.size() != succ.size()) {
+		if (s.height() != succ.height()) {
 			return false;
 		}
 		ExpressionStack c0 = s.copy();
 		ExpressionStack c1 = succ.copy();
-		while (c0.size() > 0) {
+		while (c0.height() > 0) {
 			Expression e1 = c0.pop1();
 			Expression e2 = c1.pop1();
 			if (!(e1 instanceof StackLoadExpression) || !(e2 instanceof StackLoadExpression)) {
@@ -644,39 +539,51 @@ public class StatementGenerator implements Opcodes {
 			}
 			
 			 System.out.println(" Poststack: " + stack);
+			 System.out.println(" Block stmts: ");
+			 for(Statement stmt : b.getStatements()) {
+				 System.out.println("   " + stmt);
+			 }
 			 System.out.println();
 		}
 
 		return stack;
 	}
+	
+	Type assign_stack(Expression expr, int index) {
+		Type type = TypeUtils.asSimpleType(expr.getType());
+		// var_x := expr;
+		StackDumpStatement stmt = new StackDumpStatement(expr, index, type, true);
+		addStmt(stmt);
+		return type;
+	}
+	
+	Expression load_stack(int index, Type type) {
+		return new StackLoadExpression(index, type, true);
+	}
 
+	void _post_jump() {
+		// TODO: 
+	}
+	
 	void _jump_compare(BasicBlock target, ComparisonType type, Expression left, Expression right) {
 		updateTargetStack(currentBlock, target, currentStack);
 		addStmt(new ConditionalJumpStatement(left, right, target, type));
+		_post_jump();
 	}
 	
 	void _jump_compare(BasicBlock target, ComparisonType type) {
-		if(currentStack.size() > 2) {
-			createStackVariables(currentBlock, currentStack);
-		}
 		Expression right = pop();
 		Expression left = pop();
 		_jump_compare(target, type, left, right);
 	}
 	
 	void _jump_cmp0(BasicBlock target, ComparisonType type) {
-		if(currentStack.size() > 1) {
-			createStackVariables(currentBlock, currentStack);
-		}
 		Expression left = pop();
 		ConstantExpression right = new ConstantExpression(0);
 		_jump_compare(target, type, left, right);
 	}
 
 	void _jump_null(BasicBlock target, boolean invert) {
-		if(currentStack.size() > 1) {
-			createStackVariables(currentBlock, currentStack);
-		}
 		Expression left = pop();
 		ConstantExpression right = new ConstantExpression(null);
 		ComparisonType type = invert ? ComparisonType.NE : ComparisonType.EQ;
@@ -685,9 +592,9 @@ public class StatementGenerator implements Opcodes {
 	}
 
 	void _jump_uncond(BasicBlock target) {
-		createStackVariables(currentBlock, currentStack);
 		updateTargetStack(currentBlock, target, currentStack);
 		addStmt(new UnconditionalJumpStatement(target));
+		_post_jump();
 	}
 
 	void _entry(BasicBlock entry) {
@@ -712,7 +619,9 @@ public class StatementGenerator implements Opcodes {
 	}
 
 	void _const(Object o) {
-		push(new ConstantExpression(o));
+		Expression e = new ConstantExpression(o);
+		push(e);
+		assign_stack(e, currentStack.height());
 	}
 
 	void _compare(ValueComparisonType ctype) {
@@ -763,54 +672,104 @@ public class StatementGenerator implements Opcodes {
 	}
 	
 	void _pop(int amt) {
-		if(currentStack.size() > amt) {
-			createStackVariables(currentBlock, currentStack);
-		}
-		
 		for(int i=0; i < amt; i++) {
 			addStmt(new PopStatement(pop()));
 		}
 	}
 	
 	void _dup() {
-		push(peek().copy());
-		allocStack(currentBlock, currentStack, 1, 1);
+		currentStack.assertHeights(DUP_HEIGHTS);
+		int index = currentStack.size() + 1;
+		Type type = assign_stack(pop(), index);
+		push(load_stack(index, type));
+		push(load_stack(index, type));
 	}
 
 	void _dup2() {
-		Expression expr1 = currentStack.peek();
-		currentStack.insertBelow(expr1.copy(), 2);
-		if (expr1.getType().getSize() == 1)
-		{
-			Expression expr2 = currentStack.peek(1);
-			currentStack.insertBelow(expr2.copy(), 2);
+		Type topType = peek().getType();
+		
+		if(topType.getSize() == 2) {
+			// [x:2, y, z] -> [x:2, x:2, y, z]
+			int index = currentStack.size();
+			assign_stack(pop(), index);
+			push(load_stack(index, topType)); // copy
+			push(load_stack(index, topType)); // original
+		} else {
+			// [x:1, y:1, z] -> [x:1, y:1, x:1, y:1]
+			int xIndex = currentStack.size() - 0;
+			int yIndex = currentStack.size() - 1;
+			Expression x = pop();
+			Expression y = pop();
+			Type xType = x.getType();
+			Type yType = y.getType();
+			assign_stack(x, xIndex);
+			assign_stack(y, yIndex);
+			push(load_stack(yIndex, yType)); // y copy
+			push(load_stack(xIndex, xType)); // x copy
+			push(load_stack(yIndex, yType)); // y original
+			push(load_stack(xIndex, xType)); // x original
 		}
-		System.out.println(currentStack);
-		allocStack(currentBlock, currentStack, 2, 2);
 	}
 
+	
 	void _dup_x1() {
-		currentStack.insertBelow(peek().copy(), 2);
-		System.out.println(currentStack);
-		allocStack(currentBlock, currentStack, 1, 2);
+		currentStack.assertHeights(DUP_X1_HEIGHTS);
+		// [x, y, z] -> [x, y, x, z]
+		int xIndex = currentStack.height() - 0;
+		int yIndex = currentStack.height() - 1;
+		int x2Index = currentStack.height() - 2;
+		Expression x = pop();
+		Type xType = assign_stack(x, xIndex);
+		Type yType = assign_stack(pop(), yIndex);
+		x = load_stack(xIndex, xType);
+		assign_stack(x, x2Index);
+		
+		push(load_stack(x2Index, xType));
+		push(load_stack(yIndex, yType));
+		push(x);
 	}
 
 	void _dup_x2() {
-		currentStack.insertBelow(peek().copy(), 3);
-		System.out.println(currentStack);
-		allocStack(currentBlock, currentStack, 1, 3);
+		boolean _64 = currentStack.peek(2).getType().getSize() == 2;
+		int xIndex  = currentStack.size() - 0;
+		Expression x = pop();
+		Type xType = assign_stack(x, xIndex);
+		if(_64) {
+			// [x, {y,z}] -> [x, {y,z}, x]
+			int yzIndex = currentStack.size() - 1;
+			int x2Index = currentStack.size() - 2;
+			Type yzType = assign_stack(pop(), yzIndex);
+			assign_stack(x, x2Index);
+			
+			push(load_stack(x2Index, xType));
+			push(load_stack(yzIndex, yzType));
+			push(load_stack(xIndex, xType));
+		} else {
+			// [x, y, z] -> [x, y, z, x]
+			int yIndex  = currentStack.size() - 1;
+			int zIndex  = currentStack.size() - 2;
+			int x2Index = currentStack.size() - 3;
+			Type yType = assign_stack(pop(), yIndex);
+			Type zType = assign_stack(pop(), zIndex);
+			assign_stack(x, x2Index);
+			
+			push(load_stack(x2Index, xType));
+			push(load_stack(zIndex, zType));
+			push(load_stack(yIndex, yType));
+			push(load_stack(xIndex, xType));
+		}
 	}
 
 	void _dup2_x1() {
-		Expression expr1 = currentStack.peek();
-		currentStack.insertBelow(expr1.copy(), 3);
-		if (expr1.getType().getSize() == 1)
+		// [w, x, y, z] -> [w, x, w, w, y, z]
+		Expression top = currentStack.peek();
+		currentStack.insertBelow(top.copy(), 3);
+		if (top.getType().getSize() == 1)
 		{
 			Expression expr2 = currentStack.peek(1);
 			currentStack.insertBelow(expr2.copy(), 3);
 		}
 		System.out.println(currentStack);
-		allocStack(currentBlock, currentStack, 2, 3);
 	}
 
 	void _dup2_x2() {
@@ -822,11 +781,9 @@ public class StatementGenerator implements Opcodes {
 			currentStack.insertBelow(expr2.copy(), 4);
 		}
 		System.out.println(currentStack);
-		allocStack(currentBlock, currentStack, 2, 4);
 	}
 	
 	void _swap() {
-		createStackVariables(currentBlock, currentStack);
 		Expression expr2 = pop();
 		Expression expr1 = pop();
 		push(expr2);
@@ -865,9 +822,6 @@ public class StatementGenerator implements Opcodes {
 	}
 	
 	void _switch(LinkedHashMap<Integer, BasicBlock> targets, BasicBlock dflt) {
-		if(currentStack.size() > 1) {
-			createStackVariables(currentBlock, currentStack);
-		}
 		Expression expr = pop();
 		for(Entry<Integer, BasicBlock> e : targets.entrySet()) {
 			updateTargetStack(currentBlock, e.getValue(), currentStack);
@@ -910,19 +864,17 @@ public class StatementGenerator implements Opcodes {
 	}
 	
 	void _store(int index, Type type) {
-		if(currentStack.size() > 1) {
-			createStackVariables(currentBlock, currentStack);
-		}
 		Expression expr = pop();
 		addStmt(new StackDumpStatement(expr, index, type));
 	}
 	
 	void _load(int index, Type type) {
-		push(new StackLoadExpression(index, type));
+		StackLoadExpression e = new StackLoadExpression(index, type);
+		push(e);
+		assign_stack(e, currentStack.height());
 	}
 	
 	void _inc(int index, int amt) {
-		createStackVariables(currentBlock, currentStack);
 		StackLoadExpression load = new StackLoadExpression(index, Type.INT_TYPE);
 		ArithmeticExpression inc = new ArithmeticExpression(new ConstantExpression(amt), load, Operator.ADD);
 		addStmt(new StackDumpStatement(inc, index, Type.INT_TYPE));
