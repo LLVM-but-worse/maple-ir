@@ -24,7 +24,7 @@ public class UnconditionalJumpStatement extends Statement {
 
 	@Override
 	public void toString(TabbedStringWriter printer) {
-		printer.print("goto:   " + target.getId());
+		printer.print("goto " + target.getId());
 	}
 
 	@Override
