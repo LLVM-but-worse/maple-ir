@@ -16,9 +16,11 @@ import org.rsdeob.stdlib.cfg.expr.ArithmeticExpression.Operator;
 import org.rsdeob.stdlib.cfg.expr.ComparisonExpression.ValueComparisonType;
 import org.rsdeob.stdlib.cfg.expr.var.FieldStoreExpression;
 import org.rsdeob.stdlib.cfg.stat.*;
+import org.rsdeob.stdlib.cfg.stat.ConditionalJumpStatement.ComparisonType;
 import org.rsdeob.stdlib.cfg.stat.MonitorStatement.MonitorMode;
 import org.rsdeob.stdlib.cfg.util.ExpressionStack;
 import org.rsdeob.stdlib.cfg.util.TypeUtils;
+import org.rsdeob.stdlib.cfg.util.TypeUtils.ArrayType;
 
 public class StatementGenerator implements Opcodes {
 
@@ -585,8 +587,9 @@ public class StatementGenerator implements Opcodes {
 
 	void _const(Object o) {
 		Expression e = new ConstantExpression(o);
-		push(e);
-		assign_stack(e, currentStack.height());
+		int index = currentStack.height();
+		Type type = assign_stack(e, index);
+		push(load_stack(index, type));
 	}
 
 	void _compare(ValueComparisonType ctype) {
@@ -700,6 +703,7 @@ public class StatementGenerator implements Opcodes {
 	void _dup_x1() {
 		currentStack.assertHeights(DUP_X1_HEIGHTS);
 		// [x, y, z] -> [x, y, x, z]
+		// [var2, var1, var0] -> [var
 		int xIndex = currentStack.height() - 0;
 		int yIndex = currentStack.height() - 1;
 		int x2Index = currentStack.height() - 2;
