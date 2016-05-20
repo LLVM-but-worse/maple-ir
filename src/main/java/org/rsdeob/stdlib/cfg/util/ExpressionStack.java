@@ -71,7 +71,7 @@ public class ExpressionStack {
 			for(int i=0; i < heights.length; i++) {
 				Expression e = peek(i);
 				if(e.getType().getSize() != heights[i]) {
-					throw new IllegalStateException(String.format("item at %d, len=%d, expected=%d, expr:%d", i, e.getType().getSize(), heights[i], e));
+					throw new IllegalStateException(String.format("item at %d, len=%d, expected=%d, expr:%s", i, e.getType().getSize(), heights[i], e));
 				}
 			}
 		}
