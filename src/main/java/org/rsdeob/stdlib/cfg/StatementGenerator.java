@@ -702,10 +702,14 @@ public class StatementGenerator implements Opcodes {
 
 	void _dup_x1() {
 		currentStack.assertHeights(DUP_X1_HEIGHTS);
-		// [x, y, z] -> [x, y, x, z]
-		// [var2, var1, var0] -> [var
-		int xIndex = currentStack.height() - 0;
-		int yIndex = currentStack.height() - 1;
+		// [x, y] -> [x, y, x]
+		// [var1, var0] -> [var2, var1, var0]
+		//  statements:
+		//       var2 = var1
+		//       var1 = var0
+		//       var0 = var2
+		int xIndex  = currentStack.height() - 0;
+		int yIndex  = currentStack.height() - 1;
 		int x2Index = currentStack.height() - 2;
 		Expression x = pop();
 		Type xType = assign_stack(x, xIndex);
