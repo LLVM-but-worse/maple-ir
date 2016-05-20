@@ -679,7 +679,7 @@ public class StatementGenerator implements Opcodes {
 	
 	void _dup() {
 		currentStack.assertHeights(DUP_HEIGHTS);
-		int index = currentStack.size() + 1;
+		int index = currentStack.height() + 1;
 		Type type = assign_stack(pop(), index);
 		push(load_stack(index, type));
 		push(load_stack(index, type));
@@ -730,14 +730,14 @@ public class StatementGenerator implements Opcodes {
 	}
 
 	void _dup_x2() {
-		boolean _64 = currentStack.peek(2).getType().getSize() == 2;
-		int xIndex  = currentStack.size() - 0;
+		boolean _64 = currentStack.peek(1).getType().getSize() == 2;
+		int xIndex  = currentStack.height() - 0;
 		Expression x = pop();
 		Type xType = assign_stack(x, xIndex);
 		if(_64) {
 			// [x, {y,z}] -> [x, {y,z}, x]
-			int yzIndex = currentStack.size() - 1;
-			int x2Index = currentStack.size() - 2;
+			int yzIndex = currentStack.height() - 1;
+			int x2Index = currentStack.height() - 2;
 			Type yzType = assign_stack(pop(), yzIndex);
 			assign_stack(x, x2Index);
 			
@@ -746,17 +746,18 @@ public class StatementGenerator implements Opcodes {
 			push(load_stack(xIndex, xType));
 		} else {
 			// [x, y, z] -> [x, y, z, x]
-			int yIndex  = currentStack.size() - 1;
-			int zIndex  = currentStack.size() - 2;
-			int x2Index = currentStack.size() - 3;
+			int yIndex  = currentStack.height();
+			int zIndex  = currentStack.height() - 1;
+			int x2Index = currentStack.height() - 2;
 			Type yType = assign_stack(pop(), yIndex);
 			Type zType = assign_stack(pop(), zIndex);
+			x = load_stack(xIndex, xType);
 			assign_stack(x, x2Index);
 			
 			push(load_stack(x2Index, xType));
 			push(load_stack(zIndex, zType));
 			push(load_stack(yIndex, yType));
-			push(load_stack(xIndex, xType));
+			push(x);
 		}
 	}
 
@@ -832,17 +833,10 @@ public class StatementGenerator implements Opcodes {
 
 	void _store_field(int opcode, String owner, String name, String desc) {
 		if(opcode == PUTFIELD) {
-			if(currentStack.size() > 2) {
-				//createStackVariables(currentBlock, currentStack);
-			}
-			
 			Expression val = pop();
 			Expression inst = pop();
 			addStmt(new FieldStoreExpression(inst, val, owner, name, desc));
 		} else if(opcode == PUTSTATIC) {
-			if(currentStack.size() > 1) {
-				//createStackVariables(currentBlock, currentStack);
-			}
 			Expression val = pop();
 			addStmt(new FieldStoreExpression(null, val, owner, name, desc));
 		} else {
