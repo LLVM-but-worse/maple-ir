@@ -802,7 +802,9 @@ public class StatementGenerator implements Opcodes {
 	
 	void _new(Type type) {
 		Expression e = new UninitialisedObjectExpression(type);
-		push(e);
+		int index = currentStack.height() + 1;
+		assign_stack(e, index);
+		push(load_stack(index, type));
 	}
 	
 	void _new_array(Expression[] bounds, Type type) {
