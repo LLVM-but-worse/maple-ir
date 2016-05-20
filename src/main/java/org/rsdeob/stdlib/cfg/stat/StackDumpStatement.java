@@ -17,8 +17,13 @@ public class StackDumpStatement extends Statement implements IStackDumpNode {
 	private Expression expression;
 	private int index;
 	private Type type;
-
+	private boolean stackVariable;
+	
 	public StackDumpStatement(Expression expression, int index, Type type) {
+		this(expression, index, type, false);
+	}
+
+	public StackDumpStatement(Expression expression, int index, Type type, boolean stackVariable) {
 		StringWriter w = new StringWriter();
 		new Exception().printStackTrace(new PrintWriter(w));
 		creation = w.toString();
@@ -26,10 +31,15 @@ public class StackDumpStatement extends Statement implements IStackDumpNode {
 		this.expression = expression;
 		this.index = index;
 		this.type = type;
+		this.stackVariable = stackVariable;
 		
 		overwrite(expression, 0);
 	}
 
+	public boolean isStackVariable() {
+		return stackVariable;
+	}
+	
 	@Override
 	public Expression getExpression() {
 		return expression;
@@ -68,7 +78,7 @@ public class StackDumpStatement extends Statement implements IStackDumpNode {
 
 	@Override
 	public void toString(TabbedStringWriter printer) {
-		printer.print("var" + index + " = ");
+		printer.print((stackVariable ? "s" : "l") + "var" + index + " = ");
 		expression.toString(printer);
 		printer.print(';');
 	}

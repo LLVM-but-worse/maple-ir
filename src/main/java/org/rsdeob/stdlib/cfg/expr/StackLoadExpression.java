@@ -66,7 +66,7 @@ public class StackLoadExpression extends Expression {
 
 	@Override
 	public void toString(TabbedStringWriter printer) {
-		printer.print("var" + index);		
+		printer.print((stackVariable ? "s" : "l") + "var" + index);		
 	}
 
 	@Override

@@ -32,24 +32,24 @@ public class ExpressionStack {
 		stack[size++] = expr;
 	}
 
-	public int indexDepth(int sizedDepth) {
-		int exprCount = 0;
-		for (int stackIndex = 0; stackIndex < sizedDepth; exprCount++) {
-			stackIndex += peek(exprCount).getType().getSize();
-		}
-		return exprCount;
-	}
-
-	public void insertBelow(Expression expr, int depth) {
-		int endIndex = size - indexDepth(depth);
-		int j = size;
-		while (j > endIndex) {
-			stack[j] = stack[j - 1];
-			j--;
-		}
-		stack[j] = expr;
-		size++;
-	}
+//	public int indexDepth(int sizedDepth) {
+//		int exprCount = 0;
+//		for (int stackIndex = 0; stackIndex < sizedDepth; exprCount++) {
+//			stackIndex += peek(exprCount).getType().getSize();
+//		}
+//		return exprCount;
+//	}
+//
+//	public void insertBelow(Expression expr, int depth) {
+//		int endIndex = size - indexDepth(depth);
+//		int j = size;
+//		while (j > endIndex) {
+//			stack[j] = stack[j - 1];
+//			j--;
+//		}
+//		stack[j] = expr;
+//		size++;
+//	}
 
 	public ExpressionStack copy() {
 		ExpressionStack stack = new ExpressionStack(this.stack.length);
@@ -63,9 +63,26 @@ public class ExpressionStack {
 			}
 		return stack;
 	}
-
-	public int size() {
-		return size;
+	
+	public void assertHeights(int[] heights) {
+		if(heights.length > size) {
+			throw new UnsupportedOperationException(String.format("hlen=%d, size=%d", heights.length, size));
+		} else {
+			for(int i=0; i < heights.length; i++) {
+				Expression e = peek(i);
+				if(e.getType().getSize() != heights[i]) {
+					throw new IllegalStateException(String.format("item at %d, len=%d, expected=%d, expr:%d", i, e.getType().getSize(), heights[i], e));
+				}
+			}
+		}
+	}
+	
+	public int height() {
+		int count = 0;
+		for(int i=0; i < size; i++) {
+			count += stack[i].getType().getSize();
+		}
+		return count;
 	}
 
 	public void clear() {
@@ -80,7 +97,7 @@ public class ExpressionStack {
 			Expression n = stack[i];
 			if (n != null) {
 				sb.append(n);
-				sb.append(":").append(n.getType().getSize());
+				sb.append(":").append(n.getType());
 				if(i != 0 && stack[i - 1] != null) {
 					sb.append(", ");
 				}
