@@ -801,7 +801,8 @@ public class StatementGenerator implements Opcodes {
 	}
 	
 	void _new(Type type) {
-		push(new UninitialisedObjectExpression(type));
+		Expression e = new UninitialisedObjectExpression(type);
+		push(e);
 	}
 	
 	void _new_array(Expression[] bounds, Type type) {
@@ -852,7 +853,9 @@ public class StatementGenerator implements Opcodes {
 				inst = pop();
 			}
 			FieldLoadExpression fExpr = new FieldLoadExpression(inst, owner, name, desc);
-			push(fExpr);
+			int index = currentStack.height();
+			Type type = assign_stack(fExpr, index);
+			push(load_stack(index, type));
 		} else {
 			throw new UnsupportedOperationException(Printer.OPCODES[opcode] + " " + owner + "." + name + "   " + desc);
 		}
