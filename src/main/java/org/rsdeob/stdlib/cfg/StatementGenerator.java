@@ -506,11 +506,11 @@ public class StatementGenerator implements Opcodes {
 			}
 			
 			 System.out.println(" Poststack: " + stack);
-			 System.out.println(" Block stmts: ");
+			 /*System.out.println(" Block stmts: ");
 			 for(Statement stmt : b.getStatements()) {
 				 System.out.println("   " + stmt);
 			 }
-			 System.out.println();
+			 System.out.println();*/
 		}
 
 		return stack;
@@ -764,22 +764,31 @@ public class StatementGenerator implements Opcodes {
 	}
 	
 	void _cast(Type type) {
-		push(new CastExpression(pop(), type));
+		Expression e = new CastExpression(pop(), type);
+		int index = currentStack.height();
+		assign_stack(e, index);
+		push(load_stack(index, type));
 	}
 	
 	void _instanceof(Type type) {
-		push(new InstanceofExpression(pop(), type));
+		InstanceofExpression e = new InstanceofExpression(pop(), type);
+		int index = currentStack.height();
+		assign_stack(e, index);
+		push(load_stack(index, type));
 	}
 	
 	void _new(Type type) {
-		Expression e = new UninitialisedObjectExpression(type);
 		int index = currentStack.height() + 1;
+		UninitialisedObjectExpression e = new UninitialisedObjectExpression(type);
 		assign_stack(e, index);
 		push(load_stack(index, type));
 	}
 	
 	void _new_array(Expression[] bounds, Type type) {
-		push(new NewArrayExpression(bounds, type));
+		int index = currentStack.height() + 1;
+		NewArrayExpression e = new NewArrayExpression(bounds, type);
+		assign_stack(e, index);
+		push(load_stack(index, type));
 	}
 	
 	void _call(int op, String owner, String name, String desc) {
@@ -790,10 +799,11 @@ public class StatementGenerator implements Opcodes {
 		}
 		InvocationExpression callExpr = new InvocationExpression(op, args, owner, name, desc);
 		if(callExpr.getType() == Type.VOID_TYPE) {
-//			createStackVariables(currentBlock, currentStack);
 			addStmt(new PopStatement(callExpr));
 		} else {
-			push(callExpr);
+			int index = currentStack.height();
+			Type type = assign_stack(callExpr, index);
+			push(load_stack(index, type));
 		}
 	}
 	
