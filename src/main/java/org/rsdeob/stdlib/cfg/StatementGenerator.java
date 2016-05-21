@@ -720,34 +720,35 @@ public class StatementGenerator implements Opcodes {
 	}
 
 	void _dup2() {
-		Type topType = peek().getType();
 		int baseHeight = currentStack.height();
 
-		if(topType.getSize() == 2) {
+		if(peek().getType().getSize() == 2) {
+			// prestack: var0 (height = 2)
+			// poststack: var2, var0
+			// assignments: var2 = var0
 
-			// [x:2, y, z] -> [x:2, x:2, y, z]
-			// [var2, var1, var0] -> [var3, var3, var1, var0]
-			//  statements:
-			//       var3 = var2
-			assign_stack(pop(), baseHeight);
-			push(load_stack(baseHeight - 2, topType)); // copy
-			push(load_stack(baseHeight, topType)); // original
+			Expression var0 = pop();
+
+			Type var2Type = assign_stack(var0, baseHeight); // var2 = var0
+			push(load_stack(baseHeight - 2, var0.getType())); //  push var0
+			push(load_stack(baseHeight, var2Type)); // push var2
 		} else {
+			// prestack: var1, var0 (height = 2)
+			// poststack: var3, var2, var1, var0
+			// assignments: var2 = var0
+			// assignments: var3 = var1
 			currentStack.assertHeights(DUP2_SINGLE_HEIGHTS);
-			// [x:1, y:1, z] -> [x:1, y:1, x:1, y:1]
-			// [var2, var1, var0] -> [var4, var3, var4, var3, var0]
-			//  statements:
-			//       var3 = var1
-			//       var4 = var2
-			Expression x = pop();
-			Expression y = pop();
-			// swap creation order
-			Type yType = assign_stack(y, baseHeight + 0);
-			Type xType = assign_stack(x, baseHeight + 1);
-			push(load_stack(baseHeight - 2, yType)); // y original
-			push(load_stack(baseHeight - 1, xType)); // x original
-			push(load_stack(baseHeight + 0, yType)); // y copy
-			push(load_stack(baseHeight + 1, xType)); // x copy
+
+			Expression var1 = pop();
+			Expression var0 = pop();
+
+			Type var2Type = assign_stack(var0, baseHeight + 0); // var2 = var0
+			Type var3Type = assign_stack(var1, baseHeight + 1); // var3 = var1
+
+			push(load_stack(baseHeight - 2, var0.getType())); // push var0
+			push(load_stack(baseHeight - 1, var1.getType())); // push var1
+			push(load_stack(baseHeight + 0, var2Type)); // push var2
+			push(load_stack(baseHeight + 1, var3Type)); // push var3
 		}
 	}
 
@@ -757,10 +758,10 @@ public class StatementGenerator implements Opcodes {
 
 		if(topType.getSize() == 2) {
 			// prestack: var2, var0 (height = 3)
+			// poststack: var3, var2, var0
 			// assignments: var0 = var2(initial)
 			// assignemnts: var2 = var0(initial)
 			// assignments: var3 = var2(initial)
-			// poststack: var3, var2, var0
 			currentStack.assertHeights(DUP2_X2_DOUBLE_HEIGHTS);
 
 			Expression var2 = pop();
@@ -777,12 +778,12 @@ public class StatementGenerator implements Opcodes {
 			push(load_stack(baseHeight - 0, var3Type)); // push var3
 		} else {
 			// prestack: var2, var1, var0 (height = 3)
+			// poststack: var4, var3, var2, var1, var0
 			// assignments: var0 = var1(initial)
 			// assignments: var1 = var2(initial)
 			// assignments: var2 = var0(initial)
 			// assignments: var3 = var1(initial)
 			// assignments: var4 = var2(initial)
-			// poststack: var4, var3, var2, var1, var0
 			currentStack.assertHeights(DUP2_X2_SINGLE_HEIGHTS);
 
 			Expression var2 = pop();
@@ -791,10 +792,10 @@ public class StatementGenerator implements Opcodes {
 
 			Type var0Temp = assign_stack(var0, baseHeight + 2); // var5 = var0(initial)
 
-			Type var3Type = assign_stack(var1, baseHeight + 0); // var3 = var1(initial)
-			Type var4Type = assign_stack(var2, baseHeight + 1); // var4 = var2(initial)
 			Type var0Type = assign_stack(var1, baseHeight - 3); // var0 = var1(initial)
 			Type var1Type = assign_stack(var2, baseHeight - 2); // var1 = var2(initial)
+			Type var3Type = assign_stack(var1, baseHeight + 0); // var3 = var1(initial)
+			Type var4Type = assign_stack(var2, baseHeight + 1); // var4 = var2(initial)
 			Type var2Type = assign_stack(load_stack(baseHeight + 2, var0Temp), baseHeight - 1); // var2 = var5 = var0(initial)
 
 			push(load_stack(baseHeight - 3, var0Type)); // push var0
@@ -810,13 +811,25 @@ public class StatementGenerator implements Opcodes {
 	}
 	
 	void _swap() {
+		// prestack: var1, var0 (height = 2)
+		// poststack: var1, var0
+		// assignments: var0 = var1 (initial)
+		// assignments: var1 = var0 (initial)
+
 		currentStack.assertHeights(SWAP_HEIGHTS);
-		int tempIndex = currentStack.height();
-		int tempIndex2 = currentStack.height() + 1;
-		Type type = assign_stack(pop(), tempIndex); // tempIndex = value1
-		Type type2 = assign_stack(pop(), tempIndex2); // tempIndex2 = value2
-		push(load_stack(tempIndex, type)); // value2 = [tempIndex]
-		push(load_stack(tempIndex2, type2)); // value1 = [tempIndex2]
+		int baseHeight = currentStack.height();
+
+		Expression var1 = pop();
+		Expression var0 = pop();
+
+		Type var2Type = assign_stack(var0, baseHeight + 0); // var2 = var0
+		Type var3Type = assign_stack(var1, baseHeight + 1); // var3 = var1
+
+		Type var0Type = assign_stack(load_stack(baseHeight + 1, var3Type), baseHeight - 2); // var0 = var3 = var1(initial)
+		Type var1Type = assign_stack(load_stack(baseHeight + 0, var2Type), baseHeight - 1); // var1 = var2 = var0(initial)
+
+		push(load_stack(baseHeight - 2, var0Type)); // push var0
+		push(load_stack(baseHeight - 1, var1Type)); // push var1
 	}
 	
 	void _cast(Type type) {
