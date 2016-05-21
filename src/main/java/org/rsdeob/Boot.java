@@ -38,7 +38,7 @@ public class Boot implements Opcodes {
 	public static final File GRAPH_FOLDER = new File("C://Users//Bibl//Desktop//cfg testing");
 
 	public static void main(String[] args) throws Exception {
-		InputStream i = new FileInputStream(new File("res/a.class"));
+		InputStream i = new FileInputStream(new File("res/DupTest.class"));
 		ClassReader cr = new ClassReader(i);
 		ClassNode cn = new ClassNode();
 		cr.accept(cn, 0);
@@ -46,10 +46,10 @@ public class Boot implements Opcodes {
 		Iterator<MethodNode> it = cn.methods.listIterator();
 		while(it.hasNext()) {
 			MethodNode m = it.next();
-			
-//			if(!m.toString().equals("a/a/f/a.H(La/a/f/o;J)V")) {
-//				continue;
-//			}
+
+			if(!m.toString().equals("DupTest.main([Ljava/lang/String;)V")) {
+				continue;
+			}
 			
 			System.out.println("\n\n\nProcessing " + m + ": ");
 
