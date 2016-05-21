@@ -657,11 +657,17 @@ public class StatementGenerator implements Opcodes {
 	}
 	
 	void _dup() {
+		// prestack: var0 (height = 1)
+		// poststack: var1, var0
+		// assignments: var1 = var0
 		currentStack.assertHeights(DUP_HEIGHTS);
-		int index = currentStack.height();
-		Type type = assign_stack(pop(), index);
-		push(load_stack(index - 1, type));
-		push(load_stack(index, type));
+		int baseHeight = currentStack.height();
+
+		Expression var0 = pop();
+
+		Type var1Type = assign_stack(var0, baseHeight); // var1 = var0
+		push(load_stack(baseHeight - 1, var0.getType())); //  push var0
+		push(load_stack(baseHeight, var1Type)); // push var1
 	}
 
 	void _dup_x1() {
