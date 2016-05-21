@@ -654,12 +654,11 @@ public class StatementGenerator implements Opcodes {
 		}
 	}
 	
-	// TODO: verify dup and dup2
 	void _dup() {
 		currentStack.assertHeights(DUP_HEIGHTS);
 		int index = currentStack.height();
 		Type type = assign_stack(pop(), index);
-		push(load_stack(index, type));
+		push(load_stack(index - 1, type));
 		push(load_stack(index, type));
 	}
 
@@ -720,18 +719,17 @@ public class StatementGenerator implements Opcodes {
 
 	void _dup2() {
 		Type topType = peek().getType();
+		int baseHeight = currentStack.height();
 
 		if(topType.getSize() == 2) {
-			// TODO: Currently untested
 
 			// [x:2, y, z] -> [x:2, x:2, y, z]
 			// [var2, var1, var0] -> [var3, var3, var1, var0]
 			//  statements:
 			//       var3 = var2
-			int index = currentStack.height() + 1;
-			assign_stack(pop(), index);
-			push(load_stack(index, topType)); // copy
-			push(load_stack(index, topType)); // original
+			assign_stack(pop(), baseHeight);
+			push(load_stack(baseHeight - 2, topType)); // copy
+			push(load_stack(baseHeight, topType)); // original
 		} else {
 			currentStack.assertHeights(DUP2_SINGLE_HEIGHTS);
 			// [x:1, y:1, z] -> [x:1, y:1, x:1, y:1]
@@ -739,17 +737,15 @@ public class StatementGenerator implements Opcodes {
 			//  statements:
 			//       var3 = var1
 			//       var4 = var2
-			int xIndex = currentStack.height() +2; // var2
-			int yIndex = currentStack.height() +1; // var1
 			Expression x = pop();
 			Expression y = pop();
 			// swap creation order
-			Type yType = assign_stack(y, yIndex);
-			Type xType = assign_stack(x, xIndex);
-			push(load_stack(yIndex, yType)); // y copy
-			push(load_stack(xIndex, xType)); // x copy
-			push(load_stack(yIndex, yType)); // y original
-			push(load_stack(xIndex, xType)); // x original
+			Type yType = assign_stack(y, baseHeight + 0);
+			Type xType = assign_stack(x, baseHeight + 1);
+			push(load_stack(baseHeight - 2, yType)); // y original
+			push(load_stack(baseHeight - 1, xType)); // x original
+			push(load_stack(baseHeight + 0, yType)); // y copy
+			push(load_stack(baseHeight + 1, xType)); // x copy
 		}
 	}
 
