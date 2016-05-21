@@ -840,14 +840,37 @@ public class StatementGenerator implements Opcodes {
 				push(load_stack(baseHeight - 2, var2Type)); // push var2;
 				push(load_stack(baseHeight - 0, var4Type)); // push var4;
 			} else {
-				//32x64
-
+				//64x32
 			}
 		} else {
 			Type bottomType = currentStack.peek(2).getType();
 			if (bottomType.getSize() == 2) {
 				// 32x64
+				// prestack: var3, var2, var0 (height = 4)
+				// poststack: var5, var4, var2, var1, var0
+				// assignments: var0 = var2
+				// assignments: var1 = var3
+				// assignments: var2 = var0
+				// assignments: var4 = var2
+				// assignments: var5 = var3
 
+				Expression var3 = pop();
+				Expression var2 = pop();
+				Expression var0 = pop();
+
+				Type var6Type = assign_stack(var0, baseHeight + 2); // var6 = var0(initial)
+
+				Type var0Type = assign_stack(var2, baseHeight - 4); // var0 = var2(initial)
+				Type var1Type = assign_stack(var3, baseHeight - 3); // var1 = var3(initial)
+				Type var4Type = assign_stack(var2, baseHeight + 0); // var4 = var2(initial)
+				Type var5Type = assign_stack(var3, baseHeight + 1); // var5 = var3(initial)
+				Type var2Type = assign_stack(load_stack(baseHeight + 2, var6Type), baseHeight - 2); // var2 = var6 = var0(initial)
+
+				push(load_stack(baseHeight - 4, var0Type)); // push var0
+				push(load_stack(baseHeight - 3, var1Type)); // push var1
+				push(load_stack(baseHeight - 2, var2Type)); // push var2
+				push(load_stack(baseHeight + 0, var4Type)); // push var4
+				push(load_stack(baseHeight + 1, var5Type)); // push var5
 			} else {
 				// 32x32
 
