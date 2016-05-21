@@ -38,7 +38,7 @@ public class Boot implements Opcodes {
 	public static final File GRAPH_FOLDER = new File("C://Users//Bibl//Desktop//cfg testing");
 
 	public static void main(String[] args) throws Exception {
-		InputStream i = new FileInputStream(new File("res/DupTest.class"));
+		InputStream i = new FileInputStream(new File("res/DupTestEasy.class"));
 		ClassReader cr = new ClassReader(i);
 		ClassNode cn = new ClassNode();
 		cr.accept(cn, 0);
@@ -47,7 +47,7 @@ public class Boot implements Opcodes {
 		while(it.hasNext()) {
 			MethodNode m = it.next();
 
-			if(!m.toString().equals("DupTest.main([Ljava/lang/String;)V")) {
+			if(!m.toString().equals("DupTestEasy.main([Ljava/lang/String;)V")) {
 				continue;
 			}
 			
