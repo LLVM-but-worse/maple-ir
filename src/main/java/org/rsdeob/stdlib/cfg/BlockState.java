@@ -36,6 +36,7 @@ public class BlockState {
 		if(block.getState() == null) {
 			block.setState(this);
 		} else {
+			System.err.println("already assigned " + block);
 			throw new IllegalStateException();
 		}
 	}
