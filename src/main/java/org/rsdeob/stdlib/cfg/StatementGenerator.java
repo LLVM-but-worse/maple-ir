@@ -29,6 +29,7 @@ public class StatementGenerator implements Opcodes {
 	private static final int[] DOUBLE_RETURN_HEIGHTS = new int[]{2};
 	
 	private static final int[] DUP_HEIGHTS = new int[]{1};
+	private static final int[] SWAP_HEIGHTS = new int[]{1, 1};
 	private static final int[] DUP_X1_HEIGHTS = new int[]{1, 1};
 	private static final int[] DUP2_SINGLE_HEIGHTS = new int[]{1, 1};
 	
@@ -517,10 +518,11 @@ public class StatementGenerator implements Opcodes {
 	}
 	
 	Type assign_stack(Expression expr, int index) {
-		Type type = TypeUtils.asSimpleType(expr.getType());
+		Type type = expr.getType();
 		// var_x := expr;
 		StackDumpStatement stmt = new StackDumpStatement(expr, index, type, true);
 		addStmt(stmt);
+		System.out.println("  " + stmt + ":" + stmt.getType());
 		return type;
 	}
 	
@@ -655,45 +657,10 @@ public class StatementGenerator implements Opcodes {
 	// TODO: verify dup and dup2
 	void _dup() {
 		currentStack.assertHeights(DUP_HEIGHTS);
-		int index = currentStack.height() + 1;
+		int index = currentStack.height();
 		Type type = assign_stack(pop(), index);
 		push(load_stack(index, type));
 		push(load_stack(index, type));
-	}
-
-	void _dup2() {
-		Type topType = peek().getType();
-		
-		if(topType.getSize() == 2) {
-			// TODO: Currently untested
-			
-			// [x:2, y, z] -> [x:2, x:2, y, z]
-			// [var2, var1, var0] -> [var3, var3, var1, var0]
-			//  statements:
-			//       var3 = var2
-			int index = currentStack.height() + 1;
-			assign_stack(pop(), index);
-			push(load_stack(index, topType)); // copy
-			push(load_stack(index, topType)); // original
-		} else {
-			currentStack.assertHeights(DUP2_SINGLE_HEIGHTS);
-			// [x:1, y:1, z] -> [x:1, y:1, x:1, y:1]
-			// [var2, var1, var0] -> [var4, var3, var4, var3, var0]
-			//  statements:
-			//       var3 = var1
-			//       var4 = var2
-			int xIndex = currentStack.height() +2; // var2
-			int yIndex = currentStack.height() +1; // var1
-			Expression x = pop();
-			Expression y = pop();
-			// swap creation order
-			Type yType = assign_stack(y, yIndex);
-			Type xType = assign_stack(x, xIndex);
-			push(load_stack(yIndex, yType)); // y copy
-			push(load_stack(xIndex, xType)); // x copy
-			push(load_stack(yIndex, yType)); // y original
-			push(load_stack(xIndex, xType)); // x original
-		}
 	}
 
 	void _dup_x1() {
@@ -751,6 +718,41 @@ public class StatementGenerator implements Opcodes {
 		}
 	}
 
+	void _dup2() {
+		Type topType = peek().getType();
+
+		if(topType.getSize() == 2) {
+			// TODO: Currently untested
+
+			// [x:2, y, z] -> [x:2, x:2, y, z]
+			// [var2, var1, var0] -> [var3, var3, var1, var0]
+			//  statements:
+			//       var3 = var2
+			int index = currentStack.height() + 1;
+			assign_stack(pop(), index);
+			push(load_stack(index, topType)); // copy
+			push(load_stack(index, topType)); // original
+		} else {
+			currentStack.assertHeights(DUP2_SINGLE_HEIGHTS);
+			// [x:1, y:1, z] -> [x:1, y:1, x:1, y:1]
+			// [var2, var1, var0] -> [var4, var3, var4, var3, var0]
+			//  statements:
+			//       var3 = var1
+			//       var4 = var2
+			int xIndex = currentStack.height() +2; // var2
+			int yIndex = currentStack.height() +1; // var1
+			Expression x = pop();
+			Expression y = pop();
+			// swap creation order
+			Type yType = assign_stack(y, yIndex);
+			Type xType = assign_stack(x, xIndex);
+			push(load_stack(yIndex, yType)); // y copy
+			push(load_stack(xIndex, xType)); // x copy
+			push(load_stack(yIndex, yType)); // y original
+			push(load_stack(xIndex, xType)); // x original
+		}
+	}
+
 	void _dup2_x1() {
 		throw new UnsupportedOperationException();
 	}
@@ -760,7 +762,13 @@ public class StatementGenerator implements Opcodes {
 	}
 	
 	void _swap() {
-		throw new UnsupportedOperationException();
+		currentStack.assertHeights(SWAP_HEIGHTS);
+		int tempIndex = currentStack.height();
+		int tempIndex2 = currentStack.height() + 1;
+		Type type = assign_stack(pop(), tempIndex); // tempIndex = value1
+		Type type2 = assign_stack(pop(), tempIndex2); // tempIndex2 = value2
+		push(load_stack(tempIndex, type)); // value2 = [tempIndex]
+		push(load_stack(tempIndex2, type2)); // value1 = [tempIndex2]
 	}
 	
 	void _cast(Type type) {
