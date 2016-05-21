@@ -692,8 +692,8 @@ public class StatementGenerator implements Opcodes {
 		Type xType = assign_stack(x, xIndex);
 		if(_64) {
 			// [x, {y,z}] -> [x, {y,z}, x]
-			int yzIndex = currentStack.height();
-			int x2Index = currentStack.height() - 1;
+			int yzIndex = currentStack.height() - 1;
+			int x2Index = currentStack.height() - 2;
 			Type yzType = assign_stack(pop(), yzIndex);
 			x = load_stack(xIndex, xType);
 			assign_stack(x, x2Index);
