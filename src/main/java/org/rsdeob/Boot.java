@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 import java.util.jar.JarOutputStream;
 
 import org.objectweb.asm.ClassReader;
@@ -28,6 +29,10 @@ import org.rsdeob.stdlib.cfg.ControlFlowGraphBuilder;
 import org.rsdeob.stdlib.cfg.ControlFlowGraphDeobfuscator;
 import org.rsdeob.stdlib.cfg.RootStatement;
 import org.rsdeob.stdlib.cfg.StatementGenerator;
+import org.rsdeob.stdlib.cfg.VarVersionsMap;
+import org.rsdeob.stdlib.cfg.stat.Statement;
+import org.rsdeob.stdlib.cfg.statopt.ConstantPropagator;
+import org.rsdeob.stdlib.cfg.statopt.ConstantPropagator.Variable;
 import org.rsdeob.stdlib.cfg.util.GraphUtils;
 import org.rsdeob.stdlib.collections.NodeTable;
 import org.rsdeob.stdlib.deob.IPhase;
@@ -73,7 +78,35 @@ public class Boot implements Opcodes {
 			System.out.println("IR representation of " + m + ":");
 			System.out.println(root);
 			System.out.println();
-
+			
+			VarVersionsMap map = root.getVariables();
+			map.build();
+			System.out.println(map);
+			
+			ConstantPropagator prop = new ConstantPropagator(cfg);
+			prop.compute();
+			
+			
+			for(BasicBlock b : cfg.blocks()) {			
+				for(Statement stmt : b.getStatements()) {
+					Set<Variable> in = prop.getIn(stmt);
+					Set<Variable> out = prop.getOut(stmt);
+					
+					if(in.size() > 0 || out.size() > 0) {
+						System.out.println("  in:");
+						for(Variable var : in) {
+							System.out.println("    " + var);
+						}
+						System.out.println(stmt);
+						System.out.println("  out:");
+						for(Variable var : out) {
+							System.out.println("    " + var);
+						}	
+					}
+					
+					System.out.println("\n\n\n");
+				}
+			}
 			/*
 			ControlFlowGraph cfg = ControlFlowGraphBuilder.create(m);
 			GraphUtils.output(cfg, new ArrayList<>(cfg.blocks()), GRAPH_FOLDER, "");

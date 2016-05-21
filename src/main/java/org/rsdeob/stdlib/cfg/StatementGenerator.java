@@ -84,6 +84,7 @@ public class StatementGenerator implements Opcodes {
 	}
 
 	void addStmt(Statement stmt) {
+		stmt.setBlock(currentBlock);
 		currentBlock.getStatements().add(stmt);
 	}
 
