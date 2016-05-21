@@ -32,7 +32,9 @@ public class StatementGenerator implements Opcodes {
 	private static final int[] SWAP_HEIGHTS = new int[]{1, 1};
 	private static final int[] DUP_X1_HEIGHTS = new int[]{1, 1};
 	private static final int[] DUP2_SINGLE_HEIGHTS = new int[]{1, 1};
-	
+	private static final int[] DUP2_X2_SINGLE_HEIGHTS = new int[]{1, 1, 1};
+	private static final int[] DUP2_X2_DOUBLE_HEIGHTS = new int[]{2, 1};
+
 	MethodNode m;
 	ControlFlowGraph graph;
 	Set<BasicBlock> updatedStacks;
@@ -750,7 +752,57 @@ public class StatementGenerator implements Opcodes {
 	}
 
 	void _dup2_x1() {
-		throw new UnsupportedOperationException();
+		Type topType = peek().getType();
+		int baseHeight = currentStack.height();
+
+		if(topType.getSize() == 2) {
+			// prestack: var2, var0 (height = 3)
+			// assignments: var0 = var2(initial)
+			// assignemnts: var2 = var0(initial)
+			// assignments: var3 = var2(initial)
+			// poststack: var3, var2, var0
+			currentStack.assertHeights(DUP2_X2_DOUBLE_HEIGHTS);
+
+			Expression var2 = pop();
+			Expression var0 = pop();
+
+			Type var0Temp = assign_stack(var0, baseHeight + 1); // var4 = var0(initial)
+
+			Type var3Type = assign_stack(var2, baseHeight - 0); // var3 = var2(initial)
+			Type var0Type = assign_stack(var2, baseHeight - 3); // var0 = var2(initial)
+			Type var2Type = assign_stack(load_stack(baseHeight + 1, var0Temp), baseHeight - 1); // var2 = var4 = var0(initial)
+
+			push(load_stack(baseHeight - 3, var0Type)); // push var0
+			push(load_stack(baseHeight - 1, var2Type)); // push var2
+			push(load_stack(baseHeight - 0, var3Type)); // push var3
+		} else {
+			// prestack: var2, var1, var0 (height = 3)
+			// assignments: var0 = var1(initial)
+			// assignments: var1 = var2(initial)
+			// assignments: var2 = var0(initial)
+			// assignments: var3 = var1(initial)
+			// assignments: var4 = var2(initial)
+			// poststack: var4, var3, var2, var1, var0
+			currentStack.assertHeights(DUP2_X2_SINGLE_HEIGHTS);
+
+			Expression var2 = pop();
+			Expression var1 = pop();
+			Expression var0 = pop();
+
+			Type var0Temp = assign_stack(var0, baseHeight + 2); // var5 = var0(initial)
+
+			Type var3Type = assign_stack(var1, baseHeight + 0); // var3 = var1(initial)
+			Type var4Type = assign_stack(var2, baseHeight + 1); // var4 = var2(initial)
+			Type var0Type = assign_stack(var1, baseHeight - 3); // var0 = var1(initial)
+			Type var1Type = assign_stack(var2, baseHeight - 2); // var1 = var2(initial)
+			Type var2Type = assign_stack(load_stack(baseHeight + 2, var0Temp), baseHeight - 1); // var2 = var5 = var0(initial)
+
+			push(load_stack(baseHeight - 3, var0Type)); // push var0
+			push(load_stack(baseHeight - 2, var1Type)); // push var1
+			push(load_stack(baseHeight - 1, var2Type)); // push var2
+			push(load_stack(baseHeight + 0, var3Type)); // push var3
+			push(load_stack(baseHeight + 1, var4Type)); // push var4
+		}
 	}
 
 	void _dup2_x2() {
