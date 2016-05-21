@@ -67,7 +67,7 @@ public class ControlFlowGraphBuilder {
 		AbstractInsnNode first = insns.getFirst();
 		if(!(first instanceof LabelNode)) {
 			LabelNode nFirst = new LabelNode();
-			insns.insert(first, nFirst);
+			insns.insertBefore(first, nFirst);
 			first = nFirst;
 		}
 	}
