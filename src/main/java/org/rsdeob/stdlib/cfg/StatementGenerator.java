@@ -22,6 +22,7 @@ import org.rsdeob.stdlib.cfg.util.ExpressionStack;
 import org.rsdeob.stdlib.cfg.util.TypeUtils;
 import org.rsdeob.stdlib.cfg.util.TypeUtils.ArrayType;
 
+@SuppressWarnings("PointlessArithmeticExpression")
 public class StatementGenerator implements Opcodes {
 
 	private static final int[] EMPTY_STACK_HEIGHTS = new int[]{};
@@ -659,7 +660,7 @@ public class StatementGenerator implements Opcodes {
 	void _dup() {
 		// prestack: var0 (height = 1)
 		// poststack: var1, var0
-		// assignments: var1 = var0
+		// assignments: var1 = var0(initial)
 		currentStack.assertHeights(DUP_HEIGHTS);
 		int baseHeight = currentStack.height();
 
@@ -743,8 +744,8 @@ public class StatementGenerator implements Opcodes {
 		} else {
 			// prestack: var1, var0 (height = 2)
 			// poststack: var3, var2, var1, var0
-			// assignments: var2 = var0
-			// assignments: var3 = var1
+			// assignments: var2 = var0(initial)
+			// assignments: var3 = var1(initial)
 			currentStack.assertHeights(DUP2_32_HEIGHTS);
 
 			Expression var1 = pop();
@@ -843,10 +844,10 @@ public class StatementGenerator implements Opcodes {
 				//64x32
 				// prestack: var2, var1, var0 (height = 4)
 				// poststack: var4, var3, var2, var0
-				// assignments: var0 = var2
-				// assignments: var2 = var0
-				// assignments: var3 = var1
-				// assignments: var4 = var2
+				// assignments: var0 = var2(initial)
+				// assignments: var2 = var0(initial)
+				// assignments: var3 = var1(initial)
+				// assignments: var4 = var2(initial)
 
 				Expression var2 = pop();
 				Expression var1 = pop();
@@ -870,11 +871,11 @@ public class StatementGenerator implements Opcodes {
 				// 32x64
 				// prestack: var3, var2, var0 (height = 4)
 				// poststack: var5, var4, var2, var1, var0
-				// assignments: var0 = var2
-				// assignments: var1 = var3
-				// assignments: var2 = var0
-				// assignments: var4 = var2
-				// assignments: var5 = var3
+				// assignments: var0 = var2(initial)
+				// assignments: var1 = var3(initial)
+				// assignments: var2 = var0(initial)
+				// assignments: var4 = var2(initial)
+				// assignments: var5 = var3(initial)
 
 				Expression var3 = pop();
 				Expression var2 = pop();
@@ -895,7 +896,36 @@ public class StatementGenerator implements Opcodes {
 				push(load_stack(baseHeight + 1, var5Type)); // push var5
 			} else {
 				// 32x32
+				// prestack: var3, var2, var1, var0 (height = 4)
+				// poststack: var5, var4, var3, var2, var1, var0
+				// var0 = var2
+				// var1 = var3
+				// var2 = var0
+				// var3 = var1
+				// var4 = var2
+				// var5 = var3
 
+				Expression var3 = pop();
+				Expression var2 = pop();
+				Expression var1 = pop();
+				Expression var0 = pop();
+
+				Type var6Type = assign_stack(var0, baseHeight + 2); // var6 = var0(initial)
+				Type var7Type = assign_stack(var1, baseHeight + 3); // var7 = var1(initial)
+
+				Type var0Type = assign_stack(var2, baseHeight - 4); // var0 = var2(initial)
+				Type var1Type = assign_stack(var3, baseHeight - 3); // var1 = var3(initial)
+				Type var4Type = assign_stack(var2, baseHeight + 0); // var4 = var2(initial)
+				Type var5Type = assign_stack(var3, baseHeight + 1); // var5 = var3(initial)
+				Type var2Type = assign_stack(load_stack(baseHeight + 2, var6Type), baseHeight - 2); // var2 = var6 = var0(initial)
+				Type var3Type = assign_stack(load_stack(baseHeight + 3, var7Type), baseHeight - 1); // var3 = var7 = var1(initial)
+
+				push(load_stack(baseHeight - 4, var0Type)); // push var0
+				push(load_stack(baseHeight - 3, var1Type)); // push var1
+				push(load_stack(baseHeight - 2, var2Type)); // push var2
+				push(load_stack(baseHeight - 1, var3Type)); // push var3
+				push(load_stack(baseHeight + 0, var4Type)); // push var4
+				push(load_stack(baseHeight + 1, var5Type)); // push var5
 			}
 		}
 	}
