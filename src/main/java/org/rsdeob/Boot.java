@@ -46,10 +46,10 @@ public class Boot implements Opcodes {
 		Iterator<MethodNode> it = cn.methods.listIterator();
 		while(it.hasNext()) {
 			MethodNode m = it.next();
-			
-//			if(!m.toString().equals("a/a/f/a.H(La/a/f/o;J)V")) {
-//				continue;
-//			}
+
+			if(!m.toString().equals("DupTest.main([Ljava/lang/String;)V")) {
+				continue;
+			}
 			
 			System.out.println("\n\n\nProcessing " + m + ": ");
 
