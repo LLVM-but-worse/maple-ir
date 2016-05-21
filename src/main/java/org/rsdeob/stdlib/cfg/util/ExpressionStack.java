@@ -16,7 +16,7 @@ public class ExpressionStack {
 		size = 0;
 	}
 
-	public Expression pop1() {
+	public Expression pop() {
 		return stack[--size];
 	}
 
