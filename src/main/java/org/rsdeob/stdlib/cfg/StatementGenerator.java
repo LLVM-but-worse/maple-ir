@@ -21,7 +21,6 @@ import org.rsdeob.stdlib.cfg.util.ExpressionStack;
 import org.rsdeob.stdlib.cfg.util.TypeUtils;
 import org.rsdeob.stdlib.cfg.util.TypeUtils.ArrayType;
 
-@SuppressWarnings("PointlessArithmeticExpression")
 public class StatementGenerator implements Opcodes {
 
 	private static final int[] EMPTY_STACK_HEIGHTS = new int[]{};
