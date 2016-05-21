@@ -841,6 +841,28 @@ public class StatementGenerator implements Opcodes {
 				push(load_stack(baseHeight - 0, var4Type)); // push var4;
 			} else {
 				//64x32
+				// prestack: var2, var1, var0 (height = 4)
+				// poststack: var4, var3, var2, var0
+				// assignments: var0 = var2
+				// assignments: var2 = var0
+				// assignments: var3 = var1
+				// assignments: var4 = var2
+
+				Expression var2 = pop();
+				Expression var1 = pop();
+				Expression var0 = pop();
+
+				Type var6Type = assign_stack(var0, baseHeight + 2); // var6 = var0(initial)
+
+				Type var0Type = assign_stack(var2, baseHeight - 4); // var0 = var2
+				Type var3Type = assign_stack(var1, baseHeight - 1); // var3 = var1
+				Type var4Type = assign_stack(var2, baseHeight + 0); // var4 = var2
+				Type var2Type = assign_stack(load_stack(baseHeight + 2, var6Type), baseHeight - 2); // var2 = var0
+
+				push(load_stack(baseHeight - 4, var0Type)); // push var0
+				push(load_stack(baseHeight - 2, var2Type)); // push var2
+				push(load_stack(baseHeight - 1, var3Type)); // push var3
+				push(load_stack(baseHeight + 0, var4Type)); // push var4
 			}
 		} else {
 			Type bottomType = currentStack.peek(2).getType();
