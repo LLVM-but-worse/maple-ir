@@ -10,7 +10,6 @@ import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.*;
 import org.objectweb.asm.util.Printer;
-import org.rsdeob.stdlib.cfg.FlowEdge.TryCatchEdge;
 import org.rsdeob.stdlib.cfg.expr.*;
 import org.rsdeob.stdlib.cfg.expr.ArithmeticExpression.Operator;
 import org.rsdeob.stdlib.cfg.expr.ComparisonExpression.ValueComparisonType;
@@ -89,7 +88,7 @@ public class StatementGenerator implements Opcodes {
 	}
 
 	Expression pop() {
-		return currentStack.pop1();
+		return currentStack.pop();
 	}
 	
 	Expression peek() {
@@ -106,19 +105,23 @@ public class StatementGenerator implements Opcodes {
 			if (!analysedBlocks.contains(b)) {
 				analysedBlocks.add(b);
 
-				ExpressionStack stack = process(b);
+				/*ExpressionStack stack = */process(b);
 
 				// check merge exit stack with next input stack
-				if (b.getImmediate() != null) {
-					queue.addFirst(b.getImmediate());
+				BasicBlock im = b.getImmediate();
+				if (im != null && !queue.contains(im)) {
+					queue.addFirst(im);
 				}
 
-				for (FlowEdge _succ : b.getSuccessors()) {
-					if (!(_succ instanceof TryCatchEdge)) {
-						BasicBlock succ = _succ.dst;
-						updateTargetStack(b, succ, stack);
-					}
-				}
+				/* updateTargetStack is now handled in 
+				 * the instruction handler methods.
+				 * 
+				 * for (FlowEdge _succ : b.getSuccessors()) {
+				 *	 if (!(_succ instanceof TryCatchEdge)) {
+				 *		BasicBlock succ = _succ.dst;
+				 *	    updateTargetStack(b, succ, stack);
+				 *   }
+				 * } */
 			}
 		}
 	}
@@ -126,6 +129,18 @@ public class StatementGenerator implements Opcodes {
 	Statement getLastStatement(BasicBlock b) {
 		return b.getStatements().get(b.getStatements().size() - 1);
 	}
+	
+	/* void save_stack() {
+		int height = currentStack.height();
+		while(height > 0) {
+			int index = height;
+			Expression expr = currentStack.pop();
+			Type type = assign_stack(expr, index);
+			push(load_stack(index, type));
+			
+			height -= type.getSize();
+		}
+	} */
 
 	void updateTargetStack(BasicBlock b, BasicBlock target, ExpressionStack stack) {
 		// called just before a jump to a successor block may
@@ -157,8 +172,8 @@ public class StatementGenerator implements Opcodes {
 		ExpressionStack c0 = s.copy();
 		ExpressionStack c1 = succ.copy();
 		while (c0.height() > 0) {
-			Expression e1 = c0.pop1();
-			Expression e2 = c1.pop1();
+			Expression e1 = c0.pop();
+			Expression e2 = c1.pop();
 			if (!(e1 instanceof StackLoadExpression) || !(e2 instanceof StackLoadExpression)) {
 				return false;
 			}
@@ -189,7 +204,7 @@ public class StatementGenerator implements Opcodes {
 	}
 
 	ExpressionStack process(BasicBlock b) {
-		 System.out.println("Processing " + b.getId());
+		System.out.println("Processing " + b.getId());
 		updatedStacks.add(b);
 		ExpressionStack stack = b.getInputStack().copy();
 
@@ -250,14 +265,14 @@ public class StatementGenerator implements Opcodes {
 				}
 				case NEWARRAY: {
 					_new_array(
-						new Expression[] { stack.pop1() }, 
+						new Expression[] { stack.pop() }, 
 						TypeUtils.getPrimitiveArrayType(((IntInsnNode) ain).operand)
 					);
 					break;
 				}
 				case ANEWARRAY: {
 					_new_array(
-						new Expression[] { stack.pop1() }, 
+						new Expression[] { stack.pop() }, 
 						Type.getType("[L" + ((TypeInsnNode) ain).desc + ";")
 					);
 					break;
@@ -266,7 +281,7 @@ public class StatementGenerator implements Opcodes {
 					MultiANewArrayInsnNode in = (MultiANewArrayInsnNode) ain;
 					Expression[] bounds = new Expression[in.dims];
 					for (int i = in.dims - 1; i >= 0; i--) {
-						bounds[i] = stack.pop1();
+						bounds[i] = stack.pop();
 					}
 					_new_array(bounds, Type.getType(in.desc));
 					break;
@@ -539,15 +554,11 @@ public class StatementGenerator implements Opcodes {
 	Expression load_stack(int index, Type type) {
 		return new StackLoadExpression(index, type, true);
 	}
-
-	void _post_jump() {
-		// TODO: 
-	}
 	
 	void _jump_compare(BasicBlock target, ComparisonType type, Expression left, Expression right) {
 		updateTargetStack(currentBlock, target, currentStack);
+		updateTargetStack(currentBlock, currentBlock.getImmediate(), currentStack);
 		addStmt(new ConditionalJumpStatement(left, right, target, type));
-		_post_jump();
 	}
 	
 	void _jump_compare(BasicBlock target, ComparisonType type) {
@@ -573,7 +584,6 @@ public class StatementGenerator implements Opcodes {
 	void _jump_uncond(BasicBlock target) {
 		updateTargetStack(currentBlock, target, currentStack);
 		addStmt(new UnconditionalJumpStatement(target));
-		_post_jump();
 	}
 
 	void _entry(BasicBlock entry) {
@@ -1026,7 +1036,7 @@ public class StatementGenerator implements Opcodes {
 	
 	void _switch(LinkedHashMap<Integer, BasicBlock> targets, BasicBlock dflt) {
 		Expression expr = pop();
-		for(Entry<Integer, BasicBlock> e : targets.entrySet()) {
+		for (Entry<Integer, BasicBlock> e : targets.entrySet()) {
 			updateTargetStack(currentBlock, e.getValue(), currentStack);
 		}
 		updateTargetStack(currentBlock, dflt, currentStack);
