@@ -57,7 +57,7 @@ public class StatementGenerator implements Opcodes {
 		updatedStacks = new HashSet<>();
 		analysedBlocks = new HashSet<>();
 		queue = new LinkedList<>();
-		System.out.println(graph);
+		// System.out.println(graph);
 	}
 	
 	public void init(int base) {
@@ -152,7 +152,7 @@ public class StatementGenerator implements Opcodes {
 		// checking the merge state.
 		if (!updatedStacks.contains(target)) {
 			// unfinalised block found.
-			System.out.println("Setting target stack of " + target.getId() + " to " + stack);
+			// System.out.println("Setting target stack of " + target.getId() + " to " + stack);
 			target.setInputStack(stack.copy());
 			updatedStacks.add(target);
 
@@ -207,7 +207,7 @@ public class StatementGenerator implements Opcodes {
 	}
 
 	ExpressionStack process(BasicBlock b) {
-		System.out.println("Processing " + b.getId());
+		// System.out.println("Processing " + b.getId());
 		updatedStacks.add(b);
 		ExpressionStack stack = b.getInputStack().copy();
 
