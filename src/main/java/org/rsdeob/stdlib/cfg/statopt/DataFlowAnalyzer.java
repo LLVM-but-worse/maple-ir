@@ -16,9 +16,19 @@ import static org.rsdeob.stdlib.cfg.statopt.DataFlowState.TOP_EXPR;
 
 public class DataFlowAnalyzer {
 	private final ControlFlowGraph cfg;
+	private final HashSet<CopyVarStatement> allCopies;
 
 	public DataFlowAnalyzer(ControlFlowGraph cfg) {
 		this.cfg = cfg;
+
+		allCopies = new HashSet<>();
+		for (BasicBlock b : cfg.blocks()) {
+			for (Statement stmt : b.getStatements()) {
+				if (stmt instanceof CopyVarStatement) {
+					allCopies.add((CopyVarStatement) stmt);
+				}
+			}
+		}
 	}
 
 	// compute forward data flow (available expressions)
@@ -33,45 +43,45 @@ public class DataFlowAnalyzer {
 			if (b == cfg.getEntry())
 				continue;
 			DataFlowState state = compute(b);
-			HashSet<CopyVarStatement> out = getAllCopiesExcluding(b);
-			out.removeAll(state.kill);
-			state.copyToOut(out);
+			for (CopyVarStatement copy : allCopies) {
+				if (copy.getBlock() == b)
+					continue;
+				if (state.kill.contains(copy))
+					continue;
+				state.out.put(copy.getVariable(), copy);
+			}
 			dataFlow.put(b, state);
 		}
 
 		boolean changed = true;
 		int i = 0;
 		while (changed) {
-			System.out.println("Iteration " + ++i);
+//			System.out.println("Iteration " + ++i);
 			changed = false;
 			HashMap<BasicBlock, DataFlowState> oldFlow = new HashMap<>(dataFlow);
 			for (BasicBlock b : cfg.blocks()) {
 				if (b == cfg.getEntry())
 					continue;
 
-				DataFlowState state = oldFlow.get(b);
-				HashMap<VarExpression, CopyVarStatement> oldOut = new HashMap<>(state.out);
-				DataFlowState newState = new DataFlowState(state.gen, state.kill);
+				DataFlowState oldState = oldFlow.get(b);
+				DataFlowState state = new DataFlowState(oldState.gen, oldState.kill);
 
 				// IN[b] = MEET(OUT[p] for p in predicates(b))
 				HashMap<VarExpression, CopyVarStatement> in = new HashMap<>();
 				for (FlowEdge e : b.getPredecessors())
 					in = in.isEmpty() ? oldFlow.get(e.src).out : meet(in, oldFlow.get(e.src).out);
-				newState.in = in;
+				state.in = in;
 
 				// OUT[b] = GEN[b] UNION (IN[b] - KILL[b])
-				HashSet<CopyVarStatement> temp = new HashSet<>(newState.in.values());
-				temp.removeAll(newState.kill);
-				newState.out.clear();
-				for (CopyVarStatement copy : temp)
-					newState.out.put(copy.getVariable(), copy);
-				for (CopyVarStatement copy : newState.gen)
-					newState.out.put(copy.getVariable(), copy);
+				for (CopyVarStatement copy : state.in.values())
+					if (!state.kill.contains(copy))
+						state.out.put(copy.getVariable(), copy);
+				for (CopyVarStatement copy : state.gen)
+					state.out.put(copy.getVariable(), copy);
 
-				if (!newState.out.equals(oldOut)) {
+				if (!state.out.equals(oldState.out))
 					changed = true;
-				}
-				dataFlow.put(b, newState);
+				dataFlow.put(b, state);
 			}
 		}
 
@@ -108,23 +118,9 @@ public class DataFlowAnalyzer {
 
 	private DataFlowState computeFirstBlock() {
 		DataFlowState state = compute(cfg.getEntry());
-		state.copyToOut(state.gen);
+		for (CopyVarStatement copy : state.gen)
+			state.out.put(copy.getVariable(), copy);
 		return state;
-	}
-
-	private HashSet<CopyVarStatement> getAllCopiesExcluding(BasicBlock exclude) {
-		HashSet<CopyVarStatement> allCopies = new HashSet<>();
-		for (BasicBlock b : cfg.blocks()) {
-			if (b == exclude)
-				continue;
-
-			for (Statement stmt : b.getStatements()) {
-				if (stmt instanceof CopyVarStatement) {
-					allCopies.add((CopyVarStatement) stmt);
-				}
-			}
-		}
-		return allCopies;
 	}
 
 	private DataFlowState compute(BasicBlock b) {
@@ -133,42 +129,31 @@ public class DataFlowAnalyzer {
 
 	// GEN[b] = copies in b that reach end of block (no lhs or rhs redefinition)
 	private HashSet<CopyVarStatement> computeGen(BasicBlock b) {
-		HashSet<CopyVarStatement> gen = new HashSet<>();
-		for (Statement stmt : b.getStatements()) { // iterating backwards would probably be faster
-			if (stmt instanceof CopyVarStatement) { // stack assign
-				CopyVarStatement newCopy = (CopyVarStatement) stmt;
-
-				// remove overwritten copies
-				HashSet<CopyVarStatement> toRemove = new HashSet<>();
-				for (CopyVarStatement copy : gen) {
-					if (copy.getVariable().equals(newCopy.getVariable())) { // check lhs
-						toRemove.add(copy);
-						break;
-					}
-				}
-				gen.removeAll(toRemove);
-
-				gen.add(newCopy);
-			}
+		HashMap<VarExpression, CopyVarStatement> gen = new HashMap<>();
+		for (Statement stmt : b.getStatements()) {
+			if (!(stmt instanceof CopyVarStatement))
+				continue;
+			CopyVarStatement newCopy = (CopyVarStatement) stmt;
+			gen.put(newCopy.getVariable(), newCopy);
 		}
 
-		return gen;
+		return new HashSet<>(gen.values());
 	}
 
 	// KILL[b] = all copies anywhere in the cfg that do not have lhs/rhs redefined in b
 	private HashSet<CopyVarStatement> computeKill(BasicBlock b) {
 		HashSet<CopyVarStatement> kill = new HashSet<>();
 		for (Statement stmt : b.getStatements()) {
-			if (stmt instanceof CopyVarStatement) {
-				CopyVarStatement newCopy = (CopyVarStatement) stmt;
+			if (!(stmt instanceof CopyVarStatement))
+				continue;
+			CopyVarStatement newCopy = (CopyVarStatement) stmt;
 
-				// Add all existing statements that would be overwritten by this
-				HashSet<CopyVarStatement> allCopies = getAllCopiesExcluding(b);
-				for (CopyVarStatement copy : allCopies) {
-					if (copy.getVariable().equals(newCopy.getVariable())) { // check lhs
-						kill.add(copy);
-					}
-				}
+			// Add all existing statements that would be overwritten by this
+			for (CopyVarStatement copy : allCopies) {
+				if (copy.getBlock() == b)
+					continue;
+				if (copy.getVariable().equals(newCopy.getVariable())) // check lhs
+					kill.add(copy);
 			}
 		}
 
