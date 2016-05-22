@@ -58,11 +58,14 @@ public class DataFlowAnalyzer {
 				}
 				state.in = in;
 
-				// OUT[b] = GEN[b] MEET (IN[b] - KILL[b])
-				HashMap<VarExpression, CopyVarStatement> temp = new HashMap<>(state.in);
-				for (CopyVarStatement copy : state.kill)
-					temp.remove(copy.getVariable());
-				state.out = meet(state.getGen(), temp);
+				// OUT[b] = GEN[b] UNION (IN[b] - KILL[b])
+				HashSet<CopyVarStatement> temp = new HashSet<>(state.in.values());
+				temp.removeAll(state.kill);
+				HashMap<VarExpression, CopyVarStatement> out = state.getGen();
+				for (CopyVarStatement copy : temp)
+					if (!out.containsValue(copy))
+						out.put(copy.getVariable(), copy);
+				state.out = out;
 
 				if (!state.out.equals(oldOut))
 					changed = true;
@@ -79,7 +82,7 @@ public class DataFlowAnalyzer {
 		for (CopyVarStatement copy : copies) {
 			VarExpression var = copy.getVariable();
 			if (a.containsKey(var) && b.containsKey(var)) {
-				Expression rhsA = copy.getExpression();
+				Expression rhsA = a.get(var).getExpression();
 				Expression rhsB = b.get(var).getExpression();
 				Expression rhs;
 				if (rhsA == TOP_EXPR)
@@ -91,9 +94,8 @@ public class DataFlowAnalyzer {
 				else if (rhsA == rhsB)
 					rhs = rhsA;
 				else
-					rhs = TOP_EXPR;
+					rhs = BOTTOM_EXPR;
 				result.put(var, new CopyVarStatement(var, rhs));
-
 			} else {
 				result.put(var, copy);
 			}
