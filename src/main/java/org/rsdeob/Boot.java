@@ -7,11 +7,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
 import java.util.jar.JarOutputStream;
 
 import org.objectweb.asm.ClassReader;
@@ -31,7 +29,9 @@ import org.rsdeob.stdlib.cfg.ControlFlowGraphBuilder;
 import org.rsdeob.stdlib.cfg.ControlFlowGraphDeobfuscator;
 import org.rsdeob.stdlib.cfg.RootStatement;
 import org.rsdeob.stdlib.cfg.StatementGenerator;
-import org.rsdeob.stdlib.cfg.algo.DominanceComputor;
+import org.rsdeob.stdlib.cfg.stat.CopyVarStatement;
+import org.rsdeob.stdlib.cfg.statopt.DataFlowAnalyzer;
+import org.rsdeob.stdlib.cfg.statopt.DataFlowState;
 import org.rsdeob.stdlib.cfg.util.GraphUtils;
 import org.rsdeob.stdlib.collections.NodeTable;
 import org.rsdeob.stdlib.deob.IPhase;
@@ -51,7 +51,7 @@ public class Boot implements Opcodes {
 		while(it.hasNext()) {
 			MethodNode m = it.next();
 
-//			if(!m.toString().equals("DupTestEasy.main([Ljava/lang/String;)V")) {
+//			if(!m.toString().equals("DupTest.main([Ljava/lang/String;)V")) {
 //				continue;
 //			}
 			
@@ -68,7 +68,7 @@ public class Boot implements Opcodes {
 			deobber.removeEmptyBlocks(cfg, blocks);
 			GraphUtils.naturaliseGraph(cfg, blocks);
 
-System.out.println(cfg);
+//			System.out.println(cfg);
 
 			System.out.println("Execution log of " + m + ":");
 			StatementGenerator gen = new StatementGenerator(cfg);
@@ -79,16 +79,42 @@ System.out.println(cfg);
 			System.out.println("IR representation of " + m + ":");
 			System.out.println(root);
 			System.out.println();
-			
-			Map<BasicBlock, Set<BasicBlock>> doms = DominanceComputor.compute(cfg);
-			System.out.println(cfg);
-			
-			for(Entry<BasicBlock, Set<BasicBlock>> e : doms.entrySet()) {
-				System.out.println(" " + e.getKey().getId() + "  dominates: ");
-				for(BasicBlock b : e.getValue()) {
-					System.out.println( "    " + b.getId());
-				}
+
+			DataFlowAnalyzer dfa = new DataFlowAnalyzer(cfg);
+			HashMap<BasicBlock, DataFlowState> df = dfa.computeForward();
+			System.out.println("Data flow for " + m + ":");
+			for (BasicBlock b : df.keySet()) {
+				DataFlowState state = df.get(b);
+				System.out.println("Data flow for block " + b.getId() + ":");
+				System.out.println("In: ");
+				for (CopyVarStatement copy : state.in.values())
+					System.out.println("  " + copy);
+				System.out.println();
+
+				System.out.println("Out: ");
+				for (CopyVarStatement copy : state.out.values())
+					System.out.println("  " + copy);
+				System.out.println();
+
+//				System.out.println("Gen: ");
+//				for (Assignment copy : state.gen)
+//					System.out.println("  " + copy);
+//				System.out.println();
+//
+//				System.out.println("Kill: ");
+//				for (Assignment copy : state.kill)
+//					System.out.println("  " + copy);
+				System.out.println();
 			}
+			
+//			Map<BasicBlock, Set<BasicBlock>> doms = DominanceComputor.compute(cfg);
+//
+//			for(Entry<BasicBlock, Set<BasicBlock>> e : doms.entrySet()) {
+//				System.out.println(" " + e.getKey().getId() + "  dominates: ");
+//				for(BasicBlock b : e.getValue()) {
+//					System.out.println( "    " + b.getId());
+//				}
+//			}
 			
 //			ConstantPropagator prop = new ConstantPropagator(cfg);
 //			prop.compute();
@@ -157,8 +183,8 @@ System.out.println(cfg);
 						if(((IStackDumpNode) stmt).isRedundant()) {
 							continue;
 						}
-					} else if (stmt instanceof StackLoadExpression) {
-						if(((StackLoadExpression) stmt).isStackVariable()) {
+					} else if (stmt instanceof VarExpression) {
+						if(((VarExpression) stmt).isStackVariable()) {
 							System.out.println("   st: [STACKVAR]" + stmt);
 							continue;
 						}
@@ -171,7 +197,7 @@ System.out.println(cfg);
 			System.out.println("End of processing log for " + m);
 			System.out.println("============================================================");
 			System.out.println("============================================================\n\n");
-			break;
+//			break;
 		}
 		
 		ClassWriter clazz = new ClassWriter(0);
