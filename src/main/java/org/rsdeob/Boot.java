@@ -1,17 +1,5 @@
 package org.rsdeob;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.jar.JarOutputStream;
-
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Opcodes;
@@ -23,12 +11,7 @@ import org.rsdeob.deobimpl.DummyMethodPhase;
 import org.rsdeob.deobimpl.RTECatchBlockRemoverPhase;
 import org.rsdeob.deobimpl.UnusedFieldsPhase;
 import org.rsdeob.stdlib.IContext;
-import org.rsdeob.stdlib.cfg.BasicBlock;
-import org.rsdeob.stdlib.cfg.ControlFlowGraph;
-import org.rsdeob.stdlib.cfg.ControlFlowGraphBuilder;
-import org.rsdeob.stdlib.cfg.ControlFlowGraphDeobfuscator;
-import org.rsdeob.stdlib.cfg.RootStatement;
-import org.rsdeob.stdlib.cfg.StatementGenerator;
+import org.rsdeob.stdlib.cfg.*;
 import org.rsdeob.stdlib.cfg.stat.CopyVarStatement;
 import org.rsdeob.stdlib.cfg.statopt.DataFlowAnalyzer;
 import org.rsdeob.stdlib.cfg.statopt.DataFlowState;
@@ -37,6 +20,10 @@ import org.rsdeob.stdlib.collections.NodeTable;
 import org.rsdeob.stdlib.deob.IPhase;
 import org.topdank.byteengineer.commons.data.JarInfo;
 import org.topdank.byteio.in.SingleJarDownloader;
+
+import java.io.*;
+import java.util.*;
+import java.util.jar.JarOutputStream;
 
 public class Boot implements Opcodes {
 	public static final File GRAPH_FOLDER = new File("C://Users//Bibl//Desktop//cfg testing");
@@ -97,14 +84,14 @@ public class Boot implements Opcodes {
 				System.out.println();
 
 //				System.out.println("Gen: ");
-//				for (Assignment copy : state.gen)
+//				for (CopyVarStatement copy : state.gen)
 //					System.out.println("  " + copy);
 //				System.out.println();
 //
 //				System.out.println("Kill: ");
-//				for (Assignment copy : state.kill)
+//				for (CopyVarStatement copy : state.kill)
 //					System.out.println("  " + copy);
-				System.out.println();
+//				System.out.println();
 			}
 			
 //			Map<BasicBlock, Set<BasicBlock>> doms = DominanceComputor.compute(cfg);

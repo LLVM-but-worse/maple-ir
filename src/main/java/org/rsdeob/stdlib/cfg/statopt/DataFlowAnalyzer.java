@@ -44,31 +44,34 @@ public class DataFlowAnalyzer {
 		while (changed) {
 			System.out.println("Iteration " + ++i);
 			changed = false;
+			HashMap<BasicBlock, DataFlowState> oldFlow = new HashMap<>(dataFlow);
 			for (BasicBlock b : cfg.blocks()) {
 				if (b == cfg.getEntry())
 					continue;
 
-				DataFlowState state = dataFlow.get(b);
+				DataFlowState state = oldFlow.get(b);
 				HashMap<VarExpression, CopyVarStatement> oldOut = new HashMap<>(state.out);
+				DataFlowState newState = new DataFlowState(state.gen, state.kill);
+
 				// IN[b] = MEET(OUT[p] for p in predicates(b))
-				HashMap<VarExpression, CopyVarStatement> in = state.in;
-				for (FlowEdge e : b.getPredecessors()) {
-					HashMap<VarExpression, CopyVarStatement> outP = dataFlow.get(e.src).out;
-					in = meet(in, outP);
-				}
-				state.in = in;
+				HashMap<VarExpression, CopyVarStatement> in = new HashMap<>();
+				for (FlowEdge e : b.getPredecessors())
+					in = in.isEmpty() ? oldFlow.get(e.src).out : meet(in, oldFlow.get(e.src).out);
+				newState.in = in;
 
 				// OUT[b] = GEN[b] UNION (IN[b] - KILL[b])
-				HashSet<CopyVarStatement> temp = new HashSet<>(state.in.values());
-				temp.removeAll(state.kill);
-				HashMap<VarExpression, CopyVarStatement> out = state.getGen();
+				HashSet<CopyVarStatement> temp = new HashSet<>(newState.in.values());
+				temp.removeAll(newState.kill);
+				newState.out.clear();
 				for (CopyVarStatement copy : temp)
-					if (!out.containsValue(copy))
-						out.put(copy.getVariable(), copy);
-				state.out = out;
+					newState.out.put(copy.getVariable(), copy);
+				for (CopyVarStatement copy : newState.gen)
+					newState.out.put(copy.getVariable(), copy);
 
-				if (!state.out.equals(oldOut))
+				if (!newState.out.equals(oldOut)) {
 					changed = true;
+				}
+				dataFlow.put(b, newState);
 			}
 		}
 
@@ -97,7 +100,7 @@ public class DataFlowAnalyzer {
 					rhs = BOTTOM_EXPR;
 				result.put(var, new CopyVarStatement(var, rhs));
 			} else {
-				result.put(var, copy);
+				result.put(var, new CopyVarStatement(var, TOP_EXPR));
 			}
 		}
 		return result;
@@ -142,9 +145,6 @@ public class DataFlowAnalyzer {
 						toRemove.add(copy);
 						break;
 					}
-					if (copy.getExpression().equals(newCopy.getVariable())) { // check rhs
-						toRemove.add(copy);
-					}
 				}
 				gen.removeAll(toRemove);
 
@@ -166,9 +166,6 @@ public class DataFlowAnalyzer {
 				HashSet<CopyVarStatement> allCopies = getAllCopiesExcluding(b);
 				for (CopyVarStatement copy : allCopies) {
 					if (copy.getVariable().equals(newCopy.getVariable())) { // check lhs
-						kill.add(copy);
-					}
-					if (copy.getExpression().equals(newCopy.getVariable())) { // check rhs
 						kill.add(copy);
 					}
 				}
