@@ -18,10 +18,13 @@ public class DominanceComputor {
 	
 	private final Map<BasicBlock, Set<BasicBlock>> strictDominators = new HashMap<>();
 	private final Map<BasicBlock, BasicBlock> immediateDomintors = new HashMap<>();
+	private final Map<BasicBlock, Set<BasicBlock>> dominanceFrontiers = new HashMap<>();
 	private final Map<BasicBlock, Integer> postOrderNumbers = new HashMap<>();
 	
 	public DominanceComputor(ControlFlowGraph cfg) {
-		generate(cfg);
+		computeDominators(cfg);
+		computeImmediateDominators(cfg);
+		computeFrontiers(cfg);
 	}
 	
 	public Set<BasicBlock> doms(BasicBlock b) {
@@ -43,7 +46,7 @@ public class DominanceComputor {
 		}
 	}
 	
-	private void generate2(ControlFlowGraph cfg) {
+	private void computeImmediateDominators(ControlFlowGraph cfg) {
 		Set<BasicBlock> eset = new HashSet<>();
 		BasicBlock entry = cfg.getEntry();
 		eset.add(entry);
@@ -125,7 +128,7 @@ public class DominanceComputor {
 		return n1;
 	}
 	
-	private void generate(ControlFlowGraph cfg) {
+	private void computeDominators(ControlFlowGraph cfg) {
 		Set<BasicBlock> blocks = new HashSet<BasicBlock>(cfg.blocks());
 		for(BasicBlock b : blocks) {
 			dominators.put(b, blocks);
@@ -162,31 +165,24 @@ public class DominanceComputor {
 		}
 	}
 	
-	public static Map<BasicBlock, Set<BasicBlock>> computeFrontiers(ControlFlowGraph cfg, Map<BasicBlock, Set<BasicBlock>> dominators) {
-		LinkedList<BasicBlock> queue = new LinkedList<>();
-		LinkedList<BasicBlock> tree = new LinkedList<>();
-		queue.add(cfg.getEntry());
-		
-		while(!queue.isEmpty()) {
-			BasicBlock c = queue.removeLast();
-			tree.add(c);
-
-			for(BasicBlock d : dominators.get(c)) {
-				tree.add(d);
-				queue.addFirst(d);
+	private void computeFrontiers(ControlFlowGraph cfg) {
+		for(BasicBlock b : cfg.blocks()) {
+			BasicBlock bIdom = immediateDomintors.get(b);
+			if(b.getPredecessors().size() >= 2) {
+				for(FlowEdge fe : b.getPredecessors()) {
+					BasicBlock pred = fe.src;
+					
+					BasicBlock runnerIdom = pred;
+					Set<BasicBlock> runnerSet = new HashSet<>();
+					
+					while(runnerIdom != bIdom) {
+						runnerSet.add(b);
+						runnerIdom = immediateDomintors.get(runnerIdom);
+					}
+					
+					dominanceFrontiers.put(b, runnerSet);
+				}
 			}
 		}
-		
-		while(!tree.isEmpty()) {
-			BasicBlock n = tree.removeLast();
-			BasicBlock s = null;
-			
-			for(FlowEdge se : n.getSuccessors()) {
-				BasicBlock succ = se.dst;
-				
-			}
-		}
-	}
-	
-	
+	}	
 }
