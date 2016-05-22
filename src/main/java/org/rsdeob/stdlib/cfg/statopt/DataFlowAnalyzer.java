@@ -53,23 +53,23 @@ public class DataFlowAnalyzer {
 			dataFlow.put(b, state);
 		}
 
-		boolean changed = true;
-		int i = 0;
-		while (changed) {
-//			System.out.println("Iteration " + ++i);
+		for (boolean changed = true; changed;) {
 			changed = false;
-			HashMap<BasicBlock, DataFlowState> oldFlow = new HashMap<>(dataFlow);
+
+			HashMap<BasicBlock, DataFlowState> newFlow = new HashMap<>();
+			newFlow.put(cfg.getEntry(), dataFlow.get(cfg.getEntry()));
+
 			for (BasicBlock b : cfg.blocks()) {
 				if (b == cfg.getEntry())
 					continue;
 
-				DataFlowState oldState = oldFlow.get(b);
+				DataFlowState oldState = dataFlow.get(b);
 				DataFlowState state = new DataFlowState(oldState.gen, oldState.kill);
 
 				// IN[b] = MEET(OUT[p] for p in predicates(b))
 				HashMap<VarExpression, CopyVarStatement> in = new HashMap<>();
 				for (FlowEdge e : b.getPredecessors())
-					in = in.isEmpty() ? oldFlow.get(e.src).out : meet(in, oldFlow.get(e.src).out);
+					in = in.isEmpty() ? dataFlow.get(e.src).out : meet(in, dataFlow.get(e.src).out);
 				state.in = in;
 
 				// OUT[b] = GEN[b] UNION (IN[b] - KILL[b])
@@ -79,10 +79,12 @@ public class DataFlowAnalyzer {
 				for (CopyVarStatement copy : state.gen)
 					state.out.put(copy.getVariable(), copy);
 
+				newFlow.put(b, state);
 				if (!state.out.equals(oldState.out))
 					changed = true;
-				dataFlow.put(b, state);
 			}
+
+			dataFlow = newFlow;
 		}
 
 		return dataFlow;
@@ -143,17 +145,20 @@ public class DataFlowAnalyzer {
 	// KILL[b] = all copies anywhere in the cfg that do not have lhs/rhs redefined in b
 	private HashSet<CopyVarStatement> computeKill(BasicBlock b) {
 		HashSet<CopyVarStatement> kill = new HashSet<>();
-		for (Statement stmt : b.getStatements()) {
-			if (!(stmt instanceof CopyVarStatement))
+		for (CopyVarStatement copy : allCopies) {
+			if (copy.getBlock() == b)
 				continue;
-			CopyVarStatement newCopy = (CopyVarStatement) stmt;
 
-			// Add all existing statements that would be overwritten by this
-			for (CopyVarStatement copy : allCopies) {
-				if (copy.getBlock() == b)
+			for (Statement stmt : b.getStatements()) {
+				if (!(stmt instanceof CopyVarStatement))
 					continue;
-				if (copy.getVariable().equals(newCopy.getVariable())) // check lhs
+				CopyVarStatement newCopy = (CopyVarStatement) stmt;
+
+				// Add all existing statements that would be overwritten by this
+				if (copy.getVariable().equals(newCopy.getVariable())) { // check lhs
 					kill.add(copy);
+					break;
+				}
 			}
 		}
 
