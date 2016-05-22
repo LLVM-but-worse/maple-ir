@@ -9,6 +9,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.jar.JarOutputStream;
 
@@ -27,12 +29,9 @@ import org.rsdeob.stdlib.cfg.BasicBlock;
 import org.rsdeob.stdlib.cfg.ControlFlowGraph;
 import org.rsdeob.stdlib.cfg.ControlFlowGraphBuilder;
 import org.rsdeob.stdlib.cfg.ControlFlowGraphDeobfuscator;
+import org.rsdeob.stdlib.cfg.DominanceComputor;
 import org.rsdeob.stdlib.cfg.RootStatement;
 import org.rsdeob.stdlib.cfg.StatementGenerator;
-import org.rsdeob.stdlib.cfg.VarVersionsMap;
-import org.rsdeob.stdlib.cfg.stat.Statement;
-import org.rsdeob.stdlib.cfg.statopt.ConstantPropagator;
-import org.rsdeob.stdlib.cfg.statopt.ConstantPropagator.Variable;
 import org.rsdeob.stdlib.cfg.util.GraphUtils;
 import org.rsdeob.stdlib.collections.NodeTable;
 import org.rsdeob.stdlib.deob.IPhase;
@@ -43,7 +42,7 @@ public class Boot implements Opcodes {
 	public static final File GRAPH_FOLDER = new File("C://Users//Bibl//Desktop//cfg testing");
 
 	public static void main(String[] args) throws Exception {
-		InputStream i = new FileInputStream(new File("res/DupTestEasy.class"));
+		InputStream i = new FileInputStream(new File("res/a.class"));
 		ClassReader cr = new ClassReader(i);
 		ClassNode cn = new ClassNode();
 		cr.accept(cn, 0);
@@ -52,9 +51,9 @@ public class Boot implements Opcodes {
 		while(it.hasNext()) {
 			MethodNode m = it.next();
 
-			if(!m.toString().equals("DupTestEasy.main([Ljava/lang/String;)V")) {
-				continue;
-			}
+//			if(!m.toString().equals("DupTestEasy.main([Ljava/lang/String;)V")) {
+//				continue;
+//			}
 			
 			System.out.println("\n\n\nProcessing " + m + ": ");
 
@@ -63,11 +62,13 @@ public class Boot implements Opcodes {
 
 			ControlFlowGraphBuilder builder = new ControlFlowGraphBuilder(m);
 			ControlFlowGraph cfg = builder.build();
-
+			
 			ControlFlowGraphDeobfuscator deobber = new ControlFlowGraphDeobfuscator();
 			List<BasicBlock> blocks = deobber.deobfuscate(cfg);
 			deobber.removeEmptyBlocks(cfg, blocks);
 			GraphUtils.naturaliseGraph(cfg, blocks);
+
+System.out.println(cfg);
 
 			System.out.println("Execution log of " + m + ":");
 			StatementGenerator gen = new StatementGenerator(cfg);
@@ -79,34 +80,40 @@ public class Boot implements Opcodes {
 			System.out.println(root);
 			System.out.println();
 			
-			VarVersionsMap map = root.getVariables();
-			map.build();
-			System.out.println(map);
+			Map<BasicBlock, Set<BasicBlock>> doms = DominanceComputor.compute(cfg);
+			System.out.println(cfg);
 			
-			ConstantPropagator prop = new ConstantPropagator(cfg);
-			prop.compute();
-			
-			
-			for(BasicBlock b : cfg.blocks()) {			
-				for(Statement stmt : b.getStatements()) {
-					Set<Variable> in = prop.getIn(stmt);
-					Set<Variable> out = prop.getOut(stmt);
-					
-					if(in.size() > 0 || out.size() > 0) {
-						System.out.println("  in:");
-						for(Variable var : in) {
-							System.out.println("    " + var);
-						}
-						System.out.println(stmt);
-						System.out.println("  out:");
-						for(Variable var : out) {
-							System.out.println("    " + var);
-						}	
-					}
-					
-					System.out.println("\n\n\n");
+			for(Entry<BasicBlock, Set<BasicBlock>> e : doms.entrySet()) {
+				System.out.println(" " + e.getKey().getId() + "  dominates: ");
+				for(BasicBlock b : e.getValue()) {
+					System.out.println( "    " + b.getId());
 				}
 			}
+			
+//			ConstantPropagator prop = new ConstantPropagator(cfg);
+//			prop.compute();
+//			
+//			
+//			for(BasicBlock b : cfg.blocks()) {			
+//				for(Statement stmt : b.getStatements()) {
+//					Set<Variable> in = prop.getIn(stmt);
+//					Set<Variable> out = prop.getOut(stmt);
+//					
+//					if(in.size() > 0 || out.size() > 0) {
+//						System.out.println("  in:");
+//						for(Variable var : in) {
+//							System.out.println("    " + var);
+//						}
+//						System.out.println(stmt);
+//						System.out.println("  out:");
+//						for(Variable var : out) {
+//							System.out.println("    " + var);
+//						}	
+//					}
+//					
+//					System.out.println("\n\n\n");
+//				}
+//			}
 			/*
 			ControlFlowGraph cfg = ControlFlowGraphBuilder.create(m);
 			GraphUtils.output(cfg, new ArrayList<>(cfg.blocks()), GRAPH_FOLDER, "");
