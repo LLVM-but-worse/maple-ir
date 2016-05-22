@@ -3,6 +3,8 @@ package org.rsdeob.stdlib.cfg.statopt;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Type;
 import org.rsdeob.stdlib.cfg.expr.Expression;
+import org.rsdeob.stdlib.cfg.expr.VarExpression;
+import org.rsdeob.stdlib.cfg.stat.CopyVarStatement;
 import org.rsdeob.stdlib.cfg.stat.Statement;
 import org.rsdeob.stdlib.cfg.util.TabbedStringWriter;
 
@@ -14,27 +16,27 @@ public class DataFlowState {
 	public static final DataFlowExpression TOP_EXPR = new DataFlowExpression();
 	public static final DataFlowExpression BOTTOM_EXPR = new DataFlowExpression();
 
-	public HashMap<Variable, Assignment> in;
-	public HashMap<Variable, Assignment> out;
-	public final Set<Assignment> gen;
-	public final Set<Assignment> kill;
+	public HashMap<VarExpression, CopyVarStatement> in;
+	public HashMap<VarExpression, CopyVarStatement> out;
+	public final Set<CopyVarStatement> gen;
+	public final Set<CopyVarStatement> kill;
 
-	public DataFlowState(HashSet<Assignment> gen, HashSet<Assignment> kill) {
+	public DataFlowState(HashSet<CopyVarStatement> gen, HashSet<CopyVarStatement> kill) {
 		in = new HashMap<>();
 		out = new HashMap<>();
 		this.gen = gen;
 		this.kill = kill;
 	}
 
-	public void copyToOut(Set<Assignment> copies) {
-		for (Assignment copy : copies) {
+	public void copyToOut(Set<CopyVarStatement> copies) {
+		for (CopyVarStatement copy : copies) {
 			out.put(copy.getVariable(), copy);
 		}
 	}
 
-	public HashMap<Variable, Assignment> getGen() {
-		HashMap<Variable, Assignment> result = new HashMap<>();
-		for (Assignment copy : gen) {
+	public HashMap<VarExpression, CopyVarStatement> getGen() {
+		HashMap<VarExpression, CopyVarStatement> result = new HashMap<>();
+		for (CopyVarStatement copy : gen) {
 			result.put(copy.getVariable(), copy);
 		}
 		return result;
