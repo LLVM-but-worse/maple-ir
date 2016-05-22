@@ -18,8 +18,8 @@ public class DataFlowState {
 
 	public HashMap<VarExpression, CopyVarStatement> in;
 	public HashMap<VarExpression, CopyVarStatement> out;
-	public final Set<CopyVarStatement> gen;
-	public final Set<CopyVarStatement> kill;
+	public final HashSet<CopyVarStatement> gen;
+	public final HashSet<CopyVarStatement> kill;
 
 	public DataFlowState(HashSet<CopyVarStatement> gen, HashSet<CopyVarStatement> kill) {
 		in = new HashMap<>();
