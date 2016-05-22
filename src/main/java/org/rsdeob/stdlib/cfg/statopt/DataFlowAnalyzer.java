@@ -106,7 +106,7 @@ public class DataFlowAnalyzer {
 					rhs = rhsA;
 				else if (rhsA == BOTTOM_EXPR || rhsB == BOTTOM_EXPR)
 					rhs = BOTTOM_EXPR;
-				else if (rhsA == rhsB)
+				else if (rhsA.equals(rhsB))
 					rhs = rhsA;
 				else
 					rhs = BOTTOM_EXPR;
