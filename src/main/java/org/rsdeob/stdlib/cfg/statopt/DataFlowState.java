@@ -22,7 +22,5 @@ public class DataFlowState {
 		out = new HashSet<>();
 		gen = new HashSet<>();
 		kill = new HashSet<>();
-
-		// compute sets
 	}
 }
