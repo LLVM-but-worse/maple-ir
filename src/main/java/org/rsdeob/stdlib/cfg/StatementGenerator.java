@@ -1,11 +1,5 @@
 package org.rsdeob.stdlib.cfg;
 
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.LinkedList;
-import java.util.Map.Entry;
-import java.util.Set;
-
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.*;
@@ -20,6 +14,12 @@ import org.rsdeob.stdlib.cfg.stat.MonitorStatement.MonitorMode;
 import org.rsdeob.stdlib.cfg.util.ExpressionStack;
 import org.rsdeob.stdlib.cfg.util.TypeUtils;
 import org.rsdeob.stdlib.cfg.util.TypeUtils.ArrayType;
+
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.Map.Entry;
+import java.util.Set;
 
 public class StatementGenerator implements Opcodes {
 
@@ -201,7 +201,7 @@ public class StatementGenerator implements Opcodes {
 	}
 
 	ExpressionStack process(BasicBlock b) {
-		System.out.println("Processing " + b.getId());
+//		System.out.println("Processing " + b.getId());
 		updatedStacks.add(b);
 		ExpressionStack stack = b.getInputStack().copy();
 
@@ -211,8 +211,8 @@ public class StatementGenerator implements Opcodes {
 		for (AbstractInsnNode ain : b.getInsns()) {
 			int opcode = ain.opcode();
 			if(opcode != -1) {
-				 System.out.println("Executing " + Printer.OPCODES[ain.opcode()]);
-				 System.out.println(" Prestack : " + stack);
+//				 System.out.println("Executing " + Printer.OPCODES[ain.opcode()]);
+//				 System.out.println(" Prestack : " + stack);
 			}
 			switch (opcode) {
 				case -1: {
@@ -528,7 +528,7 @@ public class StatementGenerator implements Opcodes {
 					break;
 			}
 			
-			 System.out.println(" Poststack: " + stack);
+//			 System.out.println(" Poststack: " + stack);
 			 /*System.out.println(" Block stmts: ");
 			 for(Statement stmt : b.getStatements()) {
 				 System.out.println("   " + stmt);
@@ -538,13 +538,14 @@ public class StatementGenerator implements Opcodes {
 
 		return stack;
 	}
-	
+
+	// var[index] = expr
 	Type assign_stack(Expression expr, int index) {
 		Type type = expr.getType();
 		// var_x := expr;
 		StackDumpStatement stmt = new StackDumpStatement(expr, index, type, true);
 		addStmt(stmt);
-		System.out.println("  " + stmt + ":" + stmt.getType());
+//		System.out.println("  " + stmt + ":" + stmt.getType());
 		return type;
 	}
 	
