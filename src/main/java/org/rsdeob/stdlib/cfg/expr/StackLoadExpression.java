@@ -2,7 +2,6 @@ package org.rsdeob.stdlib.cfg.expr;
 
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Type;
-import org.rsdeob.stdlib.cfg.expr.var.StackDumpExpression;
 import org.rsdeob.stdlib.cfg.stat.StackDumpStatement;
 import org.rsdeob.stdlib.cfg.stat.Statement;
 import org.rsdeob.stdlib.cfg.util.TabbedStringWriter;
@@ -93,12 +92,6 @@ public class StackLoadExpression extends Expression {
 			
 			if(stmt instanceof StackDumpStatement) {
 				if(((StackDumpStatement) stmt).getIndex() == index) {
-					return true;
-				}
-			}
-			
-			if(stmt instanceof StackDumpExpression) {
-				if(((StackDumpExpression) stmt).getIndex() == index) {
 					return true;
 				}
 			}

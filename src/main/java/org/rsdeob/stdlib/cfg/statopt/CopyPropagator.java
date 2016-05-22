@@ -1,10 +1,10 @@
 package org.rsdeob.stdlib.cfg.statopt;
 
-import java.util.HashMap;
-
 import org.rsdeob.stdlib.cfg.BasicBlock;
 import org.rsdeob.stdlib.cfg.ControlFlowGraph;
 import org.rsdeob.stdlib.cfg.RootStatement;
+
+import java.util.HashMap;
 
 public class CopyPropagator {
 	private final ControlFlowGraph cfg;
@@ -14,10 +14,11 @@ public class CopyPropagator {
 	public CopyPropagator(ControlFlowGraph cfg){
 		this.cfg = cfg;
 		root = cfg.getRoot();
-		dataFlow = new HashMap<>();
-
-		// compute data flow
+		dataFlow = (new DataFlowAnalyzer(cfg)).computeForward();
 	}
 
+	public void compute() {
+
+	}
 	// rewrite this later
 }

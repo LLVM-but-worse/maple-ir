@@ -1,5 +1,7 @@
 package org.rsdeob.stdlib.cfg.statopt;
 
+import org.rsdeob.stdlib.cfg.expr.StackLoadExpression;
+
 public class Variable {
 	private final int index;
 	private final boolean stackVar;
@@ -7,6 +9,10 @@ public class Variable {
 	public Variable(int index, boolean stackVar) {
 		this.index = index;
 		this.stackVar = stackVar;
+	}
+
+	public Variable(StackLoadExpression expr) {
+		this(expr.getIndex(), expr.isStackVariable());
 	}
 
 	public int getIndex() {
@@ -23,20 +29,22 @@ public class Variable {
 	}
 
 	@Override
-	public int hashCode() {
-		return 37 * index + 41 * (stackVar? 's' : 'l');
+	public boolean equals(Object o) {
+		if (this == o) return true;
+		if (o == null || getClass() != o.getClass()) return false;
+
+		Variable variable = (Variable) o;
+
+		if (index != variable.index) return false;
+		return stackVar == variable.stackVar;
+
 	}
 
 	@Override
-	public boolean equals(Object obj) {
-		if (this == obj)
-			return true;
-		if (obj == null)
-			return false;
-		if (getClass() != obj.getClass())
-			return false;
-		Variable other = (Variable) obj;
-		return other.hashCode() == this.hashCode();
+	public int hashCode() {
+		int result = index;
+		result = 31 * result + (stackVar ? 1 : 0);
+		return result;
 	}
 }
 

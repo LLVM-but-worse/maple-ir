@@ -1,19 +1,5 @@
 package org.rsdeob;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.jar.JarOutputStream;
-
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Opcodes;
@@ -25,18 +11,19 @@ import org.rsdeob.deobimpl.DummyMethodPhase;
 import org.rsdeob.deobimpl.RTECatchBlockRemoverPhase;
 import org.rsdeob.deobimpl.UnusedFieldsPhase;
 import org.rsdeob.stdlib.IContext;
-import org.rsdeob.stdlib.cfg.BasicBlock;
-import org.rsdeob.stdlib.cfg.ControlFlowGraph;
-import org.rsdeob.stdlib.cfg.ControlFlowGraphBuilder;
-import org.rsdeob.stdlib.cfg.ControlFlowGraphDeobfuscator;
-import org.rsdeob.stdlib.cfg.DominanceComputor;
-import org.rsdeob.stdlib.cfg.RootStatement;
-import org.rsdeob.stdlib.cfg.StatementGenerator;
+import org.rsdeob.stdlib.cfg.*;
+import org.rsdeob.stdlib.cfg.statopt.Assignment;
+import org.rsdeob.stdlib.cfg.statopt.DataFlowAnalyzer;
+import org.rsdeob.stdlib.cfg.statopt.DataFlowState;
 import org.rsdeob.stdlib.cfg.util.GraphUtils;
 import org.rsdeob.stdlib.collections.NodeTable;
 import org.rsdeob.stdlib.deob.IPhase;
 import org.topdank.byteengineer.commons.data.JarInfo;
 import org.topdank.byteio.in.SingleJarDownloader;
+
+import java.io.*;
+import java.util.*;
+import java.util.jar.JarOutputStream;
 
 public class Boot implements Opcodes {
 	public static final File GRAPH_FOLDER = new File("C://Users//Bibl//Desktop//cfg testing");
@@ -51,7 +38,7 @@ public class Boot implements Opcodes {
 		while(it.hasNext()) {
 			MethodNode m = it.next();
 
-//			if(!m.toString().equals("DupTestEasy.main([Ljava/lang/String;)V")) {
+//			if(!m.toString().equals("DupTest.main([Ljava/lang/String;)V")) {
 //				continue;
 //			}
 			
@@ -68,7 +55,7 @@ public class Boot implements Opcodes {
 			deobber.removeEmptyBlocks(cfg, blocks);
 			GraphUtils.naturaliseGraph(cfg, blocks);
 
-System.out.println(cfg);
+//			System.out.println(cfg);
 
 			System.out.println("Execution log of " + m + ":");
 			StatementGenerator gen = new StatementGenerator(cfg);
@@ -79,16 +66,42 @@ System.out.println(cfg);
 			System.out.println("IR representation of " + m + ":");
 			System.out.println(root);
 			System.out.println();
-			
-			Map<BasicBlock, Set<BasicBlock>> doms = DominanceComputor.compute(cfg);
-			System.out.println(cfg);
-			
-			for(Entry<BasicBlock, Set<BasicBlock>> e : doms.entrySet()) {
-				System.out.println(" " + e.getKey().getId() + "  dominates: ");
-				for(BasicBlock b : e.getValue()) {
-					System.out.println( "    " + b.getId());
-				}
+
+			DataFlowAnalyzer dfa = new DataFlowAnalyzer(cfg);
+			HashMap<BasicBlock, DataFlowState> df = dfa.computeForward();
+			System.out.println("Data flow for " + m + ":");
+			for (BasicBlock b : df.keySet()) {
+				DataFlowState state = df.get(b);
+				System.out.println("Data flow for block " + b.getId() + ":");
+				System.out.println("In: ");
+				for (Assignment copy : state.in.values())
+					System.out.println("  " + copy);
+				System.out.println();
+
+				System.out.println("Out: ");
+				for (Assignment copy : state.out.values())
+					System.out.println("  " + copy);
+				System.out.println();
+
+//				System.out.println("Gen: ");
+//				for (Assignment copy : state.gen)
+//					System.out.println("  " + copy);
+//				System.out.println();
+//
+//				System.out.println("Kill: ");
+//				for (Assignment copy : state.kill)
+//					System.out.println("  " + copy);
+				System.out.println();
 			}
+			
+//			Map<BasicBlock, Set<BasicBlock>> doms = DominanceComputor.compute(cfg);
+//
+//			for(Entry<BasicBlock, Set<BasicBlock>> e : doms.entrySet()) {
+//				System.out.println(" " + e.getKey().getId() + "  dominates: ");
+//				for(BasicBlock b : e.getValue()) {
+//					System.out.println( "    " + b.getId());
+//				}
+//			}
 			
 //			ConstantPropagator prop = new ConstantPropagator(cfg);
 //			prop.compute();
