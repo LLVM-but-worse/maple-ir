@@ -1,11 +1,5 @@
 package org.rsdeob.stdlib.cfg;
 
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.LinkedList;
-import java.util.Map.Entry;
-import java.util.Set;
-
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.*;
@@ -20,6 +14,12 @@ import org.rsdeob.stdlib.cfg.stat.MonitorStatement.MonitorMode;
 import org.rsdeob.stdlib.cfg.util.ExpressionStack;
 import org.rsdeob.stdlib.cfg.util.TypeUtils;
 import org.rsdeob.stdlib.cfg.util.TypeUtils.ArrayType;
+
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.Map.Entry;
+import java.util.Set;
 
 public class StatementGenerator implements Opcodes {
 
@@ -217,8 +217,8 @@ public class StatementGenerator implements Opcodes {
 		for (AbstractInsnNode ain : b.getInsns()) {
 			int opcode = ain.opcode();
 			if(opcode != -1) {
-				 // System.out.println("Executing " + Printer.OPCODES[ain.opcode()]);
-				 // System.out.println(" Prestack : " + stack);
+//				  System.out.println("Executing " + Printer.OPCODES[ain.opcode()]);
+//				  System.out.println(" Prestack : " + stack);
 			}
 			switch (opcode) {
 				case -1: {
@@ -1007,14 +1007,14 @@ public class StatementGenerator implements Opcodes {
 	}
 	
 	void _new(Type type) {
-		int index = currentStack.height() + 1;
+		int index = currentStack.height();
 		UninitialisedObjectExpression e = new UninitialisedObjectExpression(type);
 		assign_stack(index, e);
 		push(load_stack(index, type));
 	}
 	
 	void _new_array(Expression[] bounds, Type type) {
-		int index = currentStack.height() + 1;
+		int index = currentStack.height();
 		NewArrayExpression e = new NewArrayExpression(bounds, type);
 		assign_stack(index, e);
 		push(load_stack(index, type));
