@@ -10,7 +10,6 @@ import org.rsdeob.stdlib.cfg.util.TabbedStringWriter;
 
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Set;
 
 public class DataFlowState {
 	public static final DataFlowExpression TOP_EXPR = new DataFlowExpression();
@@ -26,20 +25,6 @@ public class DataFlowState {
 		out = new HashMap<>();
 		this.gen = gen;
 		this.kill = kill;
-	}
-
-	public void copyToOut(Set<CopyVarStatement> copies) {
-		for (CopyVarStatement copy : copies) {
-			out.put(copy.getVariable(), copy);
-		}
-	}
-
-	public HashMap<VarExpression, CopyVarStatement> getGen() {
-		HashMap<VarExpression, CopyVarStatement> result = new HashMap<>();
-		for (CopyVarStatement copy : gen) {
-			result.put(copy.getVariable(), copy);
-		}
-		return result;
 	}
 
 	private static class DataFlowExpression extends Expression {
