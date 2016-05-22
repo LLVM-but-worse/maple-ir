@@ -1,11 +1,5 @@
 package org.rsdeob.stdlib.cfg;
 
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.LinkedList;
-import java.util.Map.Entry;
-import java.util.Set;
-
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.*;
@@ -20,6 +14,12 @@ import org.rsdeob.stdlib.cfg.stat.MonitorStatement.MonitorMode;
 import org.rsdeob.stdlib.cfg.util.ExpressionStack;
 import org.rsdeob.stdlib.cfg.util.TypeUtils;
 import org.rsdeob.stdlib.cfg.util.TypeUtils.ArrayType;
+
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.Map.Entry;
+import java.util.Set;
 
 public class StatementGenerator implements Opcodes {
 
@@ -171,10 +171,10 @@ public class StatementGenerator implements Opcodes {
 		while (c0.height() > 0) {
 			Expression e1 = c0.pop();
 			Expression e2 = c1.pop();
-			if (!(e1 instanceof StackLoadExpression) || !(e2 instanceof StackLoadExpression)) {
+			if (!(e1 instanceof VarExpression) || !(e2 instanceof VarExpression)) {
 				return false;
 			}
-			if (((StackLoadExpression) e1).getIndex() != ((StackLoadExpression) e2).getIndex()) {
+			if (((VarExpression) e1).getIndex() != ((VarExpression) e2).getIndex()) {
 				return false;
 			}
 			if (!e1.getType().getDescriptor().equals(e2.getType().getDescriptor())) {
@@ -201,7 +201,7 @@ public class StatementGenerator implements Opcodes {
 	}
 
 	ExpressionStack process(BasicBlock b) {
-		System.out.println("Processing " + b.getId());
+//		System.out.println("Processing " + b.getId());
 		updatedStacks.add(b);
 		ExpressionStack stack = b.getInputStack().copy();
 
@@ -211,8 +211,8 @@ public class StatementGenerator implements Opcodes {
 		for (AbstractInsnNode ain : b.getInsns()) {
 			int opcode = ain.opcode();
 			if(opcode != -1) {
-				 System.out.println("Executing " + Printer.OPCODES[ain.opcode()]);
-				 System.out.println(" Prestack : " + stack);
+//				 System.out.println("Executing " + Printer.OPCODES[ain.opcode()]);
+//				 System.out.println(" Prestack : " + stack);
 			}
 			switch (opcode) {
 				case -1: {
@@ -528,7 +528,7 @@ public class StatementGenerator implements Opcodes {
 					break;
 			}
 			
-			 System.out.println(" Poststack: " + stack);
+//			 System.out.println(" Poststack: " + stack);
 			 /*System.out.println(" Block stmts: ");
 			 for(Statement stmt : b.getStatements()) {
 				 System.out.println("   " + stmt);
@@ -538,18 +538,19 @@ public class StatementGenerator implements Opcodes {
 
 		return stack;
 	}
-	
-	Type assign_stack(Expression expr, int index) {
+
+	// var[index] = expr
+	Type assign_stack(int index, Expression expr) {
 		Type type = expr.getType();
-		// var_x := expr;
-		StackDumpStatement stmt = new StackDumpStatement(expr, index, type, true);
+		VarExpression var = new VarExpression(index, type, true);
+		CopyVarStatement stmt = new CopyVarStatement(var, expr);
 		addStmt(stmt);
-		System.out.println("  " + stmt + ":" + stmt.getType());
+//		System.out.println("  " + stmt + ":" + stmt.getType());
 		return type;
 	}
 	
 	Expression load_stack(int index, Type type) {
-		return new StackLoadExpression(index, type, true);
+		return new VarExpression(index, type, true);
 	}
 	
 	void _jump_compare(BasicBlock target, ComparisonType type, Expression left, Expression right) {
@@ -607,7 +608,7 @@ public class StatementGenerator implements Opcodes {
 	void _const(Object o) {
 		Expression e = new ConstantExpression(o);
 		int index = currentStack.height();
-		Type type = assign_stack(e, index);
+		Type type = assign_stack(index, e);
 		push(load_stack(index, type));
 	}
 
@@ -680,7 +681,7 @@ public class StatementGenerator implements Opcodes {
 
 		Expression var0 = pop();
 
-		Type var1Type = assign_stack(var0, baseHeight); // var1 = var0
+		Type var1Type = assign_stack(baseHeight, var0); // var1 = var0
 		push(load_stack(baseHeight - 1, var0.getType())); //  push var0
 		push(load_stack(baseHeight, var1Type)); // push var1
 	}
@@ -697,11 +698,11 @@ public class StatementGenerator implements Opcodes {
 		Expression var1 = pop();
 		Expression var0 = pop();
 
-		Type var3Type = assign_stack(var0, baseHeight + 1); // var3 = var0
+		Type var3Type = assign_stack(baseHeight + 1, var0); // var3 = var0
 
-		Type var0Type = assign_stack(var1, baseHeight - 2); // var0 = var1(initial)
-		Type var2Type = assign_stack(var1, baseHeight + 0); // var2 = var1(initial)
-		Type var1Type = assign_stack(load_stack(baseHeight + 1, var3Type), baseHeight - 1); // var1 = var3 = var0(initial)
+		Type var0Type = assign_stack(baseHeight - 2, var1); // var0 = var1(initial)
+		Type var2Type = assign_stack(baseHeight + 0, var1); // var2 = var1(initial)
+		Type var1Type = assign_stack(baseHeight - 1, load_stack(baseHeight + 1, var3Type)); // var1 = var3 = var0(initial)
 
 		push(load_stack(baseHeight - 2, var0Type)); // push var0
 		push(load_stack(baseHeight - 1, var1Type)); // push var1
@@ -722,11 +723,11 @@ public class StatementGenerator implements Opcodes {
 			Expression var2 = pop();
 			Expression var0 = pop();
 
-			Type var4Type = assign_stack(var0, baseHeight + 1); // var4 = var0(initial)
+			Type var4Type = assign_stack(baseHeight + 1, var0); // var4 = var0(initial)
 
-			Type var0Type = assign_stack(var2, baseHeight - 3); // var0 = var2(initial)
-			Type var3Type = assign_stack(var2, baseHeight + 0); // var3 = var2(initial)
-			Type var1Type = assign_stack(load_stack(baseHeight + 1, var4Type), baseHeight - 2); // var1 = var4 = var0(initial)
+			Type var0Type = assign_stack(baseHeight - 3, var2); // var0 = var2(initial)
+			Type var3Type = assign_stack(baseHeight + 0, var2); // var3 = var2(initial)
+			Type var1Type = assign_stack(baseHeight - 2, load_stack(baseHeight + 1, var4Type)); // var1 = var4 = var0(initial)
 
 			push(load_stack(baseHeight - 3, var0Type)); // push var0
 			push(load_stack(baseHeight - 2, var1Type)); // push var1
@@ -744,13 +745,13 @@ public class StatementGenerator implements Opcodes {
 			Expression var1 = pop();
 			Expression var0 = pop();
 
-			Type var4Type = assign_stack(var0, baseHeight + 1); // var4 = var0(initial)
-			Type var5Type = assign_stack(var1, baseHeight + 2); // var5 = var1(initial)
+			Type var4Type = assign_stack(baseHeight + 1, var0); // var4 = var0(initial)
+			Type var5Type = assign_stack(baseHeight + 2, var1); // var5 = var1(initial)
 
-			Type var0Type = assign_stack(var2, baseHeight - 3); // var0 = var2(initial)
-			Type var3Type = assign_stack(var2, baseHeight + 0); // var3 = var2(initial)
-			Type var1Type = assign_stack(load_stack(baseHeight + 1, var4Type), baseHeight - 2); // var1 = var4 = var0(initial)
-			Type var2Type = assign_stack(load_stack(baseHeight + 2, var5Type), baseHeight - 1); // var2 = var5 = var1(initial)
+			Type var0Type = assign_stack(baseHeight - 3, var2); // var0 = var2(initial)
+			Type var3Type = assign_stack(baseHeight + 0, var2); // var3 = var2(initial)
+			Type var1Type = assign_stack(baseHeight - 2, load_stack(baseHeight + 1, var4Type)); // var1 = var4 = var0(initial)
+			Type var2Type = assign_stack(baseHeight - 1, load_stack(baseHeight + 2, var5Type)); // var2 = var5 = var1(initial)
 
 			push(load_stack(baseHeight - 3, var0Type)); // push var0
 			push(load_stack(baseHeight - 2, var1Type)); // push var1
@@ -769,7 +770,7 @@ public class StatementGenerator implements Opcodes {
 
 			Expression var0 = pop();
 
-			Type var2Type = assign_stack(var0, baseHeight); // var2 = var0
+			Type var2Type = assign_stack(baseHeight, var0); // var2 = var0
 			push(load_stack(baseHeight - 2, var0.getType())); //  push var0
 			push(load_stack(baseHeight, var2Type)); // push var2
 		} else {
@@ -782,8 +783,8 @@ public class StatementGenerator implements Opcodes {
 			Expression var1 = pop();
 			Expression var0 = pop();
 
-			Type var2Type = assign_stack(var0, baseHeight + 0); // var2 = var0
-			Type var3Type = assign_stack(var1, baseHeight + 1); // var3 = var1
+			Type var2Type = assign_stack(baseHeight + 0, var0); // var2 = var0
+			Type var3Type = assign_stack(baseHeight + 1, var1); // var3 = var1
 
 			push(load_stack(baseHeight - 2, var0.getType())); // push var0
 			push(load_stack(baseHeight - 1, var1.getType())); // push var1
@@ -807,11 +808,11 @@ public class StatementGenerator implements Opcodes {
 			Expression var2 = pop();
 			Expression var0 = pop();
 
-			Type var4Type = assign_stack(var0, baseHeight + 1); // var4 = var0(initial)
+			Type var4Type = assign_stack(baseHeight + 1, var0); // var4 = var0(initial)
 
-			Type var3Type = assign_stack(var2, baseHeight - 0); // var3 = var2(initial)
-			Type var0Type = assign_stack(var2, baseHeight - 3); // var0 = var2(initial)
-			Type var2Type = assign_stack(load_stack(baseHeight + 1, var4Type), baseHeight - 1); // var2 = var4 = var0(initial)
+			Type var3Type = assign_stack(baseHeight - 0, var2); // var3 = var2(initial)
+			Type var0Type = assign_stack(baseHeight - 3, var2); // var0 = var2(initial)
+			Type var2Type = assign_stack(baseHeight - 1, load_stack(baseHeight + 1, var4Type)); // var2 = var4 = var0(initial)
 
 			push(load_stack(baseHeight - 3, var0Type)); // push var0
 			push(load_stack(baseHeight - 1, var2Type)); // push var2
@@ -830,13 +831,13 @@ public class StatementGenerator implements Opcodes {
 			Expression var1 = pop();
 			Expression var0 = pop();
 
-			Type var5Type = assign_stack(var0, baseHeight + 2); // var5 = var0(initial)
+			Type var5Type = assign_stack(baseHeight + 2, var0); // var5 = var0(initial)
 
-			Type var0Type = assign_stack(var1, baseHeight - 3); // var0 = var1(initial)
-			Type var1Type = assign_stack(var2, baseHeight - 2); // var1 = var2(initial)
-			Type var3Type = assign_stack(var1, baseHeight + 0); // var3 = var1(initial)
-			Type var4Type = assign_stack(var2, baseHeight + 1); // var4 = var2(initial)
-			Type var2Type = assign_stack(load_stack(baseHeight + 2, var5Type), baseHeight - 1); // var2 = var5 = var0(initial)
+			Type var0Type = assign_stack(baseHeight - 3, var1); // var0 = var1(initial)
+			Type var1Type = assign_stack(baseHeight - 2, var2); // var1 = var2(initial)
+			Type var3Type = assign_stack(baseHeight + 0, var1); // var3 = var1(initial)
+			Type var4Type = assign_stack(baseHeight + 1, var2); // var4 = var2(initial)
+			Type var2Type = assign_stack(baseHeight - 1, load_stack(baseHeight + 2, var5Type)); // var2 = var5 = var0(initial)
 
 			push(load_stack(baseHeight - 3, var0Type)); // push var0
 			push(load_stack(baseHeight - 2, var1Type)); // push var1
@@ -863,11 +864,11 @@ public class StatementGenerator implements Opcodes {
 				Expression var2 = pop();
 				Expression var0 = pop();
 
-				Type var6Type = assign_stack(var0, baseHeight + 2); // var6 = var0(initial)
+				Type var6Type = assign_stack(baseHeight + 2, var0); // var6 = var0(initial)
 
-				Type var0Type = assign_stack(var2, baseHeight - 4); // var0 = var2(initial)
-				Type var4Type = assign_stack(var2, baseHeight - 0); // var4 = var2(initial)
-				Type var2Type = assign_stack(load_stack(baseHeight + 2, var6Type), baseHeight - 2); // var2 = var6 = var0(initial)
+				Type var0Type = assign_stack(baseHeight - 4, var2); // var0 = var2(initial)
+				Type var4Type = assign_stack(baseHeight - 0, var2); // var4 = var2(initial)
+				Type var2Type = assign_stack(baseHeight - 2, load_stack(baseHeight + 2, var6Type)); // var2 = var6 = var0(initial)
 
 				push(load_stack(baseHeight - 4, var0Type)); // push var0;
 				push(load_stack(baseHeight - 2, var2Type)); // push var2;
@@ -886,12 +887,12 @@ public class StatementGenerator implements Opcodes {
 				Expression var1 = pop();
 				Expression var0 = pop();
 
-				Type var6Type = assign_stack(var0, baseHeight + 2); // var6 = var0(initial)
+				Type var6Type = assign_stack(baseHeight + 2, var0); // var6 = var0(initial)
 
-				Type var0Type = assign_stack(var2, baseHeight - 4); // var0 = var2
-				Type var3Type = assign_stack(var1, baseHeight - 1); // var3 = var1
-				Type var4Type = assign_stack(var2, baseHeight + 0); // var4 = var2
-				Type var2Type = assign_stack(load_stack(baseHeight + 2, var6Type), baseHeight - 2); // var2 = var0
+				Type var0Type = assign_stack(baseHeight - 4, var2); // var0 = var2
+				Type var3Type = assign_stack(baseHeight - 1, var1); // var3 = var1
+				Type var4Type = assign_stack(baseHeight + 0, var2); // var4 = var2
+				Type var2Type = assign_stack(baseHeight - 2, load_stack(baseHeight + 2, var6Type)); // var2 = var0
 
 				push(load_stack(baseHeight - 4, var0Type)); // push var0
 				push(load_stack(baseHeight - 2, var2Type)); // push var2
@@ -915,13 +916,13 @@ public class StatementGenerator implements Opcodes {
 				Expression var2 = pop();
 				Expression var0 = pop();
 
-				Type var6Type = assign_stack(var0, baseHeight + 2); // var6 = var0(initial)
+				Type var6Type = assign_stack(baseHeight + 2, var0); // var6 = var0(initial)
 
-				Type var0Type = assign_stack(var2, baseHeight - 4); // var0 = var2(initial)
-				Type var1Type = assign_stack(var3, baseHeight - 3); // var1 = var3(initial)
-				Type var4Type = assign_stack(var2, baseHeight + 0); // var4 = var2(initial)
-				Type var5Type = assign_stack(var3, baseHeight + 1); // var5 = var3(initial)
-				Type var2Type = assign_stack(load_stack(baseHeight + 2, var6Type), baseHeight - 2); // var2 = var6 = var0(initial)
+				Type var0Type = assign_stack(baseHeight - 4, var2); // var0 = var2(initial)
+				Type var1Type = assign_stack(baseHeight - 3, var3); // var1 = var3(initial)
+				Type var4Type = assign_stack(baseHeight + 0, var2); // var4 = var2(initial)
+				Type var5Type = assign_stack(baseHeight + 1, var3); // var5 = var3(initial)
+				Type var2Type = assign_stack(baseHeight - 2, load_stack(baseHeight + 2, var6Type)); // var2 = var6 = var0(initial)
 
 				push(load_stack(baseHeight - 4, var0Type)); // push var0
 				push(load_stack(baseHeight - 3, var1Type)); // push var1
@@ -945,15 +946,15 @@ public class StatementGenerator implements Opcodes {
 				Expression var1 = pop();
 				Expression var0 = pop();
 
-				Type var6Type = assign_stack(var0, baseHeight + 2); // var6 = var0(initial)
-				Type var7Type = assign_stack(var1, baseHeight + 3); // var7 = var1(initial)
+				Type var6Type = assign_stack(baseHeight + 2, var0); // var6 = var0(initial)
+				Type var7Type = assign_stack(baseHeight + 3, var1); // var7 = var1(initial)
 
-				Type var0Type = assign_stack(var2, baseHeight - 4); // var0 = var2(initial)
-				Type var1Type = assign_stack(var3, baseHeight - 3); // var1 = var3(initial)
-				Type var4Type = assign_stack(var2, baseHeight + 0); // var4 = var2(initial)
-				Type var5Type = assign_stack(var3, baseHeight + 1); // var5 = var3(initial)
-				Type var2Type = assign_stack(load_stack(baseHeight + 2, var6Type), baseHeight - 2); // var2 = var6 = var0(initial)
-				Type var3Type = assign_stack(load_stack(baseHeight + 3, var7Type), baseHeight - 1); // var3 = var7 = var1(initial)
+				Type var0Type = assign_stack(baseHeight - 4, var2); // var0 = var2(initial)
+				Type var1Type = assign_stack(baseHeight - 3, var3); // var1 = var3(initial)
+				Type var4Type = assign_stack(baseHeight + 0, var2); // var4 = var2(initial)
+				Type var5Type = assign_stack(baseHeight + 1, var3); // var5 = var3(initial)
+				Type var2Type = assign_stack(baseHeight - 2, load_stack(baseHeight + 2, var6Type)); // var2 = var6 = var0(initial)
+				Type var3Type = assign_stack(baseHeight - 1, load_stack(baseHeight + 3, var7Type)); // var3 = var7 = var1(initial)
 
 				push(load_stack(baseHeight - 4, var0Type)); // push var0
 				push(load_stack(baseHeight - 3, var1Type)); // push var1
@@ -977,11 +978,11 @@ public class StatementGenerator implements Opcodes {
 		Expression var1 = pop();
 		Expression var0 = pop();
 
-		Type var2Type = assign_stack(var0, baseHeight + 0); // var2 = var0
-		Type var3Type = assign_stack(var1, baseHeight + 1); // var3 = var1
+		Type var2Type = assign_stack(baseHeight + 0, var0); // var2 = var0
+		Type var3Type = assign_stack(baseHeight + 1, var1); // var3 = var1
 
-		Type var0Type = assign_stack(load_stack(baseHeight + 1, var3Type), baseHeight - 2); // var0 = var3 = var1(initial)
-		Type var1Type = assign_stack(load_stack(baseHeight + 0, var2Type), baseHeight - 1); // var1 = var2 = var0(initial)
+		Type var0Type = assign_stack(baseHeight - 2, load_stack(baseHeight + 1, var3Type)); // var0 = var3 = var1(initial)
+		Type var1Type = assign_stack(baseHeight - 1, load_stack(baseHeight + 0, var2Type)); // var1 = var2 = var0(initial)
 
 		push(load_stack(baseHeight - 2, var0Type)); // push var0
 		push(load_stack(baseHeight - 1, var1Type)); // push var1
@@ -990,28 +991,28 @@ public class StatementGenerator implements Opcodes {
 	void _cast(Type type) {
 		Expression e = new CastExpression(pop(), type);
 		int index = currentStack.height();
-		assign_stack(e, index);
+		assign_stack(index, e);
 		push(load_stack(index, type));
 	}
 	
 	void _instanceof(Type type) {
 		InstanceofExpression e = new InstanceofExpression(pop(), type);
 		int index = currentStack.height();
-		assign_stack(e, index);
+		assign_stack(index, e);
 		push(load_stack(index, type));
 	}
 	
 	void _new(Type type) {
 		int index = currentStack.height() + 1;
 		UninitialisedObjectExpression e = new UninitialisedObjectExpression(type);
-		assign_stack(e, index);
+		assign_stack(index, e);
 		push(load_stack(index, type));
 	}
 	
 	void _new_array(Expression[] bounds, Type type) {
 		int index = currentStack.height() + 1;
 		NewArrayExpression e = new NewArrayExpression(bounds, type);
-		assign_stack(e, index);
+		assign_stack(index, e);
 		push(load_stack(index, type));
 	}
 	
@@ -1026,7 +1027,7 @@ public class StatementGenerator implements Opcodes {
 			addStmt(new PopStatement(callExpr));
 		} else {
 			int index = currentStack.height();
-			Type type = assign_stack(callExpr, index);
+			Type type = assign_stack(index, callExpr);
 			push(load_stack(index, type));
 		}
 	}
@@ -1061,7 +1062,7 @@ public class StatementGenerator implements Opcodes {
 			}
 			FieldLoadExpression fExpr = new FieldLoadExpression(inst, owner, name, desc);
 			int index = currentStack.height();
-			Type type = assign_stack(fExpr, index);
+			Type type = assign_stack(index, fExpr);
 			push(load_stack(index, type));
 		} else {
 			throw new UnsupportedOperationException(Printer.OPCODES[opcode] + " " + owner + "." + name + "   " + desc);
@@ -1070,18 +1071,20 @@ public class StatementGenerator implements Opcodes {
 	
 	void _store(int index, Type type) {
 		Expression expr = pop();
-		addStmt(new StackDumpStatement(expr, index, type));
+		VarExpression var = new VarExpression(index, type, false);
+		addStmt(new CopyVarStatement(var, expr));
 	}
-	
+
 	void _load(int index, Type type) {
-		StackLoadExpression e = new StackLoadExpression(index, type);
+		VarExpression e = new VarExpression(index, type);
 		push(e);
-		assign_stack(e, currentStack.height());
+		assign_stack(currentStack.height(), e);
 	}
-	
+
 	void _inc(int index, int amt) {
-		StackLoadExpression load = new StackLoadExpression(index, Type.INT_TYPE);
+		VarExpression load = new VarExpression(index, Type.INT_TYPE);
 		ArithmeticExpression inc = new ArithmeticExpression(new ConstantExpression(amt), load, Operator.ADD);
-		addStmt(new StackDumpStatement(inc, index, Type.INT_TYPE));
+		VarExpression var = new VarExpression(index, Type.INT_TYPE, false);
+		addStmt(new CopyVarStatement(var, inc));
 	}
 }
