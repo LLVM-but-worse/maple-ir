@@ -184,7 +184,7 @@ public class Boot implements Opcodes {
 			System.out.println("End of processing log for " + m);
 			System.out.println("============================================================");
 			System.out.println("============================================================\n\n");
-			break;
+//			break;
 		}
 		
 		ClassWriter clazz = new ClassWriter(0);
