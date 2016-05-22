@@ -12,7 +12,7 @@ import org.rsdeob.deobimpl.RTECatchBlockRemoverPhase;
 import org.rsdeob.deobimpl.UnusedFieldsPhase;
 import org.rsdeob.stdlib.IContext;
 import org.rsdeob.stdlib.cfg.*;
-import org.rsdeob.stdlib.cfg.statopt.Assignment;
+import org.rsdeob.stdlib.cfg.stat.CopyVarStatement;
 import org.rsdeob.stdlib.cfg.statopt.DataFlowAnalyzer;
 import org.rsdeob.stdlib.cfg.statopt.DataFlowState;
 import org.rsdeob.stdlib.cfg.util.GraphUtils;
@@ -74,12 +74,12 @@ public class Boot implements Opcodes {
 				DataFlowState state = df.get(b);
 				System.out.println("Data flow for block " + b.getId() + ":");
 				System.out.println("In: ");
-				for (Assignment copy : state.in.values())
+				for (CopyVarStatement copy : state.in.values())
 					System.out.println("  " + copy);
 				System.out.println();
 
 				System.out.println("Out: ");
-				for (Assignment copy : state.out.values())
+				for (CopyVarStatement copy : state.out.values())
 					System.out.println("  " + copy);
 				System.out.println();
 
@@ -170,8 +170,8 @@ public class Boot implements Opcodes {
 						if(((IStackDumpNode) stmt).isRedundant()) {
 							continue;
 						}
-					} else if (stmt instanceof StackLoadExpression) {
-						if(((StackLoadExpression) stmt).isStackVariable()) {
+					} else if (stmt instanceof VarExpression) {
+						if(((VarExpression) stmt).isStackVariable()) {
 							System.out.println("   st: [STACKVAR]" + stmt);
 							continue;
 						}

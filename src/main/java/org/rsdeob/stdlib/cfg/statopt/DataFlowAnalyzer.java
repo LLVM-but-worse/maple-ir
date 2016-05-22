@@ -3,8 +3,9 @@ package org.rsdeob.stdlib.cfg.statopt;
 import org.rsdeob.stdlib.cfg.BasicBlock;
 import org.rsdeob.stdlib.cfg.ControlFlowGraph;
 import org.rsdeob.stdlib.cfg.FlowEdge;
-import org.rsdeob.stdlib.cfg.expr.StackLoadExpression;
-import org.rsdeob.stdlib.cfg.stat.StackDumpStatement;
+import org.rsdeob.stdlib.cfg.expr.Expression;
+import org.rsdeob.stdlib.cfg.expr.VarExpression;
+import org.rsdeob.stdlib.cfg.stat.CopyVarStatement;
 import org.rsdeob.stdlib.cfg.stat.Statement;
 
 import java.util.HashMap;
@@ -32,7 +33,7 @@ public class DataFlowAnalyzer {
 			if (b == cfg.getEntry())
 				continue;
 			DataFlowState state = compute(b);
-			HashSet<Assignment> out = getAllCopiesExcluding(b);
+			HashSet<CopyVarStatement> out = getAllCopiesExcluding(b);
 			out.removeAll(state.kill);
 			state.copyToOut(out);
 			dataFlow.put(b, state);
@@ -48,18 +49,18 @@ public class DataFlowAnalyzer {
 					continue;
 
 				DataFlowState state = dataFlow.get(b);
-				HashMap<Variable, Assignment> oldOut = new HashMap<>(state.out);
+				HashMap<VarExpression, CopyVarStatement> oldOut = new HashMap<>(state.out);
 				// IN[b] = MEET(OUT[p] for p in predicates(b))
-				HashMap<Variable, Assignment> in = state.in;
+				HashMap<VarExpression, CopyVarStatement> in = state.in;
 				for (FlowEdge e : b.getPredecessors()) {
-					HashMap<Variable, Assignment> outP = dataFlow.get(e.src).out;
+					HashMap<VarExpression, CopyVarStatement> outP = dataFlow.get(e.src).out;
 					in = meet(in, outP);
 				}
 				state.in = in;
 
 				// OUT[b] = GEN[b] MEET (IN[b] - KILL[b])
-				HashMap<Variable, Assignment> temp = new HashMap<>(state.in);
-				for (Assignment copy : state.kill)
+				HashMap<VarExpression, CopyVarStatement> temp = new HashMap<>(state.in);
+				for (CopyVarStatement copy : state.kill)
 					temp.remove(copy.getVariable());
 				state.out = meet(state.getGen(), temp);
 
@@ -71,16 +72,16 @@ public class DataFlowAnalyzer {
 		return dataFlow;
 	}
 
-	private HashMap<Variable, Assignment> meet(HashMap<Variable, Assignment> a, HashMap<Variable, Assignment> b) {
-		HashMap<Variable, Assignment> result = new HashMap<>();
-		HashSet<Assignment> copies = new HashSet<>(a.values());
+	private HashMap<VarExpression, CopyVarStatement> meet(HashMap<VarExpression, CopyVarStatement> a, HashMap<VarExpression, CopyVarStatement> b) {
+		HashMap<VarExpression, CopyVarStatement> result = new HashMap<>();
+		HashSet<CopyVarStatement> copies = new HashSet<>(a.values());
 		copies.addAll(b.values());
-		for (Assignment copy : copies) {
-			Variable var = copy.getVariable();
+		for (CopyVarStatement copy : copies) {
+			VarExpression var = copy.getVariable();
 			if (a.containsKey(var) && b.containsKey(var)) {
-				Statement rhsA = copy.getStatement();
-				Statement rhsB = b.get(var).getStatement();
-				Statement rhs;
+				Expression rhsA = copy.getExpression();
+				Expression rhsB = b.get(var).getExpression();
+				Expression rhs;
 				if (rhsA == TOP_EXPR)
 					rhs = rhsB;
 				else if (rhsB == TOP_EXPR)
@@ -91,7 +92,7 @@ public class DataFlowAnalyzer {
 					rhs = rhsA;
 				else
 					rhs = TOP_EXPR;
-				result.put(var, new Assignment(var, rhs));
+				result.put(var, new CopyVarStatement(var, rhs));
 
 			} else {
 				result.put(var, copy);
@@ -106,16 +107,15 @@ public class DataFlowAnalyzer {
 		return state;
 	}
 
-	private HashSet<Assignment> getAllCopiesExcluding(BasicBlock exclude) {
-		HashSet<Assignment> allCopies = new HashSet<>();
+	private HashSet<CopyVarStatement> getAllCopiesExcluding(BasicBlock exclude) {
+		HashSet<CopyVarStatement> allCopies = new HashSet<>();
 		for (BasicBlock b : cfg.blocks()) {
 			if (b == exclude)
 				continue;
 
 			for (Statement stmt : b.getStatements()) {
-				if (stmt instanceof StackDumpStatement) {
-					Assignment copy = new Assignment((StackDumpStatement) stmt);
-					allCopies.add(copy);
+				if (stmt instanceof CopyVarStatement) {
+					allCopies.add((CopyVarStatement) stmt);
 				}
 			}
 		}
@@ -127,24 +127,21 @@ public class DataFlowAnalyzer {
 	}
 
 	// GEN[b] = copies in b that reach end of block (no lhs or rhs redefinition)
-	private HashSet<Assignment> computeGen(BasicBlock b) {
-		HashSet<Assignment> gen = new HashSet<>();
+	private HashSet<CopyVarStatement> computeGen(BasicBlock b) {
+		HashSet<CopyVarStatement> gen = new HashSet<>();
 		for (Statement stmt : b.getStatements()) { // iterating backwards would probably be faster
-			if (stmt instanceof StackDumpStatement) { // stack assign
-				StackDumpStatement stackDump = (StackDumpStatement) stmt;
-				Assignment newCopy = new Assignment(stackDump);
+			if (stmt instanceof CopyVarStatement) { // stack assign
+				CopyVarStatement newCopy = (CopyVarStatement) stmt;
 
 				// remove overwritten copies
-				HashSet<Assignment> toRemove = new HashSet<>();
-				for (Assignment copy : gen) {
+				HashSet<CopyVarStatement> toRemove = new HashSet<>();
+				for (CopyVarStatement copy : gen) {
 					if (copy.getVariable().equals(newCopy.getVariable())) { // check lhs
 						toRemove.add(copy);
 						break;
 					}
-					if (copy.getStatement() instanceof StackLoadExpression) { // check rhs
-						if ((new Variable((StackLoadExpression) copy.getStatement())).equals(newCopy.getVariable())) {
-							toRemove.add(copy);
-						}
+					if (copy.getExpression().equals(newCopy.getVariable())) { // check rhs
+						toRemove.add(copy);
 					}
 				}
 				gen.removeAll(toRemove);
@@ -157,23 +154,20 @@ public class DataFlowAnalyzer {
 	}
 
 	// KILL[b] = all copies anywhere in the cfg that do not have lhs/rhs redefined in b
-	private HashSet<Assignment> computeKill(BasicBlock b) {
-		HashSet<Assignment> kill = new HashSet<>();
+	private HashSet<CopyVarStatement> computeKill(BasicBlock b) {
+		HashSet<CopyVarStatement> kill = new HashSet<>();
 		for (Statement stmt : b.getStatements()) {
-			if (stmt instanceof StackDumpStatement) {
-				StackDumpStatement stackDump = (StackDumpStatement) stmt;
-				Assignment newCopy = new Assignment(stackDump);
+			if (stmt instanceof CopyVarStatement) {
+				CopyVarStatement newCopy = (CopyVarStatement) stmt;
 
 				// Add all existing statements that would be overwritten by this
-				HashSet<Assignment> allCopies = getAllCopiesExcluding(b);
-				for (Assignment copy : allCopies) {
+				HashSet<CopyVarStatement> allCopies = getAllCopiesExcluding(b);
+				for (CopyVarStatement copy : allCopies) {
 					if (copy.getVariable().equals(newCopy.getVariable())) { // check lhs
 						kill.add(copy);
 					}
-					if (copy.getStatement() instanceof StackLoadExpression) { // check rhs. TODO: can we just make SLE/Variable and SDS/Assignment the same please
-						if ((new Variable((StackLoadExpression) copy.getStatement())).equals(newCopy.getVariable())) {
-							kill.add(copy);
-						}
+					if (copy.getExpression().equals(newCopy.getVariable())) { // check rhs
+						kill.add(copy);
 					}
 				}
 			}
