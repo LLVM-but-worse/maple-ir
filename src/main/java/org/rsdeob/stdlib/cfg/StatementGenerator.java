@@ -1,5 +1,11 @@
 package org.rsdeob.stdlib.cfg;
 
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.Map.Entry;
+import java.util.Set;
+
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.*;
@@ -14,12 +20,6 @@ import org.rsdeob.stdlib.cfg.stat.MonitorStatement.MonitorMode;
 import org.rsdeob.stdlib.cfg.util.ExpressionStack;
 import org.rsdeob.stdlib.cfg.util.TypeUtils;
 import org.rsdeob.stdlib.cfg.util.TypeUtils.ArrayType;
-
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.LinkedList;
-import java.util.Map.Entry;
-import java.util.Set;
 
 public class StatementGenerator implements Opcodes {
 
@@ -57,6 +57,7 @@ public class StatementGenerator implements Opcodes {
 		updatedStacks = new HashSet<>();
 		analysedBlocks = new HashSet<>();
 		queue = new LinkedList<>();
+		System.out.println(graph);
 	}
 	
 	public void init(int base) {
@@ -102,12 +103,13 @@ public class StatementGenerator implements Opcodes {
 			if (!analysedBlocks.contains(b)) {
 				analysedBlocks.add(b);
 
-				/*ExpressionStack stack = */process(b);
+				ExpressionStack stack = process(b);
 
 				// check merge exit stack with next input stack
 				BasicBlock im = b.getImmediate();
 				if (im != null && !queue.contains(im)) {
-					queue.addFirst(im);
+					updateTargetStack(b, im, stack);
+//					queue.addFirst(im);
 				}
 
 				/* updateTargetStack is now handled in 
@@ -127,19 +129,22 @@ public class StatementGenerator implements Opcodes {
 		return b.getStatements().get(b.getStatements().size() - 1);
 	}
 	
-	/* void save_stack() {
+	 void save_stack() {
 		int height = currentStack.height();
 		while(height > 0) {
 			int index = height;
 			Expression expr = currentStack.pop();
-			Type type = assign_stack(expr, index);
+			Type type = assign_stack(index, expr);
 			push(load_stack(index, type));
 			
 			height -= type.getSize();
 		}
-	} */
+	} 
 
 	void updateTargetStack(BasicBlock b, BasicBlock target, ExpressionStack stack) {
+		if(updatedStacks.contains(b)) {
+			save_stack();
+		}
 		// called just before a jump to a successor block may
 		// happen. any operations, such as comparisons, that
 		// happen before the jump are expected to have already
@@ -147,6 +152,7 @@ public class StatementGenerator implements Opcodes {
 		// checking the merge state.
 		if (!updatedStacks.contains(target)) {
 			// unfinalised block found.
+			System.out.println("Setting target stack of " + target.getId() + " to " + stack);
 			target.setInputStack(stack.copy());
 			updatedStacks.add(target);
 
@@ -201,7 +207,7 @@ public class StatementGenerator implements Opcodes {
 	}
 
 	ExpressionStack process(BasicBlock b) {
-//		System.out.println("Processing " + b.getId());
+		System.out.println("Processing " + b.getId());
 		updatedStacks.add(b);
 		ExpressionStack stack = b.getInputStack().copy();
 
@@ -211,8 +217,8 @@ public class StatementGenerator implements Opcodes {
 		for (AbstractInsnNode ain : b.getInsns()) {
 			int opcode = ain.opcode();
 			if(opcode != -1) {
-//				 System.out.println("Executing " + Printer.OPCODES[ain.opcode()]);
-//				 System.out.println(" Prestack : " + stack);
+				 // System.out.println("Executing " + Printer.OPCODES[ain.opcode()]);
+				 // System.out.println(" Prestack : " + stack);
 			}
 			switch (opcode) {
 				case -1: {
@@ -545,7 +551,6 @@ public class StatementGenerator implements Opcodes {
 		VarExpression var = new VarExpression(index, type, true);
 		CopyVarStatement stmt = new CopyVarStatement(var, expr);
 		addStmt(stmt);
-//		System.out.println("  " + stmt + ":" + stmt.getType());
 		return type;
 	}
 	
@@ -555,7 +560,6 @@ public class StatementGenerator implements Opcodes {
 	
 	void _jump_compare(BasicBlock target, ComparisonType type, Expression left, Expression right) {
 		updateTargetStack(currentBlock, target, currentStack);
-		updateTargetStack(currentBlock, currentBlock.getImmediate(), currentStack);
 		addStmt(new ConditionalJumpStatement(left, right, target, type));
 	}
 	
