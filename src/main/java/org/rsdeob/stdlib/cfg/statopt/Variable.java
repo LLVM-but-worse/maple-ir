@@ -17,7 +17,8 @@ public class Variable {
 		return stackVar;
 	}
 
-	String createVarName() {
+	@Override
+	public String toString() {
 		return (stackVar ? "svar" : "lvar") + index;
 	}
 

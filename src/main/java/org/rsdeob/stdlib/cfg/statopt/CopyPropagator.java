@@ -1,27 +1,23 @@
 package org.rsdeob.stdlib.cfg.statopt;
 
+import java.util.HashMap;
+
 import org.rsdeob.stdlib.cfg.BasicBlock;
 import org.rsdeob.stdlib.cfg.ControlFlowGraph;
 import org.rsdeob.stdlib.cfg.RootStatement;
-import org.rsdeob.stdlib.cfg.StatementVisitor;
-import org.rsdeob.stdlib.cfg.expr.StackLoadExpression;
-import org.rsdeob.stdlib.cfg.stat.StackDumpStatement;
-import org.rsdeob.stdlib.cfg.stat.Statement;
-
-import java.util.*;
 
 public class CopyPropagator {
-
 	private final ControlFlowGraph cfg;
+	private final HashMap<BasicBlock, DataFlowState> dataFlow;
 	private final RootStatement root;
 
 	public CopyPropagator(ControlFlowGraph cfg){
 		this.cfg = cfg;
 		root = cfg.getRoot();
+		dataFlow = new HashMap<>();
 
+		// compute data flow
 	}
 
-	public void compute() {
-	}
-	
+	// rewrite this later
 }
