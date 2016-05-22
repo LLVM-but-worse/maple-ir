@@ -8,9 +8,6 @@ import org.rsdeob.stdlib.cfg.stat.base.IStackDumpNode;
 import org.rsdeob.stdlib.cfg.util.TabbedStringWriter;
 import org.rsdeob.stdlib.cfg.util.TypeUtils;
 
-import java.io.PrintWriter;
-import java.io.StringWriter;
-
 public class CopyVarStatement extends Statement implements IStackDumpNode {
 
 	private Expression expression;
@@ -20,9 +17,6 @@ public class CopyVarStatement extends Statement implements IStackDumpNode {
 	public CopyVarStatement(VarExpression variable, Expression expression) {
 		if (variable == null | expression == null)
 			throw new IllegalArgumentException("Neither variable nor statement can be null!");
-
-		StringWriter w = new StringWriter();
-		new Exception().printStackTrace(new PrintWriter(w));
 
 		this.expression = expression;
 		this.variable = variable;
