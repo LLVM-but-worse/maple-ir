@@ -29,7 +29,6 @@ public class BasicBlock {
 	private List<ExceptionRange> ranges;
 	private ExpressionStack inputStack;
 	private List<Statement> statements;
-	private BlockState state;
 	
 	public void rename(String id) {
 		this.id = id;
@@ -60,14 +59,6 @@ public class BasicBlock {
 	
 	public void setInputStack(ExpressionStack stack) {
 		inputStack = stack;
-	}
-	
-	public BlockState getState() {
-		return state;
-	}
-	
-	public void setState(BlockState state) {
-		this.state = state;
 	}
 	
 	public boolean isDummy() {

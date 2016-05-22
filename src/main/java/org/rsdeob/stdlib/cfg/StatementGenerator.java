@@ -46,7 +46,6 @@ public class StatementGenerator implements Opcodes {
 	Set<BasicBlock> analysedBlocks;
 	LinkedList<BasicBlock> queue;
 	RootStatement root;
-	VarVersionsMap variables;
 	int stackBase;
 
 	transient volatile BasicBlock currentBlock;
@@ -62,8 +61,7 @@ public class StatementGenerator implements Opcodes {
 	
 	public void init(int base) {
 		stackBase = base;
-		variables = new VarVersionsMap(graph);
-		root = new RootStatement(m, variables);
+		root = new RootStatement(m);
 		
 		queueEntryBlocks();
 	}
