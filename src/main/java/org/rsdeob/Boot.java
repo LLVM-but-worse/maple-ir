@@ -67,7 +67,7 @@ public class Boot implements Opcodes {
 			System.out.println(root);
 			System.out.println();
 
-			DataFlowAnalyzer dfa = new DataFlowAnalyzer(cfg);
+			DataFlowAnalyzer dfa = new DataFlowAnalyzer(cfg, true);
 			HashMap<BasicBlock, DataFlowState> df = dfa.computeForward();
 			System.out.println("Data flow for " + m + ":");
 			for (BasicBlock b : df.keySet()) {
