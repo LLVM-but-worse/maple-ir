@@ -14,7 +14,7 @@ public class CopyPropagator {
 	public CopyPropagator(ControlFlowGraph cfg){
 		this.cfg = cfg;
 		root = cfg.getRoot();
-		dataFlow = (new DataFlowAnalyzer(cfg)).computeForward();
+		dataFlow = (new DataFlowAnalyzer(cfg, true)).computeForward();
 	}
 
 	public void compute() {
