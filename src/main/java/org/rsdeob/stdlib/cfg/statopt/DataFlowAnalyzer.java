@@ -16,10 +16,12 @@ import static org.rsdeob.stdlib.cfg.statopt.DataFlowState.TOP_EXPR;
 
 public class DataFlowAnalyzer {
 	private final ControlFlowGraph cfg;
+	private boolean checkRhs;
 	private final HashSet<CopyVarStatement> allCopies;
 
-	public DataFlowAnalyzer(ControlFlowGraph cfg) {
+	public DataFlowAnalyzer(ControlFlowGraph cfg, boolean checkRhs) {
 		this.cfg = cfg;
+		this.checkRhs = checkRhs;
 
 		allCopies = new HashSet<>();
 		for (BasicBlock b : cfg.blocks()) {
@@ -56,15 +58,12 @@ public class DataFlowAnalyzer {
 		for (boolean changed = true; changed;) {
 			changed = false;
 
-			HashMap<BasicBlock, DataFlowState> newFlow = new HashMap<>();
-			newFlow.put(cfg.getEntry(), dataFlow.get(cfg.getEntry()));
-
 			for (BasicBlock b : cfg.blocks()) {
 				if (b == cfg.getEntry())
 					continue;
 
-				DataFlowState oldState = dataFlow.get(b);
-				DataFlowState state = new DataFlowState(oldState.gen, oldState.kill);
+				DataFlowState state = dataFlow.get(b);
+				HashMap<VarExpression, CopyVarStatement> oldOut = new HashMap<>(state.out);
 
 				// IN[b] = MEET(OUT[p] for p in predicates(b))
 				HashMap<VarExpression, CopyVarStatement> in = new HashMap<>();
@@ -79,12 +78,10 @@ public class DataFlowAnalyzer {
 				for (CopyVarStatement copy : state.gen)
 					state.out.put(copy.getVariable(), copy);
 
-				newFlow.put(b, state);
-				if (!state.out.equals(oldState.out))
+				dataFlow.put(b, state);
+				if (!state.out.equals(oldOut))
 					changed = true;
 			}
-
-			dataFlow = newFlow;
 		}
 
 		return dataFlow;
@@ -156,6 +153,10 @@ public class DataFlowAnalyzer {
 
 				// Add all existing statements that would be overwritten by this
 				if (copy.getVariable().equals(newCopy.getVariable())) { // check lhs
+					kill.add(copy);
+					break;
+				}
+				if (checkRhs && copy.isAffectedBy(newCopy)) {
 					kill.add(copy);
 					break;
 				}
