@@ -1,12 +1,12 @@
 package org.rsdeob.stdlib.cfg;
 
+import org.objectweb.asm.tree.MethodNode;
+import org.rsdeob.stdlib.cfg.util.GraphUtils;
+import org.rsdeob.stdlib.collections.graph.FastBlockGraph;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.ListIterator;
-
-import org.objectweb.asm.tree.MethodNode;
-import org.rsdeob.stdlib.cfg.util.GraphUtils;
-import org.rsdeob.stdlib.collections.FastBlockGraph;
 
 public class ControlFlowGraph extends FastBlockGraph {
 	
