@@ -5,7 +5,7 @@ import static org.junit.Assert.assertTrue;
 import org.junit.Test;
 import org.rsdeob.stdlib.cfg.BasicBlock;
 import org.rsdeob.stdlib.cfg.FlowEdge.ImmediateEdge;
-import org.rsdeob.stdlib.collections.FastBlockGraph;
+import org.rsdeob.stdlib.collections.graph.FastBlockGraph;
 
 public class FastBlockGraphTest {
 
