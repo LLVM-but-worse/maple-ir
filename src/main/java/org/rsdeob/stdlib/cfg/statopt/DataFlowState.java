@@ -10,19 +10,20 @@ import org.rsdeob.stdlib.cfg.util.TabbedStringWriter;
 
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.function.BinaryOperator;
 
 public class DataFlowState {
 	public static final DataFlowExpression TOP_EXPR = new DataFlowExpression();
 	public static final DataFlowExpression BOTTOM_EXPR = new DataFlowExpression();
 
-	public HashMap<VarExpression, CopyVarStatement> in;
-	public HashMap<VarExpression, CopyVarStatement> out;
+	public CopySet in;
+	public CopySet out;
 	public final HashSet<CopyVarStatement> gen;
 	public final HashSet<CopyVarStatement> kill;
 
 	public DataFlowState(HashSet<CopyVarStatement> gen, HashSet<CopyVarStatement> kill) {
-		in = new HashMap<>();
-		out = new HashMap<>();
+		in = new CopySet();
+		out = new CopySet();
 		this.gen = gen;
 		this.kill = kill;
 	}
@@ -71,6 +72,68 @@ public class DataFlowState {
 		@Override
 		public Type getType() {
 			throw new UnsupportedOperationException("TopExpression has no type");
+		}
+	}
+
+	@SuppressWarnings("Duplicates")
+	public static class CopySet extends HashMap<VarExpression, CopyVarStatement> {
+		public CopySet() {
+			super();
+		}
+
+		public CopySet(CopySet other) {
+			super(other);
+		}
+
+		// Apply logic table
+		private CopySet binaryOper(CopySet other, BinaryOperator<Expression> fn) {
+			CopySet result = new CopySet();
+			HashSet<CopyVarStatement> copies = new HashSet<>(this.values());
+			copies.addAll(other.values());
+			for (CopyVarStatement copy : copies) {
+				VarExpression var = copy.getVariable();
+				Expression rhs;
+				if (this.containsKey(var) && other.containsKey(var))
+					rhs = fn.apply(this.get(var).getExpression(), other.get(var).getExpression());
+				else
+					rhs = TOP_EXPR;
+				result.put(var, new CopyVarStatement(var, rhs));
+			}
+			return result;
+		}
+
+		public CopySet join(CopySet b) {
+			return binaryOper(b, CopySet::join);
+		}
+
+		public CopySet meet(CopySet b) {
+			return binaryOper(b, CopySet::meet);
+		}
+
+		private static Expression join(Expression a, Expression b) {
+			if (a == TOP_EXPR)
+				return b;
+			else if (b == TOP_EXPR)
+				return a;
+			else if (a == BOTTOM_EXPR || b == BOTTOM_EXPR)
+				return BOTTOM_EXPR;
+			else if (a.equals(b))
+				return a;
+			else
+				return BOTTOM_EXPR;
+		}
+
+		private static Expression meet(Expression a, Expression b) {
+			if (a == BOTTOM_EXPR)
+				return b;
+			else if (b == BOTTOM_EXPR)
+				return a;
+			else if (a == TOP_EXPR || b == TOP_EXPR)
+				return TOP_EXPR;
+			else if (a.equals(b))
+				return a;
+			else
+				return BOTTOM_EXPR;
 		}
 	}
 }

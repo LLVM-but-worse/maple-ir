@@ -3,16 +3,13 @@ package org.rsdeob.stdlib.cfg.statopt;
 import org.rsdeob.stdlib.cfg.BasicBlock;
 import org.rsdeob.stdlib.cfg.ControlFlowGraph;
 import org.rsdeob.stdlib.cfg.FlowEdge;
-import org.rsdeob.stdlib.cfg.expr.Expression;
-import org.rsdeob.stdlib.cfg.expr.VarExpression;
 import org.rsdeob.stdlib.cfg.stat.CopyVarStatement;
 import org.rsdeob.stdlib.cfg.stat.Statement;
 
 import java.util.HashMap;
 import java.util.HashSet;
 
-import static org.rsdeob.stdlib.cfg.statopt.DataFlowState.BOTTOM_EXPR;
-import static org.rsdeob.stdlib.cfg.statopt.DataFlowState.TOP_EXPR;
+import static org.rsdeob.stdlib.cfg.statopt.DataFlowState.CopySet;
 
 public class DataFlowAnalyzer {
 	private final ControlFlowGraph cfg;
@@ -63,12 +60,12 @@ public class DataFlowAnalyzer {
 					continue;
 
 				DataFlowState state = dataFlow.get(b);
-				HashMap<VarExpression, CopyVarStatement> oldOut = new HashMap<>(state.out);
+				CopySet oldOut = new CopySet(state.out);
 
 				// IN[b] = MEET(OUT[p] for p in predicates(b))
-				HashMap<VarExpression, CopyVarStatement> in = new HashMap<>();
+				CopySet in = new CopySet();
 				for (FlowEdge e : b.getPredecessors())
-					in = in.isEmpty() ? dataFlow.get(e.src).out : meet(in, dataFlow.get(e.src).out);
+					in = in.isEmpty() ? dataFlow.get(e.src).out : in.meet(dataFlow.get(e.src).out);
 				state.in = in;
 
 				// OUT[b] = GEN[b] UNION (IN[b] - KILL[b])
@@ -87,34 +84,6 @@ public class DataFlowAnalyzer {
 		return dataFlow;
 	}
 
-	private HashMap<VarExpression, CopyVarStatement> meet(HashMap<VarExpression, CopyVarStatement> a, HashMap<VarExpression, CopyVarStatement> b) {
-		HashMap<VarExpression, CopyVarStatement> result = new HashMap<>();
-		HashSet<CopyVarStatement> copies = new HashSet<>(a.values());
-		copies.addAll(b.values());
-		for (CopyVarStatement copy : copies) {
-			VarExpression var = copy.getVariable();
-			if (a.containsKey(var) && b.containsKey(var)) {
-				Expression rhsA = a.get(var).getExpression();
-				Expression rhsB = b.get(var).getExpression();
-				Expression rhs;
-				if (rhsA == TOP_EXPR)
-					rhs = rhsB;
-				else if (rhsB == TOP_EXPR)
-					rhs = rhsA;
-				else if (rhsA == BOTTOM_EXPR || rhsB == BOTTOM_EXPR)
-					rhs = BOTTOM_EXPR;
-				else if (rhsA.equals(rhsB))
-					rhs = rhsA;
-				else
-					rhs = BOTTOM_EXPR;
-				result.put(var, new CopyVarStatement(var, rhs));
-			} else {
-				result.put(var, new CopyVarStatement(var, TOP_EXPR));
-			}
-		}
-		return result;
-	}
-
 	private DataFlowState computeFirstBlock() {
 		DataFlowState state = compute(cfg.getEntry());
 		for (CopyVarStatement copy : state.gen)
@@ -128,7 +97,7 @@ public class DataFlowAnalyzer {
 
 	// GEN[b] = copies in b that reach end of block (no lhs or rhs redefinition)
 	private HashSet<CopyVarStatement> computeGen(BasicBlock b) {
-		HashMap<VarExpression, CopyVarStatement> gen = new HashMap<>();
+		CopySet gen = new CopySet();
 		for (Statement stmt : b.getStatements()) {
 			if (!(stmt instanceof CopyVarStatement))
 				continue;
