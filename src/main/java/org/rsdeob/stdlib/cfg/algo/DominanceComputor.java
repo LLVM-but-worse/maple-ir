@@ -15,6 +15,7 @@ public class DominanceComputor {
 	private final NullPermeableHashMap<BasicBlock, Set<BasicBlock>> dominators = 
 			new NullPermeableHashMap<>(new ValueCreator<Set<BasicBlock>>() {
 		@Override public Set<BasicBlock> create() {return new HashSet<>();}});
+	private final Map<BasicBlock, Set<BasicBlock>> dominates = new HashMap<>();
 	
 	private final Map<BasicBlock, Set<BasicBlock>> strictDominators = new HashMap<>();
 	private final Map<BasicBlock, BasicBlock> immediateDomintors = new HashMap<>();
@@ -25,6 +26,14 @@ public class DominanceComputor {
 		computeDominators(cfg);
 		computeImmediateDominators(cfg);
 		computeFrontiers(cfg);
+	}
+
+	public Set<BasicBlock> frontier(BasicBlock b) {
+		return dominanceFrontiers.get(b);
+	}
+	
+	public Set<BasicBlock> dominates(BasicBlock b) {
+		return dominates.get(b);
 	}
 	
 	public Set<BasicBlock> doms(BasicBlock b) {
@@ -110,16 +119,16 @@ public class DominanceComputor {
 			if(f1 > f2) {
 				BasicBlock f3 = n1;
 				n1 = immediateDomintors.get(n1);
-				if(f3 == n1) {
-					return null;
-				}
+//				if(f3 == n1) {
+//					return null;
+//				}
 				f1 = postOrderNumbers.get(n1);
 			} else {
 				BasicBlock f3 = n2;
 				n2 = immediateDomintors.get(n2);
-				if(f3 == n2) {
-					return null;
-				}
+//				if(f3 == n2) {
+//					return null;
+//				}
 				f2 = postOrderNumbers.get(n2);
 			}
 		}
@@ -132,6 +141,7 @@ public class DominanceComputor {
 		Set<BasicBlock> blocks = new HashSet<BasicBlock>(cfg.blocks());
 		for(BasicBlock b : blocks) {
 			dominators.put(b, blocks);
+			dominates.put(b, new HashSet<>());
 		}
 		
 		LinkedList<BasicBlock> queue = new LinkedList<>();
@@ -155,6 +165,9 @@ public class DominanceComputor {
 			
 			if(!old.equals(n)) {
 				dominators.put(b, n);
+				for(BasicBlock dominator : n) {
+					dominates.get(dominator).add(b);
+				}
 				for(FlowEdge se : b.getSuccessors()) {
 					BasicBlock succ = se.dst;
 					if(!queue.contains(succ)) {
@@ -173,15 +186,25 @@ public class DominanceComputor {
 					BasicBlock pred = fe.src;
 					
 					BasicBlock runnerIdom = pred;
-					Set<BasicBlock> runnerSet = new HashSet<>();
 					
 					while(runnerIdom != bIdom) {
+						Set<BasicBlock> runnerSet = null;
+						if(dominanceFrontiers.containsKey(runnerIdom)) {
+							runnerSet = dominanceFrontiers.get(runnerIdom);
+						} else {
+							runnerSet = new HashSet<>();
+							runnerSet.add(b);
+							dominanceFrontiers.put(runnerIdom, runnerSet);
+						}
+						if(runnerSet.contains(b)) {
+							break;
+						}
 						runnerSet.add(b);
-						runnerIdom = immediateDomintors.get(runnerIdom);
+						runnerIdom = idom(runnerIdom);
 					}
-					
-					dominanceFrontiers.put(b, runnerSet);
 				}
+			} else {
+				dominanceFrontiers.put(b, new HashSet<>());
 			}
 		}
 	}	
