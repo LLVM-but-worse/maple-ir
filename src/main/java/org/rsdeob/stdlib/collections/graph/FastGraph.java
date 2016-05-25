@@ -1,13 +1,9 @@
-package org.rsdeob.stdlib.collections;
+package org.rsdeob.stdlib.collections.graph;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Set;
 
-public abstract class FastGraph<N, E> {
+public abstract class FastGraph<N, E extends FastGraphEdge<N>> {
 
 	private final LinkedHashMap<N, Set<E>> map;
 	private final LinkedHashMap<N, Set<E>> reverseMap;
@@ -16,6 +12,8 @@ public abstract class FastGraph<N, E> {
 		map = new LinkedHashMap<>();
 		reverseMap = new LinkedHashMap<>();
 	}
+	
+	public abstract N getEntry();
 	
 	public void clear() {
 		map.clear();
@@ -84,9 +82,13 @@ public abstract class FastGraph<N, E> {
 		}
 	}
 
-	protected abstract N getSource(N n, E e);
+	protected N getSource(N n, E e) {
+		return e.src;
+	}
 	
-	protected abstract N getDestination(N n, E e);
+	protected N getDestination(N n, E e) {
+		return e.dst;
+	}
 	
 	public void removeVertex(N v) {
 		// A = {(A->B), (A->C)}
@@ -148,6 +150,22 @@ public abstract class FastGraph<N, E> {
 		}
 		
 		reverseMap.get(dst).add(e);
+	}
+	
+	public static <N, E extends FastGraphEdge<N>> List<N> computeSuccessors(FastGraph<N, E> graph, N n) {
+		List<N> list = new ArrayList<>();
+		for(E succ : graph.getEdges(n)) {
+			list.add(graph.getDestination(n, succ));
+		}
+		return list;
+	}
+	
+	public static <N, E extends FastGraphEdge<N>> List<N> computePredecessors(FastGraph<N, E> graph, N n) {
+		List<N> list = new ArrayList<>();
+		for(E pred : graph.getReverseEdges(n)) {
+			list.add(graph.getSource(n, pred));
+		}
+		return list;
 	}
 
 	@Override

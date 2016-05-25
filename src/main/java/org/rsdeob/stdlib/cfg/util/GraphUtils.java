@@ -1,12 +1,5 @@
 package org.rsdeob.stdlib.cfg.util;
 
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
-import java.util.*;
-import java.util.Map.Entry;
-import java.util.function.Predicate;
-
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.*;
 import org.objectweb.asm.util.Printer;
@@ -19,6 +12,13 @@ import org.rsdeob.stdlib.cfg.FlowEdge;
 import org.rsdeob.stdlib.cfg.FlowEdge.DefaultSwitchEdge;
 import org.rsdeob.stdlib.cfg.FlowEdge.JumpEdge;
 import org.rsdeob.stdlib.cfg.FlowEdge.SwitchEdge;
+
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
+import java.util.*;
+import java.util.Map.Entry;
+import java.util.function.Predicate;
 
 public class GraphUtils {
 
@@ -702,17 +702,17 @@ public class GraphUtils {
 		// mergeTrys(cfg, order, pred, b);
 	}
 	
-	public static void naturaliseGraph(ControlFlowGraph cfg, List<BasicBlock> blocks) {
+	public static void naturaliseGraph(ControlFlowGraph cfg, List<BasicBlock> order) {
 		// copy edge sets
 		Map<BasicBlock, Set<FlowEdge>> edges = new HashMap<>();
-		for(BasicBlock b : blocks) {
+		for(BasicBlock b : order) {
 			edges.put(b, cfg.getEdges(b));
 		}
 		// clean graph
 		cfg.clear();
 		// rename and add blocks
 		int label = 1;
-		for(BasicBlock b : blocks) {
+		for(BasicBlock b : order) {
 			String id = LabelHelper.createBlockName(label);
 			label++;
 			

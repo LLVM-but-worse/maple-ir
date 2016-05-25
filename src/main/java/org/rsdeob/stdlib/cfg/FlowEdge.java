@@ -1,13 +1,14 @@
 package org.rsdeob.stdlib.cfg;
 
-import java.util.List;
-
 import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.JumpInsnNode;
 import org.objectweb.asm.util.Printer;
 import org.rsdeob.stdlib.cfg.util.LabelHelper;
+import org.rsdeob.stdlib.collections.graph.FastGraphEdge;
 
-public abstract class FlowEdge {
+import java.util.List;
+
+public abstract class FlowEdge extends FastGraphEdge<BasicBlock> {
 
 	public static abstract class InverseFlowEdge extends FlowEdge {
 		protected InverseFlowEdge(BasicBlock src, BasicBlock dst) {
@@ -20,13 +21,10 @@ public abstract class FlowEdge {
 		}
 	}
 	
-	public final BasicBlock src;
-	public final BasicBlock dst;
 	private final InverseFlowEdge inverse;
 	
 	public FlowEdge(BasicBlock src, BasicBlock dst, InverseFlowEdge inverse) {
-		this.src = src;
-		this.dst = dst;
+		super(src, dst);
 		this.inverse = inverse;
 	}
 	
