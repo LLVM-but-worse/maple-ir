@@ -17,6 +17,7 @@ import org.rsdeob.stdlib.cfg.statopt.DataFlowAnalyzer;
 import org.rsdeob.stdlib.cfg.statopt.DataFlowState;
 import org.rsdeob.stdlib.cfg.util.GraphUtils;
 import org.rsdeob.stdlib.collections.NodeTable;
+import org.rsdeob.stdlib.collections.graph.TarjanDominanceComputor;
 import org.rsdeob.stdlib.deob.IPhase;
 import org.topdank.byteengineer.commons.data.JarInfo;
 import org.topdank.byteio.in.SingleJarDownloader;
@@ -38,9 +39,9 @@ public class Boot implements Opcodes {
 		while(it.hasNext()) {
 			MethodNode m = it.next();
 
-//			if(!m.toString().equals("DupTest.main([Ljava/lang/String;)V")) {
-//				continue;
-//			}
+			if(!m.toString().equals("a/a/f/a.H(La/a/f/o;J)V")) {
+				continue;
+			}
 			
 			System.out.println("\n\n\nProcessing " + m + ": ");
 
@@ -55,6 +56,7 @@ public class Boot implements Opcodes {
 			deobber.removeEmptyBlocks(cfg, blocks);
 			GraphUtils.naturaliseGraph(cfg, blocks);
 
+//			GraphUtils.output(cfg, blocks, GRAPH_FOLDER, "");
 //			System.out.println(cfg);
 
 			System.out.println("Execution log of " + m + ":");
@@ -63,12 +65,16 @@ public class Boot implements Opcodes {
 			gen.createExpressions();
 			RootStatement root = gen.buildRoot();
 
+			System.out.println("Cfg:");
+			System.out.println(cfg);
+			System.out.println();
+			
 			System.out.println("IR representation of " + m + ":");
 			System.out.println(root);
 			System.out.println();
 
-			DataFlowAnalyzer dfa = new DataFlowAnalyzer(cfg, true);
-			HashMap<BasicBlock, DataFlowState> df = dfa.computeForward();
+			DataFlowAnalyzer dfa = new DataFlowAnalyzer(cfg, false);
+			Map<BasicBlock, DataFlowState> df = dfa.computeForward();
 			System.out.println("Data flow for " + m + ":");
 			for (BasicBlock b : df.keySet()) {
 				DataFlowState state = df.get(b);
@@ -94,13 +100,22 @@ public class Boot implements Opcodes {
 //				System.out.println();
 			}
 			
-//			Map<BasicBlock, Set<BasicBlock>> doms = DominanceComputor.compute(cfg);
+			TarjanDominanceComputor<BasicBlock> doms = new TarjanDominanceComputor<>(cfg);
+//			for(BasicBlock b : cfg.blocks()) {
+//				System.out.println(" " + b.getId() + " is dominated by ");
+//				System.out.println("   dominates: " + doms.dominates(b));
+//				System.out.println("   sdoms: " + doms.semiDoms(b));
+//				System.out.println("   immediate: " + doms.idom(b));
+//				System.out.println("   frontier: " + doms.frontier(b));
+//			}
+//			DominanceComputor doms = new DominanceComputor(cfg);
 //
-//			for(Entry<BasicBlock, Set<BasicBlock>> e : doms.entrySet()) {
-//				System.out.println(" " + e.getKey().getId() + "  dominates: ");
-//				for(BasicBlock b : e.getValue()) {
-//					System.out.println( "    " + b.getId());
-//				}
+//			for(BasicBlock b : cfg.blocks()) {
+//				System.out.println(" " + b.getId() + " is dominated by " + doms.doms(b));
+//				System.out.println("   dominates: " + doms.dominates(b));
+//				System.out.println("   sdoms: " + doms.sdoms(b));
+//				System.out.println("   immediate: " + doms.idom(b));
+//				System.out.println("   frontier: " + doms.frontier(b));
 //			}
 			
 //			ConstantPropagator prop = new ConstantPropagator(cfg);
