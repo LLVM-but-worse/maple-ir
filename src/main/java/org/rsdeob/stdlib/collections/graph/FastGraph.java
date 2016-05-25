@@ -1,4 +1,4 @@
-package org.rsdeob.stdlib.collections;
+package org.rsdeob.stdlib.collections.graph;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -7,7 +7,7 @@ import java.util.LinkedHashMap;
 import java.util.Map.Entry;
 import java.util.Set;
 
-public abstract class FastGraph<N, E> {
+public abstract class FastGraph<N, E extends FastGraphEdge<N>> {
 
 	private final LinkedHashMap<N, Set<E>> map;
 	private final LinkedHashMap<N, Set<E>> reverseMap;
@@ -84,9 +84,13 @@ public abstract class FastGraph<N, E> {
 		}
 	}
 
-	protected abstract N getSource(N n, E e);
+	protected N getSource(N n, E e) {
+		return e.src;
+	}
 	
-	protected abstract N getDestination(N n, E e);
+	protected N getDestination(N n, E e) {
+		return e.dst;
+	}
 	
 	public void removeVertex(N v) {
 		// A = {(A->B), (A->C)}

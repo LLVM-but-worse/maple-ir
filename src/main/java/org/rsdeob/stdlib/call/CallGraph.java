@@ -10,7 +10,8 @@ import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodInsnNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.rsdeob.stdlib.call.CallGraph.Invocation;
-import org.rsdeob.stdlib.collections.FastGraph;
+import org.rsdeob.stdlib.collections.graph.FastGraph;
+import org.rsdeob.stdlib.collections.graph.FastGraphEdge;
 import org.rsdeob.stdlib.klass.ClassTree;
 
 public class CallGraph extends FastGraph<MethodNode, Invocation> {
@@ -29,16 +30,6 @@ public class CallGraph extends FastGraph<MethodNode, Invocation> {
 		return classTree;
 	}
 
-	@Override
-	protected MethodNode getSource(MethodNode n, Invocation e) {
-		return e.callee;
-	}
-
-	@Override
-	protected MethodNode getDestination(MethodNode n, Invocation e) {
-		return e.caller;
-	}
-	
 	private List<MethodNode> findEntries(ClassTree tree, ClassNode cn) {
 		List<MethodNode> methods = new ArrayList<MethodNode>();
 		for (MethodNode mn : cn.methods) {
@@ -125,21 +116,9 @@ public class CallGraph extends FastGraph<MethodNode, Invocation> {
 		}
 	}
 
-	public static class Invocation {
-		private final MethodNode caller;
-		private final MethodNode callee;
-		
+	public static class Invocation extends FastGraphEdge<MethodNode> {
 		public Invocation(MethodNode caller, MethodNode callee) {
-			this.caller = caller;
-			this.callee = callee;
-		}
-
-		public MethodNode getCaller() {
-			return caller;
-		}
-
-		public MethodNode getCallee() {
-			return callee;
+			super(caller, callee);
 		}
 	}
 	

@@ -1,4 +1,4 @@
-package org.rsdeob.stdlib.collections;
+package org.rsdeob.stdlib.collections.graph;
 
 import java.util.HashMap;
 import java.util.Map;
