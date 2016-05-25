@@ -1,9 +1,11 @@
 package org.rsdeob.stdlib.collections.graph;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
 
@@ -16,6 +18,8 @@ public abstract class FastGraph<N, E extends FastGraphEdge<N>> {
 		map = new LinkedHashMap<>();
 		reverseMap = new LinkedHashMap<>();
 	}
+	
+	public abstract N getEntry();
 	
 	public void clear() {
 		map.clear();
@@ -152,6 +156,22 @@ public abstract class FastGraph<N, E extends FastGraphEdge<N>> {
 		}
 		
 		reverseMap.get(dst).add(e);
+	}
+	
+	public static <N, E extends FastGraphEdge<N>> List<N> computeSuccessors(FastGraph<N, E> graph, N n) {
+		List<N> list = new ArrayList<>();
+		for(E succ : graph.getEdges(n)) {
+			list.add(graph.getDestination(n, succ));
+		}
+		return list;
+	}
+	
+	public static <N, E extends FastGraphEdge<N>> List<N> computePredecessors(FastGraph<N, E> graph, N n) {
+		List<N> list = new ArrayList<>();
+		for(E pred : graph.getReverseEdges(n)) {
+			list.add(graph.getSource(n, pred));
+		}
+		return list;
 	}
 
 	@Override
