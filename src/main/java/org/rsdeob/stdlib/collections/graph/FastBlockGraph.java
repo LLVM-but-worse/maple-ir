@@ -8,7 +8,7 @@ import org.objectweb.asm.tree.LabelNode;
 import org.rsdeob.stdlib.cfg.BasicBlock;
 import org.rsdeob.stdlib.cfg.FlowEdge;
 
-public class FastBlockGraph extends FastGraph<BasicBlock, FlowEdge> {
+public abstract class FastBlockGraph extends FastGraph<BasicBlock, FlowEdge> {
 
 	private final Map<LabelNode, BasicBlock> blockLabels;
 	private final Map<String, BasicBlock> blockIds;
@@ -17,7 +17,6 @@ public class FastBlockGraph extends FastGraph<BasicBlock, FlowEdge> {
 		blockLabels = new HashMap<>();
 		blockIds = new HashMap<>();
 	}
-
 	
 	public BasicBlock getBlock(LabelNode label) {
 		return blockLabels.get(label);
