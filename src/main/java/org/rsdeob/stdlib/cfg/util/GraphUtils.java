@@ -702,17 +702,17 @@ public class GraphUtils {
 		// mergeTrys(cfg, order, pred, b);
 	}
 	
-	public static void naturaliseGraph(ControlFlowGraph cfg, List<BasicBlock> blocks) {
+	public static void naturaliseGraph(ControlFlowGraph cfg, List<BasicBlock> order) {
 		// copy edge sets
 		Map<BasicBlock, Set<FlowEdge>> edges = new HashMap<>();
-		for(BasicBlock b : blocks) {
+		for(BasicBlock b : order) {
 			edges.put(b, cfg.getEdges(b));
 		}
 		// clean graph
 		cfg.clear();
 		// rename and add blocks
 		int label = 1;
-		for(BasicBlock b : blocks) {
+		for(BasicBlock b : order) {
 			String id = LabelHelper.createBlockName(label);
 			label++;
 			

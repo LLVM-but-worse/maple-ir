@@ -1,5 +1,17 @@
 package org.rsdeob;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.jar.JarOutputStream;
+
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Opcodes;
@@ -11,7 +23,13 @@ import org.rsdeob.deobimpl.DummyMethodPhase;
 import org.rsdeob.deobimpl.RTECatchBlockRemoverPhase;
 import org.rsdeob.deobimpl.UnusedFieldsPhase;
 import org.rsdeob.stdlib.IContext;
-import org.rsdeob.stdlib.cfg.*;
+import org.rsdeob.stdlib.cfg.BasicBlock;
+import org.rsdeob.stdlib.cfg.ControlFlowGraph;
+import org.rsdeob.stdlib.cfg.ControlFlowGraphBuilder;
+import org.rsdeob.stdlib.cfg.ControlFlowGraphDeobfuscator;
+import org.rsdeob.stdlib.cfg.RootStatement;
+import org.rsdeob.stdlib.cfg.StatementGenerator;
+import org.rsdeob.stdlib.cfg.algo.DominanceComputor;
 import org.rsdeob.stdlib.cfg.stat.CopyVarStatement;
 import org.rsdeob.stdlib.cfg.statopt.DataFlowAnalyzer;
 import org.rsdeob.stdlib.cfg.statopt.DataFlowState;
@@ -20,10 +38,6 @@ import org.rsdeob.stdlib.collections.NodeTable;
 import org.rsdeob.stdlib.deob.IPhase;
 import org.topdank.byteengineer.commons.data.JarInfo;
 import org.topdank.byteio.in.SingleJarDownloader;
-
-import java.io.*;
-import java.util.*;
-import java.util.jar.JarOutputStream;
 
 public class Boot implements Opcodes {
 	public static final File GRAPH_FOLDER = new File("C://Users//Bibl//Desktop//cfg testing");
@@ -38,9 +52,9 @@ public class Boot implements Opcodes {
 		while(it.hasNext()) {
 			MethodNode m = it.next();
 
-//			if(!m.toString().equals("DupTest.main([Ljava/lang/String;)V")) {
-//				continue;
-//			}
+			if(!m.toString().equals("a/a/f/a.H(La/a/f/o;J)V")) {
+				continue;
+			}
 			
 			System.out.println("\n\n\nProcessing " + m + ": ");
 
@@ -55,6 +69,7 @@ public class Boot implements Opcodes {
 			deobber.removeEmptyBlocks(cfg, blocks);
 			GraphUtils.naturaliseGraph(cfg, blocks);
 
+			GraphUtils.output(cfg, blocks, GRAPH_FOLDER, "");
 //			System.out.println(cfg);
 
 			System.out.println("Execution log of " + m + ":");
@@ -63,12 +78,16 @@ public class Boot implements Opcodes {
 			gen.createExpressions();
 			RootStatement root = gen.buildRoot();
 
+			System.out.println("Cfg:");
+			System.out.println(cfg);
+			System.out.println();
+			
 			System.out.println("IR representation of " + m + ":");
 			System.out.println(root);
 			System.out.println();
 
 			DataFlowAnalyzer dfa = new DataFlowAnalyzer(cfg);
-			HashMap<BasicBlock, DataFlowState> df = dfa.computeForward();
+			Map<BasicBlock, DataFlowState> df = dfa.computeForward();
 			System.out.println("Data flow for " + m + ":");
 			for (BasicBlock b : df.keySet()) {
 				DataFlowState state = df.get(b);
@@ -94,14 +113,15 @@ public class Boot implements Opcodes {
 //				System.out.println();
 			}
 			
-//			Map<BasicBlock, Set<BasicBlock>> doms = DominanceComputor.compute(cfg);
-//
-//			for(Entry<BasicBlock, Set<BasicBlock>> e : doms.entrySet()) {
-//				System.out.println(" " + e.getKey().getId() + "  dominates: ");
-//				for(BasicBlock b : e.getValue()) {
-//					System.out.println( "    " + b.getId());
-//				}
-//			}
+			DominanceComputor doms = new DominanceComputor(cfg);
+
+			for(BasicBlock b : cfg.blocks()) {
+				System.out.println(" " + b.getId() + " is dominated by " + doms.doms(b));
+				System.out.println("   dominates: " + doms.dominates(b));
+				System.out.println("   sdoms: " + doms.sdoms(b));
+				System.out.println("   immediate: " + doms.idom(b));
+				System.out.println("   frontier: " + doms.frontier(b));
+			}
 			
 //			ConstantPropagator prop = new ConstantPropagator(cfg);
 //			prop.compute();
