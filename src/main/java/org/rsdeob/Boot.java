@@ -29,12 +29,12 @@ import org.rsdeob.stdlib.cfg.ControlFlowGraphBuilder;
 import org.rsdeob.stdlib.cfg.ControlFlowGraphDeobfuscator;
 import org.rsdeob.stdlib.cfg.RootStatement;
 import org.rsdeob.stdlib.cfg.StatementGenerator;
-import org.rsdeob.stdlib.cfg.algo.DominanceComputor;
 import org.rsdeob.stdlib.cfg.stat.CopyVarStatement;
 import org.rsdeob.stdlib.cfg.statopt.DataFlowAnalyzer;
 import org.rsdeob.stdlib.cfg.statopt.DataFlowState;
 import org.rsdeob.stdlib.cfg.util.GraphUtils;
 import org.rsdeob.stdlib.collections.NodeTable;
+import org.rsdeob.stdlib.collections.graph.TarjanDominanceComputor;
 import org.rsdeob.stdlib.deob.IPhase;
 import org.topdank.byteengineer.commons.data.JarInfo;
 import org.topdank.byteio.in.SingleJarDownloader;
@@ -113,15 +113,23 @@ public class Boot implements Opcodes {
 //				System.out.println();
 			}
 			
-			DominanceComputor doms = new DominanceComputor(cfg);
-
-			for(BasicBlock b : cfg.blocks()) {
-				System.out.println(" " + b.getId() + " is dominated by " + doms.doms(b));
-				System.out.println("   dominates: " + doms.dominates(b));
-				System.out.println("   sdoms: " + doms.sdoms(b));
-				System.out.println("   immediate: " + doms.idom(b));
-				System.out.println("   frontier: " + doms.frontier(b));
-			}
+			TarjanDominanceComputor<BasicBlock> doms = new TarjanDominanceComputor<>(cfg);
+//			for(BasicBlock b : cfg.blocks()) {
+//				System.out.println(" " + b.getId() + " is dominated by ");
+//				System.out.println("   dominates: " + doms.dominates(b));
+//				System.out.println("   sdoms: " + doms.semiDoms(b));
+//				System.out.println("   immediate: " + doms.idom(b));
+//				System.out.println("   frontier: " + doms.frontier(b));
+//			}
+//			DominanceComputor doms = new DominanceComputor(cfg);
+//
+//			for(BasicBlock b : cfg.blocks()) {
+//				System.out.println(" " + b.getId() + " is dominated by " + doms.doms(b));
+//				System.out.println("   dominates: " + doms.dominates(b));
+//				System.out.println("   sdoms: " + doms.sdoms(b));
+//				System.out.println("   immediate: " + doms.idom(b));
+//				System.out.println("   frontier: " + doms.frontier(b));
+//			}
 			
 //			ConstantPropagator prop = new ConstantPropagator(cfg);
 //			prop.compute();
