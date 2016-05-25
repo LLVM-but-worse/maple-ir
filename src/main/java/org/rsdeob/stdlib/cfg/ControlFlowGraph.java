@@ -6,7 +6,7 @@ import java.util.ListIterator;
 
 import org.objectweb.asm.tree.MethodNode;
 import org.rsdeob.stdlib.cfg.util.GraphUtils;
-import org.rsdeob.stdlib.collections.FastBlockGraph;
+import org.rsdeob.stdlib.collections.graph.FastBlockGraph;
 
 public class ControlFlowGraph extends FastBlockGraph {
 	
