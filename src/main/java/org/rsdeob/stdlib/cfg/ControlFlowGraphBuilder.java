@@ -54,7 +54,6 @@ public class ControlFlowGraphBuilder {
 		}
 	}
 
-
 	void checkLabel() {
 		AbstractInsnNode first = insns.getFirst();
 		if(!(first instanceof LabelNode)) {
@@ -80,7 +79,7 @@ public class ControlFlowGraphBuilder {
 			} else {
 				erange = new ExceptionRange<BasicBlock>(tc);
 				erange.setHandler(handler);
-				erange.addBlocks(range);
+				erange.addVertices(range);
 				ranges.put(key, erange);
 				
 				if(!erange.isContiguous()) {
