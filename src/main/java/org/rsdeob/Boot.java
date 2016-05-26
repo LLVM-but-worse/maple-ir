@@ -1,5 +1,17 @@
 package org.rsdeob;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.jar.JarOutputStream;
+
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Opcodes;
@@ -11,22 +23,22 @@ import org.rsdeob.deobimpl.DummyMethodPhase;
 import org.rsdeob.deobimpl.RTECatchBlockRemoverPhase;
 import org.rsdeob.deobimpl.UnusedFieldsPhase;
 import org.rsdeob.stdlib.IContext;
-import org.rsdeob.stdlib.cfg.*;
+import org.rsdeob.stdlib.cfg.BasicBlock;
+import org.rsdeob.stdlib.cfg.ControlFlowGraph;
+import org.rsdeob.stdlib.cfg.ControlFlowGraphBuilder;
+import org.rsdeob.stdlib.cfg.ControlFlowGraphDeobfuscator;
 import org.rsdeob.stdlib.cfg.ir.RootStatement;
 import org.rsdeob.stdlib.cfg.ir.StatementGenerator;
+import org.rsdeob.stdlib.cfg.ir.StatementGraph;
+import org.rsdeob.stdlib.cfg.ir.StatementGraphBuilder;
 import org.rsdeob.stdlib.cfg.ir.stat.CopyVarStatement;
 import org.rsdeob.stdlib.cfg.ir.transform.DataFlowAnalyzer;
 import org.rsdeob.stdlib.cfg.ir.transform.DataFlowState;
 import org.rsdeob.stdlib.cfg.util.GraphUtils;
 import org.rsdeob.stdlib.collections.NodeTable;
-import org.rsdeob.stdlib.collections.graph.flow.TarjanDominanceComputor;
 import org.rsdeob.stdlib.deob.IPhase;
 import org.topdank.byteengineer.commons.data.JarInfo;
 import org.topdank.byteio.in.SingleJarDownloader;
-
-import java.io.*;
-import java.util.*;
-import java.util.jar.JarOutputStream;
 
 public class Boot implements Opcodes {
 	public static final File GRAPH_FOLDER = new File("C://Users//Bibl//Desktop//cfg testing");
@@ -102,7 +114,11 @@ public class Boot implements Opcodes {
 //				System.out.println();
 			}
 			
-			TarjanDominanceComputor<BasicBlock> doms = new TarjanDominanceComputor<>(cfg);
+			StatementGraphBuilder sgraphBuilder = new StatementGraphBuilder(cfg);
+			StatementGraph sgraph = sgraphBuilder.build();
+			System.out.println(sgraph);
+			
+//			TarjanDominanceComputor<BasicBlock> doms = new TarjanDominanceComputor<>(cfg);
 //			for(BasicBlock b : cfg.blocks()) {
 //				System.out.println(" " + b.getId() + " is dominated by ");
 //				System.out.println("   dominates: " + doms.dominates(b));

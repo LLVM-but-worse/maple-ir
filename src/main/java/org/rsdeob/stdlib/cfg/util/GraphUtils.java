@@ -327,7 +327,28 @@ public class GraphUtils {
 
 		return sb.toString();
 	}
-
+	
+//	public static String toString(StatementGraph sgraph) {
+//		Collection<Statement> stmts = sgraph.vertices();
+//		int total = 0;
+//		for(Statement stmt : stmts) {
+//			total += stmt.size();
+//		}
+//		StringBuilder sb = new StringBuilder("\n=========StmtGraph(stmt_count=").append(stmts.size()).append("(").append(LabelHelper.createBlockName(stmts.size())).append("), ").append("count=").append(total).append(") ").append("=========\n\n");
+//		for(Statement stmt : stmts) {
+//			sb.append("       ").append(stmt.getId()).append(". ").append(stmt).append("\n");
+//			
+//			for(FlowEdge<Statement> e : sgraph.getEdges(stmt)) {
+//				sb.append("         -> ").append(e.toString()).append('\n');
+//			}
+//
+//			for(FlowEdge<Statement> p : sgraph.getReverseEdges(stmt)) {
+//				sb.append("         <- ").append(p.toInverseString()).append('\n');
+//			}
+//		}
+//		return sb.toString();
+//	}
+//
 	public static String toString(ControlFlowGraph cfg, Collection<BasicBlock> blocks) {
 		int total = 0;
 		for(BasicBlock b : blocks) {
@@ -567,8 +588,8 @@ public class GraphUtils {
 					System.out.println(er + " not contiguous");
 				} else {
 					for(String type : er.getTypes()) {
-						LabelNode start = er.getBlocks().get(0).getLabel();
-						BasicBlock endBlock = er.getBlocks().get(er.getBlocks().size() - 1);
+						LabelNode start = er.get().get(0).getLabel();
+						BasicBlock endBlock = er.get().get(er.get().size() - 1);
 						int exclusiveEndIndex = blocks.indexOf(endBlock) + 1;
 						LabelNode end = blocks.get(exclusiveEndIndex).getLabel();
 						TryCatchBlockNode tcbn = new TryCatchBlockNode(start, end, er.getHandler().getLabel(), type);
