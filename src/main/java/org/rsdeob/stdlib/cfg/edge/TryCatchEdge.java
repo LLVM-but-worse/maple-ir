@@ -1,7 +1,7 @@
 package org.rsdeob.stdlib.cfg.edge;
 
-import org.rsdeob.stdlib.cfg.ExceptionRange;
 import org.rsdeob.stdlib.collections.graph.FastGraphVertex;
+import org.rsdeob.stdlib.collections.graph.flow.ExceptionRange;
 
 public class TryCatchEdge<N extends FastGraphVertex> extends FlowEdge<N> {
 	

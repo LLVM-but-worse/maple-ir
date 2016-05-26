@@ -16,9 +16,10 @@ import org.objectweb.asm.tree.TableSwitchInsnNode;
 import org.rsdeob.stdlib.cfg.edge.FlowEdge;
 import org.rsdeob.stdlib.cfg.edge.ImmediateEdge;
 import org.rsdeob.stdlib.cfg.edge.TryCatchEdge;
-import org.rsdeob.stdlib.cfg.stat.Statement;
+import org.rsdeob.stdlib.cfg.ir.stat.Statement;
 import org.rsdeob.stdlib.cfg.util.ExpressionStack;
 import org.rsdeob.stdlib.collections.graph.FastGraphVertex;
+import org.rsdeob.stdlib.collections.graph.flow.ExceptionRange;
 
 
 public class BasicBlock implements FastGraphVertex {

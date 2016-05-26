@@ -2,10 +2,10 @@ package org.rsdeob.stdlib.cfg.statopt;
 
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Type;
-import org.rsdeob.stdlib.cfg.expr.Expression;
-import org.rsdeob.stdlib.cfg.expr.VarExpression;
-import org.rsdeob.stdlib.cfg.stat.CopyVarStatement;
-import org.rsdeob.stdlib.cfg.stat.Statement;
+import org.rsdeob.stdlib.cfg.ir.expr.Expression;
+import org.rsdeob.stdlib.cfg.ir.expr.VarExpression;
+import org.rsdeob.stdlib.cfg.ir.stat.CopyVarStatement;
+import org.rsdeob.stdlib.cfg.ir.stat.Statement;
 import org.rsdeob.stdlib.cfg.util.TabbedStringWriter;
 
 import java.util.HashMap;

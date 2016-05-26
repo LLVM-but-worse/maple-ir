@@ -1,6 +1,6 @@
 package org.rsdeob.stdlib.cfg.util;
 
-import org.rsdeob.stdlib.cfg.expr.Expression;
+import org.rsdeob.stdlib.cfg.ir.expr.Expression;
 
 public class ExpressionStack {
 
