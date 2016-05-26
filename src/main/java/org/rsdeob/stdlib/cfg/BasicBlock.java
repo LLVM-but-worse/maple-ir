@@ -192,7 +192,7 @@ public class BasicBlock implements FastGraphVertex {
 		
 		List<ExceptionRange<BasicBlock>> ranges = new ArrayList<>();
 		for(ExceptionRange<BasicBlock> er : cfg.getRanges()) {
-			if(er.containsBlock(this)) {
+			if(er.containsVertex(this)) {
 				ranges.add(er);
 			}
 		}

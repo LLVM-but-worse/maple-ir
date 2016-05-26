@@ -126,7 +126,7 @@ public class ControlFlowGraphDeobfuscator {
 								} */
 								
 								for(ExceptionRange<BasicBlock> er : predRanges) {
-									er.removeBlock(b);
+									er.removeVertex(b);
 								}
 								
 								// update the label
