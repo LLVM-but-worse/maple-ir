@@ -35,7 +35,7 @@ public class DataFlowAnalyzer {
 
 		// Compute first block
 		for(BasicBlock entry : cfg.getEntries()) {
-			dataFlow.put(entry, computeFirstBlock());
+			dataFlow.put(entry, computeFirstBlock(entry));
 		}
 
 		// Compute initial out for each block
@@ -85,8 +85,8 @@ public class DataFlowAnalyzer {
 		return dataFlow;
 	}
 
-	private DataFlowState computeFirstBlock() {
-		DataFlowState state = compute(cfg.getEntries().iterator().next());
+	private DataFlowState computeFirstBlock(BasicBlock entry) {
+		DataFlowState state = compute(entry);
 		for (CopyVarStatement copy : state.gen)
 			state.out.put(copy.getVariable(), copy);
 		return state;
