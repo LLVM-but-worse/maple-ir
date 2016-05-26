@@ -1,12 +1,6 @@
 package org.rsdeob.stdlib.collections.graph.flow;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import org.rsdeob.stdlib.collections.NullPermeableHashMap;
 import org.rsdeob.stdlib.collections.SetCreator;
@@ -28,6 +22,7 @@ public class TarjanDominanceComputor<N extends FastGraphVertex> {
 	private final NullPermeableHashMap<N, Set<N>> semiDoms;
 	private final NullPermeableHashMap<N, Set<N>> domChildren;
 	private final NullPermeableHashMap<N, Set<N>> frontiers;
+	private final NullPermeableHashMap<N, Set<N>> iteratedFrontiers;
 	
 	public TarjanDominanceComputor(FlowGraph<N, ?> graph) {
 		this.graph = graph;
@@ -40,11 +35,13 @@ public class TarjanDominanceComputor<N extends FastGraphVertex> {
 		semiDoms = new NullPermeableHashMap<>(new SetCreator<>());
 		domChildren = new NullPermeableHashMap<>(new SetCreator<>());
 		frontiers = new NullPermeableHashMap<>(new SetCreator<>());
+		iteratedFrontiers = new NullPermeableHashMap<>(new SetCreator<>());
 		
 		computePreOrder();
 		computeDominators();
 		touchTree();
 		computeFrontiers();
+		computeIteratedFrontiers();
 	}
 	
 //	public Set<N> dominates(N n) {
@@ -57,6 +54,10 @@ public class TarjanDominanceComputor<N extends FastGraphVertex> {
 	
 	public Set<N> frontier(N n) {
 		return frontiers.getNonNull(n);
+	}
+	
+	public Set<N> iteratedFronter(N n) {
+		return iteratedFrontiers.getNonNull(n);
 	}
 	
 	public N idom(N n) {
@@ -85,6 +86,39 @@ public class TarjanDominanceComputor<N extends FastGraphVertex> {
 			}
 		}
 		return list.descendingIterator();
+	}
+	
+	private void computeIteratedFrontiers() {
+		for(N n : preOrder) {
+			computeIteratedFrontiers(n);
+		}
+	}
+	
+	private void computeIteratedFrontiers(N n) {
+		Set<N> res = new HashSet<>();
+		
+		Set<N> workingSet = new HashSet<>();
+		workingSet.add(n);
+		
+		do {
+			Set<N> newWorkingSet = new HashSet<>();
+			Iterator<N> it = workingSet.iterator();
+			while(it.hasNext()) {
+				N n1 = it.next();
+				
+				Iterator<N> dfIt = frontier(n1).iterator();
+				while(dfIt.hasNext()) {
+					N n2 = dfIt.next();
+					if(!res.contains(n2)) {
+						newWorkingSet.add(n2);
+						res.add(n2);
+					}
+				}
+			}
+			workingSet = newWorkingSet;
+		} while(!workingSet.isEmpty());
+		
+		iteratedFrontiers.put(n, res);
 	}
 	
 	private void computeFrontiers() {

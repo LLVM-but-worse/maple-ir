@@ -34,6 +34,7 @@ import org.rsdeob.stdlib.cfg.ir.transform.DataFlowAnalyzer;
 import org.rsdeob.stdlib.cfg.ir.transform.DataFlowState;
 import org.rsdeob.stdlib.cfg.util.GraphUtils;
 import org.rsdeob.stdlib.collections.NodeTable;
+import org.rsdeob.stdlib.collections.graph.flow.TarjanDominanceComputor;
 import org.rsdeob.stdlib.deob.IPhase;
 import org.topdank.byteengineer.commons.data.JarInfo;
 import org.topdank.byteio.in.SingleJarDownloader;
@@ -112,14 +113,14 @@ public class BootBibl implements Opcodes {
 //				System.out.println();
 			}
 			
-//			TarjanDominanceComputor<BasicBlock> doms = new TarjanDominanceComputor<>(cfg);
-//			for(BasicBlock b : cfg.blocks()) {
-//				System.out.println(" " + b.getId() + " is dominated by ");
-//				System.out.println("   dominates: " + doms.dominates(b));
-//				System.out.println("   sdoms: " + doms.semiDoms(b));
-//				System.out.println("   immediate: " + doms.idom(b));
-//				System.out.println("   frontier: " + doms.frontier(b));
-//			}
+			TarjanDominanceComputor<BasicBlock> doms = new TarjanDominanceComputor<>(cfg);
+			for(BasicBlock b : cfg.vertices()) {
+				System.out.println(" " + b.getId() + " is dominated by ");
+				System.out.println("   sdoms: " + doms.semiDoms(b));
+				System.out.println("   immediate: " + doms.idom(b));
+				System.out.println("   frontier: " + doms.frontier(b));
+				System.out.println("   iterated-frontier: " + doms.iteratedFronter(b));
+			}
 //			DominanceComputor doms = new DominanceComputor(cfg);
 //
 //			for(BasicBlock b : cfg.blocks()) {
