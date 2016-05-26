@@ -19,9 +19,9 @@ import org.rsdeob.stdlib.cfg.ir.expr.var.FieldStoreExpression;
 import org.rsdeob.stdlib.cfg.ir.stat.*;
 import org.rsdeob.stdlib.cfg.ir.stat.ConditionalJumpStatement.ComparisonType;
 import org.rsdeob.stdlib.cfg.ir.stat.MonitorStatement.MonitorMode;
-import org.rsdeob.stdlib.cfg.util.ExpressionStack;
 import org.rsdeob.stdlib.cfg.util.TypeUtils;
 import org.rsdeob.stdlib.cfg.util.TypeUtils.ArrayType;
+import org.rsdeob.stdlib.collections.ExpressionStack;
 
 public class StatementGenerator implements Opcodes {
 
