@@ -1,4 +1,4 @@
-package org.rsdeob.stdlib.cfg.statopt;
+package org.rsdeob.stdlib.cfg.ir.transform;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -8,7 +8,7 @@ import org.rsdeob.stdlib.cfg.ControlFlowGraph;
 import org.rsdeob.stdlib.cfg.edge.FlowEdge;
 import org.rsdeob.stdlib.cfg.ir.stat.CopyVarStatement;
 import org.rsdeob.stdlib.cfg.ir.stat.Statement;
-import org.rsdeob.stdlib.cfg.statopt.DataFlowState.CopySet;
+import org.rsdeob.stdlib.cfg.ir.transform.DataFlowState.CopySet;
 
 public class DataFlowAnalyzer {
 	private final ControlFlowGraph cfg;

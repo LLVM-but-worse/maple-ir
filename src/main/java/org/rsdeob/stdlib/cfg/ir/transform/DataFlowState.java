@@ -1,4 +1,4 @@
-package org.rsdeob.stdlib.cfg.statopt;
+package org.rsdeob.stdlib.cfg.ir.transform;
 
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Type;

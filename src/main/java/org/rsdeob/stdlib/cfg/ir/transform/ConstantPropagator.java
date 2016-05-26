@@ -1,4 +1,4 @@
-package org.rsdeob.stdlib.cfg.statopt;
+package org.rsdeob.stdlib.cfg.ir.transform;
 
 import java.util.HashMap;
 
