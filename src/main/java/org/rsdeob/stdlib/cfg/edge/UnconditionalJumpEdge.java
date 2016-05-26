@@ -6,17 +6,17 @@ import org.rsdeob.stdlib.cfg.BasicBlock;
 public class UnconditionalJumpEdge extends JumpEdge {
 	
 	public UnconditionalJumpEdge(BasicBlock src, BasicBlock dst, JumpInsnNode jump) {
-		super(src, dst, jump, new InverseJumpEdge(dst, src, jump) {
-			@Override
-			public String toString() {
-				return "Unconditional" + super.toString();
-			}
-		});
+		super(src, dst, jump);
 	}
 
 	@Override
 	public String toString() {
 		return "Unconditional" + super.toString();
+	}
+	
+	@Override
+	public String toInverseString() {
+		return "Unconditional" + super.toInverseString();
 	}
 	
 	@Override

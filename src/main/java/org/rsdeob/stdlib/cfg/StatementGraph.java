@@ -1,5 +1,9 @@
 package org.rsdeob.stdlib.cfg;
 
-public class StatementGraph {
+import org.rsdeob.stdlib.cfg.stat.Statement;
+import org.rsdeob.stdlib.collections.graph.FastGraph;
+import org.rsdeob.stdlib.collections.graph.FastGraphEdge;
+
+public class StatementGraph extends FastGraph<Statement, FastGraphEdge<N>>{
 
 }

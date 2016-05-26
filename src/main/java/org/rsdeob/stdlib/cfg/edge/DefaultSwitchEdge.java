@@ -6,12 +6,17 @@ import org.rsdeob.stdlib.cfg.BasicBlock;
 public class DefaultSwitchEdge extends SwitchEdge {
 	
 	public DefaultSwitchEdge(BasicBlock src, BasicBlock dst, AbstractInsnNode insn) {
-		super(src, dst, new InverseDefaultSwitchEdge(dst, src), insn, 0);
+		super(src, dst, insn, 0);
 	}
 	
 	@Override
 	public String toString() {
-		return String.format("Default Switch #%s -> #%s", src.getId(), dst.getId());
+		return "Default " + super.toString();	
+	}
+	
+	@Override
+	public String toInverseString() {
+		return "Default " + super.toInverseString();
 	}
 
 	@Override
