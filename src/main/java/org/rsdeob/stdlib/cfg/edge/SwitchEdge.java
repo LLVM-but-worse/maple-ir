@@ -1,14 +1,14 @@
 package org.rsdeob.stdlib.cfg.edge;
 
 import org.objectweb.asm.tree.AbstractInsnNode;
-import org.rsdeob.stdlib.cfg.BasicBlock;
+import org.rsdeob.stdlib.collections.graph.FastGraphVertex;
 
-public class SwitchEdge extends FlowEdge {
+public class SwitchEdge<N extends FastGraphVertex> extends FlowEdge<N> {
 	
 	public final AbstractInsnNode insn;
 	public final int value;
 	
-	public SwitchEdge(BasicBlock src, BasicBlock dst, AbstractInsnNode insn, int value) {
+	public SwitchEdge(N src, N dst, AbstractInsnNode insn, int value) {
 		super(src, dst);
 		this.insn = insn;
 		this.value = value;
@@ -30,7 +30,7 @@ public class SwitchEdge extends FlowEdge {
 	}
 
 	@Override
-	public SwitchEdge clone(BasicBlock src, BasicBlock dst) {
-		return new SwitchEdge(src, dst, insn, value);
+	public SwitchEdge<N> clone(N src, N dst) {
+		return new SwitchEdge<N>(src, dst, insn, value);
 	}
 }

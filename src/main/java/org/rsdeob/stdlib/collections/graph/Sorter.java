@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-public interface Sorter<N> {
+public interface Sorter<N extends FastGraphVertex> {
 
 	default List<N> sort(FastGraph<N, ?> graph) {
 		List<N> list = new ArrayList<>();

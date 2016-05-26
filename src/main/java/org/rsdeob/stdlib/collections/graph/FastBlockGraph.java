@@ -1,14 +1,14 @@
 package org.rsdeob.stdlib.collections.graph;
 
-import org.objectweb.asm.tree.LabelNode;
-import org.rsdeob.stdlib.cfg.BasicBlock;
-import org.rsdeob.stdlib.cfg.edge.FlowEdge;
-
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
-public abstract class FastBlockGraph extends FastGraph<BasicBlock, FlowEdge> {
+import org.objectweb.asm.tree.LabelNode;
+import org.rsdeob.stdlib.cfg.BasicBlock;
+import org.rsdeob.stdlib.cfg.edge.FlowEdge;
+
+public abstract class FastBlockGraph extends FastGraph<BasicBlock, FlowEdge<BasicBlock>> {
 
 	private final Map<LabelNode, BasicBlock> blockLabels;
 	private final Map<String, BasicBlock> blockIds;
@@ -52,7 +52,7 @@ public abstract class FastBlockGraph extends FastGraph<BasicBlock, FlowEdge> {
 	}
 	
 	@Override
-	public void addEdge(BasicBlock v, FlowEdge e) {
+	public void addEdge(BasicBlock v, FlowEdge<BasicBlock> e) {
 		blockLabels.put(v.getLabel(), v);
 		blockIds.put(v.getId(), v);
 		
@@ -61,13 +61,13 @@ public abstract class FastBlockGraph extends FastGraph<BasicBlock, FlowEdge> {
 
 
 	@Override
-	protected BasicBlock getSource(BasicBlock n, FlowEdge e) {
+	protected BasicBlock getSource(BasicBlock n, FlowEdge<BasicBlock> e) {
 		return e.src;
 	}
 
 
 	@Override
-	protected BasicBlock getDestination(BasicBlock n, FlowEdge e) {
+	protected BasicBlock getDestination(BasicBlock n, FlowEdge<BasicBlock> e) {
 		return e.dst;
 	}
 }

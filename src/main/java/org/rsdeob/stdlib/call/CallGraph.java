@@ -1,5 +1,9 @@
 package org.rsdeob.stdlib.call;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.ListIterator;
+
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.ClassNode;
@@ -9,10 +13,6 @@ import org.rsdeob.stdlib.call.CallGraph.Invocation;
 import org.rsdeob.stdlib.collections.graph.FastGraph;
 import org.rsdeob.stdlib.collections.graph.FastGraphEdge;
 import org.rsdeob.stdlib.klass.ClassTree;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.ListIterator;
 
 public class CallGraph extends FastGraph<MethodNode, Invocation> {
 	

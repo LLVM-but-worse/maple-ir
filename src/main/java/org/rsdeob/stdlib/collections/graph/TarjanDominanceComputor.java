@@ -1,11 +1,17 @@
 package org.rsdeob.stdlib.collections.graph;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 import org.rsdeob.stdlib.collections.NullPermeableHashMap;
 import org.rsdeob.stdlib.collections.SetCreator;
 
-import java.util.*;
-
-public class TarjanDominanceComputor<N> {
+public class TarjanDominanceComputor<N extends FastGraphVertex> {
 
 	private static final Sorter<?> sorterImpl = Sorters.get("dfs");
 	
