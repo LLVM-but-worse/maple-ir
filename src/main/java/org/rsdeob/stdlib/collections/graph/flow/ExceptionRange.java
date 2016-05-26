@@ -14,14 +14,14 @@ import org.rsdeob.stdlib.collections.graph.FastGraphVertex;
 public class ExceptionRange<N extends FastGraphVertex> {
 
 	private final TryCatchBlockNode node;
-	private final List<N> blocks;
+	private final List<N> nodes;
 	private final Set<String> types;
 	private N handler;
 	private int hashcode;
 	
 	public ExceptionRange(TryCatchBlockNode node) {
 		this.node = node;
-		blocks = new ArrayList<>();
+		nodes = new ArrayList<>();
 		types = new HashSet<>();
 
 		hashCode();
@@ -40,26 +40,26 @@ public class ExceptionRange<N extends FastGraphVertex> {
 		return handler;
 	}
 	
-	public List<N> getBlocks() {
-		return new ArrayList<>(blocks);
+	public List<N> get() {
+		return new ArrayList<>(nodes);
 	}
 	
-	public boolean containsBlock(N b) {
-		return blocks.contains(b);
+	public boolean containsVertex(N b) {
+		return nodes.contains(b);
 	}
 	
-	public void addBlock(N b) {
-		blocks.add(b);
+	public void addVertex(N b) {
+		nodes.add(b);
 		invalidate();
 	}
 	
-	public void addBlocks(Collection<N> col) {
-		blocks.addAll(col);
+	public void addVertices(Collection<N> col) {
+		nodes.addAll(col);
 		invalidate();
 	}
 	
-	public void removeBlock(N b) {
-		blocks.remove(b);
+	public void removeVertex(N b) {
+		nodes.remove(b);
 		invalidate();
 	}
 	
@@ -78,7 +78,7 @@ public class ExceptionRange<N extends FastGraphVertex> {
 	}
 	
 	public void reset() {
-		blocks.clear();
+		nodes.clear();
 		types.clear();
 		handler = null;
 		invalidate();
@@ -89,11 +89,11 @@ public class ExceptionRange<N extends FastGraphVertex> {
 	}
 	
 	public boolean isCircular() {
-		return blocks.contains(handler);
+		return nodes.contains(handler);
 	}
 	
 	public boolean isContiguous() {
-		ListIterator<N> lit = blocks.listIterator();
+		ListIterator<N> lit = nodes.listIterator();
 		while(lit.hasNext()) {
 			N prev = lit.next();
 			if(lit.hasNext()) {
@@ -108,7 +108,7 @@ public class ExceptionRange<N extends FastGraphVertex> {
 	
 	@Override
 	public String toString() {
-		return String.format("handler=%s, types=%s, range=%s", handler, types, blocks);
+		return String.format("handler=%s, types=%s, range=%s", handler, types, nodes);
 	}
 	
 	@Override

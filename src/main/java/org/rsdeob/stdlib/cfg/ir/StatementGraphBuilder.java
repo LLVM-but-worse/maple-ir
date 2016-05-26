@@ -1,14 +1,20 @@
 package org.rsdeob.stdlib.cfg.ir;
 
+import java.util.HashMap;
+
 import org.objectweb.asm.tree.TryCatchBlockNode;
 import org.rsdeob.stdlib.cfg.BasicBlock;
 import org.rsdeob.stdlib.cfg.ControlFlowGraph;
-import org.rsdeob.stdlib.cfg.edge.*;
+import org.rsdeob.stdlib.cfg.edge.ConditionalJumpEdge;
+import org.rsdeob.stdlib.cfg.edge.DefaultSwitchEdge;
+import org.rsdeob.stdlib.cfg.edge.FlowEdge;
+import org.rsdeob.stdlib.cfg.edge.ImmediateEdge;
+import org.rsdeob.stdlib.cfg.edge.SwitchEdge;
+import org.rsdeob.stdlib.cfg.edge.TryCatchEdge;
+import org.rsdeob.stdlib.cfg.edge.UnconditionalJumpEdge;
 import org.rsdeob.stdlib.cfg.ir.stat.Statement;
 import org.rsdeob.stdlib.cfg.util.LabelHelper;
 import org.rsdeob.stdlib.collections.graph.flow.ExceptionRange;
-
-import java.util.HashMap;
 
 public class StatementGraphBuilder {
 	public StatementGraph create(ControlFlowGraph cfg) {
@@ -31,10 +37,10 @@ public class StatementGraphBuilder {
 				FlowEdge<Statement> edge;
 				switch (e.getClass().getSimpleName()) {
 					case "ConditionalJumpEdge":
-						edge = new ConditionalJumpEdge<>(last, targetStmt, ((ConditionalJumpEdge) e).opcode);
+						edge = new ConditionalJumpEdge<>(last, targetStmt, ((ConditionalJumpEdge<BasicBlock>) e).opcode);
 						break;
 					case "UnconditionalJumpEdge":
-						edge = new UnconditionalJumpEdge<>(last, targetStmt, ((UnconditionalJumpEdge) e).opcode);
+						edge = new UnconditionalJumpEdge<>(last, targetStmt, ((UnconditionalJumpEdge<BasicBlock>) e).opcode);
 						break;
 					case "ImmediateEdge":
 						edge = new ImmediateEdge<>(last, targetStmt);
@@ -49,19 +55,19 @@ public class StatementGraphBuilder {
 						if (!ranges.containsKey(key)) {
 							ExceptionRange<Statement> sRange = new ExceptionRange<>(tc);
 							sRange.setHandler(handler.getStatements().get(0));
-							for (BasicBlock protectedBlock : bRange.getBlocks())
+							for (BasicBlock protectedBlock : bRange.get())
 								for (Statement protectedStmt : protectedBlock.getStatements())
-									sRange.addBlock(protectedStmt);
+									sRange.addVertex(protectedStmt);
 							ranges.put(key, sRange);
 						}
 						edge = new TryCatchEdge<>(last, ranges.get(key));
 						break;
 					case "SwitchEdge":
-						SwitchEdge se = (SwitchEdge) e;
+						SwitchEdge<BasicBlock> se = (SwitchEdge<BasicBlock>) e;
 						edge = new SwitchEdge<>(last, targetStmt, se.insn, se.value);
 						break;
 					case "DefaultSwitchEdge":
-						edge = new DefaultSwitchEdge<>(last, targetStmt, ((DefaultSwitchEdge) e).insn);
+						edge = new DefaultSwitchEdge<>(last, targetStmt, ((DefaultSwitchEdge<BasicBlock>) e).insn);
 						break;
 					default:
 						throw new IllegalArgumentException("Illegal edge type " + e.getClass().getSimpleName());
