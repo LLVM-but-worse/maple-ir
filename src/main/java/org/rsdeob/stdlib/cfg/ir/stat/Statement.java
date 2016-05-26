@@ -256,4 +256,9 @@ public abstract class Statement implements FastGraphVertex {
 	public String getId() {
 		return Long.toString(id);
 	}
+	
+	@Override
+	public int hashCode() {
+		return Long.hashCode(id);
+	}
 }
