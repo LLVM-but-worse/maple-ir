@@ -1,30 +1,29 @@
 package org.rsdeob.stdlib.cfg.edge;
 
-import org.objectweb.asm.tree.JumpInsnNode;
 import org.objectweb.asm.util.Printer;
-import org.rsdeob.stdlib.cfg.BasicBlock;
+import org.rsdeob.stdlib.collections.graph.FastGraphVertex;
 
-public abstract class JumpEdge extends FlowEdge {
+public abstract class JumpEdge<N extends FastGraphVertex> extends FlowEdge<N> {
 	
-	public final JumpInsnNode jump;
+	public final int opcode;
 	
-	public JumpEdge(BasicBlock src, BasicBlock dst, JumpInsnNode jump) {
+	public JumpEdge(N src, N dst, int opcode) {
 		super(src, dst);
-		this.jump = jump;
+		this.opcode = opcode;
 	}
 	
 	@Override
 	public String toGraphString() {
-		return Printer.OPCODES[jump.opcode()];
+		return Printer.OPCODES[opcode];
 	}
 	
 	@Override
 	public String toString() {
-		return String.format("Jump[%s] #%s -> #%s", Printer.OPCODES[jump.opcode()], src.getId(), dst.getId());
+		return String.format("Jump[%s] #%s -> #%s", Printer.OPCODES[opcode], src.getId(), dst.getId());
 	}
 	
 	@Override
 	public String toInverseString() {
-		return String.format("Jump[%s] #%s <- #%s", Printer.OPCODES[jump.opcode()], dst.getId(), src.getId());
+		return String.format("Jump[%s] #%s <- #%s", Printer.OPCODES[opcode], dst.getId(), src.getId());
 	}
 }

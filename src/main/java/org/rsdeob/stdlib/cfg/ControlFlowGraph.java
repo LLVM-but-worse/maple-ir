@@ -1,17 +1,17 @@
 package org.rsdeob.stdlib.cfg;
 
-import org.objectweb.asm.tree.MethodNode;
-import org.rsdeob.stdlib.cfg.util.GraphUtils;
-import org.rsdeob.stdlib.collections.graph.FastBlockGraph;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.ListIterator;
 
+import org.objectweb.asm.tree.MethodNode;
+import org.rsdeob.stdlib.cfg.util.GraphUtils;
+import org.rsdeob.stdlib.collections.graph.FastBlockGraph;
+
 public class ControlFlowGraph extends FastBlockGraph {
 	
 	private final MethodNode method;
-	private final List<ExceptionRange> ranges;
+	private final List<ExceptionRange<BasicBlock>> ranges;
 	private BasicBlock entry;
 	private RootStatement root;
 	
@@ -24,6 +24,7 @@ public class ControlFlowGraph extends FastBlockGraph {
 		return method;
 	}
 	
+	@Override
 	public BasicBlock getEntry() {
 		return entry;
 	}
@@ -44,25 +45,25 @@ public class ControlFlowGraph extends FastBlockGraph {
 		return root;
 	}
 	
-	public void addRange(ExceptionRange range) {
+	public void addRange(ExceptionRange<BasicBlock> range) {
 		if(!ranges.contains(range)) {
 			ranges.add(range);
 		}
 	}
 	
-	public void removeRange(ExceptionRange range) {
+	public void removeRange(ExceptionRange<BasicBlock> range) {
 		ranges.add(range);
 	}
 	
-	public List<ExceptionRange> getRanges() {
+	public List<ExceptionRange<BasicBlock>> getRanges() {
 		return new ArrayList<>(ranges);
 	}
 	
 	@Override
 	public void removeVertex(BasicBlock v) {
-		ListIterator<ExceptionRange> it = ranges.listIterator();
+		ListIterator<ExceptionRange<BasicBlock>> it = ranges.listIterator();
 		while(it.hasNext()) {
-			ExceptionRange r = it.next();
+			ExceptionRange<BasicBlock> r = it.next();
 			if(r.containsBlock(v)) {
 				r.removeBlock(v);
 			}

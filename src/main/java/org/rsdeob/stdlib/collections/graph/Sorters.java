@@ -8,11 +8,11 @@ public final class Sorters {
 	private static final Map<String, Sorter<?>> impls = new HashMap<>();
 	
 	static {
-		impls.put("dfs", new DepthFirstSorterImpl<Object>());
+		impls.put("dfs", new DepthFirstSorterImpl<FastGraphVertex>());
 	}
 	
 	@SuppressWarnings("unchecked")
-	public static <N> Sorter<N> get(String id) {
+	public static <N extends FastGraphVertex> Sorter<N> get(String id) {
 		return (Sorter<N>) impls.get(id);
 	}
 	

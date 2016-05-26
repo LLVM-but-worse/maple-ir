@@ -9,13 +9,14 @@ import java.util.Set;
 
 import org.objectweb.asm.tree.TryCatchBlockNode;
 import org.rsdeob.stdlib.cfg.util.LabelHelper;
+import org.rsdeob.stdlib.collections.graph.FastGraphVertex;
 
-public class ExceptionRange {
+public class ExceptionRange<N extends FastGraphVertex> {
 
 	private final TryCatchBlockNode node;
-	private final List<BasicBlock> blocks;
+	private final List<N> blocks;
 	private final Set<String> types;
-	private BasicBlock handler;
+	private N handler;
 	private int hashcode;
 	
 	public ExceptionRange(TryCatchBlockNode node) {
@@ -30,34 +31,34 @@ public class ExceptionRange {
 		return node;
 	}
 	
-	public void setHandler(BasicBlock b) {
+	public void setHandler(N b) {
 		handler = b;
 		invalidate();
 	}
 	
-	public BasicBlock getHandler() {
+	public N getHandler() {
 		return handler;
 	}
 	
-	public List<BasicBlock> getBlocks() {
+	public List<N> getBlocks() {
 		return new ArrayList<>(blocks);
 	}
 	
-	public boolean containsBlock(BasicBlock b) {
+	public boolean containsBlock(N b) {
 		return blocks.contains(b);
 	}
 	
-	public void addBlock(BasicBlock b) {
+	public void addBlock(N b) {
 		blocks.add(b);
 		invalidate();
 	}
 	
-	public void addBlocks(Collection<BasicBlock> col) {
+	public void addBlocks(Collection<N> col) {
 		blocks.addAll(col);
 		invalidate();
 	}
 	
-	public void removeBlock(BasicBlock b) {
+	public void removeBlock(N b) {
 		blocks.remove(b);
 		invalidate();
 	}
@@ -92,11 +93,11 @@ public class ExceptionRange {
 	}
 	
 	public boolean isContiguous() {
-		ListIterator<BasicBlock> lit = blocks.listIterator();
+		ListIterator<N> lit = blocks.listIterator();
 		while(lit.hasNext()) {
-			BasicBlock prev = lit.next();
+			N prev = lit.next();
 			if(lit.hasNext()) {
-				BasicBlock b = lit.next();
+				N b = lit.next();
 				if(LabelHelper.numeric(prev.getId()) >= LabelHelper.numeric(b.getId())) {
 					return false;
 				}
@@ -115,7 +116,7 @@ public class ExceptionRange {
 		if(o == this) {
 			return true;
 		} else if(o instanceof ExceptionRange) {
-			ExceptionRange other = (ExceptionRange) o;
+			ExceptionRange<?> other = (ExceptionRange<?>) o;
 			return other.hashCode() == hashCode();
 		} else {
 			return false;
@@ -131,7 +132,7 @@ public class ExceptionRange {
 		return hashcode;
 	}
 
-	public static String rangetoString(List<BasicBlock> set) {
+	public static <N extends FastGraphVertex> String rangetoString(List<N> set) {
 		int last = LabelHelper.numeric(set.get(0).getId()) - 1;
 		for(int i=0; i < set.size(); i++) {
 			int num = LabelHelper.numeric(set.get(i).getId());
