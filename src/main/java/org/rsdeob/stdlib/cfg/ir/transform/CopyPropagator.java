@@ -1,4 +1,4 @@
-package org.rsdeob.stdlib.cfg.statopt;
+package org.rsdeob.stdlib.cfg.ir.transform;
 
 import org.rsdeob.stdlib.cfg.BasicBlock;
 import org.rsdeob.stdlib.cfg.ControlFlowGraph;
