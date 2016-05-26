@@ -1,5 +1,12 @@
 package org.rsdeob.stdlib.cfg.util;
 
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
+import java.util.*;
+import java.util.Map.Entry;
+import java.util.function.Predicate;
+
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.*;
 import org.objectweb.asm.util.Printer;
@@ -8,17 +15,10 @@ import org.rsdeob.stdlib.cfg.ControlFlowGraph;
 import org.rsdeob.stdlib.cfg.ControlFlowGraphDeobfuscator.SuperNode;
 import org.rsdeob.stdlib.cfg.ControlFlowGraphDeobfuscator.SuperNodeList;
 import org.rsdeob.stdlib.cfg.ExceptionRange;
-import org.rsdeob.stdlib.cfg.FlowEdge;
-import org.rsdeob.stdlib.cfg.FlowEdge.DefaultSwitchEdge;
-import org.rsdeob.stdlib.cfg.FlowEdge.JumpEdge;
-import org.rsdeob.stdlib.cfg.FlowEdge.SwitchEdge;
-
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
-import java.util.*;
-import java.util.Map.Entry;
-import java.util.function.Predicate;
+import org.rsdeob.stdlib.cfg.edge.DefaultSwitchEdge;
+import org.rsdeob.stdlib.cfg.edge.FlowEdge;
+import org.rsdeob.stdlib.cfg.edge.JumpEdge;
+import org.rsdeob.stdlib.cfg.edge.SwitchEdge;
 
 public class GraphUtils {
 

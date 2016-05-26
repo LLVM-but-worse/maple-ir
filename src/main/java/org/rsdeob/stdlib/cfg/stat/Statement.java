@@ -5,7 +5,7 @@ import java.util.List;
 
 import org.objectweb.asm.MethodVisitor;
 import org.rsdeob.stdlib.cfg.BasicBlock;
-import org.rsdeob.stdlib.cfg.FlowEdge;
+import org.rsdeob.stdlib.cfg.edge.FlowEdge;
 import org.rsdeob.stdlib.cfg.util.TabbedStringWriter;
 
 public abstract class Statement {

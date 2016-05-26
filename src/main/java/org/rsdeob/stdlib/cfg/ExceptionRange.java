@@ -130,4 +130,19 @@ public class ExceptionRange {
 		
 		return hashcode;
 	}
+
+	public static String rangetoString(List<BasicBlock> set) {
+		int last = LabelHelper.numeric(set.get(0).getId()) - 1;
+		for(int i=0; i < set.size(); i++) {
+			int num = LabelHelper.numeric(set.get(i).getId());
+			if((last + 1) == num) {
+				last++;
+				continue;
+			} else {
+				return set.toString();
+			}
+		}
+		
+		return String.format("[#%s...#%s]", set.get(0).getId(), LabelHelper.createBlockName(last));
+	}
 }

@@ -2,7 +2,7 @@ package org.rsdeob.stdlib.collections.graph;
 
 import org.objectweb.asm.tree.LabelNode;
 import org.rsdeob.stdlib.cfg.BasicBlock;
-import org.rsdeob.stdlib.cfg.FlowEdge;
+import org.rsdeob.stdlib.cfg.edge.FlowEdge;
 
 import java.util.HashMap;
 import java.util.Map;
