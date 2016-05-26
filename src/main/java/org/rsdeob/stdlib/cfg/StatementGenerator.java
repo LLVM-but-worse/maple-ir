@@ -1,5 +1,11 @@
 package org.rsdeob.stdlib.cfg;
 
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.Map.Entry;
+import java.util.Set;
+
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.*;
@@ -14,12 +20,6 @@ import org.rsdeob.stdlib.cfg.stat.MonitorStatement.MonitorMode;
 import org.rsdeob.stdlib.cfg.util.ExpressionStack;
 import org.rsdeob.stdlib.cfg.util.TypeUtils;
 import org.rsdeob.stdlib.cfg.util.TypeUtils.ArrayType;
-
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.LinkedList;
-import java.util.Map.Entry;
-import java.util.Set;
 
 public class StatementGenerator implements Opcodes {
 
@@ -68,7 +68,7 @@ public class StatementGenerator implements Opcodes {
 	}
 
 	public RootStatement buildRoot() {
-		for (BasicBlock b : graph.blocks()) {
+		for (BasicBlock b : graph.vertices()) {
 			BlockHeaderStatement bstmt = new BlockHeaderStatement(b);
 			root.write(bstmt);
 			root.getBlockStatements().put(b, bstmt);
@@ -199,7 +199,9 @@ public class StatementGenerator implements Opcodes {
 		// check whether they are coherent when merging
 		// into them.
 
-		_entry(graph.getEntry());
+		for(BasicBlock b : graph.getEntries()) {
+			_entry(b);
+		}
 
 		for (TryCatchBlockNode tc : m.tryCatchBlocks) {
 			_catches(tc);

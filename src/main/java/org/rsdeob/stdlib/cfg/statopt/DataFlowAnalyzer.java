@@ -1,15 +1,14 @@
 package org.rsdeob.stdlib.cfg.statopt;
 
+import java.util.HashMap;
+import java.util.HashSet;
+
 import org.rsdeob.stdlib.cfg.BasicBlock;
 import org.rsdeob.stdlib.cfg.ControlFlowGraph;
 import org.rsdeob.stdlib.cfg.edge.FlowEdge;
 import org.rsdeob.stdlib.cfg.stat.CopyVarStatement;
 import org.rsdeob.stdlib.cfg.stat.Statement;
-
-import java.util.HashMap;
-import java.util.HashSet;
-
-import static org.rsdeob.stdlib.cfg.statopt.DataFlowState.CopySet;
+import org.rsdeob.stdlib.cfg.statopt.DataFlowState.CopySet;
 
 public class DataFlowAnalyzer {
 	private final ControlFlowGraph cfg;
@@ -21,7 +20,7 @@ public class DataFlowAnalyzer {
 		this.checkRhs = checkRhs;
 
 		allCopies = new HashSet<>();
-		for (BasicBlock b : cfg.blocks()) {
+		for (BasicBlock b : cfg.vertices()) {
 			for (Statement stmt : b.getStatements()) {
 				if (stmt instanceof CopyVarStatement) {
 					allCopies.add((CopyVarStatement) stmt);
@@ -35,11 +34,13 @@ public class DataFlowAnalyzer {
 		HashMap<BasicBlock, DataFlowState> dataFlow = new HashMap<>();
 
 		// Compute first block
-		dataFlow.put(cfg.getEntry(), computeFirstBlock());
+		for(BasicBlock entry : cfg.getEntries()) {
+			dataFlow.put(entry, computeFirstBlock());
+		}
 
 		// Compute initial out for each block
-		for (BasicBlock b : cfg.blocks()) {
-			if (b == cfg.getEntry())
+		for (BasicBlock b : cfg.vertices()) {
+			if (cfg.getEntries().contains(b))
 				continue;
 			DataFlowState state = compute(b);
 			for (CopyVarStatement copy : allCopies) {
@@ -55,8 +56,8 @@ public class DataFlowAnalyzer {
 		for (boolean changed = true; changed;) {
 			changed = false;
 
-			for (BasicBlock b : cfg.blocks()) {
-				if (b == cfg.getEntry())
+			for (BasicBlock b : cfg.vertices()) {
+				if (cfg.getEntries().contains(b))
 					continue;
 
 				DataFlowState state = dataFlow.get(b);
@@ -64,7 +65,7 @@ public class DataFlowAnalyzer {
 
 				// IN[b] = MEET(OUT[p] for p in predicates(b))
 				CopySet in = new CopySet();
-				for (FlowEdge e : b.getPredecessors())
+				for (FlowEdge<BasicBlock> e : b.getPredecessors())
 					in = in.isEmpty() ? dataFlow.get(e.src).out : in.meet(dataFlow.get(e.src).out);
 				state.in = in;
 
@@ -85,7 +86,7 @@ public class DataFlowAnalyzer {
 	}
 
 	private DataFlowState computeFirstBlock() {
-		DataFlowState state = compute(cfg.getEntry());
+		DataFlowState state = compute(cfg.getEntries().iterator().next());
 		for (CopyVarStatement copy : state.gen)
 			state.out.put(copy.getVariable(), copy);
 		return state;

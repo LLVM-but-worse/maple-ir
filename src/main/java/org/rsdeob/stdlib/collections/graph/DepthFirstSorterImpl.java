@@ -12,7 +12,7 @@ public class DepthFirstSorterImpl<N extends FastGraphVertex> implements Sorter<N
 	}
 	
 	@Override
-	public Iterator<N> iterator(FastGraph<N, ?> graph) {
+	public Iterator<N> iterator(FlowGraph<N, ?> graph) {
 		return new DepthFirstSorterImplIteratorImpl<N>(graph);
 	}
 	
@@ -23,12 +23,13 @@ public class DepthFirstSorterImpl<N extends FastGraphVertex> implements Sorter<N
 		private final Stack<Iterator<N>> stack;
 		private N current;
 		
-		public DepthFirstSorterImplIteratorImpl(FastGraph<N, ?> graph) {
+		public DepthFirstSorterImplIteratorImpl(FlowGraph<N, ?> graph) {
 			this.graph = graph;
 			stack = new Stack<>();
 			visited = new HashSet<>();
-			
-			stack.push(succs(current = graph.getEntry()));
+
+			// FIXME: all entries
+			stack.push(succs(current = graph.getEntries().iterator().next()));
 		}
 		
 		private Iterator<N> succs(N n) {

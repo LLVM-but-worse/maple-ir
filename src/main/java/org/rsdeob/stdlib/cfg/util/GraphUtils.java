@@ -120,7 +120,7 @@ public class GraphUtils {
 
 	public static List<BasicBlock> collectSuccessors(ControlFlowGraph cfg, Collection<BasicBlock> blocks, BasicBlock block) {
 		if(!cfg.containsVertex(block)) {
-			System.out.println(cfg.blocks());
+			System.out.println(cfg.vertices());
 			throw new IllegalStateException("no block for " + cfg.getMethod() + " " + block);
 		}
 		List<BasicBlock> list = new ArrayList<BasicBlock>();
@@ -134,7 +134,7 @@ public class GraphUtils {
 
 	public static List<BasicBlock> collectSuccessors(ControlFlowGraph cfg, BasicBlock block) {
 		if(!cfg.containsVertex(block)) {
-			System.out.println(cfg.blocks());
+			System.out.println(cfg.vertices());
 			throw new IllegalStateException("no block for " + cfg.getMethod() + " " + block);
 		}
 		List<BasicBlock> list = new ArrayList<BasicBlock>();
@@ -290,7 +290,7 @@ public class GraphUtils {
 			sb.append('"');
 			
 			SuperNode sv;
-			if(b == cfg.getEntry()) {
+			if(cfg.getEntries().contains(b)) {
 				sb.append(", style=filled, fillcolor=red");
 			} else if(svList != null) {
 				if(svList.entryNodes.contains(b)) {
@@ -486,7 +486,7 @@ public class GraphUtils {
 						Set<FlowEdge<BasicBlock>> jumps = b.getSuccessors(e -> e instanceof JumpEdge);
 						if(jumps.size() != 1) {
 							StringBuilder sb = new StringBuilder();
-							GraphUtils.printBlock(cfg, cfg.blocks(), sb, b, 0);
+							GraphUtils.printBlock(cfg, cfg.vertices(), sb, b, 0);
 							System.err.println(sb);
 							throw new IllegalStateException(cfg.getMethod() + " " + b.getId() + " " + Printer.OPCODES[ain.opcode()] + " " + jumps.toString() + " " + b.getSuccessors());
 						}

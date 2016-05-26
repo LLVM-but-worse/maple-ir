@@ -23,7 +23,7 @@ public class CfgTest {
 	public void test(ControlFlowGraph cfg) {
 		try {
 			try {
-				cfg.blocks();
+				cfg.vertices();
 				//cfg.verifyEdgeSet();
 			} catch(UnsupportedOperationException e) {
 				try {
@@ -113,7 +113,7 @@ public class CfgTest {
 //					InstructionPrinter.consolePrint(m);
 					m.localVariables.clear();
 					ControlFlowGraph cfg = ControlFlowGraphBuilder.create(m);
-					GraphUtils.output(cfg, new ArrayList<>(cfg.blocks()), graphFolder, "post");
+					GraphUtils.output(cfg, new ArrayList<>(cfg.vertices()), graphFolder, "post");
 					System.out.println(cfg);
 					
 //					System.out.println(cfg);

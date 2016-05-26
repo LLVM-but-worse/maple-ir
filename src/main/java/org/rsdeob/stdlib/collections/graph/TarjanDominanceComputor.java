@@ -15,7 +15,7 @@ public class TarjanDominanceComputor<N extends FastGraphVertex> {
 
 	private static final Sorter<?> sorterImpl = Sorters.get("dfs");
 	
-	private final FastGraph<N, ?> graph;
+	private final FlowGraph<N, ?> graph;
 	private final List<N> preOrder;
 	private final Map<N, Integer> semiIndices;
 	private final Map<N, N> parents;
@@ -26,7 +26,7 @@ public class TarjanDominanceComputor<N extends FastGraphVertex> {
 	private final NullPermeableHashMap<N, Set<N>> domChildren;
 	private final NullPermeableHashMap<N, Set<N>> frontiers;
 	
-	public TarjanDominanceComputor(FastGraph<N, ?> graph) {
+	public TarjanDominanceComputor(FlowGraph<N, ?> graph) {
 		this.graph = graph;
 		preOrder = new ArrayList<>();
 		semiIndices = new HashMap<>();
