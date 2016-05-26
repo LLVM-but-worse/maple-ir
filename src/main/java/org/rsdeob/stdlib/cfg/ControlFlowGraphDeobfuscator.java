@@ -8,9 +8,10 @@ import java.util.Map.Entry;
 import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.LabelNode;
 import org.objectweb.asm.tree.LdcInsnNode;
-import org.rsdeob.stdlib.cfg.FlowEdge.ImmediateEdge;
-import org.rsdeob.stdlib.cfg.FlowEdge.TryCatchEdge;
-import org.rsdeob.stdlib.cfg.FlowEdge.UnconditionalJumpEdge;
+import org.rsdeob.stdlib.cfg.edge.FlowEdge;
+import org.rsdeob.stdlib.cfg.edge.ImmediateEdge;
+import org.rsdeob.stdlib.cfg.edge.TryCatchEdge;
+import org.rsdeob.stdlib.cfg.edge.UnconditionalJumpEdge;
 //import org.rsdeob.stdlib.cfg.util.
 import org.rsdeob.stdlib.cfg.util.GraphUtils;
 
