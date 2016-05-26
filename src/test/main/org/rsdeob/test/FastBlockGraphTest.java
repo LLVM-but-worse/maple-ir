@@ -2,9 +2,8 @@ package org.rsdeob.test;
 
 import org.junit.Test;
 import org.rsdeob.stdlib.cfg.BasicBlock;
-import org.rsdeob.stdlib.cfg.FlowEdge;
-import org.rsdeob.stdlib.cfg.FlowEdge.ImmediateEdge;
-import org.rsdeob.stdlib.collections.graph.FastBlockGraph;
+import org.rsdeob.stdlib.cfg.FastBlockGraph;
+import org.rsdeob.stdlib.cfg.edge.ImmediateEdge;
 
 import static org.junit.Assert.assertTrue;
 
@@ -36,7 +35,7 @@ public class FastBlockGraphTest {
 		graph.addVertex(g = new BasicBlock(null, "G", null));
 
 //		 immediate just to simply creation
-		graph.addEdge(a, new FlowEdge.ImmediateEdge(a, b));
+		graph.addEdge(a, new ImmediateEdge(a, b));
 		graph.addEdge(a, new ImmediateEdge(a, c));
 		graph.addEdge(a, new ImmediateEdge(a, e));
 
@@ -63,9 +62,5 @@ public class FastBlockGraphTest {
 	}
 
 	private class TestFastBlockGraph extends FastBlockGraph {
-		@Override
-		public BasicBlock getEntry() {
-			return null;
-		}
 	}
 }
