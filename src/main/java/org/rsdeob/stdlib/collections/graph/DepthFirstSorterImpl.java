@@ -1,8 +1,12 @@
 package org.rsdeob.stdlib.collections.graph;
 
-import java.util.*;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.NoSuchElementException;
+import java.util.Set;
+import java.util.Stack;
 
-public class DepthFirstSorterImpl<N> implements Sorter<N> {
+public class DepthFirstSorterImpl<N extends FastGraphVertex> implements Sorter<N> {
 
 	protected DepthFirstSorterImpl() {	
 	}
@@ -12,7 +16,7 @@ public class DepthFirstSorterImpl<N> implements Sorter<N> {
 		return new DepthFirstSorterImplIteratorImpl<N>(graph);
 	}
 	
-	private static class DepthFirstSorterImplIteratorImpl<N> implements Iterator<N> {
+	private static class DepthFirstSorterImplIteratorImpl<N extends FastGraphVertex> implements Iterator<N> {
 
 		private final FastGraph<N, ?> graph;
 		private final Set<N> visited;

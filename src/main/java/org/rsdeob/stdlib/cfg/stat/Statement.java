@@ -7,8 +7,12 @@ import org.objectweb.asm.MethodVisitor;
 import org.rsdeob.stdlib.cfg.BasicBlock;
 import org.rsdeob.stdlib.cfg.edge.FlowEdge;
 import org.rsdeob.stdlib.cfg.util.TabbedStringWriter;
+import org.rsdeob.stdlib.collections.graph.FastGraphVertex;
 
-public abstract class Statement {
+public abstract class Statement implements FastGraphVertex {
+	
+	private static int ID_COUNTER = 1;
+	private final long id = ID_COUNTER++;
 	
 	private BasicBlock block;
 	private List<Statement> parents;
@@ -26,7 +30,7 @@ public abstract class Statement {
 		int index = blockStmts.indexOf(this);
 		List<Statement> ret = new ArrayList<>();
 		if(index == 0) {
-			for(FlowEdge pe : block.getPredecessors()) {
+			for(FlowEdge<BasicBlock> pe : block.getPredecessors()) {
 				BasicBlock pred = pe.src;
 				List<Statement> predStmts = pred.getStatements();
 				Statement last = predStmts.get(predStmts.size() - 1);
@@ -43,7 +47,7 @@ public abstract class Statement {
 		int index = blockStmts.indexOf(this);
 		List<Statement> ret = new ArrayList<>();
 		if(index == (blockStmts.size()-1)) {
-			for(FlowEdge se : block.getSuccessors()) {
+			for(FlowEdge<BasicBlock> se : block.getSuccessors()) {
 				BasicBlock succ = se.dst;
 				List<Statement> succStmts = succ.getStatements();
 				Statement first = succStmts.get(0);
@@ -246,5 +250,10 @@ public abstract class Statement {
 		TabbedStringWriter printer = new TabbedStringWriter();
 		node.toString(printer);
 		return printer.toString();
+	}
+	
+	@Override
+	public String getId() {
+		return Long.toString(id);
 	}
 }

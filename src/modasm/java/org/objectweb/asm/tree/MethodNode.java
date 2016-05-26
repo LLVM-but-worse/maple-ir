@@ -33,24 +33,17 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import org.objectweb.asm.AnnotationVisitor;
-import org.objectweb.asm.Attribute;
-import org.objectweb.asm.ClassVisitor;
-import org.objectweb.asm.Handle;
-import org.objectweb.asm.Label;
-import org.objectweb.asm.MethodVisitor;
-import org.objectweb.asm.Opcodes;
-import org.objectweb.asm.Type;
-import org.objectweb.asm.TypePath;
+import org.objectweb.asm.*;
 import org.objectweb.asm.commons.cfg.query.InsnQuery;
 import org.rsdeob.stdlib.cfg.RootStatement;
+import org.rsdeob.stdlib.collections.graph.FastGraphVertex;
 
 /**
  * A node that represents a method.
  * 
  * @author Eric Bruneton
  */
-public class MethodNode extends MethodVisitor {
+public class MethodNode extends MethodVisitor implements FastGraphVertex {
 
 	public ClassNode owner;
 	
@@ -1087,5 +1080,10 @@ public class MethodNode extends MethodVisitor {
 	@Override
 	public String toString() {
 		return key();
+	}
+
+	@Override
+	public String getId() {
+		return toString();
 	}
 }

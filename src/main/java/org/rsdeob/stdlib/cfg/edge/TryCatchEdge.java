@@ -1,14 +1,14 @@
 package org.rsdeob.stdlib.cfg.edge;
 
-import org.rsdeob.stdlib.cfg.BasicBlock;
 import org.rsdeob.stdlib.cfg.ExceptionRange;
+import org.rsdeob.stdlib.collections.graph.FastGraphVertex;
 
-public class TryCatchEdge extends FlowEdge {
+public class TryCatchEdge<N extends FastGraphVertex> extends FlowEdge<N> {
 	
-	public final ExceptionRange erange;
+	public final ExceptionRange<N> erange;
 	private int hashcode;
 	
-	public TryCatchEdge(BasicBlock src, ExceptionRange erange) {
+	public TryCatchEdge(N src, ExceptionRange<N> erange) {
 		super(src, erange.getHandler());
 		this.erange = erange;
 		recalcHashcode();
@@ -35,8 +35,8 @@ public class TryCatchEdge extends FlowEdge {
 	}
 
 	@Override
-	public TryCatchEdge clone(BasicBlock src, BasicBlock dst) {
-		return new TryCatchEdge(src, erange);
+	public TryCatchEdge<N> clone(N src, N dst) {
+		return new TryCatchEdge<N>(src, erange);
 	}
 
 	@Override
@@ -52,7 +52,7 @@ public class TryCatchEdge extends FlowEdge {
 			return false;
 		if (getClass() != obj.getClass())
 			return false;
-		TryCatchEdge other = (TryCatchEdge) obj;
+		TryCatchEdge<?> other = (TryCatchEdge<?>) obj;
 		if (erange == null) {
 			if (other.erange != null)
 				return false;

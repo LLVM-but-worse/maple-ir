@@ -87,14 +87,14 @@ public class ControlFlowGraphDeobfuscator {
 					// change = true;
 					// break;
 				} else {
-					FlowEdge incomingImmediate = b.getIncomingImmediateEdge();
+					FlowEdge<BasicBlock> incomingImmediate = b.getIncomingImmediateEdge();
 					if(incomingImmediate != null && b.getPredecessors().size() == 1) {
 						BasicBlock pred = incomingImmediate.src;
 	
 						if(!GraphUtils.isFlowBlock(pred)) {
 							// check that the exceptions are the same
-							List<ExceptionRange> predRanges = pred.getProtectingRanges();
-							List<ExceptionRange> blockRanges = b.getProtectingRanges();
+							List<ExceptionRange<BasicBlock>> predRanges = pred.getProtectingRanges();
+							List<ExceptionRange<BasicBlock>> blockRanges = b.getProtectingRanges();
 							if(predRanges.equals(blockRanges)) {
 								// transfer instructions
 								for(AbstractInsnNode ain : b.getInsns()) {
@@ -107,9 +107,9 @@ public class ControlFlowGraphDeobfuscator {
 								
 								// transfer successor edges from b so
 								// that they go from pred to succ
-								for(FlowEdge e : b.getSuccessors(e -> !(e instanceof TryCatchEdge))) {
+								for(FlowEdge<BasicBlock> e : b.getSuccessors(e -> !(e instanceof TryCatchEdge))) {
 									BasicBlock target = e.dst;
-									FlowEdge cloned = e.clone(pred, target);
+									FlowEdge<BasicBlock> cloned = e.clone(pred, target);
 									cfg.addEdge(pred, cloned);
 								}
 								
@@ -124,7 +124,7 @@ public class ControlFlowGraphDeobfuscator {
 									p.updateLabelRef(b, pred);
 								} */
 								
-								for(ExceptionRange er : predRanges) {
+								for(ExceptionRange<BasicBlock> er : predRanges) {
 									er.removeBlock(b);
 								}
 								
@@ -171,7 +171,7 @@ public class ControlFlowGraphDeobfuscator {
 
 			orderFor: for(BasicBlock b : order) {
 				int index = order.indexOf(b);
-				for(FlowEdge e : b.getSuccessors()) {
+				for(FlowEdge<BasicBlock> e : b.getSuccessors()) {
 					if(e instanceof UnconditionalJumpEdge) {
 						BasicBlock dst = e.dst;
 						if(dst.getPredecessors().size() == 1) {
@@ -184,8 +184,8 @@ public class ControlFlowGraphDeobfuscator {
 								int dstIndex = order.indexOf(dst);
 								// the dst isn't next to it
 								if(dstIndex != (index + 1)) {
-									List<ExceptionRange> targRanges = dst.getProtectingRanges();
-									List<ExceptionRange> blockRanges = b.getProtectingRanges();
+									List<ExceptionRange<BasicBlock>> targRanges = dst.getProtectingRanges();
+									List<ExceptionRange<BasicBlock>> blockRanges = b.getProtectingRanges();
 									if(!targRanges.equals(blockRanges)) {
 										continue;
 									}
@@ -235,12 +235,12 @@ public class ControlFlowGraphDeobfuscator {
 				if(last != null && last.opcode() == GOTO) {
 					int index = blocks.indexOf(b);
 
-					Set<FlowEdge> jumps = b.getSuccessors(s -> s instanceof UnconditionalJumpEdge);
+					Set<FlowEdge<BasicBlock>> jumps = b.getSuccessors(s -> s instanceof UnconditionalJumpEdge);
 					if(jumps.size() > 1 || jumps.size() <= 0) {
 						throw new IllegalStateException("goto with misplaced branches, " + b.getId() + jumps);
 					}
 					
-					FlowEdge im = jumps.iterator().next();
+					FlowEdge<BasicBlock> im = jumps.iterator().next();
 					BasicBlock target = im.dst;
 					int targetIndex = blocks.indexOf(target);
 					// System.out.printf("%s, t=%d, b=%d.%n", b.getId(), targetIndex, index);
@@ -260,7 +260,7 @@ public class ControlFlowGraphDeobfuscator {
 						//   remove it from try ranges
 						
 						cfg.removeEdge(b, im);
-						im = new ImmediateEdge(b, target);
+						im = new ImmediateEdge<BasicBlock>(b, target);
 						cfg.addEdge(b, im);
 //						System.out.println("pruning " + b.getId());
 
@@ -268,7 +268,7 @@ public class ControlFlowGraphDeobfuscator {
 							// if we have anything other than an immediate
 							// or handler edges, something seriously fucked
 							// up is going on...
-							for(FlowEdge e : cfg.getEdges(b)) {
+							for(FlowEdge<BasicBlock> e : cfg.getEdges(b)) {
 								if(e instanceof ImmediateEdge) {
 									if(e != im) {
 										throw new IllegalStateException("two immediates for " + b.getId() + ", im:" + im + ", e:" + e);
@@ -285,9 +285,9 @@ public class ControlFlowGraphDeobfuscator {
 							//   we don't need to recreate handler edges
 							//   because it can't throw an exception (assumption)
 							
-							for(FlowEdge pe : cfg.getReverseEdges(b)) {
+							for(FlowEdge<BasicBlock> pe : cfg.getReverseEdges(b)) {
 								BasicBlock src = pe.src;
-								FlowEdge ce = pe.clone(src, target);
+								FlowEdge<BasicBlock> ce = pe.clone(src, target);
 								cfg.addEdge(src, ce);
 							}
 							cfg.removeVertex(b);
@@ -318,7 +318,7 @@ public class ControlFlowGraphDeobfuscator {
 		while(!stack.isEmpty()) {
 			BasicBlock b = stack.pop();
 			
-			for(FlowEdge succE : b.getSuccessors()) {
+			for(FlowEdge<BasicBlock> succE : b.getSuccessors()) {
 				BasicBlock succ = succE.dst;
 				if(!visited.contains(succ)) {
 					stack.push(succ);

@@ -1,12 +1,11 @@
 package org.rsdeob.stdlib.cfg.edge;
 
-import org.objectweb.asm.tree.JumpInsnNode;
-import org.rsdeob.stdlib.cfg.BasicBlock;
+import org.rsdeob.stdlib.collections.graph.FastGraphVertex;
 
-public class UnconditionalJumpEdge extends JumpEdge {
+public class UnconditionalJumpEdge<N extends FastGraphVertex> extends JumpEdge<N> {
 	
-	public UnconditionalJumpEdge(BasicBlock src, BasicBlock dst, JumpInsnNode jump) {
-		super(src, dst, jump);
+	public UnconditionalJumpEdge(N src, N dst, int opcode) {
+		super(src, dst, opcode);
 	}
 
 	@Override
@@ -20,7 +19,7 @@ public class UnconditionalJumpEdge extends JumpEdge {
 	}
 	
 	@Override
-	public FlowEdge clone(BasicBlock src, BasicBlock dst) {
-		return new UnconditionalJumpEdge(src, dst, jump);
+	public UnconditionalJumpEdge<N> clone(N src, N dst) {
+		return new UnconditionalJumpEdge<N>(src, dst, opcode);
 	}
 }

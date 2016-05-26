@@ -34,7 +34,7 @@ public class RTECatchBlockRemoverPhase implements IPhase, Opcodes {
 				
 				ControlFlowGraph cfg = cxt.createControlFlowGraph(m);				
 				boolean change = false;
-				for(ExceptionRange r : cfg.getRanges()) {
+				for(ExceptionRange<BasicBlock> r : cfg.getRanges()) {
 					if(r.getTypes().contains(RUNTIME_EXCEPTION_TYPE)) {
 						// new java/lang/StringBuilder
 						// dup

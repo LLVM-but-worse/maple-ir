@@ -1,11 +1,11 @@
 package org.rsdeob.stdlib.cfg.edge;
 
-import org.rsdeob.stdlib.cfg.BasicBlock;
 import org.rsdeob.stdlib.collections.graph.FastGraphEdge;
+import org.rsdeob.stdlib.collections.graph.FastGraphVertex;
 
-public abstract class FlowEdge extends FastGraphEdge<BasicBlock> {
+public abstract class FlowEdge<N extends FastGraphVertex> extends FastGraphEdge<N> {
 		
-	public FlowEdge(BasicBlock src, BasicBlock dst) {
+	public FlowEdge(N src, N dst) {
 		super(src, dst);
 	}
 	
@@ -16,5 +16,5 @@ public abstract class FlowEdge extends FastGraphEdge<BasicBlock> {
 	
 	public abstract String toInverseString();
 	
-	public abstract FlowEdge clone(BasicBlock src, BasicBlock dst);
+	public abstract FlowEdge<N> clone(N src, N dst);
 }

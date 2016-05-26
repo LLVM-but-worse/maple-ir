@@ -18,16 +18,17 @@ import org.rsdeob.stdlib.cfg.edge.ImmediateEdge;
 import org.rsdeob.stdlib.cfg.edge.TryCatchEdge;
 import org.rsdeob.stdlib.cfg.stat.Statement;
 import org.rsdeob.stdlib.cfg.util.ExpressionStack;
+import org.rsdeob.stdlib.collections.graph.FastGraphVertex;
 
 
-public class BasicBlock {
+public class BasicBlock implements FastGraphVertex {
 
 	private final ControlFlowGraph cfg;
 	private String id;
 	private int hashcode;
 	private final LabelNode label;
 	private final List<AbstractInsnNode> insns;
-	private List<ExceptionRange> ranges;
+	private List<ExceptionRange<BasicBlock>> ranges;
 	private ExpressionStack inputStack;
 	private List<Statement> statements;
 	
@@ -66,6 +67,7 @@ public class BasicBlock {
 		return label == null;
 	}
 
+	@Override
 	public String getId() {
 		return id;
 	}
@@ -182,13 +184,13 @@ public class BasicBlock {
 		return size;
 	}
 
-	public List<ExceptionRange> getProtectingRanges() {
+	public List<ExceptionRange<BasicBlock>> getProtectingRanges() {
 		if(ranges != null) {
 			return ranges;
 		}
 		
-		List<ExceptionRange> ranges = new ArrayList<>();
-		for(ExceptionRange er : cfg.getRanges()) {
+		List<ExceptionRange<BasicBlock>> ranges = new ArrayList<>();
+		for(ExceptionRange<BasicBlock> er : cfg.getRanges()) {
 			if(er.containsBlock(this)) {
 				ranges.add(er);
 			}
@@ -197,7 +199,7 @@ public class BasicBlock {
 	}
 	
 	public boolean isHandler() {
-		for(FlowEdge e : cfg.getReverseEdges(this)) {
+		for(FlowEdge<BasicBlock> e : cfg.getReverseEdges(this)) {
 			if(e instanceof TryCatchEdge) {
 				if(e.dst == this) {
 					return true;
@@ -209,29 +211,29 @@ public class BasicBlock {
 		return false;
 	}
 	
-	public Set<FlowEdge> getPredecessors() {
+	public Set<FlowEdge<BasicBlock>> getPredecessors() {
 		return new HashSet<>(cfg.getReverseEdges(this));
 	}
 
-	public Set<FlowEdge> getPredecessors(Predicate<? super FlowEdge> e) {
-		Set<FlowEdge> set = getPredecessors();
+	public Set<FlowEdge<BasicBlock>> getPredecessors(Predicate<? super FlowEdge<BasicBlock>> e) {
+		Set<FlowEdge<BasicBlock>> set = getPredecessors();
 		set.removeIf(e.negate());
 		return set;
 	}
 
-	public Set<FlowEdge> getSuccessors() {
+	public Set<FlowEdge<BasicBlock>> getSuccessors() {
 		return new HashSet<>(cfg.getEdges(this));
 	}
 
-	public Set<FlowEdge> getSuccessors(Predicate<? super FlowEdge> e) {
-		Set<FlowEdge> set = getSuccessors();
+	public Set<FlowEdge<BasicBlock>> getSuccessors(Predicate<? super FlowEdge<BasicBlock>> e) {
+		Set<FlowEdge<BasicBlock>> set = getSuccessors();
 		set.removeIf(e.negate());
 		return set;
 	}
 
 	public List<BasicBlock> getJumpEdges() {
 		List<BasicBlock> jes = new ArrayList<>();
-		for (FlowEdge e : cfg.getEdges(this)) {
+		for (FlowEdge<BasicBlock> e : cfg.getEdges(this)) {
 			if (!(e instanceof ImmediateEdge)) {
 				jes.add(e.dst);
 			}
@@ -239,9 +241,9 @@ public class BasicBlock {
 		return jes;
 	}
 	
-	private Set<FlowEdge> findImmediatesImpl(Set<FlowEdge> set) {
-		Set<FlowEdge> iset = new HashSet<>();
-		for(FlowEdge e : set) {
+	private Set<FlowEdge<BasicBlock>> findImmediatesImpl(Set<FlowEdge<BasicBlock>> set) {
+		Set<FlowEdge<BasicBlock>> iset = new HashSet<>();
+		for(FlowEdge<BasicBlock> e : set) {
 			if(e instanceof ImmediateEdge) {
 				iset.add(e);
 			}
@@ -249,8 +251,8 @@ public class BasicBlock {
 		return iset;
 	}
 	
-	private FlowEdge findSingleImmediateImpl(Set<FlowEdge> _set) {
-		Set<FlowEdge> set = findImmediatesImpl(_set);
+	private FlowEdge<BasicBlock> findSingleImmediateImpl(Set<FlowEdge<BasicBlock>> _set) {
+		Set<FlowEdge<BasicBlock>> set = findImmediatesImpl(_set);
 		int size = set.size();
 		if(size == 0) {
 			return null;
@@ -261,12 +263,12 @@ public class BasicBlock {
 		}
 	}
 
-	public ImmediateEdge getImmediateEdge() {
-		return (ImmediateEdge) findSingleImmediateImpl(cfg.getEdges(this));
+	public ImmediateEdge<BasicBlock> getImmediateEdge() {
+		return (ImmediateEdge<BasicBlock>) findSingleImmediateImpl(cfg.getEdges(this));
 	}
 	
 	public BasicBlock getImmediate() {
-		FlowEdge e =  findSingleImmediateImpl(cfg.getEdges(this));
+		FlowEdge<BasicBlock> e =  findSingleImmediateImpl(cfg.getEdges(this));
 		if(e != null) {
 			return e.dst;
 		} else {
@@ -274,12 +276,12 @@ public class BasicBlock {
 		}
 	}
 	
-	public ImmediateEdge getIncomingImmediateEdge() {
-		return (ImmediateEdge) findSingleImmediateImpl(cfg.getReverseEdges(this));
+	public ImmediateEdge<BasicBlock> getIncomingImmediateEdge() {
+		return (ImmediateEdge<BasicBlock>) findSingleImmediateImpl(cfg.getReverseEdges(this));
 	}
 
 	public BasicBlock getIncomingImmediate() {
-		FlowEdge e =  findSingleImmediateImpl(cfg.getReverseEdges(this));
+		FlowEdge<BasicBlock> e =  findSingleImmediateImpl(cfg.getReverseEdges(this));
 		if(e != null) {
 			return e.src;
 		} else {

@@ -37,9 +37,9 @@ public class GraphUtils {
 			return o1.getId().compareTo(o2.getId());
 		}
 	};
-	public static final Predicate<FlowEdge> ACCEPT_ALL_EDGES = new Predicate<FlowEdge>() {
+	public static final Predicate<FlowEdge<?>> ACCEPT_ALL_EDGES = new Predicate<FlowEdge<?>>() {
 		@Override
-		public boolean test(FlowEdge t) {
+		public boolean test(FlowEdge<?> t) {
 			return false;
 		}
 	};
@@ -124,7 +124,7 @@ public class GraphUtils {
 			throw new IllegalStateException("no block for " + cfg.getMethod() + " " + block);
 		}
 		List<BasicBlock> list = new ArrayList<BasicBlock>();
-		for(FlowEdge e : cfg.getEdges(block)) {
+		for(FlowEdge<BasicBlock> e : cfg.getEdges(block)) {
 			if(blocks.contains(e.dst) && !list.contains(e.dst)) {
 				list.add(e.dst);
 			}
@@ -138,7 +138,7 @@ public class GraphUtils {
 			throw new IllegalStateException("no block for " + cfg.getMethod() + " " + block);
 		}
 		List<BasicBlock> list = new ArrayList<BasicBlock>();
-		for(FlowEdge e : cfg.getEdges(block)) {
+		for(FlowEdge<BasicBlock> e : cfg.getEdges(block)) {
 			if(!list.contains(e.dst)) {
 				list.add(e.dst);
 			}
@@ -148,20 +148,11 @@ public class GraphUtils {
 
 	public static Set<BasicBlock> collectPredecessors(ControlFlowGraph cfg, BasicBlock block) {
 		Set<BasicBlock> list = new HashSet<BasicBlock>();
-		for(FlowEdge e : cfg.getReverseEdges(block)) {
+		for(FlowEdge<BasicBlock> e : cfg.getReverseEdges(block)) {
 			if(!list.contains(e.src)) {
 				list.add(e.src);
 			}
 		}
-		//		for(BasicBlock b : cfg.blocks()) {
-		//			for(FlowEdge e : cfg.getEdges(b)) {
-		//				if(e.dst == block) {
-		//					if(!list.contains(e.src)) {
-		//						list.add(e.src);
-		//					}
-		//				}
-		//			}
-		//		}
 		return list;
 	}
 
@@ -208,9 +199,9 @@ public class GraphUtils {
 		return blocks;
 	}
 
-	public static List<FlowEdge> findCommonEdges(ControlFlowGraph cfg, BasicBlock src, BasicBlock dst) {
-		List<FlowEdge> edges = new ArrayList<FlowEdge>();
-		for(FlowEdge e : cfg.getEdges(src)) {
+	public static List<FlowEdge<BasicBlock>> findCommonEdges(ControlFlowGraph cfg, BasicBlock src, BasicBlock dst) {
+		List<FlowEdge<BasicBlock>> edges = new ArrayList<FlowEdge<BasicBlock>>();
+		for(FlowEdge<BasicBlock> e : cfg.getEdges(src)) {
 			if(e.dst == dst) {
 				edges.add(e);
 			}
@@ -319,7 +310,7 @@ public class GraphUtils {
 		}
 
 		for(BasicBlock b : blocks) {
-			for(FlowEdge e : cfg.getEdges(b)) {
+			for(FlowEdge<BasicBlock> e : cfg.getEdges(b)) {
 //				if(e instanceof TryCatchEdge && !deep)
 //					continue;
 //				if(e instanceof TryCatchEdge)
@@ -460,11 +451,11 @@ public class GraphUtils {
 		}
 
 		if(headers) {
-			for(FlowEdge e : cfg.getEdges(b)) {
+			for(FlowEdge<BasicBlock> e : cfg.getEdges(b)) {
 				sb.append("         -> ").append(e.toString()).append('\n');
 			}
 
-			for(FlowEdge p : cfg.getReverseEdges(b)) {
+			for(FlowEdge<BasicBlock> p : cfg.getReverseEdges(b)) {
 				sb.append("         <- ").append(p.toInverseString()).append('\n');
 			}
 		}
@@ -492,24 +483,24 @@ public class GraphUtils {
 						if(!cfg.containsVertex(b)) {
 							System.out.println("err " + b.getId());
 						}
-						Set<FlowEdge> jumps = b.getSuccessors(e -> e instanceof JumpEdge);
+						Set<FlowEdge<BasicBlock>> jumps = b.getSuccessors(e -> e instanceof JumpEdge);
 						if(jumps.size() != 1) {
 							StringBuilder sb = new StringBuilder();
 							GraphUtils.printBlock(cfg, cfg.blocks(), sb, b, 0);
 							System.err.println(sb);
 							throw new IllegalStateException(cfg.getMethod() + " " + b.getId() + " " + Printer.OPCODES[ain.opcode()] + " " + jumps.toString() + " " + b.getSuccessors());
 						}
-						FlowEdge e = jumps.iterator().next();
+						FlowEdge<BasicBlock> e = jumps.iterator().next();
 						LabelNode target = e.dst.getLabel();
 						jin.label = target;
 					} else if(ain instanceof TableSwitchInsnNode) {
 						TableSwitchInsnNode tsin = (TableSwitchInsnNode) ain;
-						Set<FlowEdge> succs = b.getSuccessors(e -> e instanceof SwitchEdge);
+						Set<FlowEdge<BasicBlock>> succs = b.getSuccessors(e -> e instanceof SwitchEdge);
 						
 						int branchCount = 0;
 						boolean setdflt = false;
-						for(FlowEdge e : succs) {
-							SwitchEdge se = (SwitchEdge) e;
+						for(FlowEdge<BasicBlock> e : succs) {
+							SwitchEdge<BasicBlock> se = (SwitchEdge<BasicBlock>) e;
 							if(se instanceof DefaultSwitchEdge) {
 								if(setdflt) {
 									throw new IllegalStateException();
@@ -537,12 +528,12 @@ public class GraphUtils {
 						}
 					} else if(ain instanceof LookupSwitchInsnNode) {
 						LookupSwitchInsnNode lsin = (LookupSwitchInsnNode) ain;
-						Set<FlowEdge> succs = b.getSuccessors(e -> e instanceof SwitchEdge);
+						Set<FlowEdge<BasicBlock>> succs = b.getSuccessors(e -> e instanceof SwitchEdge);
 
 						int branchCount = 0;
 						boolean setdflt = false;
-						for(FlowEdge e : succs) {
-							SwitchEdge se = (SwitchEdge) e;
+						for(FlowEdge<BasicBlock> e : succs) {
+							SwitchEdge<BasicBlock> se = (SwitchEdge<BasicBlock>) e;
 							if(se instanceof DefaultSwitchEdge) {
 								if(setdflt) {
 									throw new IllegalStateException();
@@ -571,7 +562,7 @@ public class GraphUtils {
 		
 		if(rebuildRanges) {
 			cfg.getMethod().tryCatchBlocks.clear();
-			for(ExceptionRange er : cfg.getRanges()) {
+			for(ExceptionRange<BasicBlock> er : cfg.getRanges()) {
 				if(!er.isContiguous()) {
 					System.out.println(er + " not contiguous");
 				} else {
@@ -598,8 +589,8 @@ public class GraphUtils {
 	//		}
 	//	}
 
-	public static FlowEdge findEdge(ControlFlowGraph cfg, BasicBlock s, BasicBlock e) {
-		List<FlowEdge> edges = findCommonEdges(cfg, s, e);
+	public static FlowEdge<BasicBlock> findEdge(ControlFlowGraph cfg, BasicBlock s, BasicBlock e) {
+		List<FlowEdge<BasicBlock>> edges = findCommonEdges(cfg, s, e);
 		if(edges.size() == 1) {
 			return edges.get(0);
 		} else {
@@ -607,16 +598,16 @@ public class GraphUtils {
 		}
 	}
 
-	public static Set<FlowEdge> getEdgesOf(ControlFlowGraph cfg, BasicBlock v) {
+	public static Set<FlowEdge<BasicBlock>> getEdgesOf(ControlFlowGraph cfg, BasicBlock v) {
 		return getEdgesOf(cfg, v, ACCEPT_ALL_EDGES);
 	}
 
-	public static Set<FlowEdge> getEdgesOf(ControlFlowGraph cfg, BasicBlock v, Predicate<FlowEdge> exclusionPredicate) {
-		Set<FlowEdge> e = cfg.getEdges(v);
+	public static Set<FlowEdge<BasicBlock>> getEdgesOf(ControlFlowGraph cfg, BasicBlock v, Predicate<FlowEdge<?>> exclusionPredicate) {
+		Set<FlowEdge<BasicBlock>> e = cfg.getEdges(v);
 		if(e != null) {
-			e = new HashSet<FlowEdge>(e);
+			e = new HashSet<FlowEdge<BasicBlock>>(e);
 		} else {
-			e = new HashSet<FlowEdge>();
+			e = new HashSet<FlowEdge<BasicBlock>>();
 		}
 		e.removeIf(exclusionPredicate);
 		return e;
@@ -650,18 +641,18 @@ public class GraphUtils {
 		order.remove(b);
 		
 		// redirect the incoming edges to the next block
-		Set<FlowEdge> incoming = cfg.getReverseEdges(b);
-		for(FlowEdge e : new ArrayList<>(incoming)) {
-			FlowEdge ce = e.clone(e.src, next);
+		Set<FlowEdge<BasicBlock>> incoming = cfg.getReverseEdges(b);
+		for(FlowEdge<BasicBlock> e : new ArrayList<>(incoming)) {
+			FlowEdge<BasicBlock> ce = e.clone(e.src, next);
 			cfg.removeEdge(e.src, e);
 			cfg.addEdge(e.src, ce);
 		}
 
 		// redirect the outgoing edges to the next block
-		Set<FlowEdge> outgoing = cfg.getEdges(b);		
-		for(FlowEdge e : new ArrayList<>(outgoing)) {
+		Set<FlowEdge<BasicBlock>> outgoing = cfg.getEdges(b);		
+		for(FlowEdge<BasicBlock> e : new ArrayList<>(outgoing)) {
 			if(e.dst != next) {
-				FlowEdge ce = e.clone(next, e.dst);
+				FlowEdge<BasicBlock> ce = e.clone(next, e.dst);
 				cfg.addEdge(next, ce);
 			}
 			
@@ -671,7 +662,7 @@ public class GraphUtils {
 		cfg.removeVertex(b);
 	}
 
-	public static void merge(ControlFlowGraph cfg, List<BasicBlock> order, BasicBlock pred, BasicBlock b, FlowEdge e) {
+	public static void merge(ControlFlowGraph cfg, List<BasicBlock> order, BasicBlock pred, BasicBlock b, FlowEdge<BasicBlock> e) {
 		// first transfer the insns
 		for(AbstractInsnNode ain : b.getInsns()) {
 			pred.addInsn(ain);
@@ -686,10 +677,10 @@ public class GraphUtils {
 
 		// uses the fact that TryCatchEdge has a hashCode and
 		// equals method to avoid duplicate try catch jumps.
-		Set<FlowEdge> succEdges = cfg.getEdges(b);
-		for(FlowEdge se : succEdges) {
+		Set<FlowEdge<BasicBlock>> succEdges = cfg.getEdges(b);
+		for(FlowEdge<BasicBlock> se : succEdges) {
 			// add the edges to pred
-			FlowEdge ce = se.clone(pred, se.dst);
+			FlowEdge<BasicBlock> ce = se.clone(pred, se.dst);
 			cfg.removeEdge(pred, se);
 			cfg.addEdge(pred, ce);
 		}
@@ -704,7 +695,7 @@ public class GraphUtils {
 	
 	public static void naturaliseGraph(ControlFlowGraph cfg, List<BasicBlock> order) {
 		// copy edge sets
-		Map<BasicBlock, Set<FlowEdge>> edges = new HashMap<>();
+		Map<BasicBlock, Set<FlowEdge<BasicBlock>>> edges = new HashMap<>();
 		for(BasicBlock b : order) {
 			edges.put(b, cfg.getEdges(b));
 		}
@@ -720,9 +711,9 @@ public class GraphUtils {
 			cfg.addVertex(b);
 		}
 		
-		for(Entry<BasicBlock, Set<FlowEdge>> e : edges.entrySet()) {
+		for(Entry<BasicBlock, Set<FlowEdge<BasicBlock>>> e : edges.entrySet()) {
 			BasicBlock b = e.getKey();
-			for(FlowEdge fe : e.getValue()) {
+			for(FlowEdge<BasicBlock> fe : e.getValue()) {
 				cfg.addEdge(b, fe);
 			}
 		}

@@ -1,10 +1,10 @@
 package org.rsdeob.stdlib.cfg.edge;
 
-import org.rsdeob.stdlib.cfg.BasicBlock;
+import org.rsdeob.stdlib.collections.graph.FastGraphVertex;
 
-public class ImmediateEdge extends FlowEdge {
+public class ImmediateEdge<N extends FastGraphVertex> extends FlowEdge<N> {
 	
-	public ImmediateEdge(BasicBlock src, BasicBlock dst) {
+	public ImmediateEdge(N src, N dst) {
 		super(src, dst);
 	}
 
@@ -24,7 +24,7 @@ public class ImmediateEdge extends FlowEdge {
 	}
 	
 	@Override
-	public ImmediateEdge clone(BasicBlock src, BasicBlock dst) {
-		return new ImmediateEdge(src, dst);
+	public ImmediateEdge<N> clone(N src, N dst) {
+		return new ImmediateEdge<N>(src, dst);
 	}
 }
