@@ -9,7 +9,7 @@ public class TryCatchEdge extends FlowEdge {
 	private int hashcode;
 	
 	public TryCatchEdge(BasicBlock src, ExceptionRange erange) {
-		super(src, erange.getHandler(), new InverseTryCatchEdge(src, erange.getHandler(), erange));
+		super(src, erange.getHandler());
 		this.erange = erange;
 		recalcHashcode();
 	}
@@ -27,6 +27,11 @@ public class TryCatchEdge extends FlowEdge {
 	@Override
 	public String toString() {
 		return String.format("TryCatch range: %s -> handler: %s (%s)", ExceptionRange.rangetoString(erange.getBlocks()), dst.getId(), erange.getTypes());
+	}
+
+	@Override
+	public String toInverseString() {
+		return String.format("TryCatch handler: %s <- range: %s from %s (%s)", dst.getId(), ExceptionRange.rangetoString(erange.getBlocks()), src.getId(), erange.getTypes());
 	}
 
 	@Override
