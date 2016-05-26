@@ -125,7 +125,8 @@ public class CopyVarStatement extends Statement implements IStackDumpNode {
 
 	@Override
 	public int hashCode() {
-		int result = expression.hashCode();
+		int result = getId().hashCode();
+		result = 31 * result + expression.hashCode();
 		result = 31 * result + variable.hashCode();
 		return result;
 	}
