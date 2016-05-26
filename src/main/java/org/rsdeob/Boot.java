@@ -29,8 +29,6 @@ import org.rsdeob.stdlib.cfg.ControlFlowGraphBuilder;
 import org.rsdeob.stdlib.cfg.ControlFlowGraphDeobfuscator;
 import org.rsdeob.stdlib.cfg.ir.RootStatement;
 import org.rsdeob.stdlib.cfg.ir.StatementGenerator;
-import org.rsdeob.stdlib.cfg.ir.StatementGraph;
-import org.rsdeob.stdlib.cfg.ir.StatementGraphBuilder;
 import org.rsdeob.stdlib.cfg.ir.stat.CopyVarStatement;
 import org.rsdeob.stdlib.cfg.ir.transform.DataFlowAnalyzer;
 import org.rsdeob.stdlib.cfg.ir.transform.DataFlowState;
@@ -114,9 +112,9 @@ public class Boot implements Opcodes {
 //				System.out.println();
 			}
 			
-			StatementGraphBuilder sgraphBuilder = new StatementGraphBuilder(cfg);
-			StatementGraph sgraph = sgraphBuilder.build();
-			System.out.println(sgraph);
+//			__StatementGraphBuilder sgraphBuilder = new __StatementGraphBuilder(cfg);
+//			StatementGraph sgraph = sgraphBuilder.build();
+//			System.out.println(sgraph);
 			
 //			TarjanDominanceComputor<BasicBlock> doms = new TarjanDominanceComputor<>(cfg);
 //			for(BasicBlock b : cfg.blocks()) {

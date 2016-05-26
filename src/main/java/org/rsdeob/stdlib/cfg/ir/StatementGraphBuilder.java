@@ -1,11 +1,8 @@
 package org.rsdeob.stdlib.cfg.ir;
 
-import java.util.BitSet;
 import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.ListIterator;
-import java.util.Map;
 
+import org.objectweb.asm.tree.TryCatchBlockNode;
 import org.rsdeob.stdlib.cfg.BasicBlock;
 import org.rsdeob.stdlib.cfg.ControlFlowGraph;
 import org.rsdeob.stdlib.cfg.edge.ConditionalJumpEdge;
@@ -16,102 +13,69 @@ import org.rsdeob.stdlib.cfg.edge.SwitchEdge;
 import org.rsdeob.stdlib.cfg.edge.TryCatchEdge;
 import org.rsdeob.stdlib.cfg.edge.UnconditionalJumpEdge;
 import org.rsdeob.stdlib.cfg.ir.stat.Statement;
+import org.rsdeob.stdlib.cfg.util.LabelHelper;
 import org.rsdeob.stdlib.collections.graph.flow.ExceptionRange;
 
 public class StatementGraphBuilder {
+	public StatementGraph create(ControlFlowGraph cfg) {
+		HashMap<String, ExceptionRange<Statement>> ranges = new HashMap<>();
 
-	private final ControlFlowGraph cfg;
-	private final StatementGraph sgraph;
-	private final LinkedList<BasicBlock> queue;
-	private final BitSet finished;
-	private final Map<ExceptionRange<BasicBlock>, ExceptionRange<Statement>> rangeMap;
-	
-	public StatementGraphBuilder(ControlFlowGraph cfg) {
-		this.cfg = cfg;
-		sgraph = new StatementGraph();
-		queue = new LinkedList<>();
-		rangeMap = new HashMap<>();
-		finished = new BitSet();
-	}
-	
-	void init() {
-		for(BasicBlock entry : cfg.getEntries()) {
-			queue.add(entry);
-		}
-		
-		// rebuild all ranges
-		for(ExceptionRange<BasicBlock> er : cfg.getRanges()) {
-			ExceptionRange<Statement> statementRange = new ExceptionRange<>(null);
-			statementRange.setHandler(er.getHandler().getStatements().get(0));
+		StatementGraph sg = new StatementGraph();
 
-			for(BasicBlock b : er.get()) {
-				ListIterator<Statement> it = b.getStatements().listIterator();
-				while(it.hasNext()) {
-					statementRange.addVertex(it.next());
+		for (BasicBlock b : cfg.vertices()) {
+			for (Statement stmt : b.getStatements()) {
+				sg.addVertex(stmt);
+			}
+			for (int i = 0; i < b.getStatements().size() - 1; i++) {
+				Statement stmt = b.getStatements().get(i);
+				Statement next = b.getStatements().get(i + 1);
+				sg.addEdge(stmt, new ImmediateEdge<>(stmt, next));
+			}
+			Statement last = b.getStatements().get(b.getStatements().size() - 1);
+			for (FlowEdge<BasicBlock> e : cfg.getEdges(b)) {
+				Statement targetStmt = e.dst.getStatements().get(0);
+				FlowEdge<Statement> edge;
+				switch (e.getClass().getSimpleName()) {
+					case "ConditionalJumpEdge":
+						edge = new ConditionalJumpEdge<>(last, targetStmt, ((ConditionalJumpEdge<BasicBlock>) e).opcode);
+						break;
+					case "UnconditionalJumpEdge":
+						edge = new UnconditionalJumpEdge<>(last, targetStmt, ((UnconditionalJumpEdge<BasicBlock>) e).opcode);
+						break;
+					case "ImmediateEdge":
+						edge = new ImmediateEdge<>(last, targetStmt);
+						break;
+					case "TryCatchEdge":
+						ExceptionRange<BasicBlock> bRange = ((TryCatchEdge<BasicBlock>) e).erange;
+						TryCatchBlockNode tc = bRange.getNode();
+						int start = LabelHelper.numeric(cfg.getBlock(tc.start).getId());
+						int end = LabelHelper.numeric(cfg.getBlock(tc.end).getId()) - 1;
+						BasicBlock handler = cfg.getBlock(tc.handler);
+						String key = String.format("%s:%s:%s", LabelHelper.createBlockName(start), LabelHelper.createBlockName(end), handler.getId());
+						if (!ranges.containsKey(key)) {
+							ExceptionRange<Statement> sRange = new ExceptionRange<>(tc);
+							sRange.setHandler(handler.getStatements().get(0));
+							for (BasicBlock protectedBlock : bRange.get())
+								for (Statement protectedStmt : protectedBlock.getStatements())
+									sRange.addVertex(protectedStmt);
+							ranges.put(key, sRange);
+						}
+						edge = new TryCatchEdge<>(last, ranges.get(key));
+						break;
+					case "SwitchEdge":
+						SwitchEdge<BasicBlock> se = (SwitchEdge<BasicBlock>) e;
+						edge = new SwitchEdge<>(last, targetStmt, se.insn, se.value);
+						break;
+					case "DefaultSwitchEdge":
+						edge = new DefaultSwitchEdge<>(last, targetStmt, ((DefaultSwitchEdge<BasicBlock>) e).insn);
+						break;
+					default:
+						throw new IllegalArgumentException("Illegal edge type " + e.getClass().getSimpleName());
 				}
+				sg.addEdge(last, edge);
 			}
-			
-			statementRange.getTypes().addAll(er.getTypes());
-			statementRange.hashCode(); // calc and store
-			rangeMap.put(er, statementRange);
 		}
-	}
-	
-	void processQueue() {
-		while(!queue.isEmpty()) {
-			process(queue.pop());
-		}
-	}
-	
-	void process(BasicBlock block) {
-		ListIterator<Statement> it = block.getStatements().listIterator();
-		Statement prev = null;
-		while(it.hasNext()) {
-			Statement newStmt = it.next();
-			sgraph.addVertex(newStmt);
-			
-			if(prev != null) {
-				sgraph.addEdge(prev, new ImmediateEdge<Statement>(prev, newStmt));
-			}
-			
-			prev = newStmt;
-		}
-		
-		for(FlowEdge<BasicBlock> succEdge : block.getSuccessors()) {
-			BasicBlock succ = succEdge.dst;
-			queue.add(succ);
-			
-			Statement first = succ.getStatements().get(0);
-			sgraph.addEdge(prev, createEdge(succEdge, prev, first));
-		}
-	}
-	
-	FlowEdge<Statement> createEdge(FlowEdge<BasicBlock> edge, Statement src, Statement dst) {
-		FlowEdge<Statement> newEdge = null;
-		if(edge instanceof ConditionalJumpEdge) {
-			newEdge = new ConditionalJumpEdge<Statement>(src, dst, ((ConditionalJumpEdge<BasicBlock>) edge).opcode);
-		} else if(edge instanceof UnconditionalJumpEdge) {
-			newEdge = new UnconditionalJumpEdge<Statement>(src, dst, ((UnconditionalJumpEdge<BasicBlock>) edge).opcode);
-		} else if(edge instanceof DefaultSwitchEdge) {
-			newEdge = new DefaultSwitchEdge<Statement>(src, dst, ((DefaultSwitchEdge<BasicBlock>) edge).insn);
-		} else if(edge instanceof SwitchEdge) {
-			newEdge = new SwitchEdge<Statement>(src, dst, ((SwitchEdge<BasicBlock>) edge).insn, ((SwitchEdge<BasicBlock>) edge).value);
-		} else if(edge instanceof ImmediateEdge) {
-			newEdge = new ImmediateEdge<Statement>(src, dst);
-		} else if(edge instanceof TryCatchEdge) {
-			newEdge = new TryCatchEdge<Statement>(src, rangeMap.get(((TryCatchEdge<BasicBlock>) edge).erange));
-		} else {
-			throw new UnsupportedOperationException(String.format("%s", edge));
-		}
-		
-		return newEdge;
-	}
-	
-	public StatementGraph build() {
-		if(sgraph.size() == 0) {
-			init();
-			processQueue();
-		}
-		return sgraph;
+
+		return sg;
 	}
 }
