@@ -6,8 +6,8 @@ import java.util.HashSet;
 import org.rsdeob.stdlib.cfg.BasicBlock;
 import org.rsdeob.stdlib.cfg.ControlFlowGraph;
 import org.rsdeob.stdlib.cfg.edge.FlowEdge;
-import org.rsdeob.stdlib.cfg.stat.CopyVarStatement;
-import org.rsdeob.stdlib.cfg.stat.Statement;
+import org.rsdeob.stdlib.cfg.ir.stat.CopyVarStatement;
+import org.rsdeob.stdlib.cfg.ir.stat.Statement;
 import org.rsdeob.stdlib.cfg.statopt.DataFlowState.CopySet;
 
 public class DataFlowAnalyzer {

@@ -14,6 +14,7 @@ import org.rsdeob.stdlib.cfg.edge.TryCatchEdge;
 import org.rsdeob.stdlib.cfg.edge.UnconditionalJumpEdge;
 //import org.rsdeob.stdlib.cfg.util.
 import org.rsdeob.stdlib.cfg.util.GraphUtils;
+import org.rsdeob.stdlib.collections.graph.flow.ExceptionRange;
 
 public class ControlFlowGraphDeobfuscator {
 	

@@ -2,7 +2,7 @@ package org.rsdeob.stdlib.cfg.statopt;
 
 import org.rsdeob.stdlib.cfg.BasicBlock;
 import org.rsdeob.stdlib.cfg.ControlFlowGraph;
-import org.rsdeob.stdlib.cfg.RootStatement;
+import org.rsdeob.stdlib.cfg.ir.RootStatement;
 
 import java.util.HashMap;
 

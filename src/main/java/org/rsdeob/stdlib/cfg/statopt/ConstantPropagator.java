@@ -4,7 +4,7 @@ import java.util.HashMap;
 
 import org.rsdeob.stdlib.cfg.BasicBlock;
 import org.rsdeob.stdlib.cfg.ControlFlowGraph;
-import org.rsdeob.stdlib.cfg.RootStatement;
+import org.rsdeob.stdlib.cfg.ir.RootStatement;
 
 public class ConstantPropagator {
 	private final ControlFlowGraph cfg;
