@@ -9,8 +9,8 @@ import org.objectweb.asm.tree.MethodNode;
 import org.rsdeob.stdlib.IContext;
 import org.rsdeob.stdlib.cfg.BasicBlock;
 import org.rsdeob.stdlib.cfg.ControlFlowGraph;
-import org.rsdeob.stdlib.cfg.ExceptionRange;
 import org.rsdeob.stdlib.cfg.util.GraphUtils;
+import org.rsdeob.stdlib.collections.graph.flow.ExceptionRange;
 import org.rsdeob.stdlib.deob.IPhase;
 
 public class RTECatchBlockRemoverPhase implements IPhase, Opcodes {
@@ -34,7 +34,7 @@ public class RTECatchBlockRemoverPhase implements IPhase, Opcodes {
 				
 				ControlFlowGraph cfg = cxt.createControlFlowGraph(m);				
 				boolean change = false;
-				for(ExceptionRange r : cfg.getRanges()) {
+				for(ExceptionRange<BasicBlock> r : cfg.getRanges()) {
 					if(r.getTypes().contains(RUNTIME_EXCEPTION_TYPE)) {
 						// new java/lang/StringBuilder
 						// dup
@@ -61,7 +61,7 @@ public class RTECatchBlockRemoverPhase implements IPhase, Opcodes {
 				}
 				
 				if(change) {
-					m.instructions = GraphUtils.recreate(cfg, new ArrayList<>(cfg.blocks()), false);
+					m.instructions = GraphUtils.recreate(cfg, new ArrayList<>(cfg.vertices()), false);
 				}
 			}
 		}
