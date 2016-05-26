@@ -43,7 +43,7 @@ public class ControlFlowGraphBuilder {
 		checkLabel();
 		LabelNode firstLabel = (LabelNode) insns.getFirst();
 		BasicBlock entry = makeBlock(++count, firstLabel);
-		graph.setEntry(entry);
+		graph.getEntries().add(entry);
 		queue.add(firstLabel);
 		
 		for(TryCatchBlockNode tc : method.tryCatchBlocks) {
@@ -198,7 +198,7 @@ public class ControlFlowGraphBuilder {
 			process(label);
 		}
 		
-		List<BasicBlock> blocks = new ArrayList<>(graph.blocks());
+		List<BasicBlock> blocks = new ArrayList<>(graph.vertices());
 		Collections.sort(blocks, new Comparator<BasicBlock>() {
 			@Override
 			public int compare(BasicBlock o1, BasicBlock o2) {

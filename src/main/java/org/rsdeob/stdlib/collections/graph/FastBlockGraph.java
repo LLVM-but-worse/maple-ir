@@ -2,13 +2,12 @@ package org.rsdeob.stdlib.collections.graph;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
 
 import org.objectweb.asm.tree.LabelNode;
 import org.rsdeob.stdlib.cfg.BasicBlock;
 import org.rsdeob.stdlib.cfg.edge.FlowEdge;
 
-public abstract class FastBlockGraph extends FastGraph<BasicBlock, FlowEdge<BasicBlock>> {
+public abstract class FastBlockGraph extends FlowGraph<BasicBlock, FlowEdge<BasicBlock>> {
 
 	private final Map<LabelNode, BasicBlock> blockLabels;
 	private final Map<String, BasicBlock> blockIds;
@@ -24,10 +23,6 @@ public abstract class FastBlockGraph extends FastGraph<BasicBlock, FlowEdge<Basi
 	
 	public BasicBlock getBlock(String id) {
 		return blockIds.get(id);
-	}
-	
-	public Set<BasicBlock> blocks() {
-		return vertices();
 	}
 	
 	@Override

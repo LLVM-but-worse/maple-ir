@@ -6,7 +6,7 @@ import java.util.List;
 
 public interface Sorter<N extends FastGraphVertex> {
 
-	default List<N> sort(FastGraph<N, ?> graph) {
+	default List<N> sort(FlowGraph<N, ?> graph) {
 		List<N> list = new ArrayList<>();
 		Iterator<N> it = iterator(graph);
 		while(it.hasNext()) {
@@ -15,5 +15,5 @@ public interface Sorter<N extends FastGraphVertex> {
 		return list;
 	}
 	
-	Iterator<N> iterator(FastGraph<N, ?> graph);
+	Iterator<N> iterator(FlowGraph<N, ?> graph);
 }

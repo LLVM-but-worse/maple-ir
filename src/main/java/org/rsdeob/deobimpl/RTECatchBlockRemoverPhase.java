@@ -61,7 +61,7 @@ public class RTECatchBlockRemoverPhase implements IPhase, Opcodes {
 				}
 				
 				if(change) {
-					m.instructions = GraphUtils.recreate(cfg, new ArrayList<>(cfg.blocks()), false);
+					m.instructions = GraphUtils.recreate(cfg, new ArrayList<>(cfg.vertices()), false);
 				}
 			}
 		}

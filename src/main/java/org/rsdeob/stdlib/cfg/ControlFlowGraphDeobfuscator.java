@@ -61,7 +61,7 @@ public class ControlFlowGraphDeobfuscator {
 			boolean change = false;
 			
 			for(BasicBlock b : new ArrayList<>(blocks)) {
-				if(b.getPredecessors().size() == 0 && b != cfg.getEntry()) {
+				if(b.getPredecessors().size() == 0 && !cfg.getEntries().contains(b)) {
 					cfg.removeVertex(b);
 					blocks.remove(b);
 					change = true;
@@ -312,8 +312,10 @@ public class ControlFlowGraphDeobfuscator {
 		List<BasicBlock> visited = new ArrayList<>();
 		Stack<BasicBlock> stack = new Stack<>();
 		
-		stack.push(cfg.getEntry());
-		visited.add(cfg.getEntry());
+		for(BasicBlock entry : cfg.getEntries()) {
+			stack.push(entry);
+			visited.add(entry);
+		}
 		
 		while(!stack.isEmpty()) {
 			BasicBlock b = stack.pop();
@@ -483,7 +485,10 @@ public class ControlFlowGraphDeobfuscator {
 	}
 
 	public SuperNodeList findSuperNodes(ControlFlowGraph graph) {
-		return findSuperNodes(new ArrayList<>(graph.blocks()), graph.getEntry());
+		if(graph.getEntries().size() != 1) {
+			throw new IllegalStateException();
+		}
+		return findSuperNodes(new ArrayList<>(graph.vertices()), graph.getEntries().iterator().next());
 	}
 
 	public class SCCFinder {
@@ -506,7 +511,7 @@ public class ControlFlowGraphDeobfuscator {
 			index.clear();
 			stack.clear();
 			components.clear();
-			size = graph.blocks().size();
+			size = graph.vertices().size();
 
 			list = findSuperNodes(graph);
 
