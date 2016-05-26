@@ -1,4 +1,4 @@
-package org.rsdeob.stdlib.cfg.util;
+package org.rsdeob.stdlib.collections;
 
 import org.rsdeob.stdlib.cfg.ir.expr.Expression;
 
