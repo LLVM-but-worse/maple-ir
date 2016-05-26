@@ -465,7 +465,7 @@ public class GraphUtils {
 			}
 
 			for(FlowEdge p : cfg.getReverseEdges(b)) {
-				sb.append("         <- ").append(p.getInverse().toString()).append('\n');
+				sb.append("         <- ").append(p.toInverseString()).append('\n');
 			}
 		}
 	}

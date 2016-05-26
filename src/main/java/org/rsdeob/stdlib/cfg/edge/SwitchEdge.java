@@ -9,13 +9,7 @@ public class SwitchEdge extends FlowEdge {
 	public final int value;
 	
 	public SwitchEdge(BasicBlock src, BasicBlock dst, AbstractInsnNode insn, int value) {
-		super(src, dst, new InverseSwitchEdge(dst, src, value));
-		this.insn = insn;
-		this.value = value;
-	}
-	
-	public SwitchEdge(BasicBlock src, BasicBlock dst, InverseFlowEdge inverse, AbstractInsnNode insn, int value) {
-		super(src, dst, inverse);
+		super(src, dst);
 		this.insn = insn;
 		this.value = value;
 	}
@@ -26,8 +20,13 @@ public class SwitchEdge extends FlowEdge {
 	}
 	
 	@Override
-	public String toString() {
+	public String toString() {		
 		return String.format("Switch[%d] #%s -> #%s", value, src.getId(), dst.getId());
+	}
+
+	@Override
+	public String toInverseString() {
+		return String.format("Switch[%d] #%s <- #%s", value, dst.getId(), src.getId());
 	}
 
 	@Override
