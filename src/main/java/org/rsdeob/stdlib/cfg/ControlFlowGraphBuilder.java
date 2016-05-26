@@ -3,24 +3,15 @@ package org.rsdeob.stdlib.cfg;
 import static org.objectweb.asm.Opcodes.*;
 import static org.objectweb.asm.tree.AbstractInsnNode.*;
 
-import java.util.ArrayList;
-import java.util.BitSet;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.ListIterator;
-import java.util.Map;
+import java.util.*;
 
-import org.objectweb.asm.tree.AbstractInsnNode;
-import org.objectweb.asm.tree.InsnList;
-import org.objectweb.asm.tree.JumpInsnNode;
-import org.objectweb.asm.tree.LabelNode;
-import org.objectweb.asm.tree.LookupSwitchInsnNode;
-import org.objectweb.asm.tree.MethodNode;
-import org.objectweb.asm.tree.TableSwitchInsnNode;
-import org.objectweb.asm.tree.TryCatchBlockNode;
+import org.objectweb.asm.tree.*;
+import org.rsdeob.stdlib.cfg.edge.ConditionalJumpEdge;
+import org.rsdeob.stdlib.cfg.edge.DefaultSwitchEdge;
+import org.rsdeob.stdlib.cfg.edge.ImmediateEdge;
+import org.rsdeob.stdlib.cfg.edge.SwitchEdge;
+import org.rsdeob.stdlib.cfg.edge.TryCatchEdge;
+import org.rsdeob.stdlib.cfg.edge.UnconditionalJumpEdge;
 import org.rsdeob.stdlib.cfg.util.GraphUtils;
 import org.rsdeob.stdlib.cfg.util.LabelHelper;
 
@@ -102,7 +93,7 @@ public class ControlFlowGraphBuilder {
 			ListIterator<BasicBlock> lit = range.listIterator();
 			while(lit.hasNext()) {
 				BasicBlock block = lit.next();
-				graph.addEdge(block, new FlowEdge.TryCatchEdge(block, erange));
+				graph.addEdge(block, new TryCatchEdge(block, erange));
 			}
 		}
 	}
@@ -150,7 +141,7 @@ public class ControlFlowGraphBuilder {
 			if(type == LABEL) {
 				// split into new block
 				BasicBlock immediate = resolveTarget((LabelNode) ain, insns);
-				graph.addEdge(block, new FlowEdge.ImmediateEdge(block, immediate));
+				graph.addEdge(block, new ImmediateEdge(block, immediate));
 				break;
 			} else  if(type == JUMP_INSN) {
 				JumpInsnNode jin = (JumpInsnNode) ain;
@@ -159,9 +150,9 @@ public class ControlFlowGraphBuilder {
 				if(jin.opcode() == JSR) {
 					throw new UnsupportedOperationException("jsr " + method);
 				} else if(jin.opcode() == GOTO) {
-					graph.addEdge(block, new FlowEdge.UnconditionalJumpEdge(block, target, jin));
+					graph.addEdge(block, new UnconditionalJumpEdge(block, target, jin));
 				} else {
-					graph.addEdge(block, new FlowEdge.ConditionalJumpEdge(block, target, jin));
+					graph.addEdge(block, new ConditionalJumpEdge(block, target, jin));
 					int nextIndex = codeIndex + 1;
 					AbstractInsnNode nextInsn = insns.get(nextIndex);
 					if(!(nextInsn instanceof LabelNode)) {
@@ -172,7 +163,7 @@ public class ControlFlowGraphBuilder {
 					
 					// create immediate successor reference if it's not already done
 					BasicBlock immediate = resolveTarget((LabelNode) nextInsn, insns);
-					graph.addEdge(block, new FlowEdge.ImmediateEdge(block, immediate));
+					graph.addEdge(block, new ImmediateEdge(block, immediate));
 				}
 				break;
 			} else if(type == LOOKUPSWITCH_INSN) {
@@ -180,20 +171,20 @@ public class ControlFlowGraphBuilder {
 				
 				for(int i=0; i < lsin.keys.size(); i++) {
 					BasicBlock target = resolveTarget(lsin.labels.get(i), insns);
-					graph.addEdge(block, new FlowEdge.SwitchEdge(block, target, lsin, lsin.keys.get(i)));
+					graph.addEdge(block, new SwitchEdge(block, target, lsin, lsin.keys.get(i)));
 				}
 				
 				BasicBlock dflt = resolveTarget(lsin.dflt, insns);
-				graph.addEdge(block, new FlowEdge.DefaultSwitchEdge(block, dflt, lsin));
+				graph.addEdge(block, new DefaultSwitchEdge(block, dflt, lsin));
 				break;
 			} else if(type == TABLESWITCH_INSN) {
 				TableSwitchInsnNode tsin = (TableSwitchInsnNode) ain;
 				for(int i=tsin.min; i <= tsin.max; i++) {
 					BasicBlock target = resolveTarget(tsin.labels.get(i - tsin.min), insns);
-					graph.addEdge(block, new FlowEdge.SwitchEdge(block, target, tsin, i));
+					graph.addEdge(block, new SwitchEdge(block, target, tsin, i));
 				}
 				BasicBlock dflt = resolveTarget(tsin.dflt, insns);
-				graph.addEdge(block, new FlowEdge.DefaultSwitchEdge(block, dflt, tsin));
+				graph.addEdge(block, new DefaultSwitchEdge(block, dflt, tsin));
 				break;
 			} else if(GraphUtils.isExitOpcode(ain.opcode())) {
 				break;
