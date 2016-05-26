@@ -19,7 +19,7 @@ public abstract class FastGraph<N extends FastGraphVertex, E extends FastGraphEd
 		reverseMap = new LinkedHashMap<>();
 	}
 	
-	public abstract N getEntry();
+//	public abstract N getEntry();
 	
 	public void clear() {
 		map.clear();

@@ -125,9 +125,4 @@ public class CallGraph extends FastGraph<MethodNode, Invocation> {
 	public static interface CallgraphAdapter {
 		boolean shouldMap(CallGraph graph, MethodNode m);
 	}
-
-	@Override
-	public MethodNode getEntry() {
-		return null;
-	}
 }
