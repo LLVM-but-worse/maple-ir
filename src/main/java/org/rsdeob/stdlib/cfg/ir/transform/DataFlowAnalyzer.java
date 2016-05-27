@@ -3,9 +3,11 @@ package org.rsdeob.stdlib.cfg.ir.transform;
 import java.util.HashMap;
 import java.util.HashSet;
 
+import org.objectweb.asm.Type;
 import org.rsdeob.stdlib.cfg.BasicBlock;
 import org.rsdeob.stdlib.cfg.ControlFlowGraph;
 import org.rsdeob.stdlib.cfg.edge.FlowEdge;
+import org.rsdeob.stdlib.cfg.ir.expr.VarExpression;
 import org.rsdeob.stdlib.cfg.ir.stat.CopyVarStatement;
 import org.rsdeob.stdlib.cfg.ir.stat.Statement;
 import org.rsdeob.stdlib.cfg.ir.transform.DataFlowState.CopySet;
@@ -48,7 +50,7 @@ public class DataFlowAnalyzer {
 					continue;
 				if (state.kill.contains(copy))
 					continue;
-				state.out.put(copy.getVariable(), copy);
+				state.out.put(copy.getVariable().toString(), copy);
 			}
 			dataFlow.put(b, state);
 		}
@@ -72,9 +74,9 @@ public class DataFlowAnalyzer {
 				// OUT[b] = GEN[b] UNION (IN[b] - KILL[b])
 				for (CopyVarStatement copy : state.in.values())
 					if (!state.kill.contains(copy))
-						state.out.put(copy.getVariable(), copy);
+						state.out.put(copy.getVariable().toString(), copy);
 				for (CopyVarStatement copy : state.gen)
-					state.out.put(copy.getVariable(), copy);
+					state.out.put(copy.getVariable().toString(), copy);
 
 				dataFlow.put(b, state);
 				if (!state.out.equals(oldOut))
@@ -88,7 +90,24 @@ public class DataFlowAnalyzer {
 	private DataFlowState computeFirstBlock(BasicBlock entry) {
 		DataFlowState state = compute(entry);
 		for (CopyVarStatement copy : state.gen)
-			state.out.put(copy.getVariable(), copy);
+			state.out.put(copy.getVariable().toString(), copy);
+		
+		// initialise vars to themselves
+		Type[] args = Type.getArgumentTypes(cfg.getMethod().desc);
+		int index = 0;
+		for(int i=0; i < args.length; i++) {
+			Type type = args[0];
+			String name = "l" + index;
+			CopyVarStatement stmt = new CopyVarStatement(new VarExpression(index, type), new VarExpression(index, type));
+			if(!state.out.containsKey(name)) {
+				state.out.put(name, stmt);
+			}
+			// in the in by default
+			state.in.put(name, stmt);
+			
+			index += type.getSize();
+		}
+		
 		return state;
 	}
 
@@ -103,7 +122,7 @@ public class DataFlowAnalyzer {
 			if (!(stmt instanceof CopyVarStatement))
 				continue;
 			CopyVarStatement newCopy = (CopyVarStatement) stmt;
-			gen.put(newCopy.getVariable(), newCopy);
+			gen.put(newCopy.getVariable().toString(), newCopy);
 		}
 
 		return new HashSet<>(gen.values());
@@ -122,7 +141,7 @@ public class DataFlowAnalyzer {
 				CopyVarStatement newCopy = (CopyVarStatement) stmt;
 
 				// Add all existing statements that would be overwritten by this
-				if (copy.getVariable().equals(newCopy.getVariable())) { // check lhs
+				if (copy.getVariable().toString().equals(newCopy.getVariable().toString())) { // check lhs
 					kill.add(copy);
 					break;
 				}
