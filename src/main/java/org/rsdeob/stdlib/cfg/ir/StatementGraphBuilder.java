@@ -21,6 +21,10 @@ public class StatementGraphBuilder {
 		HashMap<String, ExceptionRange<Statement>> ranges = new HashMap<>();
 
 		StatementGraph sg = new StatementGraph();
+		
+		for(BasicBlock b : cfg.getEntries()) {
+			sg.getEntries().add(b.getStatements().get(0));
+		}
 
 		for (BasicBlock b : cfg.vertices()) {
 			for (Statement stmt : b.getStatements()) {
