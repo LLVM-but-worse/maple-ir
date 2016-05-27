@@ -1,23 +1,17 @@
 package org.rsdeob.stdlib.cfg.ir;
 
-import java.util.HashMap;
-
 import org.objectweb.asm.tree.TryCatchBlockNode;
 import org.rsdeob.stdlib.cfg.BasicBlock;
 import org.rsdeob.stdlib.cfg.ControlFlowGraph;
-import org.rsdeob.stdlib.cfg.edge.ConditionalJumpEdge;
-import org.rsdeob.stdlib.cfg.edge.DefaultSwitchEdge;
-import org.rsdeob.stdlib.cfg.edge.FlowEdge;
-import org.rsdeob.stdlib.cfg.edge.ImmediateEdge;
-import org.rsdeob.stdlib.cfg.edge.SwitchEdge;
-import org.rsdeob.stdlib.cfg.edge.TryCatchEdge;
-import org.rsdeob.stdlib.cfg.edge.UnconditionalJumpEdge;
+import org.rsdeob.stdlib.cfg.edge.*;
 import org.rsdeob.stdlib.cfg.ir.stat.Statement;
 import org.rsdeob.stdlib.cfg.util.LabelHelper;
 import org.rsdeob.stdlib.collections.graph.flow.ExceptionRange;
 
+import java.util.HashMap;
+
 public class StatementGraphBuilder {
-	public StatementGraph create(ControlFlowGraph cfg) {
+	public static StatementGraph create(ControlFlowGraph cfg) {
 		HashMap<String, ExceptionRange<Statement>> ranges = new HashMap<>();
 
 		StatementGraph sg = new StatementGraph();
