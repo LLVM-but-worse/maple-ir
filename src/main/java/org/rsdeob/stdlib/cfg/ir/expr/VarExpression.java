@@ -112,8 +112,7 @@ public class VarExpression extends Expression {
 
 	@Override
 	public int hashCode() {
-		int result = getId().hashCode();
-		result = 31 * result + index;
+		int result = index;
 		result = 31 * result + (stackVariable ? 1 : 0);
 		return result;
 	}
