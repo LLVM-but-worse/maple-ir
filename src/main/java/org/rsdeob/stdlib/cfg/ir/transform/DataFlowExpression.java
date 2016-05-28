@@ -67,4 +67,18 @@ public class DataFlowExpression extends Expression {
 	public Type getType() {
 		throw new UnsupportedOperationException("Top/Bottom has no type");
 	}
+
+	@Override
+	public boolean equals(Object o) {
+		return this == o;
+	}
+
+	@Override
+	public int hashCode() {
+		if (this == TOP_EXPR)
+			return -1;
+		if (this == BOTTOM_EXPR)
+			return -2;
+		throw new IllegalStateException("Invalid DataFlowExpression with id " + getId());
+	}
 }
