@@ -1,177 +1,247 @@
 package org.rsdeob.stdlib.cfg.ir.transform;
 
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.ListIterator;
+import java.util.LinkedList;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
+import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.MethodNode;
+import org.rsdeob.stdlib.cfg.edge.ConditionalJumpEdge;
+import org.rsdeob.stdlib.cfg.edge.FlowEdge;
+import org.rsdeob.stdlib.cfg.edge.ImmediateEdge;
 import org.rsdeob.stdlib.cfg.ir.StatementGraph;
+import org.rsdeob.stdlib.cfg.ir.expr.Expression;
 import org.rsdeob.stdlib.cfg.ir.expr.VarExpression;
+import org.rsdeob.stdlib.cfg.ir.stat.ConditionalJumpStatement;
+import org.rsdeob.stdlib.cfg.ir.stat.ConditionalJumpStatement.ComparisonType;
 import org.rsdeob.stdlib.cfg.ir.stat.CopyVarStatement;
 import org.rsdeob.stdlib.cfg.ir.stat.Statement;
+import org.rsdeob.stdlib.collections.NullPermeableHashMap;
+import org.rsdeob.stdlib.collections.SetCreator;
 
 public class BiblPropagator {
 
 	private final StatementGraph sgraph;
-	private final Set<CopyVarStatement> copies;
-	private final Map<Statement, Set<CopyVarStatement>> gen;
-	private final Map<Statement, Set<CopyVarStatement>> kill;
-	private final Map<Statement, Set<Statement>> in;
-	private final Map<Statement, Set<Statement>> out;
+	private final Map<Statement, NullPermeableHashMap<String, Set<CopyVarStatement>>> in;
+	private final Map<Statement, NullPermeableHashMap<String, Set<CopyVarStatement>>> out;
+	// Entry<Statement, Calling predecessor>
+	private final LinkedList<WorkListEntry> queue;
 	
 	public BiblPropagator(StatementGraph sgraph, MethodNode m) {
 		this.sgraph = sgraph;
 		in = new HashMap<>();
 		out = new HashMap<>();
-		gen = new HashMap<>();
-		kill = new HashMap<>();
-		copies = new HashSet<>();
+		queue = new LinkedList<>();
 		
-		init();
-		calcInitial(Type.getArgumentTypes(m.desc));
-		calc();
+		populateTable();
+		defineInputs(m);
+		process();
 	}
 	
-	public Set<Statement> in(Statement stmt) {
+	public Map<String, Set<CopyVarStatement>> in(Statement stmt) {
 		return in.get(stmt);
 	}
 	
-	public Set<Statement> out(Statement stmt) {
+	public Map<String, Set<CopyVarStatement>> out(Statement stmt) {
 		return out.get(stmt);
 	}
-	
-	void calc() {
-		while(true) {
-			boolean change = false;
+
+	private void process() {
+		while(!queue.isEmpty()) {
+			WorkListEntry e = queue.pop();
+			Statement stmt = e.stmt;
 			
-			for(Statement stmt : sgraph.vertices()) {
-				Set<Statement> oldIn = in.get(stmt);
-				Set<Statement> oldOut = out.get(stmt);
-				
-				Set<Statement> inSet = calcIn(stmt);
-				Set<Statement> outSet = calcOut(stmt, inSet);
-				
-				if(!oldIn.equals(inSet) || !oldOut.equals(outSet)) {
-					in.put(stmt, inSet);
-					out.put(stmt, outSet);
-					change = true;
-				}
-			}
+			// first merge the state from the pred out into
+			// the statement in
+			NullPermeableHashMap<String, Set<CopyVarStatement>> oldStmtIn = in.get(stmt);
+			NullPermeableHashMap<String, Set<CopyVarStatement>> newStmtIn = new NullPermeableHashMap<>(oldStmtIn);
+			propagate(e, newStmtIn);
+			execute(stmt, newStmtIn);
 			
-			if(!change) {
-				break;
-			}
+			in.put(stmt, newStmtIn);
 		}
 	}
 	
-	void calcInitial(Type[] args) {
-		// in set for the method. this can also be
-		// thought of as the inputs to the method
-		Set<Statement> methodIn = new HashSet<>();
+	private void propagate(WorkListEntry e, NullPermeableHashMap<String, Set<CopyVarStatement>> stmtIn) {
+		Statement stmt = e.stmt;
+		Statement pred = e.edge.src;
+		
+		System.out.println("stmt,pred:  " + stmt + "   " + pred);
+		if(e.edge instanceof ImmediateEdge) {
+			NullPermeableHashMap<String, Set<CopyVarStatement>> predOut = out.get(pred);
+			for(Entry<String, Set<CopyVarStatement>> entry : predOut.entrySet()) {
+				stmtIn.getNonNull(entry.getKey()).addAll(entry.getValue());
+			}
+		}
+		
+		if(pred instanceof ConditionalJumpStatement) {
+			// the false jump edge is an immediate.
+			boolean isTrueBranch = (e.edge instanceof ConditionalJumpEdge);
+			ConditionalJumpStatement jump = (ConditionalJumpStatement) pred;
+			Expression left = jump.getLeft();
+			Expression right = jump.getRight();
+			boolean isLeftVar = (left instanceof VarExpression);
+			boolean isRightVar = (right instanceof VarExpression);
+			// FIXME: what do we do if its a (varx == vary)
+			if(isLeftVar && isRightVar) {
+				return;
+			} else if (!isLeftVar && !isRightVar) {
+				return; // isn't a var check
+			}
+			
+			VarExpression var = null;
+			Expression other = null;
+			if(isLeftVar) {
+				var = (VarExpression) left;
+				other = right;
+			} else {
+				// isRightVar must be true here
+				var = (VarExpression) right;
+				other = left;
+			}
+			
+			String name = createVariableName(var);
+			ComparisonType op = jump.getType();
+			if(op == ComparisonType.EQ && isTrueBranch) {
+				// A: if(x == 5) GOTO C
+				// B:
+				// C:     x must be 5 here (jump)
+				stmtIn.getNonNull(name).add(new CopyVarStatement(var, other));
+			} else if(op == ComparisonType.NE && !isTrueBranch) {
+				// A: if(x != 5) GOTO C
+				// B:     x must be 5 here (immediate)
+				// C:
+				stmtIn.getNonNull(name).add(new CopyVarStatement(var, other));
+			}
+			// TODO: represent >, <, >=, <= sets
+		}
+	}
+	
+	/* Calculates the variable state information after a statement
+	 * is 'executed'. i.e. propagate the supplied in data to
+	 * the same statements out data set. */
+	private void execute(Statement stmt, NullPermeableHashMap<String, Set<CopyVarStatement>> inMap) {
+		NullPermeableHashMap<String, Set<CopyVarStatement>> newOut = new NullPermeableHashMap<>(new SetCreator<>());
+		for(Entry<String, Set<CopyVarStatement>> e : inMap.entrySet()) {
+			newOut.getNonNull(e.getKey()).addAll(e.getValue());
+		}
+		
+		if(stmt instanceof CopyVarStatement) {
+			CopyVarStatement copy = (CopyVarStatement) stmt;
+			String name = createVariableName(copy);			
+			Set<CopyVarStatement> set = newOut.getNonNull(name);
+			// the new expression overwrites the old definition, so
+			// we remove all previous variable data in the set.
+			set.clear();
+			set.add(copy);
+		}
+		
+		out.put(stmt, newOut);
+		
+		for(FlowEdge<Statement> fe : sgraph.getEdges(stmt)) {
+			Statement succ = fe.dst;
+			// WLEntry is considered from the perspective of
+			//   the process queue:
+			//       The stmt of the WLEntry is the next one, 
+			//        i.e. succ of this
+			//       The pred of the WLEntry is this statement
+			queue.add(new WorkListEntry(succ, fe));
+		}
+	}
+	
+	/* private boolean equals(NullPermeableHashMap<String, Set<CopyVarStatement>> map1, NullPermeableHashMap<String, Set<CopyVarStatement>> map2) {
+		if(map1.size() != map2.size()) {
+			return false;
+		}
+		
+		Set<String> vars = new HashSet<>();
+		vars.addAll(map1.keySet());
+		vars.addAll(map2.keySet());
+		
+		for(String var : vars) {
+			boolean contains1 = map1.containsKey(var);
+			boolean contains2 = map2.containsKey(var);
+			
+			if(!contains1 && !contains2) {
+				// ignore it since it is not
+				// present in either set.
+			} else if(contains1 && contains2) {
+				// check match
+				Set<CopyVarStatement> set1 = map1.get(var);
+				Set<CopyVarStatement> set2 = map2.get(var);
+				
+				if(!set1.equals(set2)) {
+					return false;
+				}
+			} else {
+				// here either contains1 or
+				// contains2 is false but not
+				// both.
+				return false;
+			}
+		}
+		
+		return true;
+	} */
+	
+	private void populateTable() {
+		for(Statement stmt : sgraph.vertices()) {
+			in.put(stmt, new NullPermeableHashMap<>(new SetCreator<>()));
+			out.put(stmt, new NullPermeableHashMap<>(new SetCreator<>()));
+		}
+	}
+	
+	private void defineInputs(MethodNode m) {
+		// build the entry in sets
+		Type[] args = Type.getArgumentTypes(m.desc);
 		int index = 0;
+		if((m.access & Opcodes.ACC_STATIC) == 0) {
+			addEntry(index, Type.getType(m.owner.name));
+			index++;
+		}
+	
 		for(int i=0; i < args.length; i++) {
 			Type arg = args[i];
-			// create a copy statement where
-			//   x := x;
-			// as a dummy statement to act as
-			// an input.
-			VarExpression var = new VarExpression(index, arg);
-			VarExpression expr = new VarExpression(index, arg);
-			CopyVarStatement copyStmt = new CopyVarStatement(var, expr);
-			methodIn.add(copyStmt);
+			addEntry(index, arg);
 			index += arg.getSize();
 		}
 		
-		Set<Statement> entries = sgraph.getEntries();
-		System.out.println("ntries: " + entries);
-		System.out.println("min: " + methodIn);
-		for(Statement stmt : sgraph.vertices()) {
-			if(entries.contains(stmt)) {
-				// build the out sets for the entry nodes, here
-				// we have the methodIn statements as
-				// the predecessors to the entries.
-				Set<Statement> outSet = calcOut(stmt, methodIn);
-				out.put(stmt, outSet);
-			} else {
-				// otherwise the initial out set is empty.
-				out.put(stmt, new HashSet<>());
-			}
-			in.put(stmt, new HashSet<>());
+		// propagate entries
+		for(Statement entry : sgraph.getEntries()) {
+			execute(entry, in.get(entry));
 		}
 	}
 	
-	Set<Statement> calcIn(Statement stmt) {
-		List<Statement> preds = stmt.getPredecessors();
-		Set<Statement> outSet = new HashSet<>();
-		ListIterator<Statement> lit = preds.listIterator();
-		while(lit.hasNext()) {
-			Statement pred = lit.next();
-			outSet.addAll(out.get(pred));
-		}
-		return outSet;
-	}
-	
-	Set<Statement> calcOut(Statement stmt, Set<Statement> in) {
-		Set<Statement> res = new HashSet<>(in);
-		res.removeAll(kill.get(stmt));
-		res.addAll(gen.get(stmt));
-		return res;
-	}
-	
-	void init() {
-		// calc copies and gen in 1 pass, then kill in another
-		for(Statement stmt : sgraph.vertices()) {
-			Set<CopyVarStatement> _gen = new HashSet<>();
-			if(stmt instanceof CopyVarStatement) {
-				CopyVarStatement copyStmt = (CopyVarStatement) stmt;
-				copies.add(copyStmt);
-				_gen.add(copyStmt);
-			}
-			gen.put(stmt, _gen);
-		}
-		
-		for(Statement stmt : sgraph.vertices()) {
-			Set<CopyVarStatement> _kill = new HashSet<>(copies);
-			_kill.remove(gen.get(stmt));
-			kill.put(stmt, _kill);
+	private void addEntry(int index, Type type) {
+		CopyVarStatement stmt = selfDefine(new VarExpression(index, type));
+		String name = createVariableName(stmt);
+		for(Statement entry : sgraph.getEntries()) {
+			in.get(entry).getNonNull(name).add(stmt);
 		}
 	}
 	
-	private void calcEntry() {
-		// first in
+	private String createVariableName(CopyVarStatement stmt) {
+		VarExpression var = stmt.getVariable();
+		return (var.isStackVariable() ? "s" : "l") + "var" + var.getIndex();
 	}
 	
-	CopyVarStatement calcGen(Statement stmt) {
-		if(stmt instanceof CopyVarStatement) {
-			return (CopyVarStatement) stmt;
-		} else {
-			return null;
+	private String createVariableName(VarExpression var) {
+		return (var.isStackVariable() ? "s" : "l") + "var" + var.getIndex();
+	}
+	
+	private CopyVarStatement selfDefine(VarExpression var) {
+		return new CopyVarStatement(var, var);
+	}
+	
+	private static class WorkListEntry {
+		private final Statement stmt;
+		private final FlowEdge<Statement> edge;
+		public WorkListEntry(Statement stmt, FlowEdge<Statement> edge) {
+			this.stmt = stmt;
+			this.edge = edge;
 		}
 	}
-	
-	void calcKill(Statement stmt) {
-		
-	}
-	
-//	public static abstract class Value {
-//	}
-//	
-//	public static class LocalValue extends Value {
-//		private final String var;
-//		public LocalValue(String var) {
-//			this.var = var;
-//		}
-//		@Override
-//		public String toString() {
-//			return var;
-//		}
-//		@Override
-//		public int hashCode() {
-//			return var.hashCode();
-//		}
-//	}
 }
