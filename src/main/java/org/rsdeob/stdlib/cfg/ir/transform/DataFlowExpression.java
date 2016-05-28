@@ -16,18 +16,18 @@ public class DataFlowExpression extends Expression {
 	/**
 	 * Variable is undefined; control flow never reaches this expression
 	 */
-	public static final DataFlowExpression TOP_EXPR = new DataFlowExpression();
+	public static final DataFlowExpression UNDEFINED = new DataFlowExpression();
 	/**
 	 * Variable is not a constant
 	 */
-	public static final DataFlowExpression BOTTOM_EXPR = new DataFlowExpression();
+	public static final DataFlowExpression NOT_A_CONST = new DataFlowExpression();
 
 	private DataFlowExpression() {
 	}
 	
 	@Override
 	public String toString() {
-		return this == TOP_EXPR ? "T" : "_|_";
+		return this == UNDEFINED ? "undef" : "NAC";
 	}
 
 	@Override
@@ -75,9 +75,9 @@ public class DataFlowExpression extends Expression {
 
 	@Override
 	public int hashCode() {
-		if (this == TOP_EXPR)
+		if (this == UNDEFINED)
 			return -1;
-		if (this == BOTTOM_EXPR)
+		if (this == NOT_A_CONST)
 			return -2;
 		throw new IllegalStateException("Invalid DataFlowExpression with id " + getId());
 	}

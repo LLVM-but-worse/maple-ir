@@ -19,84 +19,96 @@ import org.rsdeob.stdlib.cfg.ir.stat.UnconditionalJumpStatement;
 import org.rsdeob.stdlib.cfg.ir.transform.DataFlowState.CopySet;
 
 public class DataFlowAnalyzer {
-	private final StatementGraph sg;
-	private final LinkedHashMap<Statement, DataFlowState> dataFlow;
+	private final StatementGraph sgraph;
+	private final LinkedHashMap<Statement, DataFlowState> flowStates;
 	private final Queue<Statement> worklist;
 
 	public DataFlowAnalyzer(ControlFlowGraph cfg) {
 		if (cfg.getEntries().size() != 1)
 			throw new IllegalArgumentException("ControlFlowGraph has more than one entry!");
 
-		sg = StatementGraphBuilder.create(cfg);
-		if (sg.getEntries().size() != 1)
+		sgraph = StatementGraphBuilder.create(cfg);
+		if (sgraph.getEntries().size() != 1)
 			throw new IllegalArgumentException("StatementGraph has more than one entry!");
 
-		dataFlow = new LinkedHashMap<>();
-		DataFlowState state;
+		flowStates = new LinkedHashMap<>();
 
-		state = new DataFlowState();
-		state.in.put(VAR_ALL, new CopyVarStatement(VAR_ALL, BOTTOM_EXPR));
-		dataFlow.put(sg.getEntries().iterator().next(), state);
+		DataFlowState entryFlowState = new DataFlowState();
+		entryFlowState.in.put(VAR_ALL, new CopyVarStatement(VAR_ALL, NOT_A_CONST));
+		flowStates.put(sgraph.getEntries().iterator().next(), entryFlowState);
 
-		CopyVarStatement allTop = new CopyVarStatement(VAR_ALL, TOP_EXPR);
-		for (Statement stmt : sg.vertices()) {
-			if (sg.getEntries().contains(stmt))
+		// define every other nodes in and out being undefined
+		CopyVarStatement allUndefined = new CopyVarStatement(VAR_ALL, UNDEFINED);
+		for (Statement stmt : sgraph.vertices()) {
+			if (sgraph.getEntries().contains(stmt))
 				continue;
-			state = new DataFlowState();
-			state.in.put(VAR_ALL, allTop);
-			state.out.put(VAR_ALL, allTop);
-			dataFlow.put(stmt, state);
+			DataFlowState state = new DataFlowState();
+			state.in.put(VAR_ALL, allUndefined);
+			state.out.put(VAR_ALL, allUndefined);
+			flowStates.put(stmt, state);
 		}
 
 		worklist = new LinkedList<>();
-		worklist.add(sg.getEntries().iterator().next());
+		worklist.add(sgraph.getEntries().iterator().next());
 	}
 
 	public LinkedHashMap<Statement, DataFlowState> compute() {
 		while (!worklist.isEmpty()) {
 			Statement stmt = worklist.remove();
-			DataFlowState state = dataFlow.get(stmt);
+			DataFlowState state = flowStates.get(stmt);
 
 			CopySet out = new CopySet(state.out);
-			if (!sg.getEntries().contains(stmt)) {
-				CopySet in = null;
-				for (FlowEdge<Statement> pred : sg.getReverseEdges(stmt))
-					if (sg.isExecutable(pred))
-						if (in == null) in = new CopySet(dataFlow.get(pred.src).out);
-						else in = in.meet(dataFlow.get(pred.src).out);
-				state.in = in;
+			if (!sgraph.getEntries().contains(stmt)) {
+				CopySet newIn = null;
+				for (FlowEdge<Statement> pred : sgraph.getReverseEdges(stmt))
+					if (sgraph.isExecutable(pred))
+						if (newIn == null) {
+							newIn = new CopySet(flowStates.get(pred.src).out);
+						} else {
+							newIn = newIn.meet(flowStates.get(pred.src).out);
+						}
+				state.in = newIn;
 			}
 
 			if (stmt instanceof CopyVarStatement) {
+				// initialise a new CopySet for the out
 				state.out = new CopySet(state.in);
-				state.out.trans((CopyVarStatement) stmt);
-				for (FlowEdge<Statement> succ : sg.getEdges(stmt))
-					sg.markExecutable(succ);
+				// propagate the variable information
+				state.out.transfer((CopyVarStatement) stmt);
+				for (FlowEdge<Statement> succ : sgraph.getEdges(stmt))
+					sgraph.markExecutable(succ);
 			} else if (stmt instanceof UnconditionalJumpStatement) {
+				// initialise a new CopySet for the out
 				state.out = new CopySet(state.in);
-				for (FlowEdge<Statement> succ : sg.getEdges(stmt)) {
-					sg.markExecutable(succ);
+				for (FlowEdge<Statement> succ : sgraph.getEdges(stmt)) {
+					sgraph.markExecutable(succ);
 				}
 			} else if (stmt instanceof ConditionalJumpStatement) { // TODO: compute which branch is correct
+				// initialise a new CopySet for the out
 				state.out = new CopySet(state.in);
-				for (FlowEdge<Statement> succ : sg.getEdges(stmt)) {
-					sg.markExecutable(succ);
+				for (FlowEdge<Statement> succ : sgraph.getEdges(stmt)) {
+					sgraph.markExecutable(succ);
 				}
 			} else if (stmt instanceof SwitchStatement) { // TODO: compute which case is correct
+				// initialise a new CopySet for the out
 				state.out = new CopySet(state.in);
-				for (FlowEdge<Statement> succ : sg.getEdges(stmt)) {
-					sg.markExecutable(succ);
+				for (FlowEdge<Statement> succ : sgraph.getEdges(stmt)) {
+					sgraph.markExecutable(succ);
 				}
 			} else {
+				// initialise a new CopySet for the out
 				state.out = new CopySet(state.in);
-				for (FlowEdge<Statement> succ : sg.getEdges(stmt)) {
-					sg.markExecutable(succ);
+				for (FlowEdge<Statement> succ : sgraph.getEdges(stmt)) {
+					sgraph.markExecutable(succ);
 				}
 			}
-			if (!state.out.equals(out))
-				for (FlowEdge<Statement> succ : sg.getEdges(stmt))
+			// if the out set changed
+			if (!state.out.equals(out)) {
+				// re-process it
+				for (FlowEdge<Statement> succ : sgraph.getEdges(stmt))
 					worklist.add(succ.dst);
+			}
 		}
-		return dataFlow;
+		return flowStates;
 	}
 }
