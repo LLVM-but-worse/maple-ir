@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.jar.JarOutputStream;
 
 import org.objectweb.asm.ClassReader;
@@ -28,10 +29,10 @@ import org.rsdeob.stdlib.cfg.ControlFlowGraphBuilder;
 import org.rsdeob.stdlib.cfg.ControlFlowGraphDeobfuscator;
 import org.rsdeob.stdlib.cfg.ir.RootStatement;
 import org.rsdeob.stdlib.cfg.ir.StatementGenerator;
-import org.rsdeob.stdlib.cfg.ir.StatementGraph;
-import org.rsdeob.stdlib.cfg.ir.StatementGraphBuilder;
+import org.rsdeob.stdlib.cfg.ir.stat.CopyVarStatement;
 import org.rsdeob.stdlib.cfg.ir.stat.Statement;
-import org.rsdeob.stdlib.cfg.ir.transform.BiblPropagator;
+import org.rsdeob.stdlib.cfg.ir.transform.DataFlowAnalyzer;
+import org.rsdeob.stdlib.cfg.ir.transform.DataFlowState;
 import org.rsdeob.stdlib.cfg.util.GraphUtils;
 import org.rsdeob.stdlib.collections.NodeTable;
 import org.rsdeob.stdlib.collections.graph.flow.TarjanDominanceComputor;
@@ -86,46 +87,35 @@ public class BootBibl implements Opcodes {
 			System.out.println(root);
 			System.out.println();
 
-			StatementGraph sgraph = new StatementGraphBuilder().create(cfg);
-			BiblPropagator prop = new BiblPropagator(sgraph, m);
-			for(Statement stmt : sgraph.vertices()) {
-				System.out.println(stmt);
-				System.out.println("  In:");
-				for(Statement s : prop.in(stmt)) {
-					System.out.println("      " + s);
-				}
-				System.out.println("  Out:");
-				for(Statement s : prop.in(stmt)) {
-					System.out.println("      " + s);
-				}
-				System.out.println();
-			}
-//			DataFlowAnalyzer dfa = new DataFlowAnalyzer(cfg, false);
-//			Map<BasicBlock, DataFlowState> df = dfa.computeForward();
-//			System.out.println("Data flow for " + m + ":");
-//			for (BasicBlock b : df.keySet()) {
-//				DataFlowState state = df.get(b);
-//				System.out.println("Data flow for block " + b.getId() + ":");
-//				System.out.println("In: ");
-//				for (CopyVarStatement copy : state.in.values())
-//					System.out.println("  " + copy);
-//				System.out.println();
-//
-//				System.out.println("Out: ");
-//				for (CopyVarStatement copy : state.out.values())
-//					System.out.println("  " + copy);
-//				System.out.println();
-
-//				System.out.println("Gen: ");
-//				for (CopyVarStatement copy : state.gen)
-//					System.out.println("  " + copy);
-//				System.out.println();
-//
-//				System.out.println("Kill: ");
-//				for (CopyVarStatement copy : state.kill)
-//					System.out.println("  " + copy);
+//			StatementGraph sgraph = new StatementGraphBuilder().create(cfg);
+//			BiblPropagator prop = new BiblPropagator(sgraph, m);
+//			for(Statement stmt : sgraph.vertices()) {
+//				System.out.println(stmt);
+//				System.out.println("  In:");
+//				for(Statement s : prop.in(stmt)) {
+//					System.out.println("      " + s);
+//				}
+//				System.out.println("  Out:");
+//				for(Statement s : prop.in(stmt)) {
+//					System.out.println("      " + s);
+//				}
 //				System.out.println();
 //			}
+			
+			DataFlowAnalyzer dfa = new DataFlowAnalyzer(cfg);
+			Map<Statement,DataFlowState> df = dfa.compute();
+			System.out.println("Data flow for " + m + ":");
+			for (Statement stmt : df.keySet()) {
+				DataFlowState state = df.get(stmt);
+				System.out.println("Data flow for " + stmt + ":");
+				System.out.println("In: ");
+				for (CopyVarStatement copy : state.in.values())
+					System.out.println("  " + copy);
+				System.out.println("Out: ");
+				for (CopyVarStatement copy : state.out.values())
+					System.out.println("  " + copy);
+				System.out.println();
+			}
 			
 			TarjanDominanceComputor<BasicBlock> doms = new TarjanDominanceComputor<>(cfg);
 			for(BasicBlock b : cfg.vertices()) {
