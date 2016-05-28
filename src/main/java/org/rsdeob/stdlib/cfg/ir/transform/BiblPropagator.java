@@ -1,6 +1,7 @@
 package org.rsdeob.stdlib.cfg.ir.transform;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -29,12 +30,14 @@ public class BiblPropagator {
 	private final Map<Statement, NullPermeableHashMap<String, Set<CopyVarStatement>>> out;
 	// Entry<Statement, Calling predecessor>
 	private final LinkedList<WorkListEntry> queue;
+	private final Set<Statement> done;
 	
 	public BiblPropagator(StatementGraph sgraph, MethodNode m) {
 		this.sgraph = sgraph;
 		in = new HashMap<>();
 		out = new HashMap<>();
 		queue = new LinkedList<>();
+		done = new HashSet<>();
 		
 		populateTable();
 		defineInputs(m);
@@ -54,14 +57,23 @@ public class BiblPropagator {
 			WorkListEntry e = queue.pop();
 			Statement stmt = e.stmt;
 			
+			if(done.contains(stmt)) {
+				continue;
+			}
+			
 			// first merge the state from the pred out into
 			// the statement in
 			NullPermeableHashMap<String, Set<CopyVarStatement>> oldStmtIn = in.get(stmt);
 			NullPermeableHashMap<String, Set<CopyVarStatement>> newStmtIn = new NullPermeableHashMap<>(oldStmtIn);
+			NullPermeableHashMap<String, Set<CopyVarStatement>> oldOut = out.get(stmt);
 			propagate(e, newStmtIn);
-			execute(stmt, newStmtIn);
-			
+			NullPermeableHashMap<String, Set<CopyVarStatement>> newOut = execute(stmt, newStmtIn);
+			out.put(stmt, newOut);
 			in.put(stmt, newStmtIn);
+			
+			if(equals(oldStmtIn, newStmtIn)) {
+				done.add(stmt);
+			}
 		}
 	}
 	
@@ -69,7 +81,6 @@ public class BiblPropagator {
 		Statement stmt = e.stmt;
 		Statement pred = e.edge.src;
 		
-		System.out.println("stmt,pred:  " + stmt + "   " + pred);
 		if(e.edge instanceof ImmediateEdge) {
 			NullPermeableHashMap<String, Set<CopyVarStatement>> predOut = out.get(pred);
 			for(Entry<String, Set<CopyVarStatement>> entry : predOut.entrySet()) {
@@ -123,12 +134,14 @@ public class BiblPropagator {
 	/* Calculates the variable state information after a statement
 	 * is 'executed'. i.e. propagate the supplied in data to
 	 * the same statements out data set. */
-	private void execute(Statement stmt, NullPermeableHashMap<String, Set<CopyVarStatement>> inMap) {
+	private NullPermeableHashMap<String, Set<CopyVarStatement>> execute(Statement stmt, NullPermeableHashMap<String, Set<CopyVarStatement>> inMap) {
 		NullPermeableHashMap<String, Set<CopyVarStatement>> newOut = new NullPermeableHashMap<>(new SetCreator<>());
+		// first add all of the input variable states (i.e. assuming no change).
 		for(Entry<String, Set<CopyVarStatement>> e : inMap.entrySet()) {
 			newOut.getNonNull(e.getKey()).addAll(e.getValue());
 		}
 		
+		// next see if there is a definition.
 		if(stmt instanceof CopyVarStatement) {
 			CopyVarStatement copy = (CopyVarStatement) stmt;
 			String name = createVariableName(copy);			
@@ -139,8 +152,7 @@ public class BiblPropagator {
 			set.add(copy);
 		}
 		
-		out.put(stmt, newOut);
-		
+		// lastly, add the successors to the work list.
 		for(FlowEdge<Statement> fe : sgraph.getEdges(stmt)) {
 			Statement succ = fe.dst;
 			// WLEntry is considered from the perspective of
@@ -150,9 +162,11 @@ public class BiblPropagator {
 			//       The pred of the WLEntry is this statement
 			queue.add(new WorkListEntry(succ, fe));
 		}
+		
+		return newOut;
 	}
 	
-	/* private boolean equals(NullPermeableHashMap<String, Set<CopyVarStatement>> map1, NullPermeableHashMap<String, Set<CopyVarStatement>> map2) {
+	private boolean equals(NullPermeableHashMap<String, Set<CopyVarStatement>> map1, NullPermeableHashMap<String, Set<CopyVarStatement>> map2) {
 		if(map1.size() != map2.size()) {
 			return false;
 		}
@@ -185,7 +199,7 @@ public class BiblPropagator {
 		}
 		
 		return true;
-	} */
+	}
 	
 	private void populateTable() {
 		for(Statement stmt : sgraph.vertices()) {
@@ -211,7 +225,7 @@ public class BiblPropagator {
 		
 		// propagate entries
 		for(Statement entry : sgraph.getEntries()) {
-			execute(entry, in.get(entry));
+			out.put(entry, execute(entry, in.get(entry)));
 		}
 	}
 	
