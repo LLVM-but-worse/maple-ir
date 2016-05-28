@@ -1,28 +1,29 @@
 package org.rsdeob.stdlib.cfg.ir.transform;
 
-import org.rsdeob.stdlib.cfg.ControlFlowGraph;
-import org.rsdeob.stdlib.cfg.edge.FlowEdge;
-import org.rsdeob.stdlib.cfg.ir.StatementGraph;
-import org.rsdeob.stdlib.cfg.ir.StatementGraphBuilder;
-import org.rsdeob.stdlib.cfg.ir.stat.*;
+import static org.rsdeob.stdlib.cfg.ir.transform.DataFlowExpression.*;
+import static org.rsdeob.stdlib.cfg.ir.transform.DataFlowState.CopySet.AllVarsExpression.VAR_ALL;
 
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.Queue;
 
-import static org.rsdeob.stdlib.cfg.ir.transform.DataFlowExpression.BOTTOM_EXPR;
-import static org.rsdeob.stdlib.cfg.ir.transform.DataFlowExpression.TOP_EXPR;
-import static org.rsdeob.stdlib.cfg.ir.transform.DataFlowState.CopySet;
-import static org.rsdeob.stdlib.cfg.ir.transform.DataFlowState.CopySet.AllVarsExpression.VAR_ALL;
+import org.rsdeob.stdlib.cfg.ControlFlowGraph;
+import org.rsdeob.stdlib.cfg.edge.FlowEdge;
+import org.rsdeob.stdlib.cfg.ir.StatementGraph;
+import org.rsdeob.stdlib.cfg.ir.StatementGraphBuilder;
+import org.rsdeob.stdlib.cfg.ir.stat.ConditionalJumpStatement;
+import org.rsdeob.stdlib.cfg.ir.stat.CopyVarStatement;
+import org.rsdeob.stdlib.cfg.ir.stat.Statement;
+import org.rsdeob.stdlib.cfg.ir.stat.SwitchStatement;
+import org.rsdeob.stdlib.cfg.ir.stat.UnconditionalJumpStatement;
+import org.rsdeob.stdlib.cfg.ir.transform.DataFlowState.CopySet;
 
 public class DataFlowAnalyzer {
-	private final ControlFlowGraph cfg;
 	private final StatementGraph sg;
 	private final LinkedHashMap<Statement, DataFlowState> dataFlow;
 	private final Queue<Statement> worklist;
 
 	public DataFlowAnalyzer(ControlFlowGraph cfg) {
-		this.cfg = cfg;
 		if (cfg.getEntries().size() != 1)
 			throw new IllegalArgumentException("ControlFlowGraph has more than one entry!");
 
