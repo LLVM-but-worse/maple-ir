@@ -8,6 +8,11 @@ public class NullPermeableHashMap<K, V> extends HashMap<K, V> {
 
 	private final ValueCreator<V> creator;
 
+	public NullPermeableHashMap(NullPermeableHashMap<K, V> map) {
+		super(map);
+		creator = map.creator;
+	}
+	
 	public NullPermeableHashMap(ValueCreator<V> creator) {
 		this.creator = creator;
 	}
@@ -15,7 +20,7 @@ public class NullPermeableHashMap<K, V> extends HashMap<K, V> {
 	public NullPermeableHashMap() {
 		this(new NullCreator<V>());
 	}
-
+	
 	public V getNonNull(K k) {
 		V val = get(k);
 		if (val == null) {
