@@ -12,12 +12,17 @@ import org.rsdeob.stdlib.cfg.ControlFlowGraphDeobfuscator;
 import org.rsdeob.stdlib.cfg.ir.RootStatement;
 import org.rsdeob.stdlib.cfg.ir.StatementGenerator;
 import org.rsdeob.stdlib.cfg.ir.StatementGraphBuilder;
+import org.rsdeob.stdlib.cfg.ir.stat.CopyVarStatement;
+import org.rsdeob.stdlib.cfg.ir.stat.Statement;
+import org.rsdeob.stdlib.cfg.ir.transform.DataFlowAnalyzer;
+import org.rsdeob.stdlib.cfg.ir.transform.DataFlowState;
 import org.rsdeob.stdlib.cfg.util.GraphUtils;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.InputStream;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 
@@ -65,35 +70,25 @@ public class BootEcx implements Opcodes {
 			System.out.println();
 
 			System.out.println("Sg:");
-			System.out.println(new StatementGraphBuilder().create(cfg));
+			System.out.println(StatementGraphBuilder.create(cfg));
 			System.out.println();
 
-//			DataFlowAnalyzer dfa = new DataFlowAnalyzer(cfg, false);
-//			Map<BasicBlock, DataFlowState> df = dfa.computeForward();
-//			System.out.println("Data flow for " + m + ":");
-//			for (BasicBlock b : df.keySet()) {
-//				DataFlowState state = df.get(b);
-//				System.out.println("Data flow for block " + b.getId() + ":");
-//				System.out.println("In: ");
-//				for (CopyVarStatement copy : state.in.values())
-//					System.out.println("  " + copy);
-//				System.out.println();
-//
-//				System.out.println("Out: ");
-//				for (CopyVarStatement copy : state.out.values())
-//					System.out.println("  " + copy);
-//				System.out.println();
+			DataFlowAnalyzer dfa = new DataFlowAnalyzer(cfg);
+			HashMap<Statement, DataFlowState> df = dfa.compute();
+			System.out.println("Data flow for " + m + ":");
+			for (Statement b : df.keySet()) {
+				DataFlowState state = df.get(b);
+				System.out.println(b + " (" + b.getId() + ":" + b.getBlock().getId() + ") :");
+				System.out.println("In: ");
+				for (CopyVarStatement copy : state.in.values())
+					System.out.println("  " + copy);
+				System.out.println();
 
-//				System.out.println("Gen: ");
-//				for (CopyVarStatement copy : state.gen)
-//					System.out.println("  " + copy);
-//				System.out.println();
-//
-//				System.out.println("Kill: ");
-//				for (CopyVarStatement copy : state.kill)
-//					System.out.println("  " + copy);
-//				System.out.println();
-//			}
+				System.out.println("Out: ");
+				for (CopyVarStatement copy : state.out.values())
+					System.out.println("  " + copy);
+				System.out.println();
+			}
 
 			System.out.println("End of processing log for " + m);
 			System.out.println("============================================================");

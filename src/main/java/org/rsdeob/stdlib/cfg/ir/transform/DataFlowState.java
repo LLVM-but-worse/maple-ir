@@ -1,6 +1,7 @@
 package org.rsdeob.stdlib.cfg.ir.transform;
 
 import org.objectweb.asm.Type;
+import org.rsdeob.stdlib.cfg.ir.expr.ConstantExpression;
 import org.rsdeob.stdlib.cfg.ir.expr.Expression;
 import org.rsdeob.stdlib.cfg.ir.expr.VarExpression;
 import org.rsdeob.stdlib.cfg.ir.stat.CopyVarStatement;
@@ -86,6 +87,34 @@ public class DataFlowState {
 				return BOTTOM_EXPR;
 		}
 
+		public boolean trans(CopyVarStatement stmt) {
+			VarExpression var = stmt.getVariable();
+			Expression rhs = stmt.getExpression();
+			if (!containsKey(var))
+				return false;
+			Expression expr = get(var).getExpression();
+			Expression newExpr;
+			if (expr == TOP_EXPR)
+				newExpr = TOP_EXPR;
+			else if (!(rhs instanceof ConstantExpression)) { // todo: we need to find a way to evaluate complex exprs to determine whether they are constant.
+				if (rhs instanceof VarExpression) {
+					if (containsKey(rhs) && get(rhs).getExpression() instanceof ConstantExpression) {
+						newExpr = get(rhs).getExpression();
+					} else {
+						newExpr = BOTTOM_EXPR;
+					}
+				} else {
+					newExpr = BOTTOM_EXPR;
+				}
+			}
+			else
+				newExpr = rhs;
+			if (expr.equals(newExpr))
+				return false;
+			put(var, new CopyVarStatement(var, newExpr));
+			return true;
+		}
+
 		public static class AllVarsExpression extends VarExpression {
 			public static AllVarsExpression VAR_ALL = new AllVarsExpression();
 
@@ -103,6 +132,5 @@ public class DataFlowState {
 				printer.print("var*");
 			}
 		}
-
 	}
 }
