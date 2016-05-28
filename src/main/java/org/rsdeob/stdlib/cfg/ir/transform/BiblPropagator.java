@@ -36,6 +36,14 @@ public class BiblPropagator {
 		calc();
 	}
 	
+	public Set<Statement> in(Statement stmt) {
+		return in.get(stmt);
+	}
+	
+	public Set<Statement> out(Statement stmt) {
+		return out.get(stmt);
+	}
+	
 	void calc() {
 		while(true) {
 			boolean change = false;
@@ -50,6 +58,7 @@ public class BiblPropagator {
 				if(!oldIn.equals(inSet) || !oldOut.equals(outSet)) {
 					in.put(stmt, inSet);
 					out.put(stmt, outSet);
+					change = true;
 				}
 			}
 			
@@ -78,6 +87,8 @@ public class BiblPropagator {
 		}
 		
 		Set<Statement> entries = sgraph.getEntries();
+		System.out.println("ntries: " + entries);
+		System.out.println("min: " + methodIn);
 		for(Statement stmt : sgraph.vertices()) {
 			if(entries.contains(stmt)) {
 				// build the out sets for the entry nodes, here
@@ -89,6 +100,7 @@ public class BiblPropagator {
 				// otherwise the initial out set is empty.
 				out.put(stmt, new HashSet<>());
 			}
+			in.put(stmt, new HashSet<>());
 		}
 	}
 	
