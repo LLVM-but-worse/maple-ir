@@ -28,7 +28,9 @@ import org.rsdeob.stdlib.cfg.ControlFlowGraphBuilder;
 import org.rsdeob.stdlib.cfg.ControlFlowGraphDeobfuscator;
 import org.rsdeob.stdlib.cfg.ir.RootStatement;
 import org.rsdeob.stdlib.cfg.ir.StatementGenerator;
+import org.rsdeob.stdlib.cfg.ir.StatementGraph;
 import org.rsdeob.stdlib.cfg.ir.StatementGraphBuilder;
+import org.rsdeob.stdlib.cfg.ir.stat.Statement;
 import org.rsdeob.stdlib.cfg.ir.transform.BiblPropagator;
 import org.rsdeob.stdlib.cfg.util.GraphUtils;
 import org.rsdeob.stdlib.collections.NodeTable;
@@ -84,8 +86,20 @@ public class BootBibl implements Opcodes {
 			System.out.println(root);
 			System.out.println();
 
-			BiblPropagator prop = new BiblPropagator(new StatementGraphBuilder().create(cfg), m);
-			
+			StatementGraph sgraph = new StatementGraphBuilder().create(cfg);
+			BiblPropagator prop = new BiblPropagator(sgraph, m);
+			for(Statement stmt : sgraph.vertices()) {
+				System.out.println(stmt);
+				System.out.println("  In:");
+				for(Statement s : prop.in(stmt)) {
+					System.out.println("      " + s);
+				}
+				System.out.println("  Out:");
+				for(Statement s : prop.in(stmt)) {
+					System.out.println("      " + s);
+				}
+				System.out.println();
+			}
 //			DataFlowAnalyzer dfa = new DataFlowAnalyzer(cfg, false);
 //			Map<BasicBlock, DataFlowState> df = dfa.computeForward();
 //			System.out.println("Data flow for " + m + ":");
