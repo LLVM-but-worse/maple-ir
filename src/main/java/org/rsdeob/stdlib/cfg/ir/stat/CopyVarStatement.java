@@ -4,14 +4,12 @@ import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Type;
 import org.rsdeob.stdlib.cfg.ir.expr.Expression;
 import org.rsdeob.stdlib.cfg.ir.expr.VarExpression;
-import org.rsdeob.stdlib.cfg.ir.stat.base.IStackDumpNode;
 import org.rsdeob.stdlib.cfg.util.TabbedStringWriter;
 import org.rsdeob.stdlib.cfg.util.TypeUtils;
 
 public class CopyVarStatement extends Statement implements IStackDumpNode {
 
 	private Expression expression;
-
 	private VarExpression variable;
 
 	public CopyVarStatement(VarExpression variable, Expression expression) {

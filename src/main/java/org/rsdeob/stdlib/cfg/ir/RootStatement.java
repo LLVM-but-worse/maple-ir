@@ -6,22 +6,22 @@ import java.util.Map;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.tree.MethodNode;
 import org.rsdeob.stdlib.cfg.BasicBlock;
-import org.rsdeob.stdlib.cfg.ir.stat.BlockHeaderStatement;
 import org.rsdeob.stdlib.cfg.ir.stat.Statement;
+import org.rsdeob.stdlib.cfg.ir.stat.header.HeaderStatement;
 import org.rsdeob.stdlib.cfg.util.TabbedStringWriter;
 
 public class RootStatement extends Statement {
 
 	private final MethodNode method;
-	private final Map<BasicBlock, BlockHeaderStatement> blockStatements;
+	private final Map<BasicBlock, HeaderStatement> headers;
 	
 	public RootStatement(MethodNode method) {
 		this.method = method;
-		blockStatements = new HashMap<>();
+		headers = new HashMap<>();
 	}
 	
-	public Map<BasicBlock, BlockHeaderStatement> getBlockStatements() {
-		return blockStatements;
+	public Map<BasicBlock, HeaderStatement> getHeaders() {
+		return headers;
 	}
 
 	public MethodNode getMethod() {
@@ -36,7 +36,9 @@ public class RootStatement extends Statement {
 	public void toString(TabbedStringWriter printer) {
 		for (int addr = 0; read(addr) != null; addr++) {
 			Statement stmt = read(addr);
-//			printer.print(stmt.hashCode() + "  ");
+			if(!(stmt instanceof HeaderStatement)) {
+				printer.print(stmt.getId() + ". ");
+			}
 			stmt.toString(printer);
 			
 			Statement next = read(addr + 1);

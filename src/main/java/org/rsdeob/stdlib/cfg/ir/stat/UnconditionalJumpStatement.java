@@ -1,20 +1,20 @@
 package org.rsdeob.stdlib.cfg.ir.stat;
 
 import org.objectweb.asm.MethodVisitor;
-import org.rsdeob.stdlib.cfg.BasicBlock;
+import org.rsdeob.stdlib.cfg.ir.stat.header.HeaderStatement;
 import org.rsdeob.stdlib.cfg.util.TabbedStringWriter;
 
 import com.sun.xml.internal.ws.org.objectweb.asm.Opcodes;
 
 public class UnconditionalJumpStatement extends Statement {
 
-	private BasicBlock target;
+	private HeaderStatement target;
 
-	public UnconditionalJumpStatement(BasicBlock target) {
+	public UnconditionalJumpStatement(HeaderStatement target) {
 		this.target = target;
 	}
 
-	public BasicBlock getTarget() {
+	public HeaderStatement getTarget() {
 		return target;
 	}
 
@@ -24,12 +24,12 @@ public class UnconditionalJumpStatement extends Statement {
 
 	@Override
 	public void toString(TabbedStringWriter printer) {
-		printer.print("goto " + target.getId());
+		printer.print("goto " + target.getHeaderId());
 	}
 
 	@Override
 	public void toCode(MethodVisitor visitor) {
-		visitor.visitJumpInsn(Opcodes.GOTO, target.getLabel().getLabel());		
+		visitor.visitJumpInsn(Opcodes.GOTO, target.getLabel());		
 	}
 
 	@Override

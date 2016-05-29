@@ -21,29 +21,24 @@ import org.rsdeob.stdlib.collections.ExpressionStack;
 import org.rsdeob.stdlib.collections.graph.FastGraphVertex;
 import org.rsdeob.stdlib.collections.graph.flow.ExceptionRange;
 
-
 public class BasicBlock implements FastGraphVertex {
 
 	private final ControlFlowGraph cfg;
-	private String id;
-	private int hashcode;
 	private final LabelNode label;
 	private final List<AbstractInsnNode> insns;
+	private String id;
+	private int hashcode;
 	private List<ExceptionRange<BasicBlock>> ranges;
 	private ExpressionStack inputStack;
 	private List<Statement> statements;
 	
-	public void rename(String id) {
-		this.id = id;
-		hashcode = 31 + id.hashCode();
-	}
-	
-	public BasicBlock(ControlFlowGraph cfg, String id, LabelNode label, ExpressionStack inputStack) {
+	public BasicBlock(ControlFlowGraph cfg, String id, LabelNode label, ExpressionStack stack) {
 		this.cfg = cfg;
 		this.id = id;
-		hashcode = 31 + id.hashCode();
 		this.label = label;
-		this.inputStack = inputStack;
+		inputStack = stack;
+		
+		hashcode = 31 + id.hashCode();
 		insns = new ArrayList<AbstractInsnNode>();
 		statements = new ArrayList<>();
 	}
@@ -51,7 +46,7 @@ public class BasicBlock implements FastGraphVertex {
 	public BasicBlock(ControlFlowGraph cfg, String id, LabelNode label) {
 		this(cfg, id, label, null);
 	}
-	
+
 	public List<Statement> getStatements() {
 		return statements;
 	}
@@ -66,6 +61,11 @@ public class BasicBlock implements FastGraphVertex {
 	
 	public boolean isDummy() {
 		return label == null;
+	}
+	
+	public void setId(String id) {
+		this.id = id;
+		hashcode = 31 + id.hashCode();
 	}
 
 	@Override

@@ -17,8 +17,6 @@ import org.rsdeob.stdlib.cfg.util.LabelHelper;
 import org.rsdeob.stdlib.collections.graph.flow.ExceptionRange;
 
 public class ControlFlowGraphBuilder {
-
-//	private static final Pass[] ROOT_PASSES = new Pass[] {new VariableMergerPass(), new UnusedVariablesPass(), new NewObjectPass()};
 	
 	private final MethodNode method;
 	private final ControlFlowGraph graph;

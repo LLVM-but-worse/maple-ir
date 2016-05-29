@@ -4,9 +4,9 @@ import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.util.Printer;
-import org.rsdeob.stdlib.cfg.BasicBlock;
 import org.rsdeob.stdlib.cfg.ir.expr.ConstantExpression;
 import org.rsdeob.stdlib.cfg.ir.expr.Expression;
+import org.rsdeob.stdlib.cfg.ir.stat.header.HeaderStatement;
 import org.rsdeob.stdlib.cfg.util.TabbedStringWriter;
 import org.rsdeob.stdlib.cfg.util.TypeUtils;
 
@@ -55,10 +55,10 @@ public class ConditionalJumpStatement extends Statement {
 
 	private Expression left;
 	private Expression right;
-	private BasicBlock trueSuccessor;
+	private HeaderStatement trueSuccessor;
 	private ComparisonType type;
 
-	public ConditionalJumpStatement(Expression left, Expression right, BasicBlock trueSuccessor, ComparisonType type) {
+	public ConditionalJumpStatement(Expression left, Expression right, HeaderStatement trueSuccessor, ComparisonType type) {
 		setLeft(left);
 		setRight(right);
 		setTrueSuccessor(trueSuccessor);
@@ -83,11 +83,11 @@ public class ConditionalJumpStatement extends Statement {
 		overwrite(right, 1);
 	}
 
-	public BasicBlock getTrueSuccessor() {
+	public HeaderStatement getTrueSuccessor() {
 		return trueSuccessor;
 	}
 
-	public void setTrueSuccessor(BasicBlock trueSuccessor) {
+	public void setTrueSuccessor(HeaderStatement trueSuccessor) {
 		this.trueSuccessor = trueSuccessor;
 	}
 
@@ -117,7 +117,7 @@ public class ConditionalJumpStatement extends Statement {
 		right.toString(printer);
 		printer.print(')');
 		printer.tab();
-		printer.print("\ngoto " + trueSuccessor.getId());
+		printer.print("\ngoto " + trueSuccessor.getHeaderId());
 		printer.untab();
 	}
 
@@ -133,10 +133,10 @@ public class ConditionalJumpStatement extends Statement {
 
 			left.toCode(visitor);
 			if (isNull) {
-				visitor.visitJumpInsn(type == ComparisonType.EQ ? Opcodes.IFNULL : Opcodes.IFNONNULL, trueSuccessor.getLabel().getLabel());
+				visitor.visitJumpInsn(type == ComparisonType.EQ ? Opcodes.IFNULL : Opcodes.IFNONNULL, trueSuccessor.getLabel());
 			} else {
 				right.toCode(visitor);
-				visitor.visitJumpInsn(type == ComparisonType.EQ ? Opcodes.IF_ACMPEQ : Opcodes.IF_ACMPNE, trueSuccessor.getLabel().getLabel());
+				visitor.visitJumpInsn(type == ComparisonType.EQ ? Opcodes.IF_ACMPEQ : Opcodes.IF_ACMPNE, trueSuccessor.getLabel());
 			}
 		} else if (opType == Type.INT_TYPE) {
 			boolean canShorten = right instanceof ConstantExpression && ((ConstantExpression) right).getConstant() instanceof Number
@@ -148,14 +148,14 @@ public class ConditionalJumpStatement extends Statement {
 				visitor.visitInsn(cast[i]);
 			}
 			if (canShorten) {
-				visitor.visitJumpInsn(Opcodes.IFEQ + type.ordinal(), trueSuccessor.getLabel().getLabel());
+				visitor.visitJumpInsn(Opcodes.IFEQ + type.ordinal(), trueSuccessor.getLabel());
 			} else {
 				right.toCode(visitor);
 				cast = TypeUtils.getPrimitiveCastOpcodes(right.getType(), opType);
 				for (int i = 0; i < cast.length; i++) {
 					visitor.visitInsn(cast[i]);
 				}
-				visitor.visitJumpInsn(Opcodes.IF_ICMPEQ + type.ordinal(), trueSuccessor.getLabel().getLabel());
+				visitor.visitJumpInsn(Opcodes.IF_ICMPEQ + type.ordinal(), trueSuccessor.getLabel());
 			}
 		} else if (opType == Type.LONG_TYPE) {
 			left.toCode(visitor);
@@ -169,7 +169,7 @@ public class ConditionalJumpStatement extends Statement {
 				visitor.visitInsn(cast[i]);
 			}
 			visitor.visitInsn(Opcodes.LCMP);
-			visitor.visitJumpInsn(Opcodes.IFEQ + type.ordinal(), trueSuccessor.getLabel().getLabel());
+			visitor.visitJumpInsn(Opcodes.IFEQ + type.ordinal(), trueSuccessor.getLabel());
 		} else if (opType == Type.FLOAT_TYPE) {
 			left.toCode(visitor);
 			int[] cast = TypeUtils.getPrimitiveCastOpcodes(left.getType(), opType);
@@ -182,7 +182,7 @@ public class ConditionalJumpStatement extends Statement {
 				visitor.visitInsn(cast[i]);
 			}
 			visitor.visitInsn((type == ComparisonType.LT || type == ComparisonType.LE) ? Opcodes.FCMPL : Opcodes.FCMPG);
-			visitor.visitJumpInsn(Opcodes.IFEQ + type.ordinal(), trueSuccessor.getLabel().getLabel());
+			visitor.visitJumpInsn(Opcodes.IFEQ + type.ordinal(), trueSuccessor.getLabel());
 		} else if (opType == Type.DOUBLE_TYPE) {
 			left.toCode(visitor);
 			int[] cast = TypeUtils.getPrimitiveCastOpcodes(left.getType(), opType);
@@ -195,7 +195,7 @@ public class ConditionalJumpStatement extends Statement {
 				visitor.visitInsn(cast[i]);
 			}
 			visitor.visitInsn((type == ComparisonType.LT || type == ComparisonType.LE) ? Opcodes.DCMPL : Opcodes.DCMPG);
-			visitor.visitJumpInsn(Opcodes.IFEQ + type.ordinal(), trueSuccessor.getLabel().getLabel());
+			visitor.visitJumpInsn(Opcodes.IFEQ + type.ordinal(), trueSuccessor.getLabel());
 		} else {
 			throw new IllegalArgumentException(opType.toString());
 		}
