@@ -1,6 +1,7 @@
 package org.rsdeob.stdlib.cfg.ir.transform.impl;
 
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
@@ -9,6 +10,9 @@ import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.MethodNode;
 import org.rsdeob.stdlib.cfg.edge.FlowEdge;
 import org.rsdeob.stdlib.cfg.ir.StatementGraph;
+import org.rsdeob.stdlib.cfg.ir.StatementVisitor;
+import org.rsdeob.stdlib.cfg.ir.expr.ConstantExpression;
+import org.rsdeob.stdlib.cfg.ir.expr.Expression;
 import org.rsdeob.stdlib.cfg.ir.expr.VarExpression;
 import org.rsdeob.stdlib.cfg.ir.stat.CopyVarStatement;
 import org.rsdeob.stdlib.cfg.ir.stat.Statement;
@@ -25,6 +29,34 @@ public class TrackerImpl extends ForwardsFlowAnalyser<Statement, FlowEdge<Statem
 		super(graph);
 		initial = newState();
 		defineInputs(m);
+	}
+	
+	public void propagate() {
+		for(Statement stmt : graph.vertices()) {
+			Map<String, Set<CopyVarStatement>> in = in(stmt);
+			
+			StatementVisitor impl = new StatementVisitor(stmt) {
+				@Override
+				public void visit(Statement stmt) {
+					if(stmt instanceof VarExpression) {
+						VarExpression var = (VarExpression) stmt;
+						String name = VariableStateComputer.createVariableName(var);
+						Set<CopyVarStatement> defs = in.get(name);
+						
+						if(defs.size() == 1) {
+							Expression def = defs.iterator().next().getExpression();
+							if(def instanceof ConstantExpression || def instanceof VarExpression) {
+								int d = getDepth();
+								getCurrent(d).overwrite(def, getCurrentPtr(d));
+							} else {
+								
+							}
+						}
+					}
+				}
+			};
+			impl.visit();
+		}
 	}
 	
 	private void defineInputs(MethodNode m) {
@@ -51,10 +83,6 @@ public class TrackerImpl extends ForwardsFlowAnalyser<Statement, FlowEdge<Statem
 	
 	public static String createVariableName(CopyVarStatement stmt) {
 		VarExpression var = stmt.getVariable();
-		return (var.isStackVariable() ? "s" : "l") + "var" + var.getIndex();
-	}
-	
-	public static String createVariableName(VarExpression var) {
 		return (var.isStackVariable() ? "s" : "l") + "var" + var.getIndex();
 	}
 	
@@ -110,6 +138,8 @@ public class TrackerImpl extends ForwardsFlowAnalyser<Statement, FlowEdge<Statem
 
 	@Override
 	protected void propagate(Statement n, NullPermeableHashMap<String, Set<CopyVarStatement>> in, NullPermeableHashMap<String, Set<CopyVarStatement>> out) {
+		// create a new set here because if we don't, future operations will
+		// affect the in and the out sets. basically don't use out.putAll(in) here.
 		for(Entry<String, Set<CopyVarStatement>> e : in.entrySet()) {
 			out.put(e.getKey(), new HashSet<>(e.getValue()));
 		}
@@ -130,19 +160,5 @@ public class TrackerImpl extends ForwardsFlowAnalyser<Statement, FlowEdge<Statem
 		} else {
 			// rhs = null;
 		}
-	}
-	
-	public String toString(Statement stmt) {
-		StringBuilder sb = new StringBuilder();
-		sb.append(stmt.toString()).append("\n");
-		sb.append("  IN:").append("\n");
-		for(Entry<String, Set<CopyVarStatement>> in : in(stmt).entrySet()) {
-			sb.append("     ").append(in).append("\n");
-		}
-		sb.append("  OUT:").append("\n");
-		for(Entry<String, Set<CopyVarStatement>> out : out(stmt).entrySet()) {
-			sb.append("     ").append(out).append("\n");
-		}
-		return sb.toString();
 	}
 }
