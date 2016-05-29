@@ -10,7 +10,7 @@ import org.rsdeob.stdlib.cfg.ir.RootStatement;
 import org.rsdeob.stdlib.cfg.ir.StatementGenerator;
 import org.rsdeob.stdlib.cfg.ir.StatementGraph;
 import org.rsdeob.stdlib.cfg.ir.StatementGraphBuilder;
-import org.rsdeob.stdlib.cfg.ir.transform1.impl.TrackerImpl;
+import org.rsdeob.stdlib.cfg.ir.transform.impl.TrackerImpl;
 
 public class DataFlowAnalyserBoot {
 
