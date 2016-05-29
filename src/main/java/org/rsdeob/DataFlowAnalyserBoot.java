@@ -29,10 +29,12 @@ public class DataFlowAnalyserBoot {
 		for(MethodNode m : cn.methods) {
 			if(m.name.startsWith("test3")) {
 				ControlFlowGraph cfg = new ControlFlowGraphBuilder(m).build();
+				
 				StatementGenerator generator = new StatementGenerator(cfg);
 				generator.init(m.maxLocals);
 				generator.createExpressions();
 				RootStatement root = generator.buildRoot();
+				
 				StatementGraph sgraph = StatementGraphBuilder.create(cfg);
 				System.out.println("Processing " + m);
 				System.out.println(cfg);
