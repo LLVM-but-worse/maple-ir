@@ -1,10 +1,5 @@
 package org.rsdeob;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
@@ -15,11 +10,6 @@ import org.rsdeob.stdlib.cfg.ir.RootStatement;
 import org.rsdeob.stdlib.cfg.ir.StatementGenerator;
 import org.rsdeob.stdlib.cfg.ir.StatementGraph;
 import org.rsdeob.stdlib.cfg.ir.StatementGraphBuilder;
-import org.rsdeob.stdlib.cfg.ir.StatementVisitor;
-import org.rsdeob.stdlib.cfg.ir.expr.VarExpression;
-import org.rsdeob.stdlib.cfg.ir.stat.CopyVarStatement;
-import org.rsdeob.stdlib.cfg.ir.stat.Statement;
-import org.rsdeob.stdlib.cfg.ir.transform1.VariableStateComputer;
 import org.rsdeob.stdlib.cfg.ir.transform1.impl.TrackerImpl;
 
 public class DataFlowAnalyserBoot {
@@ -39,49 +29,20 @@ public class DataFlowAnalyserBoot {
 				StatementGraph sgraph = StatementGraphBuilder.create(cfg);
 				System.out.println("Processing " + m);
 				System.out.println(cfg);
-				System.out.println(sgraph);
-				
-				Map<Statement, Set<String>> kill = new HashMap<>();
-				Map<Statement, Set<String>> gen = new HashMap<>();
-				
-				for(Statement stmt : sgraph.vertices()) {
-					if(stmt instanceof CopyVarStatement) {
-						Set<String> set = new HashSet<>();
-						set.add(VariableStateComputer.createVariableName((CopyVarStatement) stmt));
-						kill.put(stmt, set);
-					} else {
-						kill.put(stmt, new HashSet<>());
-					}
-					
-					Set<String> set = new HashSet<>();
-					StatementVisitor vis = new StatementVisitor(stmt) {
-						@Override
-						public void visit(Statement stmt) {
-							if(stmt instanceof VarExpression) {
-								set.add(VariableStateComputer.createVariableName((VarExpression) stmt));
-							}
-						}
-					};
-					gen.put(stmt, set);
-					vis.visit();
-				}
-				
+				System.out.println(root);
+				System.out.println();
 				
 				TrackerImpl ffa = new TrackerImpl(sgraph, m);
 				ffa.run();
+//				ReachingAnalyser ra = new ReachingAnalyser(sgraph);
+//				ra.run();
 				
 //				for(Statement stmt : sgraph.vertices()) {
-//					System.out.println(stmt);
-//					System.out.println("  IN:");
-//					for(Entry<String, Set<CopyVarStatement>> in : ffa.in(stmt).entrySet()) {
-//						System.out.println("     " + in);
-//					}
-//					System.out.println("  OUT:");
-//					for(Entry<String, Set<CopyVarStatement>> in : ffa.out(stmt).entrySet()) {
-//						System.out.println("     " + in);
-//					}
-//					System.out.println();
+//					System.out.println(ra.toString(stmt));
 //				}
+//				ffa.propagate();
+				
+//				System.out.println(root);
 				
 				System.out.println();
 			}
