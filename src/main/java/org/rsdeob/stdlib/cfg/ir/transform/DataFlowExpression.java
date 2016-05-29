@@ -24,18 +24,14 @@ public class DataFlowExpression extends Expression {
 
 	private DataFlowExpression() {
 	}
-	
+
 	@Override
-	public String toString() {
-		return this == UNDEFINED ? "undef" : "NAC";
+	public void toString(TabbedStringWriter printer) {
+		printer.print(this == UNDEFINED ? "undef" : "NAC");
 	}
 
 	@Override
 	public void onChildUpdated(int ptr) {
-	}
-
-	@Override
-	public void toString(TabbedStringWriter printer) {
 	}
 
 	@Override
@@ -60,7 +56,7 @@ public class DataFlowExpression extends Expression {
 
 	@Override
 	public Expression copy() {
-		throw new UnsupportedOperationException("Do not copy Top/Bottom, use TOP_EXPR or BOTTOM_EXPR instead");
+		return this;
 	}
 
 	@Override
