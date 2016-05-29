@@ -34,7 +34,7 @@ import org.rsdeob.stdlib.cfg.ir.StatementGraph;
 import org.rsdeob.stdlib.cfg.ir.StatementGraphBuilder;
 import org.rsdeob.stdlib.cfg.ir.stat.CopyVarStatement;
 import org.rsdeob.stdlib.cfg.ir.stat.Statement;
-import org.rsdeob.stdlib.cfg.ir.transform.BiblPropagator;
+import org.rsdeob.stdlib.cfg.ir.transform.VariableStateComputer;
 import org.rsdeob.stdlib.cfg.util.GraphUtils;
 import org.rsdeob.stdlib.collections.NodeTable;
 import org.rsdeob.stdlib.collections.graph.flow.TarjanDominanceComputor;
@@ -105,7 +105,7 @@ public class BootBibl implements Opcodes {
 //			}
 			
 			StatementGraph sgraph = StatementGraphBuilder.create(cfg);
-			BiblPropagator prop =new BiblPropagator(sgraph, m);
+			VariableStateComputer prop = new VariableStateComputer(sgraph, m);
 			for(Statement stmt : sgraph.vertices()) {
 				System.out.println(stmt);
 				System.out.println("   IN:");

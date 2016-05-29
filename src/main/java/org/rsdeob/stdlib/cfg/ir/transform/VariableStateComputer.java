@@ -12,7 +12,6 @@ import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.MethodNode;
 import org.rsdeob.stdlib.cfg.edge.ConditionalJumpEdge;
 import org.rsdeob.stdlib.cfg.edge.FlowEdge;
-import org.rsdeob.stdlib.cfg.edge.ImmediateEdge;
 import org.rsdeob.stdlib.cfg.ir.StatementGraph;
 import org.rsdeob.stdlib.cfg.ir.expr.Expression;
 import org.rsdeob.stdlib.cfg.ir.expr.VarExpression;
@@ -23,7 +22,7 @@ import org.rsdeob.stdlib.cfg.ir.stat.Statement;
 import org.rsdeob.stdlib.collections.NullPermeableHashMap;
 import org.rsdeob.stdlib.collections.SetCreator;
 
-public class BiblPropagator {
+public class VariableStateComputer {
 
 	private final StatementGraph sgraph;
 	private final Map<Statement, NullPermeableHashMap<String, Set<CopyVarStatement>>> in;
@@ -32,7 +31,7 @@ public class BiblPropagator {
 	private final LinkedList<WorkListEntry> queue;
 	private final Set<Statement> done;
 	
-	public BiblPropagator(StatementGraph sgraph, MethodNode m) {
+	public VariableStateComputer(StatementGraph sgraph, MethodNode m) {
 		this.sgraph = sgraph;
 		in = new HashMap<>();
 		out = new HashMap<>();
@@ -52,10 +51,20 @@ public class BiblPropagator {
 		return out.get(stmt);
 	}
 
+	private NullPermeableHashMap<String, Set<CopyVarStatement>> copy(NullPermeableHashMap<String, Set<CopyVarStatement>> map) {
+		NullPermeableHashMap<String, Set<CopyVarStatement>> res = new NullPermeableHashMap<String, Set<CopyVarStatement>>(new SetCreator<>());
+		for(Entry<String, Set<CopyVarStatement>> _e : map.entrySet()) {
+			res.getNonNull(_e.getKey()).addAll(_e.getValue());
+		}
+		return res;
+	}
+	
 	private void process() {
 		while(!queue.isEmpty()) {
 			WorkListEntry e = queue.pop();
 			Statement stmt = e.stmt;
+
+			// System.out.println("Processing " + e.edge + " , done=" + done.contains(stmt));
 			
 			if(done.contains(stmt)) {
 				continue;
@@ -64,10 +73,11 @@ public class BiblPropagator {
 			// first merge the state from the pred out into
 			// the statement in
 			NullPermeableHashMap<String, Set<CopyVarStatement>> oldStmtIn = in.get(stmt);
-			NullPermeableHashMap<String, Set<CopyVarStatement>> newStmtIn = new NullPermeableHashMap<>(oldStmtIn);
-			NullPermeableHashMap<String, Set<CopyVarStatement>> oldOut = out.get(stmt);
-			propagate(e, newStmtIn);
-			NullPermeableHashMap<String, Set<CopyVarStatement>> newOut = execute(stmt, newStmtIn);
+			NullPermeableHashMap<String, Set<CopyVarStatement>> newStmtIn = copy(oldStmtIn);
+			
+			mergeWithPred(newStmtIn, e.edge);
+			
+			NullPermeableHashMap<String, Set<CopyVarStatement>> newOut = propagate(stmt, newStmtIn);
 			out.put(stmt, newOut);
 			in.put(stmt, newStmtIn);
 			
@@ -77,20 +87,20 @@ public class BiblPropagator {
 		}
 	}
 	
-	private void propagate(WorkListEntry e, NullPermeableHashMap<String, Set<CopyVarStatement>> stmtIn) {
-		Statement stmt = e.stmt;
-		Statement pred = e.edge.src;
+	private void mergeWithPred(NullPermeableHashMap<String, Set<CopyVarStatement>> stmtIn, FlowEdge<Statement> edge) {
+		Statement pred = edge.src;
 		
-		if(e.edge instanceof ImmediateEdge) {
+		// i.e. it wasn't conditional
+		// if(edge instanceof ImmediateEdge || edge instanceof UnconditionalJumpEdge || edge instanceof TryCatchEdge) {
 			NullPermeableHashMap<String, Set<CopyVarStatement>> predOut = out.get(pred);
-			for(Entry<String, Set<CopyVarStatement>> entry : predOut.entrySet()) {
-				stmtIn.getNonNull(entry.getKey()).addAll(entry.getValue());
+			for(Entry<String, Set<CopyVarStatement>> e : predOut.entrySet()) {
+				stmtIn.getNonNull(e.getKey()).addAll(e.getValue());
 			}
-		}
+		// }
 		
 		if(pred instanceof ConditionalJumpStatement) {
 			// the false jump edge is an immediate.
-			boolean isTrueBranch = (e.edge instanceof ConditionalJumpEdge);
+			boolean isTrueBranch = (edge instanceof ConditionalJumpEdge);
 			ConditionalJumpStatement jump = (ConditionalJumpStatement) pred;
 			Expression left = jump.getLeft();
 			Expression right = jump.getRight();
@@ -134,22 +144,30 @@ public class BiblPropagator {
 	/* Calculates the variable state information after a statement
 	 * is 'executed'. i.e. propagate the supplied in data to
 	 * the same statements out data set. */
-	private NullPermeableHashMap<String, Set<CopyVarStatement>> execute(Statement stmt, NullPermeableHashMap<String, Set<CopyVarStatement>> inMap) {
-		NullPermeableHashMap<String, Set<CopyVarStatement>> newOut = new NullPermeableHashMap<>(new SetCreator<>());
+	private NullPermeableHashMap<String, Set<CopyVarStatement>> propagate(Statement stmt, NullPermeableHashMap<String, Set<CopyVarStatement>> inMap) {
 		// first add all of the input variable states (i.e. assuming no change).
-		for(Entry<String, Set<CopyVarStatement>> e : inMap.entrySet()) {
-			newOut.getNonNull(e.getKey()).addAll(e.getValue());
-		}
-		
+		NullPermeableHashMap<String, Set<CopyVarStatement>> newOut = copy(inMap);
+
 		// next see if there is a definition.
 		if(stmt instanceof CopyVarStatement) {
 			CopyVarStatement copy = (CopyVarStatement) stmt;
-			String name = createVariableName(copy);			
+			String name = createVariableName(copy);
 			Set<CopyVarStatement> set = newOut.getNonNull(name);
 			// the new expression overwrites the old definition, so
 			// we remove all previous variable data in the set.
-			set.clear();
-			set.add(copy);
+			// set.clear();
+			
+			Expression rhs = copy.getExpression();
+			boolean contains = false;
+			for(CopyVarStatement cvs : set) {
+				Expression _rhs = cvs.getExpression();
+				if(rhs.equals(_rhs)) {
+					contains = true;
+				}
+			}
+			if(!contains) {
+				set.add(copy);
+			}
 		}
 		
 		// lastly, add the successors to the work list.
@@ -225,7 +243,7 @@ public class BiblPropagator {
 		
 		// propagate entries
 		for(Statement entry : sgraph.getEntries()) {
-			out.put(entry, execute(entry, in.get(entry)));
+			out.put(entry, propagate(entry, in.get(entry)));
 		}
 	}
 	
