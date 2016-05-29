@@ -64,6 +64,7 @@ public class StatementGenerator implements Opcodes {
 	}
 	
 	public void init(int base) {
+		Statement.ID_COUNTER = 0;
 		stackBase = base;
 		root = new RootStatement(m);
 		

@@ -11,6 +11,10 @@ public class BlockHeaderStatement extends HeaderStatement {
 		this.block = block;
 	}
 	
+	public BasicBlock getBlock() {
+		return block;
+	}
+	
 	@Override
 	public String getHeaderId() {
 		return block.getId();
