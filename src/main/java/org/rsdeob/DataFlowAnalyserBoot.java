@@ -1,26 +1,22 @@
 package org.rsdeob;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.rsdeob.BootBibl.C2;
 import org.rsdeob.stdlib.cfg.ControlFlowGraph;
 import org.rsdeob.stdlib.cfg.ControlFlowGraphBuilder;
-import org.rsdeob.stdlib.cfg.ir.RootStatement;
-import org.rsdeob.stdlib.cfg.ir.StatementGenerator;
-import org.rsdeob.stdlib.cfg.ir.StatementGraph;
-import org.rsdeob.stdlib.cfg.ir.StatementGraphBuilder;
-import org.rsdeob.stdlib.cfg.ir.StatementVisitor;
+import org.rsdeob.stdlib.cfg.ir.*;
 import org.rsdeob.stdlib.cfg.ir.expr.VarExpression;
 import org.rsdeob.stdlib.cfg.ir.stat.CopyVarStatement;
 import org.rsdeob.stdlib.cfg.ir.stat.Statement;
-import org.rsdeob.stdlib.cfg.ir.transform1.VariableStateComputer;
-import org.rsdeob.stdlib.cfg.ir.transform1.impl.TrackerImpl;
+import org.rsdeob.stdlib.cfg.ir.transform.VariableStateComputer;
+import org.rsdeob.stdlib.cfg.ir.transform.impl.TrackerImpl;
+
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
 public class DataFlowAnalyserBoot {
 
