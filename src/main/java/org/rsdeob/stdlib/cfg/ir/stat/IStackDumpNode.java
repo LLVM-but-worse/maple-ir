@@ -1,4 +1,4 @@
-package org.rsdeob.stdlib.cfg.ir.stat.base;
+package org.rsdeob.stdlib.cfg.ir.stat;
 
 import org.objectweb.asm.Type;
 import org.rsdeob.stdlib.cfg.ir.expr.Expression;

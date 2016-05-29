@@ -15,10 +15,11 @@ import org.rsdeob.stdlib.cfg.ControlFlowGraph;
 import org.rsdeob.stdlib.cfg.ir.expr.*;
 import org.rsdeob.stdlib.cfg.ir.expr.ArithmeticExpression.Operator;
 import org.rsdeob.stdlib.cfg.ir.expr.ComparisonExpression.ValueComparisonType;
-import org.rsdeob.stdlib.cfg.ir.expr.var.FieldStoreExpression;
 import org.rsdeob.stdlib.cfg.ir.stat.*;
 import org.rsdeob.stdlib.cfg.ir.stat.ConditionalJumpStatement.ComparisonType;
 import org.rsdeob.stdlib.cfg.ir.stat.MonitorStatement.MonitorMode;
+import org.rsdeob.stdlib.cfg.ir.stat.header.BlockHeaderStatement;
+import org.rsdeob.stdlib.cfg.ir.stat.header.HeaderStatement;
 import org.rsdeob.stdlib.cfg.util.TypeUtils;
 import org.rsdeob.stdlib.cfg.util.TypeUtils.ArrayType;
 import org.rsdeob.stdlib.collections.ExpressionStack;
@@ -66,24 +67,24 @@ public class StatementGenerator implements Opcodes {
 		stackBase = base;
 		root = new RootStatement(m);
 		
+		for (BasicBlock b : graph.vertices()) {
+			root.getHeaders().put(b, new BlockHeaderStatement(b));
+		}
+		
 		queueEntryBlocks();
 	}
 
 	public RootStatement buildRoot() {
 		for (BasicBlock b : graph.vertices()) {
-			BlockHeaderStatement bstmt = new BlockHeaderStatement(b);
-			root.write(bstmt);
-			root.getBlockStatements().put(b, bstmt);
+			root.write(root.getHeaders().get(b));
 			for (Statement n : b.getStatements()) {
 				root.write(n);
 			}
 		}
-		graph.setRoot(root);
 		return root;
 	}
 
 	void addStmt(Statement stmt) {
-		stmt.setBlock(currentBlock);
 		currentBlock.getStatements().add(stmt);
 	}
 
@@ -564,7 +565,7 @@ public class StatementGenerator implements Opcodes {
 	
 	void _jump_compare(BasicBlock target, ComparisonType type, Expression left, Expression right) {
 		updateTargetStack(currentBlock, target, currentStack);
-		addStmt(new ConditionalJumpStatement(left, right, target, type));
+		addStmt(new ConditionalJumpStatement(left, right, root.getHeaders().get(target), type));
 	}
 	
 	void _jump_compare(BasicBlock target, ComparisonType type) {
@@ -589,7 +590,7 @@ public class StatementGenerator implements Opcodes {
 
 	void _jump_uncond(BasicBlock target) {
 		updateTargetStack(currentBlock, target, currentStack);
-		addStmt(new UnconditionalJumpStatement(target));
+		addStmt(new UnconditionalJumpStatement(root.getHeaders().get(target)));
 	}
 
 	void _entry(BasicBlock entry) {
@@ -1041,22 +1042,27 @@ public class StatementGenerator implements Opcodes {
 	}
 	
 	void _switch(LinkedHashMap<Integer, BasicBlock> targets, BasicBlock dflt) {
+		LinkedHashMap<Integer, HeaderStatement> targets2 = new LinkedHashMap<>();
+		
 		Expression expr = pop();
 		for (Entry<Integer, BasicBlock> e : targets.entrySet()) {
 			updateTargetStack(currentBlock, e.getValue(), currentStack);
+			targets2.put(e.getKey(), root.getHeaders().get(e.getValue()));
 		}
+		
 		updateTargetStack(currentBlock, dflt, currentStack);
-		addStmt(new SwitchStatement(expr, targets, dflt));
+		
+		addStmt(new SwitchStatement(expr, targets2, root.getHeaders().get(dflt)));
 	}
 
 	void _store_field(int opcode, String owner, String name, String desc) {
 		if(opcode == PUTFIELD) {
 			Expression val = pop();
 			Expression inst = pop();
-			addStmt(new FieldStoreExpression(inst, val, owner, name, desc));
+			addStmt(new FieldStoreStatement(inst, val, owner, name, desc));
 		} else if(opcode == PUTSTATIC) {
 			Expression val = pop();
-			addStmt(new FieldStoreExpression(null, val, owner, name, desc));
+			addStmt(new FieldStoreStatement(null, val, owner, name, desc));
 		} else {
 			throw new UnsupportedOperationException(Printer.OPCODES[opcode] + " " + owner + "." + name + "   " + desc);
 		}

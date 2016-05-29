@@ -22,12 +22,14 @@ public abstract class FastBlockGraph extends FlowGraph<BasicBlock, FlowEdge<Basi
 	@Override
 	public void addVertex(BasicBlock v) {
 		super.addVertex(v);
+		
 		blockLabels.put(v.getLabel(), v);
 	}
 	
 	@Override
 	public void removeVertex(BasicBlock v) {
 		super.removeVertex(v);
+		
 		blockLabels.remove(v.getLabel());
 		
 		if(v.getId().equals("A")) {
@@ -39,6 +41,7 @@ public abstract class FastBlockGraph extends FlowGraph<BasicBlock, FlowEdge<Basi
 	@Override
 	public void addEdge(BasicBlock v, FlowEdge<BasicBlock> e) {
 		blockLabels.put(v.getLabel(), v);
+		
 		super.addEdge(v, e);
 	}
 

@@ -1,13 +1,11 @@
 package org.rsdeob.stdlib.cfg;
 
 import org.objectweb.asm.tree.MethodNode;
-import org.rsdeob.stdlib.cfg.ir.RootStatement;
 import org.rsdeob.stdlib.cfg.util.GraphUtils;
 
 public class ControlFlowGraph extends FastBlockGraph {
 	
 	private final MethodNode method;
-	private RootStatement root;
 	
 	public ControlFlowGraph(MethodNode method) {
 		this.method = method;
@@ -15,14 +13,6 @@ public class ControlFlowGraph extends FastBlockGraph {
 	
 	public MethodNode getMethod() {
 		return method;
-	}
-	
-	public void setRoot(RootStatement root) {
-		this.root = root;
-	}
-	
-	public RootStatement getRoot() {
-		return root;
 	}
 	
 	@Override
