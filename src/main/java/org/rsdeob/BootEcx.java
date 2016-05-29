@@ -11,11 +11,12 @@ import org.rsdeob.stdlib.cfg.ControlFlowGraphBuilder;
 import org.rsdeob.stdlib.cfg.ControlFlowGraphDeobfuscator;
 import org.rsdeob.stdlib.cfg.ir.RootStatement;
 import org.rsdeob.stdlib.cfg.ir.StatementGenerator;
-import org.rsdeob.stdlib.cfg.ir.StatementGraphBuilder;
+import org.rsdeob.stdlib.cfg.ir.expr.Expression;
 import org.rsdeob.stdlib.cfg.ir.stat.CopyVarStatement;
 import org.rsdeob.stdlib.cfg.ir.stat.Statement;
 import org.rsdeob.stdlib.cfg.ir.transform.DataFlowAnalyzer;
 import org.rsdeob.stdlib.cfg.ir.transform.DataFlowState;
+import org.rsdeob.stdlib.cfg.ir.transform.ExpressionEvaluator;
 import org.rsdeob.stdlib.cfg.util.GraphUtils;
 
 import java.io.File;
@@ -29,7 +30,7 @@ import java.util.List;
 @SuppressWarnings("Duplicates")
 public class BootEcx implements Opcodes {
 	public static void main(String[] args) throws Exception {
-		InputStream i = new FileInputStream(new File("res/a.class"));
+		InputStream i = new FileInputStream(new File("res/Test.class"));
 		ClassReader cr = new ClassReader(i);
 		ClassNode cn = new ClassNode();
 		cr.accept(cn, 0);
@@ -38,9 +39,9 @@ public class BootEcx implements Opcodes {
 		while(it.hasNext()) {
 			MethodNode m = it.next();
 
-//			if(!m.toString().equals("a/a/f/a.H(La/a/f/o;J)V")) {
-//				continue;
-//			}
+			if(m.toString().contains("<init>")) {
+				continue;
+			}
 			
 			System.out.println("\n\n\nProcessing " + m + ": ");
 
@@ -69,9 +70,9 @@ public class BootEcx implements Opcodes {
 			System.out.println(root);
 			System.out.println();
 
-			System.out.println("Sg:");
-			System.out.println(StatementGraphBuilder.create(cfg));
-			System.out.println();
+//			System.out.println("Sg:");
+//			System.out.println(StatementGraphBuilder.create(cfg));
+//			System.out.println();
 
 			DataFlowAnalyzer dfa = new DataFlowAnalyzer(cfg);
 			HashMap<Statement, DataFlowState> df = dfa.compute();
@@ -87,6 +88,13 @@ public class BootEcx implements Opcodes {
 				System.out.println("Out: ");
 				for (CopyVarStatement copy : state.out.values())
 					System.out.println("  " + copy);
+
+				if (b instanceof CopyVarStatement) {
+					Expression rhs = ((CopyVarStatement) b).getExpression();
+					Expression evaluated = ExpressionEvaluator.evaluate(rhs, state.in);
+					System.out.println("Evaluated: " + evaluated + " (constant=" + ExpressionEvaluator.isConstant(evaluated) + ")");
+				}
+
 				System.out.println();
 			}
 
