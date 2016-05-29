@@ -1,16 +1,15 @@
 package org.rsdeob.stdlib.cfg.ir.transform;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.function.BinaryOperator;
-
 import org.objectweb.asm.Type;
-import org.rsdeob.stdlib.cfg.ir.expr.ConstantExpression;
 import org.rsdeob.stdlib.cfg.ir.expr.Expression;
 import org.rsdeob.stdlib.cfg.ir.expr.VarExpression;
 import org.rsdeob.stdlib.cfg.ir.stat.CopyVarStatement;
 import org.rsdeob.stdlib.cfg.util.TabbedStringWriter;
+
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.function.BinaryOperator;
 
 import static org.rsdeob.stdlib.cfg.ir.transform.DataFlowExpression.NOT_A_CONST;
 import static org.rsdeob.stdlib.cfg.ir.transform.DataFlowExpression.UNDEFINED;
@@ -113,25 +112,18 @@ public class DataFlowState {
 			Expression newExpr; // new (y)
 			if (prevExpr == UNDEFINED) {
 				newExpr = UNDEFINED;
-			} else if (!(rhs instanceof ConstantExpression)) { // todo: we need to find a way to evaluate complex exprs to determine whether they are constant.
-				if (rhs instanceof VarExpression) {
-					if (containsKey(rhs) && get(rhs).getExpression() instanceof ConstantExpression) {
-						newExpr = get(rhs).getExpression();
-					} else {
-						newExpr = NOT_A_CONST;
-					}
-				} else {
-					newExpr = NOT_A_CONST;
-				}
 			} else {
-				// rhs here is a ConstantExpression
-				newExpr = rhs;
+				Expression evaluated = ExpressionEvaluator.evaluate(rhs, this);
+				if (ExpressionEvaluator.isConstant(evaluated))
+					newExpr = evaluated;
+				else
+					newExpr = NOT_A_CONST;
 			}
 			// the propagated information for the
 			// is the same for in and out.
 			if (prevExpr.equals(newExpr))
 				return false;
-			
+
 			// update the current state of the
 			// variable
 			put(var, new CopyVarStatement(var, newExpr));
