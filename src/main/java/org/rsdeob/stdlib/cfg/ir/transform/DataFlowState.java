@@ -1,8 +1,5 @@
 package org.rsdeob.stdlib.cfg.ir.transform;
 
-import static org.rsdeob.stdlib.cfg.ir.transform.DataFlowExpression.*;
-import static org.rsdeob.stdlib.cfg.ir.transform.DataFlowState.CopySet.AllVarsExpression.VAR_ALL;
-
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
@@ -14,6 +11,11 @@ import org.rsdeob.stdlib.cfg.ir.expr.Expression;
 import org.rsdeob.stdlib.cfg.ir.expr.VarExpression;
 import org.rsdeob.stdlib.cfg.ir.stat.CopyVarStatement;
 import org.rsdeob.stdlib.cfg.util.TabbedStringWriter;
+
+import static org.rsdeob.stdlib.cfg.ir.transform.DataFlowExpression.NOT_A_CONST;
+import static org.rsdeob.stdlib.cfg.ir.transform.DataFlowExpression.UNDEFINED;
+import static org.rsdeob.stdlib.cfg.ir.transform.DataFlowState.CopySet.AllVarsExpression.VAR_ALL;
+
 
 public class DataFlowState {
 	public CopySet in;
