@@ -34,7 +34,8 @@ import org.rsdeob.stdlib.cfg.ir.StatementGraph;
 import org.rsdeob.stdlib.cfg.ir.StatementGraphBuilder;
 import org.rsdeob.stdlib.cfg.ir.stat.CopyVarStatement;
 import org.rsdeob.stdlib.cfg.ir.stat.Statement;
-import org.rsdeob.stdlib.cfg.ir.transform.VariableStateComputer;
+import org.rsdeob.stdlib.cfg.ir.transform1.CopyPropagator;
+import org.rsdeob.stdlib.cfg.ir.transform1.VariableStateComputer;
 import org.rsdeob.stdlib.cfg.util.GraphUtils;
 import org.rsdeob.stdlib.collections.NodeTable;
 import org.rsdeob.stdlib.collections.graph.flow.TarjanDominanceComputor;
@@ -105,11 +106,11 @@ public class BootBibl implements Opcodes {
 //			}
 			
 			StatementGraph sgraph = StatementGraphBuilder.create(cfg);
-			VariableStateComputer prop = new VariableStateComputer(sgraph, m);
+			VariableStateComputer comp = new VariableStateComputer(sgraph, m);
 			for(Statement stmt : sgraph.vertices()) {
 				System.out.println(stmt);
 				System.out.println("   IN:");
-				Map<String, Set<CopyVarStatement>> in = prop.in(stmt);
+				Map<String, Set<CopyVarStatement>> in = comp.in(stmt);
 				List<String> inVars = new ArrayList<>(in.keySet());
 				Collections.sort(inVars);
 				for(String var : inVars) {
@@ -119,7 +120,7 @@ public class BootBibl implements Opcodes {
 					}
 				}
 				System.out.println("   OUT:");
-				Map<String, Set<CopyVarStatement>> out = prop.out(stmt);
+				Map<String, Set<CopyVarStatement>> out = comp.out(stmt);
 				List<String> outVars = new ArrayList<>(out.keySet());
 				Collections.sort(outVars);
 				for(String var : outVars) {
@@ -130,6 +131,14 @@ public class BootBibl implements Opcodes {
 				}
 				System.out.println();
 			}
+			
+			CopyPropagator prop = new CopyPropagator(sgraph, comp);
+			prop.run();
+			
+			System.out.println("IR representation of " + m + ":");
+			System.out.println(root);
+			System.out.println();
+			
 //			DataFlowAnalyzer dfa = new DataFlowAnalyzer(cfg);
 //			Map<Statement,DataFlowState> df = dfa.compute();
 //			System.out.println("Data flow for " + m + ":");

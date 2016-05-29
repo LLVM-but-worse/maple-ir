@@ -1,4 +1,4 @@
-package org.rsdeob.stdlib.cfg.ir.transform;
+package org.rsdeob.stdlib.cfg.ir.transform1;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -155,19 +155,20 @@ public class VariableStateComputer {
 			Set<CopyVarStatement> set = newOut.getNonNull(name);
 			// the new expression overwrites the old definition, so
 			// we remove all previous variable data in the set.
-			// set.clear();
+			set.clear();
+			set.add(copy);
 			
-			Expression rhs = copy.getExpression();
-			boolean contains = false;
-			for(CopyVarStatement cvs : set) {
-				Expression _rhs = cvs.getExpression();
-				if(rhs.equals(_rhs)) {
-					contains = true;
-				}
-			}
-			if(!contains) {
-				set.add(copy);
-			}
+//			Expression rhs = copy.getExpression();
+//			boolean contains = false;
+//			for(CopyVarStatement cvs : set) {
+//				Expression _rhs = cvs.getExpression();
+//				if(rhs.equals(_rhs)) {
+//					contains = true;
+//				}
+//			}
+//			if(!contains) {
+//				set.add(copy);
+//			}
 		}
 		
 		// lastly, add the successors to the work list.
@@ -255,12 +256,12 @@ public class VariableStateComputer {
 		}
 	}
 	
-	private String createVariableName(CopyVarStatement stmt) {
+	public static String createVariableName(CopyVarStatement stmt) {
 		VarExpression var = stmt.getVariable();
 		return (var.isStackVariable() ? "s" : "l") + "var" + var.getIndex();
 	}
 	
-	private String createVariableName(VarExpression var) {
+	public static String createVariableName(VarExpression var) {
 		return (var.isStackVariable() ? "s" : "l") + "var" + var.getIndex();
 	}
 	
