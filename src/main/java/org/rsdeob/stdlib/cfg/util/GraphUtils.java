@@ -1,26 +1,26 @@
 package org.rsdeob.stdlib.cfg.util;
 
-import org.objectweb.asm.Opcodes;
-import org.objectweb.asm.tree.*;
-import org.objectweb.asm.util.Printer;
-import org.rsdeob.stdlib.cfg.BasicBlock;
-import org.rsdeob.stdlib.cfg.ControlFlowGraph;
-import org.rsdeob.stdlib.cfg.ControlFlowGraphDeobfuscator.SuperNode;
-import org.rsdeob.stdlib.cfg.ControlFlowGraphDeobfuscator.SuperNodeList;
-import org.rsdeob.stdlib.cfg.edge.DefaultSwitchEdge;
-import org.rsdeob.stdlib.cfg.edge.FlowEdge;
-import org.rsdeob.stdlib.cfg.edge.JumpEdge;
-import org.rsdeob.stdlib.cfg.edge.SwitchEdge;
-import org.rsdeob.stdlib.cfg.ir.StatementGraph;
-import org.rsdeob.stdlib.cfg.ir.stat.Statement;
-import org.rsdeob.stdlib.collections.graph.flow.ExceptionRange;
-
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.util.*;
 import java.util.Map.Entry;
 import java.util.function.Predicate;
+
+import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.tree.*;
+import org.objectweb.asm.util.Printer;
+import org.rsdeob.stdlib.cfg.BasicBlock;
+import org.rsdeob.stdlib.cfg.ControlFlowGraph;
+import org.rsdeob.stdlib.cfg.edge.DefaultSwitchEdge;
+import org.rsdeob.stdlib.cfg.edge.FlowEdge;
+import org.rsdeob.stdlib.cfg.edge.JumpEdge;
+import org.rsdeob.stdlib.cfg.edge.SwitchEdge;
+import org.rsdeob.stdlib.cfg.ir.StatementGraph;
+import org.rsdeob.stdlib.cfg.ir.stat.Statement;
+import org.rsdeob.stdlib.cfg.util.ControlFlowGraphDeobfuscator.SuperNode;
+import org.rsdeob.stdlib.cfg.util.ControlFlowGraphDeobfuscator.SuperNodeList;
+import org.rsdeob.stdlib.collections.graph.flow.ExceptionRange;
 
 public class GraphUtils {
 
@@ -369,7 +369,7 @@ public class GraphUtils {
 	public static String toString(StatementGraph sg, Collection<Statement> stmts) {
 		StringBuilder sb = new StringBuilder("\n=========SG(stmt_count=").append(stmts.size()).append(") ").append("=========\n\n");
 		for(Statement stmt : stmts) {
-			sb.append(stmt).append(" #").append(stmt.getId()).append(':').append(stmt.getBlock().getId()).append('\n');
+			sb.append(stmt).append(" #").append(stmt.getId()).append('\n');
 			for(FlowEdge<Statement> e : sg.getEdges(stmt)) {
 				sb.append("         -> ").append(e.toString()).append('\n');
 			}
@@ -745,7 +745,7 @@ public class GraphUtils {
 			String id = LabelHelper.createBlockName(label);
 			label++;
 			
-			b.rename(id);
+			b.setId(id);
 			cfg.addVertex(b);
 		}
 		

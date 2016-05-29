@@ -1,21 +1,16 @@
-package org.rsdeob.stdlib.cfg.ir.stat;
+package org.rsdeob.stdlib.cfg.ir.stat.header;
 
+import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
-import org.rsdeob.stdlib.cfg.BasicBlock;
+import org.rsdeob.stdlib.cfg.ir.stat.Statement;
 import org.rsdeob.stdlib.cfg.util.TabbedStringWriter;
 
-public class BlockHeaderStatement extends Statement {
+public abstract class HeaderStatement extends Statement {
 
-	private BasicBlock block;
+	public abstract String getHeaderId();
 	
-	public BlockHeaderStatement(BasicBlock block) {
-		this.block = block;
-	}
+	public abstract Label getLabel();
 	
-	public BasicBlock getBlock() {
-		return block;
-	}
-
 	@Override
 	public void onChildUpdated(int ptr) {
 		
@@ -31,13 +26,13 @@ public class BlockHeaderStatement extends Statement {
 		if(printer.getTabCount() > 0) {
 			printer.untab();
 		}
-		printer.print(block.getId() + ":");
+		printer.print(getHeaderId() + ":");
 		printer.tab();
 	}
 
 	@Override
 	public void toCode(MethodVisitor visitor) {
-		visitor.visitLabel(block.getLabel().getLabel());
+		visitor.visitLabel(getLabel());
 	}
 
 	@Override

@@ -1,5 +1,10 @@
 package org.rsdeob;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
@@ -10,6 +15,8 @@ import org.rsdeob.stdlib.cfg.ir.RootStatement;
 import org.rsdeob.stdlib.cfg.ir.StatementGenerator;
 import org.rsdeob.stdlib.cfg.ir.StatementGraph;
 import org.rsdeob.stdlib.cfg.ir.StatementGraphBuilder;
+import org.rsdeob.stdlib.cfg.ir.stat.Statement;
+import org.rsdeob.stdlib.cfg.ir.transform.impl.LivenessAnalyser;
 import org.rsdeob.stdlib.cfg.ir.transform.impl.TrackerImpl;
 
 public class DataFlowAnalyserBoot {
@@ -34,6 +41,7 @@ public class DataFlowAnalyserBoot {
 				
 				TrackerImpl ffa = new TrackerImpl(sgraph, m);
 				ffa.run();
+//				ffa.propagate();
 //				ReachingAnalyser ra = new ReachingAnalyser(sgraph);
 //				ra.run();
 				
@@ -43,6 +51,27 @@ public class DataFlowAnalyserBoot {
 //				ffa.propagate();
 				
 //				System.out.println(root);
+				
+				LivenessAnalyser liveness = new LivenessAnalyser(sgraph);
+				liveness.run();
+				
+				for(Statement stmt : sgraph.vertices()) {
+					System.out.println(stmt);
+					System.out.println("  IN:");
+					Map<String, Boolean> in = liveness.in(stmt);
+					List<String> inVars = new ArrayList<>(in.keySet());
+					Collections.sort(inVars);
+					for(String var : inVars) {
+						System.out.println("     " + var + " is " + (in.get(var) ? "live" : "dead."));
+					}
+					System.out.println("  OUT:");
+					Map<String, Boolean> out = liveness.out(stmt);
+					List<String> outVars = new ArrayList<>(out.keySet());
+					Collections.sort(outVars);
+					for(String var : outVars) {
+						System.out.println("     " + var + " is " + (out.get(var) ? "live" : "dead."));
+					}
+				}
 				
 				System.out.println();
 			}

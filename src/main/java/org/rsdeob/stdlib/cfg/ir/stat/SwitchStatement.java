@@ -10,18 +10,18 @@ import java.util.Map.Entry;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Type;
-import org.rsdeob.stdlib.cfg.BasicBlock;
 import org.rsdeob.stdlib.cfg.ir.expr.Expression;
+import org.rsdeob.stdlib.cfg.ir.stat.header.HeaderStatement;
 import org.rsdeob.stdlib.cfg.util.TabbedStringWriter;
 import org.rsdeob.stdlib.cfg.util.TypeUtils;
 
 public class SwitchStatement extends Statement {
 
 	private Expression expression;
-	private LinkedHashMap<Integer, BasicBlock> targets;
-	private BasicBlock defaultTarget;
+	private LinkedHashMap<Integer, HeaderStatement> targets;
+	private HeaderStatement defaultTarget;
 
-	public SwitchStatement(Expression expr, LinkedHashMap<Integer, BasicBlock> targets, BasicBlock defaultTarget) {
+	public SwitchStatement(Expression expr, LinkedHashMap<Integer, HeaderStatement> targets, HeaderStatement defaultTarget) {
 		setExpression(expr);
 		this.targets = targets;
 		this.defaultTarget = defaultTarget;
@@ -36,19 +36,19 @@ public class SwitchStatement extends Statement {
 		overwrite(expression, 0);
 	}
 
-	public LinkedHashMap<Integer, BasicBlock> getTargets() {
+	public LinkedHashMap<Integer, HeaderStatement> getTargets() {
 		return targets;
 	}
 
-	public void setTargets(LinkedHashMap<Integer, BasicBlock> targets) {
+	public void setTargets(LinkedHashMap<Integer, HeaderStatement> targets) {
 		this.targets = targets;
 	}
 
-	public BasicBlock getDefaultTarget() {
+	public HeaderStatement getDefaultTarget() {
 		return defaultTarget;
 	}
 
-	public void setDefaultTarget(BasicBlock defaultTarget) {
+	public void setDefaultTarget(HeaderStatement defaultTarget) {
 		this.defaultTarget = defaultTarget;
 	}
 
@@ -102,9 +102,9 @@ public class SwitchStatement extends Statement {
 		List<Integer> keys = new ArrayList<>(targets.keySet());
 		Collections.sort(keys);
 		
-		LinkedHashMap<Integer, BasicBlock> newMap = new LinkedHashMap<>();
+		LinkedHashMap<Integer, HeaderStatement> newMap = new LinkedHashMap<>();
 		for(int key : keys) {
-			BasicBlock targ = targets.get(keys);
+			HeaderStatement targ = targets.get(keys);
 			newMap.put(key, targ);
 		}
 	}
@@ -121,11 +121,11 @@ public class SwitchStatement extends Statement {
 		printer.print(')');
 		printer.print(" {");
 		printer.tab();
-		for(Entry<Integer, BasicBlock> e : targets.entrySet()) {
-			printer.print("\ncase " + e.getKey() + ":\n\t goto\t#" + e.getValue().getId());
+		for(Entry<Integer, HeaderStatement> e : targets.entrySet()) {
+			printer.print("\ncase " + e.getKey() + ":\n\t goto\t#" + e.getValue().getHeaderId());
 
 		}
-		printer.print("\ndefault:\n\t goto\t#" + defaultTarget.getId());
+		printer.print("\ndefault:\n\t goto\t#" + defaultTarget.getHeaderId());
 		printer.untab();
 		printer.print("\n}");		
 	}
@@ -139,9 +139,9 @@ public class SwitchStatement extends Statement {
 		int[] cases = new int[targets.size()];
 		Label[] labels = new Label[targets.size()];
 		int j = 0;
-		for (Entry<Integer, BasicBlock> e : targets.entrySet()) {
+		for (Entry<Integer, HeaderStatement> e : targets.entrySet()) {
 			cases[j] = e.getKey();
-			labels[j++] = e.getValue().getLabel().getLabel();
+			labels[j++] = e.getValue().getLabel();
 		}
 
 		expression.toCode(visitor);
@@ -151,9 +151,9 @@ public class SwitchStatement extends Statement {
 		}
 		boolean fitsIntoTable = fitsIntoTableSwitch();
 		if (fitsIntoTable) {
-			visitor.visitTableSwitchInsn(cases[0], cases[cases.length - 1], defaultTarget.getLabel().getLabel(), labels);
+			visitor.visitTableSwitchInsn(cases[0], cases[cases.length - 1], defaultTarget.getLabel(), labels);
 		} else {
-			visitor.visitLookupSwitchInsn(defaultTarget.getLabel().getLabel(), cases, labels);
+			visitor.visitLookupSwitchInsn(defaultTarget.getLabel(), cases, labels);
 		}
 	}
 

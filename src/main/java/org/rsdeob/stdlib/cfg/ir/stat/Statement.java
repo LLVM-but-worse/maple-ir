@@ -4,8 +4,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.objectweb.asm.MethodVisitor;
-import org.rsdeob.stdlib.cfg.BasicBlock;
-import org.rsdeob.stdlib.cfg.edge.FlowEdge;
 import org.rsdeob.stdlib.cfg.util.TabbedStringWriter;
 import org.rsdeob.stdlib.collections.graph.FastGraphVertex;
 
@@ -14,7 +12,6 @@ public abstract class Statement implements FastGraphVertex {
 	private static int ID_COUNTER = 1;
 	private final long id = ID_COUNTER++;
 	
-	private BasicBlock block;
 	private List<Statement> parents;
 	private Statement[] children;
 	private int ptr;
@@ -23,48 +20,6 @@ public abstract class Statement implements FastGraphVertex {
 		parents = new ArrayList<>();
 		children = new Statement[8];
 		ptr = 0;
-	}
-	
-	public List<Statement> getPredecessors() {
-		List<Statement> blockStmts = block.getStatements();
-		int index = blockStmts.indexOf(this);
-		List<Statement> ret = new ArrayList<>();
-		if(index == 0) {
-			for(FlowEdge<BasicBlock> pe : block.getPredecessors()) {
-				BasicBlock pred = pe.src;
-				List<Statement> predStmts = pred.getStatements();
-				Statement last = predStmts.get(predStmts.size() - 1);
-				ret.add(last);
-			}
-		} else {
-			ret.add(blockStmts.get(index - 1));
-		}
-		return ret;
-	}
-	
-	public List<Statement> getSuccessors() {
-		List<Statement> blockStmts = block.getStatements();
-		int index = blockStmts.indexOf(this);
-		List<Statement> ret = new ArrayList<>();
-		if(index == (blockStmts.size()-1)) {
-			for(FlowEdge<BasicBlock> se : block.getSuccessors()) {
-				BasicBlock succ = se.dst;
-				List<Statement> succStmts = succ.getStatements();
-				Statement first = succStmts.get(0);
-				ret.add(first);
-			}
-		} else {
-			ret.add(blockStmts.get(index + 1));
-		}
-		return ret;
-	}
-	
-	public void setBlock(BasicBlock block) {
-		this.block = block;
-	}
-	
-	public BasicBlock getBlock() {
-		return block;
 	}
 	
 	public int size() {

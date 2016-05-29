@@ -37,9 +37,9 @@ public class TrackerImpl extends ForwardsFlowAnalyser<Statement, FlowEdge<Statem
 			
 			StatementVisitor impl = new StatementVisitor(stmt) {
 				@Override
-				public void visit(Statement stmt) {
-					if(stmt instanceof VarExpression) {
-						VarExpression var = (VarExpression) stmt;
+				public void visit(Statement s) {
+					if(s instanceof VarExpression) {
+						VarExpression var = (VarExpression) s;
 						String name = VariableStateComputer.createVariableName(var);
 						Set<CopyVarStatement> defs = in.get(name);
 						
