@@ -11,7 +11,6 @@ import org.objectweb.asm.tree.MethodNode;
 import org.rsdeob.BootBibl.C2;
 import org.rsdeob.stdlib.cfg.ControlFlowGraph;
 import org.rsdeob.stdlib.cfg.ControlFlowGraphBuilder;
-import org.rsdeob.stdlib.cfg.edge.FlowEdge;
 import org.rsdeob.stdlib.cfg.ir.RootStatement;
 import org.rsdeob.stdlib.cfg.ir.StatementGenerator;
 import org.rsdeob.stdlib.cfg.ir.StatementGraph;
@@ -20,8 +19,8 @@ import org.rsdeob.stdlib.cfg.ir.StatementVisitor;
 import org.rsdeob.stdlib.cfg.ir.expr.VarExpression;
 import org.rsdeob.stdlib.cfg.ir.stat.CopyVarStatement;
 import org.rsdeob.stdlib.cfg.ir.stat.Statement;
-import org.rsdeob.stdlib.cfg.ir.transform1.BackwardsFlowAnalyser;
 import org.rsdeob.stdlib.cfg.ir.transform1.VariableStateComputer;
+import org.rsdeob.stdlib.cfg.ir.transform1.impl.TrackerImpl;
 
 public class DataFlowAnalyserBoot {
 
@@ -39,8 +38,8 @@ public class DataFlowAnalyserBoot {
 				RootStatement root = generator.buildRoot();
 				StatementGraph sgraph = StatementGraphBuilder.create(cfg);
 				System.out.println("Processing " + m);
-				// System.out.println(cfg);
-				// System.out.println(sgraph);
+				System.out.println(cfg);
+				System.out.println(sgraph);
 				
 				Map<Statement, Set<String>> kill = new HashMap<>();
 				Map<Statement, Set<String>> gen = new HashMap<>();
@@ -68,121 +67,21 @@ public class DataFlowAnalyserBoot {
 				}
 				
 				
-				BackwardsFlowAnalyser<Statement, FlowEdge<Statement>, Set<String>> bfa = new BackwardsFlowAnalyser<Statement, FlowEdge<Statement>, Set<String>>(sgraph) {
-
-					@Override
-					protected Set<String> newState() {
-						return new HashSet<>();
-					}
-
-					@Override
-					protected Set<String> newEntryState() {
-						return new HashSet<>();
-					}
-
-					@Override
-					protected void merge(Set<String> in1, Set<String> in2, Set<String> out) {
-						
-					}
-
-					@Override
-					protected void copy(Set<String> src, Set<String> dst) {
-						dst.addAll(src);
-					}
-
-					@Override
-					protected boolean equals(Set<String> s1, Set<String> s2) {
-						return s1.equals(s2);
-					}
-
-					@Override
-					protected void propagate(Statement n, Set<String> in, Set<String> out) {
-						// System.out.println("Propagating across " + n);
-						out.addAll(in);
-						
-						final VarExpression rhs;
-						
-						if(n instanceof CopyVarStatement) {
-							CopyVarStatement stmt = (CopyVarStatement) n;
-							String name = VariableStateComputer.createVariableName(stmt);
-							out.remove(name);
-							rhs = stmt.getVariable();
-						} else {
-							rhs = null;
-						}
-						
-						StatementVisitor vis = new StatementVisitor(n) {
-							@Override
-							public void visit(Statement stmt) {
-								if(n != rhs && stmt instanceof VarExpression) {
-									VarExpression var = (VarExpression) stmt;
-									String name = VariableStateComputer.createVariableName(var);
-									out.add(name);
-								}
-							}
-						};
-						vis.visit();
-					}
-				};
+				TrackerImpl ffa = new TrackerImpl(sgraph, m);
+				ffa.run();
 				
-				/* BackwardsFlowAnalyser<Statement, FlowEdge<Statement>, Set<String>> bfa = new BackwardsFlowAnalyser<Statement, FlowEdge<Statement>, Set<String>>(sgraph) {
-					
-					@Override
-					protected void propagate(Statement n, Set<String> currentOut, Set<String> currentIn) {
-						Set<String> toKill = kill.get(n);
-						currentIn.clear();
-						currentIn.addAll(toKill);
-						for(String s : currentOut) {
-							if(currentIn.contains(s)) {
-								currentIn.remove(s);
-							} else {
-								currentIn.add(s);
-							}
-						}
-						
-						Set<String> toGen = gen.get(n);
-						currentIn.addAll(toGen);
-					}
-					
-					@Override
-					protected Set<String> newState() {
-						return new HashSet<>();
-					}
-					
-					@Override
-					protected Set<String> newEntryState() {
-						return new HashSet<>();
-					}
-					
-					@Override
-					protected void merge(Set<String> in1, Set<String> in2, Set<String> out) {
-						out.addAll(in1);
-						out.addAll(in2);
-					}
-					
-					@Override
-					protected boolean equals(Set<String> s1, Set<String> s2) {
-						return s1.equals(s2);
-					}
-					
-					@Override
-					protected void copy(Set<String> src, Set<String> dst) {
-						dst.addAll(src);
-					}
-				}; */
-				
-				for(Statement stmt : sgraph.vertices()) {
-					System.out.println(stmt);
-					System.out.println("  IN:");
-					for(String in : bfa.in(stmt)) {
-						System.out.println("     " + in);
-					}
-					System.out.println("  OUT:");
-					for(String in : bfa.out(stmt)) {
-						System.out.println("     " + in);
-					}
-					System.out.println();
-				}
+//				for(Statement stmt : sgraph.vertices()) {
+//					System.out.println(stmt);
+//					System.out.println("  IN:");
+//					for(Entry<String, Set<CopyVarStatement>> in : ffa.in(stmt).entrySet()) {
+//						System.out.println("     " + in);
+//					}
+//					System.out.println("  OUT:");
+//					for(Entry<String, Set<CopyVarStatement>> in : ffa.out(stmt).entrySet()) {
+//						System.out.println("     " + in);
+//					}
+//					System.out.println();
+//				}
 				
 				System.out.println();
 			}
