@@ -17,10 +17,12 @@ public abstract class DataAnalyser<N extends FastGraphVertex, E extends FastGrap
 	
 	public DataAnalyser(FlowGraph<N, E> graph, Collection<N> queue) {
 		this.graph = graph;
+		this.queue = queue;
 		in = new HashMap<>();
 		out = new HashMap<>();
-		this.queue = queue;
-		
+	}
+	
+	public void run() {
 		init();
 		processQueue();
 	}
