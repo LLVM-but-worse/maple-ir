@@ -8,6 +8,7 @@ import org.objectweb.asm.tree.MethodNode;
 import org.rsdeob.stdlib.cfg.BasicBlock;
 import org.rsdeob.stdlib.cfg.ir.stat.Statement;
 import org.rsdeob.stdlib.cfg.ir.stat.header.HeaderStatement;
+import org.rsdeob.stdlib.cfg.ir.stat.header.StatementHeaderStatement;
 import org.rsdeob.stdlib.cfg.util.TabbedStringWriter;
 
 public class RootStatement extends Statement {
@@ -36,14 +37,16 @@ public class RootStatement extends Statement {
 	public void toString(TabbedStringWriter printer) {
 		for (int addr = 0; read(addr) != null; addr++) {
 			Statement stmt = read(addr);
-			if(!(stmt instanceof HeaderStatement)) {
+			if(!(stmt instanceof StatementHeaderStatement)) {
 				printer.print(stmt.getId() + ". ");
+				stmt.toString(printer);
 			}
-			stmt.toString(printer);
 			
 			Statement next = read(addr + 1);
-			if(next != null) {				
-				printer.print('\n', !next.changesIndentation());
+			if(next != null) {
+				if(!(stmt instanceof StatementHeaderStatement)) {
+					printer.print('\n', !next.changesIndentation());
+				}
 			}
 		}
 	}

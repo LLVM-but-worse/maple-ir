@@ -9,7 +9,7 @@ import org.rsdeob.stdlib.collections.graph.FastGraphVertex;
 
 public abstract class Statement implements FastGraphVertex {
 	
-	private static int ID_COUNTER = 1;
+	public static int ID_COUNTER = 1;
 	private final long id = ID_COUNTER++;
 	
 	private List<Statement> parents;
