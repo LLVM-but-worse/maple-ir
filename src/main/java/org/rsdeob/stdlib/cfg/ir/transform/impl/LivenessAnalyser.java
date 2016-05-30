@@ -47,6 +47,10 @@ public class LivenessAnalyser extends BackwardsFlowAnalyser<Statement, FlowEdge<
 					if(s instanceof VarExpression) {
 						initial.put(s.toString(), Boolean.valueOf(false));
 						uses.getNonNull(stmt).add((VarExpression)s);
+					} else if(s instanceof CopyVarStatement) {
+						VarExpression var = ((CopyVarStatement) s).getVariable();
+						initial.put(var.toString(), Boolean.valueOf(false));
+						uses.getNonNull(stmt).add(var);
 					}
 				}
 			};

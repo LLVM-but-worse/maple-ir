@@ -43,8 +43,9 @@ public class TrackerImpl extends ForwardsFlowAnalyser<Statement, FlowEdge<Statem
 						String name = VariableStateComputer.createVariableName(var);
 						Set<CopyVarStatement> defs = in.get(name);
 						
-						if(defs.size() == 1) {
-							Expression def = defs.iterator().next().getExpression();
+						if(defs != null && defs.size() == 1) {
+							CopyVarStatement copy = defs.iterator().next();
+							Expression def = copy.getExpression();
 							if(def instanceof ConstantExpression || def instanceof VarExpression) {
 								int d = getDepth();
 								getCurrent(d).overwrite(def, getCurrentPtr(d));
