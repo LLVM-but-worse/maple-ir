@@ -35,6 +35,9 @@ public class TrackerImpl extends ForwardsFlowAnalyser<Statement, FlowEdge<Statem
 		for(Statement stmt : graph.vertices()) {
 			Map<String, Set<CopyVarStatement>> in = in(stmt);
 			
+			Set<FlowEdge<Statement>> succs = graph.getEdges(stmt);
+			Set<FlowEdge<Statement>> preds = graph.getEdges(stmt);
+			
 			StatementVisitor impl = new StatementVisitor(stmt) {
 				@Override
 				public void visit(Statement s) {
@@ -49,8 +52,6 @@ public class TrackerImpl extends ForwardsFlowAnalyser<Statement, FlowEdge<Statem
 							if(def instanceof ConstantExpression || def instanceof VarExpression) {
 								int d = getDepth();
 								getCurrent(d).overwrite(def, getCurrentPtr(d));
-							} else {
-								
 							}
 						}
 					}
