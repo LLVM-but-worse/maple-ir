@@ -1,4 +1,4 @@
-package org.rsdeob.stdlib.cfg.ir.transform;
+package org.rsdeob.stdlib.cfg.ir.exprtransform;
 
 import org.objectweb.asm.Type;
 import org.rsdeob.stdlib.cfg.ir.StatementVisitor;
@@ -7,7 +7,7 @@ import org.rsdeob.stdlib.cfg.ir.expr.ConstantExpression;
 import org.rsdeob.stdlib.cfg.ir.expr.Expression;
 import org.rsdeob.stdlib.cfg.ir.expr.VarExpression;
 import org.rsdeob.stdlib.cfg.ir.stat.Statement;
-import org.rsdeob.stdlib.cfg.ir.transform.DataFlowState.CopySet;
+import org.rsdeob.stdlib.cfg.ir.exprtransform.DataFlowState.CopySet;
 import org.rsdeob.stdlib.cfg.util.TypeUtils;
 import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
