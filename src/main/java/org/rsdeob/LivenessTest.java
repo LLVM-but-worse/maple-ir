@@ -1,7 +1,6 @@
 package org.rsdeob;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -22,8 +21,10 @@ import org.rsdeob.stdlib.cfg.ir.expr.ArithmeticExpression.Operator;
 import org.rsdeob.stdlib.cfg.ir.expr.Expression;
 import org.rsdeob.stdlib.cfg.ir.expr.VarExpression;
 import org.rsdeob.stdlib.cfg.ir.stat.ConditionalJumpStatement.ComparisonType;
+import org.rsdeob.stdlib.cfg.ir.stat.CopyVarStatement;
 import org.rsdeob.stdlib.cfg.ir.stat.Statement;
 import org.rsdeob.stdlib.cfg.ir.transform.impl.LivenessAnalyser;
+import org.rsdeob.stdlib.cfg.ir.transform.impl.TrackerImpl;
 import org.rsdeob.stdlib.cfg.util.ControlFlowGraphDeobfuscator;
 import org.rsdeob.stdlib.cfg.util.GraphUtils;
 import org.rsdeob.stdlib.cfg.util.TabbedStringWriter;
@@ -55,32 +56,54 @@ public class LivenessTest {
 				System.out.println(root);
 				System.out.println();
 				
-				LivenessAnalyser la = new LivenessAnalyser(sgraph);
-				la.run();
+				simplify(root, sgraph, m);
 				
-				for(Statement stmt : sgraph.vertices()) {
-					System.out.println(stmt);
-					System.out.println("  IN:");
-					Map<String, Boolean> in = la.in(stmt);
-					List<String> inVars = new ArrayList<>(in.keySet());
-					Collections.sort(inVars);
-					for(String var : inVars) {
-						if(in.get(var)) {
-							System.out.println("     " + var + " is " + (in.get(var) ? "live" : "dead."));
-						}
-					}
-					System.out.println("  OUT:");
-					Map<String, Boolean> out = la.out(stmt);
-					List<String> outVars = new ArrayList<>(out.keySet());
-					Collections.sort(outVars);
-					for(String var : outVars) {
-						if(out.get(var)) {
-							System.out.println("     " + var + " is " + (out.get(var) ? "live" : "dead."));
-						}
-					}
-				}
+//				for(Statement stmt : sgraph.vertices()) {
+//					System.out.println(stmt);
+//					System.out.println("  IN:");
+//					Map<String, Boolean> in = la.in(stmt);
+//					List<String> inVars = new ArrayList<>(in.keySet());
+//					Collections.sort(inVars);
+//					for(String var : inVars) {
+//						if(in.get(var)) {
+//							System.out.println("     " + var + " is " + (in.get(var) ? "live" : "dead."));
+//						}
+//					}
+//					System.out.println("  OUT:");
+//					Map<String, Boolean> out = la.out(stmt);
+//					List<String> outVars = new ArrayList<>(out.keySet());
+//					Collections.sort(outVars);
+//					for(String var : outVars) {
+//						if(out.get(var)) {
+//							System.out.println("     " + var + " is " + (out.get(var) ? "live" : "dead."));
+//						}
+//					}
+//				}
 			}
 		}
+	}
+	
+	private static void simplify(RootStatement root, StatementGraph graph, MethodNode m) {
+		TrackerImpl ffa = new TrackerImpl(graph, m);
+		ffa.run();
+		ffa.propagate();
+		
+		LivenessAnalyser la = new LivenessAnalyser(graph);
+		la.run();
+		
+		for(Statement stmt : graph.vertices()) {
+			if(stmt instanceof CopyVarStatement) {
+//				Map<String, Boolean> in = la.in(stmt);
+				Map<String, Boolean> out = la.out(stmt);
+				
+				CopyVarStatement copy = (CopyVarStatement) stmt;
+				VarExpression var = copy.getVariable();
+				
+				if(!out.get(var.toString())) {
+					copy.delete();
+				}
+			}
+		}	
 	}
 	
 	void test1() {
@@ -88,7 +111,7 @@ public class LivenessTest {
 		int z = 10;
 		while(x <= 10) {
 			x++;
-			z += x;
+			z = x;
 		}
 		System.out.println(x);
 	}
