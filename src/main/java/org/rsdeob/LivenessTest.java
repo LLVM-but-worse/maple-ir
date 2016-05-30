@@ -84,9 +84,12 @@ public class LivenessTest {
 	}
 	
 	private static void simplify(RootStatement root, StatementGraph graph, MethodNode m) {
+		System.out.println(graph);
 		TrackerImpl ffa = new TrackerImpl(graph, m);
 		ffa.run();
 		ffa.propagate();
+		System.out.println(root);
+		System.out.println(graph);
 		
 		LivenessAnalyser la = new LivenessAnalyser(graph);
 		la.run();
