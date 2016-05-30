@@ -72,7 +72,14 @@ public class LivenessAnalyser extends BackwardsFlowAnalyser<Statement, FlowEdge<
 
 	@Override
 	protected void propagate(Statement n, Map<String, Boolean> in, Map<String, Boolean> out) {
-		out.putAll(in);
+		for(Entry<String, Boolean> e : in.entrySet()) {
+			String key = e.getKey();
+			if(out.containsKey(key)) {
+				out.put(key, e.getValue().booleanValue() || out.get(key).booleanValue());
+			} else {
+				out.put(key, e.getValue());
+			}
+		}
 		Set<VarExpression> vars = uses.get(n);
 		if(vars != null && vars.size() > 0) {
 			for(VarExpression var : vars) {
@@ -82,7 +89,6 @@ public class LivenessAnalyser extends BackwardsFlowAnalyser<Statement, FlowEdge<
 		if(n instanceof CopyVarStatement) {
 			out.put(((CopyVarStatement) n).getVariable().toString(), false);
 		}
-		System.out.println("Prop " + n + in);
 	}
 
 	@Override
