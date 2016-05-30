@@ -1,7 +1,9 @@
 package org.rsdeob;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.Opcodes;
@@ -56,6 +58,27 @@ public class LivenessTest {
 				LivenessAnalyser la = new LivenessAnalyser(sgraph);
 				la.run();
 				
+				for(Statement stmt : sgraph.vertices()) {
+					System.out.println(stmt);
+					System.out.println("  IN:");
+					Map<String, Boolean> in = la.in(stmt);
+					List<String> inVars = new ArrayList<>(in.keySet());
+					Collections.sort(inVars);
+					for(String var : inVars) {
+						if(in.get(var)) {
+							System.out.println("     " + var + " is " + (in.get(var) ? "live" : "dead."));
+						}
+					}
+					System.out.println("  OUT:");
+					Map<String, Boolean> out = la.out(stmt);
+					List<String> outVars = new ArrayList<>(out.keySet());
+					Collections.sort(outVars);
+					for(String var : outVars) {
+						if(out.get(var)) {
+							System.out.println("     " + var + " is " + (out.get(var) ? "live" : "dead."));
+						}
+					}
+				}
 			}
 		}
 	}
