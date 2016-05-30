@@ -1,7 +1,7 @@
-package org.rsdeob.stdlib.cfg.ir.transform;
+package org.rsdeob.stdlib.cfg.ir.exprtransform;
 
-import static org.rsdeob.stdlib.cfg.ir.transform.DataFlowExpression.*;
-import static org.rsdeob.stdlib.cfg.ir.transform.DataFlowState.CopySet.AllVarsExpression.VAR_ALL;
+import static org.rsdeob.stdlib.cfg.ir.exprtransform.DataFlowExpression.*;
+import static org.rsdeob.stdlib.cfg.ir.exprtransform.DataFlowState.CopySet.AllVarsExpression.VAR_ALL;
 
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
@@ -16,7 +16,7 @@ import org.rsdeob.stdlib.cfg.ir.stat.CopyVarStatement;
 import org.rsdeob.stdlib.cfg.ir.stat.Statement;
 import org.rsdeob.stdlib.cfg.ir.stat.SwitchStatement;
 import org.rsdeob.stdlib.cfg.ir.stat.UnconditionalJumpStatement;
-import org.rsdeob.stdlib.cfg.ir.transform.DataFlowState.CopySet;
+import org.rsdeob.stdlib.cfg.ir.exprtransform.DataFlowState.CopySet;
 
 public class DataFlowAnalyzer {
 	private final StatementGraph sgraph;

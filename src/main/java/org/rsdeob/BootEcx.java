@@ -14,9 +14,9 @@ import org.rsdeob.stdlib.cfg.ir.StatementGenerator;
 import org.rsdeob.stdlib.cfg.ir.expr.Expression;
 import org.rsdeob.stdlib.cfg.ir.stat.CopyVarStatement;
 import org.rsdeob.stdlib.cfg.ir.stat.Statement;
-import org.rsdeob.stdlib.cfg.ir.transform.DataFlowAnalyzer;
-import org.rsdeob.stdlib.cfg.ir.transform.DataFlowState;
-import org.rsdeob.stdlib.cfg.ir.transform.ExpressionEvaluator;
+import org.rsdeob.stdlib.cfg.ir.exprtransform.DataFlowAnalyzer;
+import org.rsdeob.stdlib.cfg.ir.exprtransform.DataFlowState;
+import org.rsdeob.stdlib.cfg.ir.exprtransform.ExpressionEvaluator;
 import org.rsdeob.stdlib.cfg.util.GraphUtils;
 
 import java.io.File;
