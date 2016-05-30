@@ -46,7 +46,7 @@ public abstract class StatementVisitor {
 			currentPtrs[depth - 1] = addr;
 			Statement node = stmt.read(addr);
 			_start(node, 0);
-			visit(node);
+			stmt.overwrite(visit(node), addr);
 			if (broken) {
 				throw new RuntimeException("break");
 			}
@@ -81,5 +81,5 @@ public abstract class StatementVisitor {
 		return depth;
 	}
 
-	public abstract void visit(Statement stmt);
+	public abstract Statement visit(Statement stmt);
 }

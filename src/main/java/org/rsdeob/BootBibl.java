@@ -131,7 +131,7 @@ public class BootBibl implements Opcodes {
 				}
 				System.out.println();
 			}
-			
+
 			CopyPropagator prop = new CopyPropagator(sgraph, comp);
 			prop.run();
 			

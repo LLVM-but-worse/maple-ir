@@ -43,7 +43,7 @@ public class LivenessAnalyser extends BackwardsFlowAnalyser<Statement, FlowEdge<
 		for(Statement stmt : graph.vertices()) {
 			StatementVisitor vis = new StatementVisitor(stmt) {
 				@Override
-				public void visit(Statement s) {
+				public Statement visit(Statement s) {
 					if(s instanceof VarExpression) {
 						initial.put(s.toString(), Boolean.valueOf(false));
 						uses.getNonNull(stmt).add((VarExpression)s);
@@ -52,6 +52,7 @@ public class LivenessAnalyser extends BackwardsFlowAnalyser<Statement, FlowEdge<
 						initial.put(var.toString(), Boolean.valueOf(false));
 						uses.getNonNull(stmt).add(var);
 					}
+					return s;
 				}
 			};
 			vis.visit();
