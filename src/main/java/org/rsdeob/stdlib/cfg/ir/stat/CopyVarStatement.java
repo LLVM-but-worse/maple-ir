@@ -9,8 +9,8 @@ import org.rsdeob.stdlib.cfg.util.TypeUtils;
 
 public class CopyVarStatement extends Statement implements IStackDumpNode {
 
-	private final VarExpression variable;
 	private Expression expression;
+	private VarExpression variable;
 
 	public CopyVarStatement(VarExpression variable, Expression expression) {
 		if (variable == null | expression == null)
@@ -20,7 +20,7 @@ public class CopyVarStatement extends Statement implements IStackDumpNode {
 		this.variable = variable;
 		
 		overwrite(expression, 0);
-		overwrite(variable, 1); // only registered here
+		overwrite(variable, 1);
 	}
 
 	@Override
@@ -38,6 +38,11 @@ public class CopyVarStatement extends Statement implements IStackDumpNode {
 		overwrite(expression, 0);
 	}
 
+	public void setVariable(VarExpression var) {
+		variable = var;
+		overwrite(var, 1);
+	}
+	
 	// FIXME: should these really be delegating calls
 	
 	@Override
@@ -62,7 +67,11 @@ public class CopyVarStatement extends Statement implements IStackDumpNode {
 
 	@Override
 	public void onChildUpdated(int ptr) {
-		setExpression((Expression) read(ptr));
+		if(ptr == 0) {
+			setExpression((Expression) read(ptr));
+		} else if(ptr == 1) {
+			setVariable((VarExpression) read(ptr));
+		}
 	}
 
 	@Override
