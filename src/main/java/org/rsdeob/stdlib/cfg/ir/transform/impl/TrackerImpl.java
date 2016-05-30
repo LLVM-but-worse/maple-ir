@@ -40,7 +40,7 @@ public class TrackerImpl extends ForwardsFlowAnalyser<Statement, FlowEdge<Statem
 			
 			StatementVisitor impl = new StatementVisitor(stmt) {
 				@Override
-				public void visit(Statement s) {
+				public Statement visit(Statement s) {
 					if(s instanceof VarExpression) {
 						VarExpression var = (VarExpression) s;
 						String name = VariableStateComputer.createVariableName(var);
@@ -55,6 +55,7 @@ public class TrackerImpl extends ForwardsFlowAnalyser<Statement, FlowEdge<Statem
 							}
 						}
 					}
+					return s;
 				}
 			};
 			impl.visit();
