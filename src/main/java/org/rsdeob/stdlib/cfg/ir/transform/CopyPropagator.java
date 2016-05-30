@@ -15,15 +15,15 @@ public class CopyPropagator {
 
 	private final StatementGraph sgraph;
 	private final VariableStateComputer states;
-	
+
 	public CopyPropagator(StatementGraph sgraph, VariableStateComputer states) {
 		this.sgraph = sgraph;
 		this.states = states;
 		buildUseMap();
 	}
-	
+
 	private void buildUseMap() {
-		
+
 		for(Statement stmt : sgraph.vertices()) {
 			final VarExpression lhs;
 			if(stmt instanceof CopyVarStatement) {
@@ -31,10 +31,10 @@ public class CopyPropagator {
 			} else {
 				lhs = null;
 			}
-			
+
 			StatementVisitor impl = new StatementVisitor(stmt) {
 				@Override
-				public void visit(Statement s) {
+				public Statement visit(Statement s) {
 					// i.e. it's not the lhs of a copy statement
 					// and its a var usage statement.
 					//  != is used here as we need to check
@@ -44,34 +44,36 @@ public class CopyPropagator {
 						VarExpression v2 = (VarExpression) s;
 						String name = VariableStateComputer.createVariableName(v2);
 					}
+					return s;
 				}
 			};
 			impl.visit();
 		}
 	}
-	
+
 	private void propagate() {
 		for(Statement stmt : sgraph.vertices()) {
 			Map<String, Set<CopyVarStatement>> in = states.in(stmt);
-			
+
 			StatementVisitor impl = new StatementVisitor(stmt) {
 				@Override
-				public void visit(Statement stmt) {
+				public Statement visit(Statement stmt) {
 					if(stmt instanceof VarExpression) {
 						VarExpression var = (VarExpression) stmt;
 						String name = VariableStateComputer.createVariableName(var);
 						Set<CopyVarStatement> defs = in.get(name);
-						
+
 						if(defs.size() == 1) {
 							Expression def = defs.iterator().next().getExpression();
 							if(def instanceof ConstantExpression || def instanceof VarExpression) {
 								int d = getDepth();
 								getCurrent(d).overwrite(def, getCurrentPtr(d));
 							} else {
-								
+
 							}
 						}
 					}
+					return stmt;
 				}
 			};
 			impl.visit();

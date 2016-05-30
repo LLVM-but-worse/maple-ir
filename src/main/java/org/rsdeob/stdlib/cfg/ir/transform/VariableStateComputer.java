@@ -30,23 +30,23 @@ public class VariableStateComputer {
 	// Entry<Statement, Calling predecessor>
 	private final LinkedList<WorkListEntry> queue;
 	private final Set<Statement> done;
-	
+
 	public VariableStateComputer(StatementGraph sgraph, MethodNode m) {
 		this.sgraph = sgraph;
 		in = new HashMap<>();
 		out = new HashMap<>();
 		queue = new LinkedList<>();
 		done = new HashSet<>();
-		
+
 		populateTable();
 		defineInputs(m);
 		process();
 	}
-	
+
 	public Map<String, Set<CopyVarStatement>> in(Statement stmt) {
 		return in.get(stmt);
 	}
-	
+
 	public Map<String, Set<CopyVarStatement>> out(Statement stmt) {
 		return out.get(stmt);
 	}
@@ -58,38 +58,38 @@ public class VariableStateComputer {
 		}
 		return res;
 	}
-	
+
 	private void process() {
 		while(!queue.isEmpty()) {
 			WorkListEntry e = queue.pop();
 			Statement stmt = e.stmt;
 
 			// System.out.println("Processing " + e.edge + " , done=" + done.contains(stmt));
-			
+
 			if(done.contains(stmt)) {
 				continue;
 			}
-			
+
 			// first merge the state from the pred out into
 			// the statement in
 			NullPermeableHashMap<String, Set<CopyVarStatement>> oldStmtIn = in.get(stmt);
 			NullPermeableHashMap<String, Set<CopyVarStatement>> newStmtIn = copy(oldStmtIn);
-			
+
 			mergeWithPred(newStmtIn, e.edge);
-			
+
 			NullPermeableHashMap<String, Set<CopyVarStatement>> newOut = propagate(stmt, newStmtIn);
 			out.put(stmt, newOut);
 			in.put(stmt, newStmtIn);
-			
+
 			if(equals(oldStmtIn, newStmtIn)) {
 				done.add(stmt);
 			}
 		}
 	}
-	
+
 	private void mergeWithPred(NullPermeableHashMap<String, Set<CopyVarStatement>> stmtIn, FlowEdge<Statement> edge) {
 		Statement pred = edge.src;
-		
+
 		// i.e. it wasn't conditional
 		// if(edge instanceof ImmediateEdge || edge instanceof UnconditionalJumpEdge || edge instanceof TryCatchEdge) {
 			NullPermeableHashMap<String, Set<CopyVarStatement>> predOut = out.get(pred);
@@ -97,7 +97,7 @@ public class VariableStateComputer {
 				stmtIn.getNonNull(e.getKey()).addAll(e.getValue());
 			}
 		// }
-		
+
 		if(pred instanceof ConditionalJumpStatement) {
 			// the false jump edge is an immediate.
 			boolean isTrueBranch = (edge instanceof ConditionalJumpEdge);
@@ -112,7 +112,7 @@ public class VariableStateComputer {
 			} else if (!isLeftVar && !isRightVar) {
 				return; // isn't a var check
 			}
-			
+
 			VarExpression var = null;
 			Expression other = null;
 			if(isLeftVar) {
@@ -123,7 +123,7 @@ public class VariableStateComputer {
 				var = (VarExpression) right;
 				other = left;
 			}
-			
+
 			String name = createVariableName(var);
 			ComparisonType op = jump.getType();
 			if(op == ComparisonType.EQ && isTrueBranch) {
@@ -140,7 +140,7 @@ public class VariableStateComputer {
 			// TODO: represent >, <, >=, <= sets
 		}
 	}
-	
+
 	/* Calculates the variable state information after a statement
 	 * is 'executed'. i.e. propagate the supplied in data to
 	 * the same statements out data set. */
@@ -157,7 +157,7 @@ public class VariableStateComputer {
 			// we remove all previous variable data in the set.
 			set.clear();
 			set.add(copy);
-			
+
 //			Expression rhs = copy.getExpression();
 //			boolean contains = false;
 //			for(CopyVarStatement cvs : set) {
@@ -170,34 +170,34 @@ public class VariableStateComputer {
 //				set.add(copy);
 //			}
 		}
-		
+
 		// lastly, add the successors to the work list.
 		for(FlowEdge<Statement> fe : sgraph.getEdges(stmt)) {
 			Statement succ = fe.dst;
 			// WLEntry is considered from the perspective of
 			//   the process queue:
-			//       The stmt of the WLEntry is the next one, 
+			//       The stmt of the WLEntry is the next one,
 			//        i.e. succ of this
 			//       The pred of the WLEntry is this statement
 			queue.add(new WorkListEntry(succ, fe));
 		}
-		
+
 		return newOut;
 	}
-	
+
 	private boolean equals(NullPermeableHashMap<String, Set<CopyVarStatement>> map1, NullPermeableHashMap<String, Set<CopyVarStatement>> map2) {
 		if(map1.size() != map2.size()) {
 			return false;
 		}
-		
+
 		Set<String> vars = new HashSet<>();
 		vars.addAll(map1.keySet());
 		vars.addAll(map2.keySet());
-		
+
 		for(String var : vars) {
 			boolean contains1 = map1.containsKey(var);
 			boolean contains2 = map2.containsKey(var);
-			
+
 			if(!contains1 && !contains2) {
 				// ignore it since it is not
 				// present in either set.
@@ -205,7 +205,7 @@ public class VariableStateComputer {
 				// check match
 				Set<CopyVarStatement> set1 = map1.get(var);
 				Set<CopyVarStatement> set2 = map2.get(var);
-				
+
 				if(!set1.equals(set2)) {
 					return false;
 				}
@@ -216,17 +216,17 @@ public class VariableStateComputer {
 				return false;
 			}
 		}
-		
+
 		return true;
 	}
-	
+
 	private void populateTable() {
 		for(Statement stmt : sgraph.vertices()) {
 			in.put(stmt, new NullPermeableHashMap<>(new SetCreator<>()));
 			out.put(stmt, new NullPermeableHashMap<>(new SetCreator<>()));
 		}
 	}
-	
+
 	private void defineInputs(MethodNode m) {
 		// build the entry in sets
 		Type[] args = Type.getArgumentTypes(m.desc);
@@ -235,19 +235,19 @@ public class VariableStateComputer {
 			addEntry(index, Type.getType(m.owner.name));
 			index++;
 		}
-	
+
 		for(int i=0; i < args.length; i++) {
 			Type arg = args[i];
 			addEntry(index, arg);
 			index += arg.getSize();
 		}
-		
+
 		// propagate entries
 		for(Statement entry : sgraph.getEntries()) {
 			out.put(entry, propagate(entry, in.get(entry)));
 		}
 	}
-	
+
 	private void addEntry(int index, Type type) {
 		CopyVarStatement stmt = selfDefine(new VarExpression(index, type));
 		String name = createVariableName(stmt);
@@ -255,12 +255,12 @@ public class VariableStateComputer {
 			in.get(entry).getNonNull(name).add(stmt);
 		}
 	}
-	
+
 	public static String createVariableName(CopyVarStatement stmt) {
 		VarExpression var = stmt.getVariable();
 		return (var.isStackVariable() ? "s" : "l") + "var" + var.getIndex();
 	}
-	
+
 	public static String createVariableName(VarExpression var) {
 		return (var.isStackVariable() ? "s" : "l") + "var" + var.getIndex();
 	}
