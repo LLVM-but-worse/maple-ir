@@ -1,4 +1,4 @@
-package org.rsdeob.stdlib.cfg.ir.transform;
+package org.rsdeob.stdlib.cfg.ir.exprtransform;
 
 import org.objectweb.asm.Type;
 import org.rsdeob.stdlib.cfg.ir.expr.Expression;
@@ -11,9 +11,9 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.function.BinaryOperator;
 
-import static org.rsdeob.stdlib.cfg.ir.transform.DataFlowExpression.NOT_A_CONST;
-import static org.rsdeob.stdlib.cfg.ir.transform.DataFlowExpression.UNDEFINED;
-import static org.rsdeob.stdlib.cfg.ir.transform.DataFlowState.CopySet.AllVarsExpression.VAR_ALL;
+import static org.rsdeob.stdlib.cfg.ir.exprtransform.DataFlowExpression.NOT_A_CONST;
+import static org.rsdeob.stdlib.cfg.ir.exprtransform.DataFlowExpression.UNDEFINED;
+import static org.rsdeob.stdlib.cfg.ir.exprtransform.DataFlowState.CopySet.AllVarsExpression.VAR_ALL;
 
 
 public class DataFlowState {
