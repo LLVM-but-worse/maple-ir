@@ -38,6 +38,8 @@ public class CopyVarStatement extends Statement implements IStackDumpNode {
 		overwrite(expression, 0);
 	}
 
+	// FIXME: should these really be delegating calls
+	
 	@Override
 	public int getIndex() {
 		return variable.getIndex();
@@ -76,7 +78,7 @@ public class CopyVarStatement extends Statement implements IStackDumpNode {
 	@Override
 	// todo: this probably needs a refactoring
 	public void toCode(MethodVisitor visitor) {
-		// TODO: rework because of VariableExpression
+		// FIXME: rework because of VariableExpression
 		expression.toCode(visitor);
 		Type type = variable.getType();
 		if (TypeUtils.isPrimitive(type)) {
