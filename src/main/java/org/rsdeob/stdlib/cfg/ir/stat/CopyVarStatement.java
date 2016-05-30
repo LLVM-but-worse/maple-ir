@@ -9,8 +9,8 @@ import org.rsdeob.stdlib.cfg.util.TypeUtils;
 
 public class CopyVarStatement extends Statement implements IStackDumpNode {
 
+	private final VarExpression variable;
 	private Expression expression;
-	private VarExpression variable;
 
 	public CopyVarStatement(VarExpression variable, Expression expression) {
 		if (variable == null | expression == null)
@@ -20,6 +20,7 @@ public class CopyVarStatement extends Statement implements IStackDumpNode {
 		this.variable = variable;
 		
 		overwrite(expression, 0);
+		overwrite(variable, 1); // only registered here
 	}
 
 	@Override
@@ -75,6 +76,7 @@ public class CopyVarStatement extends Statement implements IStackDumpNode {
 	@Override
 	// todo: this probably needs a refactoring
 	public void toCode(MethodVisitor visitor) {
+		// TODO: rework because of VariableExpression
 		expression.toCode(visitor);
 		Type type = variable.getType();
 		if (TypeUtils.isPrimitive(type)) {
