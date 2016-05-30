@@ -82,6 +82,7 @@ public class LivenessAnalyser extends BackwardsFlowAnalyser<Statement, FlowEdge<
 		if(n instanceof CopyVarStatement) {
 			out.put(((CopyVarStatement) n).getVariable().toString(), false);
 		}
+		System.out.println("Prop " + n + in);
 	}
 
 	@Override
@@ -112,10 +113,10 @@ public class LivenessAnalyser extends BackwardsFlowAnalyser<Statement, FlowEdge<
 				return false;
 			}
 			
-			if(s1.get(key).booleanValue() != (s2.get(key)).booleanValue()) {
+			if(s1.get(key).booleanValue() != s2.get(key).booleanValue()) {
 				return false;
 			}
 		}
-		return false;
+		return true;
 	}
 }
