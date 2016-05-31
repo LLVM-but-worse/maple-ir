@@ -1,21 +1,23 @@
 package org.rsdeob.stdlib.cfg.ir.transform.impl;
 
-import java.util.Map;
-import java.util.Set;
-
 import org.rsdeob.stdlib.cfg.ir.StatementGraph;
 import org.rsdeob.stdlib.cfg.ir.StatementVisitor;
-import org.rsdeob.stdlib.cfg.ir.expr.ConstantExpression;
 import org.rsdeob.stdlib.cfg.ir.expr.Expression;
 import org.rsdeob.stdlib.cfg.ir.expr.VarExpression;
+import org.rsdeob.stdlib.cfg.ir.exprtransform.DataFlowState;
+import org.rsdeob.stdlib.cfg.ir.exprtransform.ExpressionEvaluator;
 import org.rsdeob.stdlib.cfg.ir.stat.CopyVarStatement;
 import org.rsdeob.stdlib.cfg.ir.stat.Statement;
+
+import java.util.Map;
+import java.util.Set;
 
 public class ValuePropagator {
 
 	public static void propagateDefinitions(StatementGraph graph, DefinitionAnalyser da) {
 		for(Statement stmt : graph.vertices()) {
 			Map<String, Set<CopyVarStatement>> in = da.in(stmt);
+			DataFlowState.CopySet copyset = new DataFlowState.CopySet(in);
 			
 			StatementVisitor impl = new StatementVisitor(stmt) {
 				@Override
@@ -27,7 +29,12 @@ public class ValuePropagator {
 						if(defs != null && defs.size() == 1) {
 							CopyVarStatement copy = defs.iterator().next();
 							Expression def = copy.getExpression();
-							if(def instanceof ConstantExpression || def instanceof VarExpression) {
+							Expression evaluated = ExpressionEvaluator.evaluate(def, copyset);
+							if(ExpressionEvaluator.isConstant(evaluated) || def instanceof VarExpression) {
+								int d = getDepth();
+								getCurrent(d).overwrite(evaluated.copy(), getCurrentPtr(d));
+							}
+							if(def instanceof VarExpression) {
 								// overwrite it here instead of in StatementVisitor
 								int d = getDepth();
 								getCurrent(d).overwrite(def.copy(), getCurrentPtr(d));

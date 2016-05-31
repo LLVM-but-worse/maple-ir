@@ -27,7 +27,7 @@ public class ExpressionEvaluator {
 				public Statement visit(Statement stmt) {
 					if (stmt instanceof Expression) {
 						Expression expr = (Expression) stmt;
-						if (expr instanceof VarExpression && vars.containsKey(expr.toString())) {
+						if (expr instanceof VarExpression && vars.containsKey(expr.toString()) && isConstant(vars.get(expr.toString()).getExpression())) {
 							changed.set(true);
 							return vars.get(expr.toString()).getExpression();
 						} else if (isConstant(expr)) {
@@ -74,7 +74,7 @@ public class ExpressionEvaluator {
 		if (expr instanceof ArrayLengthExpression)
 			return evaluateArrayLength((ArrayLengthExpression) expr);
 		if (expr instanceof ArrayLoadExpression)
-			return evaluateArrayLength((ArrayLoadExpression) expr);
+			return evaluateArrayLoad((ArrayLoadExpression) expr);
 		if (expr instanceof ComparisonExpression)
 			return evaluateComparison((ComparisonExpression) expr);
 		if (expr instanceof NegationExpression)
@@ -1076,7 +1076,7 @@ public class ExpressionEvaluator {
 		return new ConstantExpression(((Object[]) expr.getConstant()).length);
 	}
 
-	private static ConstantExpression evaluateArrayLength(ArrayLoadExpression michael) {
+	private static ConstantExpression evaluateArrayLoad(ArrayLoadExpression michael) {
 		ConstantExpression array = evaluateConstant(michael.getArrayExpression());
 		ConstantExpression index = evaluateConstant(michael.getIndexExpression());
 		if (array.getType().getSort() != Type.ARRAY)
