@@ -55,43 +55,9 @@ public class LivenessTest {
 				System.out.println(cfg);
 				System.out.println(root);
 				System.out.println();
-				
-//				TrackerImpl ffa = new TrackerImpl(sgraph, m);
-//				ffa.run();
-				
-//				for(Statement stmt : sgraph.vertices()) {
-//					System.out.println(stmt);
-//					System.out.println("  IN:");
-//					NullPermeableHashMap<String, Set<CopyVarStatement>> in = ffa.in(stmt);
-//					List<String> inVars = new ArrayList<>(in.keySet());
-//					Collections.sort(inVars);
-//					for(String var : inVars) {
-//						System.out.println("     ");
-//					}
-//				}
+
 				simplify(root, sgraph, m);
-				
-//				for(Statement stmt : sgraph.vertices()) {
-//					System.out.println(stmt);
-//					System.out.println("  IN:");
-//					Map<String, Boolean> in = la.in(stmt);
-//					List<String> inVars = new ArrayList<>(in.keySet());
-//					Collections.sort(inVars);
-//					for(String var : inVars) {
-//						if(in.get(var)) {
-//							System.out.println("     " + var + " is " + (in.get(var) ? "live" : "dead."));
-//						}
-//					}
-//					System.out.println("  OUT:");
-//					Map<String, Boolean> out = la.out(stmt);
-//					List<String> outVars = new ArrayList<>(out.keySet());
-//					Collections.sort(outVars);
-//					for(String var : outVars) {
-//						if(out.get(var)) {
-//							System.out.println("     " + var + " is " + (out.get(var) ? "live" : "dead."));
-//						}
-//					}
-//				}
+				System.out.println(root);
 			}
 		}
 	}
