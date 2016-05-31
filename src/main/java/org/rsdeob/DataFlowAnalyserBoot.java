@@ -17,7 +17,7 @@ import org.rsdeob.stdlib.cfg.ir.StatementGraph;
 import org.rsdeob.stdlib.cfg.ir.StatementGraphBuilder;
 import org.rsdeob.stdlib.cfg.ir.stat.Statement;
 import org.rsdeob.stdlib.cfg.ir.transform.impl.LivenessAnalyser;
-import org.rsdeob.stdlib.cfg.ir.transform.impl.TrackerImpl;
+import org.rsdeob.stdlib.cfg.ir.transform.impl.DefinitionAnalyser;
 
 public class DataFlowAnalyserBoot {
 
@@ -41,7 +41,7 @@ public class DataFlowAnalyserBoot {
 				System.out.println(root);
 				System.out.println();
 				
-				TrackerImpl ffa = new TrackerImpl(sgraph, m);
+				DefinitionAnalyser ffa = new DefinitionAnalyser(sgraph, m);
 				ffa.run();
 //				ffa.propagate();
 //				ReachingAnalyser ra = new ReachingAnalyser(sgraph);

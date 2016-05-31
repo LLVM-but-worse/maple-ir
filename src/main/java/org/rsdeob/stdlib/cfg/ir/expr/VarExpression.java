@@ -98,22 +98,15 @@ public class VarExpression extends Expression {
 		return false;
 	}
 
-	@Override
-	public boolean equals(Object o) {
-		if (this == o) return true;
-		if (o == null || getClass() != o.getClass()) return false;
-
-		VarExpression that = (VarExpression) o;
-
-		if (index != that.index) return false;
-		return stackVariable == that.stackVariable;
-
-	}
-
-	@Override
-	public int hashCode() {
-		int result = index;
-		result = 31 * result + (stackVariable ? 1 : 0);
-		return result;
-	}
+//	@Override
+//	public boolean equals(Object o) {
+//		if (this == o) return true;
+//		if (o == null || getClass() != o.getClass()) return false;
+//
+//		VarExpression that = (VarExpression) o;
+//
+//		if (index != that.index) return false;
+//		return stackVariable == that.stackVariable;
+//
+//	}
 }
