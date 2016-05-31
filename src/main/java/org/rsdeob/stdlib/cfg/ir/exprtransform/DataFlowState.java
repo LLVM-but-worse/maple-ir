@@ -25,7 +25,7 @@ public class DataFlowState {
 		out = new CopySet();
 	}
 
-	public static class CopySet extends HashMap<VarExpression, CopyVarStatement> {
+	public static class CopySet extends HashMap<String, CopyVarStatement> {
 		public CopySet() {
 			super();
 		}
@@ -35,7 +35,7 @@ public class DataFlowState {
 		}
 
 		public void setVar(CopyVarStatement copy) {
-			put(copy.getVariable(), copy);
+			put(copy.getVariable().toString(), copy);
 		}
 
 		@Override
@@ -64,14 +64,14 @@ public class DataFlowState {
 			for (CopyVarStatement copy : copies) {
 				VarExpression var = copy.getVariable();
 				Expression rhs;
-				if (this.containsKey(var) && other.containsKey(var)) {
-					rhs = fn.apply(this.get(var).getExpression(), other.get(var).getExpression());
+				if (this.containsKey(var.toString()) && other.containsKey(var.toString())) {
+					rhs = fn.apply(this.get(var.toString()).getExpression(), other.get(var.toString()).getExpression());
 				} else {
 					// i.e. one of the statements doesn't define
 					// the variable
 					rhs = UNDEFINED;
 				}
-				result.put(var, new CopyVarStatement(var, rhs));
+				result.put(var.toString(), new CopyVarStatement(var, rhs));
 			}
 			return result;
 		}
@@ -105,10 +105,10 @@ public class DataFlowState {
 		public boolean transfer(CopyVarStatement stmt) {
 			VarExpression var = stmt.getVariable();
 			Expression rhs = stmt.getExpression();
-			if (!containsKey(var))
+			if (!containsKey(var.toString()))
 				return false;
 			// x := (y)
-			Expression prevExpr = get(var).getExpression(); // (y)
+			Expression prevExpr = get(var.toString()).getExpression(); // (y)
 			Expression newExpr; // new (y)
 			if (prevExpr == UNDEFINED) {
 				newExpr = UNDEFINED;
@@ -126,7 +126,7 @@ public class DataFlowState {
 
 			// update the current state of the
 			// variable
-			put(var, new CopyVarStatement(var, newExpr));
+			put(var.toString(), new CopyVarStatement(var, newExpr));
 			return true;
 		}
 
