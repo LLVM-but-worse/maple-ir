@@ -1,5 +1,8 @@
 package org.rsdeob.stdlib.cfg.ir.transform.impl;
 
+import java.util.Map;
+import java.util.Set;
+
 import org.rsdeob.stdlib.cfg.ir.StatementGraph;
 import org.rsdeob.stdlib.cfg.ir.StatementVisitor;
 import org.rsdeob.stdlib.cfg.ir.expr.Expression;
@@ -8,9 +11,6 @@ import org.rsdeob.stdlib.cfg.ir.exprtransform.DataFlowState;
 import org.rsdeob.stdlib.cfg.ir.exprtransform.ExpressionEvaluator;
 import org.rsdeob.stdlib.cfg.ir.stat.CopyVarStatement;
 import org.rsdeob.stdlib.cfg.ir.stat.Statement;
-
-import java.util.Map;
-import java.util.Set;
 
 public class ValuePropagator {
 
@@ -38,6 +38,15 @@ public class ValuePropagator {
 								// overwrite it here instead of in StatementVisitor
 								int d = getDepth();
 								getCurrent(d).overwrite(def.copy(), getCurrentPtr(d));
+							} else {
+								if(name.startsWith("svar")) {
+									// not live out, but live in, so 
+//									if(!la.out(stmt).get(name)) {
+//										System.out.println("not live " + stmt);
+//										int d = getDepth();
+//										getCurrent(d).overwrite(def.copy(), getCurrentPtr(d));
+//									}
+								}
 							}
 						}
 					}

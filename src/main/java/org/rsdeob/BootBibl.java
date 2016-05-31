@@ -1,5 +1,16 @@
 package org.rsdeob;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+import java.util.jar.JarOutputStream;
+
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Opcodes;
@@ -16,20 +27,14 @@ import org.rsdeob.stdlib.cfg.ControlFlowGraph;
 import org.rsdeob.stdlib.cfg.ControlFlowGraphBuilder;
 import org.rsdeob.stdlib.cfg.ir.RootStatement;
 import org.rsdeob.stdlib.cfg.ir.StatementGenerator;
+import org.rsdeob.stdlib.cfg.ir.StatementGraph;
+import org.rsdeob.stdlib.cfg.ir.StatementGraphBuilder;
 import org.rsdeob.stdlib.cfg.util.ControlFlowGraphDeobfuscator;
 import org.rsdeob.stdlib.cfg.util.GraphUtils;
 import org.rsdeob.stdlib.collections.NodeTable;
-import org.rsdeob.stdlib.collections.graph.flow.TarjanDominanceComputor;
 import org.rsdeob.stdlib.deob.IPhase;
 import org.topdank.byteengineer.commons.data.JarInfo;
 import org.topdank.byteio.in.SingleJarDownloader;
-
-import java.io.*;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
-import java.util.jar.JarOutputStream;
 
 public class BootBibl implements Opcodes {
 	public static final File GRAPH_FOLDER = new File("C://Users//Bibl//Desktop//cfg testing");
@@ -77,166 +82,14 @@ public class BootBibl implements Opcodes {
 			System.out.println("IR representation of " + m + ":");
 			System.out.println(root);
 			System.out.println();
-
-//			StatementGraph sgraph = new StatementGraphBuilder().create(cfg);
-//			BiblPropagator prop = new BiblPropagator(sgraph, m);
-//			for(Statement stmt : sgraph.vertices()) {
-//				System.out.println(stmt);
-//				System.out.println("  In:");
-//				for(Statement s : prop.in(stmt)) {
-//					System.out.println("      " + s);
-//				}
-//				System.out.println("  Out:");
-//				for(Statement s : prop.in(stmt)) {
-//					System.out.println("      " + s);
-//				}
-//				System.out.println();
-//			}
 			
-//			StatementGraph sgraph = StatementGraphBuilder.create(cfg);
-//			VariableStateComputer comp = new VariableStateComputer(sgraph, m);
-//			for(Statement stmt : sgraph.vertices()) {
-//				System.out.println(stmt);
-//				System.out.println("   IN:");
-//				Map<String, Set<CopyVarStatement>> in = comp.in(stmt);
-//				List<String> inVars = new ArrayList<>(in.keySet());
-//				Collections.sort(inVars);
-//				for(String var : inVars) {
-//					System.out.println("     " + var + ":");
-//					for(CopyVarStatement cvs : in.get(var)) {
-//						System.out.println("       " + cvs);
-//					}
-//				}
-//				System.out.println("   OUT:");
-//				Map<String, Set<CopyVarStatement>> out = comp.out(stmt);
-//				List<String> outVars = new ArrayList<>(out.keySet());
-//				Collections.sort(outVars);
-//				for(String var : outVars) {
-//					System.out.println("     " + var + ":");
-//					for(CopyVarStatement cvs : out.get(var)) {
-//						System.out.println("       " + cvs);
-//					}
-//				}
-//				System.out.println();
-//			}
-//
-//			CopyPropagator prop = new CopyPropagator(sgraph, comp);
-//			prop.run();
-//
-//			System.out.println("IR representation of " + m + ":");
-//			System.out.println(root);
-//			System.out.println();
+			StatementGraph sgraph = StatementGraphBuilder.create(cfg);
+			LivenessTest.simplify(root, sgraph, m);
 			
-//			DataFlowAnalyzer dfa = new DataFlowAnalyzer(cfg);
-//			Map<Statement,DataFlowState> df = dfa.compute();
-//			System.out.println("Data flow for " + m + ":");
-//			for (Statement stmt : df.keySet()) {
-//				DataFlowState state = df.get(stmt);
-//				System.out.println("Data flow for " + stmt + ":");
-//				System.out.println("In: ");
-//				for (CopyVarStatement copy : state.in.values())
-//					System.out.println("  " + copy);
-//				System.out.println("Out: ");
-//				for (CopyVarStatement copy : state.out.values())
-//					System.out.println("  " + copy);
-//				System.out.println();
-//			}
-			
-			TarjanDominanceComputor<BasicBlock> doms = new TarjanDominanceComputor<>(cfg);
-			for(BasicBlock b : cfg.vertices()) {
-				System.out.println(" " + b.getId() + " is dominated by ");
-				System.out.println("   sdoms: " + doms.semiDoms(b));
-				System.out.println("   immediate: " + doms.idom(b));
-				System.out.println("   frontier: " + doms.frontier(b));
-				System.out.println("   iterated-frontier: " + doms.iteratedFronter(b));
-			}
-//			DominanceComputor doms = new DominanceComputor(cfg);
-//
-//			for(BasicBlock b : cfg.blocks()) {
-//				System.out.println(" " + b.getId() + " is dominated by " + doms.doms(b));
-//				System.out.println("   dominates: " + doms.dominates(b));
-//				System.out.println("   sdoms: " + doms.sdoms(b));
-//				System.out.println("   immediate: " + doms.idom(b));
-//				System.out.println("   frontier: " + doms.frontier(b));
-//			}
-			
-//			ConstantPropagator prop = new ConstantPropagator(cfg);
-//			prop.compute();
-//			
-//			
-//			for(BasicBlock b : cfg.blocks()) {			
-//				for(Statement stmt : b.getStatements()) {
-//					Set<Variable> in = prop.getIn(stmt);
-//					Set<Variable> out = prop.getOut(stmt);
-//					
-//					if(in.size() > 0 || out.size() > 0) {
-//						System.out.println("  in:");
-//						for(Variable var : in) {
-//							System.out.println("    " + var);
-//						}
-//						System.out.println(stmt);
-//						System.out.println("  out:");
-//						for(Variable var : out) {
-//							System.out.println("    " + var);
-//						}	
-//					}
-//					
-//					System.out.println("\n\n\n");
-//				}
-//			}
-			/*
-			ControlFlowGraph cfg = ControlFlowGraphBuilder.create(m);
-			GraphUtils.output(cfg, new ArrayList<>(cfg.blocks()), GRAPH_FOLDER, "");
-			System.out.println(cfg.getRoot());
-			System.out.println(cfg);
-			RootStatement root = cfg.getRoot();
+			System.out.println("IR representation of " + m + ":");
 			System.out.println(root);
-			StatementVisitor vis = new StatementVisitor(root) {
-				@Override
-				public void visit(Statement stmt) {
-					if(stmt instanceof ConstantExpression) {
-						Object obj = ((ConstantExpression) stmt).getConstant();
-						if(obj instanceof String) {
-							if(obj.toString().equals("=============")) {
-								((ConstantExpression) stmt).setConstant("hiiiiiiiiiiiii");
-							}
-						}
-					} else if(stmt instanceof ConditionalJumpStatement) {
-						System.out.println(stmt);
-					}
-				}
-			};
-			vis.visit();
-			root.dump(m);
-			System.out.println(cfg);
-			StatementGenerator gen = new StatementGenerator(cfg);
-			gen.init(m.maxLocals);
-			gen.createExpressions();
-			RootStatement root = gen.buildRoot();
-			root.getVariables().build();
+			System.out.println();
 
-			System.out.println(root);
-			System.out.println(root.getVariables());
-
-			for(BasicBlock b : cfg.blocks()) {
-				System.out.println();
-				System.out.println(b);
-				System.out.println(b.getState());
-				for(Statement stmt : b.getStatements()) {
-					if(stmt instanceof IStackDumpNode) {
-						if(((IStackDumpNode) stmt).isRedundant()) {
-							continue;
-						}
-					} else if (stmt instanceof VarExpression) {
-						if(((VarExpression) stmt).isStackVariable()) {
-							System.out.println("   st: [STACKVAR]" + stmt);
-							continue;
-						}
-					}
-					System.out.println("   st: " + stmt);
-				}
-			}
-			*/
 
 			System.out.println("End of processing log for " + m);
 			System.out.println("============================================================");

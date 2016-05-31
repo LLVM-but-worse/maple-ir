@@ -44,7 +44,6 @@ public class LivenessAnalyser extends BackwardsFlowAnalyser<Statement, FlowEdge<
 			if(stmt instanceof CopyVarStatement) {
 				VarExpression var = ((CopyVarStatement) stmt).getVariable();
 				initial.put(var.toString(), Boolean.valueOf(false));
-				uses.getNonNull(stmt).add(var);
 			}
 			
 			StatementVisitor vis = new StatementVisitor(stmt) {
@@ -87,14 +86,19 @@ public class LivenessAnalyser extends BackwardsFlowAnalyser<Statement, FlowEdge<
 				out.put(key, e.getValue());
 			}
 		}
+		// do this before the uses because of
+		// varx = varx statements (i had a dream about
+		// it trust me it works).
+
+		if(n instanceof CopyVarStatement) {
+			out.put(((CopyVarStatement) n).getVariable().toString(), false);
+		}
+		
 		Set<VarExpression> vars = uses.get(n);
 		if(vars != null && vars.size() > 0) {
 			for(VarExpression var : vars) {
 				out.put(var.toString(), true);
 			}
-		}
-		if(n instanceof CopyVarStatement) {
-			out.put(((CopyVarStatement) n).getVariable().toString(), false);
 		}
 	}
 

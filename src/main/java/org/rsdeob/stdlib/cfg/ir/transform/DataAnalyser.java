@@ -35,6 +35,10 @@ public abstract class DataAnalyser<N extends FastGraphVertex, E extends FastGrap
 		return out.get(n);
 	}
 	
+	public FlowGraph<N, E> getGraph() {
+		return graph;
+	}
+	
 	protected void init() {
 		// set initial data states
 		for(N n : graph.vertices()) {
