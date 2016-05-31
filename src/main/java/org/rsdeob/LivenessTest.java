@@ -21,10 +21,9 @@ import org.rsdeob.stdlib.cfg.ir.expr.Expression;
 import org.rsdeob.stdlib.cfg.ir.expr.VarExpression;
 import org.rsdeob.stdlib.cfg.ir.stat.ConditionalJumpStatement.ComparisonType;
 import org.rsdeob.stdlib.cfg.ir.stat.Statement;
-import org.rsdeob.stdlib.cfg.ir.transform.impl.DeadAssignmentEliminator;
 import org.rsdeob.stdlib.cfg.ir.transform.impl.DefinitionAnalyser;
-import org.rsdeob.stdlib.cfg.ir.transform.impl.LivenessAnalyser;
 import org.rsdeob.stdlib.cfg.ir.transform.impl.ValuePropagator;
+import org.rsdeob.stdlib.cfg.util.AnalysisHelper;
 import org.rsdeob.stdlib.cfg.util.ControlFlowGraphDeobfuscator;
 import org.rsdeob.stdlib.cfg.util.GraphUtils;
 import org.rsdeob.stdlib.cfg.util.TabbedStringWriter;
@@ -62,13 +61,24 @@ public class LivenessTest {
 		}
 	}
 	
-	private static void simplify(RootStatement root, StatementGraph graph, MethodNode m) {
+	public static void simplify(RootStatement root, StatementGraph graph, MethodNode m) {
+		
 		DefinitionAnalyser defAnalyser = new DefinitionAnalyser(graph, m);
 		defAnalyser.run();
+		
+		for(Statement stmt : graph.vertices()) {
+			System.out.println(stmt);
+			System.out.println("   IN:");
+			AnalysisHelper.print(defAnalyser.in(stmt));
+			System.out.println("   OUT:");
+			AnalysisHelper.print(defAnalyser.out(stmt));
+		}
+		
+		
 		ValuePropagator.propagateDefinitions(graph, defAnalyser);
-		LivenessAnalyser la = new LivenessAnalyser(graph);
-		la.run();
-		DeadAssignmentEliminator.run(root, graph, la);
+//		la = new LivenessAnalyser(graph);
+//		la.run();
+//		DeadAssignmentEliminator.run(root, graph, la);
 	}
 	
 	void test1() {
@@ -79,7 +89,7 @@ public class LivenessTest {
 			z = x;
 		}
 		System.out.println(x);
-		System.out.println(z);
+		System.out.println(x);
 	}
 	
 	public static void main1(String[] args) throws Exception {		

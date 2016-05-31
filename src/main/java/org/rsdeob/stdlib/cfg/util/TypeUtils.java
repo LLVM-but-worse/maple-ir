@@ -8,12 +8,14 @@ import org.objectweb.asm.util.Printer;
 
 public class TypeUtils {
 
+	public static final Type OBJECT_TYPE = Type.getType("Ljava/lang/Object;");
+	
 	public enum ArrayType {
 		INT(Type.INT_TYPE, 0),
 		LONG(Type.LONG_TYPE, 1),
 		FLOAT(Type.FLOAT_TYPE, 2),
 		DOUBLE(Type.DOUBLE_TYPE, 3),
-		OBJECT(Type.getType("Ljava/lang/Object;"), 4),
+		OBJECT(OBJECT_TYPE, 4),
 		BYTE(Type.BYTE_TYPE, 5),
 		CHAR(Type.CHAR_TYPE, 6),
 		SHORT(Type.SHORT_TYPE, 7);
@@ -50,7 +52,7 @@ public class TypeUtils {
 		}
 	}
 	
-	public static final Type[] OPCODE_TYPE_TABLE = new Type[] { Type.INT_TYPE, Type.LONG_TYPE, Type.FLOAT_TYPE, Type.DOUBLE_TYPE, Type.getType("Ljava/lang/Object;"), Type.BYTE_TYPE, Type.CHAR_TYPE,
+	public static final Type[] OPCODE_TYPE_TABLE = new Type[] { Type.INT_TYPE, Type.LONG_TYPE, Type.FLOAT_TYPE, Type.DOUBLE_TYPE, OBJECT_TYPE, Type.BYTE_TYPE, Type.CHAR_TYPE,
 			Type.SHORT_TYPE };
 
 	public static boolean isPrimitive(Type type) {
@@ -76,7 +78,7 @@ public class TypeUtils {
 			if (isObjectRef(type1) != isObjectRef(type2)) {
 				throw new IllegalStateException("Illegal binop types: " + type1 + "    " + type2);
 			}
-			return Type.getType("Ljava/lang/Object;");
+			return OBJECT_TYPE;
 		} else if (type1 == Type.DOUBLE_TYPE || type2 == Type.DOUBLE_TYPE) {
 			return Type.DOUBLE_TYPE;
 		} else if (type1 == Type.FLOAT_TYPE || type2 == Type.FLOAT_TYPE) {
@@ -96,7 +98,7 @@ public class TypeUtils {
 		} else if (type.getSort() >= Type.FLOAT && type.getSort() <= Type.DOUBLE) {
 			return type;
 		} else {
-			return Type.getType("Ljava/lang/Object;");
+			return OBJECT_TYPE;
 		}
 	}
 
@@ -110,7 +112,7 @@ public class TypeUtils {
 		} else if (opcode == DLOAD) {
 			return Type.DOUBLE_TYPE;
 		} else if (opcode == ALOAD) {
-			return Type.getType("Ljava/lang/Object;");
+			return OBJECT_TYPE;
 		} else {
 			throw new IllegalArgumentException(Printer.OPCODES[opcode]);
 		}
@@ -126,7 +128,7 @@ public class TypeUtils {
 		} else if (opcode == DSTORE) {
 			return Type.DOUBLE_TYPE;
 		} else if (opcode == ASTORE) {
-			return Type.getType("Ljava/lang/Object;");
+			return OBJECT_TYPE;
 		} else {
 			throw new IllegalArgumentException(Printer.OPCODES[opcode]);
 		}
