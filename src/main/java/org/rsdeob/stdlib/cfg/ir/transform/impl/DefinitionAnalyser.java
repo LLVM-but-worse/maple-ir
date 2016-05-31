@@ -21,11 +21,11 @@ import org.rsdeob.stdlib.cfg.ir.transform.VariableStateComputer;
 import org.rsdeob.stdlib.collections.NullPermeableHashMap;
 import org.rsdeob.stdlib.collections.SetCreator;
 
-public class TrackerImpl extends ForwardsFlowAnalyser<Statement, FlowEdge<Statement>, NullPermeableHashMap<String, Set<CopyVarStatement>>>{
+public class DefinitionAnalyser extends ForwardsFlowAnalyser<Statement, FlowEdge<Statement>, NullPermeableHashMap<String, Set<CopyVarStatement>>>{
 
 	private final NullPermeableHashMap<String, Set<CopyVarStatement>> initial;
 	
-	public TrackerImpl(StatementGraph graph, MethodNode m) {
+	public DefinitionAnalyser(StatementGraph graph, MethodNode m) {
 		super(graph);
 		initial = newState();
 		defineInputs(m);
@@ -47,9 +47,9 @@ public class TrackerImpl extends ForwardsFlowAnalyser<Statement, FlowEdge<Statem
 							CopyVarStatement copy = defs.iterator().next();
 							Expression def = copy.getExpression();
 							if(def instanceof ConstantExpression || def instanceof VarExpression) {
+								// overwrite it here instead of in StatementVisitor
 								int d = getDepth();
-								getCurrent(d).overwrite(def, getCurrentPtr(d));
-								
+								getCurrent(d).overwrite(def.copy(), getCurrentPtr(d));
 							}
 						}
 					}

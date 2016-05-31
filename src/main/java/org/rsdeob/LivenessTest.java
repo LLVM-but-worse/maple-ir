@@ -24,7 +24,7 @@ import org.rsdeob.stdlib.cfg.ir.stat.ConditionalJumpStatement.ComparisonType;
 import org.rsdeob.stdlib.cfg.ir.stat.CopyVarStatement;
 import org.rsdeob.stdlib.cfg.ir.stat.Statement;
 import org.rsdeob.stdlib.cfg.ir.transform.impl.LivenessAnalyser;
-import org.rsdeob.stdlib.cfg.ir.transform.impl.TrackerImpl;
+import org.rsdeob.stdlib.cfg.ir.transform.impl.DefinitionAnalyser;
 import org.rsdeob.stdlib.cfg.util.ControlFlowGraphDeobfuscator;
 import org.rsdeob.stdlib.cfg.util.GraphUtils;
 import org.rsdeob.stdlib.cfg.util.TabbedStringWriter;
@@ -97,12 +97,17 @@ public class LivenessTest {
 	}
 	
 	private static void simplify(RootStatement root, StatementGraph graph, MethodNode m) {
-		System.out.println(graph);
-		TrackerImpl ffa = new TrackerImpl(graph, m);
+//		System.out.println(graph);
+		DefinitionAnalyser ffa = new DefinitionAnalyser(graph, m);
 		ffa.run();
 		ffa.propagate();
+		System.out.println();
+		System.out.println();
+		System.out.println("After propagation");
+		System.out.println();
+		System.out.println();
 		System.out.println(root);
-		System.out.println(graph);
+//		System.out.println(graph);
 		
 		LivenessAnalyser la = new LivenessAnalyser(graph);
 		la.run();
@@ -116,10 +121,20 @@ public class LivenessTest {
 				VarExpression var = copy.getVariable();
 				
 				if(!out.get(var.toString())) {
-					copy.delete();
+					System.out.println("redundant " + copy);
+					// root.delete(copy.getChildPointer());
+					root.delete(root.indexOf(copy));
 				}
 			}
-		}	
+		}
+		
+		System.out.println();
+		System.out.println();
+		System.out.println("After dead expression elimation");
+		System.out.println();
+		System.out.println();
+		
+		System.out.println(root);
 	}
 	
 	void test1() {
@@ -130,6 +145,7 @@ public class LivenessTest {
 			z = x;
 		}
 		System.out.println(x);
+		System.out.println(z);
 	}
 	
 	public static void main1(String[] args) throws Exception {		
