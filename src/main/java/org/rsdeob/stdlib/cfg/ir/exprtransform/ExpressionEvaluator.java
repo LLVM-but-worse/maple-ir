@@ -2,12 +2,9 @@ package org.rsdeob.stdlib.cfg.ir.exprtransform;
 
 import org.objectweb.asm.Type;
 import org.rsdeob.stdlib.cfg.ir.StatementVisitor;
-import org.rsdeob.stdlib.cfg.ir.expr.ArithmeticExpression;
-import org.rsdeob.stdlib.cfg.ir.expr.ConstantExpression;
-import org.rsdeob.stdlib.cfg.ir.expr.Expression;
-import org.rsdeob.stdlib.cfg.ir.expr.VarExpression;
-import org.rsdeob.stdlib.cfg.ir.stat.Statement;
+import org.rsdeob.stdlib.cfg.ir.expr.*;
 import org.rsdeob.stdlib.cfg.ir.exprtransform.DataFlowState.CopySet;
+import org.rsdeob.stdlib.cfg.ir.stat.Statement;
 import org.rsdeob.stdlib.cfg.util.TypeUtils;
 import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
@@ -33,7 +30,9 @@ public class ExpressionEvaluator {
 							changed.set(true);
 							return vars.get(expr).getExpression();
 						} else if (isConstant(expr)) {
-							return evaluateConstant(expr);
+							ConstantExpression evaluated = evaluateConstant(expr);
+							changed.set(expr != evaluated);
+							return evaluated;
 						} else {
 							return expr;
 						}
@@ -47,7 +46,7 @@ public class ExpressionEvaluator {
 	}
 
 	public static boolean isConstant(Expression expr) {
-		if (expr instanceof VarExpression || expr instanceof DataFlowExpression)
+		if (expr instanceof VarExpression || expr instanceof DataFlowExpression || !TypeUtils.isPrimitive(expr.getType()))
 			return false;
 
 		final AtomicBoolean constant = new AtomicBoolean(true);
@@ -55,6 +54,8 @@ public class ExpressionEvaluator {
 			@Override
 			public Statement visit(Statement stmt) {
 				if (stmt instanceof VarExpression || stmt instanceof DataFlowExpression)
+					constant.set(false);
+				else if (stmt instanceof Expression && !TypeUtils.isPrimitive(((Expression) stmt).getType()))
 					constant.set(false);
 				return stmt;
 			}
@@ -69,9 +70,16 @@ public class ExpressionEvaluator {
 		// subcalls are safe because the entire expr is constant
 		if (expr instanceof ArithmeticExpression)
 			return evaluateArithmetic((ArithmeticExpression) expr);
+		if (expr instanceof ArrayLengthExpression)
+			return evaluateArrayLength((ArrayLengthExpression) expr);
+		if (expr instanceof ArrayLoadExpression)
+			return evaluateArrayLength((ArrayLoadExpression) expr);
+		if (expr instanceof ComparisonExpression)
+			return evaluateComparison((ComparisonExpression) expr);
+		if (expr instanceof NegationExpression)
+			return evaluateNegation((NegationExpression) expr);
 		throw new NotImplementedException();
 	}
-
 	// expr must be evaluatable to constant
 	private static ConstantExpression evaluateArithmetic(ArithmeticExpression arith) {
 		ConstantExpression lhs = evaluateConstant(arith.getLeft());
@@ -1057,6 +1065,77 @@ public class ExpressionEvaluator {
 		}
 		if (result == null)
 			throw new IllegalArgumentException("Result was null; invalid operand type and operator combination!");
+		return new ConstantExpression(result);
+	}
+
+	private static ConstantExpression evaluateArrayLength(ArrayLengthExpression alex) {
+		ConstantExpression expr = evaluateConstant(alex.getExpression());
+		if (expr.getType().getSort() != Type.ARRAY)
+			throw new IllegalArgumentException("Array expression of non-array type");
+		return new ConstantExpression(((Object[]) expr.getConstant()).length);
+	}
+
+	private static ConstantExpression evaluateArrayLength(ArrayLoadExpression michael) {
+		ConstantExpression array = evaluateConstant(michael.getArrayExpression());
+		ConstantExpression index = evaluateConstant(michael.getIndexExpression());
+		if (array.getType().getSort() != Type.ARRAY)
+			throw new IllegalArgumentException("Array expression of non-array type");
+		if (index.getType() != INT_TYPE) {
+			throw new IllegalArgumentException("Array index expression of non-int type");
+		}
+		return new ConstantExpression(((Object[]) array.getConstant())[(int) index.getConstant()]);
+	}
+
+	private static ConstantExpression evaluateComparison(ComparisonExpression cmp) {
+		ConstantExpression lhs = evaluateConstant(cmp.getLeft());
+		ConstantExpression rhs = evaluateConstant(cmp.getRight());
+
+		Object lhsVal = lhs.getConstant();
+		Object rhsVal = rhs.getConstant();
+
+		Object result;
+		if (lhs.getType() != rhs.getType())
+			throw new IllegalArgumentException("Mismatched comparison types");
+		switch (cmp.getComparisonType()) {
+			case LT:
+			case GT:
+				if (lhs.getType() == FLOAT_TYPE)
+					result = (float) lhsVal == (float) rhsVal ? 0.f : ((float) rhsVal > (float) lhsVal ? 1.f : -1.f);
+				else if (lhs.getType() == DOUBLE_TYPE)
+					result = (double) lhsVal == (double) rhsVal ? 0.0 : ((double) rhsVal > (double) lhsVal ? 1.0 : -1.0);
+				else
+					throw new IllegalArgumentException("Illegal comparison type for FP comparison");
+				break;
+			case CMP:
+				if (lhs.getType() != LONG_TYPE)
+					throw new IllegalArgumentException("Illegal comparison type for LCMP");
+				result = (long) lhsVal == (long) rhsVal ? 0L : ((long) rhsVal > (long) lhsVal ? 1L : -1L);
+				break;
+			default:
+				throw new IllegalArgumentException("Invalid value comparison type " + cmp.getComparisonType().name());
+		}
+
+		return new ConstantExpression(result);
+	}
+
+	private static ConstantExpression evaluateNegation(NegationExpression neg) {
+		ConstantExpression expr = evaluateConstant(neg.getExpression());
+		if (!TypeUtils.isPrimitive(expr.getType()))
+			throw new IllegalArgumentException("Non-primitive type for negation");
+		Object val = expr.getConstant();
+		Object result;
+		if (expr.getType() == BOOLEAN_TYPE)
+			result = !(boolean)val;
+		else if (expr.getType() == INT_TYPE)
+			result = -(int)val;
+		else if (expr.getType() == LONG_TYPE)
+			result = -(long)val;
+		else if (expr.getType() == FLOAT_TYPE)
+			result = -(float)val;
+		else if (expr.getType() == DOUBLE_TYPE)
+			result = -(double)val;
+		else
+			throw new IllegalArgumentException("Illegal type " + expr.getType().toString() + " for negation!");
 		return new ConstantExpression(result);
 	}
 }
