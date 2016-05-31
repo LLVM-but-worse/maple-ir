@@ -7,7 +7,7 @@ import org.rsdeob.stdlib.collections.graph.flow.FlowGraph;
 import java.util.HashMap;
 import java.util.Map;
 
-public abstract class FastBlockGraph extends FlowGraph<BasicBlock, FlowEdge<BasicBlock>> {
+public class FastBlockGraph extends FlowGraph<BasicBlock, FlowEdge<BasicBlock>> {
 
 	private final Map<LabelNode, BasicBlock> blockLabels;
 	
@@ -56,7 +56,8 @@ public abstract class FastBlockGraph extends FlowGraph<BasicBlock, FlowEdge<Basi
 //	protected BasicBlock getDestination(BasicBlock n, FlowEdge<BasicBlock> e) {
 //		return e.dst;
 //	}
-	
+
+	@Override
 	public FlowEdge<BasicBlock> clone(FlowEdge<BasicBlock> edge, BasicBlock old, BasicBlock newN) {
 		BasicBlock src = edge.src;
 		BasicBlock dst = edge.dst;
