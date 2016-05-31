@@ -23,8 +23,9 @@ import org.rsdeob.stdlib.cfg.ir.expr.VarExpression;
 import org.rsdeob.stdlib.cfg.ir.stat.ConditionalJumpStatement.ComparisonType;
 import org.rsdeob.stdlib.cfg.ir.stat.CopyVarStatement;
 import org.rsdeob.stdlib.cfg.ir.stat.Statement;
-import org.rsdeob.stdlib.cfg.ir.transform.impl.LivenessAnalyser;
 import org.rsdeob.stdlib.cfg.ir.transform.impl.DefinitionAnalyser;
+import org.rsdeob.stdlib.cfg.ir.transform.impl.LivenessAnalyser;
+import org.rsdeob.stdlib.cfg.ir.transform.impl.ValuePropagator;
 import org.rsdeob.stdlib.cfg.util.ControlFlowGraphDeobfuscator;
 import org.rsdeob.stdlib.cfg.util.GraphUtils;
 import org.rsdeob.stdlib.cfg.util.TabbedStringWriter;
@@ -98,9 +99,9 @@ public class LivenessTest {
 	
 	private static void simplify(RootStatement root, StatementGraph graph, MethodNode m) {
 //		System.out.println(graph);
-		DefinitionAnalyser ffa = new DefinitionAnalyser(graph, m);
-		ffa.run();
-		ffa.propagate();
+		DefinitionAnalyser defAnalyser = new DefinitionAnalyser(graph, m);
+		defAnalyser.run();
+		ValuePropagator.propagateDefinitions(graph, defAnalyser);
 		System.out.println();
 		System.out.println();
 		System.out.println("After propagation");
