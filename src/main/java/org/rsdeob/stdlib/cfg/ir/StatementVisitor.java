@@ -46,7 +46,14 @@ public abstract class StatementVisitor {
 			currentPtrs[depth - 1] = addr;
 			Statement node = stmt.read(addr);
 			_start(node, 0);
-			stmt.overwrite(visit(node), addr);
+			// System.out.println("Visiting " + stmt + " at addr=" + addr);
+			// System.out.println("   Node: " + node);
+			// System.out.println("   Visit: " + visit(node));
+			// stmt.overwrite(visit(node), addr);
+			Statement nn = visit(node);
+			if(nn != node) {
+				stmt.overwrite(nn, addr);
+			}
 			if (broken) {
 				throw new RuntimeException("break");
 			}
