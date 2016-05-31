@@ -56,6 +56,19 @@ public class LivenessTest {
 				System.out.println(root);
 				System.out.println();
 				
+//				TrackerImpl ffa = new TrackerImpl(sgraph, m);
+//				ffa.run();
+				
+//				for(Statement stmt : sgraph.vertices()) {
+//					System.out.println(stmt);
+//					System.out.println("  IN:");
+//					NullPermeableHashMap<String, Set<CopyVarStatement>> in = ffa.in(stmt);
+//					List<String> inVars = new ArrayList<>(in.keySet());
+//					Collections.sort(inVars);
+//					for(String var : inVars) {
+//						System.out.println("     ");
+//					}
+//				}
 				simplify(root, sgraph, m);
 				
 //				for(Statement stmt : sgraph.vertices()) {
