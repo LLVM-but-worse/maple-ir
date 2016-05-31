@@ -1,13 +1,13 @@
 package org.rsdeob.stdlib.cfg.ir.expr;
 
-import static org.objectweb.asm.Opcodes.*;
-
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.util.Printer;
 import org.rsdeob.stdlib.cfg.ir.stat.Statement;
 import org.rsdeob.stdlib.cfg.util.TabbedStringWriter;
+
+import static org.objectweb.asm.Opcodes.*;
 
 public class ComparisonExpression extends Expression {
 
@@ -87,9 +87,13 @@ public class ComparisonExpression extends Expression {
 	public void toString(TabbedStringWriter printer) {
 		printer.print('(');
 		left.toString(printer);
-		printer.print(" |LOWCMP| ");
+		printer.print(" == ");
 		right.toString(printer);
-		printer.print(')');
+		printer.print("? 0 : (");
+		right.toString(printer);
+		printer.print(" > ");
+		left.toString(printer);
+		printer.print("? 1 : -1))");
 	}
 
 	@Override
@@ -121,5 +125,9 @@ public class ComparisonExpression extends Expression {
 	@Override
 	public boolean isAffectedBy(Statement stmt) {
 		return left.isAffectedBy(stmt) || right.isAffectedBy(stmt);
+	}
+
+	public ValueComparisonType getComparisonType() {
+		return type;
 	}
 }
