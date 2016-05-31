@@ -219,7 +219,6 @@ public class ControlFlowGraphBuilder {
 	
 	public static ControlFlowGraph create(MethodNode method) {
 		ControlFlowGraphBuilder builder = new ControlFlowGraphBuilder(method);
-		builder.processQueue();
-		return builder.graph;
+		return builder.build();
 	}
 }

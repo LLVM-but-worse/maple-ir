@@ -1,11 +1,11 @@
 package org.rsdeob.stdlib.cfg.ir;
 
+import java.util.HashMap;
+
 import org.rsdeob.stdlib.cfg.edge.FlowEdge;
 import org.rsdeob.stdlib.cfg.ir.stat.Statement;
 import org.rsdeob.stdlib.cfg.util.GraphUtils;
 import org.rsdeob.stdlib.collections.graph.flow.FlowGraph;
-
-import java.util.HashMap;
 
 public class StatementGraph extends FlowGraph<Statement, FlowEdge<Statement>>{
 	private final HashMap<Integer, Boolean> executableMap = new HashMap<>();
@@ -33,5 +33,21 @@ public class StatementGraph extends FlowGraph<Statement, FlowEdge<Statement>>{
 	@Override
 	public String toString() {
 		return GraphUtils.toString(this, vertices());
+	}
+
+	@Override
+	public FlowEdge<Statement> clone(FlowEdge<Statement> edge, Statement old, Statement newN) {
+		Statement src = edge.src;
+		Statement dst = edge.dst;
+		
+		// remap edges
+		if(src == old) {
+			src = newN;
+		}
+		if(dst == old) {
+			dst = newN;
+		}
+		
+		return edge.clone(src, dst);
 	}
 }

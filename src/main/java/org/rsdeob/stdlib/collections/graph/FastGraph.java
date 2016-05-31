@@ -82,19 +82,19 @@ public abstract class FastGraph<N extends FastGraphVertex, E extends FastGraphEd
 			map.get(v).remove(e);
 		}
 		// we need to remove the edge from dst <- src map
-		N dst = getDestination(v, e);
+		N dst = e.dst /*getDestination(v, e)*/;
 		if(reverseMap.containsKey(dst)) {
 			reverseMap.get(dst).remove(e);
 		}
 	}
 
-	protected N getSource(N n, E e) {
-		return e.src;
-	}
-	
-	protected N getDestination(N n, E e) {
-		return e.dst;
-	}
+//	protected N getSource(N n, E e) {
+//		return e.src;
+//	}
+//	
+//	protected N getDestination(N n, E e) {
+//		return e.dst;
+//	}
 	
 	public void removeVertex(N v) {
 		// A = {(A->B), (A->C)}
@@ -136,13 +136,58 @@ public abstract class FastGraph<N extends FastGraphVertex, E extends FastGraphEd
 		// D = {(C->D)}
 
 		for(E e : map.remove(v)) {
-			reverseMap.get(getDestination(v, e)).remove(e);
+			reverseMap.get(/*getDestination(v, e)*/ e.dst).remove(e);
 		}
 		
 		for(E e : reverseMap.remove(v)) {
-			map.get(getSource(v, e)).remove(e);
+			map.get(/*getSource(v, e)*/ e.src).remove(e);
 		}
 	}
+
+	public void replace(N old, N n) {
+		// A = {(A->B), (A->C)}
+		// B = {(B->D)}
+		// C = {(C->D)}
+		// D = {}
+		//  reverse
+		// A = {}
+		// B = {(A->B)}
+		// C = {(A->C)}
+		// D = {(B->D), (C->D)}
+		
+		// replacing B with E
+		
+		// A = {(A->E), (A->C)}
+		// E = {(E->D)}
+		// C = {(C->D)}
+		// D = {}
+		//  reverse
+		// A = {}
+		// E = {(A->E)}
+		// C = {(A->C)}
+		// D = {(E->D), (C->D)}
+		
+		Set<E> succs = getEdges(old);
+		Set<E> preds = getReverseEdges(old);
+		
+		addVertex(n);
+		
+		for(E succ : succs) {
+			E newEdge = clone(succ, old, n);
+			removeEdge(old, succ);
+			addEdge(n, newEdge);
+		}
+		
+		for(E pred : preds) {
+			E newEdge = clone(pred, old, n);
+			removeEdge(pred.src, pred);
+			addEdge(pred.src, newEdge);
+		}
+		
+		removeVertex(old);
+	}
+	
+	public abstract E clone(E edge, N old, N newN);
 	
 	public void addEdge(N v, E e) {
 		if(!map.containsKey(v)) {
@@ -150,7 +195,7 @@ public abstract class FastGraph<N extends FastGraphVertex, E extends FastGraphEd
 		}
 		map.get(v).add(e);
 		
-		N dst = getDestination(v, e);
+		N dst = /*getDestination(v, e)*/ e.dst;
 		if(!reverseMap.containsKey(dst)) {
 			reverseMap.put(dst, new HashSet<>());
 		}
@@ -161,7 +206,7 @@ public abstract class FastGraph<N extends FastGraphVertex, E extends FastGraphEd
 	public static <N extends FastGraphVertex, E extends FastGraphEdge<N>> List<N> computeSuccessors(FastGraph<N, E> graph, N n) {
 		List<N> list = new ArrayList<>();
 		for(E succ : graph.getEdges(n)) {
-			list.add(graph.getDestination(n, succ));
+			list.add(/*graph.getDestination(n, succ)*/ succ.dst);
 		}
 		return list;
 	}
@@ -169,7 +214,7 @@ public abstract class FastGraph<N extends FastGraphVertex, E extends FastGraphEd
 	public static <N extends FastGraphVertex, E extends FastGraphEdge<N>> List<N> computePredecessors(FastGraph<N, E> graph, N n) {
 		List<N> list = new ArrayList<>();
 		for(E pred : graph.getReverseEdges(n)) {
-			list.add(graph.getSource(n, pred));
+			list.add(/*graph.getSource(n, pred)*/ pred.src);
 		}
 		return list;
 	}
