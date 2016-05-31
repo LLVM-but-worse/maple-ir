@@ -7,7 +7,7 @@ import org.objectweb.asm.tree.LabelNode;
 import org.rsdeob.stdlib.cfg.edge.FlowEdge;
 import org.rsdeob.stdlib.collections.graph.flow.FlowGraph;
 
-public abstract class FastBlockGraph extends FlowGraph<BasicBlock, FlowEdge<BasicBlock>> {
+public class FastBlockGraph extends FlowGraph<BasicBlock, FlowEdge<BasicBlock>> {
 
 	private final Map<LabelNode, BasicBlock> blockLabels;
 	
