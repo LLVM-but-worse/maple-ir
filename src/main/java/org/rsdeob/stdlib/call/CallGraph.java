@@ -125,4 +125,10 @@ public class CallGraph extends FastGraph<MethodNode, Invocation> {
 	public static interface CallgraphAdapter {
 		boolean shouldMap(CallGraph graph, MethodNode m);
 	}
+
+	@Override
+	public Invocation clone(Invocation edge, MethodNode n, MethodNode newN) {
+		// TODO:
+		throw new UnsupportedOperationException();
+	}
 }

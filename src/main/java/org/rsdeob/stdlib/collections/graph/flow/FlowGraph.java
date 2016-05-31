@@ -12,7 +12,7 @@ import org.rsdeob.stdlib.collections.graph.FastGraph;
 import org.rsdeob.stdlib.collections.graph.FastGraphEdge;
 import org.rsdeob.stdlib.collections.graph.FastGraphVertex;
 
-public class FlowGraph<N extends FastGraphVertex, E extends FastGraphEdge<N>> extends FastGraph<N, E>{
+public abstract class FlowGraph<N extends FastGraphVertex, E extends FastGraphEdge<N>> extends FastGraph<N, E>{
 
 	private final List<ExceptionRange<N>> ranges;
 	private final Set<N> entries;

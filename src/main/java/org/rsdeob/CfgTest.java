@@ -14,6 +14,7 @@ import org.rsdeob.stdlib.cfg.ControlFlowGraphBuilder;
 import org.rsdeob.stdlib.cfg.util.ControlFlowGraphDeobfuscator;
 import org.rsdeob.stdlib.cfg.util.GraphUtils;
 import org.rsdeob.stdlib.collections.NodeTable;
+import org.topdank.banalysis.asm.insn.InstructionPrinter;
 import org.topdank.byteengineer.commons.data.JarInfo;
 import org.topdank.byteio.in.SingleJarDownloader;
 import org.topdank.byteio.out.JarDumper;
@@ -111,6 +112,7 @@ public class CfgTest {
 				if(m.toString().equals("ay.ar(IIIB)V")) {					
 //					System.out.println(m);
 //					InstructionPrinter.consolePrint(m);
+					InstructionPrinter.consolePrint(m);
 					m.localVariables.clear();
 					ControlFlowGraph cfg = ControlFlowGraphBuilder.create(m);
 					GraphUtils.output(cfg, new ArrayList<>(cfg.vertices()), graphFolder, "post");

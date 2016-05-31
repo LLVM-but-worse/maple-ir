@@ -46,14 +46,30 @@ public abstract class FastBlockGraph extends FlowGraph<BasicBlock, FlowEdge<Basi
 	}
 
 
+//	@Override
+//	protected BasicBlock getSource(BasicBlock n, FlowEdge<BasicBlock> e) {
+//		return e.src;
+//	}
+//
+//
+//	@Override
+//	protected BasicBlock getDestination(BasicBlock n, FlowEdge<BasicBlock> e) {
+//		return e.dst;
+//	}
+	
 	@Override
-	protected BasicBlock getSource(BasicBlock n, FlowEdge<BasicBlock> e) {
-		return e.src;
-	}
-
-
-	@Override
-	protected BasicBlock getDestination(BasicBlock n, FlowEdge<BasicBlock> e) {
-		return e.dst;
+	public FlowEdge<BasicBlock> clone(FlowEdge<BasicBlock> edge, BasicBlock old, BasicBlock newN) {
+		BasicBlock src = edge.src;
+		BasicBlock dst = edge.dst;
+		
+		// remap edges
+		if(src == old) {
+			src = newN;
+		}
+		if(dst == old) {
+			dst = newN;
+		}
+		
+		return edge.clone(src, dst);
 	}
 }
