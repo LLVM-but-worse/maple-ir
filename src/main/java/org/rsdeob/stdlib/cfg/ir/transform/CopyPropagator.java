@@ -8,6 +8,7 @@ import org.rsdeob.stdlib.cfg.ir.StatementVisitor;
 import org.rsdeob.stdlib.cfg.ir.expr.ConstantExpression;
 import org.rsdeob.stdlib.cfg.ir.expr.Expression;
 import org.rsdeob.stdlib.cfg.ir.expr.VarExpression;
+import org.rsdeob.stdlib.cfg.ir.exprtransform.ExpressionEvaluator;
 import org.rsdeob.stdlib.cfg.ir.stat.CopyVarStatement;
 import org.rsdeob.stdlib.cfg.ir.stat.Statement;
 
