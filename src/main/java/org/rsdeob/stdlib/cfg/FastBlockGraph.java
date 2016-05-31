@@ -1,11 +1,11 @@
 package org.rsdeob.stdlib.cfg;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import org.objectweb.asm.tree.LabelNode;
 import org.rsdeob.stdlib.cfg.edge.FlowEdge;
 import org.rsdeob.stdlib.collections.graph.flow.FlowGraph;
+
+import java.util.HashMap;
+import java.util.Map;
 
 public abstract class FastBlockGraph extends FlowGraph<BasicBlock, FlowEdge<BasicBlock>> {
 
@@ -57,7 +57,6 @@ public abstract class FastBlockGraph extends FlowGraph<BasicBlock, FlowEdge<Basi
 //		return e.dst;
 //	}
 	
-	@Override
 	public FlowEdge<BasicBlock> clone(FlowEdge<BasicBlock> edge, BasicBlock old, BasicBlock newN) {
 		BasicBlock src = edge.src;
 		BasicBlock dst = edge.dst;
