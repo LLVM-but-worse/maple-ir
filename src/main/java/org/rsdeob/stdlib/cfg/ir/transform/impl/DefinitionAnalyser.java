@@ -1,7 +1,6 @@
 package org.rsdeob.stdlib.cfg.ir.transform.impl;
 
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
@@ -10,14 +9,10 @@ import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.MethodNode;
 import org.rsdeob.stdlib.cfg.edge.FlowEdge;
 import org.rsdeob.stdlib.cfg.ir.StatementGraph;
-import org.rsdeob.stdlib.cfg.ir.StatementVisitor;
-import org.rsdeob.stdlib.cfg.ir.expr.ConstantExpression;
-import org.rsdeob.stdlib.cfg.ir.expr.Expression;
 import org.rsdeob.stdlib.cfg.ir.expr.VarExpression;
 import org.rsdeob.stdlib.cfg.ir.stat.CopyVarStatement;
 import org.rsdeob.stdlib.cfg.ir.stat.Statement;
 import org.rsdeob.stdlib.cfg.ir.transform.ForwardsFlowAnalyser;
-import org.rsdeob.stdlib.cfg.ir.transform.VariableStateComputer;
 import org.rsdeob.stdlib.collections.NullPermeableHashMap;
 import org.rsdeob.stdlib.collections.SetCreator;
 
@@ -29,35 +24,6 @@ public class DefinitionAnalyser extends ForwardsFlowAnalyser<Statement, FlowEdge
 		super(graph);
 		initial = newState();
 		defineInputs(m);
-	}
-	
-	public void propagate() {
-		for(Statement stmt : graph.vertices()) {
-			Map<String, Set<CopyVarStatement>> in = in(stmt);
-			
-			StatementVisitor impl = new StatementVisitor(stmt) {
-				@Override
-				public Statement visit(Statement s) {
-					if(s instanceof VarExpression) {
-						VarExpression var = (VarExpression) s;
-						String name = VariableStateComputer.createVariableName(var);
-						Set<CopyVarStatement> defs = in.get(name);
-						
-						if(defs != null && defs.size() == 1) {
-							CopyVarStatement copy = defs.iterator().next();
-							Expression def = copy.getExpression();
-							if(def instanceof ConstantExpression || def instanceof VarExpression) {
-								// overwrite it here instead of in StatementVisitor
-								int d = getDepth();
-								getCurrent(d).overwrite(def.copy(), getCurrentPtr(d));
-							}
-						}
-					}
-					return s;
-				}
-			};
-			impl.visit();
-		}
 	}
 	
 	private void defineInputs(MethodNode m) {
@@ -78,13 +44,8 @@ public class DefinitionAnalyser extends ForwardsFlowAnalyser<Statement, FlowEdge
 	
 	private void addEntry(int index, Type type) {
 		CopyVarStatement stmt = selfDefine(new VarExpression(index, type));
-		String name = createVariableName(stmt);
+		String name = stmt.getVariable().toString();
 		initial.getNonNull(name).add(stmt);
-	}
-	
-	public static String createVariableName(CopyVarStatement stmt) {
-		VarExpression var = stmt.getVariable();
-		return (var.isStackVariable() ? "s" : "l") + "var" + var.getIndex();
 	}
 	
 	private CopyVarStatement selfDefine(VarExpression var) {
@@ -149,7 +110,7 @@ public class DefinitionAnalyser extends ForwardsFlowAnalyser<Statement, FlowEdge
 		
 		if(n instanceof CopyVarStatement) {
 			CopyVarStatement stmt = (CopyVarStatement) n;
-			String name = VariableStateComputer.createVariableName(stmt);
+			String name = stmt.getVariable().toString();
 			Set<CopyVarStatement> set = out.get(name);
 			if(set == null) {
 				set = new HashSet<>();
