@@ -2,7 +2,6 @@ package org.rsdeob;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.Opcodes;
@@ -21,10 +20,11 @@ import org.rsdeob.stdlib.cfg.ir.expr.ArithmeticExpression.Operator;
 import org.rsdeob.stdlib.cfg.ir.expr.Expression;
 import org.rsdeob.stdlib.cfg.ir.expr.VarExpression;
 import org.rsdeob.stdlib.cfg.ir.stat.ConditionalJumpStatement.ComparisonType;
-import org.rsdeob.stdlib.cfg.ir.stat.CopyVarStatement;
 import org.rsdeob.stdlib.cfg.ir.stat.Statement;
-import org.rsdeob.stdlib.cfg.ir.transform.impl.LivenessAnalyser;
+import org.rsdeob.stdlib.cfg.ir.transform.impl.DeadAssignmentEliminator;
 import org.rsdeob.stdlib.cfg.ir.transform.impl.DefinitionAnalyser;
+import org.rsdeob.stdlib.cfg.ir.transform.impl.LivenessAnalyser;
+import org.rsdeob.stdlib.cfg.ir.transform.impl.ValuePropagator;
 import org.rsdeob.stdlib.cfg.util.ControlFlowGraphDeobfuscator;
 import org.rsdeob.stdlib.cfg.util.GraphUtils;
 import org.rsdeob.stdlib.cfg.util.TabbedStringWriter;
@@ -97,44 +97,12 @@ public class LivenessTest {
 	}
 	
 	private static void simplify(RootStatement root, StatementGraph graph, MethodNode m) {
-//		System.out.println(graph);
-		DefinitionAnalyser ffa = new DefinitionAnalyser(graph, m);
-		ffa.run();
-		ffa.propagate();
-		System.out.println();
-		System.out.println();
-		System.out.println("After propagation");
-		System.out.println();
-		System.out.println();
-		System.out.println(root);
-//		System.out.println(graph);
-		
+		DefinitionAnalyser defAnalyser = new DefinitionAnalyser(graph, m);
+		defAnalyser.run();
+		ValuePropagator.propagateDefinitions(graph, defAnalyser);
 		LivenessAnalyser la = new LivenessAnalyser(graph);
 		la.run();
-		
-		for(Statement stmt : graph.vertices()) {
-			if(stmt instanceof CopyVarStatement) {
-//				Map<String, Boolean> in = la.in(stmt);
-				Map<String, Boolean> out = la.out(stmt);
-				
-				CopyVarStatement copy = (CopyVarStatement) stmt;
-				VarExpression var = copy.getVariable();
-				
-				if(!out.get(var.toString())) {
-					System.out.println("redundant " + copy);
-					// root.delete(copy.getChildPointer());
-					root.delete(root.indexOf(copy));
-				}
-			}
-		}
-		
-		System.out.println();
-		System.out.println();
-		System.out.println("After dead expression elimation");
-		System.out.println();
-		System.out.println();
-		
-		System.out.println(root);
+		DeadAssignmentEliminator.run(root, graph, la);
 	}
 	
 	void test1() {
