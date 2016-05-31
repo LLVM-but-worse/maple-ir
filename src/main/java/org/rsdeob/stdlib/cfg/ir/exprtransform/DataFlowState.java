@@ -8,6 +8,7 @@ import org.rsdeob.stdlib.cfg.util.TabbedStringWriter;
 
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.BinaryOperator;
 
@@ -32,6 +33,13 @@ public class DataFlowState {
 
 		public CopySet(CopySet other) {
 			super(other);
+		}
+
+		public CopySet(Map<String, Set<CopyVarStatement>> bibl) {
+			for (Map.Entry<String, Set<CopyVarStatement>> entry : bibl.entrySet()) {
+				if (entry.getValue().size() == 1)
+					super.put(entry.getKey(), entry.getValue().iterator().next());
+			}
 		}
 
 		public void setVar(CopyVarStatement copy) {

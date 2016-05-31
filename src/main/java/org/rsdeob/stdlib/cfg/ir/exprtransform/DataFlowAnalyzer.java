@@ -1,22 +1,19 @@
 package org.rsdeob.stdlib.cfg.ir.exprtransform;
 
-import static org.rsdeob.stdlib.cfg.ir.exprtransform.DataFlowExpression.*;
-import static org.rsdeob.stdlib.cfg.ir.exprtransform.DataFlowState.CopySet.AllVarsExpression.VAR_ALL;
+import org.rsdeob.stdlib.cfg.ControlFlowGraph;
+import org.rsdeob.stdlib.cfg.edge.FlowEdge;
+import org.rsdeob.stdlib.cfg.ir.StatementGraph;
+import org.rsdeob.stdlib.cfg.ir.StatementGraphBuilder;
+import org.rsdeob.stdlib.cfg.ir.exprtransform.DataFlowState.CopySet;
+import org.rsdeob.stdlib.cfg.ir.stat.*;
 
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.Queue;
 
-import org.rsdeob.stdlib.cfg.ControlFlowGraph;
-import org.rsdeob.stdlib.cfg.edge.FlowEdge;
-import org.rsdeob.stdlib.cfg.ir.StatementGraph;
-import org.rsdeob.stdlib.cfg.ir.StatementGraphBuilder;
-import org.rsdeob.stdlib.cfg.ir.stat.ConditionalJumpStatement;
-import org.rsdeob.stdlib.cfg.ir.stat.CopyVarStatement;
-import org.rsdeob.stdlib.cfg.ir.stat.Statement;
-import org.rsdeob.stdlib.cfg.ir.stat.SwitchStatement;
-import org.rsdeob.stdlib.cfg.ir.stat.UnconditionalJumpStatement;
-import org.rsdeob.stdlib.cfg.ir.exprtransform.DataFlowState.CopySet;
+import static org.rsdeob.stdlib.cfg.ir.exprtransform.DataFlowExpression.NOT_A_CONST;
+import static org.rsdeob.stdlib.cfg.ir.exprtransform.DataFlowExpression.UNDEFINED;
+import static org.rsdeob.stdlib.cfg.ir.exprtransform.DataFlowState.CopySet.AllVarsExpression.VAR_ALL;
 
 public class DataFlowAnalyzer {
 	private final StatementGraph sgraph;
@@ -34,7 +31,7 @@ public class DataFlowAnalyzer {
 		flowStates = new LinkedHashMap<>();
 
 		DataFlowState entryFlowState = new DataFlowState();
-		entryFlowState.in.put(VAR_ALL, new CopyVarStatement(VAR_ALL, NOT_A_CONST));
+		entryFlowState.in.setVar(new CopyVarStatement(VAR_ALL, NOT_A_CONST));
 		flowStates.put(sgraph.getEntries().iterator().next(), entryFlowState);
 
 		// define every other nodes in and out being undefined
@@ -43,8 +40,8 @@ public class DataFlowAnalyzer {
 			if (sgraph.getEntries().contains(stmt))
 				continue;
 			DataFlowState state = new DataFlowState();
-			state.in.put(VAR_ALL, allUndefined);
-			state.out.put(VAR_ALL, allUndefined);
+			state.in.setVar(allUndefined);
+			state.out.setVar(allUndefined);
 			flowStates.put(stmt, state);
 		}
 
