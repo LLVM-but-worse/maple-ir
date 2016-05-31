@@ -3,19 +3,20 @@ package org.rsdeob.stdlib.cfg.ir.exprtransform;
 import org.objectweb.asm.Type;
 import org.rsdeob.stdlib.cfg.ir.StatementVisitor;
 import org.rsdeob.stdlib.cfg.ir.expr.*;
-import org.rsdeob.stdlib.cfg.ir.exprtransform.DataFlowState.CopySet;
+import org.rsdeob.stdlib.cfg.ir.stat.CopyVarStatement;
 import org.rsdeob.stdlib.cfg.ir.stat.Statement;
 import org.rsdeob.stdlib.cfg.util.TypeUtils;
 import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.objectweb.asm.Type.*;
 
 public class ExpressionEvaluator {
-	public static Expression evaluate(Expression in, CopySet vars) {
-		if (in instanceof VarExpression && vars.containsKey(in))
-			in = vars.get(in).getExpression();
+	public static Expression evaluate(Expression in, Map<String, CopyVarStatement> vars) {
+		if (in instanceof VarExpression && vars.containsKey(in.toString()))
+			in = vars.get(in.toString()).getExpression();
 		Expression result = in.copy();
 
 		final AtomicBoolean changed = new AtomicBoolean(true); // seriously???
@@ -26,9 +27,9 @@ public class ExpressionEvaluator {
 				public Statement visit(Statement stmt) {
 					if (stmt instanceof Expression) {
 						Expression expr = (Expression) stmt;
-						if (expr instanceof VarExpression && vars.containsKey(expr)) {
+						if (expr instanceof VarExpression && vars.containsKey(expr.toString())) {
 							changed.set(true);
-							return vars.get(expr).getExpression();
+							return vars.get(expr.toString()).getExpression();
 						} else if (isConstant(expr)) {
 							ConstantExpression evaluated = evaluateConstant(expr);
 							changed.set(expr != evaluated);
