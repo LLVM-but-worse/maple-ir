@@ -41,16 +41,18 @@ public class LivenessAnalyser extends BackwardsFlowAnalyser<Statement, FlowEdge<
 		initial = new HashMap<>();
 		uses = new NullPermeableHashMap<>(new SetCreator<>());
 		for(Statement stmt : graph.vertices()) {
+			if(stmt instanceof CopyVarStatement) {
+				VarExpression var = ((CopyVarStatement) stmt).getVariable();
+				initial.put(var.toString(), Boolean.valueOf(false));
+				uses.getNonNull(stmt).add(var);
+			}
+			
 			StatementVisitor vis = new StatementVisitor(stmt) {
 				@Override
 				public Statement visit(Statement s) {
 					if(s instanceof VarExpression) {
 						initial.put(s.toString(), Boolean.valueOf(false));
 						uses.getNonNull(stmt).add((VarExpression)s);
-					} else if(s instanceof CopyVarStatement) {
-						VarExpression var = ((CopyVarStatement) s).getVariable();
-						initial.put(var.toString(), Boolean.valueOf(false));
-						uses.getNonNull(stmt).add(var);
 					}
 					return s;
 				}

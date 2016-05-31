@@ -109,23 +109,23 @@ public class CopyVarStatement extends Statement implements IStackDumpNode {
 		}
 	}
 
-	@Override
-	public boolean equals(Object o) {
-		if (this == o) return true;
-		if (o == null || getClass() != o.getClass()) return false;
+//	@Override
+//	public boolean equals(Object o) {
+//		if (this == o) return true;
+//		if (o == null || getClass() != o.getClass()) return false;
+//
+//		CopyVarStatement that = (CopyVarStatement) o;
+//
+//		if (!expression.equals(that.expression)) return false;
+//		return variable.equals(that.variable);
+//
+//	}
 
-		CopyVarStatement that = (CopyVarStatement) o;
-
-		if (!expression.equals(that.expression)) return false;
-		return variable.equals(that.variable);
-
-	}
-
-	@Override
-	public int hashCode() {
-		int result = getId().hashCode();
-		result = 31 * result + expression.hashCode();
-		result = 31 * result + variable.hashCode();
-		return result;
-	}
+//	@Override
+//	public int hashCode() {
+//		int result = getId().hashCode();
+//		result = 31 * result + expression.hashCode();
+//		result = 31 * result + variable.hashCode();
+//		return result;
+//	}
 }
