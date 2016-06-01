@@ -143,7 +143,43 @@ public abstract class FastGraph<N extends FastGraphVertex, E extends FastGraphEd
 			map.get(/*getSource(v, e)*/ e.src).remove(e);
 		}
 	}
+	
+	// removes a node and tries to connect its
+	// predecessors to its successors.
+	/*public void excavate(N n) {
+		Set<E> preds = getReverseEdges(n);
+		Set<E> succs = getEdges(n);
+		
+		// there are only certain ways to do this
+		// if(preds.size() > 1 && succs.size() == 0) {
+			// multiple predecessors jumping to end block
+		// } else 
+		if(preds.size() > 1 && succs.size() == 1) {
+			// redirect predecessors to successor block
+		}
+	}*/
+	
+	public void excavate(N n) {
+		Set<E> preds = getReverseEdges(n);
+		Set<E> succs = getEdges(n);
+		
+		if(preds.size() >= 1 && succs.size() == 1) {
+			N succ = succs.iterator().next().dst;
+			for(E pe : preds) {
+				N pred = pe.src;
+				E newEdge = clone(pe, n, succ);
+				addEdge(pred, newEdge);
+			}
+			
+			removeVertex(n);
+		} else if(preds.size() == 0 && succs.size() == 1) {
+			removeVertex(n);
+		} else {
+			throw new UnsupportedOperationException(n.toString() + "  " + preds + "   " + succs);
+		}
+	}
 
+	// TODO: entries
 	public void replace(N old, N n) {
 		// A = {(A->B), (A->C)}
 		// B = {(B->D)}
