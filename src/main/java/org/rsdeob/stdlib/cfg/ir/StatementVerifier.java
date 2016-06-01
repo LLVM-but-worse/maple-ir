@@ -70,14 +70,18 @@ public class StatementVerifier extends ForwardsFlowAnalyser<Statement, FlowEdge<
 			InvocationExpression inv = (InvocationExpression) n;
 			Expression inst = inv.getInstanceExpression();
 			if(inst != null) {
-				
+				checkObjectType(inst);
 			}
+			
+			
 		}
 	}
 	
 	private void checkObjectType(Expression expr) {
 		if(expr instanceof ConstantExpression || expr instanceof ArithmeticExpression) {
 			throw new IllegalStateException(expr.toString());
-		} else if(TypeUtils.asSimpleType(expr.getType()))
+		} else if(TypeUtils.asSimpleType(expr.getType()) != TypeUtils.OBJECT_TYPE) {
+			throw new IllegalStateException(expr.toString());
+		}
 	}
 }

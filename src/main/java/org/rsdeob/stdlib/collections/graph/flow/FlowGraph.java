@@ -70,8 +70,25 @@ public abstract class FlowGraph<N extends FastGraphVertex, E extends FastGraphEd
 				it.remove();
 			}
 		}
-
+		
+		entries.remove(v);
 		vertexIds.remove(v.getId());
 		super.removeVertex(v);
+	}
+	
+	@Override
+	public void excavate(N n) {
+		Set<E> predEdges = getReverseEdges(n);
+		Set<N> preds = new HashSet<>();
+		for(E e : predEdges) {
+			preds.add(e.src);
+		}
+		super.excavate(n);
+		for(N pred : preds) {
+			Set<E> predPreds = getReverseEdges(pred);
+			if(predPreds.size() == 0) {
+				entries.add(pred);
+			}
+		}
 	}
 }

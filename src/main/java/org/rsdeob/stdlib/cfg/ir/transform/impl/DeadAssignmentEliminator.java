@@ -1,6 +1,8 @@
 package org.rsdeob.stdlib.cfg.ir.transform.impl;
 
+import java.util.HashSet;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.rsdeob.stdlib.cfg.ir.RootStatement;
@@ -14,8 +16,9 @@ import org.rsdeob.stdlib.cfg.ir.stat.Statement;
 
 public class DeadAssignmentEliminator {
 
-	public static void run(RootStatement root, StatementGraph graph, LivenessAnalyser la) {
-		for(Statement stmt : graph.vertices()) {
+	public static int run(RootStatement root, StatementGraph graph, LivenessAnalyser la) {
+		AtomicInteger dead = new AtomicInteger();
+		for(Statement stmt : new HashSet<>(graph.vertices())) {
 
 			if(stmt instanceof CopyVarStatement) {
 				Map<String, Boolean> out = la.out(stmt);
@@ -25,6 +28,8 @@ public class DeadAssignmentEliminator {
 				
 				if(!out.get(var.toString())) {
 					root.delete(root.indexOf(copy));
+					graph.excavate(copy);
+					dead.incrementAndGet();
 				}
 			}
 			
@@ -35,6 +40,7 @@ public class DeadAssignmentEliminator {
 //				}
 //			}
 		}
+		return dead.get();
 	}
 	
 	public static Statement findTail(RootStatement root, Statement stmt) {
