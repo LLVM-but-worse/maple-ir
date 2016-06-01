@@ -367,7 +367,8 @@ public class GraphUtils {
 	}
 
 	public static String toString(StatementGraph sg, Collection<Statement> stmts) {
-		StringBuilder sb = new StringBuilder("\n=========SG(stmt_count=").append(stmts.size()).append(") ").append("=========\n\n");
+		StringBuilder sb = new StringBuilder("\n=========SG(stmt_count=").append(stmts.size()).append(") ").append("=========\n");
+		sb.append("  ENTRIES: " + sg.getEntries() +"\n\n");
 		for(Statement stmt : stmts) {
 			sb.append(stmt).append(" #").append(stmt.getId()).append('\n');
 			for(FlowEdge<Statement> e : sg.getEdges(stmt)) {

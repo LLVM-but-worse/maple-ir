@@ -21,9 +21,10 @@ import org.rsdeob.stdlib.cfg.ir.expr.Expression;
 import org.rsdeob.stdlib.cfg.ir.expr.VarExpression;
 import org.rsdeob.stdlib.cfg.ir.stat.ConditionalJumpStatement.ComparisonType;
 import org.rsdeob.stdlib.cfg.ir.stat.Statement;
+import org.rsdeob.stdlib.cfg.ir.transform.impl.DeadAssignmentEliminator;
 import org.rsdeob.stdlib.cfg.ir.transform.impl.DefinitionAnalyser;
+import org.rsdeob.stdlib.cfg.ir.transform.impl.LivenessAnalyser;
 import org.rsdeob.stdlib.cfg.ir.transform.impl.ValuePropagator;
-import org.rsdeob.stdlib.cfg.util.AnalysisHelper;
 import org.rsdeob.stdlib.cfg.util.ControlFlowGraphDeobfuscator;
 import org.rsdeob.stdlib.cfg.util.GraphUtils;
 import org.rsdeob.stdlib.cfg.util.TabbedStringWriter;
@@ -62,23 +63,44 @@ public class LivenessTest {
 	}
 	
 	public static void simplify(RootStatement root, StatementGraph graph, MethodNode m) {
-		
-		DefinitionAnalyser defAnalyser = new DefinitionAnalyser(graph, m);
-		defAnalyser.run();
-		
-		for(Statement stmt : graph.vertices()) {
-			System.out.println(stmt);
-			System.out.println("   IN:");
-			AnalysisHelper.print(defAnalyser.in(stmt));
-			System.out.println("   OUT:");
-			AnalysisHelper.print(defAnalyser.out(stmt));
+		while(true) {
+			int change = 0;
+			System.out.println("graph1: ");
+			System.out.println(graph);
+			
+			DefinitionAnalyser defAnalyser = new DefinitionAnalyser(graph, m);
+			defAnalyser.run();
+			change += ValuePropagator.propagateDefinitions1(root, graph, defAnalyser);
+
+			System.out.println();
+			System.out.println();
+			System.out.println("After propagation");
+			System.out.println(root);
+			System.out.println();
+			System.out.println();
+			
+			System.out.println("graph2: ");
+			System.out.println(graph);
+			
+			LivenessAnalyser la = new LivenessAnalyser(graph);
+			la.run();
+			change += DeadAssignmentEliminator.run(root, graph, la);
+			
+			
+			System.out.println();
+			System.out.println();
+			System.out.println("After elimination");
+			System.out.println(root);
+			System.out.println();
+			System.out.println();
+			
+			
+			if(change <= 0) {
+				break;
+			}
+			
+			
 		}
-		
-		
-		ValuePropagator.propagateDefinitions(graph, defAnalyser);
-//		la = new LivenessAnalyser(graph);
-//		la.run();
-//		DeadAssignmentEliminator.run(root, graph, la);
 	}
 	
 	void test1() {
