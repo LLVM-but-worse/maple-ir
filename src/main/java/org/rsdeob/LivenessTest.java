@@ -57,7 +57,7 @@ public class LivenessTest {
 				System.out.println();
 
 				simplify(root, sgraph, m);
-				System.out.println(root);
+//				System.out.println(root);
 			}
 		}
 	}
@@ -65,22 +65,25 @@ public class LivenessTest {
 	public static void simplify(RootStatement root, StatementGraph graph, MethodNode m) {
 		while(true) {
 			int change = 0;
-			System.out.println("graph1: ");
-			System.out.println(graph);
+//			System.out.println("graph1: ");
+//			System.out.println(graph);
 			
 			DefinitionAnalyser defAnalyser = new DefinitionAnalyser(graph, m);
 			defAnalyser.run();
-			change += ValuePropagator.propagateDefinitions1(root, graph, defAnalyser);
+			// change += ValuePropagator.propagateDefinitions1(root, graph, defAnalyser);
 
-			System.out.println();
-			System.out.println();
-			System.out.println("After propagation");
-			System.out.println(root);
-			System.out.println();
-			System.out.println();
+			ValuePropagator prop = new ValuePropagator(root, graph);
+			prop.process(defAnalyser);
 			
-			System.out.println("graph2: ");
-			System.out.println(graph);
+//			System.out.println();
+//			System.out.println();
+//			System.out.println("After propagation");
+//			System.out.println(root);
+//			System.out.println();
+//			System.out.println();
+			
+//			System.out.println("graph2: ");
+//			System.out.println(graph);
 			
 			LivenessAnalyser la = new LivenessAnalyser(graph);
 			la.run();
@@ -89,11 +92,11 @@ public class LivenessTest {
 			
 			System.out.println();
 			System.out.println();
-			System.out.println("After elimination");
+//			System.out.println("After elimination");
 			System.out.println(root);
-			System.out.println();
-			System.out.println();
-			
+//			System.out.println();
+//			System.out.println();
+//			
 			
 			if(change <= 0) {
 				break;
