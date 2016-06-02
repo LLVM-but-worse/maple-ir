@@ -4,7 +4,7 @@ import org.rsdeob.stdlib.cfg.ir.stat.Statement;
 
 public abstract class StatementVisitor {
 
-	private Statement root;
+	protected Statement root;
 	private Statement[] current;
 	private int[] currentPtrs;
 	private int depth;
@@ -14,6 +14,13 @@ public abstract class StatementVisitor {
 		this.root = root;
 		current = new Statement[2];
 		currentPtrs = new int[2];
+	}
+	
+	public void reset() {
+		current = new Statement[2];
+		currentPtrs = new int[2];
+		broken = false;
+		depth = 0;
 	}
 
 	public void _break() {
@@ -35,6 +42,12 @@ public abstract class StatementVisitor {
 			broken = false;
 		}
 	}
+	
+	protected void visited(Statement stmt, Statement node, int addr, Statement vis) {
+		if(vis != node) {
+			stmt.overwrite(vis, addr);
+		}
+	}
 
 	private void _start(Statement stmt, int startAddr) {
 		if ((depth + 1) >= current.length) {
@@ -51,9 +64,7 @@ public abstract class StatementVisitor {
 			// System.out.println("   Visit: " + visit(node));
 			// stmt.overwrite(visit(node), addr);
 			Statement nn = visit(node);
-			if(nn != node) {
-				stmt.overwrite(nn, addr);
-			}
+			visited(stmt, node, addr, nn);
 			if (broken) {
 				throw new RuntimeException("break");
 			}
