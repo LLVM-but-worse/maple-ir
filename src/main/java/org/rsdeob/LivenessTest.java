@@ -1,8 +1,5 @@
 package org.rsdeob;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
@@ -11,23 +8,22 @@ import org.objectweb.asm.tree.MethodNode;
 import org.rsdeob.stdlib.cfg.BasicBlock;
 import org.rsdeob.stdlib.cfg.ControlFlowGraph;
 import org.rsdeob.stdlib.cfg.ControlFlowGraphBuilder;
-import org.rsdeob.stdlib.cfg.ir.RootStatement;
-import org.rsdeob.stdlib.cfg.ir.StatementBuilder;
-import org.rsdeob.stdlib.cfg.ir.StatementGenerator;
-import org.rsdeob.stdlib.cfg.ir.StatementGraph;
-import org.rsdeob.stdlib.cfg.ir.StatementGraphBuilder;
+import org.rsdeob.stdlib.cfg.ir.*;
 import org.rsdeob.stdlib.cfg.ir.expr.ArithmeticExpression.Operator;
 import org.rsdeob.stdlib.cfg.ir.expr.Expression;
 import org.rsdeob.stdlib.cfg.ir.expr.VarExpression;
 import org.rsdeob.stdlib.cfg.ir.stat.ConditionalJumpStatement.ComparisonType;
 import org.rsdeob.stdlib.cfg.ir.stat.Statement;
+import org.rsdeob.stdlib.cfg.ir.transform.impl.CopyPropagator;
 import org.rsdeob.stdlib.cfg.ir.transform.impl.DeadAssignmentEliminator;
 import org.rsdeob.stdlib.cfg.ir.transform.impl.DefinitionAnalyser;
 import org.rsdeob.stdlib.cfg.ir.transform.impl.LivenessAnalyser;
-import org.rsdeob.stdlib.cfg.ir.transform.impl.ValuePropagator;
 import org.rsdeob.stdlib.cfg.util.ControlFlowGraphDeobfuscator;
 import org.rsdeob.stdlib.cfg.util.GraphUtils;
 import org.rsdeob.stdlib.cfg.util.TabbedStringWriter;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class LivenessTest {
 
@@ -70,7 +66,7 @@ public class LivenessTest {
 			
 			DefinitionAnalyser defAnalyser = new DefinitionAnalyser(graph, m);
 			defAnalyser.run();
-			change += ValuePropagator.propagateDefinitions1(root, graph, defAnalyser);
+			change += CopyPropagator.propagateDefinitions(root, graph, defAnalyser);
 
 			System.out.println();
 			System.out.println();
