@@ -56,6 +56,7 @@ public class ValuePropagator {
 	private abstract class StatementVerifierVisitor extends StatementVisitor {
 		
 		protected final Statement tail;
+		private final boolean redef;
 		protected boolean flag;
 		private boolean start;
 		
@@ -63,6 +64,7 @@ public class ValuePropagator {
 			super(root);
 			this.tail = tail;
 			flag = true;
+			redef = !(tail instanceof VarExpression);
 		}
 		
 		@Override
@@ -78,7 +80,11 @@ public class ValuePropagator {
 					_break();
 					return s;
 				}
-				
+				if(redef && s instanceof VarExpression) {
+					flag = false;
+					_break();
+					return s;
+				}
 				visitImpl(s);
 			}
 			return s;
