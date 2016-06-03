@@ -4,6 +4,7 @@ import org.objectweb.asm.Type;
 import org.rsdeob.stdlib.cfg.ir.expr.Expression;
 import org.rsdeob.stdlib.cfg.ir.expr.VarExpression;
 import org.rsdeob.stdlib.cfg.ir.stat.CopyVarStatement;
+import org.rsdeob.stdlib.cfg.util.ExpressionEvaluator;
 import org.rsdeob.stdlib.cfg.util.TabbedStringWriter;
 
 import java.util.HashMap;
