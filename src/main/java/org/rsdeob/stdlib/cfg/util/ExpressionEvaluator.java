@@ -1,11 +1,11 @@
-package org.rsdeob.stdlib.cfg.ir.exprtransform;
+package org.rsdeob.stdlib.cfg.util;
 
 import org.objectweb.asm.Type;
 import org.rsdeob.stdlib.cfg.ir.StatementVisitor;
 import org.rsdeob.stdlib.cfg.ir.expr.*;
+import org.rsdeob.stdlib.cfg.ir.exprtransform.DataFlowExpression;
 import org.rsdeob.stdlib.cfg.ir.stat.CopyVarStatement;
 import org.rsdeob.stdlib.cfg.ir.stat.Statement;
-import org.rsdeob.stdlib.cfg.util.TypeUtils;
 import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 import java.util.Map;
