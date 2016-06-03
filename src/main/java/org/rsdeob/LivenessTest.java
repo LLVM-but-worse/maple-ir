@@ -21,6 +21,7 @@ import org.rsdeob.stdlib.cfg.ir.expr.Expression;
 import org.rsdeob.stdlib.cfg.ir.expr.VarExpression;
 import org.rsdeob.stdlib.cfg.ir.stat.ConditionalJumpStatement.ComparisonType;
 import org.rsdeob.stdlib.cfg.ir.stat.Statement;
+import org.rsdeob.stdlib.cfg.ir.transform.impl.CopyPropagator;
 import org.rsdeob.stdlib.cfg.ir.transform.impl.DeadAssignmentEliminator;
 import org.rsdeob.stdlib.cfg.ir.transform.impl.DefinitionAnalyser;
 import org.rsdeob.stdlib.cfg.ir.transform.impl.LivenessAnalyser;
@@ -71,6 +72,7 @@ public class LivenessTest {
 			DefinitionAnalyser defAnalyser = new DefinitionAnalyser(graph, m);
 			defAnalyser.run();
 			// change += ValuePropagator.propagateDefinitions1(root, graph, defAnalyser);
+			change += CopyPropagator.propagateDefinitions(root, graph, defAnalyser);
 
 			ValuePropagator prop = new ValuePropagator(root, graph);
 			prop.process(defAnalyser);

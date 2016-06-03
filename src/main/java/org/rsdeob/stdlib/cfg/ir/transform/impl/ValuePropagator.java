@@ -13,9 +13,11 @@ import org.rsdeob.stdlib.cfg.ir.expr.Expression;
 import org.rsdeob.stdlib.cfg.ir.expr.FieldLoadExpression;
 import org.rsdeob.stdlib.cfg.ir.expr.UninitialisedObjectExpression;
 import org.rsdeob.stdlib.cfg.ir.expr.VarExpression;
+import org.rsdeob.stdlib.cfg.ir.exprtransform.DataFlowState;
 import org.rsdeob.stdlib.cfg.ir.stat.CopyVarStatement;
 import org.rsdeob.stdlib.cfg.ir.stat.FieldStoreStatement;
 import org.rsdeob.stdlib.cfg.ir.stat.Statement;
+import org.rsdeob.stdlib.cfg.util.ExpressionEvaluator;
 
 public class ValuePropagator {
 	
@@ -232,8 +234,8 @@ public class ValuePropagator {
 				//  v = newObj statement as the dead assignment eliminator 
 				// refuses to remove these types of expressions;
 				System.out.println("NEW " + def +  "   " + v +"   " + v.getId());
-				System.out.println(ValuePropagator.this.root);
-				ValuePropagator.this.root.delete(ValuePropagator.this.root.indexOf(def));
+				System.out.println(root);
+				root.delete(root.indexOf(def));
 				graph.excavate(def);
 				return e;
 			} else {
@@ -283,6 +285,36 @@ public class ValuePropagator {
 				}
 			}
 			return s;
+		}
+	}
+	
+	public static void propagateDefinitions(StatementGraph graph, DefinitionAnalyser da) {
+		for (Statement stmt : graph.vertices()) {
+			Map<String, Set<CopyVarStatement>> in = da.in(stmt);
+			DataFlowState.CopySet copyset = new DataFlowState.CopySet(in);
+
+			StatementVisitor impl = new StatementVisitor(stmt) {
+				@Override
+				public Statement visit(Statement s) {
+					if (s instanceof VarExpression) {
+						String name = s.toString();
+						Set<CopyVarStatement> defs = in.get(name);
+
+						if (defs != null && defs.size() == 1) {
+							CopyVarStatement copy = defs.iterator().next();
+							Expression defValue = copy.getExpression();
+
+							Expression evaluated = ExpressionEvaluator.evaluate(defValue, copyset);
+							if (ExpressionEvaluator.isConstant(evaluated)) {
+								int d = getDepth();
+								getCurrent(d).overwrite(evaluated.copy(), getCurrentPtr(d));
+							}
+						}
+					}
+					return s;
+				}
+			};
+			impl.visit();
 		}
 	}
 }
