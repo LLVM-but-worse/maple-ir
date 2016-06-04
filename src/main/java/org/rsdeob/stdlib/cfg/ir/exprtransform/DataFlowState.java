@@ -4,7 +4,6 @@ import org.objectweb.asm.Type;
 import org.rsdeob.stdlib.cfg.ir.expr.Expression;
 import org.rsdeob.stdlib.cfg.ir.expr.VarExpression;
 import org.rsdeob.stdlib.cfg.ir.stat.CopyVarStatement;
-import org.rsdeob.stdlib.cfg.util.ExpressionEvaluator;
 import org.rsdeob.stdlib.cfg.util.TabbedStringWriter;
 
 import java.util.HashMap;
@@ -19,10 +18,14 @@ import static org.rsdeob.stdlib.cfg.ir.exprtransform.DataFlowState.CopySet.AllVa
 
 
 public class DataFlowState {
+	public HashSet<CopyVarStatement> gen;
+	public HashSet<CopyVarStatement> kill;
 	public CopySet in;
 	public CopySet out;
 
-	public DataFlowState() {
+	public DataFlowState(HashSet<CopyVarStatement> gen, HashSet<CopyVarStatement> kill) {
+		this.gen = gen;
+		this.kill = kill;
 		in = new CopySet();
 		out = new CopySet();
 	}
@@ -100,43 +103,6 @@ public class DataFlowState {
 				return a;
 			else
 				return NOT_A_CONST;
-		}
-
-		/**
-		 * Propagates the variable state information when
-		 * a statement is executed. i.e. take the in for
-		 * the given statement and compute the out for the
-		 * same statement.
-		 * 
-		 * @param stmt
-		 * @return whether the changed information is different
-		 */
-		public boolean transfer(CopyVarStatement stmt) {
-			VarExpression var = stmt.getVariable();
-			Expression rhs = stmt.getExpression();
-			if (!containsKey(var.toString()))
-				return false;
-			// x := (y)
-			Expression prevExpr = get(var.toString()).getExpression(); // (y)
-			Expression newExpr; // new (y)
-			if (prevExpr == UNDEFINED) {
-				newExpr = UNDEFINED;
-			} else {
-				Expression evaluated = ExpressionEvaluator.evaluate(rhs, this);
-				if (ExpressionEvaluator.isConstant(evaluated))
-					newExpr = evaluated;
-				else
-					newExpr = NOT_A_CONST;
-			}
-			// the propagated information for the
-			// is the same for in and out.
-			if (prevExpr.equals(newExpr))
-				return false;
-
-			// update the current state of the
-			// variable
-			put(var.toString(), new CopyVarStatement(var, newExpr));
-			return true;
 		}
 
 		public static class AllVarsExpression extends VarExpression {
