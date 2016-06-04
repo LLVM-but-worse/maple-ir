@@ -84,7 +84,7 @@ public class BootBibl implements Opcodes {
 			System.out.println();
 			
 			StatementGraph sgraph = StatementGraphBuilder.create(cfg);
-			LivenessTest.simplify(root, sgraph, m);
+			LivenessTest.simplify(cfg, root, sgraph, m);
 			
 			System.out.println("IR representation of " + m + ":");
 			System.out.println(root);
