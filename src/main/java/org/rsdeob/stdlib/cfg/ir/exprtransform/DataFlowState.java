@@ -6,10 +6,7 @@ import org.rsdeob.stdlib.cfg.ir.expr.VarExpression;
 import org.rsdeob.stdlib.cfg.ir.stat.CopyVarStatement;
 import org.rsdeob.stdlib.cfg.util.TabbedStringWriter;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.function.BinaryOperator;
 
 import static org.rsdeob.stdlib.cfg.ir.exprtransform.DataFlowExpression.NOT_A_CONST;
@@ -104,6 +101,41 @@ public class DataFlowState {
 			else
 				return NOT_A_CONST;
 		}
+
+		@Override
+		public boolean equals(Object o) {
+			if (o == this)
+				return true;
+
+			if (!(o instanceof Map))
+				return false;
+			Map<?,?> m = (Map<?,?>) o;
+			if (m.size() != size())
+				return false;
+
+			try {
+				Iterator<Entry<String, CopyVarStatement>> i = entrySet().iterator();
+				while (i.hasNext()) {
+					Entry<String, CopyVarStatement> e = i.next();
+					String key = e.getKey();
+					CopyVarStatement value = e.getValue();
+					if (value == null) {
+						if (!(m.get(key)==null && m.containsKey(key)))
+							return false;
+					} else {
+						if (!value.valueEquals(m.get(key)))
+							return false;
+					}
+				}
+			} catch (ClassCastException unused) {
+				return false;
+			} catch (NullPointerException unused) {
+				return false;
+			}
+
+			return true;
+		}
+
 
 		public static class AllVarsExpression extends VarExpression {
 			public static AllVarsExpression VAR_ALL = new AllVarsExpression();
