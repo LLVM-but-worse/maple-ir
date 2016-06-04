@@ -87,17 +87,8 @@ public class DataFlowAnalyzer {
 					state.out.put(copy.getVariable().toString(), copy);
 
 				dataFlow.put(b, state);
-				if (!state.out.equals(oldOut)) {
+				if (!state.out.equals(oldOut))
 					changed = true;
-					System.out.println("Data flow for " + b.getId());
-					System.out.println("In:");
-					for (CopyVarStatement copy : state.in.values())
-						System.out.println("    " + copy);
-					System.out.println("Out:");
-					for (CopyVarStatement copy : state.out.values())
-						System.out.println("    " + copy);
-					System.out.println("\n");
-				}
 			}
 		}
 
