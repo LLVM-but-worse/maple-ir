@@ -57,23 +57,25 @@ public class LivenessTest {
 				System.out.println(root);
 				System.out.println();
 
-				simplify(root, sgraph, m);
+				simplify(cfg, root, sgraph, m);
 //				System.out.println(root);
 			}
 		}
 	}
 	
-	public static void simplify(RootStatement root, StatementGraph graph, MethodNode m) {
+	public static void simplify(ControlFlowGraph cfg, RootStatement root, StatementGraph graph, MethodNode m) {
 		while(true) {
 			int change = 0;
 //			System.out.println("graph1: ");
 //			System.out.println(graph);
-			
+			System.out.println("LivenessTest.simplify(0)");
+
 			DefinitionAnalyser defAnalyser = new DefinitionAnalyser(graph, m);
 			defAnalyser.run();
+			System.out.println("LivenessTest.simplify(2)");
 			// change += ValuePropagator.propagateDefinitions1(root, graph, defAnalyser);
-			change += CopyPropagator.propagateDefinitions(root, graph, defAnalyser);
-
+			change += CopyPropagator.propagateDefinitions(cfg, root, defAnalyser);
+			System.out.println("LivenessTest.simplify(1)");
 			ValuePropagator prop = new ValuePropagator(root, graph);
 			prop.process(defAnalyser);
 			
