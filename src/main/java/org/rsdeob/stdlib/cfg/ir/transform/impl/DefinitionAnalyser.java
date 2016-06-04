@@ -1,9 +1,5 @@
 package org.rsdeob.stdlib.cfg.ir.transform.impl;
 
-import java.util.HashSet;
-import java.util.Map.Entry;
-import java.util.Set;
-
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.MethodNode;
@@ -15,6 +11,11 @@ import org.rsdeob.stdlib.cfg.ir.stat.Statement;
 import org.rsdeob.stdlib.cfg.ir.transform.ForwardsFlowAnalyser;
 import org.rsdeob.stdlib.collections.NullPermeableHashMap;
 import org.rsdeob.stdlib.collections.SetCreator;
+
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
 
 public class DefinitionAnalyser extends ForwardsFlowAnalyser<Statement, FlowEdge<Statement>, NullPermeableHashMap<String, Set<CopyVarStatement>>>{
 
@@ -122,5 +123,13 @@ public class DefinitionAnalyser extends ForwardsFlowAnalyser<Statement, FlowEdge
 		} else {
 			// rhs = null;
 		}
+	}
+
+	public Set<Statement> getUses(CopyVarStatement d) {
+		HashSet<Statement> uses = new HashSet<>();
+		for (Map.Entry<Statement, NullPermeableHashMap<String, Set<CopyVarStatement>>> entry : in.entrySet())
+			if (entry.getValue().get(d.getVariable().toString()).contains(d))
+				uses.add(entry.getKey());
+		return uses;
 	}
 }

@@ -53,7 +53,7 @@ public class DataFlowState {
 		@Override
 		public boolean containsKey(Object key) {
 			if (super.containsKey(VAR_ALL))
-				return key instanceof VarExpression;
+				return true;
 			return super.containsKey(key);
 		}
 
