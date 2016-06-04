@@ -127,9 +127,10 @@ public class DefinitionAnalyser extends ForwardsFlowAnalyser<Statement, FlowEdge
 
 	public Set<Statement> getUses(CopyVarStatement d) {
 		HashSet<Statement> uses = new HashSet<>();
-		for (Map.Entry<Statement, NullPermeableHashMap<String, Set<CopyVarStatement>>> entry : in.entrySet())
-			if (entry.getValue().get(d.getVariable().toString()).contains(d))
+		for (Map.Entry<Statement, NullPermeableHashMap<String, Set<CopyVarStatement>>> entry : in.entrySet()) {
+			if (entry.getValue().containsKey(d.getVariable().toString()) && entry.getValue().get(d.getVariable().toString()).contains(d))
 				uses.add(entry.getKey());
+		}
 		return uses;
 	}
 }
