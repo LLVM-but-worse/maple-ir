@@ -25,7 +25,15 @@ public class DataFlowAnalyzer {
 		for (BasicBlock b : cfg.vertices()) {
 			for (Statement stmt : b.getStatements()) {
 				if (stmt instanceof CopyVarStatement) {
-					allCopies.add((CopyVarStatement) stmt);
+					boolean contains = false;
+					for (CopyVarStatement copy : allCopies) {
+						if (copy.valueEquals(stmt)) {
+							contains = true;
+							break;
+						}
+					}
+					if (!contains)
+						allCopies.add((CopyVarStatement) stmt);
 				}
 			}
 		}
@@ -47,6 +55,7 @@ public class DataFlowAnalyzer {
 			DataFlowState state = compute(b);
 			for (CopyVarStatement copy : allCopies) {
 				if (b.getStatements().contains(copy))
+					continue;
 				if (state.kill.contains(copy))
 					continue;
 				state.out.put(copy.getVariable().toString(), copy);
@@ -78,8 +87,17 @@ public class DataFlowAnalyzer {
 					state.out.put(copy.getVariable().toString(), copy);
 
 				dataFlow.put(b, state);
-				if (!state.out.equals(oldOut))
+				if (!state.out.equals(oldOut)) {
 					changed = true;
+					System.out.println("Data flow for " + b.getId());
+					System.out.println("In:");
+					for (CopyVarStatement copy : state.in.values())
+						System.out.println("    " + copy);
+					System.out.println("Out:");
+					for (CopyVarStatement copy : state.out.values())
+						System.out.println("    " + copy);
+					System.out.println("\n");
+				}
 			}
 		}
 
