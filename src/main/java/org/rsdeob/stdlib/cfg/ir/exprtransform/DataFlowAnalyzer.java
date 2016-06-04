@@ -32,7 +32,7 @@ public class DataFlowAnalyzer {
 	}
 
 	// compute forward data flow (available expressions)
-	public HashMap<BasicBlock, DataFlowState> computeForward() {
+	public Map<Statement, DataFlowState> computeForward() {
 		HashMap<BasicBlock, DataFlowState> dataFlow = new HashMap<>();
 
 		// Compute first block
@@ -83,7 +83,11 @@ public class DataFlowAnalyzer {
 			}
 		}
 
-		return dataFlow;
+		HashMap<Statement, DataFlowState> result = new HashMap<>();
+		for (Map.Entry<BasicBlock, DataFlowState> entry : dataFlow.entrySet())
+			for (Statement stmt : entry.getKey().getStatements())
+				result.put(stmt, entry.getValue());
+		return result;
 	}
 
 	private DataFlowState computeFirstBlock(BasicBlock entry) {
