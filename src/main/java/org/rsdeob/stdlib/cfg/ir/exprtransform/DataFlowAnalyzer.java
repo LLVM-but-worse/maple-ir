@@ -1,111 +1,144 @@
 package org.rsdeob.stdlib.cfg.ir.exprtransform;
 
+import org.rsdeob.stdlib.cfg.BasicBlock;
 import org.rsdeob.stdlib.cfg.ControlFlowGraph;
 import org.rsdeob.stdlib.cfg.edge.FlowEdge;
-import org.rsdeob.stdlib.cfg.ir.StatementGraph;
-import org.rsdeob.stdlib.cfg.ir.StatementGraphBuilder;
 import org.rsdeob.stdlib.cfg.ir.exprtransform.DataFlowState.CopySet;
-import org.rsdeob.stdlib.cfg.ir.stat.*;
+import org.rsdeob.stdlib.cfg.ir.stat.CopyVarStatement;
+import org.rsdeob.stdlib.cfg.ir.stat.Statement;
 
-import java.util.LinkedHashMap;
-import java.util.LinkedList;
-import java.util.Queue;
-
-import static org.rsdeob.stdlib.cfg.ir.exprtransform.DataFlowExpression.NOT_A_CONST;
-import static org.rsdeob.stdlib.cfg.ir.exprtransform.DataFlowExpression.UNDEFINED;
-import static org.rsdeob.stdlib.cfg.ir.exprtransform.DataFlowState.CopySet.AllVarsExpression.VAR_ALL;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Map;
 
 public class DataFlowAnalyzer {
-	private final StatementGraph sgraph;
-	private final LinkedHashMap<Statement, DataFlowState> flowStates;
-	private final Queue<Statement> worklist;
+	private final ControlFlowGraph cfg;
+	private boolean checkRhs;
+	private final HashSet<CopyVarStatement> allCopies;
 
-	public DataFlowAnalyzer(ControlFlowGraph cfg) {
-		if (cfg.getEntries().size() != 1)
-			throw new IllegalArgumentException("ControlFlowGraph has more than one entry!");
+	public DataFlowAnalyzer(ControlFlowGraph cfg, boolean checkRhs) {
+		this.cfg = cfg;
+		this.checkRhs = checkRhs;
 
-		sgraph = StatementGraphBuilder.create(cfg);
-		if (sgraph.getEntries().size() != 1)
-			throw new IllegalArgumentException("StatementGraph has more than one entry!");
-
-		flowStates = new LinkedHashMap<>();
-
-		DataFlowState entryFlowState = new DataFlowState();
-		entryFlowState.in.setVar(new CopyVarStatement(VAR_ALL, NOT_A_CONST));
-		flowStates.put(sgraph.getEntries().iterator().next(), entryFlowState);
-
-		// define every other nodes in and out being undefined
-		CopyVarStatement allUndefined = new CopyVarStatement(VAR_ALL, UNDEFINED);
-		for (Statement stmt : sgraph.vertices()) {
-			if (sgraph.getEntries().contains(stmt))
-				continue;
-			DataFlowState state = new DataFlowState();
-			state.in.setVar(allUndefined);
-			state.out.setVar(allUndefined);
-			flowStates.put(stmt, state);
+		allCopies = new HashSet<>();
+		for (BasicBlock b : cfg.vertices()) {
+			for (Statement stmt : b.getStatements()) {
+				if (stmt instanceof CopyVarStatement) {
+					allCopies.add((CopyVarStatement) stmt);
+				}
+			}
 		}
-
-		worklist = new LinkedList<>();
-		worklist.add(sgraph.getEntries().iterator().next());
 	}
 
-	public LinkedHashMap<Statement, DataFlowState> compute() {
-		while (!worklist.isEmpty()) {
-			Statement stmt = worklist.remove();
-			DataFlowState state = flowStates.get(stmt);
+	// compute forward data flow (available expressions)
+	public HashMap<BasicBlock, DataFlowState> computeForward() {
+		HashMap<BasicBlock, DataFlowState> dataFlow = new HashMap<>();
 
-			CopySet out = new CopySet(state.out);
-			if (!sgraph.getEntries().contains(stmt)) {
-				CopySet newIn = null;
-				for (FlowEdge<Statement> pred : sgraph.getReverseEdges(stmt))
-					if (sgraph.isExecutable(pred))
-						if (newIn == null) {
-							newIn = new CopySet(flowStates.get(pred.src).out);
-						} else {
-							newIn = newIn.meet(flowStates.get(pred.src).out);
-						}
-				state.in = newIn;
-			}
+		// Compute first block
+		for(BasicBlock entry : cfg.getEntries()) {
+			dataFlow.put(entry, computeFirstBlock(entry));
+		}
 
-			if (stmt instanceof CopyVarStatement) {
-				// initialise a new CopySet for the out
-				state.out = new CopySet(state.in);
-				// propagate the variable information
-				state.out.transfer((CopyVarStatement) stmt);
-				for (FlowEdge<Statement> succ : sgraph.getEdges(stmt))
-					sgraph.markExecutable(succ);
-			} else if (stmt instanceof UnconditionalJumpStatement) {
-				// initialise a new CopySet for the out
-				state.out = new CopySet(state.in);
-				for (FlowEdge<Statement> succ : sgraph.getEdges(stmt)) {
-					sgraph.markExecutable(succ);
-				}
-			} else if (stmt instanceof ConditionalJumpStatement) { // TODO: compute which branch is correct
-				// initialise a new CopySet for the out
-				state.out = new CopySet(state.in);
-				for (FlowEdge<Statement> succ : sgraph.getEdges(stmt)) {
-					sgraph.markExecutable(succ);
-				}
-			} else if (stmt instanceof SwitchStatement) { // TODO: compute which case is correct
-				// initialise a new CopySet for the out
-				state.out = new CopySet(state.in);
-				for (FlowEdge<Statement> succ : sgraph.getEdges(stmt)) {
-					sgraph.markExecutable(succ);
-				}
-			} else {
-				// initialise a new CopySet for the out
-				state.out = new CopySet(state.in);
-				for (FlowEdge<Statement> succ : sgraph.getEdges(stmt)) {
-					sgraph.markExecutable(succ);
-				}
+		// Compute initial out for each block
+		for (BasicBlock b : cfg.vertices()) {
+			if (cfg.getEntries().contains(b))
+				continue;
+			DataFlowState state = compute(b);
+			for (CopyVarStatement copy : allCopies) {
+				if (b.getStatements().contains(copy))
+				if (state.kill.contains(copy))
+					continue;
+				state.out.put(copy.getVariable().toString(), copy);
 			}
-			// if the out set changed
-			if (!state.out.equals(out)) {
-				// re-process it
-				for (FlowEdge<Statement> succ : sgraph.getEdges(stmt))
-					worklist.add(succ.dst);
+			dataFlow.put(b, state);
+		}
+
+		for (boolean changed = true; changed;) {
+			changed = false;
+
+			for (BasicBlock b : cfg.vertices()) {
+				if (cfg.getEntries().contains(b))
+					continue;
+
+				DataFlowState state = dataFlow.get(b);
+				CopySet oldOut = new CopySet(state.out);
+
+				// IN[b] = MEET(OUT[p] for p in predicates(b))
+				CopySet in = new CopySet();
+				for (FlowEdge<BasicBlock> e : b.getPredecessors())
+					in = in.isEmpty() ? dataFlow.get(e.src).out : in.meet(dataFlow.get(e.src).out);
+				state.in = in;
+
+				// OUT[b] = GEN[b] UNION (IN[b] - KILL[b])
+				for (CopyVarStatement copy : state.in.values())
+					if (!state.kill.contains(copy))
+						state.out.put(copy.getVariable().toString(), copy);
+				for (CopyVarStatement copy : state.gen)
+					state.out.put(copy.getVariable().toString(), copy);
+
+				dataFlow.put(b, state);
+				if (!state.out.equals(oldOut))
+					changed = true;
 			}
 		}
-		return flowStates;
+
+		return dataFlow;
+	}
+
+	private DataFlowState computeFirstBlock(BasicBlock entry) {
+		DataFlowState state = compute(entry);
+		for (CopyVarStatement copy : state.gen)
+			state.out.put(copy.getVariable().toString(), copy);
+
+		return state;
+	}
+
+	private DataFlowState compute(BasicBlock b) {
+		return new DataFlowState(computeGen(b), computeKill(b));
+	}
+
+	// GEN[b] = copies in b that reach end of block (no lhs or rhs redefinition)
+	private HashSet<CopyVarStatement> computeGen(BasicBlock b) {
+		CopySet gen = new CopySet();
+		for (Statement stmt : b.getStatements()) {
+			if (!(stmt instanceof CopyVarStatement))
+				continue;
+			if (checkRhs)
+				for (Iterator<Map.Entry<String, CopyVarStatement>> it = gen.entrySet().iterator(); it.hasNext();)
+					if (it.next().getValue().isAffectedBy(stmt))
+						it.remove();
+			CopyVarStatement newCopy = (CopyVarStatement) stmt;
+			gen.put(newCopy.getVariable().toString(), newCopy);
+		}
+
+		return new HashSet<>(gen.values());
+	}
+
+	// KILL[b] = all copies anywhere in the cfg that do not have lhs/rhs redefined in b
+	private HashSet<CopyVarStatement> computeKill(BasicBlock b) {
+		HashSet<CopyVarStatement> kill = new HashSet<>();
+		for (CopyVarStatement copy : allCopies) {
+			if (b.getStatements().contains(copy))
+				continue;
+
+			for (Statement stmt : b.getStatements()) {
+				if (!(stmt instanceof CopyVarStatement))
+					continue;
+				CopyVarStatement newCopy = (CopyVarStatement) stmt;
+
+				// Add all existing statements that would be overwritten by this
+				if (copy.getVariable().toString().equals(newCopy.getVariable().toString())) { // check lhs
+					kill.add(copy);
+					break;
+				}
+				if (checkRhs && copy.isAffectedBy(newCopy)) {
+					kill.add(copy);
+					break;
+				}
+			}
+		}
+
+		return kill;
 	}
 }
