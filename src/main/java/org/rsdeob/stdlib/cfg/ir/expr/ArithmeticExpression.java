@@ -78,7 +78,7 @@ public class ArithmeticExpression extends Expression {
 
 	@Override
 	public Expression copy() {
-		return new ArithmeticExpression(left, right, operator);
+		return new ArithmeticExpression(left.copy(), right.copy(), operator);
 	}
 
 	@Override

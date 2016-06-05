@@ -39,6 +39,13 @@ public abstract class DataAnalyser<N extends FastGraphVertex, E extends FastGrap
 		return graph;
 	}
 	
+	public void update(N n) {
+		queue.add(n);
+		in.put(n, newState());
+		out.put(n, newState());
+		processQueue();
+	}
+	
 	protected void init() {
 		// set initial data states
 		for(N n : graph.vertices()) {
