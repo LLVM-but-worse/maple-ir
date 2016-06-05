@@ -37,9 +37,9 @@ public class ValuePropagator {
 			for(Statement stmt : new HashSet<>(graph.vertices())) {
 				TransformerImpl impl = new TransformerImpl(stmt);
 				impl.visit();
+				definitions.update(stmt);
 				if(impl.change) {
 					change = true;
-					break;
 				}
 			}
 			
@@ -254,7 +254,7 @@ public class ValuePropagator {
 					Expression rhs = def.getExpression();
 					if(rhs instanceof ConstantExpression) {
 						return rhs.copy();
-					} else if(rhs instanceof VarExpression) {
+					}/*  else if(rhs instanceof VarExpression) {
 						// s == def.var == v
 						return processVar(v, (VarExpression) rhs);
 					} else if(rhs instanceof UninitialisedObjectExpression) {
@@ -281,7 +281,16 @@ public class ValuePropagator {
 						// this, however, can be transformed to:
 						//   use(new java.lang.Object);
 						// return processNewObject(def, v, (UninitialisedObjectExpression) rhs);
-					}
+					} */
+//					if(!rhs.isAffectedBy(root)) {
+//						System.out.println(def);
+//						return rhs.copy();
+//					} else {
+//						System.out.println("yes " + rhs + "  " + root);
+//					}
+					
+					System.out.println("inlining " + rhs + " with def " + def + " into " + root);
+					return rhs.copy();
 				}
 			}
 			return s;
