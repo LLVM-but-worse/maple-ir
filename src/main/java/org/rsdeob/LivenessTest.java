@@ -21,11 +21,10 @@ import org.rsdeob.stdlib.cfg.ir.expr.Expression;
 import org.rsdeob.stdlib.cfg.ir.expr.VarExpression;
 import org.rsdeob.stdlib.cfg.ir.stat.ConditionalJumpStatement.ComparisonType;
 import org.rsdeob.stdlib.cfg.ir.stat.Statement;
-import org.rsdeob.stdlib.cfg.ir.transform.impl.CopyPropagator;
 import org.rsdeob.stdlib.cfg.ir.transform.impl.DeadAssignmentEliminator;
 import org.rsdeob.stdlib.cfg.ir.transform.impl.DefinitionAnalyser;
 import org.rsdeob.stdlib.cfg.ir.transform.impl.LivenessAnalyser;
-import org.rsdeob.stdlib.cfg.ir.transform.impl.ValuePropagator;
+import org.rsdeob.stdlib.cfg.ir.transform.impl.NewValuePropagator;
 import org.rsdeob.stdlib.cfg.util.ControlFlowGraphDeobfuscator;
 import org.rsdeob.stdlib.cfg.util.GraphUtils;
 import org.rsdeob.stdlib.cfg.util.TabbedStringWriter;
@@ -72,11 +71,27 @@ public class LivenessTest {
 
 			DefinitionAnalyser defAnalyser = new DefinitionAnalyser(graph, m);
 			defAnalyser.run();
+			
+//			for(Statement stmt : graph.vertices()) {
+//				System.out.println(stmt);
+//				List<String> keys = new ArrayList<>(defAnalyser.in(stmt).keySet());
+//				Collections.sort(keys);
+//				System.out.println("  IN:");
+//				for(String key : keys) {
+//					System.out.println("     " + key + " = " + defAnalyser.in(stmt).get(key));
+//				}
+//				keys = new ArrayList<>(defAnalyser.out(stmt).keySet());
+//				Collections.sort(keys);
+//				System.out.println("  OUT:");
+//				for(String key : keys) {
+//					System.out.println("     " + key + " = " + defAnalyser.out(stmt).get(key));
+//				}				
+//			}
 			System.out.println("LivenessTest.simplify(2)");
 			// change += ValuePropagator.propagateDefinitions1(root, graph, defAnalyser);
-			change += CopyPropagator.propagateDefinitions(cfg, root, defAnalyser);
+//			change += CopyPropagator.propagateDefinitions(cfg, root, defAnalyser);
 			System.out.println("LivenessTest.simplify(1)");
-			ValuePropagator prop = new ValuePropagator(root, graph);
+			NewValuePropagator prop = new NewValuePropagator(root, graph);
 			prop.process(defAnalyser);
 			
 //			System.out.println();
