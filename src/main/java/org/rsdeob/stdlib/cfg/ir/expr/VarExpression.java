@@ -2,6 +2,7 @@ package org.rsdeob.stdlib.cfg.ir.expr;
 
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Type;
+import org.rsdeob.stdlib.cfg.ir.Local;
 import org.rsdeob.stdlib.cfg.ir.stat.CopyVarStatement;
 import org.rsdeob.stdlib.cfg.ir.stat.Statement;
 import org.rsdeob.stdlib.cfg.util.TabbedStringWriter;
@@ -14,34 +15,20 @@ import org.rsdeob.stdlib.cfg.util.TypeUtils;
  */
 public class VarExpression extends Expression {
 
-	private int index;
+	private Local local;
 	private Type type;
-	private boolean stackVariable;
 	
-	public VarExpression(int index, Type type, boolean stackVariable) {
-		this.index = index;
+	public VarExpression(Local local, Type type) {
+		this.local = local;
 		this.type = type;
-		this.stackVariable = stackVariable;
-	}
-	
-	public VarExpression(int index, Type type) {
-		this(index, type, false);
-	}
-
-	public boolean isStackVariable() {
-		return stackVariable;
-	}
-
-	public void setStackVariable(boolean stackVariable) {
-		this.stackVariable = stackVariable;
 	}
 
 	public int getIndex() {
-		return index;
+		return local.getIndex();
 	}
-
-	public void setIndex(int index) {
-		this.index = index;
+	
+	public Local getLocal() {
+		return local;
 	}
 
 	@Override
@@ -49,13 +36,9 @@ public class VarExpression extends Expression {
 		return type;
 	}
 
-	public void setType(Type type) {
-		this.type = type;
-	}
-
 	@Override
 	public Expression copy() {
-		return new VarExpression(index, type, stackVariable);
+		return new VarExpression(local, type);
 	}
 
 	@Override
@@ -64,12 +47,12 @@ public class VarExpression extends Expression {
 
 	@Override
 	public void toString(TabbedStringWriter printer) {
-		printer.print((stackVariable ? "s" : "l") + "var" + index);		
+		printer.print(local.toString());		
 	}
 
 	@Override
 	public void toCode(MethodVisitor visitor) {
-		visitor.visitVarInsn(TypeUtils.getVariableLoadOpcode(getType()), index);		
+		visitor.visitVarInsn(TypeUtils.getVariableLoadOpcode(getType()), local.getIndex());		
 	}
 
 	@Override
@@ -90,7 +73,7 @@ public class VarExpression extends Expression {
 			}
 			
 			if(stmt instanceof CopyVarStatement) {
-				if(((CopyVarStatement) stmt).getIndex() == index) {
+				if(((CopyVarStatement) stmt).getIndex() == local.getIndex()) {
 					return true;
 				}
 			}

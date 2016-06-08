@@ -27,6 +27,7 @@ public class DeadAssignmentEliminator {
 				VarExpression var = copy.getVariable();
 				
 				if(!out.get(var.toString())) {
+					System.out.println(copy.getId() + ", " + copy + " is not live: " + out);
 					root.delete(root.indexOf(copy));
 					graph.excavate(copy);
 					dead.incrementAndGet();

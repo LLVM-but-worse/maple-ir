@@ -39,22 +39,12 @@ public class CopyVarStatement extends Statement implements IStackDumpNode {
 	
 	@Override
 	public int getIndex() {
-		return variable.getIndex();
-	}
-
-	@Override
-	public void setIndex(int index) {
-		variable.setIndex(index);
+		return variable.getLocal().getIndex();
 	}
 
 	@Override
 	public Type getType() {
 		return variable.getType();
-	}
-
-	@Override
-	public void setType(Type type) {
-		variable.setType(type);
 	}
 
 	@Override
@@ -103,7 +93,7 @@ public class CopyVarStatement extends Statement implements IStackDumpNode {
 	@Override
 	public boolean isRedundant() {
 		if(expression instanceof VarExpression) {
-			return ((VarExpression) expression).getIndex() == variable.getIndex();
+			return ((VarExpression) expression).getLocal().getIndex() == variable.getLocal().getIndex();
 		} else {
 			return false;
 		}

@@ -1,17 +1,21 @@
 package org.rsdeob.stdlib.cfg.ir.exprtransform;
 
+import static org.rsdeob.stdlib.cfg.ir.exprtransform.DataFlowExpression.*;
+import static org.rsdeob.stdlib.cfg.ir.exprtransform.DataFlowState.CopySet.AllVarsExpression.VAR_ALL;
+
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.BinaryOperator;
+
 import org.objectweb.asm.Type;
+import org.rsdeob.stdlib.cfg.ir.Local;
 import org.rsdeob.stdlib.cfg.ir.expr.Expression;
 import org.rsdeob.stdlib.cfg.ir.expr.VarExpression;
 import org.rsdeob.stdlib.cfg.ir.stat.CopyVarStatement;
 import org.rsdeob.stdlib.cfg.util.TabbedStringWriter;
-
-import java.util.*;
-import java.util.function.BinaryOperator;
-
-import static org.rsdeob.stdlib.cfg.ir.exprtransform.DataFlowExpression.NOT_A_CONST;
-import static org.rsdeob.stdlib.cfg.ir.exprtransform.DataFlowExpression.UNDEFINED;
-import static org.rsdeob.stdlib.cfg.ir.exprtransform.DataFlowState.CopySet.AllVarsExpression.VAR_ALL;
 
 
 public class DataFlowState {
@@ -141,7 +145,7 @@ public class DataFlowState {
 			public static AllVarsExpression VAR_ALL = new AllVarsExpression();
 
 			private AllVarsExpression() {
-				super(-1, Type.VOID_TYPE, true);
+				super(new Local(-1, false), Type.VOID_TYPE);
 			}
 
 			@Override

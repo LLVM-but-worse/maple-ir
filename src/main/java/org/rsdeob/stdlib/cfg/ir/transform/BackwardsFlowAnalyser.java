@@ -13,7 +13,16 @@ public abstract class BackwardsFlowAnalyser<N extends FastGraphVertex, E extends
 	public BackwardsFlowAnalyser(FlowGraph<N, E> graph) {
 		super(graph, new LinkedList<>());
 	}
-
+	
+	@Override
+	public void remove(N n) {
+		super.remove(n);
+		
+		for(E succEdge : graph.getEdges(n)) {
+			queue.add(succEdge.dst);
+		}
+	}
+	
 	@Override
 	protected void init() {
 		// since this is backwards analysis, we

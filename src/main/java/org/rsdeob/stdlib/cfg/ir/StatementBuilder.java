@@ -70,8 +70,8 @@ public class StatementBuilder {
 	}
 	
 	public void assign(int index, Type type, Expression expr) {
-		VarExpression var = new VarExpression(index, type);
-		assign(var, expr);
+		// VarExpression var = new VarExpression(index, type);
+		assign(new VarExpression(root.getLocals().get(index), type), expr);
 	}
 	
 	public ConstantExpression constant(Object o) {
