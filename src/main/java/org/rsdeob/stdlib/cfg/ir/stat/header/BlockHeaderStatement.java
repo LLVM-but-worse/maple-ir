@@ -2,6 +2,7 @@ package org.rsdeob.stdlib.cfg.ir.stat.header;
 
 import org.objectweb.asm.Label;
 import org.rsdeob.stdlib.cfg.BasicBlock;
+import org.rsdeob.stdlib.cfg.ir.stat.Statement;
 
 public class BlockHeaderStatement extends HeaderStatement {
 
@@ -23,5 +24,10 @@ public class BlockHeaderStatement extends HeaderStatement {
 	@Override
 	public Label getLabel() {
 		return block.getLabel().getLabel();
+	}
+
+	@Override
+	public Statement copy() {
+		return new BlockHeaderStatement(block);
 	}
 }

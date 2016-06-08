@@ -54,4 +54,9 @@ public class ThrowStatement extends Statement {
 	public boolean isAffectedBy(Statement stmt) {
 		return expression.isAffectedBy(stmt);
 	}
+
+	@Override
+	public Statement copy() {
+		return new ThrowStatement(expression);
+	}
 }

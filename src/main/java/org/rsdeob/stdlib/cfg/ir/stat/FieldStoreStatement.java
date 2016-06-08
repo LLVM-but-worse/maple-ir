@@ -138,4 +138,9 @@ public class FieldStoreStatement extends Statement {
 				|| (instanceExpression != null && instanceExpression.isAffectedBy(stmt)) 
 				|| valueExpression.isAffectedBy(stmt);
 	}
+
+	@Override
+	public Statement copy() {
+		return new FieldStoreStatement(instanceExpression, valueExpression, owner, name, desc);
+	}
 }

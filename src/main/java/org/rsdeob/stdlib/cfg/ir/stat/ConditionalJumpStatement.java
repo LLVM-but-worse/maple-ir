@@ -215,4 +215,9 @@ public class ConditionalJumpStatement extends Statement {
 	public boolean isAffectedBy(Statement stmt) {
 		return left.isAffectedBy(stmt) || right.isAffectedBy(stmt);
 	}
+
+	@Override
+	public Statement copy() {
+		return new ConditionalJumpStatement(left, right, trueSuccessor, type);
+	}
 }
