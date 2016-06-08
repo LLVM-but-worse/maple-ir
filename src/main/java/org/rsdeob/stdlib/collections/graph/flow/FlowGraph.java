@@ -59,6 +59,14 @@ public abstract class FlowGraph<N extends FastGraphVertex, E extends FastGraphEd
 	}
 	
 	@Override
+	public void replace(N old, N n) {
+		if(entries.contains(old)) {
+			entries.add(n);
+		}
+		super.replace(old, n);
+	}
+	
+	@Override
 	public void removeVertex(N v) {
 		ListIterator<ExceptionRange<N>> it = ranges.listIterator();
 		while(it.hasNext()) {

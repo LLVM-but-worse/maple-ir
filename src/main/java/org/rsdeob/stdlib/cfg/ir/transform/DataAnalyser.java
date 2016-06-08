@@ -27,6 +27,14 @@ public abstract class DataAnalyser<N extends FastGraphVertex, E extends FastGrap
 		processQueue();
 	}
 	
+//	protected abstract void removeImpl(N n);
+//	
+	public void remove(N n) {
+		in.remove(n);
+		out.remove(n);
+		// removeImpl(n);
+	}
+	
 	public S in(N n) {
 		return in.get(n);
 	}
@@ -39,11 +47,12 @@ public abstract class DataAnalyser<N extends FastGraphVertex, E extends FastGrap
 		return graph;
 	}
 	
-	public void update(N n) {
+	protected abstract void updateImpl(N old, N n);
+	
+	public void update(N old, N n) {
 		queue.add(n);
-		in.put(n, newState());
-		out.put(n, newState());
-		processQueue();
+		updateImpl(old, n);
+		remove(old);
 	}
 	
 	protected void init() {
