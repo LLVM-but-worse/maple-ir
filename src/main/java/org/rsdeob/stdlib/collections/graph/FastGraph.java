@@ -208,13 +208,13 @@ public abstract class FastGraph<N extends FastGraphVertex, E extends FastGraphEd
 		
 		addVertex(n);
 		
-		for(E succ : succs) {
+		for(E succ : new HashSet<>(succs)) {
 			E newEdge = clone(succ, old, n);
 			removeEdge(old, succ);
 			addEdge(n, newEdge);
 		}
 		
-		for(E pred : preds) {
+		for(E pred : new HashSet<>(preds)) {
 			E newEdge = clone(pred, old, n);
 			removeEdge(pred.src, pred);
 			addEdge(pred.src, newEdge);

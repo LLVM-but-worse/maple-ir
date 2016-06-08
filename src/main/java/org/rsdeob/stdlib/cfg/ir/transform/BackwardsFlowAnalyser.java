@@ -36,8 +36,32 @@ public abstract class BackwardsFlowAnalyser<N extends FastGraphVertex, E extends
 		}
 	}
 	
+//	@Override
+//	public void removeImpl(N n) {
+//		for(E e : graph.getReverseEdges(n)) {
+//			N pred = e.src;
+//			queue.add(pred);
+//			updateImpl(pred);
+//		}
+//	}
+	
 	@Override
-	protected void processQueue() {		
+	public void updateImpl(N old, N n) {
+		if(graph.getEdges(n) != null && graph.getEdges(n).size() == 0) {
+			in.put(n, newState());
+			out.put(n, newEntryState());
+		} else {
+			in.put(n, newState());
+			out.put(n, newState());
+			
+			for(E succEdge : graph.getEdges(old)) {
+				queue.add(succEdge.dst);
+			}
+		}
+	}
+	
+	@Override
+	public void processQueue() {		
 		while(!queue.isEmpty()) {
 			N n = queue.iterator().next();
 			queue.remove(n);

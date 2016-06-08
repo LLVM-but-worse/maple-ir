@@ -1,58 +1,78 @@
 package org.rsdeob.stdlib.cfg.ir.transform.impl;
 
-import org.objectweb.asm.Opcodes;
-import org.objectweb.asm.Type;
-import org.objectweb.asm.tree.MethodNode;
-import org.rsdeob.stdlib.cfg.edge.FlowEdge;
-import org.rsdeob.stdlib.cfg.ir.StatementGraph;
-import org.rsdeob.stdlib.cfg.ir.expr.VarExpression;
-import org.rsdeob.stdlib.cfg.ir.stat.CopyVarStatement;
-import org.rsdeob.stdlib.cfg.ir.stat.Statement;
-import org.rsdeob.stdlib.cfg.ir.transform.ForwardsFlowAnalyser;
-import org.rsdeob.stdlib.collections.NullPermeableHashMap;
-import org.rsdeob.stdlib.collections.SetCreator;
-
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-public class DefinitionAnalyser extends ForwardsFlowAnalyser<Statement, FlowEdge<Statement>, NullPermeableHashMap<String, Set<CopyVarStatement>>>{
+import org.objectweb.asm.tree.MethodNode;
+import org.rsdeob.stdlib.cfg.edge.FlowEdge;
+import org.rsdeob.stdlib.cfg.ir.StatementGraph;
+import org.rsdeob.stdlib.cfg.ir.stat.CopyVarStatement;
+import org.rsdeob.stdlib.cfg.ir.stat.Statement;
+import org.rsdeob.stdlib.cfg.ir.stat.SyntheticStatement;
+import org.rsdeob.stdlib.cfg.ir.transform.ForwardsFlowAnalyser;
+import org.rsdeob.stdlib.collections.NullPermeableHashMap;
+import org.rsdeob.stdlib.collections.SetCreator;
+
+public class DefinitionAnalyser extends ForwardsFlowAnalyser<Statement, FlowEdge<Statement>, NullPermeableHashMap<String, Set<CopyVarStatement>>> {
 
 	private final NullPermeableHashMap<String, Set<CopyVarStatement>> initial;
 	
 	public DefinitionAnalyser(StatementGraph graph, MethodNode m) {
 		super(graph);
 		initial = newState();
-		defineInputs(m);
+//		defineInputs(m);
 	}
 	
-	private void defineInputs(MethodNode m) {
-		// build the entry in sets
-		Type[] args = Type.getArgumentTypes(m.desc);
-		int index = 0;
-		if((m.access & Opcodes.ACC_STATIC) == 0) {
-			addEntry(index, Type.getType(m.owner.name));
-			index++;
-		}
-	
-		for(int i=0; i < args.length; i++) {
-			Type arg = args[i];
-			addEntry(index, arg);
-			index += arg.getSize();
-		}
-	}
-	
-	private void addEntry(int index, Type type) {
-		CopyVarStatement stmt = selfDefine(new VarExpression(index, type));
-		String name = stmt.getVariable().toString();
-		initial.getNonNull(name).add(stmt);
-	}
-	
-	private CopyVarStatement selfDefine(VarExpression var) {
-		return new CopyVarStatement(var, var);
-	}
+//	private void defineInputs(MethodNode m) {
+//		// build the entry in sets
+//		Type[] args = Type.getArgumentTypes(m.desc);
+//		int index = 0;
+//		if((m.access & Opcodes.ACC_STATIC) == 0) {
+//			addEntry(index, Type.getType(m.owner.name));
+//			index++;
+//		}
+//	
+//		for(int i=0; i < args.length; i++) {
+//			Type arg = args[i];
+//			addEntry(index, arg);
+//			index += arg.getSize();
+//		}
+//	}
+//	
+//	private void addEntry(int index, Type type) {
+//		CopyVarStatement stmt = selfDefine(new VarExpression(index, type));
+//		String name = stmt.getVariable().toString();
+//		initial.getNonNull(name).add(stmt);
+//	}
+//	
+//	private CopyVarStatement selfDefine(VarExpression var) {
+//		return new CopyVarStatement(var, var);
+//	}
 
+	@Override
+	public void remove(Statement n) {
+		super.remove(n);
+		
+		if(n instanceof CopyVarStatement) {
+			CopyVarStatement cvs = (CopyVarStatement) n;
+			
+			for(Statement s : in.keySet()) {
+				NullPermeableHashMap<String, Set<CopyVarStatement>> in1 = in(s);
+				for(Set<CopyVarStatement> set : in1.values()) {
+					set.remove(cvs);
+				}
+			}
+			for(Statement s : out.keySet()) {
+				NullPermeableHashMap<String, Set<CopyVarStatement>> out1 = out(s);
+				for(Set<CopyVarStatement> set : out1.values()) {
+					set.remove(cvs);
+				}
+			}
+		}
+	}
+	
 	@Override
 	protected NullPermeableHashMap<String, Set<CopyVarStatement>> newState() {
 		return new NullPermeableHashMap<>(new SetCreator<>());
@@ -67,8 +87,12 @@ public class DefinitionAnalyser extends ForwardsFlowAnalyser<Statement, FlowEdge
 
 	@Override
 	protected void merge(NullPermeableHashMap<String, Set<CopyVarStatement>> in1, NullPermeableHashMap<String, Set<CopyVarStatement>> in2, NullPermeableHashMap<String, Set<CopyVarStatement>> out) {
-		out.putAll(in1);
-		out.putAll(in2);
+		for(Entry<String, Set<CopyVarStatement>> e : in1.entrySet()) {
+			out.getNonNull(e.getKey()).addAll(e.getValue());
+		}
+		for(Entry<String, Set<CopyVarStatement>> e : in2.entrySet()) {
+			out.getNonNull(e.getKey()).addAll(e.getValue());
+		}
 	}
 
 	@Override
@@ -96,11 +120,19 @@ public class DefinitionAnalyser extends ForwardsFlowAnalyser<Statement, FlowEdge
 				return false;
 			}
 		}
+		
+//		{
+//			System.out.println("  equals: ");
+//			System.out.println("    " + s1);
+//			System.out.println("    " + s2);
+//		}
+		
 		return true;
 	}
 
 	@Override
 	protected void propagate(Statement n, NullPermeableHashMap<String, Set<CopyVarStatement>> in, NullPermeableHashMap<String, Set<CopyVarStatement>> out) {
+		
 		// create a new set here because if we don't, future operations will
 		// affect the in and the out sets. basically don't use out.putAll(in) here.
 		for(Entry<String, Set<CopyVarStatement>> e : in.entrySet()) {
@@ -108,6 +140,10 @@ public class DefinitionAnalyser extends ForwardsFlowAnalyser<Statement, FlowEdge
 		}
 		
 		// final VarExpression rhs;
+		
+		if(n instanceof SyntheticStatement) {
+			n = ((SyntheticStatement) n).getStatement();
+		}
 		
 		if(n instanceof CopyVarStatement) {
 			CopyVarStatement stmt = (CopyVarStatement) n;
@@ -123,6 +159,22 @@ public class DefinitionAnalyser extends ForwardsFlowAnalyser<Statement, FlowEdge
 		} else {
 			// rhs = null;
 		}
+		
+		System.out.println(" propagating " + n);
+//		{
+//			List<String> keys = new ArrayList<>(in.keySet());
+//			Collections.sort(keys);
+//			System.out.println("  IN:");
+//			for(String key : keys) {
+//				System.out.println("     " + key + " = " + in.get(key));
+//			}
+//			keys = new ArrayList<>(out.keySet());
+//			Collections.sort(keys);
+//			System.out.println("  OUT:");
+//			for(String key : keys) {
+//				System.out.println("     " + key + " = " + out.get(key));
+//			}
+//		}
 	}
 
 	public Set<Statement> getUses(CopyVarStatement d) {
