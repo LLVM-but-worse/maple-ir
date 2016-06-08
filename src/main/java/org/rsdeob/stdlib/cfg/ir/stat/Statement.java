@@ -210,6 +210,10 @@ public abstract class Statement implements FastGraphVertex {
 		return printer.toString();
 	}
 	
+	public long _getId() {
+		return id;
+	}
+	
 	@Override
 	public String getId() {
 		return Long.toString(id);
@@ -219,4 +223,6 @@ public abstract class Statement implements FastGraphVertex {
 	public int hashCode() {
 		return Long.hashCode(id);
 	}
+	
+	public abstract Statement copy();
 }

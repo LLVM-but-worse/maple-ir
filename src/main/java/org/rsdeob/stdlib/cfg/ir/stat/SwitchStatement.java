@@ -171,4 +171,9 @@ public class SwitchStatement extends Statement {
 	public boolean isAffectedBy(Statement stmt) {
 		return expression.isAffectedBy(stmt);
 	}
+
+	@Override
+	public Statement copy() {
+		return new SwitchStatement(expression, targets, defaultTarget);
+	}
 }

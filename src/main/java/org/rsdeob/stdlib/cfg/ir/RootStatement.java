@@ -79,4 +79,9 @@ public class RootStatement extends Statement {
 	public boolean isAffectedBy(Statement stmt) {
 		throw new UnsupportedOperationException();
 	}
+
+	@Override
+	public Statement copy() {
+		throw new UnsupportedOperationException();
+	}
 }
