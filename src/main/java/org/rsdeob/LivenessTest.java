@@ -1,33 +1,23 @@
 package org.rsdeob;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import org.objectweb.asm.ClassReader;
-import org.objectweb.asm.Opcodes;
-import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.rsdeob.stdlib.cfg.BasicBlock;
 import org.rsdeob.stdlib.cfg.ControlFlowGraph;
 import org.rsdeob.stdlib.cfg.ControlFlowGraphBuilder;
 import org.rsdeob.stdlib.cfg.ir.RootStatement;
-import org.rsdeob.stdlib.cfg.ir.StatementBuilder;
 import org.rsdeob.stdlib.cfg.ir.StatementGenerator;
 import org.rsdeob.stdlib.cfg.ir.StatementGraph;
 import org.rsdeob.stdlib.cfg.ir.StatementGraphBuilder;
-import org.rsdeob.stdlib.cfg.ir.expr.ArithmeticExpression.Operator;
-import org.rsdeob.stdlib.cfg.ir.expr.Expression;
-import org.rsdeob.stdlib.cfg.ir.expr.VarExpression;
-import org.rsdeob.stdlib.cfg.ir.stat.ConditionalJumpStatement.ComparisonType;
-import org.rsdeob.stdlib.cfg.ir.stat.Statement;
 import org.rsdeob.stdlib.cfg.ir.transform.impl.DeadAssignmentEliminator;
 import org.rsdeob.stdlib.cfg.ir.transform.impl.DefinitionAnalyser;
 import org.rsdeob.stdlib.cfg.ir.transform.impl.LivenessAnalyser;
 import org.rsdeob.stdlib.cfg.ir.transform.impl.NewValuePropagator;
 import org.rsdeob.stdlib.cfg.util.ControlFlowGraphDeobfuscator;
 import org.rsdeob.stdlib.cfg.util.GraphUtils;
-import org.rsdeob.stdlib.cfg.util.TabbedStringWriter;
 
 public class LivenessTest {
 
@@ -90,9 +80,14 @@ public class LivenessTest {
 			System.out.println("LivenessTest.simplify(2)");
 			// change += ValuePropagator.propagateDefinitions1(root, graph, defAnalyser);
 //			change += CopyPropagator.propagateDefinitions(cfg, root, defAnalyser);
+			
+
+			LivenessAnalyser la = new LivenessAnalyser(graph);
+			la.run();
+			
 			System.out.println("LivenessTest.simplify(1)");
 			NewValuePropagator prop = new NewValuePropagator(root, graph);
-			prop.process(defAnalyser);
+			prop.process(defAnalyser, la);
 			
 //			System.out.println();
 //			System.out.println();
@@ -104,8 +99,6 @@ public class LivenessTest {
 //			System.out.println("graph2: ");
 //			System.out.println(graph);
 			
-			LivenessAnalyser la = new LivenessAnalyser(graph);
-			la.run();
 			change += DeadAssignmentEliminator.run(root, graph, la);
 			
 			
@@ -136,30 +129,30 @@ public class LivenessTest {
 		System.out.println(x);
 	}
 	
-	public static void main1(String[] args) throws Exception {		
-		VarExpression x = new VarExpression(0, Type.INT_TYPE) {
-			@Override
-			public void toString(TabbedStringWriter printer) {
-				printer.print('x');
-			}
-		};
-		
-		// x := 0
-		// while(x != 10) {
-		//    x = x + 1;
-		// }
-
-		StatementBuilder b = new StatementBuilder();
-		b.add(b.assign(x, b.constant(0)));
-		
-		List<Statement> body = new ArrayList<>();
-		body.add(b.assign(x, b.arithmetic(x, b.constant(1), Operator.ADD)));
-		
-		List<Statement> loop = b.whileloop(x, b.constant(10), ComparisonType.NE, body);
-		for(Statement stmt : loop) {
-			b.add(stmt);
-		}
-		
-		b.add(b.call(Opcodes.INVOKESTATIC, "test", "use", "(I)V", new Expression[]{x}));
-	}
+//	public static void main1(String[] args) throws Exception {		
+//		VarExpression x = new VarExpression(0, Type.INT_TYPE) {
+//			@Override
+//			public void toString(TabbedStringWriter printer) {
+//				printer.print('x');
+//			}
+//		};
+//		
+//		// x := 0
+//		// while(x != 10) {
+//		//    x = x + 1;
+//		// }
+//
+//		StatementBuilder b = new StatementBuilder();
+//		b.add(b.assign(x, b.constant(0)));
+//		
+//		List<Statement> body = new ArrayList<>();
+//		body.add(b.assign(x, b.arithmetic(x, b.constant(1), Operator.ADD)));
+//		
+//		List<Statement> loop = b.whileloop(x, b.constant(10), ComparisonType.NE, body);
+//		for(Statement stmt : loop) {
+//			b.add(stmt);
+//		}
+//		
+//		b.add(b.call(Opcodes.INVOKESTATIC, "test", "use", "(I)V", new Expression[]{x}));
+//	}
 }

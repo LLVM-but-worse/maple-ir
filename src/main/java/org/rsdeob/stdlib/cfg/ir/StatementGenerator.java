@@ -92,7 +92,7 @@ public class StatementGenerator implements Opcodes {
 	}
 	
 	private void addEntry(int index, Type type, BasicBlock b) {
-		CopyVarStatement stmt = selfDefine(new VarExpression(index, type));
+		CopyVarStatement stmt = selfDefine(createVarExpression(index, type, false));
 		b.getStatements().add(new SyntheticStatement(stmt));
 	}
 	
@@ -579,14 +579,17 @@ public class StatementGenerator implements Opcodes {
 	// var[index] = expr
 	Type assign_stack(int index, Expression expr) {
 		Type type = expr.getType();
-		VarExpression var = new VarExpression(index, type, true);
+		// VarExpression var = new VarExpression(index, type, true);
+		VarExpression var = createVarExpression(index, type, true);
 		CopyVarStatement stmt = new CopyVarStatement(var, expr);
 		addStmt(stmt);
 		return type;
 	}
 	
 	Expression load_stack(int index, Type type) {
-		return new VarExpression(index, type, true);
+//		return root.getLocals().get(index, true);
+		// return new VarExpression(index, type, true);
+		return createVarExpression(index, type, true);
 	}
 	
 	void _jump_compare(BasicBlock target, ComparisonType type, Expression left, Expression right) {
@@ -1112,20 +1115,26 @@ public class StatementGenerator implements Opcodes {
 	
 	void _store(int index, Type type) {
 		Expression expr = pop();
-		VarExpression var = new VarExpression(index, type, false);
+//		VarExpression var = new VarExpression(index, type, false);
+//		VarExpression var = root.getLocals().get(index);
+		VarExpression var = createVarExpression(index, type, false);
 		addStmt(new CopyVarStatement(var, expr));
 	}
 
 	void _load(int index, Type type) {
-		VarExpression e = new VarExpression(index, type);
+		VarExpression e = createVarExpression(index, type, false);
 		push(e);
 		assign_stack(currentStack.height(), e);
 	}
 
 	void _inc(int index, int amt) {
-		VarExpression load = new VarExpression(index, Type.INT_TYPE);
+		VarExpression load = createVarExpression(index, Type.INT_TYPE, false);
 		ArithmeticExpression inc = new ArithmeticExpression(new ConstantExpression(amt), load, Operator.ADD);
-		VarExpression var = new VarExpression(index, Type.INT_TYPE, false);
+		VarExpression var = createVarExpression(index, Type.INT_TYPE, false);
 		addStmt(new CopyVarStatement(var, inc));
+	}
+	
+	VarExpression createVarExpression(int index, Type type, boolean isStack) {
+		return new VarExpression(root.getLocals().get(index, isStack), type);
 	}
 }

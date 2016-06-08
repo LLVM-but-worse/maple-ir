@@ -14,15 +14,21 @@ import org.rsdeob.stdlib.cfg.util.TabbedStringWriter;
 public class RootStatement extends Statement {
 
 	private final MethodNode method;
+	private final LocalsHandler locals;
 	private final Map<BasicBlock, HeaderStatement> headers;
 	
 	public RootStatement(MethodNode method) {
 		this.method = method;
+		locals = new LocalsHandler();
 		headers = new HashMap<>();
 	}
 	
 	public Map<BasicBlock, HeaderStatement> getHeaders() {
 		return headers;
+	}
+	
+	public LocalsHandler getLocals() {
+		return locals;
 	}
 
 	public MethodNode getMethod() {
