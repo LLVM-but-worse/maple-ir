@@ -69,6 +69,7 @@ public class LivenessAnalyser extends BackwardsFlowAnalyser<Statement, FlowEdge<
 	protected Map<String, Boolean> newEntryState() {
 		return new HashMap<>(initial);
 	}
+	
 	@Override
 	protected void copy(Map<String, Boolean> src, Map<String, Boolean> dst) {
 		for(Entry<String, Boolean> e : src.entrySet()) {
