@@ -46,4 +46,9 @@ public class UnconditionalJumpStatement extends Statement {
 	public boolean isAffectedBy(Statement stmt) {
 		return false;
 	}
+
+	@Override
+	public Statement copy() {
+		return new UnconditionalJumpStatement(target);
+	}
 }

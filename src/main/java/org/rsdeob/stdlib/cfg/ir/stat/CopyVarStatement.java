@@ -11,7 +11,7 @@ public class CopyVarStatement extends Statement implements IStackDumpNode {
 
 	private Expression expression;
 	private VarExpression variable;
-
+	
 	public CopyVarStatement(VarExpression variable, Expression expression) {
 		if (variable == null | expression == null)
 			throw new IllegalArgumentException("Neither variable nor statement can be null!");
@@ -118,5 +118,10 @@ public class CopyVarStatement extends Statement implements IStackDumpNode {
 		if (!expression.equals(that.expression)) return false;
 		return variable.equals(that.variable);
 
+	}
+
+	@Override
+	public Statement copy() {
+		return new CopyVarStatement(variable, expression);
 	}
 }

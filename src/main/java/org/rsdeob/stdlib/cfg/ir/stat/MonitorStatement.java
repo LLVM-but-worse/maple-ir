@@ -66,4 +66,9 @@ public class MonitorStatement extends Statement {
 	public boolean isAffectedBy(Statement stmt) {
 		return stmt.canChangeLogic() || expression.isAffectedBy(stmt);
 	}
+
+	@Override
+	public Statement copy() {
+		return new MonitorStatement(expression, mode);
+	}
 }

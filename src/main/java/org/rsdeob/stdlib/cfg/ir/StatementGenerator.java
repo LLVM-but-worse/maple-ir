@@ -74,6 +74,31 @@ public class StatementGenerator implements Opcodes {
 		
 		queueEntryBlocks();
 	}
+	
+	private void defineInputs(MethodNode m, BasicBlock b) {
+		// build the entry in sets
+		Type[] args = Type.getArgumentTypes(m.desc);
+		int index = 0;
+		if((m.access & Opcodes.ACC_STATIC) == 0) {
+			addEntry(index, Type.getType(m.owner.name), b);
+			index++;
+		}
+	
+		for(int i=0; i < args.length; i++) {
+			Type arg = args[i];
+			addEntry(index, arg, b);
+			index += arg.getSize();
+		}
+	}
+	
+	private void addEntry(int index, Type type, BasicBlock b) {
+		CopyVarStatement stmt = selfDefine(new VarExpression(index, type));
+		b.getStatements().add(new SyntheticStatement(stmt));
+	}
+	
+	private CopyVarStatement selfDefine(VarExpression var) {
+		return new CopyVarStatement(var, var);
+	}
 
 	public RootStatement buildRoot() {
 		for (BasicBlock b : graph.vertices()) {
@@ -598,6 +623,7 @@ public class StatementGenerator implements Opcodes {
 		entry.setInputStack(new ExpressionStack(1024 * 8));
 		queue.add(entry);
 		updatedStacks.add(entry);
+		defineInputs(m, entry);
 	}
 
 	void _catches(TryCatchBlockNode tc) {

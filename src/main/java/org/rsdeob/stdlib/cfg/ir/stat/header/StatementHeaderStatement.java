@@ -24,4 +24,9 @@ public class StatementHeaderStatement extends HeaderStatement {
 	public Label getLabel() {
 		throw new UnsupportedOperationException("StatementHeader is not writable (synthetic).");
 	}
+
+	@Override
+	public Statement copy() {
+		return new StatementHeaderStatement(statement);
+	}
 }

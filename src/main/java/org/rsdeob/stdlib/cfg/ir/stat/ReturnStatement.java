@@ -83,4 +83,9 @@ public class ReturnStatement extends Statement {
 	public boolean isAffectedBy(Statement stmt) {
 		return expression != null && expression.isAffectedBy(stmt);
 	}
+
+	@Override
+	public Statement copy() {
+		return new ReturnStatement(type, expression);
+	}
 }

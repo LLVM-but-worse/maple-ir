@@ -118,4 +118,9 @@ public class ArrayStoreStatement extends Statement {
 				indexExpression.isAffectedBy(stmt) || 
 				valueExpression.isAffectedBy(stmt);
 	}
+
+	@Override
+	public Statement copy() {
+		return new ArrayStoreStatement(arrayExpression, indexExpression, valueExpression, type);
+	}
 }

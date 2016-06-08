@@ -56,4 +56,9 @@ public class PopStatement extends Statement {
 	public boolean isAffectedBy(Statement stmt) {
 		return expression.isAffectedBy(stmt);
 	}
+
+	@Override
+	public Statement copy() {
+		return new PopStatement(expression);
+	}
 }
