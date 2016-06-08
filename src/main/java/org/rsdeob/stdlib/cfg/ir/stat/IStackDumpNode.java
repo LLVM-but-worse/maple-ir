@@ -6,16 +6,12 @@ import org.rsdeob.stdlib.cfg.ir.expr.Expression;
 public interface IStackDumpNode {
 	
 	int getIndex();
-	
-	void setIndex(int index);
-	
+		
 	Type getType();
-	
-	void setType(Type type);
 	
 	Expression getExpression();
 	
-	void setExpression(Expression expr);
+	void setExpression(Expression e);
 	
 	boolean isRedundant();
 }

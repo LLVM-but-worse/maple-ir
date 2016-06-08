@@ -212,12 +212,16 @@ public abstract class FastGraph<N extends FastGraphVertex, E extends FastGraphEd
 			E newEdge = clone(succ, old, n);
 			removeEdge(old, succ);
 			addEdge(n, newEdge);
+			
+			// System.out.printf("replacing edge %s (%s=%s, %s=%s), succ:%s, new:%s.%n", n, old.getId(), old, n.getId(), n, succ, newEdge);
 		}
 		
 		for(E pred : new HashSet<>(preds)) {
 			E newEdge = clone(pred, old, n);
 			removeEdge(pred.src, pred);
 			addEdge(pred.src, newEdge);
+
+			// System.out.printf("replacing edge %s (%s=%s, %s=%s), pred:%s, new:%s.%n", n, old.getId(), old, n.getId(), n, pred, newEdge);
 		}
 		
 		removeVertex(old);

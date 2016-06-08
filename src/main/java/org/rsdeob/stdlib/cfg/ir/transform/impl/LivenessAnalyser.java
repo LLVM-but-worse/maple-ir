@@ -61,6 +61,33 @@ public class LivenessAnalyser extends BackwardsFlowAnalyser<Statement, FlowEdge<
 	}
 
 	@Override
+	public void remove(Statement n) {
+		super.remove(n);
+		uses.remove(n);
+	}
+	
+	@Override
+	public void updateImpl(Statement old, Statement n) {
+		super.updateImpl(old, n);
+		
+		if(uses.containsKey(old)) {
+			uses.remove(old);
+			
+			StatementVisitor vis = new StatementVisitor(n) {
+				@Override
+				public Statement visit(Statement s) {
+					if(s instanceof VarExpression) {
+						initial.put(s.toString(), Boolean.valueOf(false));
+						uses.getNonNull(n).add((VarExpression)s);
+					}
+					return s;
+				}
+			};
+			vis.visit();
+		}
+	}
+	
+	@Override
 	protected Map<String, Boolean> newState() {
 		return new HashMap<>(initial);
 	}
