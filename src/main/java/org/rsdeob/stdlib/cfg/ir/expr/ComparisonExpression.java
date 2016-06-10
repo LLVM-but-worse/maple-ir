@@ -1,13 +1,13 @@
 package org.rsdeob.stdlib.cfg.ir.expr;
 
+import static org.objectweb.asm.Opcodes.*;
+
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.util.Printer;
 import org.rsdeob.stdlib.cfg.ir.stat.Statement;
 import org.rsdeob.stdlib.cfg.util.TabbedStringWriter;
-
-import static org.objectweb.asm.Opcodes.*;
 
 public class ComparisonExpression extends Expression {
 
@@ -129,5 +129,14 @@ public class ComparisonExpression extends Expression {
 
 	public ValueComparisonType getComparisonType() {
 		return type;
+	}
+
+	@Override
+	public boolean equivalent(Statement s) {
+		if(s instanceof ComparisonExpression) {
+			ComparisonExpression comp = (ComparisonExpression) s;
+			return type == comp.type && left.equivalent(comp.left) && right.equals(comp.right);
+		}
+		return false;
 	}
 }

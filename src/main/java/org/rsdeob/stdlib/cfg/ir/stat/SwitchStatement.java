@@ -1,10 +1,6 @@
 package org.rsdeob.stdlib.cfg.ir.stat;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.List;
+import java.util.*;
 import java.util.Map.Entry;
 
 import org.objectweb.asm.Label;
@@ -175,5 +171,35 @@ public class SwitchStatement extends Statement {
 	@Override
 	public Statement copy() {
 		return new SwitchStatement(expression, targets, defaultTarget);
+	}
+
+	@Override
+	public boolean equivalent(Statement s) {
+		if(s instanceof SwitchStatement) {
+			SwitchStatement sw = (SwitchStatement) s;
+			if(!defaultTarget.equivalent(sw.defaultTarget) || !expression.equivalent(sw.expression)) {
+				return false;
+			}
+			if(targets.size() != sw.targets.size()) {
+				return false;
+			}
+			Map<Integer, HeaderStatement> otherTargets = sw.targets;
+			Set<Integer> keys = new HashSet<>();
+			keys.addAll(targets.keySet());
+			keys.addAll(otherTargets.keySet());
+
+			// i.e. different keys
+			if (keys.size() != targets.size()) {
+				return false;
+			}
+			
+			for(Integer key : keys) {
+				if(!targets.get(key).equivalent(otherTargets.get(key))) {
+					return false;
+				}
+			}
+			return true;
+		}
+		return false;
 	}
 }

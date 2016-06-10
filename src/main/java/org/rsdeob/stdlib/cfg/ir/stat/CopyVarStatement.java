@@ -114,4 +114,13 @@ public class CopyVarStatement extends Statement implements IStackDumpNode {
 	public Statement copy() {
 		return new CopyVarStatement(variable, expression);
 	}
+
+	@Override
+	public boolean equivalent(Statement s) {
+		if(s instanceof CopyVarStatement) {
+			CopyVarStatement copy = (CopyVarStatement) s;
+			return expression.equivalent(copy.expression) && variable.equivalent(copy.variable);
+		}
+		return false;
+	}
 }

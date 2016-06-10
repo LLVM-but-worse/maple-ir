@@ -1,7 +1,7 @@
 package org.rsdeob.stdlib.cfg.ir.transform;
 
-import java.util.Collection;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.Map;
 
 import org.rsdeob.stdlib.collections.graph.FastGraphEdge;
@@ -13,11 +13,11 @@ public abstract class DataAnalyser<N extends FastGraphVertex, E extends FastGrap
 	protected final FlowGraph<N, E> graph;
 	protected final Map<N, S> in;
 	protected final Map<N, S> out;
-	protected final Collection<N> queue;
+	protected final LinkedList<N> queue;
 	
-	public DataAnalyser(FlowGraph<N, E> graph, Collection<N> queue) {
+	public DataAnalyser(FlowGraph<N, E> graph) {
 		this.graph = graph;
-		this.queue = queue;
+		this.queue = new LinkedList<>();
 		in = new HashMap<>();
 		out = new HashMap<>();
 	}

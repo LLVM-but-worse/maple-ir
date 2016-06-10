@@ -216,4 +216,13 @@ public class ArithmeticExpression extends Expression {
 	public boolean isAffectedBy(Statement stmt) {
 		return left.isAffectedBy(stmt) || right.isAffectedBy(stmt);
 	}
+
+	@Override
+	public boolean equivalent(Statement s) {
+		if(s instanceof ArithmeticExpression) {
+			ArithmeticExpression arith = (ArithmeticExpression) s;
+			return arith.operator == operator && left.equivalent(arith.left) && right.equivalent(arith.right);
+		}
+		return false;
+	}
 }

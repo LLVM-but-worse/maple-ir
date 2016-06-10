@@ -67,16 +67,25 @@ public class VarExpression extends Expression {
 
 	@Override
 	public boolean isAffectedBy(Statement stmt) {
+		if(stmt instanceof CopyVarStatement) {
+			if(((CopyVarStatement) stmt).getVariable().getLocal() == local) {
+				return true;
+			}
+		}
+		
 		for(int i=0; stmt.read(i) != null; i++) {
 			if(isAffectedBy(stmt.read(i))) {
 				return true;
 			}
-			
-			if(stmt instanceof CopyVarStatement) {
-				if(((CopyVarStatement) stmt).getIndex() == local.getIndex()) {
-					return true;
-				}
-			}
+		}
+		return false;
+	}
+
+	@Override
+	public boolean equivalent(Statement s) {
+		if(s instanceof VarExpression) {
+			VarExpression var = (VarExpression) s;
+			return local == var.local && type.equals(var.type);
 		}
 		return false;
 	}

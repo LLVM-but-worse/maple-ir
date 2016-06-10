@@ -134,4 +134,21 @@ public class NewArrayExpression extends Expression {
 		}
 		return false;
 	}
+
+	@Override
+	public boolean equivalent(Statement s) {
+		if(s instanceof NewArrayExpression) {
+			NewArrayExpression e = (NewArrayExpression) s;
+			if(e.bounds.length != bounds.length) {
+				return false;
+			}
+			for(int i=0; i < bounds.length; i++) {
+				if(!bounds[i].equivalent(e.bounds[i])) {
+					return false;
+				}
+			}
+			return type.equals(e.type);
+		}
+		return false;
+	}
 }

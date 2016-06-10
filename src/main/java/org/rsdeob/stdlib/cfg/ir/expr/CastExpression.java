@@ -93,4 +93,13 @@ public class CastExpression extends Expression {
 	public boolean isAffectedBy(Statement stmt) {
 		return expression.isAffectedBy(stmt);
 	}
+
+	@Override
+	public boolean equivalent(Statement s) {
+		if(s instanceof CastExpression) {
+			CastExpression cast = (CastExpression) s;
+			return expression.equivalent(cast) && type.equals(cast.type);
+		}
+		return false;
+	}
 }

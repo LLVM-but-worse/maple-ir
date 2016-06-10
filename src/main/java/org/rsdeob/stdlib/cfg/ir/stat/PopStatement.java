@@ -61,4 +61,9 @@ public class PopStatement extends Statement {
 	public Statement copy() {
 		return new PopStatement(expression);
 	}
+
+	@Override
+	public boolean equivalent(Statement s) {
+		return s instanceof PopStatement && expression.equivalent(((PopStatement) s).expression);
+	}
 }

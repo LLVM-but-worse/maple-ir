@@ -11,13 +11,14 @@ import org.objectweb.asm.tree.MethodNode;
 import org.rsdeob.BootBibl.C2;
 import org.rsdeob.stdlib.cfg.ControlFlowGraph;
 import org.rsdeob.stdlib.cfg.ControlFlowGraphBuilder;
+import org.rsdeob.stdlib.cfg.ir.Local;
 import org.rsdeob.stdlib.cfg.ir.RootStatement;
 import org.rsdeob.stdlib.cfg.ir.StatementGenerator;
 import org.rsdeob.stdlib.cfg.ir.StatementGraph;
 import org.rsdeob.stdlib.cfg.ir.StatementGraphBuilder;
 import org.rsdeob.stdlib.cfg.ir.stat.Statement;
-import org.rsdeob.stdlib.cfg.ir.transform.impl.LivenessAnalyser;
 import org.rsdeob.stdlib.cfg.ir.transform.impl.DefinitionAnalyser;
+import org.rsdeob.stdlib.cfg.ir.transform.impl.LivenessAnalyser;
 
 public class DataFlowAnalyserBoot {
 
@@ -60,17 +61,17 @@ public class DataFlowAnalyserBoot {
 				for(Statement stmt : sgraph.vertices()) {
 					System.out.println(stmt);
 					System.out.println("  IN:");
-					Map<String, Boolean> in = liveness.in(stmt);
-					List<String> inVars = new ArrayList<>(in.keySet());
+					Map<Local, Boolean> in = liveness.in(stmt);
+					List<Local> inVars = new ArrayList<>(in.keySet());
 					Collections.sort(inVars);
-					for(String var : inVars) {
+					for(Local var : inVars) {
 						System.out.println("     " + var + " is " + (in.get(var) ? "live" : "dead."));
 					}
 					System.out.println("  OUT:");
-					Map<String, Boolean> out = liveness.out(stmt);
-					List<String> outVars = new ArrayList<>(out.keySet());
+					Map<Local, Boolean> out = liveness.out(stmt);
+					List<Local> outVars = new ArrayList<>(out.keySet());
 					Collections.sort(outVars);
-					for(String var : outVars) {
+					for(Local var : outVars) {
 						System.out.println("     " + var + " is " + (out.get(var) ? "live" : "dead."));
 					}
 				}

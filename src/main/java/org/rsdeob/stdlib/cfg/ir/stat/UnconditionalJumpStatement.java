@@ -51,4 +51,13 @@ public class UnconditionalJumpStatement extends Statement {
 	public Statement copy() {
 		return new UnconditionalJumpStatement(target);
 	}
+
+	@Override
+	public boolean equivalent(Statement s) {
+		if(s instanceof UnconditionalJumpStatement) {
+			UnconditionalJumpStatement jump = (UnconditionalJumpStatement) s;
+			return target.equivalent(jump.target);
+		}
+		return false;
+	}
 }

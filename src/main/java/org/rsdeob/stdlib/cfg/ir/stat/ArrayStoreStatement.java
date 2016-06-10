@@ -123,4 +123,14 @@ public class ArrayStoreStatement extends Statement {
 	public Statement copy() {
 		return new ArrayStoreStatement(arrayExpression, indexExpression, valueExpression, type);
 	}
+
+	@Override
+	public boolean equivalent(Statement s) {
+		if(s instanceof ArrayStoreStatement) {
+			ArrayStoreStatement store = (ArrayStoreStatement) s;
+			return arrayExpression.equivalent(store.arrayExpression) && indexExpression.equivalent(store.indexExpression) &&
+					valueExpression.equivalent(store.valueExpression) && type.equals(store.type);
+		}
+		return false;
+	}
 }
