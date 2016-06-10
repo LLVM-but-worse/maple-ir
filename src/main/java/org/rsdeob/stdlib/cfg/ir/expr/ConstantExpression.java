@@ -186,4 +186,25 @@ public class ConstantExpression extends Expression {
 	public boolean isAffectedBy(Statement stmt) {
 		return false;
 	}
+
+	@Override
+	public boolean equivalent(Statement s) {
+		if(s instanceof ConstantExpression) {
+			ConstantExpression c = (ConstantExpression) s;
+			if(cst == null) {
+				if(c.cst == null) {
+					return true;
+				} else {
+					return false;
+				}
+			} else {
+				if(c.cst == null) {
+					return false;
+				} else {
+					return cst.equals(c.cst);
+				}
+			}
+		}
+		return false;
+	}
 }

@@ -55,4 +55,9 @@ public class SyntheticStatement extends Statement {
 	public Statement copy() {
 		return new SyntheticStatement(statement);
 	}
+
+	@Override
+	public boolean equivalent(Statement s) {
+		return (s instanceof SyntheticStatement) && statement.equivalent(((SyntheticStatement) s).statement);
+	}
 }

@@ -1,115 +1,25 @@
 package org.rsdeob.stdlib.cfg.ir.transform.impl;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.rsdeob.stdlib.cfg.ir.Local;
 import org.rsdeob.stdlib.cfg.ir.RootStatement;
 import org.rsdeob.stdlib.cfg.ir.StatementGraph;
 import org.rsdeob.stdlib.cfg.ir.StatementVisitor;
-import org.rsdeob.stdlib.cfg.ir.expr.*;
-import org.rsdeob.stdlib.cfg.ir.stat.ArrayStoreStatement;
+import org.rsdeob.stdlib.cfg.ir.expr.ConstantExpression;
+import org.rsdeob.stdlib.cfg.ir.expr.Expression;
+import org.rsdeob.stdlib.cfg.ir.expr.FieldLoadExpression;
+import org.rsdeob.stdlib.cfg.ir.expr.NewArrayExpression;
+import org.rsdeob.stdlib.cfg.ir.expr.UninitialisedObjectExpression;
+import org.rsdeob.stdlib.cfg.ir.expr.VarExpression;
 import org.rsdeob.stdlib.cfg.ir.stat.CopyVarStatement;
-import org.rsdeob.stdlib.cfg.ir.stat.FieldStoreStatement;
 import org.rsdeob.stdlib.cfg.ir.stat.PopStatement;
 import org.rsdeob.stdlib.cfg.ir.stat.Statement;
 import org.rsdeob.stdlib.cfg.ir.stat.SyntheticStatement;
 import org.topdank.banalysis.filter.Filter;
 
 public class NewValuePropagator {
-
-	static final class ArrayKillFilter implements Filter<Statement> {
-		final ArrayLoadExpression expr;
-		final int index;
-		
-		ArrayKillFilter(ArrayLoadExpression expr) {
-			this.expr = expr;
-			if(expr.getIndexExpression() instanceof ConstantExpression) {
-				index = (Integer) ((ConstantExpression) expr.getIndexExpression()).getConstant();
-			} else {
-				index = -1;
-			}
-		}
-		
-		@Override
-		public boolean accept(Statement t) {
-			if(t instanceof InvocationExpression) {
-				return true;
-			} else if(t instanceof ArrayStoreStatement) {
-				ArrayStoreStatement store = (ArrayStoreStatement) t;
-				if(store.getIndexExpression() instanceof ConstantExpression) {
-					int index = (Integer) ((ConstantExpression) store.getIndexExpression()).getConstant();
-					
-				}
-			}
-			return false;
-		}
-	}
-	
-	static final class FieldKillFilter implements Filter<Statement> {
-		final FieldLoadExpression expr;
-		
-		FieldKillFilter(FieldLoadExpression expr) {
-			this.expr = expr;
-		}
-		
-		@Override
-		public boolean accept(Statement t) {
-			if(t instanceof InvocationExpression) {
-				return true;
-			} else if(t instanceof FieldStoreStatement) {
-				FieldStoreStatement store = (FieldStoreStatement) t;
-				if(store.getName().equals(expr.getName()) && store.getDesc().equals(expr.getDesc())) {
-					return true;
-				}
-			}
-			return false;
-		}
-	}
-	
-	static final class VarKillFilter implements Filter<Statement> {
-		final VarExpression expr;
-		
-		VarKillFilter(VarExpression expr) {
-			this.expr = expr;
-		}
-		
-		@Override
-		public boolean accept(Statement t) {
-			if(t instanceof CopyVarStatement) {
-				CopyVarStatement stmt = (CopyVarStatement) t;
-				if(stmt.getVariable().toString().equals(expr.toString())) {
-					System.out.println("   overwrite: " + expr + " , stmt: " + stmt);
-					return true;
-				}
-			}
-			return false;
-		}
-	}
-	
-	static final class VarUseFilter implements Filter<Statement> {
-		final VarExpression expr;
-		
-		VarUseFilter(VarExpression expr) {
-			this.expr = expr;
-		}
-		
-		@Override
-		public boolean accept(Statement t) {
-			if(t instanceof VarExpression) {
-				if(expr.toString().equals(t.toString())) {
-					System.out.println("  use: " + t.getId() + ", " + t + " = " + expr.getId() +", " + expr);
-					return true;
-				}
-			}
-			return false;
-		}
-	}
 	
 	private final RootStatement root;
 	private final StatementGraph graph;
@@ -166,8 +76,6 @@ public class NewValuePropagator {
 					
 					definitions.processQueue();
 					liveness.processQueue();
-					
-					System.out.println(root);
 				}
 			}
 			
@@ -186,7 +94,7 @@ public class NewValuePropagator {
 	
 	private class Transformer extends StatementVisitor {
 
-		private final Map<String, Set<CopyVarStatement>> reachingDefs;
+		private final Map<Local, Set<CopyVarStatement>> reachingDefs;
 		private boolean change;
 
 		public Transformer(Statement orig, Statement copy) {
@@ -206,92 +114,103 @@ public class NewValuePropagator {
 		@Override
 		public Statement visit(Statement _s) {
 			if(_s instanceof VarExpression) {
-				VarExpression var = (VarExpression) _s;
-				System.out.println("root: " + root.getId() +" , " + root + ", " + reachingDefs.get(var.toString()) + " , " + var);
-				Set<CopyVarStatement> defs = reachingDefs.get(var.toString());
+				// VarExpression var = (VarExpression) _s;
+				VarExpression vExpr = (VarExpression) _s;
+				Local var = vExpr.getLocal();
+				Set<CopyVarStatement> defs = reachingDefs.get(var);
 				if(defs.size() == 1) {
 					CopyVarStatement def = defs.iterator().next();
 					Expression rhs = def.getExpression();
 					
 					if(rhs instanceof VarExpression) {
-//						Set<CopyVarStatement> rhsDefs = reachingDefs.get(rhs.toString());
-//						System.out.println("   rhsdefs: " + rhsDefs);
-//						if(rhsDefs.size() == 1) {
-							// CopyVarStatement rhsDef = rhsDefs.iterator().next();
-							// Expression realRhs = rhsDef.getExpression();
-							
-							// rhs cannot be defined inbetween def and s
-							Statement head = def;
-							Statement tail = var;
-							VerifierVisitor vis = new VerifierVisitor(NewValuePropagator.this.root, head, tail, new VarKillFilter((VarExpression) rhs));
-							vis.visit();
-							if(!vis.valid) {
-								return var;
-							}
-							return rhs;
-//							if(realRhs instanceof VarExpression) {
-//								
-//							} else if(realRhs instanceof ConstantExpression) {
-//								
-//							} else if(realRhs instanceof FieldLoadExpression) {
-//								
-//							} else if(realRhs instanceof ArrayLoadExpression) {
-//								
-//							}
-//						}
+						// rhs cannot be defined inbetween def and s
+						Statement head = def;
+						Statement tail = vExpr;
+						VerifierVisitor vis = new VerifierVisitor(NewValuePropagator.this.root, head, tail, new VarKillFilter((VarExpression) rhs));
+						vis.visit();
+						if (!vis.valid) {
+							return vExpr;
+						}
+						return rhs;
 					} else if(rhs instanceof ConstantExpression) {
-						return rhs.copy();
+						return rhs;
 					} else if(rhs instanceof FieldLoadExpression) {
 						Statement head = def;
-						Statement tail = root;
+						Statement tail = vExpr;
 						VerifierVisitor vis = new VerifierVisitor(NewValuePropagator.this.root, head, tail, new FieldKillFilter((FieldLoadExpression) rhs));
 						vis.visit();
 						if(vis.valid) {
-							return rhs.copy();
+							return rhs;
 						}
-					} else if(rhs instanceof ArrayLoadExpression) {
-						
 					} else if(rhs instanceof NewArrayExpression) {
 						Statement head = rhs;
-						Statement tail = var;
-						VerifierVisitor vis = new VerifierVisitor(NewValuePropagator.this.root, head, tail, new VarUseFilter(var));
+						Statement tail = vExpr;
+						VerifierVisitor vis = new VerifierVisitor(NewValuePropagator.this.root, head, tail, new VarUseFilter(vExpr));
 						vis.visit();
 						if(vis.valid) {
 							return rhs;
 						}
 					} else if(rhs instanceof UninitialisedObjectExpression) {
 						Statement head = rhs;
-						Statement tail = var;
-						VerifierVisitor vis = new VerifierVisitor(NewValuePropagator.this.root, head, tail, new VarKillFilter(var));
+						Statement tail = vExpr;
+						VerifierVisitor vis = new VerifierVisitor(NewValuePropagator.this.root, head, tail, new VarKillFilter(vExpr));
 						vis.visit();
 						if(vis.valid) {
 							return rhs;
 						}
 					}
 				} else {
-					Set<VarExpression> actualVars = new HashSet<>();
+					// find a common local def
+					Set<Local> actualVars = new HashSet<>();
 					for(CopyVarStatement cvs : defs) {
-						StatementVisitor vis = new StatementVisitor(cvs) {
-							@Override
-							public Statement visit(Statement s1) {
-								if(s1 instanceof VarExpression) {
-									
-									for(VarExpression ve : actualVars) {
-										if(ve.toString().equals(s1.toString())) {
-											return s1;
-										}
-									}
-									
-									actualVars.add(var);
-								}
-								return s1;
-							}
-						};
-						vis.visit();
-						actualVars.remove(cvs.getVariable());
+						Local rhsVar = null;
+						if(cvs.getExpression() instanceof VarExpression) {
+							VarExpression ve = (VarExpression) cvs.getExpression();
+							rhsVar = ve.getLocal();
+							actualVars.add(rhsVar);
+						}
 					}
+					for(CopyVarStatement cvs : defs) {
+						Expression expr = cvs.getExpression();
+						if(expr instanceof VarExpression) {
+							VarExpression ve = (VarExpression) expr;
+							Local rhsLocal = ve.getLocal();
+							Map<Local, Set<CopyVarStatement>> rhsDefsMap = definitions.in(cvs);
+							Set<CopyVarStatement> rhsDefs = rhsDefsMap.get(rhsLocal);
+							if(rhsDefs.size() > 1) {
+								actualVars.remove(rhsLocal);
+							} else {
+								CopyVarStatement rhsDef = rhsDefs.iterator().next();
+								System.out.println("  def(1): " + cvs);
+								System.out.println("  rhsDef(1): " + rhsDef);
+//								if(!rhsDef.getExpression().equivalent(cvs.getExpression())) {
+//									System.out.println("      not equal " + rhsDef);
+//									System.out.println("            to  " + cvs);
+//									actualVars.remove(rhsLocal);
+//								}
+							}
+						} else if(expr instanceof ConstantExpression) {
+							ConstantExpression c = (ConstantExpression) expr;
+							Map<Local, Set<CopyVarStatement>> rhsDefsMap = definitions.in(cvs);
+							Iterator<Local> it = actualVars.iterator();
+							while(it.hasNext()) {
+								Local possible = it.next();
+								Set<CopyVarStatement> possibleDefs = rhsDefsMap.get(possible);
+								if(possibleDefs.size() > 1) {
+									actualVars.remove(possible);
+								} else {
+									CopyVarStatement rhsDef = possibleDefs.iterator().next();
+									if(!c.equivalent(rhsDef.getExpression())) {
+										it.remove();
+									}
+								}
+							}
+						}
+					}
+
 					if(actualVars.size() == 1) {
-						System.out.println("_actual " + _s + " | " + root + " = " + defs +" = " + actualVars);
+						return new VarExpression(actualVars.iterator().next(), vExpr.getType());
+						// System.out.println("_actual " + _s + " | " + root + " = " + defs +" = " + actualVars);
 					}
 				}
 			}
@@ -334,6 +253,100 @@ public class NewValuePropagator {
 				}
 			}
 			return s;
+		}
+	}
+	
+//	static final class ArrayKillFilter implements Filter<Statement> {
+//		final ArrayLoadExpression expr;
+//		final int index;
+//		
+//		ArrayKillFilter(ArrayLoadExpression expr) {
+//			this.expr = expr;
+//			if(expr.getIndexExpression() instanceof ConstantExpression) {
+//				index = (Integer) ((ConstantExpression) expr.getIndexExpression()).getConstant();
+//			} else {
+//				index = -1;
+//			}
+//		}
+//		
+//		@Override
+//		public boolean accept(Statement t) {
+//			if(t instanceof InvocationExpression) {
+//				return true;
+//			} else if(t instanceof ArrayStoreStatement) {
+//				ArrayStoreStatement store = (ArrayStoreStatement) t;
+//				if(store.getIndexExpression() instanceof ConstantExpression) {
+//					int index = (Integer) ((ConstantExpression) store.getIndexExpression()).getConstant();
+//					
+//				}
+//			}
+//			return false;
+//		}
+//	}
+	
+	static final class FieldKillFilter implements Filter<Statement> {
+		final FieldLoadExpression expr;
+		
+		FieldKillFilter(FieldLoadExpression expr) {
+			this.expr = expr;
+		}
+		
+		@Override
+		public boolean accept(Statement t) {
+			if(expr.isAffectedBy(t)) {
+				// System.out.println("_affected  " + expr + "   " + t);
+				return true;
+			} else {
+				return false;
+			}
+//			if(t instanceof InvocationExpression) {
+//				return true;
+//			} else if(t instanceof FieldStoreStatement) {
+//				FieldStoreStatement store = (FieldStoreStatement) t;
+//				if(store.getName().equals(expr.getName()) && store.getDesc().equals(expr.getDesc())) {
+//					return true;
+//				}
+//			}
+//			return false;
+		}
+	}
+	
+	static final class VarKillFilter implements Filter<Statement> {
+		final VarExpression expr;
+		
+		VarKillFilter(VarExpression expr) {
+			this.expr = expr;
+		}
+		
+		@Override
+		public boolean accept(Statement t) {
+			if(t instanceof CopyVarStatement) {
+				CopyVarStatement stmt = (CopyVarStatement) t;
+				if(stmt.getVariable().toString().equals(expr.toString())) {
+					// System.out.println("   overwrite: " + expr + " , stmt: " + stmt);
+					return true;
+				}
+			}
+			return false;
+		}
+	}
+	
+	static final class VarUseFilter implements Filter<Statement> {
+		final VarExpression expr;
+		
+		VarUseFilter(VarExpression expr) {
+			this.expr = expr;
+		}
+		
+		@Override
+		public boolean accept(Statement t) {
+			if(t instanceof VarExpression) {
+				if(((VarExpression) t).getLocal() == expr.getLocal()) {
+					// System.out.println("  use: " + t.getId() + ", " + t + " = " + expr.getId() +", " + expr);
+					return true;
+				}
+			}
+			return false;
 		}
 	}
 }

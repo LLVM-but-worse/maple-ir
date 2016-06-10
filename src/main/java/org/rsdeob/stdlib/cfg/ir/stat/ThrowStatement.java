@@ -59,4 +59,13 @@ public class ThrowStatement extends Statement {
 	public Statement copy() {
 		return new ThrowStatement(expression);
 	}
+
+	@Override
+	public boolean equivalent(Statement s) {
+		if(s instanceof ThrowStatement) {
+			ThrowStatement thr = (ThrowStatement) s;
+			return expression.equivalent(thr.expression);
+		}
+		return false;
+	}
 }

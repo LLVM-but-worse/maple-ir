@@ -90,4 +90,9 @@ public class RootStatement extends Statement {
 	public Statement copy() {
 		throw new UnsupportedOperationException();
 	}
+
+	@Override
+	public boolean equivalent(Statement s) {
+		throw new UnsupportedOperationException();
+	}
 }

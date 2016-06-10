@@ -110,4 +110,13 @@ public class ArrayLoadExpression extends Expression {
 	public boolean isAffectedBy(Statement stmt) {
 		return stmt.canChangeLogic() || array.isAffectedBy(stmt) || index.isAffectedBy(stmt);
 	}
+
+	@Override
+	public boolean equivalent(Statement s) {
+		if(s instanceof ArrayLoadExpression) {
+			ArrayLoadExpression load = (ArrayLoadExpression) s;
+			return array.equals(load.array) && index.equals(load.index);
+		}
+		return false;
+	}
 }

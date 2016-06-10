@@ -143,4 +143,14 @@ public class FieldStoreStatement extends Statement {
 	public Statement copy() {
 		return new FieldStoreStatement(instanceExpression, valueExpression, owner, name, desc);
 	}
+
+	@Override
+	public boolean equivalent(Statement s) {
+		if(s instanceof FieldStoreStatement) {
+			FieldStoreStatement store = (FieldStoreStatement) s;
+			return owner.equals(store.owner) && name.equals(store.name) && desc.equals(store.desc) &&
+					instanceExpression.equivalent(store.instanceExpression) && valueExpression.equivalent(store.valueExpression);
+		}
+		return false;
+	}
 }

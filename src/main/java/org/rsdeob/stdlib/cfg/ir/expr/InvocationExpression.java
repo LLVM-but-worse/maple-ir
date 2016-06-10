@@ -206,4 +206,24 @@ public class InvocationExpression extends Expression {
 		
 		return false;
 	}
+
+	@Override
+	public boolean equivalent(Statement s) {
+		if(s instanceof InvocationExpression) {
+			InvocationExpression o = (InvocationExpression) s;
+			if(opcode != o.opcode || !name.equals(o.name) || !owner.equals(o.owner) || !desc.equals(o.desc)) {
+				return false;
+			}
+			if(argumentExpressions.length != o.argumentExpressions.length) {
+				return false;
+			}
+			for(int i=0; i < argumentExpressions.length; i++) {
+				if(!argumentExpressions[i].equivalent(o.argumentExpressions[i])) {
+					return false;
+				}
+			}
+			return true;
+		}
+		return false;
+	}
 }

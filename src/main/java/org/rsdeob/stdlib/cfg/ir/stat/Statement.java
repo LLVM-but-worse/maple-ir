@@ -225,4 +225,6 @@ public abstract class Statement implements FastGraphVertex {
 	}
 	
 	public abstract Statement copy();
+	
+	public abstract boolean equivalent(Statement s);
 }
