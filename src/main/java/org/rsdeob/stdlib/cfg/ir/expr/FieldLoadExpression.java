@@ -111,4 +111,14 @@ public class FieldLoadExpression extends Expression {
 	public boolean isAffectedBy(Statement stmt) {
 		return stmt.canChangeLogic() || (instanceExpression != null && instanceExpression.isAffectedBy(stmt));
 	}
+
+	@Override
+	public boolean equivalent(Statement s) {
+		if(s instanceof FieldLoadExpression) {
+			FieldLoadExpression load = (FieldLoadExpression) s;
+			return instanceExpression.equivalent(load.instanceExpression) &&
+					name.equals(load.name) && desc.equals(load.desc) && owner.equals(load.owner);
+		}
+		return false;
+	}
 }

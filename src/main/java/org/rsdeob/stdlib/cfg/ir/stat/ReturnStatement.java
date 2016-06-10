@@ -88,4 +88,13 @@ public class ReturnStatement extends Statement {
 	public Statement copy() {
 		return new ReturnStatement(type, expression);
 	}
+
+	@Override
+	public boolean equivalent(Statement s) {
+		if(s instanceof ReturnStatement) {
+			ReturnStatement ret = (ReturnStatement) s;
+			return type.equals(ret.type) && expression.equivalent(ret.expression);
+		}
+		return false;
+	}
 }

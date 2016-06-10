@@ -29,4 +29,12 @@ public class StatementHeaderStatement extends HeaderStatement {
 	public Statement copy() {
 		return new StatementHeaderStatement(statement);
 	}
+
+	@Override
+	public boolean equivalent(Statement s) {
+		if(s instanceof StatementHeaderStatement) {
+			return statement == ((StatementHeaderStatement) s).statement;
+		}
+		return false;
+	}
 }

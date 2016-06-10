@@ -71,4 +71,13 @@ public class MonitorStatement extends Statement {
 	public Statement copy() {
 		return new MonitorStatement(expression, mode);
 	}
+
+	@Override
+	public boolean equivalent(Statement s) {
+		if(s instanceof MonitorStatement) {
+			MonitorStatement mon = (MonitorStatement) s;
+			return mode == mon.mode && expression.equivalent(mon.expression);
+		}
+		return false;
+	}
 }

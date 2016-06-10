@@ -59,4 +59,9 @@ public class SyntheticExpression extends Expression {
 	public Expression getExpression() {
 		return expr;
 	}
+
+	@Override
+	public boolean equivalent(Statement s) {
+		return s instanceof SyntheticExpression && expr.equivalent(((SyntheticExpression) s).expr);
+	}
 }

@@ -62,4 +62,9 @@ public class UninitialisedObjectExpression extends Expression {
 	public boolean isAffectedBy(Statement stmt) {
 		return false;
 	}
+
+	@Override
+	public boolean equivalent(Statement s) {
+		return s instanceof UninitialisedObjectExpression && type.equals(((UninitialisedObjectExpression) s).type);
+	}
 }

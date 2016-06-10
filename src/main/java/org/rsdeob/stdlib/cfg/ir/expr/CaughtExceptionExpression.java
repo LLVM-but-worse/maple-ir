@@ -59,4 +59,9 @@ public class CaughtExceptionExpression extends Expression {
 	public boolean isAffectedBy(Statement stmt) {
 		return true;
 	}
+
+	@Override
+	public boolean equivalent(Statement s) {
+		return (s instanceof CaughtExceptionExpression && type.equals(((CaughtExceptionExpression) s).type));
+	}
 }

@@ -85,4 +85,9 @@ public class NegationExpression extends Expression {
 	public boolean isAffectedBy(Statement stmt) {
 		return expression.isAffectedBy(stmt);
 	}
+
+	@Override
+	public boolean equivalent(Statement s) {
+		return (s instanceof NegationExpression && expression.equivalent(((NegationExpression)s).expression));
+	}
 }

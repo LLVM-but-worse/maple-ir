@@ -75,4 +75,9 @@ public class ArrayLengthExpression extends Expression {
 	public boolean isAffectedBy(Statement stmt) {
 		return stmt.canChangeLogic() || expression.isAffectedBy(stmt);
 	}
+
+	@Override
+	public boolean equivalent(Statement s) {
+		return (s instanceof ArrayLengthExpression) && expression.equivalent(((ArrayLengthExpression)s).expression);
+	}
 }

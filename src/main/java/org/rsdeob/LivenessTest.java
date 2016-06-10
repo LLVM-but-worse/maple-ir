@@ -12,6 +12,8 @@ import org.rsdeob.stdlib.cfg.ir.RootStatement;
 import org.rsdeob.stdlib.cfg.ir.StatementGenerator;
 import org.rsdeob.stdlib.cfg.ir.StatementGraph;
 import org.rsdeob.stdlib.cfg.ir.StatementGraphBuilder;
+import org.rsdeob.stdlib.cfg.ir.StatementVisitor;
+import org.rsdeob.stdlib.cfg.ir.stat.Statement;
 import org.rsdeob.stdlib.cfg.ir.transform.impl.DeadAssignmentEliminator;
 import org.rsdeob.stdlib.cfg.ir.transform.impl.DefinitionAnalyser;
 import org.rsdeob.stdlib.cfg.ir.transform.impl.LivenessAnalyser;
@@ -47,7 +49,22 @@ public class LivenessTest {
 				System.out.println();
 
 				simplify(cfg, root, sgraph, m);
-//				System.out.println(root);
+				System.out.println("================");
+				System.out.println("================");
+				System.out.println("================");
+				
+				System.out.println(root);
+				System.out.println("================");
+				System.out.println("================");
+				System.out.println("================");
+				
+				new StatementVisitor(root) {
+					@Override
+					public Statement visit(Statement stmt) {
+						System.out.println(stmt);
+						return stmt;
+					}
+				}.visit();
 			}
 		}
 	}
@@ -77,7 +94,7 @@ public class LivenessTest {
 //					System.out.println("     " + key + " = " + defAnalyser.out(stmt).get(key));
 //				}				
 //			}
-			System.out.println("LivenessTest.simplify(2)");
+			System.out.println("LivenessTest.simplify(1)");
 			// change += ValuePropagator.propagateDefinitions1(root, graph, defAnalyser);
 //			change += CopyPropagator.propagateDefinitions(cfg, root, defAnalyser);
 			
@@ -85,7 +102,7 @@ public class LivenessTest {
 			LivenessAnalyser la = new LivenessAnalyser(graph);
 			la.run();
 			
-			System.out.println("LivenessTest.simplify(1)");
+			System.out.println("LivenessTest.simplify(2)");
 			NewValuePropagator prop = new NewValuePropagator(root, graph);
 			prop.process(defAnalyser, la);
 			
@@ -105,7 +122,7 @@ public class LivenessTest {
 			System.out.println();
 			System.out.println();
 //			System.out.println("After elimination");
-			System.out.println(root);
+//			System.out.println(root);
 //			System.out.println();
 //			System.out.println();
 //			
@@ -113,9 +130,25 @@ public class LivenessTest {
 			if(change <= 0) {
 				break;
 			}
-			
-			
 		}
+		
+//		AbsoluteValueAnalyser ava = new AbsoluteValueAnalyser(graph);
+//		ava.run();
+//
+//		List<Local> locals = root.getLocals().getOrderedList();
+//		for(Statement stmt : graph.vertices()) {
+//			System.out.println(stmt);
+//			System.out.println("  IN:");
+//			Map<Local, CopyVarStatement> in = ava.in(stmt);
+//			for(Local l : locals) {
+//				System.out.println("   " + l + " = " + in.get(l));
+//			}
+//			System.out.println("  OUT:");
+//			Map<Local, CopyVarStatement> out = ava.out(stmt);
+//			for(Local l : locals) {
+//				System.out.println("   " + l + " = " + out.get(l));
+//			}
+//		}
 	}
 	
 	void test1() {

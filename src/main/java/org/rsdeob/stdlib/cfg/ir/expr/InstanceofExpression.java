@@ -82,4 +82,13 @@ public class InstanceofExpression extends Expression {
 	public boolean isAffectedBy(Statement stmt) {
 		return expression.isAffectedBy(stmt);
 	}
+
+	@Override
+	public boolean equivalent(Statement s) {
+		if(s instanceof InstanceofExpression) {
+			InstanceofExpression e = (InstanceofExpression) s;
+			return expression.equivalent(e.expression) && type.equals(e.type);
+		}
+		return false;
+	}
 }

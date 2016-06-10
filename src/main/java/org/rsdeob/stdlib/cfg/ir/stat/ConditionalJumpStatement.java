@@ -220,4 +220,13 @@ public class ConditionalJumpStatement extends Statement {
 	public Statement copy() {
 		return new ConditionalJumpStatement(left, right, trueSuccessor, type);
 	}
+
+	@Override
+	public boolean equivalent(Statement s) {
+		if(s instanceof ConditionalJumpStatement) {
+			ConditionalJumpStatement jump = (ConditionalJumpStatement) s;
+			return type == jump.type && left.equivalent(jump.left) && right.equals(jump.right) && trueSuccessor.equivalent(jump.trueSuccessor);
+		}
+		return false;
+	}
 }

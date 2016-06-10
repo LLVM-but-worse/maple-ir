@@ -30,4 +30,12 @@ public class BlockHeaderStatement extends HeaderStatement {
 	public Statement copy() {
 		return new BlockHeaderStatement(block);
 	}
+
+	@Override
+	public boolean equivalent(Statement s) {
+		if(s instanceof BlockHeaderStatement) {
+			return block == ((BlockHeaderStatement) s).block;
+		}
+		return false;
+	}
 }
