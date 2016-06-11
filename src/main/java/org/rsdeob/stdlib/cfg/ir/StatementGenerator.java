@@ -1,11 +1,5 @@
 package org.rsdeob.stdlib.cfg.ir;
 
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.LinkedList;
-import java.util.Map.Entry;
-import java.util.Set;
-
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.*;
@@ -23,6 +17,12 @@ import org.rsdeob.stdlib.cfg.ir.stat.header.HeaderStatement;
 import org.rsdeob.stdlib.cfg.util.TypeUtils;
 import org.rsdeob.stdlib.cfg.util.TypeUtils.ArrayType;
 import org.rsdeob.stdlib.collections.ExpressionStack;
+
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.Map.Entry;
+import java.util.Set;
 
 public class StatementGenerator implements Opcodes {
 
@@ -695,11 +695,14 @@ public class StatementGenerator implements Opcodes {
 	}
 	
 	void _load_array(ArrayType type) {
+		// prestack: var1, var0 (height = 2)
+		// poststack: var0
+		// assignments: var0 = var0[var1]
 		int height = currentStack.height();
 		Expression index = pop();
 		Expression array = pop();
-		assign_stack(height - 1, new ArrayLoadExpression(array, index, type));
-		push(load_stack(height - 1, type.getType()));
+		assign_stack(height - 2, new ArrayLoadExpression(array, index, type));
+		push(load_stack(height - 2, type.getType()));
 	}
 	
 	void _store_array(ArrayType type) {

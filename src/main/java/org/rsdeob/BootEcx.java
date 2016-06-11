@@ -9,17 +9,12 @@ import org.rsdeob.stdlib.cfg.ControlFlowGraph;
 import org.rsdeob.stdlib.cfg.ControlFlowGraphBuilder;
 import org.rsdeob.stdlib.cfg.ir.RootStatement;
 import org.rsdeob.stdlib.cfg.ir.StatementGenerator;
-import org.rsdeob.stdlib.cfg.ir.exprtransform.DataFlowAnalyzer;
-import org.rsdeob.stdlib.cfg.ir.exprtransform.DataFlowState;
-import org.rsdeob.stdlib.cfg.ir.stat.CopyVarStatement;
-import org.rsdeob.stdlib.cfg.ir.stat.Statement;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.util.Iterator;
-import java.util.Map;
 
 @SuppressWarnings("Duplicates")
 public class BootEcx implements Opcodes {
@@ -63,23 +58,23 @@ public class BootEcx implements Opcodes {
 //			System.out.println(StatementGraphBuilder.create(cfg));
 //			System.out.println();
 
-			DataFlowAnalyzer dfa = new DataFlowAnalyzer(cfg, true);
-			Map<Statement, DataFlowState> df = dfa.computeForward();
-			System.out.println("Data flow for " + m + ":");
-			for (Statement b : df.keySet()) {
-				DataFlowState state = df.get(b);
-				System.out.println(b + " (" + b.getId() + ") :");
-				System.out.println("In: ");
-				for (CopyVarStatement copy : state.in.values())
-					System.out.println("  " + copy);
-				System.out.println();
-
-				System.out.println("Out: ");
-				for (CopyVarStatement copy : state.out.values())
-					System.out.println("  " + copy);
-
-				System.out.println();
-			}
+//			DataFlowAnalyzer dfa = new DataFlowAnalyzer(cfg, true);
+//			Map<Statement, DataFlowState> df = dfa.computeForward();
+//			System.out.println("Data flow for " + m + ":");
+//			for (Statement b : df.keySet()) {
+//				DataFlowState state = df.get(b);
+//				System.out.println(b + " (" + b.getId() + ") :");
+//				System.out.println("In: ");
+//				for (CopyVarStatement copy : state.in.values())
+//					System.out.println("  " + copy);
+//				System.out.println();
+//
+//				System.out.println("Out: ");
+//				for (CopyVarStatement copy : state.out.values())
+//					System.out.println("  " + copy);
+//
+//				System.out.println();
+//			}
 
 			System.out.println("End of processing log for " + m);
 			System.out.println("============================================================");
