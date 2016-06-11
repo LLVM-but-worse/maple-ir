@@ -238,7 +238,7 @@ public class StatementGenerator implements Opcodes {
 	}
 
 	ExpressionStack process(BasicBlock b) {
-		// System.out.println("Processing " + b.getId());
+		System.out.println("Processing " + b.getId());
 		updatedStacks.add(b);
 		ExpressionStack stack = b.getInputStack().copy();
 
@@ -248,8 +248,8 @@ public class StatementGenerator implements Opcodes {
 		for (AbstractInsnNode ain : b.getInsns()) {
 			int opcode = ain.opcode();
 			if(opcode != -1) {
-//				  System.out.println("Executing " + Printer.OPCODES[ain.opcode()]);
-//				  System.out.println(" Prestack : " + stack);
+				  System.out.println("Executing " + Printer.OPCODES[ain.opcode()]);
+				  System.out.println(" Prestack : " + stack);
 			}
 			switch (opcode) {
 				case -1: {
@@ -565,7 +565,9 @@ public class StatementGenerator implements Opcodes {
 					break;
 			}
 			
-//			 System.out.println(" Poststack: " + stack);
+			 System.out.println(" Poststack: " + stack);
+			 System.out.println("   Added stmt: " + getLastStatement(currentBlock));
+			 System.out.println();
 			 /*System.out.println(" Block stmts: ");
 			 for(Statement stmt : b.getStatements()) {
 				 System.out.println("   " + stmt);
@@ -693,9 +695,11 @@ public class StatementGenerator implements Opcodes {
 	}
 	
 	void _load_array(ArrayType type) {
+		int height = currentStack.height();
 		Expression index = pop();
 		Expression array = pop();
-		push(new ArrayLoadExpression(array, index, type));
+		assign_stack(height - 1, new ArrayLoadExpression(array, index, type));
+		push(load_stack(height - 1, type.getType()));
 	}
 	
 	void _store_array(ArrayType type) {
@@ -1122,9 +1126,14 @@ public class StatementGenerator implements Opcodes {
 	}
 
 	void _load(int index, Type type) {
-		VarExpression e = createVarExpression(index, type, false);
-		push(e);
-		assign_stack(currentStack.height(), e);
+		System.out.printf("   Visiting load var%d, height=%d.%n", index, currentStack.height());
+		VarExpression e1 = createVarExpression(index, type, false);
+		assign_stack(currentStack.height(), e1);
+		push(load_stack(index, type));
+		System.out.printf("   After pushing loadexpr, height=%d.%n", currentStack.height());
+		
+		System.out.printf("   After assign_stack, height=%d.%n", currentStack.height());
+		System.out.println("    Added stmt: " + getLastStatement(currentBlock));
 	}
 
 	void _inc(int index, int amt) {

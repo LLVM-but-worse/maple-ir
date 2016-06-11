@@ -19,7 +19,7 @@ public class RootStatement extends Statement {
 	
 	public RootStatement(MethodNode method) {
 		this.method = method;
-		locals = new LocalsHandler();
+		locals = new LocalsHandler(method.maxLocals + 1);
 		headers = new HashMap<>();
 	}
 	
