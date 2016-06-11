@@ -8,9 +8,11 @@ import java.util.Map;
 
 public class LocalsHandler {
 
+	private final int base;
 	private final Map<String, Local> cache;
 	
-	public LocalsHandler() {
+	public LocalsHandler(int base) {
+		this.base = base;
 		cache = new HashMap<String, Local>();
 	}
 	
@@ -30,7 +32,7 @@ public class LocalsHandler {
 		if(cache.containsKey(key)) {
 			return cache.get(key);
 		} else {
-			Local v = new Local(index, isStack);
+			Local v = new Local(base, index, isStack);
 			cache.put(key, v);
 			return v;
 		}

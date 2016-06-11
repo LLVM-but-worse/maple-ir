@@ -66,6 +66,7 @@ public class LivenessAnalyser extends BackwardsFlowAnalyser<Statement, FlowEdge<
 	public void remove(Statement n) {
 		super.remove(n);
 		uses.remove(n);
+		initial.remove(n);
 	}
 	
 	@Override
@@ -80,7 +81,6 @@ public class LivenessAnalyser extends BackwardsFlowAnalyser<Statement, FlowEdge<
 				public Statement visit(Statement s) {
 					if(s instanceof VarExpression) {
 						Local var = ((VarExpression) s).getLocal();
-						initial.put(var, Boolean.valueOf(false));
 						uses.getNonNull(n).add(var);
 					}
 					return s;
@@ -109,6 +109,8 @@ public class LivenessAnalyser extends BackwardsFlowAnalyser<Statement, FlowEdge<
 
 	@Override
 	protected void propagate(Statement n, Map<Local, Boolean> in, Map<Local, Boolean> out) {
+		// System.out.println("propagating " + n);
+		
 		for(Entry<Local, Boolean> e : in.entrySet()) {
 			Local key = e.getKey();
 			if(out.containsKey(key)) {
@@ -116,6 +118,7 @@ public class LivenessAnalyser extends BackwardsFlowAnalyser<Statement, FlowEdge<
 			} else {
 				out.put(key, e.getValue());
 			}
+			// System.out.println("   " + key + " is " + (e.getValue() ? "live" : "dead"));
 		}
 		// do this before the uses because of
 		// varx = varx statements (i had a dream about

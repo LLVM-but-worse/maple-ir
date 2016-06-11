@@ -30,6 +30,10 @@ public class VarExpression extends Expression {
 	public Local getLocal() {
 		return local;
 	}
+	
+	public void setLocal(Local local) {
+		this.local = local;
+	}
 
 	@Override
 	public Type getType() {
@@ -47,12 +51,12 @@ public class VarExpression extends Expression {
 
 	@Override
 	public void toString(TabbedStringWriter printer) {
-		printer.print(local.toString());		
+		printer.print(local.toString());
 	}
 
 	@Override
 	public void toCode(MethodVisitor visitor) {
-		visitor.visitVarInsn(TypeUtils.getVariableLoadOpcode(getType()), local.getIndex());		
+		visitor.visitVarInsn(TypeUtils.getVariableLoadOpcode(getType()), local.getCodeIndex());		
 	}
 
 	@Override
