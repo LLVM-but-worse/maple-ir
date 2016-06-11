@@ -72,7 +72,9 @@ public class CopyVarStatement extends Statement implements IStackDumpNode {
 			for (int i = 0; i < cast.length; i++)
 				visitor.visitInsn(cast[i]);
 		}
-		variable.toCode(visitor);
+
+		visitor.visitVarInsn(TypeUtils.getVariableStoreOpcode(getType()), variable.getLocal().getCodeIndex());	
+		// variable.toCode(visitor);
 	}
 
 	@Override

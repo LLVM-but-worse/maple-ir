@@ -7,6 +7,7 @@ import org.rsdeob.stdlib.cfg.ir.Local;
 import org.rsdeob.stdlib.cfg.ir.RootStatement;
 import org.rsdeob.stdlib.cfg.ir.StatementGraph;
 import org.rsdeob.stdlib.cfg.ir.StatementVisitor;
+import org.rsdeob.stdlib.cfg.ir.expr.ArrayLoadExpression;
 import org.rsdeob.stdlib.cfg.ir.expr.ConstantExpression;
 import org.rsdeob.stdlib.cfg.ir.expr.Expression;
 import org.rsdeob.stdlib.cfg.ir.expr.FieldLoadExpression;
@@ -25,6 +26,7 @@ public class NewValuePropagator {
 	private final StatementGraph graph;
 	private DefinitionAnalyser definitions;
 	private LivenessAnalyser liveness;
+	private int changedStmts;
 	
 	public NewValuePropagator(RootStatement root, StatementGraph graph) {
 		this.root = root;
@@ -32,6 +34,7 @@ public class NewValuePropagator {
 	}
 	
 	private void processImpl() {
+		changedStmts = 0;
 		while(true) {
 			AtomicBoolean change = new AtomicBoolean(false);
 			
@@ -89,16 +92,18 @@ public class NewValuePropagator {
 		this.definitions = definitions;
 		this.liveness = liveness;
 		processImpl();
-		return 0;
+		return changedStmts;
 	}
 	
 	private class Transformer extends StatementVisitor {
 
 		private final Map<Local, Set<CopyVarStatement>> reachingDefs;
+		private Statement orig;
 		private boolean change;
 
 		public Transformer(Statement orig, Statement copy) {
 			super(copy);
+			this.orig = orig;
 			reachingDefs = definitions.in(orig);
 		}
 
@@ -107,7 +112,30 @@ public class NewValuePropagator {
 			super.visited(stmt, node, addr, vis);
 
 			if (node != vis) {
+				// System.out.printf("not_equal: addr=%d, old:%s, new:%s, root:%s.%n", addr, node, vis, root);
+				changedStmts++;
 				change = true;
+			}
+		}
+		
+		private boolean canLivePropagate(Statement s, Local local) {
+			if(!liveness.out(s).containsKey(local)) {
+				return true;
+			} else {
+				if(liveness.out(s).get(local)) {
+					if(s instanceof CopyVarStatement) {
+						CopyVarStatement copy = (CopyVarStatement) s;
+						if(copy.getVariable().getLocal() == local) {
+							return true;
+						} else {
+							return false;
+						}
+					} else {
+						return false;
+					}
+				} else {
+					return false;
+				}
 			}
 		}
 
@@ -137,9 +165,17 @@ public class NewValuePropagator {
 					} else if(rhs instanceof FieldLoadExpression) {
 						Statement head = def;
 						Statement tail = vExpr;
-						VerifierVisitor vis = new VerifierVisitor(NewValuePropagator.this.root, head, tail, new FieldKillFilter((FieldLoadExpression) rhs));
+						VerifierVisitor vis = new VerifierVisitor(NewValuePropagator.this.root, head, tail, new AffectorFilter(rhs));
 						vis.visit();
-						if(vis.valid) {
+						if(vis.valid && canLivePropagate(orig, var)) {
+							return rhs;
+						}
+					} else if(rhs instanceof ArrayLoadExpression) {
+						Statement head = def;
+						Statement tail = vExpr;
+						VerifierVisitor vis = new VerifierVisitor(NewValuePropagator.this.root, head, tail, new AffectorFilter(rhs));
+						vis.visit();
+						if(vis.valid && canLivePropagate(orig, var)) {
 							return rhs;
 						}
 					} else if(rhs instanceof NewArrayExpression) {
@@ -147,7 +183,8 @@ public class NewValuePropagator {
 						Statement tail = vExpr;
 						VerifierVisitor vis = new VerifierVisitor(NewValuePropagator.this.root, head, tail, new VarUseFilter(vExpr));
 						vis.visit();
-						if(vis.valid) {
+						System.out.println("var: " + var +"  at " + root);
+						if(vis.valid && !liveness.out(orig).containsKey(var)) {
 							return rhs;
 						}
 					} else if(rhs instanceof UninitialisedObjectExpression) {
@@ -155,7 +192,7 @@ public class NewValuePropagator {
 						Statement tail = vExpr;
 						VerifierVisitor vis = new VerifierVisitor(NewValuePropagator.this.root, head, tail, new VarKillFilter(vExpr));
 						vis.visit();
-						if(vis.valid) {
+						if(vis.valid && !liveness.out(orig).containsKey(var)) {
 							return rhs;
 						}
 					}
@@ -180,9 +217,9 @@ public class NewValuePropagator {
 							if(rhsDefs.size() > 1) {
 								actualVars.remove(rhsLocal);
 							} else {
-								CopyVarStatement rhsDef = rhsDefs.iterator().next();
-								System.out.println("  def(1): " + cvs);
-								System.out.println("  rhsDef(1): " + rhsDef);
+//								CopyVarStatement rhsDef = rhsDefs.iterator().next();
+//								System.out.println("  def(1): " + cvs);
+//								System.out.println("  rhsDef(1): " + rhsDef);
 //								if(!rhsDef.getExpression().equivalent(cvs.getExpression())) {
 //									System.out.println("      not equal " + rhsDef);
 //									System.out.println("            to  " + cvs);
@@ -205,12 +242,15 @@ public class NewValuePropagator {
 									}
 								}
 							}
+						} else {
+							actualVars.remove(cvs.getVariable().getLocal());
 						}
 					}
 
 					if(actualVars.size() == 1) {
-						return new VarExpression(actualVars.iterator().next(), vExpr.getType());
-						// System.out.println("_actual " + _s + " | " + root + " = " + defs +" = " + actualVars);
+//						vExpr.setLocal(actualVars.iterator().next());
+//						System.out.println("_actual " + _s + " | " + root + " = " + defs +" = " + actualVars);
+//						return new VarExpression(actualVars.iterator().next(), vExpr.getType());
 					}
 				}
 			}
@@ -284,30 +324,20 @@ public class NewValuePropagator {
 //		}
 //	}
 	
-	static final class FieldKillFilter implements Filter<Statement> {
-		final FieldLoadExpression expr;
+	static final class AffectorFilter implements Filter<Statement> {
+		final Expression expr;
 		
-		FieldKillFilter(FieldLoadExpression expr) {
+		AffectorFilter(Expression expr) {
 			this.expr = expr;
 		}
 		
 		@Override
 		public boolean accept(Statement t) {
 			if(expr.isAffectedBy(t)) {
-				// System.out.println("_affected  " + expr + "   " + t);
 				return true;
 			} else {
 				return false;
 			}
-//			if(t instanceof InvocationExpression) {
-//				return true;
-//			} else if(t instanceof FieldStoreStatement) {
-//				FieldStoreStatement store = (FieldStoreStatement) t;
-//				if(store.getName().equals(expr.getName()) && store.getDesc().equals(expr.getDesc())) {
-//					return true;
-//				}
-//			}
-//			return false;
 		}
 	}
 	

@@ -489,7 +489,8 @@ public class TypeUtils {
 		} else if (type.getSort() >= Type.ARRAY && type.getSort() <= Type.OBJECT) {
 			return Opcodes.ALOAD;
 		} else {
-			throw new IllegalArgumentException(type.toString());
+			return getVariableLoadOpcode(asSimpleType(type));
+//			throw new IllegalArgumentException(type.toString());
 		}
 	}
 	
@@ -505,7 +506,8 @@ public class TypeUtils {
 		} else if (type.getSort() >= Type.ARRAY && type.getSort() <= Type.OBJECT) {
 			return Opcodes.ASTORE;
 		} else {
-			throw new IllegalArgumentException(type.toString());
+			return getVariableStoreOpcode(asSimpleType(type));
+			// throw new IllegalArgumentException(type.toString());
 		}
 	}
 	

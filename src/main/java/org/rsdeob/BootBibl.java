@@ -49,7 +49,7 @@ public class BootBibl implements Opcodes {
 		while(it.hasNext()) {
 			MethodNode m = it.next();
 
-			if(!m.toString().equals("a/a/f/a.<init>()V")) {
+			if(!m.toString().equals("a/a/f/a.H(J)La/a/f/o;")) {
 				continue;
 			}
 			
@@ -86,7 +86,7 @@ public class BootBibl implements Opcodes {
 			StatementGraph sgraph = StatementGraphBuilder.create(cfg);
 			LivenessTest.simplify(cfg, root, sgraph, m);
 			
-			System.out.println("IR representation of " + m + ":");
+			System.out.println("Optimised IR " + m + ":");
 			System.out.println(root);
 			System.out.println();
 
@@ -94,7 +94,8 @@ public class BootBibl implements Opcodes {
 			System.out.println("End of processing log for " + m);
 			System.out.println("============================================================");
 			System.out.println("============================================================\n\n");
-			break;
+			
+			root.dump(m);
 		}
 		
 		ClassWriter clazz = new ClassWriter(0);

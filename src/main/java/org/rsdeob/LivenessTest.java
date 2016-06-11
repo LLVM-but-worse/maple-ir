@@ -12,8 +12,6 @@ import org.rsdeob.stdlib.cfg.ir.RootStatement;
 import org.rsdeob.stdlib.cfg.ir.StatementGenerator;
 import org.rsdeob.stdlib.cfg.ir.StatementGraph;
 import org.rsdeob.stdlib.cfg.ir.StatementGraphBuilder;
-import org.rsdeob.stdlib.cfg.ir.StatementVisitor;
-import org.rsdeob.stdlib.cfg.ir.stat.Statement;
 import org.rsdeob.stdlib.cfg.ir.transform.impl.DeadAssignmentEliminator;
 import org.rsdeob.stdlib.cfg.ir.transform.impl.DefinitionAnalyser;
 import org.rsdeob.stdlib.cfg.ir.transform.impl.LivenessAnalyser;
@@ -54,17 +52,17 @@ public class LivenessTest {
 				System.out.println("================");
 				
 				System.out.println(root);
-				System.out.println("================");
-				System.out.println("================");
-				System.out.println("================");
+//				System.out.println("================");
+//				System.out.println("================");
+//				System.out.println("================");
 				
-				new StatementVisitor(root) {
-					@Override
-					public Statement visit(Statement stmt) {
-						System.out.println(stmt);
-						return stmt;
-					}
-				}.visit();
+//				new StatementVisitor(root) {
+//					@Override
+//					public Statement visit(Statement stmt) {
+//						System.out.println(stmt);
+//						return stmt;
+//					}
+//				}.visit();
 			}
 		}
 	}
@@ -74,7 +72,7 @@ public class LivenessTest {
 			int change = 0;
 //			System.out.println("graph1: ");
 //			System.out.println(graph);
-			System.out.println("LivenessTest.simplify(0)");
+			// System.out.println("LivenessTest.simplify(0)");
 
 			DefinitionAnalyser defAnalyser = new DefinitionAnalyser(graph, m);
 			defAnalyser.run();
@@ -94,7 +92,7 @@ public class LivenessTest {
 //					System.out.println("     " + key + " = " + defAnalyser.out(stmt).get(key));
 //				}				
 //			}
-			System.out.println("LivenessTest.simplify(1)");
+			// System.out.println("LivenessTest.simplify(1)");
 			// change += ValuePropagator.propagateDefinitions1(root, graph, defAnalyser);
 //			change += CopyPropagator.propagateDefinitions(cfg, root, defAnalyser);
 			
@@ -102,9 +100,9 @@ public class LivenessTest {
 			LivenessAnalyser la = new LivenessAnalyser(graph);
 			la.run();
 			
-			System.out.println("LivenessTest.simplify(2)");
+			// System.out.println("LivenessTest.simplify(2)");
 			NewValuePropagator prop = new NewValuePropagator(root, graph);
-			prop.process(defAnalyser, la);
+			change += prop.process(defAnalyser, la);
 			
 //			System.out.println();
 //			System.out.println();
@@ -119,8 +117,8 @@ public class LivenessTest {
 			change += DeadAssignmentEliminator.run(root, graph, la);
 			
 			
-			System.out.println();
-			System.out.println();
+//			System.out.println();
+//			System.out.println();
 //			System.out.println("After elimination");
 //			System.out.println(root);
 //			System.out.println();
