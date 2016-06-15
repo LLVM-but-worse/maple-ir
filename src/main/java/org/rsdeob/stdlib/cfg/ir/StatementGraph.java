@@ -7,7 +7,7 @@ import org.rsdeob.stdlib.cfg.ir.stat.Statement;
 import org.rsdeob.stdlib.cfg.util.GraphUtils;
 import org.rsdeob.stdlib.collections.graph.flow.FlowGraph;
 
-public class StatementGraph extends FlowGraph<Statement, FlowEdge<Statement>>{
+public class StatementGraph extends FlowGraph<Statement, FlowEdge<Statement>>  {
 	private final HashMap<Integer, Boolean> executableMap = new HashMap<>();
 
 	@Override

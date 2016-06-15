@@ -79,6 +79,17 @@ public class StatementGraphBuilder {
 				}
 				sg.addEdge(last, edge);
 			}
+			
+			for(ExceptionRange<BasicBlock> er : cfg.getRanges()) {
+				ExceptionRange<Statement> newRange = new ExceptionRange<>(er.getNode());
+				for(String type : er.getTypes()) {
+					newRange.addType(type);
+				}
+				for(BasicBlock block : er.get()) {
+					newRange.addVertices(block.getStatements());
+				}
+				newRange.hashCode(); // recalc
+			}
 		}
 
 		return sg;
