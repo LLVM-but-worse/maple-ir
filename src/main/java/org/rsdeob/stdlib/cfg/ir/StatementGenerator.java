@@ -1,5 +1,11 @@
 package org.rsdeob.stdlib.cfg.ir;
 
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.Map.Entry;
+import java.util.Set;
+
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.*;
@@ -17,12 +23,6 @@ import org.rsdeob.stdlib.cfg.ir.stat.header.HeaderStatement;
 import org.rsdeob.stdlib.cfg.util.TypeUtils;
 import org.rsdeob.stdlib.cfg.util.TypeUtils.ArrayType;
 import org.rsdeob.stdlib.collections.ExpressionStack;
-
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.LinkedList;
-import java.util.Map.Entry;
-import java.util.Set;
 
 public class StatementGenerator implements Opcodes {
 
@@ -1129,14 +1129,17 @@ public class StatementGenerator implements Opcodes {
 	}
 
 	void _load(int index, Type type) {
-		System.out.printf("   Visiting load var%d, height=%d.%n", index, currentStack.height());
-		VarExpression e1 = createVarExpression(index, type, false);
-		assign_stack(currentStack.height(), e1);
-		push(load_stack(index, type));
-		System.out.printf("   After pushing loadexpr, height=%d.%n", currentStack.height());
-		
-		System.out.printf("   After assign_stack, height=%d.%n", currentStack.height());
-		System.out.println("    Added stmt: " + getLastStatement(currentBlock));
+		VarExpression e = createVarExpression(index, type, false);
+		push(e);
+		assign_stack(currentStack.height(), e);
+//		System.out.printf("   Visiting load var%d, height=%d.%n", index, currentStack.height());
+//		VarExpression e1 = createVarExpression(index, type, false);
+//		assign_stack(currentStack.height(), e1);
+//		push(load_stack(index, type));
+//		System.out.printf("   After pushing loadexpr, height=%d.%n", currentStack.height());
+//		
+//		System.out.printf("   After assign_stack, height=%d.%n", currentStack.height());
+//		System.out.println("    Added stmt: " + getLastStatement(currentBlock));
 	}
 
 	void _inc(int index, int amt) {
