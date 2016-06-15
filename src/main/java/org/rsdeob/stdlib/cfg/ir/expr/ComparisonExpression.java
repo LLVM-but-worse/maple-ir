@@ -52,7 +52,7 @@ public class ComparisonExpression extends Expression {
 
 	public void setRight(Expression right) {
 		this.right = right;
-		overwrite(right, 0);
+		overwrite(right, 1);
 	}
 
 	public void setType(ValueComparisonType type) {
