@@ -32,7 +32,12 @@ public abstract class ForwardsFlowAnalyser<N extends FastGraphVertex, E extends 
 	}
 	
 	@Override
-	public void updateImpl(N old, N n) {
+	public void updateImpl(N n) {
+		replaceImpl(n, n);
+	}
+	
+	@Override
+	public void replaceImpl(N old, N n) {
 		if(graph.getEntries().contains(n)) {
 			in.put(n, newEntryState());
 			out.put(n, newState());

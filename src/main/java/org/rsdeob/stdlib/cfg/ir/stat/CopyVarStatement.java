@@ -31,6 +31,10 @@ public class CopyVarStatement extends Statement implements IStackDumpNode {
 		return variable;
 	}
 
+	public void setVariable(VarExpression var) {
+		variable = var;
+	}
+	
 	@Override
 	public void setExpression(Expression expression) {
 		this.expression = expression;
