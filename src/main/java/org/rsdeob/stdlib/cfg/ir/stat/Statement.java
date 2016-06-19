@@ -134,18 +134,18 @@ public abstract class Statement implements FastGraphVertex {
 		}
 	}
 
-	public Statement overwrite(Statement node, int _ptr) {
+	public Statement overwrite(Statement node, int newPtr) {
 		if(shouldExpand()) {
 			expand();
 		}
 		
-		if (_ptr < 0 || _ptr >= children.length || (_ptr > 0 && children[_ptr - 1] == null))
-			throw new ArrayIndexOutOfBoundsException(String.format("ptr=%d, len=%d, addr=%d", ptr, children.length, ptr));
+		if (newPtr < 0 || newPtr >= children.length || (newPtr > 0 && children[newPtr - 1] == null))
+			throw new ArrayIndexOutOfBoundsException(String.format("ptr=%d, len=%d, addr=%d", ptr, children.length, newPtr));
 		Statement oldNode = null;
-		if (children[_ptr] != node) {
-			oldNode = children[_ptr];
-			writeAt(_ptr, node);
-			onChildUpdated(_ptr);
+		if (children[newPtr] != node) {
+			oldNode = children[newPtr];
+			writeAt(newPtr, node);
+			onChildUpdated(newPtr);
 		}
 		return oldNode;
 	}

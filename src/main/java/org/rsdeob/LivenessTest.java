@@ -12,13 +12,10 @@ import org.rsdeob.stdlib.cfg.ir.RootStatement;
 import org.rsdeob.stdlib.cfg.ir.StatementGenerator;
 import org.rsdeob.stdlib.cfg.ir.StatementGraph;
 import org.rsdeob.stdlib.cfg.ir.StatementGraphBuilder;
-import org.rsdeob.stdlib.cfg.ir.StatementVisitor;
-import org.rsdeob.stdlib.cfg.ir.stat.CopyVarStatement;
-import org.rsdeob.stdlib.cfg.ir.stat.Statement;
 import org.rsdeob.stdlib.cfg.ir.transform.impl.DeadAssignmentEliminator;
 import org.rsdeob.stdlib.cfg.ir.transform.impl.DefinitionAnalyser;
 import org.rsdeob.stdlib.cfg.ir.transform.impl.LivenessAnalyser;
-import org.rsdeob.stdlib.cfg.ir.transform.impl.NewValuePropagator;
+import org.rsdeob.stdlib.cfg.ir.transform.impl.NewNewValuePropagator;
 import org.rsdeob.stdlib.cfg.ir.transform.impl.UsesAnalyser;
 import org.rsdeob.stdlib.cfg.util.ControlFlowGraphDeobfuscator;
 import org.rsdeob.stdlib.cfg.util.GraphUtils;
@@ -47,6 +44,7 @@ public class LivenessTest {
 				StatementGraph sgraph = StatementGraphBuilder.create(cfg);
 				System.out.println("Processing " + m);
 				System.out.println(cfg);
+				System.out.println("Unoptimised IR");
 				System.out.println(root);
 				System.out.println();
 
@@ -55,6 +53,7 @@ public class LivenessTest {
 				System.out.println("================");
 				System.out.println("================");
 				
+				System.out.println("Optimised IR");
 				System.out.println(root);
 //				System.out.println("================");
 //				System.out.println("================");
@@ -105,8 +104,11 @@ public class LivenessTest {
 			la.run();
 			
 			// System.out.println("LivenessTest.simplify(2)");
-			NewValuePropagator prop = new NewValuePropagator(root, graph);
-			change += prop.process(defAnalyser, la);
+			NewNewValuePropagator prop = new NewNewValuePropagator(root, graph);
+			UsesAnalyser useAnalyser = new UsesAnalyser(root, graph, defAnalyser);
+			System.out.println("pre");
+			change += prop.process(defAnalyser, useAnalyser, la);
+			System.out.println("udpate " + change);
 			
 //			System.out.println();
 //			System.out.println();
@@ -152,33 +154,33 @@ public class LivenessTest {
 //			}
 //		}
 
-		System.out.println("============");
-		System.out.println("============");
-		System.out.println("============");
-		DefinitionAnalyser defs = new DefinitionAnalyser(graph, m);
-		defs.run();
-		UsesAnalyser uses = new UsesAnalyser(graph, defs);
-		StatementVisitor vis = new StatementVisitor(root) {
-			@Override
-			public Statement visit(Statement s) {
-				if(getDepth() == 1) {
-					System.out.println(s);
-				}
-				if(s instanceof CopyVarStatement) {
-					if(s instanceof CopyVarStatement) {
-						System.out.println("  uses: ");
-						for(Statement use : uses.getUses((CopyVarStatement) s)) {
-							System.out.println("      x." + use);
-						}
-					}
-				}
-				return s;
-			}
-		};
-		vis.visit();
-		System.out.println("============");
-		System.out.println("============");
-		System.out.println("============");
+//		System.out.println("============");
+//		System.out.println("============");
+//		System.out.println("============");
+//		DefinitionAnalyser defs = new DefinitionAnalyser(graph, m);
+//		defs.run();
+//		UsesAnalyser uses = new UsesAnalyser(graph, defs);
+//		StatementVisitor vis = new StatementVisitor(root) {
+//			@Override
+//			public Statement visit(Statement s) {
+//				if(getDepth() == 1) {
+//					System.out.println(s);
+//				}
+//				if(s instanceof CopyVarStatement) {
+//					if(s instanceof CopyVarStatement) {
+//						System.out.println("  uses: ");
+//						for(Statement use : uses.getUses((CopyVarStatement) s)) {
+//							System.out.println("      x." + use);
+//						}
+//					}
+//				}
+//				return s;
+//			}
+//		};
+//		vis.visit();
+//		System.out.println("============");
+//		System.out.println("============");
+//		System.out.println("============");
 	}
 	
 	void test1() {

@@ -49,7 +49,7 @@ public class BootBibl implements Opcodes {
 		while(it.hasNext()) {
 			MethodNode m = it.next();
 
-			if(!m.toString().equals("a/a/f/a.H(J)La/a/f/o;")) {
+			if(!m.toString().equals("a/a/f/a.H(La/a/f/o;J)V")) {
 				continue;
 			}
 			
@@ -103,6 +103,13 @@ public class BootBibl implements Opcodes {
 //					}
 //				}
 //			}
+			
+//			DefinitionAnalyser da = new DefinitionAnalyser(sgraph, m);
+//			da.run();
+//			UsesAnalyser ua = new UsesAnalyser(sgraph, da);
+//			SimpleInliner inliner = new SimpleInliner(root, sgraph, da, ua);
+//			inliner.run();
+			
 			LivenessTest.simplify(cfg, root, sgraph, m);
 //
 			System.out.println("Optimised IR " + m + ":");

@@ -46,12 +46,19 @@ public abstract class DataAnalyser<N extends FastGraphVertex, E extends FastGrap
 	public FlowGraph<N, E> getGraph() {
 		return graph;
 	}
+
+	protected abstract void updateImpl(N n);
 	
-	protected abstract void updateImpl(N old, N n);
-	
-	public void update(N old, N n) {
+	public void update(N n) {
 		queue.add(n);
-		updateImpl(old, n);
+		updateImpl(n);
+	}
+	
+	protected abstract void replaceImpl(N old, N n);
+	
+	public void replace(N old, N n) {
+		queue.add(n);
+		replaceImpl(old, n);
 		remove(old);
 	}
 	
