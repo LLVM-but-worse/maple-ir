@@ -70,8 +70,8 @@ public class LivenessAnalyser extends BackwardsFlowAnalyser<Statement, FlowEdge<
 	}
 	
 	@Override
-	public void updateImpl(Statement old, Statement n) {
-		super.updateImpl(old, n);
+	public void replaceImpl(Statement old, Statement n) {
+		super.replaceImpl(old, n);
 		
 		if(uses.containsKey(old)) {
 			uses.remove(old);

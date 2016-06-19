@@ -7,13 +7,8 @@ import org.rsdeob.stdlib.cfg.ir.Local;
 import org.rsdeob.stdlib.cfg.ir.RootStatement;
 import org.rsdeob.stdlib.cfg.ir.StatementGraph;
 import org.rsdeob.stdlib.cfg.ir.StatementVisitor;
-import org.rsdeob.stdlib.cfg.ir.expr.ArrayLoadExpression;
-import org.rsdeob.stdlib.cfg.ir.expr.ConstantExpression;
-import org.rsdeob.stdlib.cfg.ir.expr.Expression;
-import org.rsdeob.stdlib.cfg.ir.expr.FieldLoadExpression;
-import org.rsdeob.stdlib.cfg.ir.expr.NewArrayExpression;
-import org.rsdeob.stdlib.cfg.ir.expr.UninitialisedObjectExpression;
-import org.rsdeob.stdlib.cfg.ir.expr.VarExpression;
+import org.rsdeob.stdlib.cfg.ir.expr.*;
+import org.rsdeob.stdlib.cfg.ir.stat.ConditionalJumpStatement;
 import org.rsdeob.stdlib.cfg.ir.stat.CopyVarStatement;
 import org.rsdeob.stdlib.cfg.ir.stat.PopStatement;
 import org.rsdeob.stdlib.cfg.ir.stat.Statement;
@@ -69,9 +64,9 @@ public class NewValuePropagator {
 				if(transformer.change) {
 					change.set(true);
 					
-					definitions.update(stmt, newStmt);
+					definitions.replace(stmt, newStmt);
 					definitions.remove(stmt);
-					liveness.update(stmt, newStmt);
+					liveness.replace(stmt, newStmt);
 					liveness.remove(stmt);
 					
 					graph.replace(stmt, newStmt);
@@ -112,7 +107,7 @@ public class NewValuePropagator {
 			super.visited(stmt, node, addr, vis);
 
 			if (node != vis) {
-				// System.out.printf("not_equal: addr=%d, old:%s, new:%s, root:%s.%n", addr, node, vis, root);
+				 System.out.printf("not_equal: addr=%d, old:%s, new:%s, root:%s.%n", addr, node, vis, root);
 				changedStmts++;
 				change = true;
 			}
@@ -124,6 +119,7 @@ public class NewValuePropagator {
 			} else {
 				if(liveness.out(s).get(local)) {
 					if(s instanceof CopyVarStatement) {
+						// redefining
 						CopyVarStatement copy = (CopyVarStatement) s;
 						if(copy.getVariable().getLocal() == local) {
 							return true;
@@ -139,6 +135,16 @@ public class NewValuePropagator {
 			}
 		}
 
+		private Expression getRealExpression(Expression e) {
+			while(true) {
+				if(e instanceof CastExpression) {
+					e = ((CastExpression) e).getExpression();
+				} else {
+					return e;
+				}
+			}
+		}
+		
 		@Override
 		public Statement visit(Statement _s) {
 			if(_s instanceof VarExpression) {
@@ -148,7 +154,7 @@ public class NewValuePropagator {
 				Set<CopyVarStatement> defs = reachingDefs.get(var);
 				if(defs.size() == 1) {
 					CopyVarStatement def = defs.iterator().next();
-					Expression rhs = def.getExpression();
+					Expression rhs = getRealExpression(def.getExpression());
 					
 					if(rhs instanceof VarExpression) {
 						// rhs cannot be defined inbetween def and s
@@ -160,24 +166,33 @@ public class NewValuePropagator {
 							return vExpr;
 						}
 						return rhs;
+					} else if(rhs instanceof ArithmeticExpression) {
+						Statement head = rhs;
+						Statement tail = vExpr;
+						VerifierVisitor vis = new VerifierVisitor(NewValuePropagator.this.root, head, tail, new VarUseFilter(vExpr));
+						vis.visit();
+						if(vis.valid && canLivePropagate(orig, var)) {
+							return rhs;
+						}
 					} else if(rhs instanceof ConstantExpression) {
 						return rhs;
 					} else if(rhs instanceof FieldLoadExpression) {
 						Statement head = def;
 						Statement tail = vExpr;
 						VerifierVisitor vis = new VerifierVisitor(NewValuePropagator.this.root, head, tail, new AffectorFilter(rhs));
+//						System.out.printf("Fprop, root=%s, %s. head=%s, %s. tail=%s.%n", root, head.getId(), head, tail.getId(), tail);
 						vis.visit();
 						if(vis.valid && canLivePropagate(orig, var)) {
 							return rhs;
 						}
 					} else if(rhs instanceof ArrayLoadExpression) {
-						Statement head = def;
-						Statement tail = vExpr;
-						VerifierVisitor vis = new VerifierVisitor(NewValuePropagator.this.root, head, tail, new AffectorFilter(rhs));
-						vis.visit();
-						if(vis.valid && canLivePropagate(orig, var)) {
-							return rhs;
-						}
+//						Statement head = def;
+//						Statement tail = vExpr;
+//						VerifierVisitor vis = new VerifierVisitor(NewValuePropagator.this.root, head, tail, new AffectorFilter(rhs));
+//						vis.visit();
+//						if(vis.valid && canLivePropagate(orig, var)) {
+//							return rhs;
+//						}
 					} else if(rhs instanceof NewArrayExpression) {
 						Statement head = rhs;
 						Statement tail = vExpr;
@@ -247,10 +262,10 @@ public class NewValuePropagator {
 						}
 					}
 
-					if(actualVars.size() == 1) {
+					if(actualVars.size() == 1 && root instanceof ConditionalJumpStatement) {
 //						vExpr.setLocal(actualVars.iterator().next());
-//						System.out.println("_actual " + _s + " | " + root + " = " + defs +" = " + actualVars);
-//						return new VarExpression(actualVars.iterator().next(), vExpr.getType());
+						System.out.println("_actual " + _s + " | " + root + " = " + defs +" = " + actualVars);
+						return new VarExpression(actualVars.iterator().next(), vExpr.getType());
 					}
 				}
 			}

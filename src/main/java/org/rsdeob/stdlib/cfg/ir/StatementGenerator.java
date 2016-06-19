@@ -238,7 +238,7 @@ public class StatementGenerator implements Opcodes {
 	}
 
 	ExpressionStack process(BasicBlock b) {
-		System.out.println("Processing " + b.getId());
+//		System.out.println("Processing " + b.getId());
 		updatedStacks.add(b);
 		ExpressionStack stack = b.getInputStack().copy();
 
@@ -248,8 +248,8 @@ public class StatementGenerator implements Opcodes {
 		for (AbstractInsnNode ain : b.getInsns()) {
 			int opcode = ain.opcode();
 			if(opcode != -1) {
-				  System.out.println("Executing " + Printer.OPCODES[ain.opcode()]);
-				  System.out.println(" Prestack : " + stack);
+//				  System.out.println("Executing " + Printer.OPCODES[ain.opcode()]);
+//				  System.out.println(" Prestack : " + stack);
 			}
 			switch (opcode) {
 				case -1: {
@@ -565,9 +565,9 @@ public class StatementGenerator implements Opcodes {
 					break;
 			}
 			
-			 System.out.println(" Poststack: " + stack);
-			 System.out.println("   Added stmt: " + getLastStatement(currentBlock));
-			 System.out.println();
+//			 System.out.println(" Poststack: " + stack);
+//			 System.out.println("   Added stmt: " + getLastStatement(currentBlock));
+//			 System.out.println();
 			 /*System.out.println(" Block stmts: ");
 			 for(Statement stmt : b.getStatements()) {
 				 System.out.println("   " + stmt);
