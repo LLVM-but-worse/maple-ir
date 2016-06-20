@@ -159,25 +159,7 @@ public abstract class FastGraph<N extends FastGraphVertex, E extends FastGraphEd
 		}
 	}*/
 	
-	public void excavate(N n) {
-		Set<E> preds = getReverseEdges(n);
-		Set<E> succs = getEdges(n);
-		
-		if(preds.size() >= 1 && succs.size() == 1) {
-			N succ = succs.iterator().next().dst;
-			for(E pe : preds) {
-				N pred = pe.src;
-				E newEdge = clone(pe, n, succ);
-				addEdge(pred, newEdge);
-			}
-			
-			removeVertex(n);
-		} else if(preds.size() == 0 && succs.size() == 1) {
-			removeVertex(n);
-		} else {
-			throw new UnsupportedOperationException(n.toString() + "  " + preds + "   " + succs);
-		}
-	}
+	public abstract void excavate(N n);
 
 	// TODO: entries
 	public void replace(N old, N n) {
