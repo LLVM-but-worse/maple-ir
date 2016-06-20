@@ -84,6 +84,7 @@ public class BootBibl implements Opcodes {
 			System.out.println();
 			
 			StatementGraph sgraph = StatementGraphBuilder.create(cfg);
+			System.out.println(sgraph);
 //			DefinitionAnalyser da = new DefinitionAnalyser(sgraph, m);
 //			da.run();
 //			for(Statement stmt : sgraph.vertices()) {

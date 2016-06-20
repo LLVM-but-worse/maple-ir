@@ -1,11 +1,11 @@
 package org.rsdeob.stdlib.cfg;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import org.objectweb.asm.tree.LabelNode;
 import org.rsdeob.stdlib.cfg.edge.FlowEdge;
 import org.rsdeob.stdlib.collections.graph.flow.FlowGraph;
-
-import java.util.HashMap;
-import java.util.Map;
 
 public class FastBlockGraph extends FlowGraph<BasicBlock, FlowEdge<BasicBlock>> {
 
@@ -71,5 +71,10 @@ public class FastBlockGraph extends FlowGraph<BasicBlock, FlowEdge<BasicBlock>> 
 		}
 		
 		return edge.clone(src, dst);
+	}
+
+	@Override
+	public void excavate(BasicBlock n) {
+		throw new UnsupportedOperationException();
 	}
 }

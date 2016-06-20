@@ -96,6 +96,7 @@ public class UsesAnalyser {
 								uses.getNonNull(def).add(stmt);
 							}
 						} catch(Exception e) {
+							System.out.println(graph);
 							System.out.println(UsesAnalyser.this.root);
 							throw e;
 						}
