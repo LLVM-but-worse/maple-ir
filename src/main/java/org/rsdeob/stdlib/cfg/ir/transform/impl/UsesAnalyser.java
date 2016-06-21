@@ -90,7 +90,7 @@ public class UsesAnalyser {
 						Local local = var.getLocal();
 						NullPermeableHashMap<Local, Set<CopyVarStatement>> defMaps = definitions.in(stmt);
 						Set<CopyVarStatement> defs = defMaps.get(local);
-						System.out.println("uses of " + stmt.getId() +".  + " + stmt + " var= " + local + " = " + defs);
+//						System.out.println("uses of " + stmt.getId() +".  + " + stmt + " var= " + local + " = " + defs);
 						try {
 							for(CopyVarStatement def : defs) {
 								uses.getNonNull(def).add(stmt);
@@ -98,6 +98,8 @@ public class UsesAnalyser {
 						} catch(Exception e) {
 							System.out.println(graph);
 							System.out.println(UsesAnalyser.this.root);
+							System.out.println("at " + stmt);
+							System.out.println("  > " + s);
 							throw e;
 						}
 					}

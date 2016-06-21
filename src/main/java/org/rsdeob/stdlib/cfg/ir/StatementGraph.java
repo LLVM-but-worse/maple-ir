@@ -1,6 +1,5 @@
 package org.rsdeob.stdlib.cfg.ir;
 
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -12,26 +11,10 @@ import org.rsdeob.stdlib.collections.graph.flow.ExceptionRange;
 import org.rsdeob.stdlib.collections.graph.flow.FlowGraph;
 
 public class StatementGraph extends FlowGraph<Statement, FlowEdge<Statement>>  {
-	private final HashMap<Integer, Boolean> executableMap = new HashMap<>();
-
+	
 	@Override
 	public void addEdge(Statement stmt, FlowEdge<Statement> edge) {
 		super.addEdge(stmt, edge);
-		executableMap.put(hash(edge), false);
-	}
-
-	private int hash(FlowEdge<Statement> edge) {
-		int result = edge.src.hashCode();
-		result = 31 * result + edge.dst.hashCode();
-		return result;
-	}
-
-	public boolean isExecutable(FlowEdge<Statement> edge) {
-		return executableMap.get(hash(edge));
-	}
-
-	public void markExecutable(FlowEdge<Statement> edge) {
-		executableMap.put(hash(edge), true);
 	}
 
 	@Override
@@ -93,9 +76,11 @@ public class StatementGraph extends FlowGraph<Statement, FlowEdge<Statement>>  {
 			// clone the real edges
 			for(FlowEdge<Statement> pe : predEdges) {
 				Statement pred = pe.src;
-				FlowEdge<Statement> newEdge = clone(pe, n, succ);
-				addEdge(pred, newEdge);
-				System.out.println("  " + newEdge);
+				if(!(pe instanceof TryCatchEdge)) {
+					FlowEdge<Statement> newEdge = clone(pe, n, succ);
+					addEdge(pred, newEdge);
+					System.out.println("  " + newEdge);
+				}
 				
 				for(TryCatchEdge<Statement> tce : tcs) {
 					TryCatchEdge<Statement> newTce = new TryCatchEdge<Statement>(pred, tce.erange);
