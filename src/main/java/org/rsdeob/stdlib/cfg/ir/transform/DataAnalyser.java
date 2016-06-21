@@ -4,11 +4,11 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
 
-import org.rsdeob.stdlib.collections.graph.FastGraphEdge;
+import org.rsdeob.stdlib.cfg.edge.FlowEdge;
 import org.rsdeob.stdlib.collections.graph.FastGraphVertex;
 import org.rsdeob.stdlib.collections.graph.flow.FlowGraph;
 
-public abstract class DataAnalyser<N extends FastGraphVertex, E extends FastGraphEdge<N>, S> {
+public abstract class DataAnalyser<N extends FastGraphVertex, E extends FlowEdge<N>, S> {
 	
 	protected final FlowGraph<N, E> graph;
 	protected final Map<N, S> in;

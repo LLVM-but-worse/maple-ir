@@ -3,11 +3,11 @@ package org.rsdeob.stdlib.cfg.ir.transform;
 import java.util.Iterator;
 import java.util.Set;
 
-import org.rsdeob.stdlib.collections.graph.FastGraphEdge;
+import org.rsdeob.stdlib.cfg.edge.FlowEdge;
 import org.rsdeob.stdlib.collections.graph.FastGraphVertex;
 import org.rsdeob.stdlib.collections.graph.flow.FlowGraph;
 
-public abstract class ForwardsFlowAnalyser<N extends FastGraphVertex, E extends FastGraphEdge<N>, S> extends DataAnalyser<N, E, S>{
+public abstract class ForwardsFlowAnalyser<N extends FastGraphVertex, E extends FlowEdge<N>, S> extends DataAnalyser<N, E, S>{
 
 	public ForwardsFlowAnalyser(FlowGraph<N, E> graph) {
 		super(graph);

@@ -100,7 +100,7 @@ public class DefinitionAnalyser extends ForwardsFlowAnalyser<Statement, FlowEdge
 
 	@Override
 	protected void propagate(Statement n, NullPermeableHashMap<Local, Set<CopyVarStatement>> in, NullPermeableHashMap<Local, Set<CopyVarStatement>> out) {
-		System.out.println("propagating " + n);
+//		System.out.println("propagating " + n);
 		// create a new set here because if we don't, future operations will
 		// affect the in and the out sets. basically don't use out.putAll(in) here.
 		for(Entry<Local, Set<CopyVarStatement>> e : in.entrySet()) {
