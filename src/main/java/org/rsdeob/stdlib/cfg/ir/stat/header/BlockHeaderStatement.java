@@ -1,15 +1,18 @@
 package org.rsdeob.stdlib.cfg.ir.stat.header;
 
 import org.objectweb.asm.Label;
+import org.objectweb.asm.tree.LabelNode;
 import org.rsdeob.stdlib.cfg.BasicBlock;
 import org.rsdeob.stdlib.cfg.ir.stat.Statement;
 
 public class BlockHeaderStatement extends HeaderStatement {
 
 	private final BasicBlock block;
+	private LabelNode label;
 	
 	public BlockHeaderStatement(BasicBlock block) {
 		this.block = block;
+		label = block.getLabel();
 	}
 	
 	public BasicBlock getBlock() {
@@ -23,7 +26,7 @@ public class BlockHeaderStatement extends HeaderStatement {
 
 	@Override
 	public Label getLabel() {
-		return block.getLabel().getLabel();
+		return label.getLabel();
 	}
 
 	@Override
@@ -37,5 +40,11 @@ public class BlockHeaderStatement extends HeaderStatement {
 			return block == ((BlockHeaderStatement) s).block;
 		}
 		return false;
+	}
+
+	@Override
+	public void resetLabel() {
+		label = new LabelNode();
+		label.getLabel();
 	}
 }

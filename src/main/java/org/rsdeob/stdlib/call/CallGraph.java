@@ -133,7 +133,7 @@ public class CallGraph extends FastGraph<MethodNode, Invocation> {
 	}
 
 	@Override
-	public void excavate(MethodNode n) {
+	public boolean excavate(MethodNode n) {
 		throw new UnsupportedOperationException();
 	}
 }
