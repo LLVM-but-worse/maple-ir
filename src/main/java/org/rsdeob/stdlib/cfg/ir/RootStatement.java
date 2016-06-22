@@ -1,15 +1,20 @@
 package org.rsdeob.stdlib.cfg.ir;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
+import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.tree.MethodNode;
 import org.rsdeob.stdlib.cfg.BasicBlock;
+import org.rsdeob.stdlib.cfg.ControlFlowGraph;
 import org.rsdeob.stdlib.cfg.ir.stat.Statement;
 import org.rsdeob.stdlib.cfg.ir.stat.header.HeaderStatement;
 import org.rsdeob.stdlib.cfg.ir.stat.header.StatementHeaderStatement;
 import org.rsdeob.stdlib.cfg.util.TabbedStringWriter;
+import org.rsdeob.stdlib.collections.graph.flow.ExceptionRange;
 
 public class RootStatement extends Statement {
 
@@ -59,15 +64,43 @@ public class RootStatement extends Statement {
 
 	@Override
 	public void toCode(MethodVisitor visitor) {
+		for(HeaderStatement hs : headers.values()) {
+			hs.resetLabel();
+		}
 		for (int addr = 0; read(addr) != null; addr++) {
 			read(addr).toCode(visitor);
 		}
 	}
 	
-	public void dump(MethodNode m) {
+	public void dump(MethodNode m, ControlFlowGraph cfg) {
 		m.visitCode();
 		m.instructions.clear();
+		m.tryCatchBlocks.clear();
 		toCode(m);
+		for(ExceptionRange<BasicBlock> er : cfg.getRanges()) {
+			String type = null;
+			Set<String> typeSet = er.getTypes();
+			if(typeSet.size() == 0 || typeSet.size() > 1) {
+				// TODO: fix base exception
+				type = Throwable.class.getCanonicalName().replace(".", "/");
+			} else {
+				// size == 1
+				type = typeSet.iterator().next();
+			}
+			List<BasicBlock> range = er.get();
+			Label start = headers.get(range.get(0)).getLabel();
+			Label end = null;
+			BasicBlock endBlock = range.get(range.size() - 1);
+			BasicBlock im = endBlock.getImmediate();
+			if(im == null) {
+				// end of code?
+				throw new RuntimeException(m.toString());
+			} else {
+				end = headers.get(im).getLabel();
+			}
+			Label handler = headers.get(er.getHandler()).getLabel();
+			m.visitTryCatchBlock(start, end, handler, type);
+		}
 		m.visitEnd();
 	}
 

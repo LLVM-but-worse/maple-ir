@@ -1,13 +1,10 @@
 package org.rsdeob.stdlib.cfg.ir.transform.impl;
 
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.rsdeob.stdlib.cfg.edge.FlowEdge;
+import org.rsdeob.stdlib.cfg.edge.TryCatchEdge;
 import org.rsdeob.stdlib.cfg.ir.Local;
 import org.rsdeob.stdlib.cfg.ir.RootStatement;
 import org.rsdeob.stdlib.cfg.ir.StatementGraph;
@@ -78,24 +75,11 @@ public class NewNewValuePropagator {
 					}
 				}
 				
-//				Statement newStmt = stmt.copy();
-				
 				Transformer transformer = new Transformer(stmt);
 				transformer.visit();
 				
 				if(transformer.change) {
 					change.set(true);
-					
-//					definitions.update(stmt);
-//					definitions.remove(stmt);
-//					liveness.update(stmt);
-//					liveness.remove(stmt);
-					
-					// graph.replace(stmt);
-					// root.overwrite(newStmt, root.indexOf(stmt));
-					
-//					definitions.processQueue();
-//					liveness.processQueue();
 					continue;
 				}
 			}
@@ -103,7 +87,7 @@ public class NewNewValuePropagator {
 			if(!change.get()) {
 				break;
 			} else {
-				uses = new UsesAnalyser(root, graph, definitions);
+//				uses = new UsesAnalyser(graph, definitions);
 			}
 		}
 	}
@@ -150,6 +134,8 @@ public class NewNewValuePropagator {
 				invoke.set(true);
 			} else if(rhs instanceof ArrayLoadExpression) {
 				array.set(true);
+			} else if(rhs instanceof ConstantExpression) {
+				return rhs;
 			}
 		}
 		
@@ -176,15 +162,16 @@ public class NewNewValuePropagator {
 		
 		Collection<Statement> path = findPossibleExecutedStatements(real, use);
 		if(path == null) {
-//			System.out.println("no path ");
-//			System.out.println("  " + real);
-//			System.out.println(" to ");
-//			System.out.println("  " + use);
-//			System.out.println("    but found " + findPossibleExecutedStatements(real, use));
-//			path = findPossibleExecutedStatements(real, use);
-//			if(path == null)
-				return null;
+			// System.out.println("no path ");
+			// System.out.println(" " + real);
+			// System.out.println(" to ");
+			// System.out.println(" " + use);
+			// System.out.println(" but found " + findPossibleExecutedStatements(real, use));
+			// path = findPossibleExecutedStatements(real, use);
+			// if(path == null)
+			return null;
 		}
+		
 		boolean canPropagate = true;
 		
 		for(Statement stmt : path) {
@@ -222,6 +209,12 @@ public class NewNewValuePropagator {
 				}
 			}
 			
+			if(!canPropagate) {
+				return null;
+			}
+			
+			// System.out.println("at " + use);
+			
 			AtomicBoolean canPropagate2 = new AtomicBoolean(canPropagate);
 			if(invoke.get() || array.get() || !fieldsUsed.isEmpty()) {
 				StatementVisitor vis2 = new StatementVisitor(stmt) {
@@ -242,41 +235,41 @@ public class NewNewValuePropagator {
 				canPropagate = canPropagate2.get();
 			}
 		}
-
 		
 		if(!canPropagate) {
 			return null;
 		}
 		
 		if(uses.getUses(localDef).size() > 1) {
-//			System.out.println("SelfPropagate " + localDef);
-//			System.out.println("uSED BY " + uses.getUses(localDef));
-			return null;
-//			System.out.println("  Uses: " + uses.getUses(localDef));
-//			definitions.remove(localDef);
-//			liveness.remove(localDef);
-//			graph.excavate(localDef);
-//			root.delete(root.indexOf(localDef));
-//			return rhs.copy();
-		} else {
-			if(rhs instanceof VarExpression) {
-				if(((VarExpression) rhs).getLocal() == local) {
-					return null;
-				}
+			if(rhs.canChangeLogic() || rhs.canChangeFlow()) {
+				return null;
 			}
-			
-			
-//			System.out.println();
-//			System.out.println();
-//			System.out.println("Enter pass:");
-//			System.out.println("  Local: " + localDef.getVariable().getLocal());
-//			System.out.println("  Def: " + localDef);
-//			System.out.println("  Use: " + use);
-//			System.out.println("  LUsed: " + localsUsed);
-//			System.out.println("  FUsed: " + fieldsUsed);
-//			System.out.println("  invoke: " + invoke.get() + ", array: " + array.get());
-//			System.out.println("  On path; " + path);
-			System.out.println("  Propagate " + localDef +"  into " + use);
+			return rhs;
+			// System.out.println("SelfPropagate " + localDef);
+			// System.out.println("uSED BY " + uses.getUses(localDef));
+			// System.out.println(" Uses: " + uses.getUses(localDef));
+			// definitions.remove(localDef);
+			// liveness.remove(localDef);
+			// graph.excavate(localDef);
+			// root.delete(root.indexOf(localDef));
+			// return rhs.copy();
+		} else {
+//			if(rhs instanceof VarExpression) {
+//				if(((VarExpression) rhs).getLocal() == local) {
+//					return null;
+//				}
+//			}
+			// System.out.println();
+			// System.out.println();
+			// System.out.println("Enter pass:");
+			// System.out.println(" Local: " + localDef.getVariable().getLocal());
+			// System.out.println(" Def: " + localDef);
+			// System.out.println(" Use: " + use);
+			// System.out.println(" LUsed: " + localsUsed);
+			// System.out.println(" FUsed: " + fieldsUsed);
+			// System.out.println(" invoke: " + invoke.get() + ", array: " + array.get());
+			// System.out.println(" On path; " + path);
+			// System.out.println(" Propagate " + localDef +" into " + use);
 			return rhs;
 		}
 	}
@@ -295,94 +288,47 @@ public class NewNewValuePropagator {
 		public Statement visit(Statement s) {
 			if(s instanceof VarExpression) {
 				Local local = ((VarExpression) s).getLocal();
+				if(!local.isStack()) {
+					return s;
+				}
+				
 				Set<CopyVarStatement> defs = reachingDefs.get(local);
 				
 				if(defs.size() == 1)  {
 					CopyVarStatement localDef = defs.iterator().next();
 					Expression expr = transform(localDef, root);
 					
-					if(expr != null) {
+					if (expr != null) {
+						System.out.println(localDef + " is used " + root);
 						changedStmts++;
 						change = true;
 						
-						BufferedWriter bw = null;
-						try {
-							System.out.println("    Pass" + changedStmts);
-							bw = new BufferedWriter(new FileWriter(new File("C:/Users/Bibl/Desktop/tests/frame" + changedStmts + ".txt")));
-							bw.write("Def: " + localDef.getId() + ". " + localDef);
-							bw.newLine();
-							bw.write("Use: " + root.getId() + ". " + root);
-							bw.newLine();
-							bw.write("Var: " + s.getId() + ". " + s);
-							bw.newLine();
-							Statement r = getCurrent(getDepth());
-							bw.write("R: " + r.getId() +". " + r);
-							bw.newLine();
-							Expression exp = expr.copy();
-							bw.write("Copy: " + exp.getId() + ". " + expr);
-							bw.newLine();
-							bw.write("RIndex(s): " + r.indexOf(s));
-							bw.newLine();
-							bw.write("Usecount: " +  uses.getUses(localDef).size());
-							bw.newLine();
-							bw.newLine();
-							
-							bw.write("PreRoot:");
-							bw.newLine();
-							System.out.println(root);
-							bw.write(NewNewValuePropagator.this.root.toString());
-							r.overwrite(expr, r.indexOf(s));
-							boolean rem = uses.getUses(localDef).size() <= 1;
-							if(rem) {
-//								System.out.println("err  ");
-//								for(Statement s1 : AnalysisHelper.findErrorNodes(r)) {
-//									System.out.println("  " + s1.getId());
-//								}
-								System.out.println("r:  " + r);
-//								System.out.println(expr + " overwrites " + s +"  in  " + r);
-//								System.out.println("Removing def " + localDef);
-								NewNewValuePropagator.this.root.delete(NewNewValuePropagator.this.root.indexOf(localDef));
-								
-								definitions.remove(localDef);
-								liveness.remove(localDef);
-								graph.excavate(localDef);
-								uses.remove(localDef);
-								System.out.println("remdef " + localDef.getId() +". " + localDef);
-							}
-							definitions.update(root);
-							liveness.update(root);
-							
-							
-							if(rem) {
-								uses.remove(localDef);
-							}
-							definitions.processQueue();
-							liveness.processQueue();
-							uses.update(root);
-							
+						Statement r = getCurrent(getDepth());
+						r.overwrite(expr, r.indexOf(s));
+						
+						boolean canRemoveDefinition = uses.getUses(localDef).size() <= 1;
+						if (canRemoveDefinition) {
+							NewNewValuePropagator.this.root.delete(NewNewValuePropagator.this.root.indexOf(localDef));
 
-							bw.newLine();
-							bw.newLine();
-							bw.newLine();
-							bw.write("PostRoot:");
-							bw.newLine();
-							bw.write(NewNewValuePropagator.this.root.toString());
-							bw.close();
-							
-						} catch(IOException e) {
-							
-						} catch(Exception e) {
-							try {
-								bw.flush();
-								bw.close();
-							} catch(IOException e1) {
-								e1.printStackTrace();
+							definitions.remove(localDef);
+							liveness.remove(localDef);
+							if (!graph.excavate(localDef)) {
+								// if we can't remove the def here,
+								// then readd the thing
+								definitions.update(localDef);
+								liveness.update(localDef);
 							}
-							throw e;
+							uses.remove(localDef);
 						}
-						
-						
-//						return expr.copy();
+						definitions.update(root);
+						liveness.update(root);
+
+						if (canRemoveDefinition) {
+							uses.remove(localDef);
+						}
+						definitions.processQueue();
+						liveness.processQueue();
+						uses.update(root);
 					}
 				} else {
 					Set<Local> vars = new HashSet<>();
@@ -444,6 +390,8 @@ public class NewNewValuePropagator {
 			Statement s = stack.pop();
 			
 			for(FlowEdge<Statement> e : graph.getEdges(s)) {
+				if(e instanceof TryCatchEdge)
+					continue;
 				Statement succ = e.dst;
 				if(succ != to && !visited.contains(succ)) {
 					stack.add(succ);

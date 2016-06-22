@@ -105,7 +105,7 @@ public class LivenessTest {
 			
 			// System.out.println("LivenessTest.simplify(2)");
 			NewNewValuePropagator prop = new NewNewValuePropagator(root, graph);
-			UsesAnalyser useAnalyser = new UsesAnalyser(root, graph, defAnalyser);
+			UsesAnalyser useAnalyser = new UsesAnalyser(graph, defAnalyser);
 			System.out.println("pre");
 			change += prop.process(defAnalyser, useAnalyser, la);
 			System.out.println("udpate " + change);

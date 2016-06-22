@@ -9,6 +9,8 @@ public abstract class HeaderStatement extends Statement {
 
 	public abstract String getHeaderId();
 	
+	public abstract void resetLabel();
+	
 	public abstract Label getLabel();
 	
 	@Override

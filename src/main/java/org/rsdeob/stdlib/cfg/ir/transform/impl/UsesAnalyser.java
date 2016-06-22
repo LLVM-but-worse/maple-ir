@@ -4,7 +4,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import org.rsdeob.stdlib.cfg.ir.Local;
-import org.rsdeob.stdlib.cfg.ir.RootStatement;
 import org.rsdeob.stdlib.cfg.ir.StatementGraph;
 import org.rsdeob.stdlib.cfg.ir.StatementVisitor;
 import org.rsdeob.stdlib.cfg.ir.expr.VarExpression;
@@ -15,14 +14,12 @@ import org.rsdeob.stdlib.collections.SetCreator;
 
 public class UsesAnalyser {
 
-	private final RootStatement root;
 	private final StatementGraph graph;
 	private final DefinitionAnalyser definitions;
 	private final NullPermeableHashMap<CopyVarStatement, Set<Statement>> uses;
 	private final NullPermeableHashMap<Statement, Set<VarExpression>> used;
 	
-	public UsesAnalyser(RootStatement root, StatementGraph graph, DefinitionAnalyser defs) {
-		this.root = root;
+	public UsesAnalyser(StatementGraph graph, DefinitionAnalyser defs) {
 		this.graph = graph;
 		definitions = defs;
 		uses = new NullPermeableHashMap<>(new SetCreator<>());
@@ -96,10 +93,15 @@ public class UsesAnalyser {
 								uses.getNonNull(def).add(stmt);
 							}
 						} catch(Exception e) {
-							System.out.println(graph);
-							System.out.println(UsesAnalyser.this.root);
+//							System.out.println(graph);
+//							System.out.println(UsesAnalyser.this.root);
 							System.out.println("at " + stmt);
 							System.out.println("  > " + s);
+//							
+//							System.out.println(graph.getRanges().size());
+//							for(ExceptionRange<Statement> r : graph.getRanges()) {
+//								System.out.println(r);
+//							}
 							throw e;
 						}
 					}

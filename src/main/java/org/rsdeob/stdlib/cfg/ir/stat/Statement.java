@@ -22,6 +22,14 @@ public abstract class Statement implements FastGraphVertex {
 		ptr = 0;
 	}
 	
+	public int deepSize() {
+		int size = 1;
+		for (int i = 0; i < children.length; i++) 
+			if (children[i] != null) 
+				size += children[i].deepSize();
+		return size;
+	}
+	
 	public int size() {
 		int size = 0;
 		for (int i = 0; i < children.length; i++) 

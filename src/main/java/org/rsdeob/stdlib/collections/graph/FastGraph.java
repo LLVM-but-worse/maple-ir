@@ -159,7 +159,7 @@ public abstract class FastGraph<N extends FastGraphVertex, E extends FastGraphEd
 		}
 	}*/
 	
-	public abstract void excavate(N n);
+	public abstract boolean excavate(N n);
 
 	// TODO: entries
 	public void replace(N old, N n) {

@@ -76,12 +76,6 @@ public class VarExpression extends Expression {
 				return true;
 			}
 		}
-		
-		for(int i=0; stmt.read(i) != null; i++) {
-			if(isAffectedBy(stmt.read(i))) {
-				return true;
-			}
-		}
 		return false;
 	}
 

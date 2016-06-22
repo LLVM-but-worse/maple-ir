@@ -24,10 +24,15 @@ public class DeadAssignmentEliminator {
 				VarExpression var = copy.getVariable();
 				
 				if(!out.get(var.getLocal())) {
-					// System.out.println(copy.getId() + ", " + copy + " is not live: " + out);
-					root.delete(root.indexOf(copy));
-					graph.excavate(copy);
-					dead.incrementAndGet();
+					try {
+						System.out.println(copy.getId() + ", " + copy + " is not live: " + out);
+						root.delete(root.indexOf(copy));
+						graph.excavate(copy);
+						dead.incrementAndGet();
+					} catch(Exception e) {
+						System.out.println(root);
+						throw e;
+					}
 				}
 			}
 		}

@@ -39,7 +39,7 @@ public abstract class FlowGraph<N extends FastGraphVertex, E extends FlowEdge<N>
 	}
 	
 	public void removeRange(ExceptionRange<N> range) {
-		ranges.add(range);
+		ranges.remove(range);
 	}
 	
 	public List<ExceptionRange<N>> getRanges() {
