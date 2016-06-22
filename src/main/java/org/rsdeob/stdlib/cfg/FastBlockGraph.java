@@ -74,7 +74,7 @@ public class FastBlockGraph extends FlowGraph<BasicBlock, FlowEdge<BasicBlock>> 
 	}
 
 	@Override
-	public void excavate(BasicBlock n) {
+	public boolean excavate(BasicBlock n) {
 		throw new UnsupportedOperationException();
 	}
 }

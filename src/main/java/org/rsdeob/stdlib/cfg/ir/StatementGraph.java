@@ -49,10 +49,15 @@ public class StatementGraph extends FlowGraph<Statement, FlowEdge<Statement>>  {
 	}
 	
 	@Override
-	public void excavate(Statement n) {
+	public boolean excavate(Statement n) {
+		for(ExceptionRange<Statement> r : getRanges()) {
+			if(r.getHandler() == n) {
+				return false;
+			}
+		}
 		Set<FlowEdge<Statement>> predEdges = getReverseEdges(n);
 		
-		System.out.println("Excavating " + n);
+//		System.out.println("Excavating " + n);
 		Set<Statement> preds = new HashSet<>();
 		for(FlowEdge<Statement> e : predEdges) {
 			preds.add(e.src);
@@ -79,13 +84,13 @@ public class StatementGraph extends FlowGraph<Statement, FlowEdge<Statement>>  {
 				if(!(pe instanceof TryCatchEdge)) {
 					FlowEdge<Statement> newEdge = clone(pe, n, succ);
 					addEdge(pred, newEdge);
-					System.out.println("  " + newEdge);
+//					System.out.println("  " + newEdge);
 				}
 				
 				for(TryCatchEdge<Statement> tce : tcs) {
 					TryCatchEdge<Statement> newTce = new TryCatchEdge<Statement>(pred, tce.erange);
 					addEdge(pred, newTce);
-					System.out.println("  " + newTce);
+//					System.out.println("  " + newTce);
 				}
 			}
 			
@@ -102,5 +107,8 @@ public class StatementGraph extends FlowGraph<Statement, FlowEdge<Statement>>  {
 				getEntries().add(pred);
 			}
 		}
+		
+
+		return true;
 	}
 }

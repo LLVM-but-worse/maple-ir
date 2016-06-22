@@ -88,7 +88,7 @@ public class CopyVarStatement extends Statement implements IStackDumpNode {
 
 	@Override
 	public boolean canChangeLogic() {
-		return expression.canChangeLogic();
+		return expression.canChangeLogic() || variable.isAffectedBy(this);
 	}
 
 	@Override

@@ -49,8 +49,8 @@ public class BootBibl implements Opcodes {
 		while(it.hasNext()) {
 			MethodNode m = it.next();
 
-			if(!m.toString().equals("a/a/f/a.H(La/a/f/o;J)V")) {
-				continue;
+			if(!m.toString().equals("a/a/f/a.<init>()V")) {
+//				continue;
 			}
 			
 			System.out.println("\n\n\nProcessing " + m + ": ");
@@ -84,7 +84,11 @@ public class BootBibl implements Opcodes {
 			System.out.println();
 			
 			StatementGraph sgraph = StatementGraphBuilder.create(cfg);
-			System.out.println(sgraph);
+//			System.out.println(sgraph);
+//			System.out.println("eran: " + sgraph.getRanges().size());
+//			for(ExceptionRange<Statement> r : sgraph.getRanges()) {
+//				System.out.println(r);
+//			}
 //			DefinitionAnalyser da = new DefinitionAnalyser(sgraph, m);
 //			da.run();
 //			for(Statement stmt : sgraph.vertices()) {
@@ -122,7 +126,7 @@ public class BootBibl implements Opcodes {
 			System.out.println("============================================================");
 			System.out.println("============================================================\n\n");
 			
-			root.dump(m);
+			root.dump(m, cfg);
 		}
 		
 		ClassWriter clazz = new ClassWriter(0);

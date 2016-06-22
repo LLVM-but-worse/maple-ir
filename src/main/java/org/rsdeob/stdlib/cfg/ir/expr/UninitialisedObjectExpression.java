@@ -55,7 +55,7 @@ public class UninitialisedObjectExpression extends Expression {
 
 	@Override
 	public boolean canChangeLogic() {
-		return false;
+		return true;
 	}
 
 	@Override

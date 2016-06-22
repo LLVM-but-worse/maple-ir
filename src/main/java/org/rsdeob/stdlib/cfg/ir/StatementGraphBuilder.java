@@ -177,6 +177,7 @@ public class StatementGraphBuilder {
 			
 			for(ExceptionRange<BasicBlock> er : cfg.getRanges()) {
 				ExceptionRange<Statement> newRange = new ExceptionRange<>(er.getNode());
+				newRange.setHandler(er.getHandler().getStatements().get(0));
 				for(String type : er.getTypes()) {
 					newRange.addType(type);
 				}
@@ -184,6 +185,7 @@ public class StatementGraphBuilder {
 					newRange.addVertices(block.getStatements());
 				}
 				newRange.hashCode(); // recalc
+				sg.addRange(newRange);
 			}
 		}
 

@@ -37,4 +37,9 @@ public class StatementHeaderStatement extends HeaderStatement {
 		}
 		return false;
 	}
+
+	@Override
+	public void resetLabel() {
+		throw new UnsupportedOperationException("StatementHeader is not writable (synthetic).");
+	}
 }
