@@ -9,10 +9,10 @@ import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.tree.MethodNode;
 import org.rsdeob.stdlib.cfg.BasicBlock;
-import org.rsdeob.stdlib.cfg.ControlFlowGraph;
 import org.rsdeob.stdlib.cfg.ir.stat.Statement;
 import org.rsdeob.stdlib.cfg.ir.stat.header.HeaderStatement;
 import org.rsdeob.stdlib.cfg.ir.stat.header.StatementHeaderStatement;
+import org.rsdeob.stdlib.cfg.ir.transform.impl.CodeAnalytics;
 import org.rsdeob.stdlib.cfg.util.TabbedStringWriter;
 import org.rsdeob.stdlib.collections.graph.flow.ExceptionRange;
 
@@ -63,21 +63,21 @@ public class RootStatement extends Statement {
 	}
 
 	@Override
-	public void toCode(MethodVisitor visitor) {
+	public void toCode(MethodVisitor visitor, CodeAnalytics analytics) {
 		for(HeaderStatement hs : headers.values()) {
 			hs.resetLabel();
 		}
 		for (int addr = 0; read(addr) != null; addr++) {
-			read(addr).toCode(visitor);
+			read(addr).toCode(visitor, analytics);
 		}
 	}
 	
-	public void dump(MethodNode m, ControlFlowGraph cfg) {
+	public void dump(MethodNode m, CodeAnalytics analytics) {
 		m.visitCode();
 		m.instructions.clear();
 		m.tryCatchBlocks.clear();
-		toCode(m);
-		for(ExceptionRange<BasicBlock> er : cfg.getRanges()) {
+		toCode(m, analytics);
+		for(ExceptionRange<BasicBlock> er : analytics.blockGraph.getRanges()) {
 			String type = null;
 			Set<String> typeSet = er.getTypes();
 			if(typeSet.size() == 0 || typeSet.size() > 1) {

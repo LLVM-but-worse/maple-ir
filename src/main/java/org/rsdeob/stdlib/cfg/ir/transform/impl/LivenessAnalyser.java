@@ -33,11 +33,15 @@ public class LivenessAnalyser extends BackwardsFlowAnalyser<Statement, FlowEdge<
 	 *     live(x0...xn) = false;
 	 */
 	
-	private final Map<Local, Boolean> initial;
-	private final NullPermeableHashMap<Statement, Set<Local>> uses;
+	private Map<Local, Boolean> initial;
+	private NullPermeableHashMap<Statement, Set<Local>> uses;
 	
 	public LivenessAnalyser(FlowGraph<Statement, FlowEdge<Statement>> graph) {
 		super(graph);
+	}
+	
+	@Override
+	protected void init() {
 		
 		initial = new HashMap<>();
 		uses = new NullPermeableHashMap<>(new SetCreator<>());
@@ -60,6 +64,8 @@ public class LivenessAnalyser extends BackwardsFlowAnalyser<Statement, FlowEdge<
 			};
 			vis.visit();
 		}
+		
+		super.init();
 	}
 
 	@Override

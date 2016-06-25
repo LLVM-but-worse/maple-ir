@@ -61,6 +61,7 @@ public abstract class ForwardsFlowAnalyser<N extends FastGraphVertex, E extends 
 		}
 	}
 
+	// FIXME: don't let outside classes call this
 	@Override
 	public void processQueue() {
 		while(!queue.isEmpty()) {

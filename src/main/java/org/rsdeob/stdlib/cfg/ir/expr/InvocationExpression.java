@@ -4,6 +4,7 @@ import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.rsdeob.stdlib.cfg.ir.stat.Statement;
+import org.rsdeob.stdlib.cfg.ir.transform.impl.CodeAnalytics;
 import org.rsdeob.stdlib.cfg.util.TabbedStringWriter;
 import org.rsdeob.stdlib.cfg.util.TypeUtils;
 
@@ -161,7 +162,7 @@ public class InvocationExpression extends Expression {
 	}
 
 	@Override
-	public void toCode(MethodVisitor visitor) {
+	public void toCode(MethodVisitor visitor, CodeAnalytics analytics) {
 		Type[] argTypes = Type.getArgumentTypes(desc);
 		if (opcode != Opcodes.INVOKESTATIC) {
 			Type[] bck = argTypes;
@@ -171,7 +172,7 @@ public class InvocationExpression extends Expression {
 		}
 		
 		for (int i = 0; i < argumentExpressions.length; i++) {
-			argumentExpressions[i].toCode(visitor);
+			argumentExpressions[i].toCode(visitor, analytics);
 			if (TypeUtils.isPrimitive(argumentExpressions[i].getType())) {
 				int[] cast = TypeUtils.getPrimitiveCastOpcodes(argumentExpressions[i].getType(), argTypes[i]);
 				for (int a = 0; a < cast.length; a++) {

@@ -3,6 +3,7 @@ package org.rsdeob.stdlib.cfg.ir.expr;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Type;
 import org.rsdeob.stdlib.cfg.ir.stat.Statement;
+import org.rsdeob.stdlib.cfg.ir.transform.impl.CodeAnalytics;
 import org.rsdeob.stdlib.cfg.util.TabbedStringWriter;
 
 public class SyntheticExpression extends Expression {
@@ -27,8 +28,8 @@ public class SyntheticExpression extends Expression {
 	}
 
 	@Override
-	public void toCode(MethodVisitor visitor) {
-		expr.toCode(visitor);
+	public void toCode(MethodVisitor visitor, CodeAnalytics analytics) {
+		expr.toCode(visitor, analytics);
 	}
 
 	@Override

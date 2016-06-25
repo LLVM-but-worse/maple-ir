@@ -3,6 +3,7 @@ package org.rsdeob.stdlib.cfg.ir.stat;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.rsdeob.stdlib.cfg.ir.expr.Expression;
+import org.rsdeob.stdlib.cfg.ir.transform.impl.CodeAnalytics;
 import org.rsdeob.stdlib.cfg.util.TabbedStringWriter;
 
 public class MonitorStatement extends Statement {
@@ -47,8 +48,8 @@ public class MonitorStatement extends Statement {
 	}
 
 	@Override
-	public void toCode(MethodVisitor visitor) {
-		expression.toCode(visitor);
+	public void toCode(MethodVisitor visitor, CodeAnalytics analytics) {
+		expression.toCode(visitor, analytics);
 		visitor.visitInsn(mode == MonitorMode.ENTER ? Opcodes.MONITORENTER : Opcodes.MONITOREXIT);		
 	}
 

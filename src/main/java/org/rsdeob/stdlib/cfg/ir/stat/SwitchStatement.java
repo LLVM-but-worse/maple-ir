@@ -8,6 +8,7 @@ import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Type;
 import org.rsdeob.stdlib.cfg.ir.expr.Expression;
 import org.rsdeob.stdlib.cfg.ir.stat.header.HeaderStatement;
+import org.rsdeob.stdlib.cfg.ir.transform.impl.CodeAnalytics;
 import org.rsdeob.stdlib.cfg.util.TabbedStringWriter;
 import org.rsdeob.stdlib.cfg.util.TypeUtils;
 
@@ -127,7 +128,7 @@ public class SwitchStatement extends Statement {
 	}
 
 	@Override
-	public void toCode(MethodVisitor visitor) {
+	public void toCode(MethodVisitor visitor, CodeAnalytics analytics) {
 		if (needsSort()) {
 			sort();
 		}
@@ -140,7 +141,7 @@ public class SwitchStatement extends Statement {
 			labels[j++] = e.getValue().getLabel();
 		}
 
-		expression.toCode(visitor);
+		expression.toCode(visitor, analytics);
 		int[] cast = TypeUtils.getPrimitiveCastOpcodes(expression.getType(), Type.INT_TYPE); // widen
 		for (int i = 0; i < cast.length; i++) {
 			visitor.visitInsn(cast[i]);

@@ -4,6 +4,7 @@ import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.rsdeob.stdlib.cfg.ir.stat.Statement;
+import org.rsdeob.stdlib.cfg.ir.transform.impl.CodeAnalytics;
 import org.rsdeob.stdlib.cfg.util.TabbedStringWriter;
 import org.rsdeob.stdlib.cfg.util.TypeUtils;
 
@@ -67,8 +68,8 @@ public class CastExpression extends Expression {
 	}
 
 	@Override
-	public void toCode(MethodVisitor visitor) {
-		expression.toCode(visitor);
+	public void toCode(MethodVisitor visitor, CodeAnalytics analytics) {
+		expression.toCode(visitor, analytics);
 		if (TypeUtils.isObjectRef(getType())) {
 			visitor.visitTypeInsn(Opcodes.CHECKCAST, type.getInternalName());
 		} else {

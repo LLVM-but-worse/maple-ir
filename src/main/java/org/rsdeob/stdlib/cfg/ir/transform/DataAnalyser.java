@@ -20,19 +20,17 @@ public abstract class DataAnalyser<N extends FastGraphVertex, E extends FlowEdge
 		this.queue = new LinkedList<>();
 		in = new HashMap<>();
 		out = new HashMap<>();
+		run();
 	}
 	
-	public void run() {
+	private void run() {
 		init();
 		processQueue();
 	}
 	
-//	protected abstract void removeImpl(N n);
-//	
 	public void remove(N n) {
 		in.remove(n);
 		out.remove(n);
-		// removeImpl(n);
 	}
 	
 	public S in(N n) {

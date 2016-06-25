@@ -4,6 +4,7 @@ import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Type;
 import org.rsdeob.stdlib.cfg.ir.expr.Expression;
 import org.rsdeob.stdlib.cfg.ir.expr.Expression.Precedence;
+import org.rsdeob.stdlib.cfg.ir.transform.impl.CodeAnalytics;
 import org.rsdeob.stdlib.cfg.util.TabbedStringWriter;
 import org.rsdeob.stdlib.cfg.util.TypeUtils;
 import org.rsdeob.stdlib.cfg.util.TypeUtils.ArrayType;
@@ -86,13 +87,13 @@ public class ArrayStoreStatement extends Statement {
 	}
 
 	@Override
-	public void toCode(MethodVisitor visitor) {
-		arrayExpression.toCode(visitor);
-		indexExpression.toCode(visitor);
+	public void toCode(MethodVisitor visitor, CodeAnalytics analytics) {
+		arrayExpression.toCode(visitor, analytics);
+		indexExpression.toCode(visitor, analytics);
 		int[] iCast = TypeUtils.getPrimitiveCastOpcodes(indexExpression.getType(), Type.INT_TYPE); // widen
 		for (int i = 0; i < iCast.length; i++)
 			visitor.visitInsn(iCast[i]);
-		valueExpression.toCode(visitor);
+		valueExpression.toCode(visitor, analytics);
 		if (TypeUtils.isPrimitive(type.getType())) {
 			int[] vCast = TypeUtils.getPrimitiveCastOpcodes(valueExpression.getType(), type.getType());
 			for (int i = 0; i < vCast.length; i++)

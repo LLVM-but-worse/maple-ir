@@ -7,6 +7,7 @@ import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.util.Printer;
 import org.rsdeob.stdlib.cfg.ir.stat.Statement;
+import org.rsdeob.stdlib.cfg.ir.transform.impl.CodeAnalytics;
 import org.rsdeob.stdlib.cfg.util.TabbedStringWriter;
 
 public class ComparisonExpression extends Expression {
@@ -97,9 +98,9 @@ public class ComparisonExpression extends Expression {
 	}
 
 	@Override
-	public void toCode(MethodVisitor visitor) {
-		left.toCode(visitor);
-		right.toCode(visitor);
+	public void toCode(MethodVisitor visitor, CodeAnalytics analytics) {
+		left.toCode(visitor, analytics);
+		right.toCode(visitor, analytics);
 
 		if (left.getType() == Type.LONG_TYPE || right.getType() == Type.LONG_TYPE) {
 			visitor.visitInsn(Opcodes.LCMP);

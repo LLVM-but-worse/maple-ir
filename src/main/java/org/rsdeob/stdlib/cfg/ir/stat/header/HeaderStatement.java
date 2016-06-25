@@ -3,6 +3,7 @@ package org.rsdeob.stdlib.cfg.ir.stat.header;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.rsdeob.stdlib.cfg.ir.stat.Statement;
+import org.rsdeob.stdlib.cfg.ir.transform.impl.CodeAnalytics;
 import org.rsdeob.stdlib.cfg.util.TabbedStringWriter;
 
 public abstract class HeaderStatement extends Statement {
@@ -33,7 +34,7 @@ public abstract class HeaderStatement extends Statement {
 	}
 
 	@Override
-	public void toCode(MethodVisitor visitor) {
+	public void toCode(MethodVisitor visitor, CodeAnalytics analytics) {
 		visitor.visitLabel(getLabel());
 	}
 
