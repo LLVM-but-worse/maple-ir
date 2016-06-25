@@ -5,6 +5,7 @@ import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.rsdeob.stdlib.cfg.ir.expr.Expression;
 import org.rsdeob.stdlib.cfg.ir.expr.Expression.Precedence;
+import org.rsdeob.stdlib.cfg.ir.transform.impl.CodeAnalytics;
 import org.rsdeob.stdlib.cfg.util.TabbedStringWriter;
 import org.rsdeob.stdlib.cfg.util.TypeUtils;
 
@@ -110,10 +111,10 @@ public class FieldStoreStatement extends Statement {
 	}
 
 	@Override
-	public void toCode(MethodVisitor visitor) {
+	public void toCode(MethodVisitor visitor, CodeAnalytics analytics) {
 		if (instanceExpression != null)
-			instanceExpression.toCode(visitor);
-		valueExpression.toCode(visitor);
+			instanceExpression.toCode(visitor, analytics);
+		valueExpression.toCode(visitor, analytics);
 		if (TypeUtils.isPrimitive(Type.getType(desc))) {
 			int[] cast = TypeUtils.getPrimitiveCastOpcodes(valueExpression.getType(), Type.getType(desc));
 			for (int i = 0; i < cast.length; i++)

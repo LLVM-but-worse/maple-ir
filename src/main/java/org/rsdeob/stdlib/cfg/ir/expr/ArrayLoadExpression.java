@@ -3,6 +3,7 @@ package org.rsdeob.stdlib.cfg.ir.expr;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Type;
 import org.rsdeob.stdlib.cfg.ir.stat.Statement;
+import org.rsdeob.stdlib.cfg.ir.transform.impl.CodeAnalytics;
 import org.rsdeob.stdlib.cfg.util.TabbedStringWriter;
 import org.rsdeob.stdlib.cfg.util.TypeUtils;
 import org.rsdeob.stdlib.cfg.util.TypeUtils.ArrayType;
@@ -86,9 +87,9 @@ public class ArrayLoadExpression extends Expression {
 	}
 
 	@Override
-	public void toCode(MethodVisitor visitor) {
-		array.toCode(visitor);
-		index.toCode(visitor);
+	public void toCode(MethodVisitor visitor, CodeAnalytics analytics) {
+		array.toCode(visitor, analytics);
+		index.toCode(visitor, analytics);
 		int[] iCast = TypeUtils.getPrimitiveCastOpcodes(index.getType(), Type.INT_TYPE);
 		for (int i = 0; i < iCast.length; i++) {
 			visitor.visitInsn(iCast[i]);

@@ -23,7 +23,7 @@ import org.rsdeob.stdlib.cfg.ir.stat.PopStatement;
 import org.rsdeob.stdlib.cfg.ir.stat.Statement;
 import org.rsdeob.stdlib.cfg.ir.stat.SyntheticStatement;
 
-public class NewNewValuePropagator {
+public class CopyPropagator {
 	
 	private final RootStatement root;
 	private final StatementGraph graph;
@@ -33,7 +33,7 @@ public class NewNewValuePropagator {
 	private UsesAnalyser uses;
 	private int changedStmts;
 	
-	public NewNewValuePropagator(RootStatement root, StatementGraph graph) {
+	public CopyPropagator(RootStatement root, StatementGraph graph) {
 		this.root = root;
 		this.graph = graph;
 		synthetics = new HashMap<>();
@@ -58,6 +58,7 @@ public class NewNewValuePropagator {
 					return Long.compare(o1._getId(), o2._getId());
 				}
 			});
+			
 			for(Statement stmt : list) {
 				if(stmt instanceof SyntheticStatement)
 					continue;
@@ -86,8 +87,6 @@ public class NewNewValuePropagator {
 			
 			if(!change.get()) {
 				break;
-			} else {
-//				uses = new UsesAnalyser(graph, definitions);
 			}
 		}
 	}
@@ -162,13 +161,6 @@ public class NewNewValuePropagator {
 		
 		Collection<Statement> path = findPossibleExecutedStatements(real, use);
 		if(path == null) {
-			// System.out.println("no path ");
-			// System.out.println(" " + real);
-			// System.out.println(" to ");
-			// System.out.println(" " + use);
-			// System.out.println(" but found " + findPossibleExecutedStatements(real, use));
-			// path = findPossibleExecutedStatements(real, use);
-			// if(path == null)
 			return null;
 		}
 		
@@ -283,97 +275,126 @@ public class NewNewValuePropagator {
 			super(stmt);
 			reachingDefs = definitions.in(stmt);
 		}
+		
+		private void transformSingleDef(CopyVarStatement localDef, VarExpression s, Local local) {
+			Expression expr = null;
+			if(localDef.getExpression() instanceof ConstantExpression) {
+				expr = localDef.getExpression();
+			} else {
+				if(!local.isStack()) {
+					return;
+				}
+				expr = transform(localDef, root);
+			}
+			
+			if (expr != null) {
+				changedStmts++;
+				change = true;
+				
+				Statement r = getCurrent(getDepth());
+				r.overwrite(expr, r.indexOf(s));
+				
+				boolean canRemoveDefinition = uses.getUses(localDef).size() <= 1;
+				if (canRemoveDefinition) {
+					CopyPropagator.this.root.delete(CopyPropagator.this.root.indexOf(localDef));
+
+					definitions.remove(localDef);
+					liveness.remove(localDef);
+					if (!graph.excavate(localDef)) {
+						// if we can't remove the def here,
+						// then readd the thing
+						definitions.update(localDef);
+						liveness.update(localDef);
+					}
+					uses.remove(localDef);
+				}
+				definitions.update(root);
+				liveness.update(root);
+
+				if (canRemoveDefinition) {
+					uses.remove(localDef);
+				}
+				definitions.processQueue();
+				liveness.processQueue();
+				uses.update(root);
+			}
+		}
 
 		@Override
 		public Statement visit(Statement s) {
 			if(s instanceof VarExpression) {
 				Local local = ((VarExpression) s).getLocal();
-				if(!local.isStack()) {
-					return s;
-				}
 				
 				Set<CopyVarStatement> defs = reachingDefs.get(local);
 				
 				if(defs.size() == 1)  {
-					CopyVarStatement localDef = defs.iterator().next();
-					Expression expr = transform(localDef, root);
+					transformSingleDef(defs.iterator().next(), (VarExpression) s, local);
+				} else {
+					// example:
+					//  L1: y = 0
+					//      x = 0
+					//      goto L3
+					//  L2: x = y
+					//  L3: print x
+					// rhsLocals = [y]
+					// varRhss = [{x=0}]
 					
-					if (expr != null) {
-						System.out.println(localDef + " is used " + root);
+					// we need to check that at L1, x=z where y=z is also true.
+					Set<Local> rhsLocals = new HashSet<>();
+					Set<CopyVarStatement> varRhss = new HashSet<>();
+					
+					for(CopyVarStatement cvs : defs) {
+						Expression expr = cvs.getExpression();
+						if(expr instanceof VarExpression) {
+							rhsLocals.add(((VarExpression) expr).getLocal());
+						} else {
+							varRhss.add(cvs);
+						}
+					}
+					
+					if(rhsLocals.size() != 1){
+						return s;
+					}
+					
+					Local rhsLocal = rhsLocals.iterator().next();
+					
+					boolean complex = false;
+					
+					// now we check that the value of each variable
+					// rhsExpr rhs is the same as the rhs of the currentDef
+					// at that point.
+					for(CopyVarStatement cvs : varRhss) {
+						Map<Local, Set<CopyVarStatement>> pointDefs = definitions.in(cvs);
+						Set<CopyVarStatement> defVarDefs = pointDefs.get(rhsLocal);
+						if(defVarDefs.size() != 1) {
+							return s;
+						}
+						
+						Expression rhs1 = cvs.getExpression();
+						Expression rhs2 = defVarDefs.iterator().next().getExpression();
+						if(!rhs1.equivalent(rhs2)) {
+							return s;
+						} else {
+							if(!(rhs1 instanceof ConstantExpression)) {
+								complex = true;
+							}
+						}
+					}
+					
+					if(!complex) {
 						changedStmts++;
 						change = true;
 						
 						Statement r = getCurrent(getDepth());
+						VarExpression expr = new VarExpression(rhsLocal, ((VarExpression) s).getType());
 						r.overwrite(expr, r.indexOf(s));
-						
-						boolean canRemoveDefinition = uses.getUses(localDef).size() <= 1;
-						if (canRemoveDefinition) {
-							NewNewValuePropagator.this.root.delete(NewNewValuePropagator.this.root.indexOf(localDef));
-
-							definitions.remove(localDef);
-							liveness.remove(localDef);
-							if (!graph.excavate(localDef)) {
-								// if we can't remove the def here,
-								// then readd the thing
-								definitions.update(localDef);
-								liveness.update(localDef);
-							}
-							uses.remove(localDef);
-						}
 						definitions.update(root);
 						liveness.update(root);
-
-						if (canRemoveDefinition) {
-							uses.remove(localDef);
-						}
 						definitions.processQueue();
 						liveness.processQueue();
 						uses.update(root);
-					}
-				} else {
-					Set<Local> vars = new HashSet<>();
-					for(CopyVarStatement def : defs) {
-						Expression expr = def.getExpression();
-						if(!(expr instanceof VarExpression)) {
-							return s;
-						}
-						vars.add(((VarExpression) expr).getLocal());
-					}
-					
-					if(vars.size() == 1) {
-//						System.out.println();
-//						System.out.println();
-//						System.out.println("defs: " + defs);
-//						System.out.println("use: " + root);
-//						System.out.println("rets: " + vars);
-//						System.out.println();
-						Set<Expression> rets = new HashSet<>();
-						for(CopyVarStatement def : defs) {
-							rets.add(transform(def, root));
-						}
-//						System.out.println();
-//						System.out.println("rets2: " + rets);
-						
-						if(rets.size() > 0) {
-							Expression last = null;
-							for(Expression v : rets) {
-								if(v == null) {
-									return s;
-								}
-								if(last != null && !last.equivalent(v)) {
-									return s;
-								}
-								last = v;
-							}
-							changedStmts++;
-							change = true;
-//							return last.copy();
-						}
 					} else {
-//						System.out.println();
-//						System.out.println("ubervars: " + vars);
-//						System.out.println("  " + root);
-//						System.out.println("  " + defs);
+						throw new UnsupportedOperationException("TODO");
 					}
 				}
 			}

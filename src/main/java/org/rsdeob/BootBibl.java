@@ -29,6 +29,9 @@ import org.rsdeob.stdlib.cfg.ir.RootStatement;
 import org.rsdeob.stdlib.cfg.ir.StatementGenerator;
 import org.rsdeob.stdlib.cfg.ir.StatementGraph;
 import org.rsdeob.stdlib.cfg.ir.StatementGraphBuilder;
+import org.rsdeob.stdlib.cfg.ir.transform.impl.CodeAnalytics;
+import org.rsdeob.stdlib.cfg.ir.transform.impl.DefinitionAnalyser;
+import org.rsdeob.stdlib.cfg.ir.transform.impl.UsesAnalyser;
 import org.rsdeob.stdlib.cfg.util.ControlFlowGraphDeobfuscator;
 import org.rsdeob.stdlib.cfg.util.GraphUtils;
 import org.rsdeob.stdlib.collections.NodeTable;
@@ -49,8 +52,9 @@ public class BootBibl implements Opcodes {
 		while(it.hasNext()) {
 			MethodNode m = it.next();
 
+			
 			if(!m.toString().equals("a/a/f/a.<init>()V")) {
-//				continue;
+				continue;
 			}
 			
 			System.out.println("\n\n\nProcessing " + m + ": ");
@@ -84,49 +88,20 @@ public class BootBibl implements Opcodes {
 			System.out.println();
 			
 			StatementGraph sgraph = StatementGraphBuilder.create(cfg);
-//			System.out.println(sgraph);
-//			System.out.println("eran: " + sgraph.getRanges().size());
-//			for(ExceptionRange<Statement> r : sgraph.getRanges()) {
-//				System.out.println(r);
-//			}
-//			DefinitionAnalyser da = new DefinitionAnalyser(sgraph, m);
-//			da.run();
-//			for(Statement stmt : sgraph.vertices()) {
-//				System.out.println(stmt);
-//				System.out.println("  IN:");
-//				Map<Local, Set<CopyVarStatement>> in = da.in(stmt);
-//				for(Local l : root.getLocals().getOrderedList()) {
-//					if(in.containsKey(l)) {
-//						System.out.println("    " + in.get(l));
-//					}
-//				}
-//				System.out.println("  OUT:");
-//				Map<Local, Set<CopyVarStatement>> out = da.out(stmt);
-//				for(Local l : root.getLocals().getOrderedList()) {
-//					if(out.containsKey(l)) {
-//						System.out.println("    " + out.get(l));
-//					}
-//				}
-//			}
+			LivenessTest.optimise(cfg, root, sgraph, m);
 			
-//			DefinitionAnalyser da = new DefinitionAnalyser(sgraph, m);
-//			da.run();
-//			UsesAnalyser ua = new UsesAnalyser(sgraph, da);
-//			SimpleInliner inliner = new SimpleInliner(root, sgraph, da, ua);
-//			inliner.run();
-			
-			LivenessTest.simplify(cfg, root, sgraph, m);
-//
 			System.out.println("Optimised IR " + m + ":");
 			System.out.println(root);
 			System.out.println();
 
-
+			DefinitionAnalyser defs = new DefinitionAnalyser(sgraph, m);
+			UsesAnalyser uses = new UsesAnalyser(sgraph, defs);
+			CodeAnalytics analytics = new CodeAnalytics(cfg, sgraph, defs, uses);
+			root.dump(m, analytics);
+			
 			System.out.println("End of processing log for " + m);
 			System.out.println("============================================================");
 			System.out.println("============================================================\n\n");
-			
-			root.dump(m, cfg);
 		}
 		
 		ClassWriter clazz = new ClassWriter(0);
@@ -241,8 +216,8 @@ public class BootBibl implements Opcodes {
 			rev = Integer.parseInt(args[0]);
 		}
 		
-		NodeTable<ClassNode> nt = new NodeTable<ClassNode>();
-		SingleJarDownloader<ClassNode> dl = new SingleJarDownloader<ClassNode>(new JarInfo(new File(String.format("res/gamepack%s.jar", rev))));
+		NodeTable<ClassNode> nt = new NodeTable<>();
+		SingleJarDownloader<ClassNode> dl = new SingleJarDownloader<>(new JarInfo(new File(String.format("res/gamepack%s.jar", rev))));
 		dl.download();
 		nt.putAll(dl.getJarContents().getClassContents().namedMap());
 		IContext cxt = new IContext() {
@@ -257,7 +232,7 @@ public class BootBibl implements Opcodes {
 			}
 		};
 		
-		List<IPhase> completed = new ArrayList<IPhase>();
+		List<IPhase> completed = new ArrayList<>();
 		IPhase prev = null;
 		for(IPhase p : phases) {
 			System.out.println("Running " + p.getId());

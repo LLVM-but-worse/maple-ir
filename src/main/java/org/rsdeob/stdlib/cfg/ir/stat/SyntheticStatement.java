@@ -1,6 +1,7 @@
 package org.rsdeob.stdlib.cfg.ir.stat;
 
 import org.objectweb.asm.MethodVisitor;
+import org.rsdeob.stdlib.cfg.ir.transform.impl.CodeAnalytics;
 import org.rsdeob.stdlib.cfg.util.TabbedStringWriter;
 
 public class SyntheticStatement extends Statement {
@@ -32,8 +33,8 @@ public class SyntheticStatement extends Statement {
 	}
 
 	@Override
-	public void toCode(MethodVisitor visitor) {
-		statement.toCode(visitor);
+	public void toCode(MethodVisitor visitor, CodeAnalytics analytics) {
+		statement.toCode(visitor, analytics);
 	}
 
 	@Override

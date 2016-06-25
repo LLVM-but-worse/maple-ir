@@ -6,6 +6,7 @@ import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.util.Printer;
 import org.rsdeob.stdlib.cfg.ir.stat.Statement;
+import org.rsdeob.stdlib.cfg.ir.transform.impl.CodeAnalytics;
 import org.rsdeob.stdlib.cfg.util.TabbedStringWriter;
 import org.rsdeob.stdlib.cfg.util.TypeUtils;
 
@@ -143,7 +144,7 @@ public class ArithmeticExpression extends Expression {
 	}
 
 	@Override
-	public void toCode(MethodVisitor visitor) {
+	public void toCode(MethodVisitor visitor, CodeAnalytics analytics) {
 		Type leftType = null;
 		Type rightType = null;
 		if (operator == Operator.SHL || operator == Operator.SHR) {
@@ -152,12 +153,12 @@ public class ArithmeticExpression extends Expression {
 		} else {
 			leftType = rightType = getType();
 		}
-		left.toCode(visitor);
+		left.toCode(visitor, analytics);
 		int[] lCast = TypeUtils.getPrimitiveCastOpcodes(left.getType(), leftType);
 		for (int i = 0; i < lCast.length; i++)
 			visitor.visitInsn(lCast[i]);
 
-		right.toCode(visitor);
+		right.toCode(visitor, analytics);
 		int[] rCast = TypeUtils.getPrimitiveCastOpcodes(right.getType(), rightType);
 		for (int i = 0; i < rCast.length; i++)
 			visitor.visitInsn(rCast[i]);

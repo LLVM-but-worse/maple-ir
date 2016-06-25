@@ -17,7 +17,6 @@ import org.rsdeob.stdlib.cfg.ir.StatementGenerator;
 import org.rsdeob.stdlib.cfg.ir.StatementGraph;
 import org.rsdeob.stdlib.cfg.ir.StatementGraphBuilder;
 import org.rsdeob.stdlib.cfg.ir.stat.Statement;
-import org.rsdeob.stdlib.cfg.ir.transform.impl.DefinitionAnalyser;
 import org.rsdeob.stdlib.cfg.ir.transform.impl.LivenessAnalyser;
 
 public class DataFlowAnalyserBoot {
@@ -42,21 +41,7 @@ public class DataFlowAnalyserBoot {
 				System.out.println(root);
 				System.out.println();
 				
-				DefinitionAnalyser ffa = new DefinitionAnalyser(sgraph, m);
-				ffa.run();
-//				ffa.propagate();
-//				ReachingAnalyser ra = new ReachingAnalyser(sgraph);
-//				ra.run();
-				
-//				for(Statement stmt : sgraph.vertices()) {
-//					System.out.println(ra.toString(stmt));
-//				}
-//				ffa.propagate();
-				
-//				System.out.println(root);
-				
 				LivenessAnalyser liveness = new LivenessAnalyser(sgraph);
-				liveness.run();
 				
 				for(Statement stmt : sgraph.vertices()) {
 					System.out.println(stmt);

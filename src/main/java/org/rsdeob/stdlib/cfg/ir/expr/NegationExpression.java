@@ -3,6 +3,7 @@ package org.rsdeob.stdlib.cfg.ir.expr;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Type;
 import org.rsdeob.stdlib.cfg.ir.stat.Statement;
+import org.rsdeob.stdlib.cfg.ir.transform.impl.CodeAnalytics;
 import org.rsdeob.stdlib.cfg.util.TabbedStringWriter;
 import org.rsdeob.stdlib.cfg.util.TypeUtils;
 
@@ -63,8 +64,8 @@ public class NegationExpression extends Expression {
 	}
 
 	@Override
-	public void toCode(MethodVisitor visitor) {
-		expression.toCode(visitor);
+	public void toCode(MethodVisitor visitor, CodeAnalytics analytics) {
+		expression.toCode(visitor, analytics);
 		int[] cast = TypeUtils.getPrimitiveCastOpcodes(expression.getType(), getType());
 		for (int i = 0; i < cast.length; i++)
 			visitor.visitInsn(cast[i]);

@@ -1,13 +1,16 @@
 package org.rsdeob.stdlib.cfg.ir.stat;
 
 import org.objectweb.asm.MethodVisitor;
+import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
+import org.rsdeob.stdlib.cfg.ir.Local;
 import org.rsdeob.stdlib.cfg.ir.expr.Expression;
 import org.rsdeob.stdlib.cfg.ir.expr.VarExpression;
+import org.rsdeob.stdlib.cfg.ir.transform.impl.CodeAnalytics;
 import org.rsdeob.stdlib.cfg.util.TabbedStringWriter;
 import org.rsdeob.stdlib.cfg.util.TypeUtils;
 
-public class CopyVarStatement extends Statement implements IStackDumpNode {
+public class CopyVarStatement extends Statement {
 
 	private Expression expression;
 	private VarExpression variable;
@@ -22,7 +25,6 @@ public class CopyVarStatement extends Statement implements IStackDumpNode {
 		overwrite(expression, 0);
 	}
 
-	@Override
 	public Expression getExpression() {
 		return expression;
 	}
@@ -35,18 +37,15 @@ public class CopyVarStatement extends Statement implements IStackDumpNode {
 		variable = var;
 	}
 	
-	@Override
 	public void setExpression(Expression expression) {
 		this.expression = expression;
 		overwrite(expression, 0);
 	}
 	
-	@Override
 	public int getIndex() {
 		return variable.getLocal().getIndex();
 	}
 
-	@Override
 	public Type getType() {
 		return variable.getType();
 	}
@@ -68,8 +67,16 @@ public class CopyVarStatement extends Statement implements IStackDumpNode {
 
 	@Override
 	// todo: this probably needs a refactoring
-	public void toCode(MethodVisitor visitor) {
-		expression.toCode(visitor);
+	public void toCode(MethodVisitor visitor, CodeAnalytics analytics) {
+		if(expression instanceof VarExpression) {
+			if(((VarExpression) expression).getLocal() == variable.getLocal()) {
+				return;
+			}
+		}
+		
+		variable.getLocal().setAvailable(false);
+		
+		expression.toCode(visitor, analytics);
 		Type type = variable.getType();
 		if (TypeUtils.isPrimitive(type)) {
 			int[] cast = TypeUtils.getPrimitiveCastOpcodes(expression.getType(), type);
@@ -77,8 +84,23 @@ public class CopyVarStatement extends Statement implements IStackDumpNode {
 				visitor.visitInsn(cast[i]);
 		}
 
-		visitor.visitVarInsn(TypeUtils.getVariableStoreOpcode(getType()), variable.getLocal().getCodeIndex());	
-		// variable.toCode(visitor);
+		Local local = variable.getLocal();
+		if(local.isStack()) {
+			int uses = analytics.uses.getUses(this).size();
+			if(uses <= 2) {
+				// TODO: type dups
+				int dups = uses - 1;
+				while(dups > 0) {
+					visitor.visitInsn(Opcodes.DUP);
+					dups--;
+				}
+			} else {
+				visitor.visitVarInsn(TypeUtils.getVariableStoreOpcode(getType()), variable.getLocal().getCodeIndex());
+				variable.getLocal().setAvailable(true);
+			}
+		} else {
+			visitor.visitVarInsn(TypeUtils.getVariableStoreOpcode(getType()), variable.getLocal().getCodeIndex());
+		}
 	}
 
 	@Override
@@ -96,7 +118,6 @@ public class CopyVarStatement extends Statement implements IStackDumpNode {
 		return expression.isAffectedBy(stmt);
 	}
 
-	@Override
 	public boolean isRedundant() {
 		if(expression instanceof VarExpression) {
 			return ((VarExpression) expression).getLocal().getIndex() == variable.getLocal().getIndex();
