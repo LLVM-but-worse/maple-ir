@@ -2,6 +2,7 @@ package org.rsdeob.stdlib.cfg.ir.stat;
 
 import org.objectweb.asm.MethodVisitor;
 import org.rsdeob.stdlib.cfg.ir.stat.header.HeaderStatement;
+import org.rsdeob.stdlib.cfg.ir.transform.impl.CodeAnalytics;
 import org.rsdeob.stdlib.cfg.util.TabbedStringWriter;
 
 import com.sun.xml.internal.ws.org.objectweb.asm.Opcodes;
@@ -28,7 +29,7 @@ public class UnconditionalJumpStatement extends Statement {
 	}
 
 	@Override
-	public void toCode(MethodVisitor visitor) {
+	public void toCode(MethodVisitor visitor, CodeAnalytics analytics) {
 		visitor.visitJumpInsn(Opcodes.GOTO, target.getLabel());		
 	}
 

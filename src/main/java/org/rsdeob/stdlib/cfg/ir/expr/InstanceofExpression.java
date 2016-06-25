@@ -4,6 +4,7 @@ import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.rsdeob.stdlib.cfg.ir.stat.Statement;
+import org.rsdeob.stdlib.cfg.ir.transform.impl.CodeAnalytics;
 import org.rsdeob.stdlib.cfg.util.TabbedStringWriter;
 
 public class InstanceofExpression extends Expression {
@@ -63,8 +64,8 @@ public class InstanceofExpression extends Expression {
 	}
 
 	@Override
-	public void toCode(MethodVisitor visitor) {
-		expression.toCode(visitor);
+	public void toCode(MethodVisitor visitor, CodeAnalytics analytics) {
+		expression.toCode(visitor, analytics);
 		visitor.visitTypeInsn(Opcodes.INSTANCEOF, type.getInternalName());
 	}
 

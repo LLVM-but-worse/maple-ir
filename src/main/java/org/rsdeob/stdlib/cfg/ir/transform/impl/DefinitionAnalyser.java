@@ -17,12 +17,9 @@ import org.rsdeob.stdlib.collections.NullPermeableHashMap;
 import org.rsdeob.stdlib.collections.SetCreator;
 
 public class DefinitionAnalyser extends ForwardsFlowAnalyser<Statement, FlowEdge<Statement>, NullPermeableHashMap<Local, Set<CopyVarStatement>>> {
-
-	private final NullPermeableHashMap<Local, Set<CopyVarStatement>> initial;
 	
 	public DefinitionAnalyser(StatementGraph graph, MethodNode m) {
 		super(graph);
-		initial = newState();
 	}
 	
 	@Override
@@ -54,9 +51,7 @@ public class DefinitionAnalyser extends ForwardsFlowAnalyser<Statement, FlowEdge
 
 	@Override
 	protected NullPermeableHashMap<Local, Set<CopyVarStatement>> newEntryState() {
-		NullPermeableHashMap<Local, Set<CopyVarStatement>> map = newState();
-		copy(initial, map);
-		return map;
+		return newState();
 	}
 
 	@Override

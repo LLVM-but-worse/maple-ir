@@ -12,10 +12,10 @@ import org.rsdeob.stdlib.cfg.ir.RootStatement;
 import org.rsdeob.stdlib.cfg.ir.StatementGenerator;
 import org.rsdeob.stdlib.cfg.ir.StatementGraph;
 import org.rsdeob.stdlib.cfg.ir.StatementGraphBuilder;
+import org.rsdeob.stdlib.cfg.ir.transform.impl.CopyPropagator;
 import org.rsdeob.stdlib.cfg.ir.transform.impl.DeadAssignmentEliminator;
 import org.rsdeob.stdlib.cfg.ir.transform.impl.DefinitionAnalyser;
 import org.rsdeob.stdlib.cfg.ir.transform.impl.LivenessAnalyser;
-import org.rsdeob.stdlib.cfg.ir.transform.impl.NewNewValuePropagator;
 import org.rsdeob.stdlib.cfg.ir.transform.impl.UsesAnalyser;
 import org.rsdeob.stdlib.cfg.util.ControlFlowGraphDeobfuscator;
 import org.rsdeob.stdlib.cfg.util.GraphUtils;
@@ -48,7 +48,7 @@ public class LivenessTest {
 				System.out.println(root);
 				System.out.println();
 
-				simplify(cfg, root, sgraph, m);
+				optimise(cfg, root, sgraph, m);
 				System.out.println("================");
 				System.out.println("================");
 				System.out.println("================");
@@ -70,117 +70,20 @@ public class LivenessTest {
 		}
 	}
 	
-	public static void simplify(ControlFlowGraph cfg, RootStatement root, StatementGraph graph, MethodNode m) {
+	public static void optimise(ControlFlowGraph cfg, RootStatement root, StatementGraph graph, MethodNode m) {
 		while(true) {
 			int change = 0;
-//			System.out.println("graph1: ");
-//			System.out.println(graph);
-			// System.out.println("LivenessTest.simplify(0)");
-
 			DefinitionAnalyser defAnalyser = new DefinitionAnalyser(graph, m);
-			defAnalyser.run();
-			
-//			for(Statement stmt : graph.vertices()) {
-//				System.out.println(stmt);
-//				List<String> keys = new ArrayList<>(defAnalyser.in(stmt).keySet());
-//				Collections.sort(keys);
-//				System.out.println("  IN:");
-//				for(String key : keys) {
-//					System.out.println("     " + key + " = " + defAnalyser.in(stmt).get(key));
-//				}
-//				keys = new ArrayList<>(defAnalyser.out(stmt).keySet());
-//				Collections.sort(keys);
-//				System.out.println("  OUT:");
-//				for(String key : keys) {
-//					System.out.println("     " + key + " = " + defAnalyser.out(stmt).get(key));
-//				}				
-//			}
-			// System.out.println("LivenessTest.simplify(1)");
-			// change += ValuePropagator.propagateDefinitions1(root, graph, defAnalyser);
-//			change += CopyPropagator.propagateDefinitions(cfg, root, defAnalyser);
-			
-
 			LivenessAnalyser la = new LivenessAnalyser(graph);
-			la.run();
-			
-			// System.out.println("LivenessTest.simplify(2)");
-			NewNewValuePropagator prop = new NewNewValuePropagator(root, graph);
 			UsesAnalyser useAnalyser = new UsesAnalyser(graph, defAnalyser);
-			System.out.println("pre");
+			CopyPropagator prop = new CopyPropagator(root, graph);
+			
 			change += prop.process(defAnalyser, useAnalyser, la);
-			System.out.println("udpate " + change);
-			
-//			System.out.println();
-//			System.out.println();
-//			System.out.println("After propagation");
-//			System.out.println(root);
-//			System.out.println();
-//			System.out.println();
-			
-//			System.out.println("graph2: ");
-//			System.out.println(graph);
-			
 			change += DeadAssignmentEliminator.run(root, graph, la);
-			
-			
-//			System.out.println();
-//			System.out.println();
-//			System.out.println("After elimination");
-//			System.out.println(root);
-//			System.out.println();
-//			System.out.println();
-//			
-			
 			if(change <= 0) {
 				break;
 			}
 		}
-		
-//		AbsoluteValueAnalyser ava = new AbsoluteValueAnalyser(graph);
-//		ava.run();
-//
-//		List<Local> locals = root.getLocals().getOrderedList();
-//		for(Statement stmt : graph.vertices()) {
-//			System.out.println(stmt);
-//			System.out.println("  IN:");
-//			Map<Local, CopyVarStatement> in = ava.in(stmt);
-//			for(Local l : locals) {
-//				System.out.println("   " + l + " = " + in.get(l));
-//			}
-//			System.out.println("  OUT:");
-//			Map<Local, CopyVarStatement> out = ava.out(stmt);
-//			for(Local l : locals) {
-//				System.out.println("   " + l + " = " + out.get(l));
-//			}
-//		}
-
-//		System.out.println("============");
-//		System.out.println("============");
-//		System.out.println("============");
-//		DefinitionAnalyser defs = new DefinitionAnalyser(graph, m);
-//		defs.run();
-//		UsesAnalyser uses = new UsesAnalyser(graph, defs);
-//		StatementVisitor vis = new StatementVisitor(root) {
-//			@Override
-//			public Statement visit(Statement s) {
-//				if(getDepth() == 1) {
-//					System.out.println(s);
-//				}
-//				if(s instanceof CopyVarStatement) {
-//					if(s instanceof CopyVarStatement) {
-//						System.out.println("  uses: ");
-//						for(Statement use : uses.getUses((CopyVarStatement) s)) {
-//							System.out.println("      x." + use);
-//						}
-//					}
-//				}
-//				return s;
-//			}
-//		};
-//		vis.visit();
-//		System.out.println("============");
-//		System.out.println("============");
-//		System.out.println("============");
 	}
 	
 	void test1() {

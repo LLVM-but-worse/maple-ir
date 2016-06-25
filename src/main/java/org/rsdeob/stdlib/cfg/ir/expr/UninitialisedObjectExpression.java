@@ -4,6 +4,7 @@ import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.rsdeob.stdlib.cfg.ir.stat.Statement;
+import org.rsdeob.stdlib.cfg.ir.transform.impl.CodeAnalytics;
 import org.rsdeob.stdlib.cfg.util.TabbedStringWriter;
 
 public class UninitialisedObjectExpression extends Expression {
@@ -44,7 +45,7 @@ public class UninitialisedObjectExpression extends Expression {
 	}
 
 	@Override
-	public void toCode(MethodVisitor visitor) {
+	public void toCode(MethodVisitor visitor, CodeAnalytics analytics) {
 		visitor.visitTypeInsn(Opcodes.NEW, type.getInternalName());		
 	}
 

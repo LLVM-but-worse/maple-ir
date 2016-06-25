@@ -5,6 +5,7 @@ public class Local implements Comparable<Local> {
 	private final int base;
 	private final int index;
 	private final boolean stack;
+	private boolean available;
 	
 	public Local(int base, int index) {
 		this(base, index, false);
@@ -35,6 +36,14 @@ public class Local implements Comparable<Local> {
 	@Override
 	public String toString() {
 		return (stack ? "s" : "l") + "var" + index;
+	}
+
+	public boolean isAvailable() {
+		return available;
+	}
+
+	public void setAvailable(boolean available) {
+		this.available = available;
 	}
 
 	@Override

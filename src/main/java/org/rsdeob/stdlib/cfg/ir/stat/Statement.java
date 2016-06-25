@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.objectweb.asm.MethodVisitor;
+import org.rsdeob.stdlib.cfg.ir.transform.impl.CodeAnalytics;
 import org.rsdeob.stdlib.cfg.util.TabbedStringWriter;
 import org.rsdeob.stdlib.collections.graph.FastGraphVertex;
 
@@ -89,7 +90,7 @@ public abstract class Statement implements FastGraphVertex {
 			writeAt(ptr, node);
 			onChildUpdated(ptr++);
 		} else {
-			List<Statement> writeable = new ArrayList<Statement>();
+			List<Statement> writeable = new ArrayList<>();
 			for (int i = ptr; i < children.length; i++) {
 				if (children[i] != null) {
 					writeable.add(children[i]);
@@ -172,7 +173,7 @@ public abstract class Statement implements FastGraphVertex {
 	}
 	
 	public List<Statement> getChildren() {
-		List<Statement> list = new ArrayList<Statement>();
+		List<Statement> list = new ArrayList<>();
 		for (int i = 0; i < children.length; i++) {
 			if (children[i] != null) {
 				list.add(children[i]);
@@ -199,7 +200,7 @@ public abstract class Statement implements FastGraphVertex {
 	
 	public abstract void toString(TabbedStringWriter printer);
 	
-	public abstract void toCode(MethodVisitor visitor);
+	public abstract void toCode(MethodVisitor visitor, CodeAnalytics analytics);
 	
 	public abstract boolean canChangeFlow();
 	
