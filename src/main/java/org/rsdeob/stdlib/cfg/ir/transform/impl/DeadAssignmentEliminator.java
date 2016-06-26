@@ -13,26 +13,22 @@ import org.rsdeob.stdlib.cfg.ir.stat.Statement;
 
 public class DeadAssignmentEliminator {
 
-	public static int run(RootStatement root, StatementGraph graph, LivenessAnalyser la) {
+	public static int run(CodeAnalytics analytics) {
+		StatementGraph graph = analytics.statementGraph;
+		LivenessAnalyser la = analytics.liveness;
+		RootStatement root = analytics.root;
+		
 		AtomicInteger dead = new AtomicInteger();
 		for(Statement stmt : new HashSet<>(graph.vertices())) {
-
 			if(stmt instanceof CopyVarStatement) {
 				Map<Local, Boolean> out = la.out(stmt);
-				
 				CopyVarStatement copy = (CopyVarStatement) stmt;
 				VarExpression var = copy.getVariable();
 				
 				if(!out.get(var.getLocal())) {
-					try {
-						System.out.println(copy.getId() + ", " + copy + " is not live: " + out);
-						root.delete(root.indexOf(copy));
-						graph.excavate(copy);
-						dead.incrementAndGet();
-					} catch(Exception e) {
-						System.out.println(root);
-						throw e;
-					}
+					root.delete(root.indexOf(copy));
+					graph.excavate(copy);
+					dead.incrementAndGet();
 				}
 			}
 		}
