@@ -1,8 +1,7 @@
 package org.rsdeob;
 
-import org.objectweb.asm.ClassReader;
-import org.objectweb.asm.ClassWriter;
-import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.*;
+import org.objectweb.asm.commons.JSRInlinerAdapter;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.rsdeob.byteio.CompleteResolvingJarDumper;
@@ -41,17 +40,23 @@ public class BootEcx implements Opcodes {
 	public static final File GRAPH_FOLDER = new File("C://Users//Bibl//Desktop//cfg testing");
 
 	public static void main(String[] args) throws Exception {
-		InputStream i = new FileInputStream(new File("res/a.class"));
+		InputStream i = new FileInputStream(new File("res/uc.class"));
 		ClassReader cr = new ClassReader(i);
 		ClassNode cn = new ClassNode();
-		cr.accept(cn, 0);
+		cr.accept(new ClassVisitor(Opcodes.ASM5, cn) {
+			@Override
+			public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
+				MethodVisitor mv = super.visitMethod(access, name, desc, signature, exceptions);
+				return new JSRInlinerAdapter(mv, access, name, desc, signature, exceptions);
+			}
+		}, 0);
 
 		Iterator<MethodNode> it = cn.methods.listIterator();
 		while(it.hasNext()) {
 			MethodNode m = it.next();
 
 
-			if(!m.toString().equals("a/a/f/a.<init>()V")) {
+			if(!m.toString().equals("e/uc.<clinit>()V")) {
 				continue;
 			}
 
@@ -62,6 +67,10 @@ public class BootEcx implements Opcodes {
 
 			ControlFlowGraphBuilder builder = new ControlFlowGraphBuilder(m);
 			ControlFlowGraph cfg = builder.build();
+
+			System.out.println("Cfg:");
+			System.out.println(cfg);
+			System.out.println();
 
 			ControlFlowGraphDeobfuscator deobber = new ControlFlowGraphDeobfuscator();
 			List<BasicBlock> blocks = deobber.deobfuscate(cfg);
@@ -76,10 +85,6 @@ public class BootEcx implements Opcodes {
 			gen.init(m.maxLocals);
 			gen.createExpressions();
 			RootStatement root = gen.buildRoot();
-
-			System.out.println("Cfg:");
-			System.out.println(cfg);
-			System.out.println();
 
 			System.out.println("IR representation of " + m + ":");
 			System.out.println(root);
