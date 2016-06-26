@@ -93,8 +93,8 @@ public class BootEcx implements Opcodes {
 			System.out.println();
 
 			DefinitionAnalyser defs = new DefinitionAnalyser(sgraph, m);
-			UsesAnalyser uses = new UsesAnalyser(sgraph, defs);
 			LivenessAnalyser liveness = new LivenessAnalyser(sgraph);
+			UsesAnalyser uses = new UsesAnalyser(sgraph, defs);
 			CodeAnalytics analytics = new CodeAnalytics(root, cfg, sgraph, defs, liveness, uses);
 			root.dump(m, analytics);
 
