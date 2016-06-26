@@ -90,6 +90,8 @@ public class BootBibl implements Opcodes {
 			
 			StatementGraph sgraph = StatementGraphBuilder.create(cfg);
 			LivenessTest.optimise(cfg, root, sgraph, m);
+
+			root.getLocals().pack(root);
 			
 			System.out.println("Optimised IR " + m + ":");
 			System.out.println(root);

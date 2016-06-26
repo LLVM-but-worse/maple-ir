@@ -5,8 +5,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class Local implements Comparable<Local> {
 
 	private final AtomicInteger base; // maxLocals
-	private final int index;
 	private final boolean stack;
+	private int index;
 	private boolean tempLocal;
 	
 	public Local(AtomicInteger base, int index) {
@@ -29,6 +29,10 @@ public class Local implements Comparable<Local> {
 	
 	public int getIndex() {
 		return index;
+	}
+	
+	void setIndex(int index) {
+		this.index = index;
 	}
 	
 	public int getCodeIndex() {
