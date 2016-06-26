@@ -1,19 +1,7 @@
 package org.rsdeob;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
-import java.util.jar.JarOutputStream;
-
-import org.objectweb.asm.ClassReader;
-import org.objectweb.asm.ClassWriter;
-import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.*;
+import org.objectweb.asm.commons.JSRInlinerAdapter;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.rsdeob.byteio.CompleteResolvingJarDumper;
@@ -40,6 +28,13 @@ import org.rsdeob.stdlib.deob.IPhase;
 import org.topdank.byteengineer.commons.data.JarInfo;
 import org.topdank.byteio.in.SingleJarDownloader;
 
+import java.io.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+import java.util.jar.JarOutputStream;
+
 public class BootBibl implements Opcodes {
 	public static final File GRAPH_FOLDER = new File("C://Users//Bibl//Desktop//cfg testing");
 
@@ -47,7 +42,13 @@ public class BootBibl implements Opcodes {
 		InputStream i = new FileInputStream(new File("res/a.class"));
 		ClassReader cr = new ClassReader(i);
 		ClassNode cn = new ClassNode();
-		cr.accept(cn, 0);
+		cr.accept(new ClassVisitor(Opcodes.ASM5, cn) {
+			@Override
+			public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
+				MethodVisitor mv = super.visitMethod(access, name, desc, signature, exceptions);
+				return new JSRInlinerAdapter(mv, access, name, desc, signature, exceptions);
+			}
+		}, 0);
 
 		Iterator<MethodNode> it = cn.methods.listIterator();
 		while(it.hasNext()) {
@@ -65,7 +66,11 @@ public class BootBibl implements Opcodes {
 
 			ControlFlowGraphBuilder builder = new ControlFlowGraphBuilder(m);
 			ControlFlowGraph cfg = builder.build();
-			
+
+			System.out.println("Cfg:");
+			System.out.println(cfg);
+			System.out.println();
+
 			ControlFlowGraphDeobfuscator deobber = new ControlFlowGraphDeobfuscator();
 			List<BasicBlock> blocks = deobber.deobfuscate(cfg);
 			deobber.removeEmptyBlocks(cfg, blocks);
@@ -79,10 +84,6 @@ public class BootBibl implements Opcodes {
 			gen.init(m.maxLocals);
 			gen.createExpressions();
 			RootStatement root = gen.buildRoot();
-
-			System.out.println("Cfg:");
-			System.out.println(cfg);
-			System.out.println();
 			
 			System.out.println("IR representation of " + m + ":");
 			System.out.println(root);
