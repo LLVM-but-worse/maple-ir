@@ -1,14 +1,10 @@
 package org.rsdeob.stdlib.cfg.ir;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.tree.MethodNode;
 import org.rsdeob.stdlib.cfg.BasicBlock;
+import org.rsdeob.stdlib.cfg.ir.expr.VarExpression;
 import org.rsdeob.stdlib.cfg.ir.stat.Statement;
 import org.rsdeob.stdlib.cfg.ir.stat.header.HeaderStatement;
 import org.rsdeob.stdlib.cfg.ir.stat.header.StatementHeaderStatement;
@@ -16,16 +12,41 @@ import org.rsdeob.stdlib.cfg.ir.transform.impl.CodeAnalytics;
 import org.rsdeob.stdlib.cfg.util.TabbedStringWriter;
 import org.rsdeob.stdlib.collections.graph.flow.ExceptionRange;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
+
 public class RootStatement extends Statement {
 
 	private final MethodNode method;
 	private final LocalsHandler locals;
 	private final Map<BasicBlock, HeaderStatement> headers;
+	private final AtomicInteger maxLocals;
 	
 	public RootStatement(MethodNode method) {
 		this.method = method;
-		locals = new LocalsHandler(method.maxLocals + 1);
+		maxLocals = new AtomicInteger(method.maxLocals + 1);
+		locals = new LocalsHandler(maxLocals);
 		headers = new HashMap<>();
+	}
+
+	public void updateBase() {
+		final AtomicInteger max = new AtomicInteger(0);
+		new StatementVisitor(this) {
+			@Override
+			public Statement visit(Statement s) {
+				if (s instanceof VarExpression) {
+					Local local = ((VarExpression) s).getLocal();
+					if (!local.isStack() && local.getIndex() > max.get())
+						max.set(local.getIndex());
+				}
+				return s;
+			}
+		}.visit();
+		maxLocals.set(max.get() + 1);
+		System.out.println("New maxlocals: " + maxLocals.get());
 	}
 	
 	public Map<BasicBlock, HeaderStatement> getHeaders() {
@@ -64,6 +85,7 @@ public class RootStatement extends Statement {
 
 	@Override
 	public void toCode(MethodVisitor visitor, CodeAnalytics analytics) {
+		updateBase();
 		for(HeaderStatement hs : headers.values()) {
 			hs.resetLabel();
 		}
@@ -71,7 +93,7 @@ public class RootStatement extends Statement {
 			read(addr).toCode(visitor, analytics);
 		}
 	}
-	
+
 	public void dump(MethodNode m, CodeAnalytics analytics) {
 		m.visitCode();
 		m.instructions.clear();
