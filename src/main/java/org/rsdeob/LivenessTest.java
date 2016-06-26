@@ -12,10 +12,12 @@ import org.rsdeob.stdlib.cfg.ir.RootStatement;
 import org.rsdeob.stdlib.cfg.ir.StatementGenerator;
 import org.rsdeob.stdlib.cfg.ir.StatementGraph;
 import org.rsdeob.stdlib.cfg.ir.StatementGraphBuilder;
+import org.rsdeob.stdlib.cfg.ir.transform.impl.CodeAnalytics;
 import org.rsdeob.stdlib.cfg.ir.transform.impl.CopyPropagator;
 import org.rsdeob.stdlib.cfg.ir.transform.impl.DeadAssignmentEliminator;
 import org.rsdeob.stdlib.cfg.ir.transform.impl.DefinitionAnalyser;
 import org.rsdeob.stdlib.cfg.ir.transform.impl.LivenessAnalyser;
+import org.rsdeob.stdlib.cfg.ir.transform.impl.NewObjectInitialiserAggregator;
 import org.rsdeob.stdlib.cfg.ir.transform.impl.UsesAnalyser;
 import org.rsdeob.stdlib.cfg.util.ControlFlowGraphDeobfuscator;
 import org.rsdeob.stdlib.cfg.util.GraphUtils;
@@ -79,11 +81,18 @@ public class LivenessTest {
 			CopyPropagator prop = new CopyPropagator(root, graph);
 			
 			change += prop.process(defAnalyser, useAnalyser, la);
-			change += DeadAssignmentEliminator.run(root, graph, la);
+			CodeAnalytics analytics = new CodeAnalytics(root, cfg, graph, defAnalyser, la, useAnalyser);
+			change += DeadAssignmentEliminator.run(analytics);
 			if(change <= 0) {
 				break;
 			}
 		}
+		
+		DefinitionAnalyser defAnalyser = new DefinitionAnalyser(graph, m);
+		LivenessAnalyser la = new LivenessAnalyser(graph);
+		UsesAnalyser useAnalyser = new UsesAnalyser(graph, defAnalyser);
+		CodeAnalytics analytics = new CodeAnalytics(root, cfg, graph, defAnalyser, la, useAnalyser);
+		NewObjectInitialiserAggregator.run(analytics);
 	}
 	
 	void test1() {
