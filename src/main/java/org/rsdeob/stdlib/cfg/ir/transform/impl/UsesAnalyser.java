@@ -87,7 +87,6 @@ public class UsesAnalyser {
 						Local local = var.getLocal();
 						NullPermeableHashMap<Local, Set<CopyVarStatement>> defMaps = definitions.in(stmt);
 						Set<CopyVarStatement> defs = defMaps.get(local);
-//						System.out.println("uses of " + stmt.getId() +".  + " + stmt + " var= " + local + " = " + defs);
 						try {
 							for(CopyVarStatement def : defs) {
 								uses.getNonNull(def).add(stmt);

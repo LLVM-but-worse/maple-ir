@@ -45,6 +45,8 @@ public abstract class DataAnalyser<N extends FastGraphVertex, E extends FlowEdge
 		return graph;
 	}
 
+	public abstract void queue(N n);
+	
 	protected abstract void updateImpl(N n);
 	
 	public void update(N n) {

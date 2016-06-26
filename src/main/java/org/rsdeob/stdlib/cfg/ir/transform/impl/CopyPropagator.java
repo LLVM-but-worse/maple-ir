@@ -3,8 +3,6 @@ package org.rsdeob.stdlib.cfg.ir.transform.impl;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.rsdeob.stdlib.cfg.edge.FlowEdge;
-import org.rsdeob.stdlib.cfg.edge.TryCatchEdge;
 import org.rsdeob.stdlib.cfg.ir.Local;
 import org.rsdeob.stdlib.cfg.ir.RootStatement;
 import org.rsdeob.stdlib.cfg.ir.StatementGraph;
@@ -158,8 +156,7 @@ public class CopyPropagator {
 		// now using these collected variables and
 		// rules we can go through from def to rhs
 		// to check if anything is being overwritten.
-		
-		Collection<Statement> path = findPossibleExecutedStatements(real, use);
+		Collection<Statement> path = graph.wanderAllTrails(real, use);
 		if(path == null) {
 			return null;
 		}
@@ -204,9 +201,7 @@ public class CopyPropagator {
 			if(!canPropagate) {
 				return null;
 			}
-			
-			// System.out.println("at " + use);
-			
+						
 			AtomicBoolean canPropagate2 = new AtomicBoolean(canPropagate);
 			if(invoke.get() || array.get() || !fieldsUsed.isEmpty()) {
 				StatementVisitor vis2 = new StatementVisitor(stmt) {
@@ -237,31 +232,7 @@ public class CopyPropagator {
 				return null;
 			}
 			return rhs;
-			// System.out.println("SelfPropagate " + localDef);
-			// System.out.println("uSED BY " + uses.getUses(localDef));
-			// System.out.println(" Uses: " + uses.getUses(localDef));
-			// definitions.remove(localDef);
-			// liveness.remove(localDef);
-			// graph.excavate(localDef);
-			// root.delete(root.indexOf(localDef));
-			// return rhs.copy();
 		} else {
-//			if(rhs instanceof VarExpression) {
-//				if(((VarExpression) rhs).getLocal() == local) {
-//					return null;
-//				}
-//			}
-			// System.out.println();
-			// System.out.println();
-			// System.out.println("Enter pass:");
-			// System.out.println(" Local: " + localDef.getVariable().getLocal());
-			// System.out.println(" Def: " + localDef);
-			// System.out.println(" Use: " + use);
-			// System.out.println(" LUsed: " + localsUsed);
-			// System.out.println(" FUsed: " + fieldsUsed);
-			// System.out.println(" invoke: " + invoke.get() + ", array: " + array.get());
-			// System.out.println(" On path; " + path);
-			// System.out.println(" Propagate " + localDef +" into " + use);
 			return rhs;
 		}
 	}
@@ -276,7 +247,7 @@ public class CopyPropagator {
 			reachingDefs = definitions.in(stmt);
 		}
 		
-		private void transformSingleDef(CopyVarStatement localDef, VarExpression s, Local local) {
+		private void transformSingleDef(CopyVarStatement localDef, VarExpression use, Local local) {
 			Expression expr = null;
 			if(localDef.getExpression() instanceof ConstantExpression) {
 				expr = localDef.getExpression();
@@ -292,7 +263,7 @@ public class CopyPropagator {
 				change = true;
 				
 				Statement r = getCurrent(getDepth());
-				r.overwrite(expr, r.indexOf(s));
+				r.overwrite(expr, r.indexOf(use));
 				
 				boolean canRemoveDefinition = uses.getUses(localDef).size() <= 1;
 				if (canRemoveDefinition) {
@@ -319,6 +290,78 @@ public class CopyPropagator {
 				uses.update(root);
 			}
 		}
+		
+		private void transformMultiDef(Set<CopyVarStatement> defs, VarExpression use) {
+			// FIXME: check propagation constraints along
+			// transfer paths.
+			
+			// example:
+			//  L1: y = 0
+			//      x = 0
+			//      goto L3
+			//  L2: x = y
+			//  L3: print x
+			// rhsLocals = [y]
+			// varRhss = [{x=0}]
+			
+			// we need to check that at L1, x=z where y=z is also true.
+			Set<Local> rhsLocals = new HashSet<>();
+			Set<CopyVarStatement> varRhss = new HashSet<>();
+			
+			for(CopyVarStatement cvs : defs) {
+				Expression expr = cvs.getExpression();
+				if(expr instanceof VarExpression) {
+					rhsLocals.add(((VarExpression) expr).getLocal());
+				} else {
+					varRhss.add(cvs);
+				}
+			}
+			
+			if(rhsLocals.size() != 1){
+				return;
+			}
+			
+			Local rhsLocal = rhsLocals.iterator().next();
+			
+			boolean complex = false;
+			
+			// now we check that the value of each variable
+			// rhsExpr rhs is the same as the rhs of the currentDef
+			// at that point.
+			for(CopyVarStatement cvs : varRhss) {
+				Map<Local, Set<CopyVarStatement>> pointDefs = definitions.in(cvs);
+				Set<CopyVarStatement> defVarDefs = pointDefs.get(rhsLocal);
+				if(defVarDefs.size() != 1) {
+					return;
+				}
+				
+				Expression rhs1 = cvs.getExpression();
+				Expression rhs2 = defVarDefs.iterator().next().getExpression();
+				if(!rhs1.equivalent(rhs2)) {
+					return;
+				} else {
+					if(!(rhs1 instanceof ConstantExpression)) {
+						complex = true;
+					}
+				}
+			}
+			
+			if(!complex) {
+				changedStmts++;
+				change = true;
+				
+				Statement r = getCurrent(getDepth());
+				VarExpression expr = new VarExpression(rhsLocal, ((VarExpression) use).getType());
+				r.overwrite(expr, r.indexOf(use));
+				definitions.update(root);
+				liveness.update(root);
+				definitions.processQueue();
+				liveness.processQueue();
+				uses.update(root);
+			} else {
+				throw new UnsupportedOperationException("TODO");
+			}
+		}
 
 		@Override
 		public Statement visit(Statement s) {
@@ -330,155 +373,10 @@ public class CopyPropagator {
 				if(defs.size() == 1)  {
 					transformSingleDef(defs.iterator().next(), (VarExpression) s, local);
 				} else {
-					// example:
-					//  L1: y = 0
-					//      x = 0
-					//      goto L3
-					//  L2: x = y
-					//  L3: print x
-					// rhsLocals = [y]
-					// varRhss = [{x=0}]
-					
-					// we need to check that at L1, x=z where y=z is also true.
-					Set<Local> rhsLocals = new HashSet<>();
-					Set<CopyVarStatement> varRhss = new HashSet<>();
-					
-					for(CopyVarStatement cvs : defs) {
-						Expression expr = cvs.getExpression();
-						if(expr instanceof VarExpression) {
-							rhsLocals.add(((VarExpression) expr).getLocal());
-						} else {
-							varRhss.add(cvs);
-						}
-					}
-					
-					if(rhsLocals.size() != 1){
-						return s;
-					}
-					
-					Local rhsLocal = rhsLocals.iterator().next();
-					
-					boolean complex = false;
-					
-					// now we check that the value of each variable
-					// rhsExpr rhs is the same as the rhs of the currentDef
-					// at that point.
-					for(CopyVarStatement cvs : varRhss) {
-						Map<Local, Set<CopyVarStatement>> pointDefs = definitions.in(cvs);
-						Set<CopyVarStatement> defVarDefs = pointDefs.get(rhsLocal);
-						if(defVarDefs.size() != 1) {
-							return s;
-						}
-						
-						Expression rhs1 = cvs.getExpression();
-						Expression rhs2 = defVarDefs.iterator().next().getExpression();
-						if(!rhs1.equivalent(rhs2)) {
-							return s;
-						} else {
-							if(!(rhs1 instanceof ConstantExpression)) {
-								complex = true;
-							}
-						}
-					}
-					
-					if(!complex) {
-						changedStmts++;
-						change = true;
-						
-						Statement r = getCurrent(getDepth());
-						VarExpression expr = new VarExpression(rhsLocal, ((VarExpression) s).getType());
-						r.overwrite(expr, r.indexOf(s));
-						definitions.update(root);
-						liveness.update(root);
-						definitions.processQueue();
-						liveness.processQueue();
-						uses.update(root);
-					} else {
-						throw new UnsupportedOperationException("TODO");
-					}
+					transformMultiDef(defs, (VarExpression) s);
 				}
 			}
 			return s;
 		}
-	}
-	
-	private Set<Statement> findPossibleExecutedStatements(Statement from, Statement to) {
-		Set<Statement> visited = new HashSet<>();
-		LinkedList<Statement> stack = new LinkedList<>();
-		stack.add(from);
-		
-		while(!stack.isEmpty()) {
-			Statement s = stack.pop();
-			
-			for(FlowEdge<Statement> e : graph.getEdges(s)) {
-				if(e instanceof TryCatchEdge)
-					continue;
-				Statement succ = e.dst;
-				if(succ != to && !visited.contains(succ)) {
-					stack.add(succ);
-					visited.add(succ);
-				}
-			}
-		}
-		
-		return visited;
-	}
-	
-	@Deprecated
-	public List<Statement> findPath(Statement s, Statement target) {
-		if(graph.getReverseEdges(target).size() > 1) {
-			return null;
-		}
-		
-		List<Statement> stack = new ArrayList<>();
-		List<Integer> indices = new ArrayList<>();
-		
-		stack.add(s);
-		indices.add(Integer.valueOf(0));
-		
-		int max = graph.getEdges(stack.get(0)).size();
-		int level = 0;
-		
-		while(indices.get(0).intValue() != max) {
-			int p = indices.get(level).intValue();
-			Set<FlowEdge<Statement>> edges = graph.getEdges(stack.get(level));
-			if(p > edges.size()) {
-				stack.remove(level);
-				indices.remove(level--);
-				
-				int q = indices.get(level).intValue();
-				indices.set(level, Integer.valueOf(q + 1));
-			}
-			
-			List<Statement> succs = new ArrayList<>();
-			for(FlowEdge<Statement> e : edges) {
-				succs.add(e.dst);
-			}
-			
-			if(succs.size() <= p) {
-				return null;
-			}
-			
-			Statement i = succs.get(p);
-			
-			if(i == target) {
-				stack.add(target);
-				if(stack.get(0) == s) {
-					stack.remove(0);
-				}
-				return stack;
-			}
-			
-			if(graph.getReverseEdges(i).size() > 1) {
-				indices.set(level, Integer.valueOf(p + 1));
-				continue;
-			}
-			
-			level++;
-			indices.add(Integer.valueOf(0));
-			stack.add(i);
-		}
-		
-		return null;
 	}
 }

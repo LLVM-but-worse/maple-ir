@@ -17,8 +17,19 @@ public abstract class BackwardsFlowAnalyser<N extends FastGraphVertex, E extends
 	public void remove(N n) {
 		super.remove(n);
 		
-		for(E succEdge : graph.getEdges(n)) {
-			queue.add(succEdge.dst);
+		queue(n);
+	}
+	
+	@Override
+	public void queue(N n) {
+		Set<E> edgeSet = graph.getEdges(n);
+		if (edgeSet != null) {
+			for (E e : edgeSet) {
+				N dst = e.dst;
+				if(!queue.contains(dst)) {
+					queue.add(dst);
+				}
+			}
 		}
 	}
 	
@@ -67,9 +78,8 @@ public abstract class BackwardsFlowAnalyser<N extends FastGraphVertex, E extends
 			in.put(n, newState());
 			out.put(n, newState());
 			
-			for(E succEdge : graph.getEdges(old)) {
-				queue.add(succEdge.dst);
-			}
+			queue(old);
+			queue(n);
 		}
 	}
 	

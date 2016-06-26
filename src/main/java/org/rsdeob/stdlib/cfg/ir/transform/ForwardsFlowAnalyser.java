@@ -26,9 +26,7 @@ public abstract class ForwardsFlowAnalyser<N extends FastGraphVertex, E extends 
 	public void remove(N n) {
 		super.remove(n);
 		
-		for(E predEdge : graph.getReverseEdges(n)) {
-			queue.add(predEdge.src);
-		}
+		queue(n);
 	}
 	
 	@Override
@@ -44,9 +42,22 @@ public abstract class ForwardsFlowAnalyser<N extends FastGraphVertex, E extends 
 		} else {
 			in.put(n, newState());
 			out.put(n, newState());
-						
-			for(E predEdge : graph.getReverseEdges(old)) {
-				queue.add(predEdge.src);
+			
+			// TODO: which one?
+			queue(old);
+			queue(n);
+		}
+	}
+	
+	@Override
+	public void queue(N n) {
+		Set<E> edgeSet = graph.getReverseEdges(n);
+		if (edgeSet != null) {
+			for (E e : edgeSet) {
+				N src = e.src;
+				if(!queue.contains(src)) {
+					queue.add(src);
+				}
 			}
 		}
 	}
