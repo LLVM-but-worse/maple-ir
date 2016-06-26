@@ -1,19 +1,16 @@
 package org.rsdeob.stdlib.cfg.ir;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class LocalsHandler {
 
-	private final int base;
+	private final AtomicInteger base;
 	private final Map<String, Local> cache;
 	
-	public LocalsHandler(int base) {
+	public LocalsHandler(AtomicInteger base) {
 		this.base = base;
-		cache = new HashMap<String, Local>();
+		cache = new HashMap<>();
 	}
 	
 	public Local get(int index) {

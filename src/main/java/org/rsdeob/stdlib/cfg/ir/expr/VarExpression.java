@@ -57,7 +57,7 @@ public class VarExpression extends Expression {
 
 	@Override
 	public void toCode(MethodVisitor visitor, CodeAnalytics analytics) {
-		if(!local.isStack() || local.isAvailable()) {
+		if(local.isStoredInLocal()) {
 			visitor.visitVarInsn(TypeUtils.getVariableLoadOpcode(getType()), local.getCodeIndex());	
 		}
 	}
