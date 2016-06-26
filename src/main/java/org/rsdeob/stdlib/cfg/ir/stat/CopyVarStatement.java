@@ -1,7 +1,6 @@
 package org.rsdeob.stdlib.cfg.ir.stat;
 
 import org.objectweb.asm.MethodVisitor;
-import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.rsdeob.stdlib.cfg.ir.Local;
 import org.rsdeob.stdlib.cfg.ir.expr.Expression;
@@ -74,7 +73,7 @@ public class CopyVarStatement extends Statement {
 			}
 		}
 		
-		variable.getLocal().setAvailable(false);
+		variable.getLocal().setTempLocal(false);
 		
 		expression.toCode(visitor, analytics);
 		Type type = variable.getType();
@@ -86,18 +85,8 @@ public class CopyVarStatement extends Statement {
 
 		Local local = variable.getLocal();
 		if(local.isStack()) {
-			int uses = analytics.uses.getUses(this).size();
-			if(uses <= 2) {
-				// TODO: type dups
-				int dups = uses - 1;
-				while(dups > 0) {
-					visitor.visitInsn(Opcodes.DUP);
-					dups--;
-				}
-			} else {
-				visitor.visitVarInsn(TypeUtils.getVariableStoreOpcode(getType()), variable.getLocal().getCodeIndex());
-				variable.getLocal().setAvailable(true);
-			}
+			visitor.visitVarInsn(TypeUtils.getVariableStoreOpcode(getType()), variable.getLocal().getCodeIndex());
+			variable.getLocal().setTempLocal(true);
 		} else {
 			visitor.visitVarInsn(TypeUtils.getVariableStoreOpcode(getType()), variable.getLocal().getCodeIndex());
 		}
