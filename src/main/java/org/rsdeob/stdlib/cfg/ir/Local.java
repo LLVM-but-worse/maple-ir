@@ -32,7 +32,7 @@ public class Local implements Comparable<Local> {
 	}
 	
 	public int getCodeIndex() {
-		return (stack ? getBase() - 1 : 0) + index;
+		return stack ? getBase() + index : index;
 	}
 	
 	@Override
@@ -47,7 +47,7 @@ public class Local implements Comparable<Local> {
 	public void setTempLocal(boolean temp) {
 		if (temp && !isStack())
 			throw new UnsupportedOperationException("Local variables cannot be stored in a temp lvar");
-		this.tempLocal = temp;
+		tempLocal = temp;
 	}
 
 	public boolean isStoredInLocal() {

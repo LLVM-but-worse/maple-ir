@@ -213,12 +213,6 @@ public abstract class Statement implements FastGraphVertex {
 		return print(this);
 	}
 	
-	public static String print(Statement node) {
-		TabbedStringWriter printer = new TabbedStringWriter();
-		node.toString(printer);
-		return printer.toString();
-	}
-	
 	public long _getId() {
 		return id;
 	}
@@ -236,4 +230,10 @@ public abstract class Statement implements FastGraphVertex {
 	public abstract Statement copy();
 	
 	public abstract boolean equivalent(Statement s);
+	
+	public static String print(Statement node) {
+		TabbedStringWriter printer = new TabbedStringWriter();
+		node.toString(printer);
+		return printer.toString();
+	}
 }
