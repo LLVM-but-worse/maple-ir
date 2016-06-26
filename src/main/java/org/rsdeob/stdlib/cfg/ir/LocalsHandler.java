@@ -9,6 +9,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.rsdeob.stdlib.cfg.ir.expr.VarExpression;
+import org.rsdeob.stdlib.cfg.ir.stat.Statement;
+
 public class LocalsHandler {
 
 	private final AtomicInteger base;
@@ -51,9 +54,43 @@ public class LocalsHandler {
 		}
 	}
 	
-	public void pack() {
-		Set<String> locals = new HashSet<>(cache.keySet());
-		System.out.println("locals: " + locals);
+	private void pack(List<Local> list) {
+		Collections.sort(list);
+		int index = 0;
+		for(Local local : list) {
+			local.setIndex(index++);
+		}
+	}
+	
+	public void pack(RootStatement root) {
+		Set<Local> locals = new HashSet<>();
+		new StatementVisitor(root) {
+			@Override
+			public Statement visit(Statement stmt) {
+				if(stmt instanceof VarExpression) {
+					locals.add(((VarExpression) stmt).getLocal());
+				}
+				return stmt;
+			}
+		}.visit();
+		pack(locals);
+	}
+	
+	public void pack(Set<Local> used) {
+		// FIXME: longs and doubles
+		List<Local> stacks = new ArrayList<>();
+		List<Local> locals = new ArrayList<>();
+		for(Local l : cache.values()) {
+			if(!used.contains(l))
+				continue;
+			if(l.isStack()) {
+				stacks.add(l);
+			} else {
+				locals.add(l);
+			}
+		}
+		pack(stacks);
+		pack(locals);
 	}
 	
 	public static String key(int index, boolean stack) {

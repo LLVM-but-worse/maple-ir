@@ -1,5 +1,11 @@
 package org.rsdeob.stdlib.cfg.ir;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
+
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.tree.MethodNode;
@@ -11,12 +17,6 @@ import org.rsdeob.stdlib.cfg.ir.stat.header.StatementHeaderStatement;
 import org.rsdeob.stdlib.cfg.ir.transform.impl.CodeAnalytics;
 import org.rsdeob.stdlib.cfg.util.TabbedStringWriter;
 import org.rsdeob.stdlib.collections.graph.flow.ExceptionRange;
-
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
 
 public class RootStatement extends Statement {
 
@@ -85,7 +85,6 @@ public class RootStatement extends Statement {
 
 	@Override
 	public void toCode(MethodVisitor visitor, CodeAnalytics analytics) {
-		updateBase();
 		for(HeaderStatement hs : headers.values()) {
 			hs.resetLabel();
 		}
@@ -98,6 +97,8 @@ public class RootStatement extends Statement {
 		m.visitCode();
 		m.instructions.clear();
 		m.tryCatchBlocks.clear();
+		updateBase();
+		locals.pack(this);
 		toCode(m, analytics);
 		for(ExceptionRange<BasicBlock> er : analytics.blockGraph.getRanges()) {
 			String type = null;
