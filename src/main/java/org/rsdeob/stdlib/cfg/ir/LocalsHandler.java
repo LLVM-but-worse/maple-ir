@@ -1,6 +1,12 @@
 package org.rsdeob.stdlib.cfg.ir;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class LocalsHandler {
@@ -43,6 +49,11 @@ public class LocalsHandler {
 				return get(index, isStack);
 			}
 		}
+	}
+	
+	public void pack() {
+		Set<String> locals = new HashSet<>(cache.keySet());
+		System.out.println("locals: " + locals);
 	}
 	
 	public static String key(int index, boolean stack) {
