@@ -1,26 +1,28 @@
 package org.rsdeob.stdlib.cfg.ir;
 
+import java.util.concurrent.atomic.AtomicInteger;
+
 public class Local implements Comparable<Local> {
 
-	private final int base;
+	private final AtomicInteger base; // maxLocals
 	private final int index;
 	private final boolean stack;
-	private boolean available;
+	private boolean tempLocal;
 	
-	public Local(int base, int index) {
+	public Local(AtomicInteger base, int index) {
 		this(base, index, false);
 	}
 	
-	public Local(int base, int index, boolean stack) {
+	public Local(AtomicInteger base, int index, boolean stack) {
 		this.base = base;
 		this.index = index;
 		this.stack = stack;
 	}
 	
 	public int getBase() {
-		return base;
+		return base.get();
 	}
-	
+
 	public boolean isStack() {
 		return stack;
 	}
@@ -30,7 +32,7 @@ public class Local implements Comparable<Local> {
 	}
 	
 	public int getCodeIndex() {
-		return (stack ? base - 1 : 0) + index;
+		return (stack ? getBase() - 1 : 0) + index;
 	}
 	
 	@Override
@@ -38,12 +40,18 @@ public class Local implements Comparable<Local> {
 		return (stack ? "s" : "l") + "var" + index;
 	}
 
-	public boolean isAvailable() {
-		return available;
+	public boolean isTempLocal() {
+		return tempLocal;
 	}
 
-	public void setAvailable(boolean available) {
-		this.available = available;
+	public void setTempLocal(boolean temp) {
+		if (temp && !isStack())
+			throw new UnsupportedOperationException("Local variables cannot be stored in a temp lvar");
+		this.tempLocal = temp;
+	}
+
+	public boolean isStoredInLocal() {
+		return !isStack() || isTempLocal();
 	}
 
 	@Override
