@@ -33,19 +33,18 @@ public class RootStatement extends Statement {
 	}
 
 	public void updateBase() {
-		final AtomicInteger max = new AtomicInteger(0);
+		maxLocals.set(0);
 		new StatementVisitor(this) {
 			@Override
 			public Statement visit(Statement s) {
 				if (s instanceof VarExpression) {
 					Local local = ((VarExpression) s).getLocal();
-					if (!local.isStack() && local.getIndex() > max.get())
-						max.set(local.getIndex());
+					if (!local.isStack() && local.getIndex() > maxLocals.get())
+						maxLocals.set(local.getIndex());
 				}
 				return s;
 			}
 		}.visit();
-		maxLocals.set(max.get() + 1);
 		System.out.println("New maxlocals: " + maxLocals.get());
 	}
 	
