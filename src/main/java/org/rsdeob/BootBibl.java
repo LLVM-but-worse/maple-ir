@@ -31,6 +31,7 @@ import org.rsdeob.stdlib.cfg.ir.StatementGraph;
 import org.rsdeob.stdlib.cfg.ir.StatementGraphBuilder;
 import org.rsdeob.stdlib.cfg.ir.transform.impl.CodeAnalytics;
 import org.rsdeob.stdlib.cfg.ir.transform.impl.DefinitionAnalyser;
+import org.rsdeob.stdlib.cfg.ir.transform.impl.LivenessAnalyser;
 import org.rsdeob.stdlib.cfg.ir.transform.impl.UsesAnalyser;
 import org.rsdeob.stdlib.cfg.util.ControlFlowGraphDeobfuscator;
 import org.rsdeob.stdlib.cfg.util.GraphUtils;
@@ -95,8 +96,9 @@ public class BootBibl implements Opcodes {
 			System.out.println();
 
 			DefinitionAnalyser defs = new DefinitionAnalyser(sgraph, m);
+			LivenessAnalyser liveness = new LivenessAnalyser(sgraph);
 			UsesAnalyser uses = new UsesAnalyser(sgraph, defs);
-			CodeAnalytics analytics = new CodeAnalytics(cfg, sgraph, defs, uses);
+			CodeAnalytics analytics = new CodeAnalytics(root, cfg, sgraph, defs, liveness, uses);
 			root.dump(m, analytics);
 			
 			System.out.println("End of processing log for " + m);
