@@ -32,7 +32,7 @@ public class Local implements Comparable<Local> {
 	}
 	
 	public int getCodeIndex() {
-		return stack ? getBase() + index : index;
+		return (stack ? getBase() - 1 : 0) + index;
 	}
 	
 	@Override
