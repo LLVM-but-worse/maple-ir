@@ -1,14 +1,25 @@
 package org.rsdeob.stdlib.cfg.ir.transform.impl;
 
+import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
+
 import org.rsdeob.stdlib.cfg.ir.Local;
 import org.rsdeob.stdlib.cfg.ir.RootStatement;
 import org.rsdeob.stdlib.cfg.ir.StatementGraph;
 import org.rsdeob.stdlib.cfg.ir.StatementVisitor;
-import org.rsdeob.stdlib.cfg.ir.expr.*;
-import org.rsdeob.stdlib.cfg.ir.stat.*;
-
-import java.util.*;
-import java.util.concurrent.atomic.AtomicBoolean;
+import org.rsdeob.stdlib.cfg.ir.expr.ArrayLoadExpression;
+import org.rsdeob.stdlib.cfg.ir.expr.ConstantExpression;
+import org.rsdeob.stdlib.cfg.ir.expr.Expression;
+import org.rsdeob.stdlib.cfg.ir.expr.FieldLoadExpression;
+import org.rsdeob.stdlib.cfg.ir.expr.InvocationExpression;
+import org.rsdeob.stdlib.cfg.ir.expr.VarExpression;
+import org.rsdeob.stdlib.cfg.ir.stat.ArrayStoreStatement;
+import org.rsdeob.stdlib.cfg.ir.stat.CopyVarStatement;
+import org.rsdeob.stdlib.cfg.ir.stat.FieldStoreStatement;
+import org.rsdeob.stdlib.cfg.ir.stat.MonitorStatement;
+import org.rsdeob.stdlib.cfg.ir.stat.PopStatement;
+import org.rsdeob.stdlib.cfg.ir.stat.Statement;
+import org.rsdeob.stdlib.cfg.ir.stat.SyntheticStatement;
 
 public class CopyPropagator {
 	
@@ -250,36 +261,37 @@ public class CopyPropagator {
 			if (expr != null) {
 				
 				Statement r = getCurrent(getDepth());
-				Statement toReplace = r.read(r.indexOf(use));
-				if (toReplace instanceof VarExpression && !((VarExpression) toReplace).getLocal().toString().equals(local.toString())) {
-					changedStmts++;
-					change = true;
-					r.overwrite(expr, r.indexOf(use));
+				// Statement toReplace = r.read(r.indexOf(use));
 
-					boolean canRemoveDefinition = uses.getUses(localDef).size() <= 1;
-					if (canRemoveDefinition) {
-						CopyPropagator.this.root.delete(CopyPropagator.this.root.indexOf(localDef));
+				changedStmts++;
+				change = true;
+				r.overwrite(expr, r.indexOf(use));
 
-						definitions.remove(localDef);
-						liveness.remove(localDef);
-						if (!graph.excavate(localDef)) {
-							// if we can't remove the def here,
-							// then readd the thing
-							definitions.update(localDef);
-							liveness.update(localDef);
-						}
-						uses.remove(localDef);
+				boolean canRemoveDefinition = uses.getUses(localDef).size() <= 1;
+				if (canRemoveDefinition) {
+					CopyPropagator.this.root.delete(CopyPropagator.this.root.indexOf(localDef));
+
+					definitions.remove(localDef);
+					liveness.remove(localDef);
+					if (!graph.excavate(localDef)) {
+						// if we can't remove the def here,
+						// then readd the thing
+						definitions.update(localDef);
+						liveness.update(localDef);
 					}
-					definitions.update(root);
-					liveness.update(root);
-
-					if (canRemoveDefinition) {
-						uses.remove(localDef);
-					}
-					definitions.processQueue();
-					liveness.processQueue();
-					uses.update(root);
+					uses.remove(localDef);
 				}
+				definitions.update(root);
+				liveness.update(root);
+
+				if (canRemoveDefinition) {
+					uses.remove(localDef);
+				}
+				definitions.processQueue();
+				liveness.processQueue();
+				uses.update(root);
+			
+//				if (toReplace instanceof VarExpression && !((VarExpression) toReplace).getLocal().toString().equals(local.toString())) {}
 			}
 		}
 		
