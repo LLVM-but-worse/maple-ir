@@ -1,8 +1,10 @@
 package org.rsdeob.stdlib.ir;
 
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
@@ -47,6 +49,7 @@ public class StatementGenerator implements Opcodes {
 	Set<BasicBlock> updatedStacks;
 	Set<BasicBlock> analysedBlocks;
 	LinkedList<BasicBlock> queue;
+	Map<BasicBlock, BlockHeaderStatement> headers;
 	RootStatement root;
 	int stackBase;
 
@@ -59,6 +62,7 @@ public class StatementGenerator implements Opcodes {
 		updatedStacks = new HashSet<>();
 		analysedBlocks = new HashSet<>();
 		queue = new LinkedList<>();
+		headers = new HashMap<>();
 		// System.out.println(graph);
 	}
 	
@@ -68,7 +72,7 @@ public class StatementGenerator implements Opcodes {
 		root = new RootStatement(m.maxLocals);
 		
 		for (BasicBlock b : graph.vertices()) {
-			root.getHeaders().put(b, new BlockHeaderStatement(b));
+			headers.put(b, new BlockHeaderStatement(b));
 		}
 		
 		queueEntryBlocks();
@@ -101,7 +105,7 @@ public class StatementGenerator implements Opcodes {
 
 	public RootStatement buildRoot() {
 		for (BasicBlock b : graph.vertices()) {
-			root.write(root.getHeaders().get(b));
+			root.write(headers.get(b));
 			for (Statement n : b.getStatements()) {
 				root.write(n);
 			}
@@ -598,7 +602,7 @@ public class StatementGenerator implements Opcodes {
 	
 	void _jump_compare(BasicBlock target, ComparisonType type, Expression left, Expression right) {
 		update_target_stack(currentBlock, target, currentStack);
-		addStmt(new ConditionalJumpStatement(left, right, root.getHeaders().get(target), type));
+		addStmt(new ConditionalJumpStatement(left, right, headers.get(target), type));
 	}
 	
 	void _jump_compare(BasicBlock target, ComparisonType type) {
@@ -623,7 +627,7 @@ public class StatementGenerator implements Opcodes {
 
 	void _jump_uncond(BasicBlock target) {
 		update_target_stack(currentBlock, target, currentStack);
-		addStmt(new UnconditionalJumpStatement(root.getHeaders().get(target)));
+		addStmt(new UnconditionalJumpStatement(headers.get(target)));
 	}
 
 	void _entry(BasicBlock entry) {
@@ -1086,12 +1090,12 @@ public class StatementGenerator implements Opcodes {
 		Expression expr = pop();
 		for (Entry<Integer, BasicBlock> e : targets.entrySet()) {
 			update_target_stack(currentBlock, e.getValue(), currentStack);
-			targets2.put(e.getKey(), root.getHeaders().get(e.getValue()));
+			targets2.put(e.getKey(), headers.get(e.getValue()));
 		}
 		
 		update_target_stack(currentBlock, dflt, currentStack);
 		
-		addStmt(new SwitchStatement(expr, targets2, root.getHeaders().get(dflt)));
+		addStmt(new SwitchStatement(expr, targets2, headers.get(dflt)));
 	}
 
 	void _store_field(int opcode, String owner, String name, String desc) {
