@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.rsdeob.stdlib.cfg.ir.stat.Statement;
+import org.rsdeob.stdlib.ir.stat.Statement;
 
 public class AnalysisHelper {
 	
