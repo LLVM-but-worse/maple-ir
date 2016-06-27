@@ -1,11 +1,11 @@
 package org.rsdeob.stdlib.ir.transform;
 
-import java.util.Iterator;
-import java.util.Set;
-
 import org.rsdeob.stdlib.cfg.edge.FlowEdge;
 import org.rsdeob.stdlib.collections.graph.FastGraphVertex;
 import org.rsdeob.stdlib.collections.graph.flow.FlowGraph;
+
+import java.util.Iterator;
+import java.util.Set;
 
 public abstract class ForwardsFlowAnalyser<N extends FastGraphVertex, E extends FlowEdge<N>, S> extends DataAnalyser<N, E, S>{
 
@@ -17,7 +17,7 @@ public abstract class ForwardsFlowAnalyser<N extends FastGraphVertex, E extends 
 //	public void removeImpl(N n) {
 //		for(E e : graph.getEdges(n)) {
 //			N succ = e.dst;
-//			queue.add(succ);
+//			enqueue.add(succ);
 //			updateImpl(succ);
 //		}
 //	}
@@ -26,7 +26,7 @@ public abstract class ForwardsFlowAnalyser<N extends FastGraphVertex, E extends 
 	public void remove(N n) {
 		super.remove(n);
 		
-		queue(n);
+		enqueue(n);
 	}
 	
 	@Override
@@ -44,13 +44,13 @@ public abstract class ForwardsFlowAnalyser<N extends FastGraphVertex, E extends 
 			out.put(n, newState());
 			
 			// TODO: which one?
-			queue(old);
-			queue(n);
+			enqueue(old);
+			enqueue(n);
 		}
 	}
 	
 	@Override
-	public void queue(N n) {
+	public void enqueue(N n) {
 		Set<E> edgeSet = graph.getReverseEdges(n);
 		if (edgeSet != null) {
 			for (E e : edgeSet) {
@@ -103,10 +103,10 @@ public abstract class ForwardsFlowAnalyser<N extends FastGraphVertex, E extends 
 			}
 			
 			// System.out.println("in: " + currentIn);
-			propagate(n, currentIn, currentOut);
+			apply(n, currentIn, currentOut);
 			// System.out.println("out: " + currentOut);
 			
-			// if there was a change, queue the successors.
+			// if there was a change, enqueue the successors.
 			if (!equals(currentOut, oldOut)) {
 				for (E e : graph.getEdges(n)) {
 					queue.add(e.dst);
@@ -131,5 +131,5 @@ public abstract class ForwardsFlowAnalyser<N extends FastGraphVertex, E extends 
 	protected abstract boolean equals(S s1, S s2);
 	
 	@Override
-	protected abstract void propagate(N n, S in, S out);
+	protected abstract void apply(N n, S in, S out);
 }

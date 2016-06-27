@@ -29,30 +29,13 @@
  */
 package org.objectweb.asm.commons;
 
-import java.util.AbstractMap;
-import java.util.ArrayList;
-import java.util.BitSet;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
-import org.objectweb.asm.tree.AbstractInsnNode;
-import org.objectweb.asm.tree.InsnList;
-import org.objectweb.asm.tree.InsnNode;
-import org.objectweb.asm.tree.JumpInsnNode;
-import org.objectweb.asm.tree.LabelNode;
-import org.objectweb.asm.tree.LocalVariableNode;
-import org.objectweb.asm.tree.LookupSwitchInsnNode;
-import org.objectweb.asm.tree.MethodNode;
-import org.objectweb.asm.tree.TableSwitchInsnNode;
-import org.objectweb.asm.tree.TryCatchBlockNode;
+import org.objectweb.asm.tree.*;
+
+import java.util.*;
 
 /**
  * A {@link org.objectweb.asm.MethodVisitor} that removes JSR instructions and
@@ -504,7 +487,7 @@ public class JSRInlinerAdapter extends MethodNode implements Opcodes {
                 newInstructions.add(new JumpInsnNode(GOTO, startlbl));
                 newInstructions.add(newinst.returnLabel);
 
-                // Insert this new instantiation into the queue to be emitted
+                // Insert this new instantiation into the enqueue to be emitted
                 // later.
                 worklist.add(newinst);
             } else {

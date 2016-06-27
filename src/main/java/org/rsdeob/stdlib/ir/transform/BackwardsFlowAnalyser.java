@@ -1,11 +1,11 @@
 package org.rsdeob.stdlib.ir.transform;
 
-import java.util.Iterator;
-import java.util.Set;
-
 import org.rsdeob.stdlib.cfg.edge.FlowEdge;
 import org.rsdeob.stdlib.collections.graph.FastGraphVertex;
 import org.rsdeob.stdlib.collections.graph.flow.FlowGraph;
+
+import java.util.Iterator;
+import java.util.Set;
 
 public abstract class BackwardsFlowAnalyser<N extends FastGraphVertex, E extends FlowEdge<N>, S> extends DataAnalyser<N, E, S> {
 
@@ -17,11 +17,11 @@ public abstract class BackwardsFlowAnalyser<N extends FastGraphVertex, E extends
 	public void remove(N n) {
 		super.remove(n);
 		
-		queue(n);
+		enqueue(n);
 	}
 	
 	@Override
-	public void queue(N n) {
+	public void enqueue(N n) {
 		Set<E> edgeSet = graph.getEdges(n);
 		if (edgeSet != null) {
 			for (E e : edgeSet) {
@@ -59,7 +59,7 @@ public abstract class BackwardsFlowAnalyser<N extends FastGraphVertex, E extends
 //	public void removeImpl(N n) {
 //		for(E e : graph.getReverseEdges(n)) {
 //			N pred = e.src;
-//			queue.add(pred);
+//			enqueue.add(pred);
 //			updateImpl(pred);
 //		}
 //	}
@@ -78,8 +78,8 @@ public abstract class BackwardsFlowAnalyser<N extends FastGraphVertex, E extends
 			in.put(n, newState());
 			out.put(n, newState());
 			
-			queue(old);
-			queue(n);
+			enqueue(old);
+			enqueue(n);
 		}
 	}
 	
@@ -115,9 +115,9 @@ public abstract class BackwardsFlowAnalyser<N extends FastGraphVertex, E extends
 				}
 			}
 			
-			propagate(n, currentOut, currentIn);
+			apply(n, currentOut, currentIn);
 			
-			// if there was a change, queue the predecessors.
+			// if there was a change, enqueue the predecessors.
 			if(!equals(currentIn, oldIn)) {
 				for(E e : graph.getReverseEdges(n)) {
 					queue.add(e.src);
@@ -142,5 +142,5 @@ public abstract class BackwardsFlowAnalyser<N extends FastGraphVertex, E extends
 	protected abstract boolean equals(S s1, S s2);
 	
 	@Override
-	protected abstract void propagate(N n, S in, S out);
+	protected abstract void apply(N n, S in, S out);
 }
