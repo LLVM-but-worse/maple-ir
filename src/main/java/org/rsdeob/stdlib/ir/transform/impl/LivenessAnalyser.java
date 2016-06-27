@@ -1,11 +1,5 @@
 package org.rsdeob.stdlib.ir.transform.impl;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-
 import org.rsdeob.stdlib.cfg.edge.FlowEdge;
 import org.rsdeob.stdlib.collections.NullPermeableHashMap;
 import org.rsdeob.stdlib.collections.SetCreator;
@@ -16,6 +10,12 @@ import org.rsdeob.stdlib.ir.expr.VarExpression;
 import org.rsdeob.stdlib.ir.stat.CopyVarStatement;
 import org.rsdeob.stdlib.ir.stat.Statement;
 import org.rsdeob.stdlib.ir.transform.BackwardsFlowAnalyser;
+
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
 
 public class LivenessAnalyser extends BackwardsFlowAnalyser<Statement, FlowEdge<Statement>, Map<Local, Boolean>> {
 
@@ -114,7 +114,7 @@ public class LivenessAnalyser extends BackwardsFlowAnalyser<Statement, FlowEdge<
 	}
 
 	@Override
-	protected void propagate(Statement n, Map<Local, Boolean> in, Map<Local, Boolean> out) {
+	protected void apply(Statement n, Map<Local, Boolean> in, Map<Local, Boolean> out) {
 		// System.out.println("propagating " + n);
 		
 		for(Entry<Local, Boolean> e : in.entrySet()) {

@@ -1,11 +1,5 @@
 package org.rsdeob.stdlib.ir;
 
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.LinkedList;
-import java.util.Map.Entry;
-import java.util.Set;
-
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.*;
@@ -22,6 +16,12 @@ import org.rsdeob.stdlib.ir.stat.ConditionalJumpStatement.ComparisonType;
 import org.rsdeob.stdlib.ir.stat.MonitorStatement.MonitorMode;
 import org.rsdeob.stdlib.ir.stat.header.BlockHeaderStatement;
 import org.rsdeob.stdlib.ir.stat.header.HeaderStatement;
+
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.Map.Entry;
+import java.util.Set;
 
 public class StatementGenerator implements Opcodes {
 
@@ -137,7 +137,7 @@ public class StatementGenerator implements Opcodes {
 				BasicBlock im = b.getImmediate();
 				if (im != null && !queue.contains(im)) {
 					updateTargetStack(b, im, stack);
-//					queue.addFirst(im);
+//					enqueue.addFirst(im);
 				}
 
 				/* updateTargetStack is now handled in 
