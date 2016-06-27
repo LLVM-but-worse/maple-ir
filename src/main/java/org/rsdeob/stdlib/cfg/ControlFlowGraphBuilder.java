@@ -1,20 +1,16 @@
 package org.rsdeob.stdlib.cfg;
 
-import static org.objectweb.asm.Opcodes.*;
-import static org.objectweb.asm.tree.AbstractInsnNode.*;
-
-import java.util.*;
-
 import org.objectweb.asm.tree.*;
-import org.rsdeob.stdlib.cfg.edge.ConditionalJumpEdge;
-import org.rsdeob.stdlib.cfg.edge.DefaultSwitchEdge;
-import org.rsdeob.stdlib.cfg.edge.ImmediateEdge;
-import org.rsdeob.stdlib.cfg.edge.SwitchEdge;
-import org.rsdeob.stdlib.cfg.edge.TryCatchEdge;
-import org.rsdeob.stdlib.cfg.edge.UnconditionalJumpEdge;
+import org.rsdeob.stdlib.cfg.edge.*;
 import org.rsdeob.stdlib.cfg.util.GraphUtils;
 import org.rsdeob.stdlib.cfg.util.LabelHelper;
 import org.rsdeob.stdlib.collections.graph.flow.ExceptionRange;
+
+import java.util.*;
+
+import static org.objectweb.asm.Opcodes.GOTO;
+import static org.objectweb.asm.Opcodes.JSR;
+import static org.objectweb.asm.tree.AbstractInsnNode.*;
 
 public class ControlFlowGraphBuilder {
 	
@@ -155,7 +151,7 @@ public class ControlFlowGraphBuilder {
 					AbstractInsnNode nextInsn = insns.get(nextIndex);
 					if(!(nextInsn instanceof LabelNode)) {
 						LabelNode newLabel = new LabelNode();
-						insns.insert(nextInsn, newLabel);
+						insns.insert(ain, newLabel);
 						nextInsn = newLabel;
 					}
 					
