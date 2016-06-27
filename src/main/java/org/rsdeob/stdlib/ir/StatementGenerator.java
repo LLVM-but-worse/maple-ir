@@ -1,5 +1,11 @@
 package org.rsdeob.stdlib.ir;
 
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.Map.Entry;
+import java.util.Set;
+
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.*;
@@ -16,12 +22,6 @@ import org.rsdeob.stdlib.ir.header.HeaderStatement;
 import org.rsdeob.stdlib.ir.stat.*;
 import org.rsdeob.stdlib.ir.stat.ConditionalJumpStatement.ComparisonType;
 import org.rsdeob.stdlib.ir.stat.MonitorStatement.MonitorMode;
-
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.LinkedList;
-import java.util.Map.Entry;
-import java.util.Set;
 
 public class StatementGenerator implements Opcodes {
 
@@ -65,7 +65,7 @@ public class StatementGenerator implements Opcodes {
 	public void init(int base) {
 		Statement.ID_COUNTER = 0;
 		stackBase = base;
-		root = new RootStatement(m);
+		root = new RootStatement(m.maxLocals);
 		
 		for (BasicBlock b : graph.vertices()) {
 			root.getHeaders().put(b, new BlockHeaderStatement(b));
