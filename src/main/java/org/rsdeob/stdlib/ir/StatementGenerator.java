@@ -91,7 +91,7 @@ public class StatementGenerator implements Opcodes {
 	}
 	
 	private void addEntry(int index, Type type, BasicBlock b) {
-		CopyVarStatement stmt = selfDefine(createVarExpression(index, type, false));
+		CopyVarStatement stmt = selfDefine(_var_expr(index, type, false));
 		b.getStatements().add(new SyntheticStatement(stmt));
 	}
 	
@@ -136,7 +136,7 @@ public class StatementGenerator implements Opcodes {
 				// check merge exit stack with next input stack
 				BasicBlock im = b.getImmediate();
 				if (im != null && !queue.contains(im)) {
-					updateTargetStack(b, im, stack);
+					update_target_stack(b, im, stack);
 //					enqueue.addFirst(im);
 				}
 
@@ -169,7 +169,7 @@ public class StatementGenerator implements Opcodes {
 		}
 	} 
 
-	void updateTargetStack(BasicBlock b, BasicBlock target, ExpressionStack stack) {
+	void update_target_stack(BasicBlock b, BasicBlock target, ExpressionStack stack) {
 		if(updatedStacks.contains(b)) {
 			save_stack();
 		}
@@ -185,7 +185,7 @@ public class StatementGenerator implements Opcodes {
 			updatedStacks.add(target);
 
 			queue.addLast(target);
-		} else if (!canSucceed(target.getInputStack(), stack)) {
+		} else if (!can_succeed(target.getInputStack(), stack)) {
 			// if the targets input stack is finalised and
 			// the new stack cannot merge into it, then there
 			// is an error in the bytecode (verifier error).
@@ -195,7 +195,7 @@ public class StatementGenerator implements Opcodes {
 		}
 	}
 
-	boolean canSucceed(ExpressionStack s, ExpressionStack succ) {
+	boolean can_succeed(ExpressionStack s, ExpressionStack succ) {
 		// quick check stack heights
 		if (s.height() != succ.height()) {
 			return false;
@@ -584,7 +584,7 @@ public class StatementGenerator implements Opcodes {
 	Type assign_stack(int index, Expression expr) {
 		Type type = expr.getType();
 		// VarExpression var = new VarExpression(index, type, true);
-		VarExpression var = createVarExpression(index, type, true);
+		VarExpression var = _var_expr(index, type, true);
 		CopyVarStatement stmt = new CopyVarStatement(var, expr);
 		addStmt(stmt);
 		return type;
@@ -593,11 +593,11 @@ public class StatementGenerator implements Opcodes {
 	Expression load_stack(int index, Type type) {
 //		return root.getLocals().get(index, true);
 		// return new VarExpression(index, type, true);
-		return createVarExpression(index, type, true);
+		return _var_expr(index, type, true);
 	}
 	
 	void _jump_compare(BasicBlock target, ComparisonType type, Expression left, Expression right) {
-		updateTargetStack(currentBlock, target, currentStack);
+		update_target_stack(currentBlock, target, currentStack);
 		addStmt(new ConditionalJumpStatement(left, right, root.getHeaders().get(target), type));
 	}
 	
@@ -622,7 +622,7 @@ public class StatementGenerator implements Opcodes {
 	}
 
 	void _jump_uncond(BasicBlock target) {
-		updateTargetStack(currentBlock, target, currentStack);
+		update_target_stack(currentBlock, target, currentStack);
 		addStmt(new UnconditionalJumpStatement(root.getHeaders().get(target)));
 	}
 
@@ -1085,11 +1085,11 @@ public class StatementGenerator implements Opcodes {
 		
 		Expression expr = pop();
 		for (Entry<Integer, BasicBlock> e : targets.entrySet()) {
-			updateTargetStack(currentBlock, e.getValue(), currentStack);
+			update_target_stack(currentBlock, e.getValue(), currentStack);
 			targets2.put(e.getKey(), root.getHeaders().get(e.getValue()));
 		}
 		
-		updateTargetStack(currentBlock, dflt, currentStack);
+		update_target_stack(currentBlock, dflt, currentStack);
 		
 		addStmt(new SwitchStatement(expr, targets2, root.getHeaders().get(dflt)));
 	}
@@ -1126,12 +1126,12 @@ public class StatementGenerator implements Opcodes {
 		Expression expr = pop();
 //		VarExpression var = new VarExpression(index, type, false);
 //		VarExpression var = root.getLocals().get(index);
-		VarExpression var = createVarExpression(index, type, false);
+		VarExpression var = _var_expr(index, type, false);
 		addStmt(new CopyVarStatement(var, expr));
 	}
 
 	void _load(int index, Type type) {
-		VarExpression e = createVarExpression(index, type, false);
+		VarExpression e = _var_expr(index, type, false);
 		assign_stack(currentStack.height(), e);
 		push(e);
 //		System.out.printf("   Visiting load var%d, height=%d.%n", index, currentStack.height());
@@ -1145,13 +1145,13 @@ public class StatementGenerator implements Opcodes {
 	}
 
 	void _inc(int index, int amt) {
-		VarExpression load = createVarExpression(index, Type.INT_TYPE, false);
+		VarExpression load = _var_expr(index, Type.INT_TYPE, false);
 		ArithmeticExpression inc = new ArithmeticExpression(new ConstantExpression(amt), load, Operator.ADD);
-		VarExpression var = createVarExpression(index, Type.INT_TYPE, false);
+		VarExpression var = _var_expr(index, Type.INT_TYPE, false);
 		addStmt(new CopyVarStatement(var, inc));
 	}
 	
-	VarExpression createVarExpression(int index, Type type, boolean isStack) {
+	VarExpression _var_expr(int index, Type type, boolean isStack) {
 		return new VarExpression(root.getLocals().get(index, isStack), type);
 	}
 }
