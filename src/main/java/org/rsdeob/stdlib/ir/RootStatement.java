@@ -20,14 +20,12 @@ import org.rsdeob.stdlib.ir.transform.impl.CodeAnalytics;
 
 public class RootStatement extends Statement {
 
-	private final MethodNode method;
 	private final LocalsHandler locals;
 	private final Map<BasicBlock, HeaderStatement> headers;
 	private final AtomicInteger maxLocals;
 	
-	public RootStatement(MethodNode method) {
-		this.method = method;
-		maxLocals = new AtomicInteger(method.maxLocals + 1);
+	public RootStatement(int maxL) {
+		maxLocals = new AtomicInteger(maxL + 1);
 		locals = new LocalsHandler(maxLocals);
 		headers = new HashMap<>();
 	}
@@ -55,10 +53,6 @@ public class RootStatement extends Statement {
 	
 	public LocalsHandler getLocals() {
 		return locals;
-	}
-
-	public MethodNode getMethod() {
-		return method;
 	}
 	
 	@Override
