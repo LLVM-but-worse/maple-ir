@@ -1,4 +1,4 @@
-package org.rsdeob.stdlib.ir.stat.header;
+package org.rsdeob.stdlib.ir.header;
 
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
