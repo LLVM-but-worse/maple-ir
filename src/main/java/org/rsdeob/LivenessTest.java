@@ -83,16 +83,12 @@ public class LivenessTest {
 			change += prop.process(defAnalyser, useAnalyser, la);
 			CodeAnalytics analytics = new CodeAnalytics(root, cfg, graph, defAnalyser, la, useAnalyser);
 			change += DeadAssignmentEliminator.run(analytics);
+			NewObjectInitialiserAggregator.run(analytics);
+			
 			if(change <= 0) {
 				break;
 			}
 		}
-		
-		DefinitionAnalyser defAnalyser = new DefinitionAnalyser(graph, m);
-		LivenessAnalyser la = new LivenessAnalyser(graph);
-		UsesAnalyser useAnalyser = new UsesAnalyser(graph, defAnalyser);
-		CodeAnalytics analytics = new CodeAnalytics(root, cfg, graph, defAnalyser, la, useAnalyser);
-		NewObjectInitialiserAggregator.run(analytics);
 	}
 	
 	void test1() {

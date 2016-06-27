@@ -331,7 +331,7 @@ public class CopyPropagator {
 			for(CopyVarStatement cvs : varRhss) {
 				Map<Local, Set<CopyVarStatement>> pointDefs = definitions.in(cvs);
 				Set<CopyVarStatement> defVarDefs = pointDefs.get(rhsLocal);
-				if(defVarDefs.size() != 1) {
+				if(defVarDefs == null || defVarDefs.size() != 1) {
 					return;
 				}
 				

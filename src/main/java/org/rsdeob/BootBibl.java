@@ -56,7 +56,7 @@ public class BootBibl implements Opcodes {
 
 			
 			if(!m.toString().equals("a/a/f/a.<init>()V")) {
-				continue;
+//				continue;
 			}
 			
 			System.out.println("\n\n\nProcessing " + m + ": ");
