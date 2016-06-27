@@ -1,11 +1,10 @@
 package org.rsdeob;
 
 import org.objectweb.asm.Type;
-import org.rsdeob.stdlib.cfg.ir.expr.ArithmeticExpression.Operator;
+import org.rsdeob.stdlib.ir.expr.ArithmeticExpression.Operator;
 
 import static org.objectweb.asm.Type.*;
-import static org.rsdeob.stdlib.cfg.ir.expr.ArithmeticExpression.Operator.REM;
-import static org.rsdeob.stdlib.cfg.ir.expr.ArithmeticExpression.Operator.XOR;
+import static org.rsdeob.stdlib.ir.expr.ArithmeticExpression.Operator.*;
 
 /**
  * Java used "have no useful dynamic casting"! It's super effective! ecx's blood pressure rose!

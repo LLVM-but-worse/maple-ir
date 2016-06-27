@@ -16,11 +16,11 @@ import org.rsdeob.stdlib.cfg.edge.DefaultSwitchEdge;
 import org.rsdeob.stdlib.cfg.edge.FlowEdge;
 import org.rsdeob.stdlib.cfg.edge.JumpEdge;
 import org.rsdeob.stdlib.cfg.edge.SwitchEdge;
-import org.rsdeob.stdlib.cfg.ir.StatementGraph;
-import org.rsdeob.stdlib.cfg.ir.stat.Statement;
 import org.rsdeob.stdlib.cfg.util.ControlFlowGraphDeobfuscator.SuperNode;
 import org.rsdeob.stdlib.cfg.util.ControlFlowGraphDeobfuscator.SuperNodeList;
 import org.rsdeob.stdlib.collections.graph.flow.ExceptionRange;
+import org.rsdeob.stdlib.ir.StatementGraph;
+import org.rsdeob.stdlib.ir.stat.Statement;
 
 public class GraphUtils {
 
