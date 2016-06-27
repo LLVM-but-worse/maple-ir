@@ -1,12 +1,12 @@
 package org.rsdeob.stdlib.ir.transform;
 
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.Map;
-
 import org.rsdeob.stdlib.cfg.edge.FlowEdge;
 import org.rsdeob.stdlib.collections.graph.FastGraphVertex;
 import org.rsdeob.stdlib.collections.graph.flow.FlowGraph;
+
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.Map;
 
 public abstract class DataAnalyser<N extends FastGraphVertex, E extends FlowEdge<N>, S> {
 	
@@ -45,7 +45,7 @@ public abstract class DataAnalyser<N extends FastGraphVertex, E extends FlowEdge
 		return graph;
 	}
 
-	public abstract void queue(N n);
+	public abstract void enqueue(N n);
 	
 	protected abstract void updateImpl(N n);
 	
@@ -88,5 +88,5 @@ public abstract class DataAnalyser<N extends FastGraphVertex, E extends FlowEdge
 		copy(result, mainBranch);
 	}
 	
-	protected abstract void propagate(N n, S currentOut, S currentIn);
+	protected abstract void apply(N n, S currentOut, S currentIn);
 }
