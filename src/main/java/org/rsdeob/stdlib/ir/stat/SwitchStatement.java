@@ -9,7 +9,7 @@ import org.objectweb.asm.Type;
 import org.rsdeob.stdlib.cfg.util.TabbedStringWriter;
 import org.rsdeob.stdlib.cfg.util.TypeUtils;
 import org.rsdeob.stdlib.ir.expr.Expression;
-import org.rsdeob.stdlib.ir.stat.header.HeaderStatement;
+import org.rsdeob.stdlib.ir.header.HeaderStatement;
 import org.rsdeob.stdlib.ir.transform.impl.CodeAnalytics;
 
 public class SwitchStatement extends Statement {

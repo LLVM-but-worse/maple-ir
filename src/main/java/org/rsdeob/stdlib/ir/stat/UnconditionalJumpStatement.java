@@ -2,7 +2,7 @@ package org.rsdeob.stdlib.ir.stat;
 
 import org.objectweb.asm.MethodVisitor;
 import org.rsdeob.stdlib.cfg.util.TabbedStringWriter;
-import org.rsdeob.stdlib.ir.stat.header.HeaderStatement;
+import org.rsdeob.stdlib.ir.header.HeaderStatement;
 import org.rsdeob.stdlib.ir.transform.impl.CodeAnalytics;
 
 import com.sun.xml.internal.ws.org.objectweb.asm.Opcodes;

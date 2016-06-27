@@ -13,9 +13,9 @@ import org.rsdeob.stdlib.cfg.BasicBlock;
 import org.rsdeob.stdlib.cfg.util.TabbedStringWriter;
 import org.rsdeob.stdlib.collections.graph.flow.ExceptionRange;
 import org.rsdeob.stdlib.ir.expr.VarExpression;
+import org.rsdeob.stdlib.ir.header.HeaderStatement;
+import org.rsdeob.stdlib.ir.header.StatementHeaderStatement;
 import org.rsdeob.stdlib.ir.stat.Statement;
-import org.rsdeob.stdlib.ir.stat.header.HeaderStatement;
-import org.rsdeob.stdlib.ir.stat.header.StatementHeaderStatement;
 import org.rsdeob.stdlib.ir.transform.impl.CodeAnalytics;
 
 public class RootStatement extends Statement {
