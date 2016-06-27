@@ -94,7 +94,7 @@ public class UsesAnalyser {
 						} catch(Exception e) {
 //							System.out.println(graph);
 //							System.out.println(UsesAnalyser.this.root);
-							System.out.println("at " + stmt);
+							System.out.println("at " + stmt.getId() + " " + stmt);
 							System.out.println("  > " + s);
 //							
 //							System.out.println(graph.getRanges().size());

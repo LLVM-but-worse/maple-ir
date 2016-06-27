@@ -247,9 +247,9 @@ public class StatementGenerator implements Opcodes {
 
 		for (AbstractInsnNode ain : b.getInsns()) {
 			int opcode = ain.opcode();
-			if(opcode != -1) {
-//				  System.out.println("Executing " + Printer.OPCODES[ain.opcode()]);
-//				  System.out.println(" Prestack : " + stack);
+			if(opcode != -1 && Statement.ID_COUNTER < 60) {
+				  System.out.println("Executing " + Printer.OPCODES[ain.opcode()]);
+				  System.out.println(" Prestack : " + stack);
 			}
 			switch (opcode) {
 				case -1: {
@@ -565,9 +565,12 @@ public class StatementGenerator implements Opcodes {
 					break;
 			}
 			
-//			 System.out.println(" Poststack: " + stack);
-//			 System.out.println("   Added stmt: " + getLastStatement(currentBlock));
-//			 System.out.println();
+			if(Statement.ID_COUNTER < 60) {
+				 System.out.println(" Poststack: " + stack);
+				 System.out.println("   Added stmt: " + getLastStatement(currentBlock));
+				 System.out.println();
+			}
+			
 			 /*System.out.println(" Block stmts: ");
 			 for(Statement stmt : b.getStatements()) {
 				 System.out.println("   " + stmt);
@@ -1130,8 +1133,8 @@ public class StatementGenerator implements Opcodes {
 
 	void _load(int index, Type type) {
 		VarExpression e = createVarExpression(index, type, false);
-		push(e);
 		assign_stack(currentStack.height(), e);
+		push(e);
 //		System.out.printf("   Visiting load var%d, height=%d.%n", index, currentStack.height());
 //		VarExpression e1 = createVarExpression(index, type, false);
 //		assign_stack(currentStack.height(), e1);
