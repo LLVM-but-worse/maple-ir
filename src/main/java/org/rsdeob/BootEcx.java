@@ -37,10 +37,10 @@ import java.util.jar.JarOutputStream;
 
 @SuppressWarnings("Duplicates")
 public class BootEcx implements Opcodes {
-	public static final File GRAPH_FOLDER = new File("C://Users//Bibl//Desktop//cfg testing");
+	public static final File GRAPH_FOLDER = new File("cfg testing");
 
 	public static void main(String[] args) throws Exception {
-		InputStream i = new FileInputStream(new File("res/uc.class"));
+		InputStream i = new FileInputStream(new File("res/uc_inline.class"));
 		ClassReader cr = new ClassReader(i);
 		ClassNode cn = new ClassNode();
 		cr.accept(new ClassVisitor(Opcodes.ASM5, cn) {
@@ -68,10 +68,6 @@ public class BootEcx implements Opcodes {
 			ControlFlowGraphBuilder builder = new ControlFlowGraphBuilder(m);
 			ControlFlowGraph cfg = builder.build();
 
-			System.out.println("Cfg:");
-			System.out.println(cfg);
-			System.out.println();
-
 			ControlFlowGraphDeobfuscator deobber = new ControlFlowGraphDeobfuscator();
 			List<BasicBlock> blocks = deobber.deobfuscate(cfg);
 			deobber.removeEmptyBlocks(cfg, blocks);
@@ -79,6 +75,10 @@ public class BootEcx implements Opcodes {
 
 //			GraphUtils.output(cfg, blocks, GRAPH_FOLDER, "");
 //			System.out.println(cfg);
+
+			System.out.println("Cfg:");
+			System.out.println(cfg);
+			System.out.println();
 
 			System.out.println("Execution log of " + m + ":");
 			StatementGenerator gen = new StatementGenerator(cfg);
@@ -108,7 +108,7 @@ public class BootEcx implements Opcodes {
 			System.out.println("============================================================\n\n");
 		}
 
-		ClassWriter clazz = new ClassWriter(0);
+		ClassWriter clazz = new ClassWriter(ClassWriter.COMPUTE_FRAMES);
 		cn.accept(clazz);
 		byte[] saved = clazz.toByteArray();
 		FileOutputStream out = new FileOutputStream(new File("out/testclass.class"));
