@@ -108,7 +108,7 @@ public class BootEcx implements Opcodes {
 			System.out.println("============================================================\n\n");
 		}
 
-		ClassWriter clazz = new ClassWriter(ClassWriter.COMPUTE_FRAMES);
+		ClassWriter clazz = new ClassWriter(0);
 		cn.accept(clazz);
 		byte[] saved = clazz.toByteArray();
 		FileOutputStream out = new FileOutputStream(new File("out/testclass.class"));
