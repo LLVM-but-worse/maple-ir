@@ -11,11 +11,11 @@ import org.rsdeob.stdlib.cfg.util.TypeUtils.ArrayType;
 import org.rsdeob.stdlib.ir.expr.*;
 import org.rsdeob.stdlib.ir.expr.ArithmeticExpression.Operator;
 import org.rsdeob.stdlib.ir.expr.ComparisonExpression.ValueComparisonType;
+import org.rsdeob.stdlib.ir.header.BlockHeaderStatement;
+import org.rsdeob.stdlib.ir.header.HeaderStatement;
 import org.rsdeob.stdlib.ir.stat.*;
 import org.rsdeob.stdlib.ir.stat.ConditionalJumpStatement.ComparisonType;
 import org.rsdeob.stdlib.ir.stat.MonitorStatement.MonitorMode;
-import org.rsdeob.stdlib.ir.stat.header.BlockHeaderStatement;
-import org.rsdeob.stdlib.ir.stat.header.HeaderStatement;
 
 import java.util.HashSet;
 import java.util.LinkedHashMap;
