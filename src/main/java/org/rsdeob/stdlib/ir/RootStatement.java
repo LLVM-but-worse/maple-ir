@@ -12,11 +12,9 @@ import org.rsdeob.stdlib.ir.transform.impl.CodeAnalytics;
 public class RootStatement extends Statement {
 
 	private final LocalsHandler locals;
-	private final AtomicInteger maxLocals;
 	
 	public RootStatement(int maxL) {
-		maxLocals = new AtomicInteger(maxL + 1);
-		locals = new LocalsHandler(maxLocals);
+		locals = new LocalsHandler(maxL + 1);
 	}
 
 	public void updateBase() {
@@ -32,8 +30,8 @@ public class RootStatement extends Statement {
 				return s;
 			}
 		}.visit();
-		maxLocals.set(max.get() + 1);
-		System.out.println("New maxlocals: " + maxLocals.get());
+		locals.setBase(max.get() + 1);
+		System.out.println("New maxlocals: " + locals.getBase());
 	}
 	
 	public LocalsHandler getLocals() {
