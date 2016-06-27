@@ -39,12 +39,12 @@ public abstract class Statement implements FastGraphVertex {
 		return size;
 	}
 
-	private boolean shouldExpand() {
+	protected boolean shouldExpand() {
 		double max = children.length * 0.50;
 		return (double) size() > max;
 	}
 	
-	private void expand() { 
+	protected void expand() { 
 		if (children.length >= Integer.MAX_VALUE)
 			throw new UnsupportedOperationException();
 		long len = children.length * 2;
@@ -55,7 +55,7 @@ public abstract class Statement implements FastGraphVertex {
 		children = newArray;
 	}
 	
-	private void writeAt(int index, Statement s) {
+	protected void writeAt(int index, Statement s) {
 		Statement prev = children[index];
 		children[index] = s;
 		
