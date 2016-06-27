@@ -14,7 +14,6 @@ import org.rsdeob.stdlib.cfg.BasicBlock;
 import org.rsdeob.stdlib.cfg.ControlFlowGraph;
 import org.rsdeob.stdlib.cfg.util.TypeUtils;
 import org.rsdeob.stdlib.cfg.util.TypeUtils.ArrayType;
-import org.rsdeob.stdlib.collections.ExpressionStack;
 import org.rsdeob.stdlib.ir.expr.*;
 import org.rsdeob.stdlib.ir.expr.ArithmeticExpression.Operator;
 import org.rsdeob.stdlib.ir.expr.ComparisonExpression.ValueComparisonType;
