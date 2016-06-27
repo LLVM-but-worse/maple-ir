@@ -11,13 +11,13 @@ import org.objectweb.asm.tree.MethodNode;
 import org.rsdeob.BootBibl.C2;
 import org.rsdeob.stdlib.cfg.ControlFlowGraph;
 import org.rsdeob.stdlib.cfg.ControlFlowGraphBuilder;
-import org.rsdeob.stdlib.cfg.ir.Local;
-import org.rsdeob.stdlib.cfg.ir.RootStatement;
-import org.rsdeob.stdlib.cfg.ir.StatementGenerator;
-import org.rsdeob.stdlib.cfg.ir.StatementGraph;
-import org.rsdeob.stdlib.cfg.ir.StatementGraphBuilder;
-import org.rsdeob.stdlib.cfg.ir.stat.Statement;
-import org.rsdeob.stdlib.cfg.ir.transform.impl.LivenessAnalyser;
+import org.rsdeob.stdlib.ir.Local;
+import org.rsdeob.stdlib.ir.RootStatement;
+import org.rsdeob.stdlib.ir.StatementGenerator;
+import org.rsdeob.stdlib.ir.StatementGraph;
+import org.rsdeob.stdlib.ir.StatementGraphBuilder;
+import org.rsdeob.stdlib.ir.stat.Statement;
+import org.rsdeob.stdlib.ir.transform.impl.LivenessAnalyser;
 
 public class DataFlowAnalyserBoot {
 

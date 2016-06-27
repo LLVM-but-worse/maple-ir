@@ -8,19 +8,19 @@ import org.objectweb.asm.tree.MethodNode;
 import org.rsdeob.stdlib.cfg.BasicBlock;
 import org.rsdeob.stdlib.cfg.ControlFlowGraph;
 import org.rsdeob.stdlib.cfg.ControlFlowGraphBuilder;
-import org.rsdeob.stdlib.cfg.ir.RootStatement;
-import org.rsdeob.stdlib.cfg.ir.StatementGenerator;
-import org.rsdeob.stdlib.cfg.ir.StatementGraph;
-import org.rsdeob.stdlib.cfg.ir.StatementGraphBuilder;
-import org.rsdeob.stdlib.cfg.ir.transform.impl.CodeAnalytics;
-import org.rsdeob.stdlib.cfg.ir.transform.impl.CopyPropagator;
-import org.rsdeob.stdlib.cfg.ir.transform.impl.DeadAssignmentEliminator;
-import org.rsdeob.stdlib.cfg.ir.transform.impl.DefinitionAnalyser;
-import org.rsdeob.stdlib.cfg.ir.transform.impl.LivenessAnalyser;
-import org.rsdeob.stdlib.cfg.ir.transform.impl.NewObjectInitialiserAggregator;
-import org.rsdeob.stdlib.cfg.ir.transform.impl.UsesAnalyser;
 import org.rsdeob.stdlib.cfg.util.ControlFlowGraphDeobfuscator;
 import org.rsdeob.stdlib.cfg.util.GraphUtils;
+import org.rsdeob.stdlib.ir.RootStatement;
+import org.rsdeob.stdlib.ir.StatementGenerator;
+import org.rsdeob.stdlib.ir.StatementGraph;
+import org.rsdeob.stdlib.ir.StatementGraphBuilder;
+import org.rsdeob.stdlib.ir.transform.impl.CodeAnalytics;
+import org.rsdeob.stdlib.ir.transform.impl.CopyPropagator;
+import org.rsdeob.stdlib.ir.transform.impl.DeadAssignmentEliminator;
+import org.rsdeob.stdlib.ir.transform.impl.DefinitionAnalyser;
+import org.rsdeob.stdlib.ir.transform.impl.LivenessAnalyser;
+import org.rsdeob.stdlib.ir.transform.impl.NewObjectInitialiserAggregator;
+import org.rsdeob.stdlib.ir.transform.impl.UsesAnalyser;
 
 public class LivenessTest {
 

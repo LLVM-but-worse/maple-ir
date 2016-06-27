@@ -35,8 +35,8 @@ import java.util.List;
 
 import org.objectweb.asm.*;
 import org.objectweb.asm.commons.cfg.query.InsnQuery;
-import org.rsdeob.stdlib.cfg.ir.RootStatement;
 import org.rsdeob.stdlib.collections.graph.FastGraphVertex;
+import org.rsdeob.stdlib.ir.RootStatement;
 
 /**
  * A node that represents a method.
