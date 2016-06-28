@@ -39,12 +39,12 @@ public abstract class Statement implements FastGraphVertex {
 		return size;
 	}
 
-	private boolean shouldExpand() {
+	protected boolean shouldExpand() {
 		double max = children.length * 0.50;
 		return (double) size() > max;
 	}
 	
-	private void expand() { 
+	protected void expand() { 
 		if (children.length >= Integer.MAX_VALUE)
 			throw new UnsupportedOperationException();
 		long len = children.length * 2;
@@ -55,7 +55,7 @@ public abstract class Statement implements FastGraphVertex {
 		children = newArray;
 	}
 	
-	private void writeAt(int index, Statement s) {
+	protected Statement writeAt(int index, Statement s) {
 		Statement prev = children[index];
 		children[index] = s;
 		
@@ -67,6 +67,8 @@ public abstract class Statement implements FastGraphVertex {
 				s.parents.add(this);
 			}
 		}
+		
+		return prev;
 	}
 	
 	public Statement read() {
@@ -132,15 +134,18 @@ public abstract class Statement implements FastGraphVertex {
 		}
 	}
 
-	public void overwrite(Statement node) {
+	public Statement overwrite(Statement node) {
 		if(shouldExpand()) {
 			expand();
 		}
 		
 		if (children[ptr] != node) {
-			writeAt(ptr, node);
+			Statement prev = writeAt(ptr, node);
 			onChildUpdated(ptr);
+			return prev;
 		}
+		
+		return null;
 	}
 
 	public Statement overwrite(Statement node, int newPtr) {
@@ -150,13 +155,15 @@ public abstract class Statement implements FastGraphVertex {
 		
 		if (newPtr < 0 || newPtr >= children.length || (newPtr > 0 && children[newPtr - 1] == null))
 			throw new ArrayIndexOutOfBoundsException(String.format("ptr=%d, len=%d, addr=%d", ptr, children.length, newPtr));
-		Statement oldNode = null;
+		
 		if (children[newPtr] != node) {
-			oldNode = children[newPtr];
+			Statement prev = children[newPtr];
 			writeAt(newPtr, node);
 			onChildUpdated(newPtr);
+			return prev;
 		}
-		return oldNode;
+		
+		return null;
 	}
 
 	public int indexOf(Statement s) {
