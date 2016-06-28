@@ -13,42 +13,44 @@ public abstract class ForwardsFlowAnalyser<N extends FastGraphVertex, E extends 
 		super(graph);
 	}
 	
-//	@Override
-//	public void removeImpl(N n) {
-//		for(E e : graph.getEdges(n)) {
-//			N succ = e.dst;
-//			enqueue.add(succ);
-//			updateImpl(succ);
-//		}
-//	}
-	
 	@Override
-	public void remove(N n) {
-		super.remove(n);
+	protected void init() {
+		super.init();
 		
+		for(N entry : graph.getEntries()) {
+			in.put(entry, newEntryState());
+			queue.add(entry);
+		}
+	}
+
+	@Override
+	public void removed(N n) {
+		super.removed(n);
 		enqueue(n);
 	}
-	
+
 	@Override
-	public void updateImpl(N n) {
-		replaceImpl(n, n);
+	public void updated(N n) {
+		super.updated(n);
+		replaced(n, n);
 	}
-	
+
 	@Override
-	public void replaceImpl(N old, N n) {
+	public void replaced(N old, N n) {
+		super.replaced(old, n);
 		if(graph.getEntries().contains(n)) {
 			in.put(n, newEntryState());
 			out.put(n, newState());
 		} else {
 			in.put(n, newState());
 			out.put(n, newState());
-			
+
 			// TODO: which one?
 			enqueue(old);
 			enqueue(n);
 		}
 	}
-	
+
 	@Override
 	public void enqueue(N n) {
 		Set<E> edgeSet = graph.getReverseEdges(n);
@@ -61,20 +63,9 @@ public abstract class ForwardsFlowAnalyser<N extends FastGraphVertex, E extends 
 			}
 		}
 	}
-	
-	@Override
-	protected void init() {
-		super.init();
-		
-		for(N entry : graph.getEntries()) {
-			in.put(entry, newEntryState());
-			queue.add(entry);
-		}
-	}
 
-	// FIXME: don't let outside classes call this
 	@Override
-	public void processQueue() {
+	public void commit() {
 		while(!queue.isEmpty()) {
 			N n = queue.iterator().next();
 			queue.remove(n);

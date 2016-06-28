@@ -1,25 +1,14 @@
 package org.rsdeob.stdlib.ir.transform.impl;
 
-import java.util.*;
-import java.util.concurrent.atomic.AtomicBoolean;
-
 import org.rsdeob.stdlib.ir.Local;
 import org.rsdeob.stdlib.ir.RootStatement;
 import org.rsdeob.stdlib.ir.StatementGraph;
 import org.rsdeob.stdlib.ir.StatementVisitor;
-import org.rsdeob.stdlib.ir.expr.ArrayLoadExpression;
-import org.rsdeob.stdlib.ir.expr.ConstantExpression;
-import org.rsdeob.stdlib.ir.expr.Expression;
-import org.rsdeob.stdlib.ir.expr.FieldLoadExpression;
-import org.rsdeob.stdlib.ir.expr.InvocationExpression;
-import org.rsdeob.stdlib.ir.expr.VarExpression;
-import org.rsdeob.stdlib.ir.stat.ArrayStoreStatement;
-import org.rsdeob.stdlib.ir.stat.CopyVarStatement;
-import org.rsdeob.stdlib.ir.stat.FieldStoreStatement;
-import org.rsdeob.stdlib.ir.stat.MonitorStatement;
-import org.rsdeob.stdlib.ir.stat.PopStatement;
-import org.rsdeob.stdlib.ir.stat.Statement;
-import org.rsdeob.stdlib.ir.stat.SyntheticStatement;
+import org.rsdeob.stdlib.ir.expr.*;
+import org.rsdeob.stdlib.ir.stat.*;
+
+import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class CopyPropagator {
 	
@@ -63,8 +52,8 @@ public class CopyPropagator {
 				if(stmt instanceof PopStatement) {
 					Expression expr = ((PopStatement) stmt).getExpression();
 					if(expr instanceof ConstantExpression || expr instanceof VarExpression) {
-						definitions.remove(stmt);
-						liveness.remove(stmt);
+						definitions.removed(stmt);
+						liveness.removed(stmt);
 						graph.excavate(stmt);
 						root.delete(root.indexOf(stmt));
 						definitions.processQueue();
@@ -271,18 +260,18 @@ public class CopyPropagator {
 				if (canRemoveDefinition) {
 					CopyPropagator.this.root.delete(CopyPropagator.this.root.indexOf(localDef));
 
-					definitions.remove(localDef);
-					liveness.remove(localDef);
+					definitions.removed(localDef);
+					liveness.removed(localDef);
 					if (!graph.excavate(localDef)) {
 						// if we can't remove the def here,
 						// then readd the thing
-						definitions.update(localDef);
-						liveness.update(localDef);
+						definitions.updated(localDef);
+						liveness.updated(localDef);
 					}
 					uses.remove(localDef);
 				}
-				definitions.update(root);
-				liveness.update(root);
+				definitions.updated(root);
+				liveness.updated(root);
 
 				if (canRemoveDefinition) {
 					uses.remove(localDef);
@@ -357,8 +346,8 @@ public class CopyPropagator {
 				Statement r = getCurrent(getDepth());
 				VarExpression expr = new VarExpression(rhsLocal, ((VarExpression) use).getType());
 				r.overwrite(expr, r.indexOf(use));
-				definitions.update(root);
-				liveness.update(root);
+				definitions.updated(root);
+				liveness.updated(root);
 				definitions.processQueue();
 				liveness.processQueue();
 				uses.update(root);
