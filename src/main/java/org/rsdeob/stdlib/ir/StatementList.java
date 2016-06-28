@@ -21,7 +21,15 @@ public class StatementList implements Iterable<Statement> {
 		locals = new LocalsHandler(maxL + 1);
 		listeners = new CopyOnWriteArrayList<>();
 	}
-	
+
+	public void registerListener(ICodeListener<Statement> listener) {
+		listeners.add(listener);
+	}
+
+	public void clearListeners() {
+		listeners.clear();
+	}
+
 	public List<ICodeListener<Statement>> getListeners() {
 		return new ArrayList<>(listeners);
 	}
@@ -61,6 +69,11 @@ public class StatementList implements Iterable<Statement> {
 		for(ICodeListener<Statement> l : listeners)
 			l.added(s);
 		return ret;
+	}
+
+	public void onUpdate(Statement stmt) {
+		for(ICodeListener<Statement> l : listeners)
+			l.updated(stmt);
 	}
 
 	public void commit() {

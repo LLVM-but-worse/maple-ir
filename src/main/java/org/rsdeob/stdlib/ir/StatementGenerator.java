@@ -45,7 +45,7 @@ public class StatementGenerator implements Opcodes {
 	Set<BasicBlock> analysedBlocks;
 	LinkedList<BasicBlock> queue;
 	Map<BasicBlock, BlockHeaderStatement> headers;
-	StatementList root;
+	StatementList stmtList;
 	int stackBase;
 
 	transient volatile BasicBlock currentBlock;
@@ -64,7 +64,7 @@ public class StatementGenerator implements Opcodes {
 	public void init(int base) {
 		Statement.ID_COUNTER = 0;
 		stackBase = base;
-		root = new StatementList(m.maxLocals);
+		stmtList = new StatementList(m.maxLocals);
 		
 		for (BasicBlock b : graph.vertices()) {
 			headers.put(b, new BlockHeaderStatement(b));
@@ -100,12 +100,12 @@ public class StatementGenerator implements Opcodes {
 
 	public StatementList buildRoot() {
 		for (BasicBlock b : graph.vertices()) {
-			root.add(headers.get(b));
+			stmtList.add(headers.get(b));
 			for (Statement n : b.getStatements()) {
-				root.add(n);
+				stmtList.add(n);
 			}
 		}
-		return root;
+		return stmtList;
 	}
 
 	void addStmt(Statement stmt) {
@@ -1151,6 +1151,6 @@ public class StatementGenerator implements Opcodes {
 	}
 	
 	VarExpression _var_expr(int index, Type type, boolean isStack) {
-		return new VarExpression(root.getLocals().get(index, isStack), type);
+		return new VarExpression(stmtList.getLocals().get(index, isStack), type);
 	}
 }

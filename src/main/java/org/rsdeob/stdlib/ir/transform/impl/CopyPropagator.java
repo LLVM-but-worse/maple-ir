@@ -1,7 +1,6 @@
 package org.rsdeob.stdlib.ir.transform.impl;
 
 import org.rsdeob.stdlib.ir.Local;
-import org.rsdeob.stdlib.ir.StatementGraph;
 import org.rsdeob.stdlib.ir.StatementList;
 import org.rsdeob.stdlib.ir.StatementVisitor;
 import org.rsdeob.stdlib.ir.expr.*;
@@ -13,20 +12,17 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class CopyPropagator {
 
 	// TODO: refactor to use CodeAnalytics, and implement ICodeListener to delegate to analytics
-	private final StatementList root;
-	private final StatementGraph graph;
 	private final Map<Statement, SyntheticStatement> synthetics;
-	private DefinitionAnalyser definitions;
-	private LivenessAnalyser liveness;
-	private UsesAnalyser uses;
 	private int changedStmts;
+	private CodeAnalytics analytics;
+	private StatementList stmtList;
 	
-	public CopyPropagator(StatementList root, StatementGraph graph) {
-		this.root = root;
-		this.graph = graph;
+	public CopyPropagator(StatementList stmtList, CodeAnalytics analytics) {
 		synthetics = new HashMap<>();
-		
-		for(Statement stmt : root) {
+		this.stmtList = stmtList;
+		this.analytics = analytics;
+
+		for(Statement stmt : this.stmtList) {
 			if(stmt instanceof SyntheticStatement) {
 				synthetics.put(((SyntheticStatement) stmt).getStatement(), (SyntheticStatement) stmt);
 			}
@@ -38,7 +34,7 @@ public class CopyPropagator {
 		while(true) {
 			AtomicBoolean change = new AtomicBoolean(false);
 			
-			List<Statement> list = new ArrayList<>(graph.vertices());
+			List<Statement> list = new ArrayList<>(analytics.stmtGraph.vertices());
 			Collections.sort(list, new Comparator<Statement>() {
 				@Override
 				public int compare(Statement o1, Statement o2) {
@@ -52,13 +48,8 @@ public class CopyPropagator {
 				if(stmt instanceof PopStatement) {
 					Expression expr = ((PopStatement) stmt).getExpression();
 					if(expr instanceof ConstantExpression || expr instanceof VarExpression) {
-						definitions.removed(stmt);
-						liveness.removed(stmt);
-						graph.excavate(stmt);
-						root.remove(stmt);
-						definitions.commit();
-						liveness.commit();
-						uses.removed(stmt);
+						stmtList.remove(stmt);
+						stmtList.commit();
 						continue;
 					}
 				}
@@ -78,10 +69,7 @@ public class CopyPropagator {
 		}
 	}
 	
-	public int process(DefinitionAnalyser definitions, UsesAnalyser uses, LivenessAnalyser liveness) {
-		this.definitions = definitions;
-		this.uses = uses;
-		this.liveness = liveness;
+	public int process() {
 		processImpl();
 		return changedStmts;
 	}
@@ -145,7 +133,7 @@ public class CopyPropagator {
 		// now using these collected variables and
 		// rules we can go through from def to rhs
 		// to check if anything is being overwritten.
-		Collection<Statement> path = graph.wanderAllTrails(real, use);
+		Collection<Statement> path = analytics.stmtGraph.wanderAllTrails(real, use);
 		if(path == null) {
 			return null;
 		}
@@ -216,7 +204,7 @@ public class CopyPropagator {
 			return null;
 		}
 		
-		if(uses.getUses(localDef).size() > 1) {
+		if(analytics.uses.getUses(localDef).size() > 1) {
 			if(rhs.canChangeLogic() || rhs.canChangeFlow()) {
 				return null;
 			}
@@ -233,7 +221,7 @@ public class CopyPropagator {
 
 		public Transformer(Statement stmt) {
 			super(stmt);
-			reachingDefs = definitions.in(stmt);
+			reachingDefs = analytics.definitions.in(stmt);
 		}
 		
 		private void transformSingleDef(CopyVarStatement localDef, VarExpression use, Local local) {
@@ -256,30 +244,12 @@ public class CopyPropagator {
 				change = true;
 				r.overwrite(expr, r.indexOf(use));
 
-				boolean canRemoveDefinition = uses.getUses(localDef).size() <= 1;
-				if (canRemoveDefinition) {
-					CopyPropagator.this.root.remove(localDef);
+				boolean canRemoveDefinition = analytics.uses.getUses(localDef).size() <= 1;
+				if (canRemoveDefinition)
+					stmtList.remove(localDef);
+				stmtList.onUpdate(root);
+				stmtList.commit();
 
-					definitions.removed(localDef);
-					liveness.removed(localDef);
-					if (!graph.excavate(localDef)) {
-						// if we can't remove the def here,
-						// then readd the thing
-						definitions.updated(localDef);
-						liveness.updated(localDef);
-					}
-					uses.removed(localDef);
-				}
-				definitions.updated(root);
-				liveness.updated(root);
-
-				if (canRemoveDefinition) {
-					uses.removed(localDef);
-				}
-				definitions.commit();
-				liveness.commit();
-				uses.updated(root);
-			
 //				if (toReplace instanceof VarExpression && !((VarExpression) toReplace).getLocal().toString().equals(local.toString())) {}
 			}
 		}
@@ -322,7 +292,7 @@ public class CopyPropagator {
 			// rhsExpr rhs is the same as the rhs of the currentDef
 			// at that point.
 			for(CopyVarStatement cvs : varRhss) {
-				Map<Local, Set<CopyVarStatement>> pointDefs = definitions.in(cvs);
+				Map<Local, Set<CopyVarStatement>> pointDefs = analytics.definitions.in(cvs);
 				Set<CopyVarStatement> defVarDefs = pointDefs.get(rhsLocal);
 				if(defVarDefs == null || defVarDefs.size() != 1) {
 					return;
@@ -344,13 +314,10 @@ public class CopyPropagator {
 				change = true;
 				
 				Statement r = getCurrent(getDepth());
-				VarExpression expr = new VarExpression(rhsLocal, ((VarExpression) use).getType());
+				VarExpression expr = new VarExpression(rhsLocal, use.getType());
 				r.overwrite(expr, r.indexOf(use));
-				definitions.updated(root);
-				liveness.updated(root);
-				definitions.commit();
-				liveness.commit();
-				uses.updated(root);
+				stmtList.onUpdate(root);
+				stmtList.commit();
 			} else {
 				throw new UnsupportedOperationException("TODO");
 			}

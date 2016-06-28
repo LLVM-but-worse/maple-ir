@@ -26,7 +26,8 @@ public abstract class ForwardsFlowAnalyser<N extends FastGraphVertex, E extends 
 	@Override
 	public void removed(N n) {
 		super.removed(n);
-		enqueue(n);
+		// TODO: ecx86: I don't know whether commenting this out this will break anything
+		// enqueue(n);
 	}
 
 	@Override
@@ -45,8 +46,8 @@ public abstract class ForwardsFlowAnalyser<N extends FastGraphVertex, E extends 
 			in.put(n, newState());
 			out.put(n, newState());
 
-			// TODO: which one?
-			enqueue(old);
+			// TODO: ecx86: I don't know whether commenting this out this will break anything
+			// enqueue(old);
 			enqueue(n);
 		}
 	}

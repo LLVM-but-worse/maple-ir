@@ -83,25 +83,25 @@ public class BootBibl implements Opcodes {
 			StatementGenerator gen = new StatementGenerator(cfg);
 			gen.init(m.maxLocals);
 			gen.createExpressions();
-			StatementList root = gen.buildRoot();
+			StatementList stmtList = gen.buildRoot();
 			
 			System.out.println("IR representation of " + m + ":");
-			System.out.println(root);
+			System.out.println(stmtList);
 			System.out.println();
 			
 			StatementGraph sgraph = StatementGraphBuilder.create(cfg);
-			LivenessTest.optimise(cfg, root, sgraph, m);
+			LivenessTest.optimise(cfg, stmtList, sgraph);
 
-			root.getLocals().pack(root);
+			stmtList.getLocals().pack(stmtList);
 			
 			System.out.println("Optimised IR " + m + ":");
-			System.out.println(root);
+			System.out.println(stmtList);
 			System.out.println();
 
-			DefinitionAnalyser defs = new DefinitionAnalyser(sgraph, m);
+			DefinitionAnalyser defs = new DefinitionAnalyser(sgraph);
 			LivenessAnalyser liveness = new LivenessAnalyser(sgraph);
 			UsesAnalyser uses = new UsesAnalyser(sgraph, defs);
-			CodeAnalytics analytics = new CodeAnalytics(root, cfg, sgraph, defs, liveness, uses);
+			CodeAnalytics analytics = new CodeAnalytics(cfg, sgraph, defs, liveness, uses);
 //			root.dump(m, analytics);
 			
 			System.out.println("End of processing log for " + m);

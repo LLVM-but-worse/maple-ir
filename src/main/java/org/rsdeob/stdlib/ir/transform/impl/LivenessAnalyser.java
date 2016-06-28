@@ -74,7 +74,7 @@ public class LivenessAnalyser extends BackwardsFlowAnalyser<Statement, FlowEdge<
 		uses.remove(n);
 		initial.remove(n);
 	}
-	
+
 	@Override
 	public void replaced(Statement old, Statement n) {
 		super.replaced(old, n);

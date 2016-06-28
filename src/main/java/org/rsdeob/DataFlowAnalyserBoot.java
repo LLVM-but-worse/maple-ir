@@ -29,12 +29,12 @@ public class DataFlowAnalyserBoot {
 				StatementGenerator generator = new StatementGenerator(cfg);
 				generator.init(m.maxLocals);
 				generator.createExpressions();
-				StatementList root = generator.buildRoot();
+				StatementList stmtList = generator.buildRoot();
 				
 				StatementGraph sgraph = StatementGraphBuilder.create(cfg);
 				System.out.println("Processing " + m);
 				System.out.println(cfg);
-				System.out.println(root);
+				System.out.println(stmtList);
 				System.out.println();
 				
 				LivenessAnalyser liveness = new LivenessAnalyser(sgraph);

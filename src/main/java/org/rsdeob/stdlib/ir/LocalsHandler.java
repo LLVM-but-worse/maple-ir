@@ -56,9 +56,9 @@ public class LocalsHandler {
 		}
 	}
 	
-	public void pack(StatementList root) {
+	public void pack(StatementList stmtList) {
 		Set<Local> locals = new HashSet<>();
-		for (Statement s : root) {
+		for (Statement s : stmtList) {
 			new StatementVisitor(s) {
 				@Override
 				public Statement visit(Statement stmt) {
