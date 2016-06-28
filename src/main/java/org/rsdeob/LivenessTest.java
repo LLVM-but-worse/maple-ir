@@ -1,7 +1,5 @@
 package org.rsdeob;
 
-import java.util.List;
-
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
@@ -10,17 +8,13 @@ import org.rsdeob.stdlib.cfg.ControlFlowGraph;
 import org.rsdeob.stdlib.cfg.ControlFlowGraphBuilder;
 import org.rsdeob.stdlib.cfg.util.ControlFlowGraphDeobfuscator;
 import org.rsdeob.stdlib.cfg.util.GraphUtils;
-import org.rsdeob.stdlib.ir.RootStatement;
 import org.rsdeob.stdlib.ir.StatementGenerator;
 import org.rsdeob.stdlib.ir.StatementGraph;
 import org.rsdeob.stdlib.ir.StatementGraphBuilder;
-import org.rsdeob.stdlib.ir.transform.impl.CodeAnalytics;
-import org.rsdeob.stdlib.ir.transform.impl.CopyPropagator;
-import org.rsdeob.stdlib.ir.transform.impl.DeadAssignmentEliminator;
-import org.rsdeob.stdlib.ir.transform.impl.DefinitionAnalyser;
-import org.rsdeob.stdlib.ir.transform.impl.LivenessAnalyser;
-import org.rsdeob.stdlib.ir.transform.impl.NewObjectInitialiserAggregator;
-import org.rsdeob.stdlib.ir.transform.impl.UsesAnalyser;
+import org.rsdeob.stdlib.ir.StatementList;
+import org.rsdeob.stdlib.ir.transform.impl.*;
+
+import java.util.List;
 
 public class LivenessTest {
 
@@ -41,7 +35,7 @@ public class LivenessTest {
 				StatementGenerator generator = new StatementGenerator(cfg);
 				generator.init(m.maxLocals);
 				generator.createExpressions();
-				RootStatement root = generator.buildRoot();
+				StatementList root = generator.buildRoot();
 				
 				StatementGraph sgraph = StatementGraphBuilder.create(cfg);
 				System.out.println("Processing " + m);
@@ -72,7 +66,7 @@ public class LivenessTest {
 		}
 	}
 	
-	public static void optimise(ControlFlowGraph cfg, RootStatement root, StatementGraph graph, MethodNode m) {
+	public static void optimise(ControlFlowGraph cfg, StatementList root, StatementGraph graph, MethodNode m) {
 		while(true) {
 			int change = 0;
 			DefinitionAnalyser defAnalyser = new DefinitionAnalyser(graph, m);

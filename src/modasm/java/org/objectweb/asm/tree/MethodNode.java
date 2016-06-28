@@ -29,14 +29,13 @@
  */
 package org.objectweb.asm.tree;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-
 import org.objectweb.asm.*;
 import org.objectweb.asm.commons.cfg.query.InsnQuery;
 import org.rsdeob.stdlib.collections.graph.FastGraphVertex;
-import org.rsdeob.stdlib.ir.RootStatement;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * A node that represents a method.
