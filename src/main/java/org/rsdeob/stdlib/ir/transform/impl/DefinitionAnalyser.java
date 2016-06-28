@@ -1,6 +1,5 @@
 package org.rsdeob.stdlib.ir.transform.impl;
 
-import org.objectweb.asm.tree.MethodNode;
 import org.rsdeob.stdlib.cfg.edge.FlowEdge;
 import org.rsdeob.stdlib.collections.NullPermeableHashMap;
 import org.rsdeob.stdlib.collections.SetCreator;
@@ -18,7 +17,7 @@ import java.util.Set;
 
 public class DefinitionAnalyser extends ForwardsFlowAnalyser<Statement, FlowEdge<Statement>, NullPermeableHashMap<Local, Set<CopyVarStatement>>> {
 	
-	public DefinitionAnalyser(StatementGraph graph, MethodNode m) {
+	public DefinitionAnalyser(StatementGraph graph) {
 		super(graph);
 	}
 

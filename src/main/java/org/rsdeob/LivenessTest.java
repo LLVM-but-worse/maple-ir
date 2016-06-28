@@ -35,22 +35,22 @@ public class LivenessTest {
 				StatementGenerator generator = new StatementGenerator(cfg);
 				generator.init(m.maxLocals);
 				generator.createExpressions();
-				StatementList root = generator.buildRoot();
+				StatementList stmtList = generator.buildRoot();
 				
 				StatementGraph sgraph = StatementGraphBuilder.create(cfg);
 				System.out.println("Processing " + m);
 				System.out.println(cfg);
 				System.out.println("Unoptimised IR");
-				System.out.println(root);
+				System.out.println(stmtList);
 				System.out.println();
 
-				optimise(cfg, root, sgraph, m);
+				optimise(cfg, stmtList, sgraph);
 				System.out.println("================");
 				System.out.println("================");
 				System.out.println("================");
 				
 				System.out.println("Optimised IR");
-				System.out.println(root);
+				System.out.println(stmtList);
 //				System.out.println("================");
 //				System.out.println("================");
 //				System.out.println("================");
@@ -66,19 +66,23 @@ public class LivenessTest {
 		}
 	}
 	
-	public static void optimise(ControlFlowGraph cfg, StatementList root, StatementGraph graph, MethodNode m) {
+	public static void optimise(ControlFlowGraph cfg, StatementList stmtList, StatementGraph graph) {
 		while(true) {
 			int change = 0;
-			DefinitionAnalyser defAnalyser = new DefinitionAnalyser(graph, m);
+			DefinitionAnalyser defAnalyser = new DefinitionAnalyser(graph);
 			LivenessAnalyser la = new LivenessAnalyser(graph);
 			UsesAnalyser useAnalyser = new UsesAnalyser(graph, defAnalyser);
-			CopyPropagator prop = new CopyPropagator(root, graph);
-			
-			change += prop.process(defAnalyser, useAnalyser, la);
-			CodeAnalytics analytics = new CodeAnalytics(root, cfg, graph, defAnalyser, la, useAnalyser);
-			change += DeadAssignmentEliminator.run(analytics);
-			NewObjectInitialiserAggregator.run(analytics);
-			
+
+			CodeAnalytics analytics = new CodeAnalytics(cfg, graph, defAnalyser, la, useAnalyser);
+			stmtList.registerListener(analytics);
+
+			CopyPropagator prop = new CopyPropagator(stmtList, analytics);
+			prop.process();
+
+			change += DeadAssignmentEliminator.run(stmtList, analytics);
+			NewObjectInitialiserAggregator.run(stmtList, analytics);
+
+			stmtList.clearListeners();
 			if(change <= 0) {
 				break;
 			}

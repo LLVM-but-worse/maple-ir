@@ -13,9 +13,8 @@ import java.util.*;
 
 public class NewObjectInitialiserAggregator {
 
-	public static int run(CodeAnalytics analytics) {
-		StatementList root = analytics.root;
-		StatementGraph graph = analytics.statementGraph;
+	public static int run(StatementList stmtList, CodeAnalytics analytics) {
+		StatementGraph graph = analytics.stmtGraph;
 		DefinitionAnalyser definitions = analytics.definitions;
 		UsesAnalyser uses = analytics.uses;
 		LivenessAnalyser liveness = analytics.liveness;
@@ -71,22 +70,22 @@ public class NewObjectInitialiserAggregator {
 										CopyVarStatement newCvs = new CopyVarStatement(var, newExpr);
 										
 										graph.addVertex(newCvs);
-										graph.replace(pop, newCvs);
-										graph.excavate(def);
-										
-										definitions.replaced(pop, newCvs);
-										definitions.removed(def);
-										liveness.replaced(pop, newCvs);
-										liveness.removed(def);
-										
+//										graph.replace(pop, newCvs);
+//										graph.excavate(def);
+
+//										definitions.replaced(pop, newCvs);
+//										definitions.removed(def);
+//										liveness.replaced(pop, newCvs);
+//										liveness.removed(def);
+
 										// replace pop(x.<init>()) with x := new Klass();
-										root.set(root.indexOf(pop), newCvs);
+										stmtList.set(stmtList.indexOf(pop), newCvs);
 										// remove x := new Klass;
-										root.remove(def);
-										
+										stmtList.remove(def);
+
 										definitions.commit();
 										liveness.commit();
-										
+
 										// update these after the defs and uses have been
 										// fixed.
 										uses.removed(def);
