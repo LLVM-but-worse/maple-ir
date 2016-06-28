@@ -1,9 +1,13 @@
 package org.rsdeob.stdlib.ir;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.objectweb.asm.MethodVisitor;
 import org.rsdeob.stdlib.cfg.util.TabbedStringWriter;
+import org.rsdeob.stdlib.ir.api.ICodeListener;
 import org.rsdeob.stdlib.ir.expr.VarExpression;
 import org.rsdeob.stdlib.ir.header.StatementHeaderStatement;
 import org.rsdeob.stdlib.ir.stat.Statement;
@@ -12,9 +16,15 @@ import org.rsdeob.stdlib.ir.transform.impl.CodeAnalytics;
 public class RootStatement extends Statement {
 
 	private final LocalsHandler locals;
+	private final List<ICodeListener<Statement>> listeners;
 	
 	public RootStatement(int maxL) {
 		locals = new LocalsHandler(maxL + 1);
+		listeners = new CopyOnWriteArrayList<>();
+	}
+	
+	public List<ICodeListener<Statement>> getListeners() {
+		return new ArrayList<>(listeners);
 	}
 
 	public void updateBase() {
@@ -36,6 +46,36 @@ public class RootStatement extends Statement {
 	
 	public LocalsHandler getLocals() {
 		return locals;
+	}
+	
+	// TODO: exceptions
+	
+	@Override
+	protected Statement writeAt(int index, Statement s) {
+		Statement prev = super.writeAt(index, s);
+		if(s == null) {
+			if(prev != null) {
+				for(ICodeListener<Statement> l : listeners) {
+					l.removed(prev);
+				}
+			}
+		} else {
+			if(prev != null) {
+				for(ICodeListener<Statement> l : listeners) {
+					l.replaced(prev, s);
+				}
+			} else {
+				for(ICodeListener<Statement> l : listeners) {
+					l.added(s);
+				}
+			}
+		}
+		return prev;
+	}
+	
+	@Override
+	public void delete(int _ptr) {
+		super.delete(_ptr);
 	}
 	
 	@Override
