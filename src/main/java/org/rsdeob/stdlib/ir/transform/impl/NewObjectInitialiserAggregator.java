@@ -2,8 +2,8 @@ package org.rsdeob.stdlib.ir.transform.impl;
 
 import org.objectweb.asm.Opcodes;
 import org.rsdeob.stdlib.ir.Local;
-import org.rsdeob.stdlib.ir.RootStatement;
 import org.rsdeob.stdlib.ir.StatementGraph;
+import org.rsdeob.stdlib.ir.StatementList;
 import org.rsdeob.stdlib.ir.expr.*;
 import org.rsdeob.stdlib.ir.stat.CopyVarStatement;
 import org.rsdeob.stdlib.ir.stat.PopStatement;
@@ -14,7 +14,7 @@ import java.util.*;
 public class NewObjectInitialiserAggregator {
 
 	public static int run(CodeAnalytics analytics) {
-		RootStatement root = analytics.root;
+		StatementList root = analytics.root;
 		StatementGraph graph = analytics.statementGraph;
 		DefinitionAnalyser definitions = analytics.definitions;
 		UsesAnalyser uses = analytics.uses;
@@ -80,17 +80,17 @@ public class NewObjectInitialiserAggregator {
 										liveness.removed(def);
 										
 										// replace pop(x.<init>()) with x := new Klass();
-										root.overwrite(newCvs, root.indexOf(pop));
+										root.set(root.indexOf(pop), newCvs);
 										// remove x := new Klass;
-										root.delete(root.indexOf(def));
+										root.remove(def);
 										
 										definitions.commit();
 										liveness.commit();
 										
 										// update these after the defs and uses have been
 										// fixed.
-										uses.remove(def);
-										uses.update(newCvs);
+										uses.removed(def);
+										uses.updated(newCvs);
 									}
 								} else {
 									throw new RuntimeException("interesting2");

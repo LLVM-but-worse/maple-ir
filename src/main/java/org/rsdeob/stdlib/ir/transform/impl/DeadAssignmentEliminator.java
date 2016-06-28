@@ -1,22 +1,22 @@
 package org.rsdeob.stdlib.ir.transform.impl;
 
-import java.util.HashSet;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
-
 import org.rsdeob.stdlib.ir.Local;
-import org.rsdeob.stdlib.ir.RootStatement;
 import org.rsdeob.stdlib.ir.StatementGraph;
+import org.rsdeob.stdlib.ir.StatementList;
 import org.rsdeob.stdlib.ir.expr.VarExpression;
 import org.rsdeob.stdlib.ir.stat.CopyVarStatement;
 import org.rsdeob.stdlib.ir.stat.Statement;
+
+import java.util.HashSet;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class DeadAssignmentEliminator {
 
 	public static int run(CodeAnalytics analytics) {
 		StatementGraph graph = analytics.statementGraph;
 		LivenessAnalyser la = analytics.liveness;
-		RootStatement root = analytics.root;
+		StatementList root = analytics.root;
 		
 		AtomicInteger dead = new AtomicInteger();
 		for(Statement stmt : new HashSet<>(graph.vertices())) {
@@ -26,7 +26,7 @@ public class DeadAssignmentEliminator {
 				VarExpression var = copy.getVariable();
 				
 				if(!out.get(var.getLocal())) {
-					root.delete(root.indexOf(copy));
+					root.remove(copy);
 					graph.excavate(copy);
 					dead.incrementAndGet();
 				}

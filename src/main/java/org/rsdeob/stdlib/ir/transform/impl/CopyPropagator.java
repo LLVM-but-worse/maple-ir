@@ -1,8 +1,8 @@
 package org.rsdeob.stdlib.ir.transform.impl;
 
 import org.rsdeob.stdlib.ir.Local;
-import org.rsdeob.stdlib.ir.RootStatement;
 import org.rsdeob.stdlib.ir.StatementGraph;
+import org.rsdeob.stdlib.ir.StatementList;
 import org.rsdeob.stdlib.ir.StatementVisitor;
 import org.rsdeob.stdlib.ir.expr.*;
 import org.rsdeob.stdlib.ir.stat.*;
@@ -11,8 +11,9 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class CopyPropagator {
-	
-	private final RootStatement root;
+
+	// TODO: refactor to use CodeAnalytics, and implement ICodeListener to delegate to analytics
+	private final StatementList root;
 	private final StatementGraph graph;
 	private final Map<Statement, SyntheticStatement> synthetics;
 	private DefinitionAnalyser definitions;
@@ -20,13 +21,12 @@ public class CopyPropagator {
 	private UsesAnalyser uses;
 	private int changedStmts;
 	
-	public CopyPropagator(RootStatement root, StatementGraph graph) {
+	public CopyPropagator(StatementList root, StatementGraph graph) {
 		this.root = root;
 		this.graph = graph;
 		synthetics = new HashMap<>();
 		
-		for(int i=0; root.read(i) != null; i++) {
-			Statement stmt = root.read(i);
+		for(Statement stmt : root) {
 			if(stmt instanceof SyntheticStatement) {
 				synthetics.put(((SyntheticStatement) stmt).getStatement(), (SyntheticStatement) stmt);
 			}
@@ -55,10 +55,10 @@ public class CopyPropagator {
 						definitions.removed(stmt);
 						liveness.removed(stmt);
 						graph.excavate(stmt);
-						root.delete(root.indexOf(stmt));
+						root.remove(stmt);
 						definitions.commit();
 						liveness.commit();
-						uses.remove(stmt);
+						uses.removed(stmt);
 						continue;
 					}
 				}
@@ -258,7 +258,7 @@ public class CopyPropagator {
 
 				boolean canRemoveDefinition = uses.getUses(localDef).size() <= 1;
 				if (canRemoveDefinition) {
-					CopyPropagator.this.root.delete(CopyPropagator.this.root.indexOf(localDef));
+					CopyPropagator.this.root.remove(localDef);
 
 					definitions.removed(localDef);
 					liveness.removed(localDef);
@@ -268,17 +268,17 @@ public class CopyPropagator {
 						definitions.updated(localDef);
 						liveness.updated(localDef);
 					}
-					uses.remove(localDef);
+					uses.removed(localDef);
 				}
 				definitions.updated(root);
 				liveness.updated(root);
 
 				if (canRemoveDefinition) {
-					uses.remove(localDef);
+					uses.removed(localDef);
 				}
 				definitions.commit();
 				liveness.commit();
-				uses.update(root);
+				uses.updated(root);
 			
 //				if (toReplace instanceof VarExpression && !((VarExpression) toReplace).getLocal().toString().equals(local.toString())) {}
 			}
@@ -350,7 +350,7 @@ public class CopyPropagator {
 				liveness.updated(root);
 				definitions.commit();
 				liveness.commit();
-				uses.update(root);
+				uses.updated(root);
 			} else {
 				throw new UnsupportedOperationException("TODO");
 			}

@@ -21,14 +21,14 @@ public class DefinitionAnalyser extends ForwardsFlowAnalyser<Statement, FlowEdge
 	public DefinitionAnalyser(StatementGraph graph, MethodNode m) {
 		super(graph);
 	}
-	
+
 	@Override
 	public void removed(Statement n) {
 		super.removed(n);
-		
+
 		if(n instanceof CopyVarStatement) {
 			CopyVarStatement cvs = (CopyVarStatement) n;
-			
+
 			for(Statement s : in.keySet()) {
 				NullPermeableHashMap<Local, Set<CopyVarStatement>> in1 = in(s);
 				for(Set<CopyVarStatement> set : in1.values()) {

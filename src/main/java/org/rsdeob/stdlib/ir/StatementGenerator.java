@@ -1,13 +1,5 @@
 package org.rsdeob.stdlib.ir;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.LinkedList;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.*;
@@ -24,6 +16,9 @@ import org.rsdeob.stdlib.ir.header.HeaderStatement;
 import org.rsdeob.stdlib.ir.stat.*;
 import org.rsdeob.stdlib.ir.stat.ConditionalJumpStatement.ComparisonType;
 import org.rsdeob.stdlib.ir.stat.MonitorStatement.MonitorMode;
+
+import java.util.*;
+import java.util.Map.Entry;
 
 public class StatementGenerator implements Opcodes {
 
@@ -50,7 +45,7 @@ public class StatementGenerator implements Opcodes {
 	Set<BasicBlock> analysedBlocks;
 	LinkedList<BasicBlock> queue;
 	Map<BasicBlock, BlockHeaderStatement> headers;
-	RootStatement root;
+	StatementList root;
 	int stackBase;
 
 	transient volatile BasicBlock currentBlock;
@@ -69,7 +64,7 @@ public class StatementGenerator implements Opcodes {
 	public void init(int base) {
 		Statement.ID_COUNTER = 0;
 		stackBase = base;
-		root = new RootStatement(m.maxLocals);
+		root = new StatementList(m.maxLocals);
 		
 		for (BasicBlock b : graph.vertices()) {
 			headers.put(b, new BlockHeaderStatement(b));
@@ -103,11 +98,11 @@ public class StatementGenerator implements Opcodes {
 		return new CopyVarStatement(var, var);
 	}
 
-	public RootStatement buildRoot() {
+	public StatementList buildRoot() {
 		for (BasicBlock b : graph.vertices()) {
-			root.write(headers.get(b));
+			root.add(headers.get(b));
 			for (Statement n : b.getStatements()) {
-				root.write(n);
+				root.add(n);
 			}
 		}
 		return root;
