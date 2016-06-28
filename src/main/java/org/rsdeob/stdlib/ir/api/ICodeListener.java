@@ -9,4 +9,6 @@ public interface ICodeListener<N> {
 	void added(N n);
 	
 	void removed(N n);
+
+	void commit();
 }
