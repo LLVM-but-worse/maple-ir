@@ -17,8 +17,8 @@ public class LocalsHandler {
 	private final AtomicInteger base;
 	private final Map<String, Local> cache;
 	
-	public LocalsHandler(AtomicInteger base) {
-		this.base = base;
+	public LocalsHandler(int base) {
+		this.base = new AtomicInteger(base);
 		cache = new HashMap<>();
 	}
 	
@@ -91,6 +91,14 @@ public class LocalsHandler {
 		}
 		pack(stacks);
 		pack(locals);
+	}
+	
+	public int getBase() {
+		return base.get();
+	}
+	
+	public void setBase(int b) {
+		base.set(b);
 	}
 	
 	public static String key(int index, boolean stack) {
