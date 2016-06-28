@@ -74,9 +74,9 @@ public class NewObjectInitialiserAggregator {
 										graph.replace(pop, newCvs);
 										graph.excavate(def);
 										
-										definitions.replaceImpl(pop, newCvs);
+										definitions.replaced(pop, newCvs);
 										definitions.removed(def);
-										liveness.replaceImpl(pop, newCvs);
+										liveness.replaced(pop, newCvs);
 										liveness.removed(def);
 										
 										// replace pop(x.<init>()) with x := new Klass();
@@ -84,8 +84,8 @@ public class NewObjectInitialiserAggregator {
 										// remove x := new Klass;
 										root.delete(root.indexOf(def));
 										
-										definitions.processQueue();
-										liveness.processQueue();
+										definitions.commit();
+										liveness.commit();
 										
 										// update these after the defs and uses have been
 										// fixed.
@@ -93,10 +93,10 @@ public class NewObjectInitialiserAggregator {
 										uses.update(newCvs);
 									}
 								} else {
-									throw new RuntimeException("interesting2 " + root.getMethod());
+									throw new RuntimeException("interesting2");
 								}
 							} else {
-								throw new RuntimeException("interesting1 " + root.getMethod());
+								throw new RuntimeException("interesting1");
 							}
 						}
 					}

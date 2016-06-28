@@ -56,8 +56,8 @@ public class CopyPropagator {
 						liveness.removed(stmt);
 						graph.excavate(stmt);
 						root.delete(root.indexOf(stmt));
-						definitions.processQueue();
-						liveness.processQueue();
+						definitions.commit();
+						liveness.commit();
 						uses.remove(stmt);
 						continue;
 					}
@@ -276,8 +276,8 @@ public class CopyPropagator {
 				if (canRemoveDefinition) {
 					uses.remove(localDef);
 				}
-				definitions.processQueue();
-				liveness.processQueue();
+				definitions.commit();
+				liveness.commit();
 				uses.update(root);
 			
 //				if (toReplace instanceof VarExpression && !((VarExpression) toReplace).getLocal().toString().equals(local.toString())) {}
@@ -348,8 +348,8 @@ public class CopyPropagator {
 				r.overwrite(expr, r.indexOf(use));
 				definitions.updated(root);
 				liveness.updated(root);
-				definitions.processQueue();
-				liveness.processQueue();
+				definitions.commit();
+				liveness.commit();
 				uses.update(root);
 			} else {
 				throw new UnsupportedOperationException("TODO");
