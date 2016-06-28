@@ -101,7 +101,7 @@ public class BootEcx implements Opcodes {
 			LivenessAnalyser liveness = new LivenessAnalyser(sgraph);
 			UsesAnalyser uses = new UsesAnalyser(sgraph, defs);
 			CodeAnalytics analytics = new CodeAnalytics(root, cfg, sgraph, defs, liveness, uses);
-			root.dump(m, analytics);
+//			root.dump(m, analytics);
 
 			System.out.println("End of processing log for " + m);
 			System.out.println("============================================================");
