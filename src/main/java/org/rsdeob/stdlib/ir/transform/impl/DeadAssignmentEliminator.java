@@ -13,11 +13,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class DeadAssignmentEliminator {
 
-	public static int run(CodeAnalytics analytics) {
-		StatementGraph graph = analytics.statementGraph;
+	public static int run(StatementList stmtList, CodeAnalytics analytics) {
+		StatementGraph graph = analytics.stmtGraph;
 		LivenessAnalyser la = analytics.liveness;
-		StatementList root = analytics.root;
-		
+
 		AtomicInteger dead = new AtomicInteger();
 		for(Statement stmt : new HashSet<>(graph.vertices())) {
 			if(stmt instanceof CopyVarStatement) {
@@ -26,8 +25,7 @@ public class DeadAssignmentEliminator {
 				VarExpression var = copy.getVariable();
 				
 				if(!out.get(var.getLocal())) {
-					root.remove(copy);
-					graph.excavate(copy);
+					stmtList.remove(copy);
 					dead.incrementAndGet();
 				}
 			}

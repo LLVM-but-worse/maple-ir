@@ -2,24 +2,20 @@ package org.rsdeob.stdlib.ir.transform.impl;
 
 import org.rsdeob.stdlib.cfg.ControlFlowGraph;
 import org.rsdeob.stdlib.ir.StatementGraph;
-import org.rsdeob.stdlib.ir.StatementList;
 import org.rsdeob.stdlib.ir.api.ICodeListener;
 import org.rsdeob.stdlib.ir.stat.Statement;
 
 public class CodeAnalytics implements ICodeListener<Statement> {
-
-	public final StatementList root;
 	public final ControlFlowGraph blockGraph;
+	public final StatementGraph stmtGraph;
 
-	public final StatementGraph statementGraph;
 	public final DefinitionAnalyser definitions;
 	public final LivenessAnalyser liveness;
 	public final UsesAnalyser uses;
 
-	public CodeAnalytics(StatementList root, ControlFlowGraph blockGraph, StatementGraph statementGraph, DefinitionAnalyser definitions, LivenessAnalyser liveness, UsesAnalyser uses) {
-		this.root = root;
+	public CodeAnalytics(ControlFlowGraph blockGraph, StatementGraph statementGraph, DefinitionAnalyser definitions, LivenessAnalyser liveness, UsesAnalyser uses) {
 		this.blockGraph = blockGraph;
-		this.statementGraph = statementGraph;
+		this.stmtGraph = statementGraph;
 		this.definitions = definitions;
 		this.liveness = liveness;
 		this.uses = uses;
@@ -29,6 +25,7 @@ public class CodeAnalytics implements ICodeListener<Statement> {
 	public void updated(Statement stmt) {
 		definitions.updated(stmt);
 		liveness.updated(stmt);
+		definitions.commit(); // DefinitionsAnalyzer has to be committed for uses to be updated
 		uses.updated(stmt);
 	}
 
@@ -37,6 +34,7 @@ public class CodeAnalytics implements ICodeListener<Statement> {
 		definitions.replaced(old, n);
 		liveness.replaced(old, n);
 		uses.replaced(old, n);
+		stmtGraph.replace(old, n);
 	}
 
 	@Override
@@ -44,6 +42,7 @@ public class CodeAnalytics implements ICodeListener<Statement> {
 		definitions.added(n);
 		liveness.added(n);
 		uses.added(n);
+		stmtGraph.addVertex(n);
 	}
 
 	@Override
@@ -51,6 +50,10 @@ public class CodeAnalytics implements ICodeListener<Statement> {
 		definitions.removed(n);
 		liveness.removed(n);
 		uses.removed(n);
+		if (!stmtGraph.excavate(n)) {
+			definitions.updated(n);
+			liveness.updated(n);
+		}
 	}
 
 	@Override
