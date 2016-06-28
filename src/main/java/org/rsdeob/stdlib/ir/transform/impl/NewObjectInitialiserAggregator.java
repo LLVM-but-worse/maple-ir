@@ -1,24 +1,15 @@
 package org.rsdeob.stdlib.ir.transform.impl;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Set;
-
 import org.objectweb.asm.Opcodes;
 import org.rsdeob.stdlib.ir.Local;
 import org.rsdeob.stdlib.ir.RootStatement;
 import org.rsdeob.stdlib.ir.StatementGraph;
-import org.rsdeob.stdlib.ir.expr.Expression;
-import org.rsdeob.stdlib.ir.expr.InitialisedObjectExpression;
-import org.rsdeob.stdlib.ir.expr.InvocationExpression;
-import org.rsdeob.stdlib.ir.expr.UninitialisedObjectExpression;
-import org.rsdeob.stdlib.ir.expr.VarExpression;
+import org.rsdeob.stdlib.ir.expr.*;
 import org.rsdeob.stdlib.ir.stat.CopyVarStatement;
 import org.rsdeob.stdlib.ir.stat.PopStatement;
 import org.rsdeob.stdlib.ir.stat.Statement;
+
+import java.util.*;
 
 public class NewObjectInitialiserAggregator {
 
@@ -84,9 +75,9 @@ public class NewObjectInitialiserAggregator {
 										graph.excavate(def);
 										
 										definitions.replaceImpl(pop, newCvs);
-										definitions.remove(def);
+										definitions.removed(def);
 										liveness.replaceImpl(pop, newCvs);
-										liveness.remove(def);
+										liveness.removed(def);
 										
 										// replace pop(x.<init>()) with x := new Klass();
 										root.overwrite(newCvs, root.indexOf(pop));

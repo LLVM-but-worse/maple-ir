@@ -24,8 +24,8 @@ public class CodeAnalytics {
 	}
 
 	public void update(Statement stmt) {
-		definitions.update(root);
-		liveness.update(root);
+		definitions.updated(root);
+		liveness.updated(root);
 		definitions.processQueue();
 		liveness.processQueue();
 		uses.update(root);
