@@ -1,16 +1,10 @@
 package org.rsdeob.stdlib.ir;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
-
 import org.rsdeob.stdlib.ir.expr.VarExpression;
 import org.rsdeob.stdlib.ir.stat.Statement;
+
+import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class LocalsHandler {
 
@@ -62,17 +56,19 @@ public class LocalsHandler {
 		}
 	}
 	
-	public void pack(RootStatement root) {
+	public void pack(StatementList root) {
 		Set<Local> locals = new HashSet<>();
-		new StatementVisitor(root) {
-			@Override
-			public Statement visit(Statement stmt) {
-				if(stmt instanceof VarExpression) {
-					locals.add(((VarExpression) stmt).getLocal());
+		for (Statement s : root) {
+			new StatementVisitor(s) {
+				@Override
+				public Statement visit(Statement stmt) {
+					if (stmt instanceof VarExpression) {
+						locals.add(((VarExpression) stmt).getLocal());
+					}
+					return stmt;
 				}
-				return stmt;
-			}
-		}.visit();
+			}.visit();
+		}
 		pack(locals);
 	}
 	
