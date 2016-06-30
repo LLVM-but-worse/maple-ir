@@ -1,5 +1,8 @@
 package org.rsdeob.stdlib.ir.transform.impl;
 
+import java.util.Map.Entry;
+import java.util.Set;
+
 import org.rsdeob.stdlib.collections.NullPermeableHashMap;
 import org.rsdeob.stdlib.collections.SetCreator;
 import org.rsdeob.stdlib.ir.Local;
@@ -9,9 +12,6 @@ import org.rsdeob.stdlib.ir.api.ICodeListener;
 import org.rsdeob.stdlib.ir.expr.VarExpression;
 import org.rsdeob.stdlib.ir.stat.CopyVarStatement;
 import org.rsdeob.stdlib.ir.stat.Statement;
-
-import java.util.Map.Entry;
-import java.util.Set;
 
 public class UsesAnalyser implements ICodeListener<Statement> {
 
@@ -37,7 +37,7 @@ public class UsesAnalyser implements ICodeListener<Statement> {
 	}
 
 	@Override
-	public void updated(Statement stmt) {
+	public void update(Statement stmt) {
 		Set<VarExpression> set = used.getNonNull(stmt);
 		
 		StatementVisitor vis = new StatementVisitor(stmt) {
@@ -61,7 +61,7 @@ public class UsesAnalyser implements ICodeListener<Statement> {
 	}
 
 	@Override
-	public void removed(Statement stmt) {
+	public void remove(Statement stmt) {
 		uses.remove(stmt);
 		used.remove(stmt);
 		
@@ -76,8 +76,7 @@ public class UsesAnalyser implements ICodeListener<Statement> {
 		}
 	}
 
-	@Override
-	public void added(Statement stmt) {
+	public void build(Statement stmt) {
 		Set<VarExpression> set = used.getNonNull(stmt);
 
 		StatementVisitor vis = new StatementVisitor(stmt) {
@@ -95,15 +94,8 @@ public class UsesAnalyser implements ICodeListener<Statement> {
 							uses.getNonNull(def).add(stmt);
 						}
 					} catch(Exception e) {
-//							System.out.println(graph);
-//							System.out.println(UsesAnalyser.this.root);
 						System.out.println("at " + stmt.getId() + " " + stmt);
 						System.out.println("  > " + s);
-//
-//							System.out.println(graph.getRanges().size());
-//							for(ExceptionRange<Statement> r : graph.getRanges()) {
-//								System.out.println(r);
-//							}
 						throw e;
 					}
 				}
@@ -115,8 +107,8 @@ public class UsesAnalyser implements ICodeListener<Statement> {
 
 	@Override
 	public void replaced(Statement old, Statement n) {
-		removed(old);
-		added(n);
+		remove(old);
+		build(n);
 	}
 
 	@Override
@@ -126,7 +118,13 @@ public class UsesAnalyser implements ICodeListener<Statement> {
 	}
 
 	private void build() {
-		for(Statement stmt : graph.vertices())
-			added(stmt);
+		for(Statement stmt : graph.vertices()) {
+			build(stmt);
+		}
+	}
+
+	@Override
+	public void insert(Statement p, Statement s, Statement n) {
+		build(n);
 	}
 }

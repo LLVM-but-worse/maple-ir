@@ -1,40 +1,53 @@
 package org.rsdeob.stdlib.ir.transform.impl;
 
-import org.rsdeob.stdlib.ir.Local;
-import org.rsdeob.stdlib.ir.StatementList;
-import org.rsdeob.stdlib.ir.StatementVisitor;
-import org.rsdeob.stdlib.ir.expr.*;
-import org.rsdeob.stdlib.ir.stat.*;
-
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public class CopyPropagator {
+import org.rsdeob.stdlib.ir.CodeBody;
+import org.rsdeob.stdlib.ir.Local;
+import org.rsdeob.stdlib.ir.StatementVisitor;
+import org.rsdeob.stdlib.ir.expr.ArrayLoadExpression;
+import org.rsdeob.stdlib.ir.expr.ConstantExpression;
+import org.rsdeob.stdlib.ir.expr.Expression;
+import org.rsdeob.stdlib.ir.expr.FieldLoadExpression;
+import org.rsdeob.stdlib.ir.expr.InvocationExpression;
+import org.rsdeob.stdlib.ir.expr.VarExpression;
+import org.rsdeob.stdlib.ir.stat.ArrayStoreStatement;
+import org.rsdeob.stdlib.ir.stat.CopyVarStatement;
+import org.rsdeob.stdlib.ir.stat.FieldStoreStatement;
+import org.rsdeob.stdlib.ir.stat.MonitorStatement;
+import org.rsdeob.stdlib.ir.stat.PopStatement;
+import org.rsdeob.stdlib.ir.stat.Statement;
+import org.rsdeob.stdlib.ir.stat.SyntheticStatement;
 
-	// TODO: refactor to use CodeAnalytics, and implement ICodeListener to delegate to analytics
+public class CopyPropagator extends Transformer {
+
 	private final Map<Statement, SyntheticStatement> synthetics;
 	private int changedStmts;
-	private CodeAnalytics analytics;
-	private StatementList stmtList;
 	
-	public CopyPropagator(StatementList stmtList, CodeAnalytics analytics) {
+	public CopyPropagator(CodeBody root, CodeAnalytics analytics) {
+		super(root, analytics);
+		
 		synthetics = new HashMap<>();
-		this.stmtList = stmtList;
-		this.analytics = analytics;
-
-		for(Statement stmt : this.stmtList) {
+		for(Statement stmt : root) {
 			if(stmt instanceof SyntheticStatement) {
 				synthetics.put(((SyntheticStatement) stmt).getStatement(), (SyntheticStatement) stmt);
 			}
 		}
 	}
 	
-	private void processImpl() {
+	@Override
+	public int run() {
 		changedStmts = 0;
+		processImpl();
+		return changedStmts;
+	}
+	
+	private void processImpl() {
 		while(true) {
 			AtomicBoolean change = new AtomicBoolean(false);
 			
-			List<Statement> list = new ArrayList<>(analytics.stmtGraph.vertices());
+			List<Statement> list = new ArrayList<>(analytics.sgraph.vertices());
 			Collections.sort(list, new Comparator<Statement>() {
 				@Override
 				public int compare(Statement o1, Statement o2) {
@@ -48,8 +61,8 @@ public class CopyPropagator {
 				if(stmt instanceof PopStatement) {
 					Expression expr = ((PopStatement) stmt).getExpression();
 					if(expr instanceof ConstantExpression || expr instanceof VarExpression) {
-						stmtList.remove(stmt);
-						stmtList.commit();
+						code.remove(stmt);
+						code.commit();
 						continue;
 					}
 				}
@@ -67,11 +80,6 @@ public class CopyPropagator {
 				break;
 			}
 		}
-	}
-	
-	public int process() {
-		processImpl();
-		return changedStmts;
 	}
 	
 	private Expression transform(CopyVarStatement localDef, Statement use) {
@@ -133,7 +141,7 @@ public class CopyPropagator {
 		// now using these collected variables and
 		// rules we can go through from def to rhs
 		// to check if anything is being overwritten.
-		Collection<Statement> path = analytics.stmtGraph.wanderAllTrails(real, use);
+		Collection<Statement> path = analytics.sgraph.wanderAllTrails(real, use);
 		if(path == null) {
 			return null;
 		}
@@ -246,9 +254,9 @@ public class CopyPropagator {
 
 				boolean canRemoveDefinition = analytics.uses.getUses(localDef).size() <= 1;
 				if (canRemoveDefinition)
-					stmtList.remove(localDef);
-				stmtList.onUpdate(root);
-				stmtList.commit();
+					CopyPropagator.this.code.remove(localDef);
+				CopyPropagator.this.code.forceUpdate(root);
+				CopyPropagator.this.code.commit();
 
 //				if (toReplace instanceof VarExpression && !((VarExpression) toReplace).getLocal().toString().equals(local.toString())) {}
 			}
@@ -316,8 +324,8 @@ public class CopyPropagator {
 				Statement r = getCurrent(getDepth());
 				VarExpression expr = new VarExpression(rhsLocal, use.getType());
 				r.overwrite(expr, r.indexOf(use));
-				stmtList.onUpdate(root);
-				stmtList.commit();
+				CopyPropagator.this.code.forceUpdate(root);
+				CopyPropagator.this.code.commit();
 			} else {
 				throw new UnsupportedOperationException("TODO");
 			}

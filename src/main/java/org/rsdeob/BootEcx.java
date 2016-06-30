@@ -20,7 +20,7 @@ import org.rsdeob.stdlib.deob.IPhase;
 import org.rsdeob.stdlib.ir.StatementGenerator;
 import org.rsdeob.stdlib.ir.StatementGraph;
 import org.rsdeob.stdlib.ir.StatementGraphBuilder;
-import org.rsdeob.stdlib.ir.StatementList;
+import org.rsdeob.stdlib.ir.CodeBody;
 import org.rsdeob.stdlib.ir.transform.impl.CodeAnalytics;
 import org.rsdeob.stdlib.ir.transform.impl.DefinitionAnalyser;
 import org.rsdeob.stdlib.ir.transform.impl.LivenessAnalyser;
@@ -84,7 +84,7 @@ public class BootEcx implements Opcodes {
 			StatementGenerator gen = new StatementGenerator(cfg);
 			gen.init(m.maxLocals);
 			gen.createExpressions();
-			StatementList stmtList = gen.buildRoot();
+			CodeBody stmtList = gen.buildRoot();
 
 			System.out.println("IR representation of " + m + ":");
 			System.out.println(stmtList);
