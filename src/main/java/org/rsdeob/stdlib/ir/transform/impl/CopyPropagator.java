@@ -10,6 +10,7 @@ import org.rsdeob.stdlib.ir.expr.ArrayLoadExpression;
 import org.rsdeob.stdlib.ir.expr.ConstantExpression;
 import org.rsdeob.stdlib.ir.expr.Expression;
 import org.rsdeob.stdlib.ir.expr.FieldLoadExpression;
+import org.rsdeob.stdlib.ir.expr.InitialisedObjectExpression;
 import org.rsdeob.stdlib.ir.expr.InvocationExpression;
 import org.rsdeob.stdlib.ir.expr.VarExpression;
 import org.rsdeob.stdlib.ir.stat.ArrayStoreStatement;
@@ -63,6 +64,8 @@ public class CopyPropagator extends Transformer {
 					if(expr instanceof ConstantExpression || expr instanceof VarExpression) {
 						code.remove(stmt);
 						code.commit();
+						change.set(true);
+						changedStmts++;
 						continue;
 					}
 				}
@@ -112,7 +115,7 @@ public class CopyPropagator extends Transformer {
 				localsUsed.add(((VarExpression) rhs).getLocal());
 			} else if(rhs instanceof FieldLoadExpression) {
 				fieldsUsed.add(((FieldLoadExpression) rhs).getName() + "." + ((FieldLoadExpression) rhs).getDesc());
-			} else if(rhs instanceof InvocationExpression) {
+			} else if(rhs instanceof InvocationExpression || rhs instanceof InitialisedObjectExpression) {
 				invoke.set(true);
 			} else if(rhs instanceof ArrayLoadExpression) {
 				array.set(true);
@@ -128,7 +131,7 @@ public class CopyPropagator extends Transformer {
 					localsUsed.add(((VarExpression) stmt).getLocal());
 				} else if(stmt instanceof FieldLoadExpression) {
 					fieldsUsed.add(((FieldLoadExpression) stmt).getName() + "." + ((FieldLoadExpression) stmt).getDesc());
-				} else if(stmt instanceof InvocationExpression) {
+				} else if(stmt instanceof InvocationExpression || stmt instanceof InitialisedObjectExpression) {
 					invoke.set(true);
 				} else if(stmt instanceof ArrayLoadExpression) {
 					array.set(true);
@@ -180,6 +183,11 @@ public class CopyPropagator extends Transformer {
 						canPropagate = false;
 						break;
 					}
+				} else if(stmt instanceof InitialisedObjectExpression || stmt instanceof InvocationExpression) {
+					if(invoke.get() || fieldsUsed.size() > 0 || array.get()) {
+						canPropagate = false;
+						break;
+					}
 				}
 			}
 			
@@ -195,7 +203,7 @@ public class CopyPropagator extends Transformer {
 						if(root == use && (stmt instanceof VarExpression && ((VarExpression) stmt).getLocal() == local)) {
 							_break();
 						} else {
-							if(stmt instanceof InvocationExpression || (invoke.get() && (stmt instanceof FieldStoreStatement || stmt instanceof ArrayStoreStatement))) {
+							if((stmt instanceof InvocationExpression || stmt instanceof InitialisedObjectExpression) || (invoke.get() && (stmt instanceof FieldStoreStatement || stmt instanceof ArrayStoreStatement))) {
 								canPropagate2.set(false);
 								_break();
 							}
@@ -253,6 +261,7 @@ public class CopyPropagator extends Transformer {
 				change = true;
 				r.overwrite(expr, r.indexOf(use));
 
+				CopyPropagator.this.code.forceUpdate(root);
 				boolean canRemoveDefinition = analytics.uses.getUses(localDef).size() <= 1;
 				if (canRemoveDefinition)
 					CopyPropagator.this.code.remove(localDef);
@@ -342,7 +351,7 @@ public class CopyPropagator extends Transformer {
 				if(defs.size() == 1)  {
 					transformSingleDef(defs.iterator().next(), (VarExpression) s, local);
 				} else {
-					transformMultiDef(defs, (VarExpression) s);
+//					transformMultiDef(defs, (VarExpression) s);
 				}
 			}
 			return s;
