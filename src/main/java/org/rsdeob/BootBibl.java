@@ -63,7 +63,7 @@ public class BootBibl implements Opcodes {
 //				continue;
 			}
 			
-			System.out.println("\n\n\nProcessing " + m + ": ");
+			System.out.println("Processing " + m + ": ");
 
 			// System.out.println("Instruction listing for " + m + ": ");
 			// InstructionPrinter.consolePrint(m);
@@ -91,6 +91,7 @@ public class BootBibl implements Opcodes {
 			
 			System.out.println("IR representation of " + m + ":");
 			System.out.println(code);
+			System.out.println();
 			System.out.println();
 			
 			StatementGraph sgraph = StatementGraphBuilder.create(cfg);

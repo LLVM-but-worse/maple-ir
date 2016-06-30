@@ -88,6 +88,8 @@ public abstract class BackwardsFlowAnalyser<N extends FastGraphVertex, E extends
 			if(!graph.containsVertex(n)) {
 				continue;
 			}
+			
+			// System.out.println("bexe " + n);
 
 			// stored for checking if a change of state
 			// happens during the analysis of this
