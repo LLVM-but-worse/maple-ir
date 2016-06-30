@@ -80,24 +80,18 @@ public class NewObjectInitialiserAggregator extends Transformer {
 										// add a copy statement before the pop (x = newExpr)
 										// remove the pop statement
 
-										System.out.println("before: " );
-										System.out.println(code);
-										System.out.println();
-										System.out.println();
-										System.out.println();
 										CopyVarStatement newCvs = new CopyVarStatement(var, newExpr);
 										code.remove(def);
+										code.commit();
 										
 										int index = code.indexOf(pop);
 										Statement prev = code.getAt(index - 1);
 										Statement next = code.getAt(index);
-										graph.jam(prev, next, newCvs);
 										code.insert(prev, next, newCvs);
+										code.remove(pop);
 										code.forceUpdate(newCvs);
 										code.commit();
 										
-										System.out.println("after: " );
-										System.out.println(code);
 										// replace pop(x.<init>()) with x := new Klass();
 										// remove x := new Klass;
 									}
@@ -105,7 +99,7 @@ public class NewObjectInitialiserAggregator extends Transformer {
 									throw new RuntimeException("interesting2");
 								}
 							} else {
-								throw new RuntimeException("interesting1");
+								throw new RuntimeException("interesting1 " + inst.getClass());
 							}
 						}
 					}

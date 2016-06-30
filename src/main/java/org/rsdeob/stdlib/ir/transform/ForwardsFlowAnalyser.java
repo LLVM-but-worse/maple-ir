@@ -76,6 +76,8 @@ public abstract class ForwardsFlowAnalyser<N extends FastGraphVertex, E extends 
 			if(!graph.containsVertex(n)) {
 				continue;
 			}
+			// System.out.println("fexe " + n);
+			
 			S oldOut = newState();
 			S currentOut = out.get(n);
 			copy(currentOut, oldOut);
