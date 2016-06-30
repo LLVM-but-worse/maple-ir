@@ -1,29 +1,16 @@
 package org.rsdeob.stdlib.ir.transform;
 
+import java.util.Iterator;
+import java.util.Set;
+
 import org.rsdeob.stdlib.cfg.edge.FlowEdge;
 import org.rsdeob.stdlib.collections.graph.FastGraphVertex;
 import org.rsdeob.stdlib.collections.graph.flow.FlowGraph;
-
-import java.util.Iterator;
-import java.util.Set;
 
 public abstract class BackwardsFlowAnalyser<N extends FastGraphVertex, E extends FlowEdge<N>, S> extends DataAnalyser<N, E, S> {
 
 	public BackwardsFlowAnalyser(FlowGraph<N, E> graph) {
 		super(graph);
-	}
-	
-	@Override
-	public void enqueue(N n) {
-		Set<E> edgeSet = graph.getEdges(n);
-		if (edgeSet != null) {
-			for (E e : edgeSet) {
-				N dst = e.dst;
-				if(!queue.contains(dst)) {
-					queue.add(dst);
-				}
-			}
-		}
 	}
 	
 	@Override
@@ -47,41 +34,60 @@ public abstract class BackwardsFlowAnalyser<N extends FastGraphVertex, E extends
 			}
 		}
 	}
-
-	@Override
-	public void removed(N n) {
-		super.removed(n);
-		// TODO: ecx86: I don't know whether commenting this out this will break anything
-		// enqueue(n);
+	
+	private void queue(N n) {
+		Set<E> edgeSet = graph.getEdges(n);
+		if (edgeSet != null) {
+			for (E e : edgeSet) {
+				N dst = e.dst;
+				if(!queue.contains(dst)) {
+					queue.add(dst);
+				}
+			}
+		}
 	}
 
 	@Override
-	public void updated(N n) {
-		super.updated(n);
+	public void remove(N n) {
+		super.remove(n);
+		queue(n);
+	}
+
+	@Override
+	public void update(N n) {
+		super.update(n);
 		replaced(n, n);
 	}
 	
 	@Override
 	public void replaced(N old, N n) {
 		super.replaced(old, n);
-		if(graph.getEdges(n).size() == 0) {
+		if((graph.containsVertex(old) && graph.getEdges(old).size() == 0) || graph.getEdges(n).size() == 0) {
 			in.put(n, newState());
 			out.put(n, newEntryState());
 		} else {
 			in.put(n, newState());
 			out.put(n, newState());
-
-			// TODO: ecx86: I don't know whether commenting this out this will break anything
-			// enqueue(old);
-			enqueue(n);
 		}
+		queue(n);
+	}
+
+	@Override
+	public void insert(N p, N s, N n) {
+		update(n);
+		queue(p);
+		queue(s);
 	}
 	
 	@Override
-	public void commit() {
+	public void processImpl() {
 		while(!queue.isEmpty()) {
 			N n = queue.iterator().next();
 			queue.remove(n);
+			
+			if(!graph.containsVertex(n)) {
+				continue;
+			}
 
 			// stored for checking if a change of state
 			// happens during the analysis of this
@@ -109,7 +115,7 @@ public abstract class BackwardsFlowAnalyser<N extends FastGraphVertex, E extends
 				}
 			}
 			
-			apply(n, currentOut, currentIn);
+			execute(n, currentOut, currentIn);
 			
 			// if there was a change, enqueue the predecessors.
 			if(!equals(currentIn, oldIn)) {
@@ -136,5 +142,5 @@ public abstract class BackwardsFlowAnalyser<N extends FastGraphVertex, E extends
 	protected abstract boolean equals(S s1, S s2);
 	
 	@Override
-	protected abstract void apply(N n, S in, S out);
+	protected abstract void execute(N n, S in, S out);
 }

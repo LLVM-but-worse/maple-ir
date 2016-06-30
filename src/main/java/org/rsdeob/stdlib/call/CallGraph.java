@@ -31,7 +31,7 @@ public class CallGraph extends FastGraph<MethodNode, Invocation> {
 	}
 
 	private List<MethodNode> findEntries(ClassTree tree, ClassNode cn) {
-		List<MethodNode> methods = new ArrayList<MethodNode>();
+		List<MethodNode> methods = new ArrayList<>();
 		for (MethodNode mn : cn.methods) {
 			if (adapter.shouldMap(this, mn)) {
 				methods.add(mn);
@@ -134,6 +134,11 @@ public class CallGraph extends FastGraph<MethodNode, Invocation> {
 
 	@Override
 	public boolean excavate(MethodNode n) {
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
+	public boolean jam(MethodNode prev, MethodNode succ, MethodNode n) {
 		throw new UnsupportedOperationException();
 	}
 }

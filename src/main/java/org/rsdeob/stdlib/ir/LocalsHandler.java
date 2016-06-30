@@ -56,7 +56,7 @@ public class LocalsHandler {
 		}
 	}
 	
-	public void pack(StatementList stmtList) {
+	public void pack(CodeBody stmtList) {
 		Set<Local> locals = new HashSet<>();
 		for (Statement s : stmtList) {
 			new StatementVisitor(s) {

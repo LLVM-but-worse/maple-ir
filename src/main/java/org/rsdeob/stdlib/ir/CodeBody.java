@@ -1,22 +1,22 @@
 package org.rsdeob.stdlib.ir;
 
-import org.rsdeob.stdlib.cfg.util.TabbedStringWriter;
-import org.rsdeob.stdlib.ir.api.ICodeListener;
-import org.rsdeob.stdlib.ir.header.StatementHeaderStatement;
-import org.rsdeob.stdlib.ir.stat.Statement;
-
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-public class StatementList implements Iterable<Statement> {
+import org.rsdeob.stdlib.cfg.util.TabbedStringWriter;
+import org.rsdeob.stdlib.ir.api.ICodeListener;
+import org.rsdeob.stdlib.ir.header.StatementHeaderStatement;
+import org.rsdeob.stdlib.ir.stat.Statement;
+
+public class CodeBody implements Iterable<Statement> {
 
 	private final LocalsHandler locals;
 	private final List<Statement> stmts;
 	private final List<ICodeListener<Statement>> listeners;
 	
-	public StatementList(int maxL) {
+	public CodeBody(int maxL) {
 		stmts = new ArrayList<>();
 		locals = new LocalsHandler(maxL + 1);
 		listeners = new CopyOnWriteArrayList<>();
@@ -24,6 +24,10 @@ public class StatementList implements Iterable<Statement> {
 
 	public void registerListener(ICodeListener<Statement> listener) {
 		listeners.add(listener);
+	}
+	
+	public void unregisterListener(ICodeListener<Statement> listener) {
+		listeners.remove(listener);
 	}
 
 	public void clearListeners() {
@@ -44,36 +48,61 @@ public class StatementList implements Iterable<Statement> {
 		Statement prev = stmts.set(index, s);
 		if(s == null)
 			throw new IllegalArgumentException("Statement cannot be null");
-		if (s != prev)
+		if (s != prev && prev != null) {
 			for(ICodeListener<Statement> l : listeners)
 				l.replaced(prev, s);
+		}
+		
+//		if(prev != null) {
+//			for(ICodeListener<Statement> l : listeners)
+//				l.removed(prev);
+//		}
+		
 		return prev;
 	}
 
 	public Statement remove(int index) {
 		Statement prev = stmts.remove(index);
 		for(ICodeListener<Statement> l : listeners)
-			l.removed(prev);
+			l.remove(prev);
 		return prev;
 	}
 
 	public boolean remove(Statement s) {
 		boolean ret = stmts.remove(s);
 		for(ICodeListener<Statement> l : listeners)
-			l.removed(s);
+			l.remove(s);
 		return ret;
 	}
 
+	//FIXME
 	public boolean add(Statement s) {
 		boolean ret = stmts.add(s);
 		for(ICodeListener<Statement> l : listeners)
-			l.added(s);
+			l.update(s);
 		return ret;
 	}
 
-	public void onUpdate(Statement stmt) {
+	public void forceUpdate(Statement stmt) {
 		for(ICodeListener<Statement> l : listeners)
-			l.updated(stmt);
+			l.update(stmt);
+	}
+	
+	public void insert(int index, Statement stmt) {
+		Statement p = stmts.get(index);
+		Statement s = stmts.get(index + 1);
+		stmts.add(index, stmt);
+		for(ICodeListener<Statement> l : listeners) {
+			l.insert(p, s, stmt);
+		}
+	}
+	
+	public void insert(Statement p, Statement s, Statement n) {
+		System.out.println("insert " + p +"  " + s + "  "+ n);
+		stmts.add(stmts.indexOf(p) + 1, n);
+		for(ICodeListener<Statement> l : listeners) {
+			l.insert(p, s, n);
+		}
 	}
 
 	public void commit() {
@@ -89,6 +118,10 @@ public class StatementList implements Iterable<Statement> {
 		return stmts.indexOf(stmt);
 	}
 
+	public Statement getAt(int index) {
+		return stmts.get(index);
+	}
+	
 	@Override
 	public Iterator<Statement> iterator() {
 		return stmts.iterator();

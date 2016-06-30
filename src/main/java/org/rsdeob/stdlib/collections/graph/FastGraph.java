@@ -161,6 +161,8 @@ public abstract class FastGraph<N extends FastGraphVertex, E extends FastGraphEd
 	
 	public abstract boolean excavate(N n);
 
+	public abstract boolean jam(N prev, N succ, N n);
+	
 	// TODO: entries
 	public void replace(N old, N n) {
 		// A = {(A->B), (A->C)}
