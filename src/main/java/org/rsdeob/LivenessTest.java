@@ -18,7 +18,7 @@ import org.rsdeob.stdlib.ir.transform.impl.*;
 
 public class LivenessTest {
 
-	public static void main1(String[] args) throws Exception {
+	public static void main(String[] args) throws Exception {
 		ClassNode cn = new ClassNode();
 		ClassReader cr = new ClassReader(LivenessTest.class.getCanonicalName());
 		cr.accept(cn, 0);
