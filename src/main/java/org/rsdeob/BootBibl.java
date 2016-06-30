@@ -1,21 +1,6 @@
 package org.rsdeob;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
-import java.util.jar.JarOutputStream;
-
-import org.objectweb.asm.ClassReader;
-import org.objectweb.asm.ClassVisitor;
-import org.objectweb.asm.ClassWriter;
-import org.objectweb.asm.MethodVisitor;
-import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.*;
 import org.objectweb.asm.commons.JSRInlinerAdapter;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
@@ -36,8 +21,20 @@ import org.rsdeob.stdlib.ir.CodeBody;
 import org.rsdeob.stdlib.ir.StatementGenerator;
 import org.rsdeob.stdlib.ir.StatementGraph;
 import org.rsdeob.stdlib.ir.StatementGraphBuilder;
+import org.rsdeob.stdlib.ir.export.StatementsDumper;
+import org.rsdeob.stdlib.ir.transform.impl.CodeAnalytics;
+import org.rsdeob.stdlib.ir.transform.impl.DefinitionAnalyser;
+import org.rsdeob.stdlib.ir.transform.impl.LivenessAnalyser;
+import org.rsdeob.stdlib.ir.transform.impl.UsesAnalyser;
 import org.topdank.byteengineer.commons.data.JarInfo;
 import org.topdank.byteio.in.SingleJarDownloader;
+
+import java.io.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+import java.util.jar.JarOutputStream;
 
 public class BootBibl implements Opcodes {
 	public static final File GRAPH_FOLDER = new File("C://Users//Bibl//Desktop//cfg testing");
@@ -102,6 +99,13 @@ public class BootBibl implements Opcodes {
 			System.out.println("Optimised IR " + m + ":");
 			System.out.println(code);
 			System.out.println();
+
+			DefinitionAnalyser defs = new DefinitionAnalyser(sgraph);
+			LivenessAnalyser liveness = new LivenessAnalyser(sgraph);
+			UsesAnalyser uses = new UsesAnalyser(sgraph, defs);
+			CodeAnalytics analytics = new CodeAnalytics(cfg, sgraph, defs, liveness, uses);
+			StatementsDumper dumper = new StatementsDumper(code, cfg);
+			dumper.dump(m, analytics);
 			
 			System.out.println("End of processing log for " + m);
 			System.out.println("============================================================");
