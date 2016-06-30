@@ -1,13 +1,13 @@
 package org.rsdeob.stdlib.ir.transform;
 
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.Map;
+
 import org.rsdeob.stdlib.cfg.edge.FlowEdge;
 import org.rsdeob.stdlib.collections.graph.FastGraphVertex;
 import org.rsdeob.stdlib.collections.graph.flow.FlowGraph;
 import org.rsdeob.stdlib.ir.api.ICodeListener;
-
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.Map;
 
 public abstract class DataAnalyser<N extends FastGraphVertex, E extends FlowEdge<N>, S> implements ICodeListener<N> {
 	
@@ -22,6 +22,20 @@ public abstract class DataAnalyser<N extends FastGraphVertex, E extends FlowEdge
 		in = new HashMap<>();
 		out = new HashMap<>();
 		run();
+	}
+	
+	protected void init() {
+		// set initial data states
+		for(N n : graph.vertices()) {
+			in.put(n, newState());
+			out.put(n, newState());
+		}
+	}
+
+	
+	@Override
+	public void commit() {
+		processImpl();
 	}
 	
 	private void run() {
@@ -40,16 +54,36 @@ public abstract class DataAnalyser<N extends FastGraphVertex, E extends FlowEdge
 	public FlowGraph<N, E> getGraph() {
 		return graph;
 	}
-
-	public abstract void enqueue(N n);
 	
-	protected void init() {
-		// set initial data states
-		for(N n : graph.vertices()) {
-			in.put(n, newState());
-			out.put(n, newState());
+	protected void merge(S mainBranch, S mergingBranch) {
+		S result = newState();
+		merge(mainBranch, mergingBranch, result);
+		copy(result, mainBranch);
+	}
+	
+	public void appendQueue(N n) {
+		queue.add(n);
+	}
+	
+	@Override
+	public void update(N n) {
+		queue.add(n);
+	}
+
+	@Override
+	public void replaced(N old, N n) {
+		if(old != n) {
+			remove(old);
+			update(n);
 		}
 	}
+
+	@Override
+	public void remove(N n) {
+		in.remove(n);
+		out.remove(n);
+		queue.remove(n);
+	}	
 	
 	protected abstract S newState();
 
@@ -61,34 +95,7 @@ public abstract class DataAnalyser<N extends FastGraphVertex, E extends FlowEdge
 	
 	protected abstract void merge(S in1, S in2, S out);
 	
-	protected void merge(S mainBranch, S mergingBranch) {
-		S result = newState();
-		merge(mainBranch, mergingBranch, result);
-		copy(result, mainBranch);
-	}
+	protected abstract void execute(N n, S currentOut, S currentIn);
 	
-	protected abstract void apply(N n, S currentOut, S currentIn);
-
-	// ICodeListener overrides
-	@Override
-	public void updated(N n) {
-		queue.add(n);
-	}
-
-	@Override
-	public void replaced(N old, N n) {
-		removed(old);
-		added(n);
-	}
-
-	@Override
-	public void added(N n) {
-		queue.add(n);
-	}
-
-	@Override
-	public void removed(N n) {
-		in.remove(n);
-		out.remove(n);
-	}
+	protected abstract void processImpl();
 }

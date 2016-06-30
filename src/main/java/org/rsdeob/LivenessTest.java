@@ -1,5 +1,7 @@
 package org.rsdeob;
 
+import java.util.List;
+
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
@@ -8,17 +10,15 @@ import org.rsdeob.stdlib.cfg.ControlFlowGraph;
 import org.rsdeob.stdlib.cfg.ControlFlowGraphBuilder;
 import org.rsdeob.stdlib.cfg.util.ControlFlowGraphDeobfuscator;
 import org.rsdeob.stdlib.cfg.util.GraphUtils;
+import org.rsdeob.stdlib.ir.CodeBody;
 import org.rsdeob.stdlib.ir.StatementGenerator;
 import org.rsdeob.stdlib.ir.StatementGraph;
 import org.rsdeob.stdlib.ir.StatementGraphBuilder;
-import org.rsdeob.stdlib.ir.StatementList;
 import org.rsdeob.stdlib.ir.transform.impl.*;
-
-import java.util.List;
 
 public class LivenessTest {
 
-	public static void main(String[] args) throws Exception {
+	public static void main1(String[] args) throws Exception {
 		ClassNode cn = new ClassNode();
 		ClassReader cr = new ClassReader(LivenessTest.class.getCanonicalName());
 		cr.accept(cn, 0);
@@ -35,7 +35,7 @@ public class LivenessTest {
 				StatementGenerator generator = new StatementGenerator(cfg);
 				generator.init(m.maxLocals);
 				generator.createExpressions();
-				StatementList stmtList = generator.buildRoot();
+				CodeBody stmtList = generator.buildRoot();
 				
 				StatementGraph sgraph = StatementGraphBuilder.create(cfg);
 				System.out.println("Processing " + m);
@@ -66,27 +66,36 @@ public class LivenessTest {
 		}
 	}
 	
-	public static void optimise(ControlFlowGraph cfg, StatementList stmtList, StatementGraph graph) {
+	public static void optimise(ControlFlowGraph cfg, CodeBody stmtList, StatementGraph graph) {
+		DefinitionAnalyser defAnalyser = new DefinitionAnalyser(graph);
+		LivenessAnalyser la = new LivenessAnalyser(graph);
+		UsesAnalyser useAnalyser = new UsesAnalyser(graph, defAnalyser);
+		CodeAnalytics analytics = new CodeAnalytics(cfg, graph, defAnalyser, la, useAnalyser);
+		stmtList.registerListener(analytics);
+		
+		Transformer[] transforms = transforms(stmtList, analytics);
+		
 		while(true) {
 			int change = 0;
-			DefinitionAnalyser defAnalyser = new DefinitionAnalyser(graph);
-			LivenessAnalyser la = new LivenessAnalyser(graph);
-			UsesAnalyser useAnalyser = new UsesAnalyser(graph, defAnalyser);
 
-			CodeAnalytics analytics = new CodeAnalytics(cfg, graph, defAnalyser, la, useAnalyser);
-			stmtList.registerListener(analytics);
-
-			CopyPropagator prop = new CopyPropagator(stmtList, analytics);
-			prop.process();
-
-			change += DeadAssignmentEliminator.run(stmtList, analytics);
-			NewObjectInitialiserAggregator.run(stmtList, analytics);
-
-			stmtList.clearListeners();
+			for(Transformer t : transforms) {
+				change += t.run();
+			}
+			
 			if(change <= 0) {
 				break;
 			}
 		}
+		
+		stmtList.unregisterListener(analytics);
+	}
+	
+	private static Transformer[] transforms(CodeBody body, CodeAnalytics analytics) {
+		return new Transformer[] {
+			new CopyPropagator(body, analytics),
+			new DeadAssignmentEliminator(body, analytics),
+			new NewObjectInitialiserAggregator(body, analytics)
+		};
 	}
 	
 	void test1() {

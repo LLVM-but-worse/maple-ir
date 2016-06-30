@@ -1,38 +1,50 @@
 package org.rsdeob.stdlib.ir.transform.impl;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Set;
+
 import org.objectweb.asm.Opcodes;
+import org.rsdeob.stdlib.ir.CodeBody;
 import org.rsdeob.stdlib.ir.Local;
 import org.rsdeob.stdlib.ir.StatementGraph;
-import org.rsdeob.stdlib.ir.StatementList;
-import org.rsdeob.stdlib.ir.expr.*;
+import org.rsdeob.stdlib.ir.expr.Expression;
+import org.rsdeob.stdlib.ir.expr.InitialisedObjectExpression;
+import org.rsdeob.stdlib.ir.expr.InvocationExpression;
+import org.rsdeob.stdlib.ir.expr.UninitialisedObjectExpression;
+import org.rsdeob.stdlib.ir.expr.VarExpression;
 import org.rsdeob.stdlib.ir.stat.CopyVarStatement;
 import org.rsdeob.stdlib.ir.stat.PopStatement;
 import org.rsdeob.stdlib.ir.stat.Statement;
 
-import java.util.*;
+public class NewObjectInitialiserAggregator extends Transformer {
 
-public class NewObjectInitialiserAggregator {
+	public NewObjectInitialiserAggregator(CodeBody code, CodeAnalytics analytics) {
+		super(code, analytics);
+	}
 
-	public static int run(StatementList stmtList, CodeAnalytics analytics) {
-		StatementGraph graph = analytics.stmtGraph;
+	@Override
+	public int run() {
+		StatementGraph graph = analytics.sgraph;
 		DefinitionAnalyser definitions = analytics.definitions;
-		UsesAnalyser uses = analytics.uses;
-		LivenessAnalyser liveness = analytics.liveness;
-		
+
 		int totalChange = 0;
-		while(true) {
+		while (true) {
 			int passChange = 0;
-			
+
 			// x = new Klass
 			// pop(x.<init>())
 			// ...
 			// use(x)
-			
-			// to 
+
+			// to
 			// x = new Klass()
-			// ... 
+			// ...
 			// use(x)
-			
+
 			List<Statement> list = new ArrayList<>(graph.vertices());
 			Collections.sort(list, new Comparator<Statement>() {
 				@Override
@@ -40,24 +52,24 @@ public class NewObjectInitialiserAggregator {
 					return Long.compare(o1._getId(), o2._getId());
 				}
 			});
-			
-			for(Statement stmt : list) {
-				if(stmt instanceof PopStatement) {
+
+			for (Statement stmt : list) {
+				if (stmt instanceof PopStatement) {
 					PopStatement pop = (PopStatement) stmt;
 					Expression expr = pop.getExpression();
-					if(expr instanceof InvocationExpression) {
+					if (expr instanceof InvocationExpression) {
 						InvocationExpression invoke = (InvocationExpression) expr;
-						if(invoke.getOpcode() == Opcodes.INVOKESPECIAL && invoke.getName().equals("<init>")) {
+						if (invoke.getOpcode() == Opcodes.INVOKESPECIAL && invoke.getName().equals("<init>")) {
 							Expression inst = invoke.getInstanceExpression();
-							if(inst instanceof VarExpression) {
+							if (inst instanceof VarExpression) {
 								VarExpression var = (VarExpression) inst;
 								Local local = var.getLocal();
-								
+
 								Set<CopyVarStatement> defs = definitions.in(stmt).get(local);
-								if(defs.size() == 1) {
+								if (defs.size() == 1) {
 									CopyVarStatement def = defs.iterator().next();
 									Expression rhs = def.getExpression();
-									if(rhs instanceof UninitialisedObjectExpression) {
+									if (rhs instanceof UninitialisedObjectExpression) {
 										// here we are assuming that the new object
 										// can't be used until it is initialised.
 										UninitialisedObjectExpression obj = (UninitialisedObjectExpression) rhs;
@@ -67,29 +79,27 @@ public class NewObjectInitialiserAggregator {
 										// remove the old def
 										// add a copy statement before the pop (x = newExpr)
 										// remove the pop statement
+
+										System.out.println("before: " );
+										System.out.println(code);
+										System.out.println();
+										System.out.println();
+										System.out.println();
 										CopyVarStatement newCvs = new CopyVarStatement(var, newExpr);
+										code.remove(def);
 										
-										graph.addVertex(newCvs);
-//										graph.replace(pop, newCvs);
-//										graph.excavate(def);
-
-//										definitions.replaced(pop, newCvs);
-//										definitions.removed(def);
-//										liveness.replaced(pop, newCvs);
-//										liveness.removed(def);
-
+										int index = code.indexOf(pop);
+										Statement prev = code.getAt(index - 1);
+										Statement next = code.getAt(index);
+										graph.jam(prev, next, newCvs);
+										code.insert(prev, next, newCvs);
+										code.forceUpdate(newCvs);
+										code.commit();
+										
+										System.out.println("after: " );
+										System.out.println(code);
 										// replace pop(x.<init>()) with x := new Klass();
-										stmtList.set(stmtList.indexOf(pop), newCvs);
 										// remove x := new Klass;
-										stmtList.remove(def);
-
-										definitions.commit();
-										liveness.commit();
-
-										// update these after the defs and uses have been
-										// fixed.
-										uses.removed(def);
-										uses.updated(newCvs);
 									}
 								} else {
 									throw new RuntimeException("interesting2");
@@ -101,9 +111,9 @@ public class NewObjectInitialiserAggregator {
 					}
 				}
 			}
-			
+
 			totalChange += passChange;
-			if(passChange <= 0) {
+			if (passChange <= 0) {
 				break;
 			}
 		}

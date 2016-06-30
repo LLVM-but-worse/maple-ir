@@ -1,20 +1,25 @@
 package org.rsdeob.stdlib.ir.transform.impl;
 
-import org.rsdeob.stdlib.ir.Local;
-import org.rsdeob.stdlib.ir.StatementGraph;
-import org.rsdeob.stdlib.ir.StatementList;
-import org.rsdeob.stdlib.ir.expr.VarExpression;
-import org.rsdeob.stdlib.ir.stat.CopyVarStatement;
-import org.rsdeob.stdlib.ir.stat.Statement;
-
 import java.util.HashSet;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class DeadAssignmentEliminator {
+import org.rsdeob.stdlib.ir.CodeBody;
+import org.rsdeob.stdlib.ir.Local;
+import org.rsdeob.stdlib.ir.StatementGraph;
+import org.rsdeob.stdlib.ir.expr.VarExpression;
+import org.rsdeob.stdlib.ir.stat.CopyVarStatement;
+import org.rsdeob.stdlib.ir.stat.Statement;
 
-	public static int run(StatementList stmtList, CodeAnalytics analytics) {
-		StatementGraph graph = analytics.stmtGraph;
+public class DeadAssignmentEliminator extends Transformer {
+
+	public DeadAssignmentEliminator(CodeBody code, CodeAnalytics analytics) {
+		super(code, analytics);
+	}
+
+	@Override
+	public int run() {
+		StatementGraph graph = analytics.sgraph;
 		LivenessAnalyser la = analytics.liveness;
 
 		AtomicInteger dead = new AtomicInteger();
@@ -25,7 +30,8 @@ public class DeadAssignmentEliminator {
 				VarExpression var = copy.getVariable();
 				
 				if(!out.get(var.getLocal())) {
-					stmtList.remove(copy);
+					code.remove(copy);
+					code.commit();
 					dead.incrementAndGet();
 				}
 			}

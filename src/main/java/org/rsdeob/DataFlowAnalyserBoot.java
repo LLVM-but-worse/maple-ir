@@ -29,7 +29,7 @@ public class DataFlowAnalyserBoot {
 				StatementGenerator generator = new StatementGenerator(cfg);
 				generator.init(m.maxLocals);
 				generator.createExpressions();
-				StatementList stmtList = generator.buildRoot();
+				CodeBody stmtList = generator.buildRoot();
 				
 				StatementGraph sgraph = StatementGraphBuilder.create(cfg);
 				System.out.println("Processing " + m);
