@@ -212,6 +212,7 @@ public class CopyPropagator extends Transformer {
 			return null;
 		}
 		
+		System.out.println(localDef.getId() + ", " + localDef);
 		if(analytics.uses.getUses(localDef).size() > 1) {
 			if(rhs.canChangeLogic() || rhs.canChangeFlow()) {
 				return null;

@@ -65,7 +65,11 @@ public class CodeAnalytics implements ICodeListener<Statement> {
 
 	@Override
 	public void insert(Statement p, Statement s, Statement n) {
-		
+		sgraph.jam(p, s, n);
+		definitions.insert(p, s, n);
+		liveness.insert(p, s, n);
+		definitions.commit();
+		uses.insert(p, s, n);
 	}
 
 	@Override

@@ -1,8 +1,10 @@
 package org.rsdeob.stdlib.ir.transform.impl;
 
+import java.util.HashSet;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import org.rsdeob.stdlib.cfg.edge.FlowEdge;
 import org.rsdeob.stdlib.collections.NullPermeableHashMap;
 import org.rsdeob.stdlib.collections.SetCreator;
 import org.rsdeob.stdlib.ir.Local;
@@ -78,7 +80,7 @@ public class UsesAnalyser implements ICodeListener<Statement> {
 
 	public void build(Statement stmt) {
 		Set<VarExpression> set = used.getNonNull(stmt);
-
+		
 		StatementVisitor vis = new StatementVisitor(stmt) {
 			@Override
 			public Statement visit(Statement s) {
@@ -105,10 +107,25 @@ public class UsesAnalyser implements ICodeListener<Statement> {
 		vis.visit();
 	}
 
+	private void rebuild(Statement start) {
+		rebuild(start, new HashSet<>());
+	}
+	
+	private void rebuild(Statement start, Set<Statement> vis) {
+		if(vis.contains(start)) {
+			return;
+		}
+		vis.add(start);
+		build(start);
+		for(FlowEdge<Statement> e : graph.getEdges(start)) {
+			rebuild(e.dst, vis);
+		}
+	}
+	
 	@Override
 	public void replaced(Statement old, Statement n) {
 		remove(old);
-		build(n);
+		rebuild(n);
 	}
 
 	@Override
@@ -125,6 +142,6 @@ public class UsesAnalyser implements ICodeListener<Statement> {
 
 	@Override
 	public void insert(Statement p, Statement s, Statement n) {
-		build(n);
+		rebuild(n);
 	}
 }

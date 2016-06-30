@@ -44,21 +44,27 @@ public class CodeBody implements Iterable<Statement> {
 
 	// TODO: exceptions
 
-	public Statement set(int index, Statement s) {
-		Statement prev = stmts.set(index, s);
-		if(s == null)
-			throw new IllegalArgumentException("Statement cannot be null");
-		if (s != prev && prev != null) {
-			for(ICodeListener<Statement> l : listeners)
-				l.replaced(prev, s);
-		}
+//	public Statement set(int index, Statement s) {
+//		Statement prev = stmts.set(index, s);
+//		if(s == null)
+//			throw new IllegalArgumentException("Statement cannot be null");
+//		if (s != prev && prev != null) {
+//			for(ICodeListener<Statement> l : listeners)
+//				l.replaced(prev, s);
+//		}
 		
 //		if(prev != null) {
 //			for(ICodeListener<Statement> l : listeners)
 //				l.removed(prev);
 //		}
-		
-		return prev;
+//		
+//		return prev;
+//	}
+	
+	public void replace(Statement old, Statement n) {
+		stmts.set(stmts.indexOf(old), n);
+		for(ICodeListener<Statement> l : listeners)
+			l.replaced(old, n);
 	}
 
 	public Statement remove(int index) {
@@ -98,7 +104,6 @@ public class CodeBody implements Iterable<Statement> {
 	}
 	
 	public void insert(Statement p, Statement s, Statement n) {
-		System.out.println("insert " + p +"  " + s + "  "+ n);
 		stmts.add(stmts.indexOf(p) + 1, n);
 		for(ICodeListener<Statement> l : listeners) {
 			l.insert(p, s, n);
