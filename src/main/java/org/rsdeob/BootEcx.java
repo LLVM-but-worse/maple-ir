@@ -92,12 +92,12 @@ public class BootEcx implements Opcodes {
 			System.out.println();
 
 			StatementGraph sgraph = StatementGraphBuilder.create(cfg);
-			LivenessTest.optimise(cfg, stmtList, sgraph);
-
-			System.out.println("Optimised IR " + m + ":");
-			System.out.println(stmtList);
-			System.out.println();
-
+//			LivenessTest.optimise(cfg, stmtList, sgraph);
+//
+//			System.out.println("Optimised IR " + m + ":");
+//			System.out.println(stmtList);
+//			System.out.println();
+//
 			DefinitionAnalyser defs = new DefinitionAnalyser(sgraph);
 			LivenessAnalyser liveness = new LivenessAnalyser(sgraph);
 			UsesAnalyser uses = new UsesAnalyser(sgraph, defs);
