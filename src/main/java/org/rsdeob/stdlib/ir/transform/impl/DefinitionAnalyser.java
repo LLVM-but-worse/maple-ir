@@ -126,4 +126,31 @@ public class DefinitionAnalyser extends ForwardsFlowAnalyser<Statement, FlowEdge
 				uses.add(entry.getKey());
 		return uses;
 	}
+	
+	public String toString(Statement stmt, String indent) {
+		StringBuilder sb = new StringBuilder();
+		
+		Map<Local, Set<CopyVarStatement>> in = in(stmt);
+		Map<Local, Set<CopyVarStatement>> out = out(stmt);
+		
+		if(in != null) {
+			sb.append(indent).append("IN:\n");
+			for(Entry<Local, Set<CopyVarStatement>> e : in.entrySet()) {
+				sb.append(indent).append("  ").append(e.getKey()).append(" = ").append(e.getValue()).append("\n");
+			}
+		}
+		
+		if(out != null) {
+			sb.append(indent).append("OUT:\n");
+			for(Entry<Local, Set<CopyVarStatement>> e : out.entrySet()) {
+				sb.append(indent).append("  ").append(e.getKey()).append(" = ").append(e.getValue()).append("\n");
+			}
+		}
+		
+		if(in == null && out == null) {
+			sb.append(indent).append("\n");
+		}
+		
+		return sb.toString();
+	}
 }

@@ -7,8 +7,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import org.rsdeob.stdlib.cfg.edge.FlowEdge;
-import org.rsdeob.stdlib.collections.NullPermeableHashMap;
-import org.rsdeob.stdlib.collections.SetCreator;
 import org.rsdeob.stdlib.collections.graph.flow.FlowGraph;
 import org.rsdeob.stdlib.ir.Local;
 import org.rsdeob.stdlib.ir.StatementVisitor;
@@ -34,7 +32,6 @@ public class LivenessAnalyser extends BackwardsFlowAnalyser<Statement, FlowEdge<
 	 */
 	
 	private Map<Local, Boolean> initial;
-	private NullPermeableHashMap<Statement, Set<Local>> uses;
 	
 	public LivenessAnalyser(FlowGraph<Statement, FlowEdge<Statement>> graph) {
 		super(graph);
@@ -42,27 +39,23 @@ public class LivenessAnalyser extends BackwardsFlowAnalyser<Statement, FlowEdge<
 	
 	@Override
 	protected void init() {
-		
 		initial = new HashMap<>();
-		uses = new NullPermeableHashMap<>(new SetCreator<>());
 		for(Statement stmt : graph.vertices()) {
 			if(stmt instanceof CopyVarStatement) {
 				VarExpression var = ((CopyVarStatement) stmt).getVariable();
 				initial.put(var.getLocal(), Boolean.valueOf(false));
 			}
 			
-			StatementVisitor vis = new StatementVisitor(stmt) {
+			new StatementVisitor(stmt) {
 				@Override
 				public Statement visit(Statement s) {
 					if(s instanceof VarExpression) {
 						Local var = ((VarExpression) s).getLocal();
 						initial.put(var, Boolean.valueOf(false));
-						uses.getNonNull(stmt).add(var);
 					}
 					return s;
 				}
-			};
-			vis.visit();
+			}.visit();
 		}
 		
 		super.init();
@@ -71,29 +64,16 @@ public class LivenessAnalyser extends BackwardsFlowAnalyser<Statement, FlowEdge<
 	@Override
 	public void remove(Statement n) {
 		super.remove(n);
-		uses.remove(n);
-		initial.remove(n);
 	}
-
+	
+	@Override
+	public void update(Statement n) {
+		super.update(n);
+	}
+	
 	@Override
 	public void replaced(Statement old, Statement n) {
 		super.replaced(old, n);
-		
-		if(uses.containsKey(old)) {
-			uses.remove(old);
-			
-			StatementVisitor vis = new StatementVisitor(n) {
-				@Override
-				public Statement visit(Statement s) {
-					if(s instanceof VarExpression) {
-						Local var = ((VarExpression) s).getLocal();
-						uses.getNonNull(n).add(var);
-					}
-					return s;
-				}
-			};
-			vis.visit();
-		}
 	}
 	
 	@Override
@@ -115,7 +95,7 @@ public class LivenessAnalyser extends BackwardsFlowAnalyser<Statement, FlowEdge<
 
 	@Override
 	protected void execute(Statement n, Map<Local, Boolean> in, Map<Local, Boolean> out) {
-		// System.out.println("propagating " + n);
+		if(x) System.out.println("    propagating " + n);
 		
 		for(Entry<Local, Boolean> e : in.entrySet()) {
 			Local key = e.getKey();
@@ -124,7 +104,6 @@ public class LivenessAnalyser extends BackwardsFlowAnalyser<Statement, FlowEdge<
 			} else {
 				out.put(key, e.getValue());
 			}
-			// System.out.println("   " + key + " is " + (e.getValue() ? "live" : "dead"));
 		}
 		// do this before the uses because of
 		// varx = varx statements (i had a dream about
@@ -134,12 +113,16 @@ public class LivenessAnalyser extends BackwardsFlowAnalyser<Statement, FlowEdge<
 			out.put(((CopyVarStatement) n).getVariable().getLocal(), false);
 		}
 		
-		Set<Local> vars = uses.get(n);
-		if(vars != null && vars.size() > 0) {
-			for(Local var : vars) {
-				out.put(var, true);
+		new StatementVisitor(n) {
+			@Override
+			public Statement visit(Statement s) {
+				if(s instanceof VarExpression) {
+					Local var = ((VarExpression) s).getLocal();
+					out.put(var, true);
+				}
+				return s;
 			}
-		}
+		}.visit();
 	}
 
 	@Override
