@@ -62,12 +62,14 @@ public abstract class DataAnalyser<N extends FastGraphVertex, E extends FlowEdge
 	}
 	
 	public void appendQueue(N n) {
-		queue.add(n);
+		if(!queue.contains(n)) {
+			queue.add(n);
+		}
 	}
 	
 	@Override
 	public void update(N n) {
-		queue.add(n);
+		appendQueue(n);
 	}
 
 	@Override
@@ -82,7 +84,7 @@ public abstract class DataAnalyser<N extends FastGraphVertex, E extends FlowEdge
 	public void remove(N n) {
 		in.remove(n);
 		out.remove(n);
-		queue.remove(n);
+		while(queue.remove(n));
 	}	
 	
 	protected abstract S newState();
