@@ -5,6 +5,7 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.rsdeob.AnalyticsTest;
 import org.rsdeob.stdlib.ir.CodeBody;
 import org.rsdeob.stdlib.ir.Local;
 import org.rsdeob.stdlib.ir.StatementGraph;
@@ -29,6 +30,10 @@ public class DeadAssignmentEliminator extends Transformer {
 
 		AtomicInteger dead = new AtomicInteger();
 		for(Statement stmt : new HashSet<>(graph.vertices())) {
+			if(stmt._getId() >= 90) {
+				continue;
+			}
+			
 			if(stmt instanceof CopyVarStatement) {
 				Map<Local, Boolean> out = la.out(stmt);
 				CopyVarStatement copy = (CopyVarStatement) stmt;
@@ -53,6 +58,9 @@ public class DeadAssignmentEliminator extends Transformer {
 						code.remove(copy);
 						code.commit();
 					}
+					
+					AnalyticsTest.verify_callback(code, analytics, stmt);
+					
 					dead.incrementAndGet();
 				}
 			}

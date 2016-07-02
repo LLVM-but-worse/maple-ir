@@ -9,6 +9,8 @@ import org.rsdeob.stdlib.collections.graph.flow.FlowGraph;
 
 public abstract class BackwardsFlowAnalyser<N extends FastGraphVertex, E extends FlowEdge<N>, S> extends DataAnalyser<N, E, S> {
 
+	public boolean x, y;
+	
 	public BackwardsFlowAnalyser(FlowGraph<N, E> graph) {
 		super(graph);
 	}
@@ -25,7 +27,7 @@ public abstract class BackwardsFlowAnalyser<N extends FastGraphVertex, E extends
 		// the default flow states into our tables.
 		
 		for(N n : graph.vertices()) {
-			queue.add(n);
+			appendQueue(n);
 			in.put(n, newState());
 			out.put(n, newState());
 			
@@ -35,22 +37,28 @@ public abstract class BackwardsFlowAnalyser<N extends FastGraphVertex, E extends
 		}
 	}
 	
-	private void queue(N n) {
+	private void queueNext(N n) {
 		Set<E> edgeSet = graph.getEdges(n);
 		if (edgeSet != null) {
 			for (E e : edgeSet) {
-				N dst = e.dst;
-				if(!queue.contains(dst)) {
-					queue.add(dst);
-				}
+				appendQueue(e.dst);
 			}
 		}
 	}
-
+	
+	@Override
+	public void appendQueue(N n) {
+		if(!queue.contains(n)) {
+			if(x) {
+				System.out.println("  Appending " + n);
+			}
+			queue.add(n);
+		}
+	}
 	@Override
 	public void remove(N n) {
 		super.remove(n);
-		queue(n);
+		queueNext(n);
 	}
 
 	@Override
@@ -69,14 +77,14 @@ public abstract class BackwardsFlowAnalyser<N extends FastGraphVertex, E extends
 			in.put(n, newState());
 			out.put(n, newState());
 		}
-		queue(n);
+		queueNext(n);
 	}
 
 	@Override
 	public void insert(N p, N s, N n) {
 		update(n);
-		queue(p);
-		queue(s);
+		queueNext(p);
+		queueNext(s);
 	}
 	
 	@Override
@@ -89,7 +97,7 @@ public abstract class BackwardsFlowAnalyser<N extends FastGraphVertex, E extends
 				continue;
 			}
 			
-			// System.out.println("bexe " + n);
+//			System.out.println("  bexe " + n);
 
 			// stored for checking if a change of state
 			// happens during the analysis of this
@@ -100,6 +108,11 @@ public abstract class BackwardsFlowAnalyser<N extends FastGraphVertex, E extends
 			
 			S currentOut = out.get(n);
 			Set<E> succs = graph.getEdges(n);
+			
+//			System.out.println("   succ:");
+//			for(E e : succs) {
+//				System.out.println("    " + e.dst);
+//			}
 			
 			if(succs.size() == 1) {
 				N succ = succs.iterator().next().dst;
@@ -119,10 +132,22 @@ public abstract class BackwardsFlowAnalyser<N extends FastGraphVertex, E extends
 			
 			execute(n, currentOut, currentIn);
 			
+//			System.out.println("     curIn: " + currentIn);
+//			System.out.println("     oldIn: " + oldIn);
+//			System.out.println("     equals: " + equals(currentIn, oldIn));
+			
 			// if there was a change, enqueue the predecessors.
 			if(!equals(currentIn, oldIn)) {
+				
+				if(y) {
+					System.out.println("not eq: " + n);
+					System.out.println(oldIn);
+					System.out.println(currentIn);
+				}
+				
 				for(E e : graph.getReverseEdges(n)) {
-					queue.add(e.src);
+//					System.out.println("   requeue: " + e.src);
+					appendQueue(e.src);
 				}
 			}
 		}

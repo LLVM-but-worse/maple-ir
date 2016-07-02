@@ -1,5 +1,13 @@
 package org.rsdeob.stdlib.ir;
 
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.*;
@@ -16,9 +24,6 @@ import org.rsdeob.stdlib.ir.header.HeaderStatement;
 import org.rsdeob.stdlib.ir.stat.*;
 import org.rsdeob.stdlib.ir.stat.ConditionalJumpStatement.ComparisonType;
 import org.rsdeob.stdlib.ir.stat.MonitorStatement.MonitorMode;
-
-import java.util.*;
-import java.util.Map.Entry;
 
 public class StatementGenerator implements Opcodes {
 
@@ -110,7 +115,7 @@ public class StatementGenerator implements Opcodes {
 
 	void addStmt(Statement stmt) {
 		currentBlock.getStatements().add(stmt);
-	 	System.out.println("   Added stmt: " + getLastStatement(currentBlock));
+	 	// System.out.println("   Added stmt: " + getLastStatement(currentBlock));
 	}
 
 	Expression pop() {
@@ -247,8 +252,8 @@ public class StatementGenerator implements Opcodes {
 		for (AbstractInsnNode ain : b.getInsns()) {
 			int opcode = ain.opcode();
 			if(opcode != -1) {
-				  System.out.println("Executing " + Printer.OPCODES[ain.opcode()]);
-				  System.out.println(" Prestack : " + stack);
+//				  System.out.println("Executing " + Printer.OPCODES[ain.opcode()]);
+//				  System.out.println(" Prestack : " + stack);
 			}
 			switch (opcode) {
 				case -1: {
@@ -565,8 +570,8 @@ public class StatementGenerator implements Opcodes {
 			}
 			
 //			if(Statement.ID_COUNTER < 60) {
-				 System.out.println(" Poststack: " + stack);
-				 System.out.println();
+//				 System.out.println(" Poststack: " + stack);
+//				 System.out.println();
 //			}
 			
 			 /*System.out.println(" Block stmts: ");

@@ -26,15 +26,18 @@ public class CodeAnalytics implements ICodeListener<Statement> {
 
 	@Override
 	public void update(Statement stmt) {
+//		System.out.println("CodeAnalytics.update(" + stmt + ")");
 		definitions.update(stmt);
 		liveness.update(stmt);
 		definitions.commit();
+		liveness.commit();
 		// update defs before uses.
 		uses.update(stmt);
 	}
 
 	@Override
 	public void replaced(Statement old, Statement n) {
+//		System.out.println("CodeAnalytics.replaced(" + old + ", " + n +  ")");
 		sgraph.replace(old, n);
 		definitions.replaced(old, n);
 		liveness.replaced(old, n);
@@ -44,36 +47,40 @@ public class CodeAnalytics implements ICodeListener<Statement> {
 
 	@Override
 	public void remove(Statement n) {
+//		System.out.println("CodeAnalytics.remove(" + n + ")");
 		definitions.remove(n);
 		liveness.remove(n);
-		uses.remove(n);
 		Set<FlowEdge<Statement>> preds = sgraph.getReverseEdges(n);
 		Set<FlowEdge<Statement>> succs = sgraph.getEdges(n);
 		if (sgraph.excavate(n)) {
-			for(FlowEdge<Statement> p : preds) {
-				if(p.dst != n)
-					definitions.appendQueue(p.dst);
-			}
-			for(FlowEdge<Statement> s : succs) {
-				if(s.src != n)
-					liveness.appendQueue(s.src);
-			}
 			definitions.commit();
 			liveness.commit();
+			uses.remove(n);
+			for(FlowEdge<Statement> p : preds) {
+				if(p.src != n)
+					definitions.appendQueue(p.src);
+			}
+			for(FlowEdge<Statement> s : succs) {
+				if(s.dst != n)
+					liveness.appendQueue(s.dst);
+			}
 		}
 	}
 
 	@Override
 	public void insert(Statement p, Statement s, Statement n) {
+//		System.out.println("CodeAnalytics.insert(" + p + ", " +s + ", " + n +")");
 		sgraph.jam(p, s, n);
 		definitions.insert(p, s, n);
 		liveness.insert(p, s, n);
+		liveness.commit();
 		definitions.commit();
 		uses.insert(p, s, n);
 	}
 
 	@Override
 	public void commit() {
+//		System.out.println("CodeAnalytics.commit()");
 		definitions.commit();
 		liveness.commit();
 		uses.commit();
