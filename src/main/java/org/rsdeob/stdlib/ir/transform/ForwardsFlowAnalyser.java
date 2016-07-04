@@ -9,6 +9,10 @@ import org.rsdeob.stdlib.collections.graph.flow.FlowGraph;
 
 public abstract class ForwardsFlowAnalyser<N extends FastGraphVertex, E extends FlowEdge<N>, S> extends DataAnalyser<N, E, S>{
 
+	public ForwardsFlowAnalyser(FlowGraph<N, E> graph, boolean commit) {
+		super(graph, commit);
+	}
+	
 	public ForwardsFlowAnalyser(FlowGraph<N, E> graph) {
 		super(graph);
 	}

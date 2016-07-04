@@ -17,11 +17,20 @@ public abstract class DataAnalyser<N extends FastGraphVertex, E extends FlowEdge
 	protected final LinkedList<N> queue;
 	
 	public DataAnalyser(FlowGraph<N, E> graph) {
+		this(graph, true);
+	}
+	
+	public DataAnalyser(FlowGraph<N, E> graph, boolean commit) {
 		this.graph = graph;
 		this.queue = new LinkedList<>();
 		in = new HashMap<>();
 		out = new HashMap<>();
-		run();
+		run(commit);
+	}
+	
+	private void run(boolean commit) {
+		init();
+		if(commit) commit();
 	}
 	
 	protected void init() {
@@ -36,11 +45,6 @@ public abstract class DataAnalyser<N extends FastGraphVertex, E extends FlowEdge
 	@Override
 	public void commit() {
 		processImpl();
-	}
-	
-	private void run() {
-		init();
-		commit();
 	}
 	
 	public S in(N n) {

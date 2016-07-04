@@ -1,15 +1,19 @@
 package org.rsdeob.stdlib.ir.transform;
 
+import java.util.Iterator;
+import java.util.Set;
+
 import org.rsdeob.stdlib.cfg.edge.FlowEdge;
 import org.rsdeob.stdlib.collections.graph.FastGraphVertex;
 import org.rsdeob.stdlib.collections.graph.flow.FlowGraph;
 
-import java.util.Iterator;
-import java.util.Set;
-
 public abstract class BackwardsFlowAnalyser<N extends FastGraphVertex, E extends FlowEdge<N>, S> extends DataAnalyser<N, E, S> {
 
 	public boolean x, y;
+	
+	public BackwardsFlowAnalyser(FlowGraph<N, E> graph, boolean commit) {
+		super(graph, commit);
+	}
 	
 	public BackwardsFlowAnalyser(FlowGraph<N, E> graph) {
 		super(graph);
@@ -151,10 +155,6 @@ public abstract class BackwardsFlowAnalyser<N extends FastGraphVertex, E extends
 			
 			execute(n, currentOut, currentIn);
 			
-//			System.out.println("     curIn: " + currentIn);
-//			System.out.println("     oldIn: " + oldIn);
-//			System.out.println("     equals: " + equals(currentIn, oldIn));
-			
 			// if there was a change, enqueue the predecessors.
 			if(!equals(currentIn, oldIn)) {
 				
@@ -165,7 +165,6 @@ public abstract class BackwardsFlowAnalyser<N extends FastGraphVertex, E extends
 				}
 				
 				for(E e : graph.getReverseEdges(n)) {
-//					System.out.println("   requeue: " + e.src);
 					appendQueue(e.src);
 				}
 			}
