@@ -1,11 +1,11 @@
 package org.rsdeob.stdlib.ir.transform;
 
-import java.util.Iterator;
-import java.util.Set;
-
 import org.rsdeob.stdlib.cfg.edge.FlowEdge;
 import org.rsdeob.stdlib.collections.graph.FastGraphVertex;
 import org.rsdeob.stdlib.collections.graph.flow.FlowGraph;
+
+import java.util.Iterator;
+import java.util.Set;
 
 public abstract class BackwardsFlowAnalyser<N extends FastGraphVertex, E extends FlowEdge<N>, S> extends DataAnalyser<N, E, S> {
 
@@ -60,7 +60,14 @@ public abstract class BackwardsFlowAnalyser<N extends FastGraphVertex, E extends
 	public void appendQueue(N n) {
 		if(!queue.contains(n)) {
 			if(x) {
-				System.out.println("  Appending " + n);
+				System.out.println("  Appending " + n + ", I was called from ");
+				StackTraceElement[] trace = (new Throwable()).getStackTrace();
+				for (int i = 1; i <= 10; i++) {
+					String classname = trace[i].getClassName();
+					System.out.println("    " + classname.substring(classname.lastIndexOf('.') + 1) + "#" + trace[i].getMethodName());
+					if (classname.contains("CodeAnalytics"))
+						break;
+				}
 			}
 			queue.add(n);
 		}
@@ -128,12 +135,14 @@ public abstract class BackwardsFlowAnalyser<N extends FastGraphVertex, E extends
 				N succ = succs.iterator().next().dst;
 				S succIn = in.get(succ);
 				copy(succIn, currentOut);
+				if (y) System.out.println("copy");
 			} else if(succs.size() > 1) {
 				Iterator<E> it = succs.iterator();
-				
+
 				N firstSucc = it.next().dst;
 				copy(in.get(firstSucc), currentOut);
-				
+
+				if (y) System.out.println("merge");
 				while(it.hasNext()) {
 					S merging = in.get(it.next().dst);
 					merge(currentOut, merging);

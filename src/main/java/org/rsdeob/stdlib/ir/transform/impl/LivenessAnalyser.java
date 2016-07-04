@@ -1,11 +1,5 @@
 package org.rsdeob.stdlib.ir.transform.impl;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-
 import org.rsdeob.stdlib.cfg.edge.FlowEdge;
 import org.rsdeob.stdlib.collections.graph.flow.FlowGraph;
 import org.rsdeob.stdlib.ir.Local;
@@ -14,6 +8,12 @@ import org.rsdeob.stdlib.ir.expr.VarExpression;
 import org.rsdeob.stdlib.ir.stat.CopyVarStatement;
 import org.rsdeob.stdlib.ir.stat.Statement;
 import org.rsdeob.stdlib.ir.transform.BackwardsFlowAnalyser;
+
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
 
 public class LivenessAnalyser extends BackwardsFlowAnalyser<Statement, FlowEdge<Statement>, Map<Local, Boolean>> {
 
@@ -94,14 +94,16 @@ public class LivenessAnalyser extends BackwardsFlowAnalyser<Statement, FlowEdge<
 	}
 
 	@Override
-	protected void execute(Statement n, Map<Local, Boolean> in, Map<Local, Boolean> out) {
+	protected void execute(Statement n, Map<Local, Boolean> out, Map<Local, Boolean> in) {
 		if(x) System.out.println("    propagating " + n);
 		
 		for(Entry<Local, Boolean> e : in.entrySet()) {
 			Local key = e.getKey();
 			if(out.containsKey(key)) {
+				if (x) System.out.println("      " + key + " := (" + e.getValue().booleanValue() + " || " + out.get(key).booleanValue() + ") = " + (e.getValue().booleanValue() || out.get(key).booleanValue()));
 				out.put(key, e.getValue().booleanValue() || out.get(key).booleanValue());
 			} else {
+				if (x) System.out.println("      " + key + " = " + e.getValue());
 				out.put(key, e.getValue());
 			}
 		}
