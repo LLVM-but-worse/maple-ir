@@ -1,6 +1,21 @@
 package org.rsdeob;
 
-import org.objectweb.asm.*;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+import java.util.jar.JarOutputStream;
+
+import org.objectweb.asm.ClassReader;
+import org.objectweb.asm.ClassVisitor;
+import org.objectweb.asm.ClassWriter;
+import org.objectweb.asm.MethodVisitor;
+import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.commons.JSRInlinerAdapter;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
@@ -29,18 +44,11 @@ import org.rsdeob.stdlib.ir.transform.impl.UsesAnalyser;
 import org.topdank.byteengineer.commons.data.JarInfo;
 import org.topdank.byteio.in.SingleJarDownloader;
 
-import java.io.*;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
-import java.util.jar.JarOutputStream;
-
 @SuppressWarnings("Duplicates")
 public class BootEcx implements Opcodes {
 	public static final File GRAPH_FOLDER = new File("cfg testing");
 
-	public static void main(String[] args) throws Exception {
+	public static void main1(String[] args) throws Exception {
 		InputStream i = new FileInputStream(new File("res/a.class"));
 		ClassReader cr = new ClassReader(i);
 		ClassNode cn = new ClassNode();
@@ -296,16 +304,23 @@ public class BootEcx implements Opcodes {
 		}
 	}
 
-	public static void main2(String[] args) throws Exception {
+	public static void main(String[] args) throws Exception {
 		ClassReader cr= new ClassReader(BootBibl.class.getCanonicalName());
 		ClassNode cn = new ClassNode();
 		cr.accept(cn, 0);
 
 		for(MethodNode m : cn.methods) {
+			if(!m.name.equals("t3"))
+				continue;
+			
 			ControlFlowGraph cfg = ControlFlowGraphBuilder.create(m);
+
+			System.out.println("CFG:");
+			System.out.println(cfg);
+			
 			ControlFlowGraphDeobfuscator deobber = new ControlFlowGraphDeobfuscator();
 			List<BasicBlock> blocks = deobber.deobfuscate(cfg);
-			System.out.println(GraphUtils.toBlockArray(blocks));
+			System.out.println(GraphUtils.toBlockArray(blocks, false));
 			deobber.removeEmptyBlocks(cfg, blocks);
 
 			System.out.println("CFG:");
@@ -326,7 +341,6 @@ public class BootEcx implements Opcodes {
 
 			GraphUtils.output(m.name, sgraph, stmtList, GRAPH_FOLDER, "1");
 
-			break;
 		}
 	}
 }
