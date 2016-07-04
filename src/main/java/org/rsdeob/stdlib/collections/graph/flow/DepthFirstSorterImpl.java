@@ -16,10 +16,10 @@ public class DepthFirstSorterImpl<N extends FastGraphVertex> implements Sorter<N
 	
 	@Override
 	public Iterator<N> iterator(FlowGraph<N, ?> graph) {
-		return new DepthFirstSorterImplIteratorImpl<N>(graph);
+		return new DepthFirstSorterImplIteratorImpl<>(graph);
 	}
 	
-	private static class DepthFirstSorterImplIteratorImpl<N extends FastGraphVertex> implements Iterator<N> {
+	public static class DepthFirstSorterImplIteratorImpl<N extends FastGraphVertex> implements Iterator<N> {
 
 		private final FastGraph<N, ?> graph;
 		private final Set<N> visited;

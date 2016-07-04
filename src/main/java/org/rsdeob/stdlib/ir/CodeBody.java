@@ -41,25 +41,6 @@ public class CodeBody implements Iterable<Statement> {
 	public LocalsHandler getLocals() {
 		return locals;
 	}
-
-	// TODO: exceptions
-
-//	public Statement set(int index, Statement s) {
-//		Statement prev = stmts.set(index, s);
-//		if(s == null)
-//			throw new IllegalArgumentException("Statement cannot be null");
-//		if (s != prev && prev != null) {
-//			for(ICodeListener<Statement> l : listeners)
-//				l.replaced(prev, s);
-//		}
-		
-//		if(prev != null) {
-//			for(ICodeListener<Statement> l : listeners)
-//				l.removed(prev);
-//		}
-//		
-//		return prev;
-//	}
 	
 	public void replace(Statement old, Statement n) {
 		stmts.set(stmts.indexOf(old), n);
@@ -70,14 +51,14 @@ public class CodeBody implements Iterable<Statement> {
 	public Statement remove(int index) {
 		Statement prev = stmts.remove(index);
 		for(ICodeListener<Statement> l : listeners)
-			l.remove(prev);
+			l.removed(prev);
 		return prev;
 	}
 
 	public boolean remove(Statement s) {
 		boolean ret = stmts.remove(s);
 		for(ICodeListener<Statement> l : listeners)
-			l.remove(s);
+			l.removed(s);
 		return ret;
 	}
 
@@ -130,6 +111,10 @@ public class CodeBody implements Iterable<Statement> {
 	@Override
 	public Iterator<Statement> iterator() {
 		return stmts.iterator();
+	}
+	
+	public List<Statement> stmts() {
+		return new ArrayList<>(stmts);
 	}
 
 	public void toString(TabbedStringWriter printer) {

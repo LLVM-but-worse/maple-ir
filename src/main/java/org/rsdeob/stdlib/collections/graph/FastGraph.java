@@ -1,25 +1,21 @@
 package org.rsdeob.stdlib.collections.graph;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Set;
 
 public abstract class FastGraph<N extends FastGraphVertex, E extends FastGraphEdge<N>> {
 
-	private final LinkedHashMap<N, Set<E>> map;
-	private final LinkedHashMap<N, Set<E>> reverseMap;
+	protected final Map<N, Set<E>> map;
+	protected final Map<N, Set<E>> reverseMap;
 	
 	public FastGraph() {
-		map = new LinkedHashMap<>();
-		reverseMap = new LinkedHashMap<>();
+		map = createMap();
+		reverseMap = createMap();
 	}
-	
-//	public abstract N getEntry();
+
+	protected Map<N, Set<E>> createMap() {
+		return new LinkedHashMap<>();
+	}
 	
 	public void clear() {
 		map.clear();

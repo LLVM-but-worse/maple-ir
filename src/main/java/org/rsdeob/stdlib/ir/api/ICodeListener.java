@@ -6,7 +6,7 @@ public interface ICodeListener<N> {
 
 	void replaced(N old, N  n);
 	
-	void remove(N n);
+	void removed(N n);
 	
 	void insert(N p, N s, N n);
 

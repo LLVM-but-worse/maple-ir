@@ -63,7 +63,7 @@ public class UsesAnalyser implements ICodeListener<Statement> {
 	}
 
 	@Override
-	public void remove(Statement stmt) {
+	public void removed(Statement stmt) {
 		uses.remove(stmt);
 		used.remove(stmt);
 		
@@ -124,7 +124,7 @@ public class UsesAnalyser implements ICodeListener<Statement> {
 	
 	@Override
 	public void replaced(Statement old, Statement n) {
-		remove(old);
+		removed(old);
 		rebuild(n);
 	}
 

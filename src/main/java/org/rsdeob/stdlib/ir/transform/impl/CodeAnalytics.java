@@ -46,16 +46,16 @@ public class CodeAnalytics implements ICodeListener<Statement> {
 	}
 
 	@Override
-	public void remove(Statement n) {
+	public void removed(Statement n) {
 //		System.out.println("CodeAnalytics.remove(" + n + ")");
-		definitions.remove(n);
-		liveness.remove(n);
+		definitions.removed(n);
+		liveness.removed(n);
 		Set<FlowEdge<Statement>> preds = sgraph.getReverseEdges(n);
 		Set<FlowEdge<Statement>> succs = sgraph.getEdges(n);
 		if (sgraph.excavate(n)) {
 			definitions.commit();
 			liveness.commit();
-			uses.remove(n);
+			uses.removed(n);
 			for(FlowEdge<Statement> p : preds) {
 				if(p.src != n)
 					definitions.appendQueue(p.src);
