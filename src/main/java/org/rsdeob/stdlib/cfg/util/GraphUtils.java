@@ -1,12 +1,5 @@
 package org.rsdeob.stdlib.cfg.util;
 
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
-import java.util.*;
-import java.util.Map.Entry;
-import java.util.function.Predicate;
-
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.*;
 import org.objectweb.asm.util.Printer;
@@ -19,8 +12,17 @@ import org.rsdeob.stdlib.cfg.edge.SwitchEdge;
 import org.rsdeob.stdlib.cfg.util.ControlFlowGraphDeobfuscator.SuperNode;
 import org.rsdeob.stdlib.cfg.util.ControlFlowGraphDeobfuscator.SuperNodeList;
 import org.rsdeob.stdlib.collections.graph.flow.ExceptionRange;
+import org.rsdeob.stdlib.ir.CodeBody;
 import org.rsdeob.stdlib.ir.StatementGraph;
+import org.rsdeob.stdlib.ir.header.HeaderStatement;
 import org.rsdeob.stdlib.ir.stat.Statement;
+
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
+import java.util.*;
+import java.util.Map.Entry;
+import java.util.function.Predicate;
 
 public class GraphUtils {
 
@@ -32,6 +34,8 @@ public class GraphUtils {
 			"mediumseagreen", "orangered", "mediumpurple1", "magenta", "plum1",
 			"royalblue1", "slateblue3", "turquoise2", "yellow2"
 	};
+
+	private static final String GRAPHVIZ_DOT_PATH = "E:\\Programs\\graphviz\\bin\\dot.exe"; // "F:\\Program Files (x86)\\Graphviz2.38\\bin\\dot.exe"
 	
 	public static final Comparator<BasicBlock> BLOCK_COMPARATOR = new Comparator<BasicBlock>() {
 		@Override
@@ -229,7 +233,7 @@ public class GraphUtils {
 		bw.write(GraphUtils.toGraphString(cfg, blocks, null, true));
 		bw.close();
 
-		File gv = new File("F:\\Program Files (x86)\\Graphviz2.38\\bin\\dot.exe");
+		File gv = new File(GRAPHVIZ_DOT_PATH);
 		File imgFile = new File(graphFolder, createFileName(cfg.getMethod()) + type + ".png");
 		if(imgFile.exists()) {
 			imgFile.delete();
@@ -249,7 +253,7 @@ public class GraphUtils {
 		bw.write(GraphUtils.toGraphString(cfg, blocks, svList, true));
 		bw.close();
 
-		File gv = new File("F:\\Program Files (x86)\\Graphviz2.38\\bin\\dot.exe");
+		File gv = new File(GRAPHVIZ_DOT_PATH);
 		File imgFile = new File(graphFolder, createFileName(cfg.getMethod()) + type + ".png");
 		if(imgFile.exists()) {
 			imgFile.delete();
@@ -257,6 +261,26 @@ public class GraphUtils {
 		ProcessBuilder builder = new ProcessBuilder(gv.getAbsolutePath(), "-Tpng", dotFile.getAbsolutePath(), "-o", imgFile.getAbsolutePath());
 		Process process = builder.start();
 		process.waitFor();
+	}
+
+	public static void output(String name, StatementGraph sg, CodeBody stmts, File graphFolder, String type) throws Exception {
+		File dotFile = new File(graphFolder, createFileName(name) + type + ".gv");
+		if(dotFile.exists()) {
+			dotFile.delete();
+		}
+		BufferedWriter bw = new BufferedWriter(new FileWriter(dotFile));
+		bw.write(GraphUtils.toGraphString(name, sg, stmts, null, true));
+		bw.close();
+
+		File gv = new File(GRAPHVIZ_DOT_PATH);
+		File imgFile = new File(graphFolder, createFileName(name) + type + ".png");
+		if(imgFile.exists()) {
+			imgFile.delete();
+		}
+		ProcessBuilder builder = new ProcessBuilder(gv.getAbsolutePath(), "-Tpng", '"' + dotFile.getAbsolutePath() + '"', "-o", '"' + imgFile.getAbsolutePath() + '"');
+		Process process = builder.start();
+		process.waitFor();
+
 	}
 
 	public static String createFileName(MethodNode m) {
@@ -329,6 +353,59 @@ public class GraphUtils {
 
 		return sb.toString();
 	}
+
+	public static String toGraphString(String name, StatementGraph sg, CodeBody stmts, SuperNodeList svList, boolean deep) {
+		StringBuilder sb = new StringBuilder();
+		sb.append("digraph ");
+		sb.append(createFileName(name));
+		sb.append(" {").append(System.lineSeparator());
+		//		sb.append("rate=\"fill\";\nsize=\"8.3,11.7!\";\n\nmargin=0;\n");
+
+		String colour = null;
+		int colourindex = 0;
+
+		for(Statement stmt : stmts) {
+			if (stmt instanceof HeaderStatement)
+				continue;
+			sb.append(stmt.getId()).append(" ");
+			sb.append("[shape=box, label=").append('"');
+			sb.append(stmts.indexOf(stmt)).append(". #").append(stmt.getId());
+			if(deep) {
+				sb.append(": ");
+				sb.append(stmt.toString().replaceAll("\"", "\\\\\""));
+			}
+			sb.append('"');
+
+			if(sg.getEntries().contains(stmt)) {
+				sb.append(", style=filled, fillcolor=red");
+			} else if(svList != null) {
+				if(svList.entryNodes.contains(stmt)) {
+					sb.append(", style=filled, fillcolor=green");
+				}
+			}
+			sb.append("]\n");
+		}
+
+		for(Statement stmt : stmts) {
+			if (stmt instanceof HeaderStatement)
+				continue;
+			for(FlowEdge<Statement> e : sg.getEdges(stmt)) {
+//				if(e instanceof TryCatchEdge && !deep)
+//					continue;
+//				if(e instanceof TryCatchEdge)
+//					continue;
+				sb.append("").append(e.src.getId()).append(" -> ").append(e.dst.getId()).append(" ");
+				if(deep) {
+					sb.append("[label=").append('"').append(e.toGraphString()).append('"').append("]");
+				}
+				sb.append(";\n");
+			}
+		}
+
+		sb.append("\n}");
+
+		return sb.toString();
+	}
 	
 //	public static String toString(StatementGraph sgraph) {
 //		Collection<Statement> stmts = sgraph.vertices();
@@ -370,6 +447,8 @@ public class GraphUtils {
 		StringBuilder sb = new StringBuilder("\n=========SG(stmt_count=").append(stmts.size()).append(") ").append("=========\n");
 		sb.append("  ENTRIES: " + sg.getEntries() +"\n\n");
 		for(Statement stmt : stmts) {
+			if (stmt instanceof HeaderStatement)
+				continue;
 			sb.append(stmt).append(" #").append(stmt.getId()).append('\n');
 			for(FlowEdge<Statement> e : sg.getEdges(stmt)) {
 				sb.append("         -> ").append(e.toString()).append('\n');
