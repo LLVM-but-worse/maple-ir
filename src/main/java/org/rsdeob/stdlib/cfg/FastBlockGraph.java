@@ -20,6 +20,12 @@ public class FastBlockGraph extends FlowGraph<BasicBlock, FlowEdge<BasicBlock>> 
 	}
 	
 	@Override
+	public void clear() {
+		super.clear();
+		blockLabels.clear();
+	}
+	
+	@Override
 	public void addVertex(BasicBlock v) {
 		super.addVertex(v);
 		
