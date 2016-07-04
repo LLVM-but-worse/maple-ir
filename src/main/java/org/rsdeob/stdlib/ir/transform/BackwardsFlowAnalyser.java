@@ -60,11 +60,11 @@ public abstract class BackwardsFlowAnalyser<N extends FastGraphVertex, E extends
 	public void appendQueue(N n) {
 		if(!queue.contains(n)) {
 			if(x) {
-				System.out.println("  Appending " + n + ", I was called from ");
+				System.out.println("    Appending " + n + ", I was called from ");
 				StackTraceElement[] trace = (new Throwable()).getStackTrace();
 				for (int i = 1; i <= 10; i++) {
 					String classname = trace[i].getClassName();
-					System.out.println("    " + classname.substring(classname.lastIndexOf('.') + 1) + "#" + trace[i].getMethodName());
+					System.out.println("        " + classname.substring(classname.lastIndexOf('.') + 1) + "#" + trace[i].getMethodName());
 					if (classname.contains("CodeAnalytics"))
 						break;
 				}
@@ -135,14 +135,14 @@ public abstract class BackwardsFlowAnalyser<N extends FastGraphVertex, E extends
 				N succ = succs.iterator().next().dst;
 				S succIn = in.get(succ);
 				copy(succIn, currentOut);
-				if (y) System.out.println("copy");
+				if (y) System.out.println("copy " + n);
 			} else if(succs.size() > 1) {
 				Iterator<E> it = succs.iterator();
 
 				N firstSucc = it.next().dst;
 				copy(in.get(firstSucc), currentOut);
 
-				if (y) System.out.println("merge");
+				if (y) System.out.println("merge " + n);
 				while(it.hasNext()) {
 					S merging = in.get(it.next().dst);
 					merge(currentOut, merging);
@@ -165,7 +165,7 @@ public abstract class BackwardsFlowAnalyser<N extends FastGraphVertex, E extends
 				}
 				
 				for(E e : graph.getReverseEdges(n)) {
-//					System.out.println("   requeue: " + e.src);
+					if (y) System.out.println("    requeue: " + e.src);
 					appendQueue(e.src);
 				}
 			}
@@ -188,5 +188,5 @@ public abstract class BackwardsFlowAnalyser<N extends FastGraphVertex, E extends
 	protected abstract boolean equals(S s1, S s2);
 	
 	@Override
-	protected abstract void execute(N n, S in, S out);
+	protected abstract void execute(N n, S out, S in);
 }
