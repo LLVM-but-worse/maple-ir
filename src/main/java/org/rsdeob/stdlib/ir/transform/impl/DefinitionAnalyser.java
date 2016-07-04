@@ -22,8 +22,8 @@ public class DefinitionAnalyser extends ForwardsFlowAnalyser<Statement, FlowEdge
 	}
 
 	@Override
-	public void remove(Statement n) {
-		super.remove(n);
+	public void removed(Statement n) {
+		super.removed(n);
 
 		if(n instanceof CopyVarStatement) {
 			CopyVarStatement cvs = (CopyVarStatement) n;

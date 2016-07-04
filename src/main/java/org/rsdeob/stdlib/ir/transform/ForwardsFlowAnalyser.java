@@ -33,9 +33,9 @@ public abstract class ForwardsFlowAnalyser<N extends FastGraphVertex, E extends 
 	}
 	
 	@Override
-	public void remove(N n) {
+	public void removed(N n) {
 		queue(n);
-		super.remove(n);
+		super.removed(n);
 	}
 
 	@Override
