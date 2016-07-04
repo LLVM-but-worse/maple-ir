@@ -35,6 +35,8 @@ import org.rsdeob.stdlib.ir.transform.impl.UsesAnalyser;
 
 public class AnalyticsTest {
 
+	public static boolean debug = true;
+	
 	public static void main(String[] args) throws Throwable {
 		InputStream i = new FileInputStream(new File("res/a.class"));
 		ClassReader cr = new ClassReader(i);
@@ -77,8 +79,8 @@ public class AnalyticsTest {
 			UsesAnalyser uses = new UsesAnalyser(sgraph, defs);
 			CodeAnalytics analytics = new CodeAnalytics(cfg, sgraph, defs, liveness, uses);
 			code.registerListener(analytics);
-			liveness.x = true;
-			liveness.y = true;
+//			liveness.x = true;
+//			liveness.y = true;
 			LivenessTest.optimise(code, analytics);
 			
 			System.out.println("Optimised:");
@@ -138,25 +140,33 @@ public class AnalyticsTest {
 		LivenessAnalyser l1 = new LivenessAnalyser(analytics.sgraph);
 		
 		for(Statement s : code) {
-			Map<Local, Set<CopyVarStatement>> din1 = analytics.definitions.in(s);
-			Map<Local, Set<CopyVarStatement>> din2 = d1.in(s);
-			Map<Local, Set<CopyVarStatement>> dout1 = analytics.definitions.out(s);
-			Map<Local, Set<CopyVarStatement>> dout2 = d1.out(s);
+			try {
+				Map<Local, Set<CopyVarStatement>> din1 = analytics.definitions.in(s);
+				Map<Local, Set<CopyVarStatement>> din2 = d1.in(s);
+				Map<Local, Set<CopyVarStatement>> dout1 = analytics.definitions.out(s);
+				Map<Local, Set<CopyVarStatement>> dout2 = d1.out(s);
 
-			dcheck("DIN", din1, din2, code, stmt, s);
-			dcheck("DOUT", dout1, dout2, code, stmt, s);
-			
-			Map<Local, Boolean> lin1 = analytics.liveness.in(s);
-			Map<Local, Boolean> lin2 = l1.in(s);
-			Map<Local, Boolean> lout1 = analytics.liveness.out(s);
-			Map<Local, Boolean> lout2 = l1.out(s);
+				dcheck("DIN", din1, din2, analytics, code, stmt, s);
+				dcheck("DOUT", dout1, dout2, analytics, code, stmt, s);
+				
+				Map<Local, Boolean> lin1 = analytics.liveness.in(s);
+				Map<Local, Boolean> lin2 = l1.in(s);
+				Map<Local, Boolean> lout1 = analytics.liveness.out(s);
+				Map<Local, Boolean> lout2 = l1.out(s);
 
-			lcheck("LIN", lin1, lin2, code, stmt, s);
-			lcheck("LOUT", lout1, lout2, code, stmt, s);
+				lcheck("LIN", lin1, lin2, analytics, code, stmt, s);
+				lcheck("LOUT", lout1, lout2, analytics, code, stmt, s);
+			} catch(Exception e) {
+				if(e instanceof RuntimeException) {
+					throw (RuntimeException)e;
+				} else {
+					throw new RuntimeException(e);
+				}
+			}
 		}
 	}
 	
-	public static void lcheck(String type, Map<Local, Boolean> s1, Map<Local, Boolean> s2, CodeBody code, Statement stmt, Statement cur) {
+	public static void lcheck(String type, Map<Local, Boolean> s1, Map<Local, Boolean> s2, CodeAnalytics analytics, CodeBody code, Statement stmt, Statement cur) throws Exception {
 		if(!(cur instanceof HeaderStatement) && !lcheck0(s1, s2)) {
 			System.err.println();
 			System.err.println(code);
@@ -178,6 +188,7 @@ public class AnalyticsTest {
 			} else {
 				System.err.println("   NULL");
 			}
+			GraphUtils.output("failedat", analytics.sgraph, code, BootEcx.GRAPH_FOLDER, "-sg");
 			throw new RuntimeException();
 		}
 	}
@@ -206,7 +217,7 @@ public class AnalyticsTest {
 		return true;
 	}
 	
-	public static void dcheck(String type, Map<Local, Set<CopyVarStatement>> s1, Map<Local, Set<CopyVarStatement>> s2, CodeBody code, Statement stmt, Statement cur) {
+	public static void dcheck(String type, Map<Local, Set<CopyVarStatement>> s1, Map<Local, Set<CopyVarStatement>> s2, CodeAnalytics analytics, CodeBody code, Statement stmt, Statement cur) throws Exception {
 		if(!(s1 == null && s2 == null) && !dcheck0(s1, s2)) {
 			System.err.println();
 			System.err.println(code);
@@ -228,6 +239,7 @@ public class AnalyticsTest {
 			} else {
 				System.err.println("   NULL");
 			}
+			GraphUtils.output("failedat", analytics.sgraph, code, BootEcx.GRAPH_FOLDER, "-sg");
 			throw new RuntimeException();
 		}
 	}
