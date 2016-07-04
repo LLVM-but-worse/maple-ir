@@ -35,8 +35,9 @@ public class GraphUtils {
 			"royalblue1", "slateblue3", "turquoise2", "yellow2"
 	};
 
-	private static final String GRAPHVIZ_DOT_PATH = "E:\\Programs\\graphviz\\bin\\dot.exe"; // "F:\\Program Files (x86)\\Graphviz2.38\\bin\\dot.exe"
-	
+	private static final String GRAPHVIZ_DOT_PATH = "E:\\Programs\\graphviz\\bin\\dot.exe";
+//	private static final String GRAPHVIZ_DOT_PATH = "F:\\Program Files (x86)\\Graphviz2.38\\bin\\dot.exe";
+
 	public static final Comparator<BasicBlock> BLOCK_COMPARATOR = new Comparator<BasicBlock>() {
 		@Override
 		public int compare(BasicBlock o1, BasicBlock o2) {
