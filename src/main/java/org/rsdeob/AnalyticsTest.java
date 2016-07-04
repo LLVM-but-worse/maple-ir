@@ -79,8 +79,8 @@ public class AnalyticsTest {
 			UsesAnalyser uses = new UsesAnalyser(sgraph, defs);
 			CodeAnalytics analytics = new CodeAnalytics(cfg, sgraph, defs, liveness, uses);
 			code.registerListener(analytics);
-//			liveness.x = true;
-//			liveness.y = true;
+			liveness.x = true;
+			liveness.y = true;
 			LivenessTest.optimise(code, analytics);
 			
 			System.out.println("Optimised:");
