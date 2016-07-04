@@ -139,8 +139,13 @@ public class StatementGraphBuilder {
 					case "TryCatchEdge":
 						ExceptionRange<BasicBlock> bRange = ((TryCatchEdge<BasicBlock>) e).erange;
 						TryCatchBlockNode tc = bRange.getNode();
+						
+						// System.out.println("Range: " + bRange);
+						// System.out.println("start: " + tc.start.hashCode() + " , end "+ tc.end.hashCode());
+						
 						int start = LabelHelper.numeric(cfg.getBlock(tc.start).getId());
-						int end = LabelHelper.numeric(cfg.getBlock(tc.end).getId()) - 1;
+						// int end = LabelHelper.numeric(cfg.getBlock(tc.end).getId()) - 1;
+						int end = LabelHelper.numeric(bRange.get().get(bRange.get().size() - 1).getId());
 						BasicBlock handler = cfg.getBlock(tc.handler);
 						String key = String.format("%s:%s:%s", LabelHelper.createBlockName(start), LabelHelper.createBlockName(end), handler.getId());
 						if (!ranges.containsKey(key)) {
@@ -156,7 +161,7 @@ public class StatementGraphBuilder {
 						
 						ExceptionRange<Statement> range = ranges.get(key);
 						for(Statement stmt : b.getStatements()) {
-							TryCatchEdge<Statement> e1 = new TryCatchEdge<Statement>(stmt, range);
+							TryCatchEdge<Statement> e1 = new TryCatchEdge<>(stmt, range);
 							sg.addEdge(stmt, e1);
 						}
 						break;
