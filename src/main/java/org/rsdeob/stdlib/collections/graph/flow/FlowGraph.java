@@ -42,6 +42,12 @@ public abstract class FlowGraph<N extends FastGraphVertex, E extends FlowEdge<N>
 	}
 	
 	@Override
+	public void clear() {
+		super.clear();
+		vertexIds.clear();
+	}
+	
+	@Override
 	public void addVertex(N v) {
 		vertexIds.put(v.getId(), v);
 		super.addVertex(v);

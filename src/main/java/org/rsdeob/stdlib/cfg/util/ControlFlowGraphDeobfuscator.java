@@ -204,9 +204,9 @@ public class ControlFlowGraphDeobfuscator {
 					BasicBlock target = im.dst;
 					int targetIndex = blocks.indexOf(target);
 					// System.out.printf("%s, t=%d, b=%d.%n", b.getId(), targetIndex, index);
-					System.out.println("blocks: " + blocks);
-					System.out.println("index of " + target + " , " + targetIndex);
-					System.out.println("index of current: " + index + ", " + b);
+					// System.out.println("blocks: " + blocks);
+					// System.out.println("index of " + target + " , " + targetIndex);
+					// System.out.println("index of current: " + index + ", " + b);
 					if((index + 1) == targetIndex) {
 						change = true;
 						
