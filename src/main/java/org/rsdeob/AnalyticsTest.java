@@ -19,6 +19,7 @@ import org.rsdeob.stdlib.cfg.ControlFlowGraphBuilder;
 import org.rsdeob.stdlib.cfg.util.ControlFlowGraphDeobfuscator;
 import org.rsdeob.stdlib.cfg.util.GraphUtils;
 import org.rsdeob.stdlib.ir.CodeBody;
+import org.rsdeob.stdlib.ir.CodeBodyConsistencyChecker;
 import org.rsdeob.stdlib.ir.Local;
 import org.rsdeob.stdlib.ir.StatementGenerator;
 import org.rsdeob.stdlib.ir.StatementGraph;
@@ -117,6 +118,22 @@ public class AnalyticsTest {
 	
 	public static void verify_callback(CodeBody code, CodeAnalytics analytics, Statement stmt) {
 		code.commit();
+		
+		CodeBodyConsistencyChecker checker = new CodeBodyConsistencyChecker(code, analytics.sgraph);
+		try {
+			checker.compute();
+		} catch(RuntimeException e) {
+			e.printStackTrace();
+			System.out.println("Consistency error report:");
+			System.out.println("  Statements in code but not in graph:");
+			for(Statement g : checker.cFaulty) {
+				System.out.println("   " + g);
+			}
+			System.out.println("  Statements in graph but not in code:");
+			for(Statement c : checker.gFaulty) {
+				System.out.println("   " + c);
+			}
+		}
 		DefinitionAnalyser d1 = new DefinitionAnalyser(analytics.sgraph);
 		LivenessAnalyser l1 = new LivenessAnalyser(analytics.sgraph);
 		
@@ -145,7 +162,7 @@ public class AnalyticsTest {
 			System.err.println(code);
 			System.err.println("Fail: " + stmt.getId() + ". " + stmt);
 			System.err.println(" Cur: " + cur.getId() + ". " + cur);
-			System.err.println("  " + type + "1:");
+			System.err.println("  Actual " + type + "1:");
 			if(s1 != null) {
 				for(Entry<Local, Boolean> e : s1.entrySet()) {
 					System.err.println("    " + e.getKey() + " = " + e.getValue());
@@ -153,7 +170,7 @@ public class AnalyticsTest {
 			} else {
 				System.err.println("   NULL");
 			}
-			System.err.println("  " + type + "2:");
+			System.err.println("  Should " + type + "2:");
 			if(s2 != null) {
 				for(Entry<Local, Boolean> e : s2.entrySet()) {
 					System.err.println("    " + e.getKey() + " = " + e.getValue());
@@ -195,7 +212,7 @@ public class AnalyticsTest {
 			System.err.println(code);
 			System.err.println("Fail: " + stmt.getId() + ". " + stmt);
 			System.err.println(" Cur: " + cur.getId() + ". " + cur);
-			System.err.println("  " + type + "1:");
+			System.err.println("  Actual " + type + "1:");
 			if(s1 != null) {
 				for(Entry<Local, Set<CopyVarStatement>> e : s1.entrySet()) {
 					System.err.println("    " + e.getKey() + " = " + e.getValue());
@@ -203,7 +220,7 @@ public class AnalyticsTest {
 			} else {
 				System.err.println("   NULL");
 			}
-			System.err.println("  " + type + "2:");
+			System.err.println("  Should " + type + "2:");
 			if(s2 != null) {
 				for(Entry<Local, Set<CopyVarStatement>> e : s2.entrySet()) {
 					System.err.println("    " + e.getKey() + " = " + e.getValue());
