@@ -23,31 +23,14 @@ public class ControlFlowGraphDeobfuscator {
 	public int inlinedComponents;
 	
 	public List<BasicBlock> deobfuscate(ControlFlowGraph cfg) {
-//		Collection<BasicBlock> blocks = cfg.blocks();
-		
 		SCCFinder finder = new SCCFinder();
 		finder.scc(cfg);
 		
 		Map<SCC, List<SCC>> graph = createSuperNodeMap(cfg, finder);
 		List<BasicBlock> newOrder = biblSort(cfg, finder, graph);
+		GraphUtils.naturaliseGraph(cfg, newOrder);
 
-//		if(blocks.size() != newOrder.size()) {
-//			List<BasicBlock> missing;
-//			if(blocks.size() > newOrder.size()) {
-//				missing = new ArrayList<>(blocks);
-//				missing.removeAll(newOrder);
-//			} else {
-//				// newOrder > blocks
-//				missing = new ArrayList<>(newOrder);
-//				missing.removeAll(blocks);
-//			}
-//			throw new IllegalStateException("block mismatch: " + GraphUtils.toBlockArray(missing));
-//		}
-		
 		newOrder = pruneGotos(cfg, newOrder);
-		
-//		System.out.println("order: " + GraphUtils.toBlockArray(newOrder));
-//		System.out.println(GraphUtils.toString(cfg, newOrder));
 		
 		return newOrder;
 	}
@@ -70,23 +53,6 @@ public class ControlFlowGraphDeobfuscator {
 					// TODO:
 					// implies 1 immediate successor
 					// transfer predecessor edges to its successor
-					// ImmediateEdge succ = b.getImmediateEdge();
-					// Set<FlowEdge> allSuccs = b.getSuccessors(e -> !(e instanceof TryCatchEdge));
-					// if(succ == null || allSuccs.size() != 1) {
-					// throw new IllegalStateException(succ + " " + allSuccs);
-					// }
-					//
-					// cfg.removeEdge(b, succ);
-					//
-					// Set<FlowEdge> preds = b.getPredecessors();
-					// for(FlowEdge e : preds) {
-					// FlowEdge cloned = e.clone(e.src, succ.dst);
-					// cfg.addEdge(e.src, cloned);
-					// }
-					//
-					// cfg.removeVertex(b);
-					// change = true;
-					// break;
 				} else {
 					FlowEdge<BasicBlock> incomingImmediate = b.getIncomingImmediateEdge();
 					if(incomingImmediate != null && b.getPredecessors().size() == 1) {
@@ -117,13 +83,6 @@ public class ControlFlowGraphDeobfuscator {
 								// update the predecessors of b to point to predecessor
 								//   only 1 predecessor of this block so we don't need to update
 								//   the other predecessors
-								
-								/* for(FlowEdge e : b.getPredecessors(e -> (e.src != pred))) {
-									BasicBlock p = e.src;
-									FlowEdge cloned = e.clone(p, pred);
-									cfg.addEdge(p, cloned);
-									p.updateLabelRef(b, pred);
-								} */
 								
 								for(ExceptionRange<BasicBlock> er : predRanges) {
 									er.removeVertex(b);
@@ -245,9 +204,10 @@ public class ControlFlowGraphDeobfuscator {
 					BasicBlock target = im.dst;
 					int targetIndex = blocks.indexOf(target);
 					// System.out.printf("%s, t=%d, b=%d.%n", b.getId(), targetIndex, index);
-					
+					System.out.println("blocks: " + blocks);
+					System.out.println("index of " + target + " , " + targetIndex);
+					System.out.println("index of current: " + index + ", " + b);
 					if((index + 1) == targetIndex) {
-						
 						change = true;
 						
 						b.removeInsn(last);
@@ -261,7 +221,7 @@ public class ControlFlowGraphDeobfuscator {
 						//   remove it from try ranges
 						
 						cfg.removeEdge(b, im);
-						im = new ImmediateEdge<BasicBlock>(b, target);
+						im = new ImmediateEdge<>(b, target);
 						cfg.addEdge(b, im);
 //						System.out.println("pruning " + b.getId());
 
@@ -334,7 +294,7 @@ public class ControlFlowGraphDeobfuscator {
 	}
 	
 	public List<SCC> topological(Map<SCC, List<SCC>> graph) {
-		Map<SCC, Integer> count = new HashMap<SCC, Integer>();
+		Map<SCC, Integer> count = new HashMap<>();
 		for(SCC node : graph.keySet()) {
 			count.put(node, 0);
 		}
@@ -343,13 +303,13 @@ public class ControlFlowGraphDeobfuscator {
 				count.put(succ, count.get(succ).intValue() + 1);
 			}
 		}
-		Stack<SCC> ready = new Stack<SCC>();
+		Stack<SCC> ready = new Stack<>();
 		for(Entry<SCC, Integer> e : count.entrySet()) {
 			if(e.getValue().intValue() == 0) {
 				ready.push(e.getKey());
 			}
 		}
-		List<SCC> result = new ArrayList<SCC>();
+		List<SCC> result = new ArrayList<>();
 		while(!ready.isEmpty()) {
 			SCC node = ready.pop();
 			result.add(node);
@@ -365,14 +325,14 @@ public class ControlFlowGraphDeobfuscator {
 	}
 
 	public Map<SCC, List<SCC>> createSuperNodeMap(ControlFlowGraph cfg, SCCFinder finder) {
-		Map<SuperNode, SCC> nodeComponents = new HashMap<SuperNode, SCC>();
+		Map<SuperNode, SCC> nodeComponents = new HashMap<>();
 		for (SCC scc : finder.components) {
 			for (SuperNode node : scc) {
 				nodeComponents.put(node, scc);
 			}
 		}
 
-		Map<SCC, List<SCC>> componentGraph = new HashMap<SCC, List<SCC>>();
+		Map<SCC, List<SCC>> componentGraph = new HashMap<>();
 		for (SCC scc : finder.components) {
 			componentGraph.put(scc, new ArrayList<SCC>());
 		}
@@ -501,10 +461,10 @@ public class ControlFlowGraphDeobfuscator {
 		SuperNodeList list;
 
 		SCCFinder() {
-			low = new HashMap<SuperNode, Integer>();
-			index = new HashMap<SuperNode, Integer>();
-			stack = new Stack<SuperNode>();
-			components = new ArrayList<SCC>();
+			low = new HashMap<>();
+			index = new HashMap<>();
+			stack = new Stack<>();
+			components = new ArrayList<>();
 		}
 
 		void scc(ControlFlowGraph graph) {
