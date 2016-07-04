@@ -56,15 +56,11 @@ public class BootEcx implements Opcodes {
 		while(it.hasNext()) {
 			MethodNode m = it.next();
 
-
 			if(!m.toString().equals("a/a/f/a.<init>()V")) {
 				continue;
 			}
 
 			System.out.println("\n\n\nProcessing " + m + ": ");
-
-			// System.out.println("Instruction listing for " + m + ": ");
-			// InstructionPrinter.consolePrint(m);
 
 			ControlFlowGraphBuilder builder = new ControlFlowGraphBuilder(m);
 			ControlFlowGraph cfg = builder.build();
@@ -74,12 +70,10 @@ public class BootEcx implements Opcodes {
 			deobber.removeEmptyBlocks(cfg, blocks);
 			GraphUtils.naturaliseGraph(cfg, blocks);
 
-//			GraphUtils.output(cfg, blocks, GRAPH_FOLDER, "");
-//			System.out.println(cfg);
-
 			System.out.println("Cfg:");
 			System.out.println(cfg);
 			System.out.println();
+			GraphUtils.output(cfg, blocks, GRAPH_FOLDER, "-cfg");
 
 			System.out.println("Execution log of " + m + ":");
 			StatementGenerator gen = new StatementGenerator(cfg);
@@ -92,6 +86,8 @@ public class BootEcx implements Opcodes {
 			System.out.println();
 
 			StatementGraph sgraph = StatementGraphBuilder.create(cfg);
+			GraphUtils.output(m.name, sgraph, stmtList, GRAPH_FOLDER, "-sg");
+
 //			LivenessTest.optimise(cfg, stmtList, sgraph);
 //
 //			System.out.println("Optimised IR " + m + ":");
@@ -306,31 +302,31 @@ public class BootEcx implements Opcodes {
 		cr.accept(cn, 0);
 
 		for(MethodNode m : cn.methods) {
-			if(m.name.equals("cfg")) {
-				ControlFlowGraph cfg = ControlFlowGraphBuilder.create(m);
-				System.out.println(cfg);
+			ControlFlowGraph cfg = ControlFlowGraphBuilder.create(m);
+			ControlFlowGraphDeobfuscator deobber = new ControlFlowGraphDeobfuscator();
+			List<BasicBlock> blocks = deobber.deobfuscate(cfg);
+			System.out.println(GraphUtils.toBlockArray(blocks));
+			deobber.removeEmptyBlocks(cfg, blocks);
 
-				ControlFlowGraphDeobfuscator deobber = new ControlFlowGraphDeobfuscator();
-				List<BasicBlock> blocks = deobber.deobfuscate(cfg);
-//				List<BasicBlock> blocks = new ArrayList<>(cfg.blocks());
-				System.out.println(GraphUtils.toBlockArray(blocks));
-				deobber.removeEmptyBlocks(cfg, blocks);
-				GraphUtils.output(cfg, new ArrayList<>(blocks), GRAPH_FOLDER, "1");
-				System.out.println(cfg);
-				m.instructions = GraphUtils.recreate(cfg, blocks, true);
-			}
+			System.out.println("CFG:");
+			System.out.println(cfg);
+
+			StatementGenerator gen = new StatementGenerator(cfg);
+			gen.init(m.maxLocals);
+			gen.createExpressions();
+			CodeBody stmtList = gen.buildRoot();
+
+			System.out.println("IR representation of " + m + ":");
+			System.out.println(stmtList);
+			System.out.println();
+
+			StatementGraph sgraph = StatementGraphBuilder.create(cfg);
+			System.out.println("SG: ");
+			System.out.println(GraphUtils.toString(sgraph, stmtList));
+
+			GraphUtils.output(m.name, sgraph, stmtList, GRAPH_FOLDER, "1");
+
+			break;
 		}
-
-		ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
-		cn.accept(cw);
-		byte[] bytes = cw.toByteArray();
-
-		File out = new File(GRAPH_FOLDER, "test.class");
-		FileOutputStream fos = new FileOutputStream(out);
-		fos.write(bytes);
-		fos.close();
-
-		Runtime.getRuntime().exec(new String[]{"java", "-jar", "F:/bcv.jar", out.getAbsolutePath()});
-
 	}
 }
