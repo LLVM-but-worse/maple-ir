@@ -1,16 +1,18 @@
 package org.rsdeob.stdlib.ir;
 
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
-
 import org.rsdeob.stdlib.cfg.util.TabbedStringWriter;
 import org.rsdeob.stdlib.ir.api.ICodeListener;
 import org.rsdeob.stdlib.ir.header.StatementHeaderStatement;
 import org.rsdeob.stdlib.ir.stat.Statement;
+import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
-public class CodeBody implements Iterable<Statement> {
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
+
+public class CodeBody implements Collection<Statement> {
 
 	private final LocalsHandler locals;
 	private final List<Statement> stmts;
@@ -107,12 +109,7 @@ public class CodeBody implements Iterable<Statement> {
 	public Statement getAt(int index) {
 		return stmts.get(index);
 	}
-	
-	@Override
-	public Iterator<Statement> iterator() {
-		return stmts.iterator();
-	}
-	
+
 	public List<Statement> stmts() {
 		return new ArrayList<>(stmts);
 	}
@@ -141,5 +138,61 @@ public class CodeBody implements Iterable<Statement> {
 		TabbedStringWriter printer = new TabbedStringWriter();
 		toString(printer);
 		return printer.toString();
+	}
+
+	// todo: implement
+	@Override
+	public Iterator<Statement> iterator() {
+		return stmts.iterator();
+	}
+
+	@Override
+	public Object[] toArray() {
+		throw new NotImplementedException();
+	}
+
+	@Override
+	public <T> T[] toArray(T[] a) {
+		throw new NotImplementedException();
+	}
+
+	@Override
+	public boolean isEmpty() {
+		throw new NotImplementedException();
+	}
+
+	@Override
+	public boolean contains(Object o) {
+		throw new NotImplementedException();
+	}
+
+	@Override
+	public boolean remove(Object o) {
+		throw new NotImplementedException();
+	}
+
+	@Override
+	public boolean containsAll(Collection<?> c) {
+		throw new NotImplementedException();
+	}
+
+	@Override
+	public boolean addAll(Collection<? extends Statement> c) {
+		throw new NotImplementedException();
+	}
+
+	@Override
+	public boolean removeAll(Collection<?> c) {
+		throw new NotImplementedException();
+	}
+
+	@Override
+	public boolean retainAll(Collection<?> c) {
+		throw new NotImplementedException();
+	}
+
+	@Override
+	public void clear() {
+		throw new NotImplementedException();
 	}
 }
