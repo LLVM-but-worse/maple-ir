@@ -97,14 +97,14 @@ public class LivenessAnalyser extends BackwardsFlowAnalyser<Statement, FlowEdge<
 	protected void execute(Statement n, Map<Local, Boolean> out, Map<Local, Boolean> in) {
 		if(x) System.out.println("    propagating " + n);
 		
-		for(Entry<Local, Boolean> e : in.entrySet()) {
+		for(Entry<Local, Boolean> e : out.entrySet()) {
 			Local key = e.getKey();
-			if(out.containsKey(key)) {
-				if (x) System.out.println("      " + key + " := (" + e.getValue().booleanValue() + " || " + out.get(key).booleanValue() + ") = " + (e.getValue().booleanValue() || out.get(key).booleanValue()));
-				out.put(key, e.getValue().booleanValue() || out.get(key).booleanValue());
+			if(in.containsKey(key)) {
+				if (x) System.out.println("      " + key + " := (" + e.getValue() + " || " + in.get(key) + ") = " + (e.getValue() || in.get(key)));
+				in.put(key, e.getValue() || in.get(key));
 			} else {
-				if (x) System.out.println("      " + key + " = " + e.getValue());
-				out.put(key, e.getValue());
+				if (x) System.out.println("      " + key + " := " + e.getValue());
+				in.put(key, e.getValue());
 			}
 		}
 		// do this before the uses because of
@@ -112,7 +112,7 @@ public class LivenessAnalyser extends BackwardsFlowAnalyser<Statement, FlowEdge<
 		// it trust me it works).
 
 		if(n instanceof CopyVarStatement) {
-			out.put(((CopyVarStatement) n).getVariable().getLocal(), false);
+			in.put(((CopyVarStatement) n).getVariable().getLocal(), false);
 		}
 		
 		new StatementVisitor(n) {
@@ -120,7 +120,7 @@ public class LivenessAnalyser extends BackwardsFlowAnalyser<Statement, FlowEdge<
 			public Statement visit(Statement s) {
 				if(s instanceof VarExpression) {
 					Local var = ((VarExpression) s).getLocal();
-					out.put(var, true);
+					in.put(var, true);
 				}
 				return s;
 			}
