@@ -4,7 +4,6 @@ import org.rsdeob.stdlib.cfg.util.TabbedStringWriter;
 import org.rsdeob.stdlib.ir.api.ICodeListener;
 import org.rsdeob.stdlib.ir.header.StatementHeaderStatement;
 import org.rsdeob.stdlib.ir.stat.Statement;
-import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -57,7 +56,12 @@ public class CodeBody implements Collection<Statement> {
 		return prev;
 	}
 
-	public boolean remove(Statement s) {
+	@Override
+	public boolean remove(Object o) {
+		if (!(o instanceof Statement))
+			return false;
+		Statement s = (Statement) o;
+
 		boolean ret = stmts.remove(s);
 		for(ICodeListener<Statement> l : listeners)
 			l.removed(s);
@@ -65,6 +69,7 @@ public class CodeBody implements Collection<Statement> {
 	}
 
 	//FIXME
+	@Override
 	public boolean add(Statement s) {
 		boolean ret = stmts.add(s);
 		for(ICodeListener<Statement> l : listeners)
@@ -148,51 +153,56 @@ public class CodeBody implements Collection<Statement> {
 
 	@Override
 	public Object[] toArray() {
-		throw new NotImplementedException();
+		return stmts.toArray();
 	}
 
 	@Override
 	public <T> T[] toArray(T[] a) {
-		throw new NotImplementedException();
+		return stmts.toArray(a);
 	}
 
 	@Override
 	public boolean isEmpty() {
-		throw new NotImplementedException();
+		return stmts.isEmpty();
 	}
 
 	@Override
 	public boolean contains(Object o) {
-		throw new NotImplementedException();
-	}
-
-	@Override
-	public boolean remove(Object o) {
-		throw new NotImplementedException();
+		return stmts.contains(o);
 	}
 
 	@Override
 	public boolean containsAll(Collection<?> c) {
-		throw new NotImplementedException();
+		return stmts.contains(c);
 	}
 
 	@Override
 	public boolean addAll(Collection<? extends Statement> c) {
-		throw new NotImplementedException();
+		boolean result = false;
+		for (Statement s : c)
+			result = result || add(s);
+		return result;
 	}
 
 	@Override
 	public boolean removeAll(Collection<?> c) {
-		throw new NotImplementedException();
+		boolean result = false;
+		for (Object o : c)
+			result = result || remove(o);
+		return result;
 	}
 
 	@Override
 	public boolean retainAll(Collection<?> c) {
-		throw new NotImplementedException();
+		boolean result = false;
+		for (Object o : c)
+			if (!contains(o))
+				result = result || remove(o);
+		return result;
 	}
 
 	@Override
 	public void clear() {
-		throw new NotImplementedException();
+		stmts.forEach(this::remove);
 	}
 }
