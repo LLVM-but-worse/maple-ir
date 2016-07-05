@@ -48,7 +48,7 @@ public class AnalyticsTest {
 			MethodNode m = it.next();
 			
 			if(!m.toString().equals("a/a/f/a.<init>()V")) {
-				continue;
+//				continue;
 			}
 			
 			System.out.println("Processing " + m + "\n");
@@ -79,26 +79,10 @@ public class AnalyticsTest {
 			UsesAnalyser uses = new UsesAnalyser(sgraph, defs);
 			CodeAnalytics analytics = new CodeAnalytics(cfg, sgraph, defs, liveness, uses);
 			code.registerListener(analytics);
-			liveness.x = true;
-			liveness.y = true;
 			LivenessTest.optimise(code, analytics);
 			
 			System.out.println("Optimised:");
-			System.out.println(code);
-			
-//			for(Statement stmt : sgraph.vertices()) {
-//				System.out.println(stmt);
-//				DefinitionAnalyser d1 = new DefinitionAnalyser(sgraph);
-//				
-//				Map<Local, Set<CopyVarStatement>> in1 = defs.in(stmt);
-//				Map<Local, Set<CopyVarStatement>> in2 = d1.in(stmt);
-//				Map<Local, Set<CopyVarStatement>> out1 = defs.out(stmt);
-//				Map<Local, Set<CopyVarStatement>> out2 = d1.out(stmt);
-//
-//				check(in1, in2);
-//				check(out1, out2);
-//				
-//			}			
+			System.out.println(code);		
 		}
 	}
 
@@ -204,9 +188,9 @@ public class AnalyticsTest {
 		
 		for(Local key : keys) {
 			if(!s1.containsKey(key)) {
-				return false;
+				// return false;
 			} else if(!s2.containsKey(key)) {
-				return false;
+				// return false;
 			} else {
 				if(s1.get(key).booleanValue() != s2.get(key).booleanValue()) {
 					return false;
