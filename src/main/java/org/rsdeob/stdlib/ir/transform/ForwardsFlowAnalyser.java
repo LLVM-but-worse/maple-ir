@@ -8,7 +8,7 @@ import org.rsdeob.stdlib.collections.graph.FastGraphVertex;
 import org.rsdeob.stdlib.collections.graph.flow.FlowGraph;
 
 public abstract class ForwardsFlowAnalyser<N extends FastGraphVertex, E extends FlowEdge<N>, S> extends DataAnalyser<N, E, S>{
-
+	
 	public ForwardsFlowAnalyser(FlowGraph<N, E> graph, boolean commit) {
 		super(graph, commit);
 	}
@@ -23,23 +23,21 @@ public abstract class ForwardsFlowAnalyser<N extends FastGraphVertex, E extends 
 		
 		for(N entry : graph.getEntries()) {
 			in.put(entry, newEntryState());
+			out.put(entry, newState());
 			appendQueue(entry);
 		}
 	}
 
 	private void queue(N n) {
-		Set<E> edgeSet = graph.getReverseEdges(n);
-		if (edgeSet != null) {
-			for (E e : edgeSet) {
-				appendQueue(e.src);
-			}
+		for(N u : graph.wanderAllTrails(graph.getEntries().iterator().next(), n)) {
+			appendQueue(u);
 		}
 	}
 	
 	@Override
 	public void removed(N n) {
-		queue(n);
 		super.removed(n);
+		queue(n);
 	}
 
 	@Override
@@ -101,9 +99,7 @@ public abstract class ForwardsFlowAnalyser<N extends FastGraphVertex, E extends 
 				}
 			}
 			
-			// System.out.println("in: " + currentIn);
 			execute(n, currentIn, currentOut);
-			// System.out.println("out: " + currentOut);
 			
 			// if there was a change, enqueue the successors.
 			if (!equals(currentOut, oldOut)) {

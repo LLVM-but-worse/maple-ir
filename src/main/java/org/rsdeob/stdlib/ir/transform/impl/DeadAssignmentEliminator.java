@@ -30,10 +30,6 @@ public class DeadAssignmentEliminator extends Transformer {
 
 		AtomicInteger dead = new AtomicInteger();
 		for(Statement stmt : new HashSet<>(graph.vertices())) {
-			if(stmt._getId() >= 90) {
-				continue;
-			}
-			
 			if(stmt instanceof CopyVarStatement) {
 				Map<Local, Boolean> out = la.out(stmt);
 				CopyVarStatement copy = (CopyVarStatement) stmt;
