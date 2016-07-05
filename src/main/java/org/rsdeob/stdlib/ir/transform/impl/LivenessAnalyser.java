@@ -1,5 +1,11 @@
 package org.rsdeob.stdlib.ir.transform.impl;
 
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+
 import org.rsdeob.stdlib.cfg.edge.FlowEdge;
 import org.rsdeob.stdlib.collections.graph.flow.FlowGraph;
 import org.rsdeob.stdlib.ir.Local;
@@ -8,12 +14,6 @@ import org.rsdeob.stdlib.ir.expr.VarExpression;
 import org.rsdeob.stdlib.ir.stat.CopyVarStatement;
 import org.rsdeob.stdlib.ir.stat.Statement;
 import org.rsdeob.stdlib.ir.transform.BackwardsFlowAnalyser;
-
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
 
 public class LivenessAnalyser extends BackwardsFlowAnalyser<Statement, FlowEdge<Statement>, Map<Local, Boolean>> {
 
@@ -94,16 +94,12 @@ public class LivenessAnalyser extends BackwardsFlowAnalyser<Statement, FlowEdge<
 	}
 
 	@Override
-	protected void execute(Statement n, Map<Local, Boolean> out, Map<Local, Boolean> in) {
-		if(x) System.out.println("    propagating " + n);
-		
+	protected void execute(Statement n, Map<Local, Boolean> out, Map<Local, Boolean> in) {		
 		for(Entry<Local, Boolean> e : out.entrySet()) {
 			Local key = e.getKey();
 			if(in.containsKey(key)) {
-				if (x) System.out.println("      " + key + " := (" + e.getValue() + " || " + in.get(key) + ") = " + (e.getValue() || in.get(key)));
 				in.put(key, e.getValue() || in.get(key));
 			} else {
-				if (x) System.out.println("      " + key + " := " + e.getValue());
 				in.put(key, e.getValue());
 			}
 		}
@@ -136,10 +132,8 @@ public class LivenessAnalyser extends BackwardsFlowAnalyser<Statement, FlowEdge<
 		for(Local key : keys) {
 			if(in1.containsKey(key) && in2.containsKey(key)) {
 				out.put(key, in1.get(key) || in2.get(key));
-			} else if(!in1.containsKey(key)) {
-				out.put(key, in2.get(key));
-			} else if(!in2.containsKey(key)) {
-				out.put(key, in1.get(key));
+			} else {
+				throw new RuntimeException();
 			}
 		}
 	}
@@ -151,10 +145,6 @@ public class LivenessAnalyser extends BackwardsFlowAnalyser<Statement, FlowEdge<
 		keys.addAll(s2.keySet());
 		
 		for(Local key : keys) {
-			if(!s1.containsKey(key) || !s2.containsKey(key)) {
-				return false;
-			}
-			
 			if(s1.get(key).booleanValue() != s2.get(key).booleanValue()) {
 				return false;
 			}

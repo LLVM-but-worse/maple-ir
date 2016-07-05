@@ -85,7 +85,7 @@ public class CodeBodyConsistencyChecker {
 			} else if(stmt instanceof SwitchStatement) {
 				
 			} else if(stmt instanceof ThrowStatement) {
-				throw new RuntimeException("TODO");
+//				throw new RuntimeException("TODO");
 			}
 		}
 	}

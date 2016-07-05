@@ -1,6 +1,7 @@
 package org.rsdeob.stdlib.ir.transform.impl;
 
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -43,9 +44,26 @@ public class DefinitionAnalyser extends ForwardsFlowAnalyser<Statement, FlowEdge
 		}
 	}
 	
+	@SuppressWarnings("serial")
 	@Override
 	protected NullPermeableHashMap<Local, Set<CopyVarStatement>> newState() {
-		return new NullPermeableHashMap<>(new SetCreator<>());
+		return new NullPermeableHashMap<Local, Set<CopyVarStatement>>(new SetCreator<>()) {
+			@Override
+			public String toString() {
+				StringBuilder sb= new StringBuilder();
+				sb.append("{");
+				Iterator<Entry<Local, Set<CopyVarStatement>>> it = entrySet().iterator();
+				while(it.hasNext()) {
+					Entry<Local, Set<CopyVarStatement>> e = it.next();
+					sb.append("  ").append(e.getKey()).append(" = ").append(e.getValue());
+					if(it.hasNext()) {
+						sb.append("\n");
+					}
+				}
+				sb.append(" }");
+				return sb.toString();
+			}
+		};
 	}
 
 	@Override

@@ -53,28 +53,24 @@ public class CopyPropagator extends Transformer {
 	
 	private void processImpl() {
 		while(true) {
-			AtomicBoolean change = new AtomicBoolean(false);
+			boolean change = false;
 			
 			List<Statement> stmts = new ArrayList<>();
 			for(Statement stmt : code) {
 				stmts.add(stmt);
 			}
 			for(Statement stmt : stmts) {
-				if(stmt._getId() >= 90) {
-					continue;
-				}
-				
 				if(stmt instanceof SyntheticStatement)
 					continue;
+				
 				if(stmt instanceof PopStatement) {
 					Expression expr = ((PopStatement) stmt).getExpression();
 					if(expr instanceof ConstantExpression || expr instanceof VarExpression) {
 						code.remove(stmt);
 						code.commit();
-						System.out.println("Some other update");
 						AnalyticsTest.verify_callback(code, analytics, stmt);
 						
-						change.set(true);
+						change = true;
 						changedStmts++;
 						continue;
 					}
@@ -85,13 +81,13 @@ public class CopyPropagator extends Transformer {
 				
 				if(transformer.change) {
 					AnalyticsTest.verify_callback(code, analytics, stmt);
-					change.set(true);
+					change = true;
 					continue;
 				}
 
 			}
 			
-			if(!change.get()) {
+			if(!change) {
 				break;
 			}
 		}
@@ -271,26 +267,14 @@ public class CopyPropagator extends Transformer {
 				changedStmts++;
 				change = true;
 				
-//				System.out.println();
-//				System.out.println();
-//				System.out.println(code);
-//				System.out.println();
-//				System.out.println();				
-				System.out.println("Prop " + root.getId() + ". " + root + " with def " + localDef.getId() + ". " + localDef);
-
 				r.overwrite(expr, r.indexOf(use));
 				CopyPropagator.this.code.forceUpdate(root);
 				boolean canRemoveDefinition = analytics.uses.getUses(localDef).size() <= 1;
 				if (canRemoveDefinition) {
-					System.out.println("Removed def ");
 					CopyPropagator.this.code.remove(localDef);
 				}
 				CopyPropagator.this.code.forceUpdate(root);
 				CopyPropagator.this.code.commit();
-//				System.out.println();
-//				System.out.println();
-
-//				if (toReplace instanceof VarExpression && !((VarExpression) toReplace).getLocal().toString().equals(local.toString())) {}
 			}
 		}
 		
@@ -373,7 +357,7 @@ public class CopyPropagator extends Transformer {
 				if(defs.size() == 1)  {
 					transformSingleDef(defs.iterator().next(), (VarExpression) s, local);
 				} else {
-//					transformMultiDef(defs, (VarExpression) s);
+					transformMultiDef(defs, (VarExpression) s);
 				}
 			}
 			return s;

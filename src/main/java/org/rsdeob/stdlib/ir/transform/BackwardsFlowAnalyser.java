@@ -1,15 +1,13 @@
 package org.rsdeob.stdlib.ir.transform;
 
+import java.util.Iterator;
+import java.util.Set;
+
 import org.rsdeob.stdlib.cfg.edge.FlowEdge;
 import org.rsdeob.stdlib.collections.graph.FastGraphVertex;
 import org.rsdeob.stdlib.collections.graph.flow.FlowGraph;
 
-import java.util.Iterator;
-import java.util.Set;
-
 public abstract class BackwardsFlowAnalyser<N extends FastGraphVertex, E extends FlowEdge<N>, S> extends DataAnalyser<N, E, S> {
-
-	public boolean x, y;
 	
 	public BackwardsFlowAnalyser(FlowGraph<N, E> graph) {
 		super(graph);
@@ -48,34 +46,19 @@ public abstract class BackwardsFlowAnalyser<N extends FastGraphVertex, E extends
 //				appendQueue(e.dst);
 //			}
 //		}
+		// System.out.println("Queue next: ");
 		
 		for(N n : graph.vertices()) {
+			appendQueue(n);
+			in.put(n, newState());
 			if(graph.getEdges(n).size() == 0) {
-				appendQueue(n);
-				in.put(n, newState());
 				out.put(n, newEntryState());
+			} else {
+				out.put(n, newState());
 			}
 		}
 	}
 	
-	
-	
-	@Override
-	public void appendQueue(N n) {
-		if(!queue.contains(n)) {
-			if(x) {
-				System.out.println("    Appending " + n + ", I was called from ");
-				StackTraceElement[] trace = (new Throwable()).getStackTrace();
-				for (int i = 1; i <= 10; i++) {
-					String classname = trace[i].getClassName();
-					System.out.println("        " + classname.substring(classname.lastIndexOf('.') + 1) + "#" + trace[i].getMethodName());
-					if (classname.contains("CodeAnalytics"))
-						break;
-				}
-			}
-			queue.add(n);
-		}
-	}
 	@Override
 	public void removed(N n) {
 		super.removed(n);
@@ -117,8 +100,6 @@ public abstract class BackwardsFlowAnalyser<N extends FastGraphVertex, E extends
 			if(!graph.containsVertex(n)) {
 				continue;
 			}
-			
-//			System.out.println("  bexe " + n);
 
 			// stored for checking if a change of state
 			// happens during the analysis of this
@@ -130,23 +111,16 @@ public abstract class BackwardsFlowAnalyser<N extends FastGraphVertex, E extends
 			S currentOut = out.get(n);
 			Set<E> succs = graph.getEdges(n);
 			
-//			System.out.println("   succ:");
-//			for(E e : succs) {
-//				System.out.println("    " + e.dst);
-//			}
-			
 			if(succs.size() == 1) {
 				N succ = succs.iterator().next().dst;
 				S succIn = in.get(succ);
 				copy(succIn, currentOut);
-				if (y) System.out.println("copy " + n);
 			} else if(succs.size() > 1) {
 				Iterator<E> it = succs.iterator();
 
 				N firstSucc = it.next().dst;
 				copy(in.get(firstSucc), currentOut);
 
-				if (y) System.out.println("merge " + n);
 				while(it.hasNext()) {
 					S merging = in.get(it.next().dst);
 					merge(currentOut, merging);
@@ -155,21 +129,9 @@ public abstract class BackwardsFlowAnalyser<N extends FastGraphVertex, E extends
 			
 			execute(n, currentOut, currentIn);
 			
-//			System.out.println("     curIn: " + currentIn);
-//			System.out.println("     oldIn: " + oldIn);
-//			System.out.println("     equals: " + equals(currentIn, oldIn));
-			
 			// if there was a change, enqueue the predecessors.
 			if(!equals(currentIn, oldIn)) {
-				
-				if(y) {
-					System.out.println("not eq: " + n);
-					System.out.println(oldIn);
-					System.out.println(currentIn);
-				}
-				
 				for(E e : graph.getReverseEdges(n)) {
-					if (y) System.out.println("    requeue: " + e.src);
 					appendQueue(e.src);
 				}
 			}

@@ -622,45 +622,10 @@ public class ControlFlowGraphDeobfuscator {
 			sb.append("preds=").append(GraphUtils.toBlockArray(predecessors));
 			
 			return sb.toString();
-			
-			/* sb.append("{start=").append(entry.getId());
-			sb.append(", blocks=[");
-			ListIterator<BasicBlock> lit = vertices.listIterator();
-			while(lit.hasNext()) {
-				sb.append(lit.next().getId());
-				if(lit.hasNext()) {
-					sb.append(", ");
-				}
-			}
-
-			sb.append("], preds=[");
-			ListIterator<SuperNode> lit2 = predecessors.listIterator();
-			while(lit2.hasNext()) {
-				sb.append(lit2.next().entry.getId());
-				if(lit2.hasNext()) {
-					sb.append(", ");
-				}
-			}
-			
-			sb.append("], succs=[");
-			lit2 = successors.listIterator();
-			while(lit2.hasNext()) {
-				sb.append(lit2.next().entry.getId());
-				if(lit2.hasNext()) {
-					sb.append(", ");
-				}
-			}
-			
-			sb.append("]}"); */
 		}
 
 		@Override
 		public int hashCode() {
-//			int result = 1;
-//			result = 31 * result + ((entry == null) ? 0 : entry.hashCode());
-			// result = prime * result + ((vertices == null) ? 0 : vertices.hashCode());
-//			return result;
-//			return entry.hashCode();
 			return hashCode;
 		}
 
