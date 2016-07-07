@@ -60,21 +60,6 @@ public class LivenessAnalyser extends BackwardsFlowAnalyser<Statement, FlowEdge<
 		
 		super.init();
 	}
-
-	@Override
-	public void removed(Statement n) {
-		super.removed(n);
-	}
-	
-	@Override
-	public void update(Statement n) {
-		super.update(n);
-	}
-	
-	@Override
-	public void replaced(Statement old, Statement n) {
-		super.replaced(old, n);
-	}
 	
 	@Override
 	protected Map<Local, Boolean> newState() {
@@ -84,13 +69,6 @@ public class LivenessAnalyser extends BackwardsFlowAnalyser<Statement, FlowEdge<
 	@Override
 	protected Map<Local, Boolean> newEntryState() {
 		return new HashMap<>(initial);
-	}
-	
-	@Override
-	protected void copy(Map<Local, Boolean> src, Map<Local, Boolean> dst) {
-		for(Entry<Local, Boolean> e : src.entrySet()) {
-			dst.put(e.getKey(), e.getValue());
-		}
 	}
 
 	@Override
@@ -150,5 +128,24 @@ public class LivenessAnalyser extends BackwardsFlowAnalyser<Statement, FlowEdge<
 			}
 		}
 		return true;
+	}
+	
+	@Override
+	protected void copy(Map<Local, Boolean> src, Map<Local, Boolean> dst) {
+		for(Entry<Local, Boolean> e : src.entrySet()) {
+			dst.put(e.getKey(), e.getValue());
+		}
+	}
+
+	@Override
+	protected void copyException(Map<Local, Boolean> src, Map<Local, Boolean> dst) {
+		for(Entry<Local, Boolean> e : src.entrySet()) {
+			Local l = e.getKey();
+			if(l.isStack()) {
+				dst.put(l, false);
+			} else {
+				dst.put(l, e.getValue());
+			}
+		}
 	}
 }

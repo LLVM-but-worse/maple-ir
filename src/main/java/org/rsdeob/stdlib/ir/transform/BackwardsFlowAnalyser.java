@@ -60,15 +60,27 @@ public abstract class BackwardsFlowAnalyser<N extends FastGraphVertex, E extends
 	}
 	
 	@Override
-	public void removed(N n) {
-		super.removed(n);
+	public void preRemove(N n) {
 		queueNext(n);
+	}
+	
+	@Override
+	public void postRemove(N n) {
+		remove(n);
 	}
 
 	@Override
 	public void update(N n) {
 		super.update(n);
-		replaced(n, n);
+
+		if(graph.getEdges(n).size() == 0) {
+			in.put(n, newState());
+			out.put(n, newEntryState());
+		} else {
+			in.put(n, newState());
+			out.put(n, newState());
+		}
+		queueNext(n);
 	}
 	
 	@Override

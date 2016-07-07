@@ -11,9 +11,9 @@ public class CodeAnalytics implements ICodeListener<Statement> {
 
 	public final DefinitionAnalyser definitions;
 	public final LivenessAnalyser liveness;
-	public final UsesAnalyser uses;
+	public final UsesAnalyserImpl uses;
 
-	public CodeAnalytics(ControlFlowGraph cfg, StatementGraph sgraph, DefinitionAnalyser definitions, LivenessAnalyser liveness, UsesAnalyser uses) {
+	public CodeAnalytics(ControlFlowGraph cfg, StatementGraph sgraph, DefinitionAnalyser definitions, LivenessAnalyser liveness, UsesAnalyserImpl uses) {
 		this.cfg = cfg;
 		this.sgraph = sgraph;
 		this.definitions = definitions;
@@ -25,8 +25,6 @@ public class CodeAnalytics implements ICodeListener<Statement> {
 	public void update(Statement stmt) {
 		definitions.update(stmt);
 		liveness.update(stmt);
-		definitions.commit();
-		liveness.commit();
 		// update defs before uses.
 		uses.update(stmt);
 	}
@@ -36,19 +34,22 @@ public class CodeAnalytics implements ICodeListener<Statement> {
 		sgraph.replace(old, n);
 		definitions.replaced(old, n);
 		liveness.replaced(old, n);
-		definitions.commit();
 		uses.replaced(old, n);
 	}
 
 	@Override
-	public void removed(Statement n) {		
-		if (sgraph.excavate(n)) {
-			definitions.removed(n);
-			liveness.removed(n);
-			definitions.commit();
-			liveness.commit();
-			uses.removed(n);
-		}
+	public void preRemove(Statement n) {
+		definitions.preRemove(n);
+		liveness.preRemove(n);
+		uses.preRemove(n);
+	}
+	
+	@Override
+	public void postRemove(Statement n) {
+		sgraph.excavate(n);
+		definitions.postRemove(n);
+		liveness.postRemove(n);
+		uses.postRemove(n);
 	}
 
 	@Override
