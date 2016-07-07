@@ -96,11 +96,15 @@ public abstract class FlowGraph<N extends FastGraphVertex, E extends FlowEdge<N>
 					continue;
 				N succ = e.dst;
 				if(succ != to && !visited.contains(succ)) {
+					System.out.println(s + "  to   " + succ);
 					stack.add(succ);
 					visited.add(succ);
 				}
 			}
 		}
+		
+		visited.add(from);
+		
 		return visited;
 	}
 }

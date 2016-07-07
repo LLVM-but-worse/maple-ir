@@ -14,7 +14,12 @@ import org.rsdeob.stdlib.ir.CodeBody;
 import org.rsdeob.stdlib.ir.StatementGenerator;
 import org.rsdeob.stdlib.ir.StatementGraph;
 import org.rsdeob.stdlib.ir.StatementGraphBuilder;
-import org.rsdeob.stdlib.ir.transform.impl.*;
+import org.rsdeob.stdlib.ir.transform.impl.CodeAnalytics;
+import org.rsdeob.stdlib.ir.transform.impl.CopyPropagator;
+import org.rsdeob.stdlib.ir.transform.impl.DefinitionAnalyser;
+import org.rsdeob.stdlib.ir.transform.impl.LivenessAnalyser;
+import org.rsdeob.stdlib.ir.transform.impl.Transformer;
+import org.rsdeob.stdlib.ir.transform.impl.UsesAnalyser;
 
 public class LivenessTest {
 
@@ -109,8 +114,8 @@ public class LivenessTest {
 	static Transformer[] transforms(CodeBody body, CodeAnalytics analytics) {
 		return new Transformer[] {
 			new CopyPropagator(body, analytics),
-			new DeadAssignmentEliminator(body, analytics),
-			new NewObjectInitialiserAggregator(body, analytics)
+//			new DeadAssignmentEliminator(body, analytics),
+//			new NewObjectInitialiserAggregator(body, analytics)
 		};
 	}
 	

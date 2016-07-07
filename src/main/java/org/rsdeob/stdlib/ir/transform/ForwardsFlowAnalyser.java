@@ -4,7 +4,9 @@ import java.util.Iterator;
 import java.util.Set;
 
 import org.rsdeob.stdlib.cfg.edge.FlowEdge;
+import org.rsdeob.stdlib.cfg.edge.TryCatchEdge;
 import org.rsdeob.stdlib.collections.graph.FastGraphVertex;
+import org.rsdeob.stdlib.collections.graph.flow.ExceptionRange;
 import org.rsdeob.stdlib.collections.graph.flow.FlowGraph;
 
 public abstract class ForwardsFlowAnalyser<N extends FastGraphVertex, E extends FlowEdge<N>, S> extends DataAnalyser<N, E, S>{
@@ -17,6 +19,24 @@ public abstract class ForwardsFlowAnalyser<N extends FastGraphVertex, E extends 
 		super(graph);
 	}
 	
+	protected void reset(N n) {
+		if(graph.getEntries().contains(n)) {
+			in.put(n, newEntryState());
+			out.put(n, newState());
+		} else {
+			in.put(n, newState());
+			out.put(n, newState());
+		}
+	}
+
+	protected boolean queue(N n, boolean reset) {
+		for(N u : graph.wanderAllTrails(graph.getEntries().iterator().next(), n)) {
+			appendQueue(u);
+			if(reset) reset(u);
+		}
+		return true;
+	}
+	
 	@Override
 	protected void init() {
 		super.init();
@@ -26,28 +46,71 @@ public abstract class ForwardsFlowAnalyser<N extends FastGraphVertex, E extends 
 			out.put(entry, newState());
 			appendQueue(entry);
 		}
-	}
-
-	private void queue(N n) {
-		for(N u : graph.wanderAllTrails(graph.getEntries().iterator().next(), n)) {
-			appendQueue(u);
+		
+		for(ExceptionRange<N> er : graph.getRanges()) {
+			N h = er.getHandler();
+			in.put(h, newEntryState());
+			out.put(h, newState());
+			appendQueue(h);
 		}
 	}
 	
+	// for pre and post remove, we need to
+	// assume for the time being that the
+	// definition is dead :/s
 	@Override
-	public void removed(N n) {
-		super.removed(n);
-		queue(n);
+	public void preRemove(N n) {
+		System.out.println();
+		System.out.println();
+		// if it didn't queue anything, queue
+		// the successors
+		if(!queue(n, true)) {
+			for(E e : graph.getEdges(n)) {
+				if(!(e instanceof TryCatchEdge)) {
+					appendQueue(e.dst);
+				}
+			}
+		}
+		
+		System.out.println("Removed " + n);
+		System.out.println("   removeupdate " + queue);
+		
+		System.out.println();
+		System.out.println();
+	}
+
+	@Override
+	public void postRemove(N n) {
+		remove(n);
 	}
 
 	@Override
 	public void update(N n) {
+		System.out.println();
+		System.out.println();
 		super.update(n);
-		replaced(n, n);
+		
+		queue(n, false);
+		
+		if(graph.getEntries().contains(n)) {
+			in.put(n, newEntryState());
+			out.put(n, newState());
+		} else {
+			in.put(n, newState());
+			out.put(n, newState());
+		}
+		
+		System.out.println("Updated " + n);
+		System.out.println("   And updated " + queue);
+		System.out.println();
+		System.out.println();
 	}
 
 	@Override
 	public void replaced(N old, N n) {
+		if("".equals(""))  {
+			throw new RuntimeException();
+		}
 		super.replaced(old, n);
 		if(graph.getEntries().contains(n)) {
 			in.put(n, newEntryState());
@@ -56,14 +119,17 @@ public abstract class ForwardsFlowAnalyser<N extends FastGraphVertex, E extends 
 			in.put(n, newState());
 			out.put(n, newState());
 		}
-		queue(n);
+		queue(n, false);
 	}
 
 	@Override
 	public void insert(N p, N s, N n) {
+		if("".equals(""))  {
+			throw new RuntimeException();
+		}
 		update(n);
-		queue(p);
-		queue(s);
+		queue(p, false);
+		queue(s, false);
 	}
 
 	@Override
@@ -84,18 +150,52 @@ public abstract class ForwardsFlowAnalyser<N extends FastGraphVertex, E extends 
 			Set<E> preds = graph.getReverseEdges(n);
 			
 			if(preds.size() == 1) {
-				N pred = preds.iterator().next().src;
-				S predOut = out.get(pred);
-				copy(predOut, currentIn);
+				E edge = preds.iterator().next();
+				// FIXME: in the future define the
+				// exception in the state rather than
+				// letting DFA discover the catch() statement.
+				if(edge instanceof TryCatchEdge) {
+					copyException(out.get(edge.src), currentIn);
+				} else {
+					copy(out.get(edge.src), currentIn);
+				}
+				
+				
 			} else if(preds.size() > 1) {
 				Iterator<E> it = preds.iterator();
 				
-				N firstPred = it.next().src;
-				copy(out.get(firstPred), currentIn);
+				boolean exc = false;
+				for(E p : preds) {
+					if(p instanceof TryCatchEdge) {
+						exc = true;
+						break;
+					}
+				}
+				
+				E edge = it.next();
+				if(edge instanceof TryCatchEdge) {
+					copyException(out.get(edge.src), currentIn);
+				} else {
+					if(exc) {
+						throw new IllegalStateException("Natural flow into exception block?");
+					}
+					copy(out.get(edge.src), currentIn);
+				}
 				
 				while(it.hasNext()) {
-					S merging = out.get(it.next().src);
-					merge(currentIn, merging);
+					edge = it.next();
+					
+					if(edge instanceof TryCatchEdge) {
+						S newS = newState();
+						copyException(out.get(edge.src), newS);
+						copy(newS, currentIn);
+					} else {
+						if(exc) {
+							throw new IllegalStateException("Natural flow into exception block?");
+						}
+						S merging = out.get(edge.src);
+						merge(currentIn, merging);
+					}
 				}
 			}
 			
@@ -121,6 +221,9 @@ public abstract class ForwardsFlowAnalyser<N extends FastGraphVertex, E extends 
 	
 	@Override
 	protected abstract void copy(S src, S dst);
+	
+	@Override
+	protected abstract void copyException(S src, S dst);
 	
 	@Override
 	protected abstract boolean equals(S s1, S s2);

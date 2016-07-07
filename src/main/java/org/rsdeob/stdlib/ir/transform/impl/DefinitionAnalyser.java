@@ -1,5 +1,6 @@
 package org.rsdeob.stdlib.ir.transform.impl;
 
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
@@ -11,6 +12,8 @@ import org.rsdeob.stdlib.collections.NullPermeableHashMap;
 import org.rsdeob.stdlib.collections.SetCreator;
 import org.rsdeob.stdlib.ir.Local;
 import org.rsdeob.stdlib.ir.StatementGraph;
+import org.rsdeob.stdlib.ir.StatementVisitor;
+import org.rsdeob.stdlib.ir.expr.VarExpression;
 import org.rsdeob.stdlib.ir.stat.CopyVarStatement;
 import org.rsdeob.stdlib.ir.stat.Statement;
 import org.rsdeob.stdlib.ir.stat.SyntheticStatement;
@@ -18,14 +21,50 @@ import org.rsdeob.stdlib.ir.transform.ForwardsFlowAnalyser;
 
 public class DefinitionAnalyser extends ForwardsFlowAnalyser<Statement, FlowEdge<Statement>, NullPermeableHashMap<Local, Set<CopyVarStatement>>> {
 	
+	private Map<CopyVarStatement, SyntheticStatement> synth;
+	private NullPermeableHashMap<Statement, Set<Local>> uses;
+	
 	public DefinitionAnalyser(StatementGraph graph) {
 		super(graph);
 	}
 
 	@Override
-	public void removed(Statement n) {
-		super.removed(n);
-
+	public void init() {
+		synth = new HashMap<>();
+		uses = new NullPermeableHashMap<>(new SetCreator<>());
+		super.init();
+	}
+	
+	@Override
+	protected boolean queue(Statement n, boolean reset) {
+		boolean b = false;
+		System.out.println("queue: " + n.getId() +". " + n);
+		for(Local l : uses.get(n)) {
+			Set<CopyVarStatement> defs = in(n).get(l);
+			for(CopyVarStatement def : defs) {
+				Statement from = def;
+				if(synth.containsKey(from)) {
+					from = synth.get(from);
+				}
+				System.out.println("local " + l + ", " + from);
+				for(Statement u : graph.wanderAllTrails(from, n)) {
+					appendQueue(u);
+					if(reset) reset(u);
+					b = true;
+				}
+			}
+		}
+		return b;
+	}
+	
+	@Override
+	public void remove(Statement n) {
+		super.remove(n);
+		
+		if(n instanceof SyntheticStatement || synth.get(n) != null) {
+			throw new UnsupportedOperationException(n.toString() + ", type: " + n.getClass().getCanonicalName());
+		}
+		
 		if(n instanceof CopyVarStatement) {
 			CopyVarStatement cvs = (CopyVarStatement) n;
 
@@ -110,17 +149,39 @@ public class DefinitionAnalyser extends ForwardsFlowAnalyser<Statement, FlowEdge
 		return true;
 	}
 
+	private Set<Local> collectUses(Statement n) {
+		Set<Local> set = new HashSet<>();
+		new StatementVisitor(n) {
+			@Override
+			public Statement visit(Statement stmt) {
+				if(stmt instanceof VarExpression) {
+					set.add(((VarExpression) stmt).getLocal());
+				}
+				return stmt;
+			}
+		}.visit();
+		return set;
+	}
+	
 	@Override
 	protected void execute(Statement n, NullPermeableHashMap<Local, Set<CopyVarStatement>> in, NullPermeableHashMap<Local, Set<CopyVarStatement>> out) {
-//		System.out.println("propagating " + n);
+		Set<Local> oldSet = uses.getNonNull(n);
+		oldSet.clear();
+		oldSet.addAll(collectUses(n));
+		
+		//	System.out.println("propagating " + n);
 		// create a new set here because if we don't, future operations will
 		// affect the in and the out sets. basically don't use out.putAll(in) here.
 		for(Entry<Local, Set<CopyVarStatement>> e : in.entrySet()) {
 			out.put(e.getKey(), new HashSet<>(e.getValue()));
 		}
-				
+
 		if(n instanceof SyntheticStatement) {
-			n = ((SyntheticStatement) n).getStatement();
+			Statement stmt = ((SyntheticStatement) n).getStatement();
+			if(stmt instanceof CopyVarStatement) {
+				synth.put((CopyVarStatement)stmt, (SyntheticStatement)n);
+			}
+			n = stmt;
 		}
 		
 		if(n instanceof CopyVarStatement) {
@@ -135,14 +196,6 @@ public class DefinitionAnalyser extends ForwardsFlowAnalyser<Statement, FlowEdge
 			set.clear();
 			set.add(stmt);
 		}
-	}
-
-	public Set<Statement> getUses(CopyVarStatement d) {
-		HashSet<Statement> uses = new HashSet<>();
-		for (Map.Entry<Statement, NullPermeableHashMap<Local, Set<CopyVarStatement>>> entry : in.entrySet())
-			if (entry.getValue().get(d.getVariable().getLocal()).contains(d))
-				uses.add(entry.getKey());
-		return uses;
 	}
 	
 	public String toString(Statement stmt, String indent) {
@@ -170,5 +223,16 @@ public class DefinitionAnalyser extends ForwardsFlowAnalyser<Statement, FlowEdge
 		}
 		
 		return sb.toString();
+	}
+
+	@Override
+	protected void copyException(NullPermeableHashMap<Local, Set<CopyVarStatement>> src, NullPermeableHashMap<Local, Set<CopyVarStatement>> dst) {
+		for(Entry<Local, Set<CopyVarStatement>> e : src.entrySet()) {
+			Local local = e.getKey();
+			if(!local.isStack()) {
+				// on exception jump, stack is discarded.
+				dst.put(local, new HashSet<>(e.getValue()));
+			}
+		}
 	}
 }
