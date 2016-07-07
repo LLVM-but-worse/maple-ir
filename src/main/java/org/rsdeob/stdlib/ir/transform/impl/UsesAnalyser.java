@@ -41,6 +41,7 @@ public class UsesAnalyser implements ICodeListener<Statement> {
 	@Override
 	public void update(Statement stmt) {
 		Set<VarExpression> set = used.getNonNull(stmt);
+		set.clear();
 		
 		StatementVisitor vis = new StatementVisitor(stmt) {
 			@Override
@@ -63,7 +64,7 @@ public class UsesAnalyser implements ICodeListener<Statement> {
 	}
 
 	@Override
-	public void removed(Statement stmt) {
+	public void preRemove(Statement stmt) {
 		uses.remove(stmt);
 		used.remove(stmt);
 		
@@ -76,6 +77,12 @@ public class UsesAnalyser implements ICodeListener<Statement> {
 				e.getValue().remove(stmt);
 			}
 		}
+	}
+	
+	@Override
+	public void postRemove(Statement stmt) {
+		definitions.commit();
+		rebuild(stmt);
 	}
 
 	public void build(Statement stmt) {
@@ -124,7 +131,7 @@ public class UsesAnalyser implements ICodeListener<Statement> {
 	
 	@Override
 	public void replaced(Statement old, Statement n) {
-		removed(old);
+		preRemove(old);
 		rebuild(n);
 	}
 

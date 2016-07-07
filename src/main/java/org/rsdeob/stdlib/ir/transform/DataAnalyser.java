@@ -79,13 +79,12 @@ public abstract class DataAnalyser<N extends FastGraphVertex, E extends FlowEdge
 	@Override
 	public void replaced(N old, N n) {
 		if(old != n) {
-			removed(old);
-			update(n);
+			remove(old);
 		}
+		update(n);
 	}
 
-	@Override
-	public void removed(N n) {
+	public void remove(N n) {
 		in.remove(n);
 		out.remove(n);
 		while(queue.remove(n));
@@ -96,6 +95,8 @@ public abstract class DataAnalyser<N extends FastGraphVertex, E extends FlowEdge
 	protected abstract S newEntryState();
 
 	protected abstract void copy(S src, S dst);
+	
+	protected abstract void copyException(S src, S dst);
 	
 	protected abstract boolean equals(S s1, S s2);
 	
