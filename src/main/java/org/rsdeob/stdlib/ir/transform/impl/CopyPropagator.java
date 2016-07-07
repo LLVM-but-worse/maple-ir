@@ -260,9 +260,7 @@ public class CopyPropagator extends Transformer {
 			}
 
 			if (expr != null) {
-				
 				Statement r = getCurrent(getDepth());
-				// Statement toReplace = r.read(r.indexOf(use));
 
 				changedStmts++;
 				change = true;
@@ -271,9 +269,9 @@ public class CopyPropagator extends Transformer {
 				CopyPropagator.this.code.forceUpdate(root);
 				boolean canRemoveDefinition = analytics.uses.getUses(localDef).size() <= 1;
 				if (canRemoveDefinition) {
+//					CopyPropagator.this.code.commit();
 					CopyPropagator.this.code.remove(localDef);
 				}
-				CopyPropagator.this.code.forceUpdate(root);
 				CopyPropagator.this.code.commit();
 			}
 		}

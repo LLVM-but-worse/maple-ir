@@ -31,7 +31,7 @@ import org.rsdeob.stdlib.ir.transform.impl.CodeAnalytics;
 import org.rsdeob.stdlib.ir.transform.impl.DefinitionAnalyser;
 import org.rsdeob.stdlib.ir.transform.impl.LivenessAnalyser;
 import org.rsdeob.stdlib.ir.transform.impl.Transformer;
-import org.rsdeob.stdlib.ir.transform.impl.UsesAnalyser;
+import org.rsdeob.stdlib.ir.transform.impl.UsesAnalyserImpl;
 
 public class AnalyticsTest {
 
@@ -76,7 +76,7 @@ public class AnalyticsTest {
 
 			DefinitionAnalyser defs = new DefinitionAnalyser(sgraph);
 			LivenessAnalyser liveness = new LivenessAnalyser(sgraph);
-			UsesAnalyser uses = new UsesAnalyser(sgraph, defs);
+			UsesAnalyserImpl uses = new UsesAnalyserImpl(code, sgraph, defs);
 			CodeAnalytics analytics = new CodeAnalytics(cfg, sgraph, defs, liveness, uses);
 			code.registerListener(analytics);
 			LivenessTest.optimise(code, analytics);
@@ -256,6 +256,7 @@ public class AnalyticsTest {
 						s2.remove(l);
 					}
 				}
+				System.err.println("[D] mistmatch for " + key);
 				return false;
 			}
 		}

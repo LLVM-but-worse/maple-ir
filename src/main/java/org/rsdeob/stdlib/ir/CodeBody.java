@@ -1,15 +1,15 @@
 package org.rsdeob.stdlib.ir;
 
-import org.rsdeob.stdlib.cfg.util.TabbedStringWriter;
-import org.rsdeob.stdlib.ir.api.ICodeListener;
-import org.rsdeob.stdlib.ir.header.StatementHeaderStatement;
-import org.rsdeob.stdlib.ir.stat.Statement;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
+
+import org.rsdeob.stdlib.cfg.util.TabbedStringWriter;
+import org.rsdeob.stdlib.ir.api.ICodeListener;
+import org.rsdeob.stdlib.ir.header.StatementHeaderStatement;
+import org.rsdeob.stdlib.ir.stat.Statement;
 
 public class CodeBody implements Collection<Statement> {
 
@@ -50,10 +50,13 @@ public class CodeBody implements Collection<Statement> {
 	}
 
 	public Statement remove(int index) {
-		Statement prev = stmts.remove(index);
-		for(ICodeListener<Statement> l : listeners)
-			l.removed(prev);
-		return prev;
+		Statement p = getAt(index);
+		if(p != null) {
+			if(!remove(p)) {
+				return null;
+			}
+		}
+		return p;
 	}
 
 	@Override
@@ -61,14 +64,20 @@ public class CodeBody implements Collection<Statement> {
 		if (!(o instanceof Statement))
 			return false;
 		Statement s = (Statement) o;
-
+		
+		for(ICodeListener<Statement> l : listeners) {
+			l.preRemove(s);
+		}
+		
 		boolean ret = stmts.remove(s);
-		for(ICodeListener<Statement> l : listeners)
-			l.removed(s);
+		
+		for(ICodeListener<Statement> l : listeners) {
+			l.postRemove(s);
+		}
+		
 		return ret;
 	}
 
-	//FIXME
 	@Override
 	public boolean add(Statement s) {
 		boolean ret = stmts.add(s);
@@ -103,6 +112,7 @@ public class CodeBody implements Collection<Statement> {
 			l.commit();
 	}
 
+	@Override
 	public int size() {
 		return stmts.size();
 	}
