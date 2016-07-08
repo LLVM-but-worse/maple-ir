@@ -43,7 +43,7 @@ public class CodeBodyConsistencyChecker {
 			}
 		}
 		
-		return !(cFaulty.isEmpty() && gFaulty.isEmpty());
+		return !cFaulty.isEmpty() && !gFaulty.isEmpty();
 	}
 	
 	private Set<FlowEdge<Statement>> getNonCatchEdges(Statement src) {
@@ -91,9 +91,9 @@ public class CodeBodyConsistencyChecker {
 	}
 	
 	public void compute() {
-		if(!checkContents()) {
-			throw new RuntimeException();
-		}
-		checkEdges();
+//		if(!checkContents()) {
+//			throw new RuntimeException(graph.toString());
+//		}
+//		checkEdges();
 	}
 }
