@@ -78,6 +78,17 @@ public class CodeBody implements Collection<Statement> {
 		return ret;
 	}
 
+	public boolean add(Statement s, int index) {
+		if(contains(s)) {
+			return false;
+		} else {
+			stmts.add(index, s);
+			for(ICodeListener<Statement> l : listeners)
+				l.update(s);
+			return true;
+		}
+	}
+	
 	@Override
 	public boolean add(Statement s) {
 		boolean ret = stmts.add(s);
