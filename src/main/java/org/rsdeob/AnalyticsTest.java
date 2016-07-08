@@ -47,12 +47,13 @@ public class AnalyticsTest {
 		while(it.hasNext()) {
 			MethodNode m = it.next();
 			
-			if(!m.toString().equals("a/a/f/a.<init>()V")) {
-//				continue;
+			if(!m.toString().equals("a/a/f/a.H(La/a/f/o;J)V")) {
+				continue;
 			}
-			
+//			a/a/f/a.<init>()V
+//			a/a/f/a.H(J)La/a/f/o;
+//			a/a/f/a.H(La/a/f/o;J)V
 			System.out.println("Processing " + m + "\n");
-			
 			ControlFlowGraphBuilder builder = new ControlFlowGraphBuilder(m);
 			ControlFlowGraph cfg = builder.build();
 			ControlFlowGraphDeobfuscator deobber = new ControlFlowGraphDeobfuscator();
@@ -74,15 +75,56 @@ public class AnalyticsTest {
 			
 			StatementGraph sgraph = StatementGraphBuilder.create(cfg);
 
-			DefinitionAnalyser defs = new DefinitionAnalyser(sgraph);
+			DefinitionAnalyser defs = new DefinitionAnalyser(sgraph) {
+				@Override
+				public void appendQueue(Statement n) {
+					if(!queue.contains(n)) {
+						System.out.println("  Queue " + n.getId() + ". " + n);
+						queue.add(n);
+					}
+				}
+				
+				@Override
+				protected boolean queue(Statement n, boolean reset) {
+					System.out.println("SuperQueue " + n);
+					return super.queue(n, reset);
+				}
+				
+				@Override
+				public void update(Statement n) {
+					System.out.println("Update " + n.getId() + ". " + n);
+					super.update(n);
+				}
+				
+				@Override
+				public void remove(Statement n) {
+					System.out.println("Remove " + n.getId() + ". " + n);
+					super.remove(n);
+				}
+				
+				@Override
+				public void commit() {
+					System.out.println("Process");
+					super.commit();
+					
+				}
+			};
 			LivenessAnalyser liveness = new LivenessAnalyser(sgraph);
 			UsesAnalyserImpl uses = new UsesAnalyserImpl(code, sgraph, defs);
 			CodeAnalytics analytics = new CodeAnalytics(cfg, sgraph, defs, liveness, uses);
 			code.registerListener(analytics);
-			LivenessTest.optimise(code, analytics);
+			optimise(code, analytics);
 			
 			System.out.println("Optimised:");
-			System.out.println(code);		
+			System.out.println(code);
+			System.out.println();
+			System.out.println();
+//			for(Statement stmt : code) {
+//				System.out.println(stmt);
+//				System.out.println(defs.in(stmt));
+//				System.out.println(defs.out(stmt));
+//				System.out.println();
+//			}
 		}
 	}
 

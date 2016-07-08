@@ -103,7 +103,7 @@ public class UsesAnalyserImpl implements ICodeListener<Statement> {
 		
 		Map<Local, Set<CopyVarStatement>> dmap = definitions.in(stmt);
 		for(Local l : locals) {
-			System.out.println("local: " + l + " in " + dmap);
+			// System.out.println("local: " + l + " in " + dmap);
 			for(CopyVarStatement def : dmap.get(l)) {
 				for(Statement use : uses.get(def)) {
 					Statement from = def;
@@ -149,7 +149,7 @@ public class UsesAnalyserImpl implements ICodeListener<Statement> {
 		if(stmt instanceof SyntheticStatement) {
 			SyntheticStatement syn = (SyntheticStatement) stmt;
 			if(syn.getStatement() instanceof CopyVarStatement) {
-				System.out.println("for " + stmt);
+				// System.out.println("for " + stmt);
 				synth.put((CopyVarStatement) syn.getStatement(), syn);
 			}
 		}
