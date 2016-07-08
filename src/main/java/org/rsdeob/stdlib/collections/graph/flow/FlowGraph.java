@@ -1,11 +1,11 @@
 package org.rsdeob.stdlib.collections.graph.flow;
 
-import java.util.*;
-
 import org.rsdeob.stdlib.cfg.edge.FlowEdge;
 import org.rsdeob.stdlib.cfg.edge.TryCatchEdge;
 import org.rsdeob.stdlib.collections.graph.FastGraph;
 import org.rsdeob.stdlib.collections.graph.FastGraphVertex;
+
+import java.util.*;
 
 public abstract class FlowGraph<N extends FastGraphVertex, E extends FlowEdge<N>> extends FastGraph<N, E> {
 
@@ -82,8 +82,12 @@ public abstract class FlowGraph<N extends FastGraphVertex, E extends FlowEdge<N>
 		vertexIds.remove(v.getId());
 		super.removeVertex(v);
 	}
-	
+
 	public Set<N> wanderAllTrails(N from, N to) {
+		return wanderAllTrails(from, to, false);
+	}
+
+	public Set<N> wanderAllTrails(N from, N to, boolean followExceptions) {
 		Set<N> visited = new HashSet<>();
 		LinkedList<N> stack = new LinkedList<>();
 		stack.add(from);
@@ -92,7 +96,7 @@ public abstract class FlowGraph<N extends FastGraphVertex, E extends FlowEdge<N>
 			N s = stack.pop();
 			
 			for(FlowEdge<N> e : getEdges(s)) {
-				if(e instanceof TryCatchEdge)
+				if(!followExceptions && (e instanceof TryCatchEdge))
 					continue;
 				N succ = e.dst;
 				if(succ != to && !visited.contains(succ)) {
