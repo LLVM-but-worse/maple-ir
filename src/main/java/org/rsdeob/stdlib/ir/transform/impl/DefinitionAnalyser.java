@@ -38,7 +38,7 @@ public class DefinitionAnalyser extends ForwardsFlowAnalyser<Statement, FlowEdge
 	@Override
 	protected boolean queue(Statement n, boolean reset) {
 		boolean b = false;
-		System.out.println("queue: " + n.getId() +". " + n);
+		// System.out.println("queue: " + n.getId() +". " + n);
 		for(Local l : uses.get(n)) {
 			Set<CopyVarStatement> defs = in(n).get(l);
 			for(CopyVarStatement def : defs) {
@@ -46,7 +46,7 @@ public class DefinitionAnalyser extends ForwardsFlowAnalyser<Statement, FlowEdge
 				if(synth.containsKey(from)) {
 					from = synth.get(from);
 				}
-				System.out.println("local " + l + ", " + from);
+				// System.out.println("local " + l + ", " + from);
 				for(Statement u : graph.wanderAllTrails(from, n)) {
 					appendQueue(u);
 					if(reset) reset(u);
