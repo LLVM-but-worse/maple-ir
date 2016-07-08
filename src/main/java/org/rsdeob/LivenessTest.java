@@ -1,7 +1,5 @@
 package org.rsdeob;
 
-import java.util.List;
-
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
@@ -14,13 +12,9 @@ import org.rsdeob.stdlib.ir.CodeBody;
 import org.rsdeob.stdlib.ir.StatementGenerator;
 import org.rsdeob.stdlib.ir.StatementGraph;
 import org.rsdeob.stdlib.ir.StatementGraphBuilder;
-import org.rsdeob.stdlib.ir.transform.impl.CodeAnalytics;
-import org.rsdeob.stdlib.ir.transform.impl.CopyPropagator;
-import org.rsdeob.stdlib.ir.transform.impl.DeadAssignmentEliminator;
-import org.rsdeob.stdlib.ir.transform.impl.DefinitionAnalyser;
-import org.rsdeob.stdlib.ir.transform.impl.LivenessAnalyser;
-import org.rsdeob.stdlib.ir.transform.impl.Transformer;
-import org.rsdeob.stdlib.ir.transform.impl.UsesAnalyser;
+import org.rsdeob.stdlib.ir.transform.impl.*;
+
+import java.util.List;
 
 public class LivenessTest {
 
@@ -91,7 +85,7 @@ public class LivenessTest {
 	public static void optimise(ControlFlowGraph cfg, CodeBody stmtList, StatementGraph graph) {
 		DefinitionAnalyser defAnalyser = new DefinitionAnalyser(graph);
 		LivenessAnalyser la = new LivenessAnalyser(graph);
-		UsesAnalyser useAnalyser = new UsesAnalyser(graph, defAnalyser);
+		UsesAnalyserImpl useAnalyser = new UsesAnalyserImpl(stmtList, graph, defAnalyser);
 		CodeAnalytics analytics = new CodeAnalytics(cfg, graph, defAnalyser, la, useAnalyser);
 		stmtList.registerListener(analytics);
 		

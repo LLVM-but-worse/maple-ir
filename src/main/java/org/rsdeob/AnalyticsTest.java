@@ -1,15 +1,5 @@
 package org.rsdeob;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.InputStream;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
@@ -18,20 +8,17 @@ import org.rsdeob.stdlib.cfg.ControlFlowGraph;
 import org.rsdeob.stdlib.cfg.ControlFlowGraphBuilder;
 import org.rsdeob.stdlib.cfg.util.ControlFlowGraphDeobfuscator;
 import org.rsdeob.stdlib.cfg.util.GraphUtils;
-import org.rsdeob.stdlib.ir.CodeBody;
-import org.rsdeob.stdlib.ir.CodeBodyConsistencyChecker;
-import org.rsdeob.stdlib.ir.Local;
-import org.rsdeob.stdlib.ir.StatementGenerator;
-import org.rsdeob.stdlib.ir.StatementGraph;
-import org.rsdeob.stdlib.ir.StatementGraphBuilder;
+import org.rsdeob.stdlib.ir.*;
 import org.rsdeob.stdlib.ir.header.HeaderStatement;
 import org.rsdeob.stdlib.ir.stat.CopyVarStatement;
 import org.rsdeob.stdlib.ir.stat.Statement;
-import org.rsdeob.stdlib.ir.transform.impl.CodeAnalytics;
-import org.rsdeob.stdlib.ir.transform.impl.DefinitionAnalyser;
-import org.rsdeob.stdlib.ir.transform.impl.LivenessAnalyser;
-import org.rsdeob.stdlib.ir.transform.impl.Transformer;
-import org.rsdeob.stdlib.ir.transform.impl.UsesAnalyserImpl;
+import org.rsdeob.stdlib.ir.transform.impl.*;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.InputStream;
+import java.util.*;
+import java.util.Map.Entry;
 
 public class AnalyticsTest {
 
@@ -74,6 +61,7 @@ public class AnalyticsTest {
 			System.out.println();
 			
 			StatementGraph sgraph = StatementGraphBuilder.create(cfg);
+			GraphUtils.output(m.name, sgraph, code, BootEcx.GRAPH_FOLDER, "-sg");
 
 			DefinitionAnalyser defs = new DefinitionAnalyser(sgraph) {
 				@Override
@@ -86,7 +74,7 @@ public class AnalyticsTest {
 				
 				@Override
 				protected boolean queue(Statement n, boolean reset) {
-					System.out.println("SuperQueue " + n);
+					System.out.println("SuperQueue " + n.getId() + ". " + n);
 					return super.queue(n, reset);
 				}
 				
