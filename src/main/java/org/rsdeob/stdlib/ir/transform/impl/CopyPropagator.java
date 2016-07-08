@@ -153,7 +153,8 @@ public class CopyPropagator extends Transformer {
 		// rules we can go through from def to rhs
 		// to check if anything is being overwritten.
 		Collection<Statement> path = analytics.sgraph.wanderAllTrails(real, use);
-		if(path == null) {
+		path.remove(use);
+		if(path.isEmpty()) {
 			return null;
 		}
 		
@@ -202,25 +203,30 @@ public class CopyPropagator extends Transformer {
 			if(!canPropagate) {
 				return null;
 			}
-						
+			
 			AtomicBoolean canPropagate2 = new AtomicBoolean(canPropagate);
 			if(invoke.get() || array.get() || !fieldsUsed.isEmpty()) {
-				StatementVisitor vis2 = new StatementVisitor(stmt) {
+				new StatementVisitor(stmt) {
 					@Override
-					public Statement visit(Statement stmt) {
-						if(root == use && (stmt instanceof VarExpression && ((VarExpression) stmt).getLocal() == local)) {
+					public Statement visit(Statement s) {
+						if(root == use && (s instanceof VarExpression && ((VarExpression) s).getLocal() == local)) {
 							_break();
 						} else {
-							if((stmt instanceof InvocationExpression || stmt instanceof InitialisedObjectExpression) || (invoke.get() && (stmt instanceof FieldStoreStatement || stmt instanceof ArrayStoreStatement))) {
+							if((s instanceof InvocationExpression || s instanceof InitialisedObjectExpression) || (invoke.get() && (s instanceof FieldStoreStatement || s instanceof ArrayStoreStatement))) {
 								canPropagate2.set(false);
+								System.out.println("failing on " + s + "  " + root + "  " + use + "  " + localDef);
 								_break();
 							}
 						}
-						return stmt;
+						return s;
 					}
-				};
-				vis2.visit();
+				}.visit();
 				canPropagate = canPropagate2.get();
+				
+				if(!canPropagate) {
+					System.out.println("HERE NIGGER " + localDef.getId() + ". " + localDef);
+					return null;
+				}
 			}
 		}
 		

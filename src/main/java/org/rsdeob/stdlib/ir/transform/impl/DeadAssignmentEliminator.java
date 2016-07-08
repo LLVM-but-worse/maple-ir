@@ -26,7 +26,7 @@ public class DeadAssignmentEliminator extends Transformer {
 	@Override
 	public int run() {
 		StatementGraph graph = analytics.sgraph;
-		LivenessAnalyser la = analytics.liveness;
+		LivenessAnalyser la = new LivenessAnalyser(graph);
 
 		AtomicInteger dead = new AtomicInteger();
 		for(Statement stmt : new HashSet<>(graph.vertices())) {
@@ -34,6 +34,14 @@ public class DeadAssignmentEliminator extends Transformer {
 				Map<Local, Boolean> out = la.out(stmt);
 				CopyVarStatement copy = (CopyVarStatement) stmt;
 				VarExpression var = copy.getVariable();
+				
+				if(copy.getExpression() instanceof VarExpression && ((VarExpression) copy.getExpression()).getLocal() == var.getLocal()) {
+					code.remove(stmt);
+					code.commit();
+					AnalyticsTest.verify_callback(code, analytics, stmt);
+					dead.incrementAndGet();
+					continue;
+				}
 				
 				if(!out.get(var.getLocal())) {
 					AtomicBoolean complex = new AtomicBoolean(false);
@@ -56,7 +64,6 @@ public class DeadAssignmentEliminator extends Transformer {
 					}
 					
 					AnalyticsTest.verify_callback(code, analytics, stmt);
-					
 					dead.incrementAndGet();
 				}
 			}

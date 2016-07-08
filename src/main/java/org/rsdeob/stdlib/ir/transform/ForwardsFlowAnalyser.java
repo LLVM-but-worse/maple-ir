@@ -60,8 +60,8 @@ public abstract class ForwardsFlowAnalyser<N extends FastGraphVertex, E extends 
 	// definition is dead :/s
 	@Override
 	public void preRemove(N n) {
-		System.out.println();
-		System.out.println();
+		// System.out.println();
+		// System.out.println();
 		// if it didn't queue anything, queue
 		// the successors
 		if(!queue(n, true)) {
@@ -72,11 +72,11 @@ public abstract class ForwardsFlowAnalyser<N extends FastGraphVertex, E extends 
 			}
 		}
 		
-		System.out.println("Removed " + n);
-		System.out.println("   removeupdate " + queue);
+		// System.out.println("Removed " + n);
+		// System.out.println("   removeupdate " + queue);
 		
-		System.out.println();
-		System.out.println();
+		// System.out.println();
+		// System.out.println();
 	}
 
 	@Override
@@ -86,8 +86,8 @@ public abstract class ForwardsFlowAnalyser<N extends FastGraphVertex, E extends 
 
 	@Override
 	public void update(N n) {
-		System.out.println();
-		System.out.println();
+		// System.out.println();
+		// System.out.println();
 		super.update(n);
 		
 		queue(n, false);
@@ -100,10 +100,10 @@ public abstract class ForwardsFlowAnalyser<N extends FastGraphVertex, E extends 
 			out.put(n, newState());
 		}
 		
-		System.out.println("Updated " + n);
-		System.out.println("   And updated " + queue);
-		System.out.println();
-		System.out.println();
+		// System.out.println("Updated " + n);
+		// System.out.println("   And updated " + queue);
+		// System.out.println();
+		// System.out.println();
 	}
 
 	@Override
