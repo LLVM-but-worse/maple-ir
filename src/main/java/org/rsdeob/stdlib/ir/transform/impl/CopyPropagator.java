@@ -153,10 +153,10 @@ public class CopyPropagator extends Transformer {
 		// rules we can go through from def to rhs
 		// to check if anything is being overwritten.
 		Collection<Statement> path = analytics.sgraph.wanderAllTrails(real, use);
-		path.remove(use);
-		if(path.isEmpty()) {
-			return null;
-		}
+		path.remove(real);
+//		if(path.isEmpty()) {
+//			return null;
+//		}
 		
 		boolean canPropagate = true;
 		
@@ -214,7 +214,11 @@ public class CopyPropagator extends Transformer {
 						} else {
 							if((s instanceof InvocationExpression || s instanceof InitialisedObjectExpression) || (invoke.get() && (s instanceof FieldStoreStatement || s instanceof ArrayStoreStatement))) {
 								canPropagate2.set(false);
-								System.out.println("failing on " + s + "  " + root + "  " + use + "  " + localDef);
+								System.out.println("Failing on: " + s.getId() + ". " + s);
+								System.out.println("  Root: " + root.getId() + ". " + root);
+								System.out.println("  Use: " + use.getId() + ". " + use);
+								System.out.println("  RHS: " + rhs.getId() + ". " + rhs);
+								System.out.println("  Def: " + localDef.getId() + ". " +  localDef);
 								_break();
 							}
 						}
