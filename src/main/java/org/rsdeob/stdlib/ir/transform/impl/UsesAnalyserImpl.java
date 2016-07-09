@@ -103,7 +103,13 @@ public class UsesAnalyserImpl implements ICodeListener<Statement> {
 		
 		Map<Local, Set<CopyVarStatement>> dmap = definitions.in(stmt);
 		for(Local l : locals) {
-			// System.out.println("local: " + l + " in " + dmap);
+		 	System.out.println("local: " + l + " for " + stmt.getId() + ". " + stmt + " in " + dmap);
+			if (dmap.get(l) == null) { // dbg trap
+				System.out.println("DEBUG TRAP");
+				for (Statement asdf : graph.vertices()) {
+					System.out.println("    " + asdf.getId() + ". " + asdf + " " + definitions.in(asdf));
+				}
+			}
 			for(CopyVarStatement def : dmap.get(l)) {
 				for(Statement use : uses.get(def)) {
 					Statement from = def;
