@@ -90,6 +90,7 @@ public class UsesAnalyserImpl implements ICodeListener<Statement> {
 	}
 	
 	public void queue(Statement stmt) {
+		System.out.println("QUEUE: " + stmt.getId() +". "+ stmt);
 		Set<Local> locals = new HashSet<>();
 		new StatementVisitor(stmt) {
 			@Override
@@ -100,10 +101,17 @@ public class UsesAnalyserImpl implements ICodeListener<Statement> {
 				return s;
 			}
 		}.visit();
+//		if(stmt instanceof CopyVarStatement) {
+//			locals.add(((CopyVarStatement) stmt).getVariable().getLocal());
+//		}
 		
 		Map<Local, Set<CopyVarStatement>> dmap = definitions.in(stmt);
 		for(Local l : locals) {
-			// System.out.println("local: " + l + " in " + dmap);
+			System.out.println("local: " + l + " in " + dmap);
+			if(dmap.get(l) == null) {
+				System.err.println(body);
+				throw new RuntimeException();
+			}
 			for(CopyVarStatement def : dmap.get(l)) {
 				for(Statement use : uses.get(def)) {
 					Statement from = def;
