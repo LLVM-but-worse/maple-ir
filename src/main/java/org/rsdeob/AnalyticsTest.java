@@ -25,7 +25,7 @@ public class AnalyticsTest {
 	public static boolean debug = true;
 	
 	public static void main(String[] args) throws Throwable {
-		InputStream i = new FileInputStream(new File("res/Test.class"));
+		InputStream i = new FileInputStream(new File("res/a.class"));
 		ClassReader cr = new ClassReader(i);
 		ClassNode cn = new ClassNode();
 		cr.accept(cn, 0);
@@ -33,10 +33,10 @@ public class AnalyticsTest {
 		Iterator<MethodNode> it = cn.methods.listIterator();
 		while(it.hasNext()) {
 			MethodNode m = it.next();
-			
-//			if(!m.toString().equals("a/a/f/a.<init>()V")) {
-//				continue;
-//			}
+
+			if(!m.toString().equals("a/a/f/a.H(La/a/f/o;J)V")) {
+				continue;
+			}
 //			a/a/f/a.<init>()V
 //			a/a/f/a.H(J)La/a/f/o;
 //			a/a/f/a.H(La/a/f/o;J)V
