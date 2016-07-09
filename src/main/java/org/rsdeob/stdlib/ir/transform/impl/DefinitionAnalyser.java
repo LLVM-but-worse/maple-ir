@@ -47,7 +47,7 @@ public class DefinitionAnalyser extends ForwardsFlowAnalyser<Statement, FlowEdge
 					from = synth.get(from);
 				}
 				// System.out.println("local " + l + ", " + from);
-				for(Statement u : graph.wanderAllTrails(from, n)) {
+				for(Statement u : graph.wanderAllTrails(from, n, true)) {
 					appendQueue(u);
 					if(reset) reset(u);
 					b = true;
