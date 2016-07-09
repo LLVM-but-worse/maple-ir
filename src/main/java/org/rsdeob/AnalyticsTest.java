@@ -37,17 +37,32 @@ public class AnalyticsTest {
 
 	public static boolean debug = true;
 	
+	private void looptest(int p1) {
+		int v1 = p1 * 5;
+		int v3 = 0;
+		int v5 = 0;
+		for(int v2=p1; v2 < v1; v2++) {
+			v3 += v2;
+			for(int v4=0; v4 < v3; v4++) {
+				v5 += v4;
+			}
+		}
+		System.out.println("v3: " + v3);
+		System.out.println("v5: " + v5);
+	}
+	
 	public static void main(String[] args) throws Throwable {
 		InputStream i = new FileInputStream(new File("res/a.class"));
 		ClassReader cr = new ClassReader(i);
+//		ClassReader cr = new ClassReader(AnalyticsTest.class.getCanonicalName());
 		ClassNode cn = new ClassNode();
 		cr.accept(cn, 0);
 
 		Iterator<MethodNode> it = cn.methods.listIterator();
 		while(it.hasNext()) {
 			MethodNode m = it.next();
-			
-			if(!m.toString().equals("a/a/f/a.H(La/a/f/o;J)V")) {
+
+			if(!m.toString().equals("a/a/f/a.<init>()V")) {
 				continue;
 			}
 //			a/a/f/a.<init>()V
@@ -65,10 +80,7 @@ public class AnalyticsTest {
 			StatementGenerator gen = new StatementGenerator(cfg);
 			gen.init(m.maxLocals);
 			gen.createExpressions();
-			CodeBody code = gen.buildRoot();
-			
-			System.out.println(((CopyVarStatement) code.getAt(11)));
-			
+			CodeBody code = gen.buildRoot();			
 
 			System.out.println(code);
 			System.out.println();
@@ -77,6 +89,7 @@ public class AnalyticsTest {
 			GraphUtils.output(m.name, sgraph, code, BootEcx.GRAPH_FOLDER, "-sg");
 
 			DefinitionAnalyser defs = new DefinitionAnalyser(sgraph);
+			defs.x = true;
 			LivenessAnalyser liveness = new LivenessAnalyser(sgraph);
 			UsesAnalyserImpl uses = new UsesAnalyserImpl(code, sgraph, defs);
 			CodeAnalytics analytics = new CodeAnalytics(cfg, sgraph, defs, liveness, uses);
