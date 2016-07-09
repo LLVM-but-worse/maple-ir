@@ -84,6 +84,10 @@ public abstract class FlowGraph<N extends FastGraphVertex, E extends FlowEdge<N>
 	}
 	
 	public Set<N> wanderAllTrails(N from, N to) {
+		return wanderAllTrails(from, to, false);
+	}
+	
+	public Set<N> wanderAllTrails(N from, N to, boolean followExceptions) {
 		Set<N> visited = new HashSet<>();
 		LinkedList<N> stack = new LinkedList<>();
 		stack.add(from);
@@ -92,7 +96,7 @@ public abstract class FlowGraph<N extends FastGraphVertex, E extends FlowEdge<N>
 			N s = stack.pop();
 			
 			for(FlowEdge<N> e : getEdges(s)) {
-				if(e instanceof TryCatchEdge)
+				if(e instanceof TryCatchEdge && !followExceptions)
 					continue;
 				N succ = e.dst;
 				if(succ != to && !visited.contains(succ)) {
