@@ -1,12 +1,5 @@
 package org.rsdeob.stdlib.ir.transform.impl;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-
 import org.rsdeob.stdlib.cfg.edge.FlowEdge;
 import org.rsdeob.stdlib.collections.NullPermeableHashMap;
 import org.rsdeob.stdlib.collections.SetCreator;
@@ -19,6 +12,9 @@ import org.rsdeob.stdlib.ir.stat.CopyVarStatement;
 import org.rsdeob.stdlib.ir.stat.Statement;
 import org.rsdeob.stdlib.ir.stat.SyntheticStatement;
 import org.rsdeob.stdlib.ir.transform.ForwardsFlowAnalyser;
+
+import java.util.*;
+import java.util.Map.Entry;
 
 public class DefinitionAnalyser extends ForwardsFlowAnalyser<Statement, FlowEdge<Statement>, NullPermeableHashMap<Local, Set<CopyVarStatement>>> {
 	
@@ -49,7 +45,7 @@ public class DefinitionAnalyser extends ForwardsFlowAnalyser<Statement, FlowEdge
 				}
 			}
 		}
-		System.out.println(n.getId() + ". " + n + ", Is handler: " + isHandler);
+		System.out.println(n.getId() + ". Is handler: " + isHandler);
 
 		boolean b = false;
 		Set<Local> spreadLocals = new HashSet<>(uses.get(n));
@@ -64,8 +60,9 @@ public class DefinitionAnalyser extends ForwardsFlowAnalyser<Statement, FlowEdge
 				if(synth.containsKey(from)) {
 					from = synth.get(from);
 				}
-				// System.out.println("local " + l + ", " + from);
-				for(Statement u : graph.wanderAllTrails(from, n, isHandler && !l.isStack())) {
+				Set<Statement> path = graph.wanderAllTrails(from, n, isHandler && !l.isStack());
+				path.remove(from); // loop fix
+				for(Statement u : path) {
 					appendQueue(u);
 					if(reset) reset(u);
 					b = true;
