@@ -79,32 +79,32 @@ public class AnalyticsTest {
 				@Override
 				public void appendQueue(Statement n) {
 					if(!queue.contains(n)) {
-						System.out.println("  Queue " + n.getId() + ". " + n);
+//						System.out.println("  Queue " + n.getId() + ". " + n);
 						queue.add(n);
 					}
 				}
 				
 				@Override
 				protected boolean queue(Statement n, boolean reset) {
-					System.out.println("SuperQueue " + n);
+//					System.out.println("SuperQueue " + n);
 					return super.queue(n, reset);
 				}
 				
 				@Override
 				public void update(Statement n) {
-					System.out.println("Update " + n.getId() + ". " + n);
+//					System.out.println("Update " + n.getId() + ". " + n);
 					super.update(n);
 				}
 				
 				@Override
 				public void remove(Statement n) {
-					System.out.println("Remove " + n.getId() + ". " + n);
+//					System.out.println("Remove " + n.getId() + ". " + n);
 					super.remove(n);
 				}
 				
 				@Override
 				public void commit() {
-					System.out.println("Process");
+//					System.out.println("Process");
 					super.commit();
 					
 				}
