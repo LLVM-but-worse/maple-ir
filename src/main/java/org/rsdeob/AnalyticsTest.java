@@ -74,41 +74,9 @@ public class AnalyticsTest {
 			System.out.println();
 			
 			StatementGraph sgraph = StatementGraphBuilder.create(cfg);
+			GraphUtils.output(m.name, sgraph, code, BootEcx.GRAPH_FOLDER, "-sg");
 
-			DefinitionAnalyser defs = new DefinitionAnalyser(sgraph) {
-				@Override
-				public void appendQueue(Statement n) {
-					if(!queue.contains(n)) {
-//						System.out.println("  Queue " + n.getId() + ". " + n);
-						queue.add(n);
-					}
-				}
-				
-				@Override
-				protected boolean queue(Statement n, boolean reset) {
-//					System.out.println("SuperQueue " + n);
-					return super.queue(n, reset);
-				}
-				
-				@Override
-				public void update(Statement n) {
-//					System.out.println("Update " + n.getId() + ". " + n);
-					super.update(n);
-				}
-				
-				@Override
-				public void remove(Statement n) {
-//					System.out.println("Remove " + n.getId() + ". " + n);
-					super.remove(n);
-				}
-				
-				@Override
-				public void commit() {
-//					System.out.println("Process");
-					super.commit();
-					
-				}
-			};
+			DefinitionAnalyser defs = new DefinitionAnalyser(sgraph);
 			LivenessAnalyser liveness = new LivenessAnalyser(sgraph);
 			UsesAnalyserImpl uses = new UsesAnalyserImpl(code, sgraph, defs);
 			CodeAnalytics analytics = new CodeAnalytics(cfg, sgraph, defs, liveness, uses);
