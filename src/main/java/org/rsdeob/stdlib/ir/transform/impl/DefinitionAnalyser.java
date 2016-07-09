@@ -25,6 +25,7 @@ public class DefinitionAnalyser extends ForwardsFlowAnalyser<Statement, FlowEdge
 	private Map<CopyVarStatement, SyntheticStatement> synth;
 	private NullPermeableHashMap<Statement, Set<Local>> uses;
 	
+	
 	public DefinitionAnalyser(StatementGraph graph) {
 		super(graph);
 	}
@@ -56,8 +57,9 @@ public class DefinitionAnalyser extends ForwardsFlowAnalyser<Statement, FlowEdge
 		if (n instanceof CopyVarStatement)
 			spreadLocals.add(((CopyVarStatement) n).getVariable().getLocal());
 		for(Local l : spreadLocals) {
-			if (!in(n).containsKey(l))
+			if (!in(n).containsKey(l)) {
 				continue;
+			}
 			Set<CopyVarStatement> defs = in(n).get(l);
 			for(CopyVarStatement def : defs) {
 				Statement from = def;
@@ -67,7 +69,7 @@ public class DefinitionAnalyser extends ForwardsFlowAnalyser<Statement, FlowEdge
 				// System.out.println("local " + l + ", " + from);
 				for(Statement u : graph.wanderAllTrails(from, n, isHandler && !l.isStack())) {
 					appendQueue(u);
-					if(reset) reset(u);
+//					if(reset) reset(u);
 					b = true;
 				}
 			}
@@ -183,6 +185,7 @@ public class DefinitionAnalyser extends ForwardsFlowAnalyser<Statement, FlowEdge
 	
 	@Override
 	protected void execute(Statement n, NullPermeableHashMap<Local, Set<CopyVarStatement>> in, NullPermeableHashMap<Local, Set<CopyVarStatement>> out) {
+		if(x) System.out.println("Executing " + n.getId() + ". " +n);
 		Set<Local> oldSet = uses.getNonNull(n);
 		oldSet.clear();
 		oldSet.addAll(collectUses(n));
@@ -191,6 +194,9 @@ public class DefinitionAnalyser extends ForwardsFlowAnalyser<Statement, FlowEdge
 		// create a new set here because if we don't, future operations will
 		// affect the in and the out sets. basically don't use out.putAll(in) here.
 		for(Entry<Local, Set<CopyVarStatement>> e : in.entrySet()) {
+			if(e.getKey().toString().equals("svar4")) {
+				if(x) System.out.println(" IN: " + e.getValue());
+			}
 			out.put(e.getKey(), new HashSet<>(e.getValue()));
 		}
 
@@ -213,6 +219,12 @@ public class DefinitionAnalyser extends ForwardsFlowAnalyser<Statement, FlowEdge
 			}
 			set.clear();
 			set.add(stmt);
+		}
+		
+		for(Entry<Local, Set<CopyVarStatement>> e : out.entrySet()) {
+			if(e.getKey().toString().equals("svar4")) {
+				if(x) System.out.println(" OUT: " + e.getValue());
+			}
 		}
 	}
 	

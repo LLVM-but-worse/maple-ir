@@ -10,7 +10,8 @@ import org.rsdeob.stdlib.collections.graph.flow.ExceptionRange;
 import org.rsdeob.stdlib.collections.graph.flow.FlowGraph;
 
 public abstract class ForwardsFlowAnalyser<N extends FastGraphVertex, E extends FlowEdge<N>, S> extends DataAnalyser<N, E, S>{
-	
+	public boolean x;
+
 	public ForwardsFlowAnalyser(FlowGraph<N, E> graph, boolean commit) {
 		super(graph, commit);
 	}
@@ -66,9 +67,9 @@ public abstract class ForwardsFlowAnalyser<N extends FastGraphVertex, E extends 
 		// the successors
 		if(!queue(n, true)) {
 			for(E e : graph.getEdges(n)) {
-				if(!(e instanceof TryCatchEdge)) {
+//				if(!(e instanceof TryCatchEdge)) {
 					appendQueue(e.dst);
-				}
+//				}
 			}
 		}
 		
@@ -131,7 +132,7 @@ public abstract class ForwardsFlowAnalyser<N extends FastGraphVertex, E extends 
 		queue(p, false);
 		queue(s, false);
 	}
-
+	
 	@Override
 	public void processImpl() {
 		while(!queue.isEmpty()) {
@@ -151,6 +152,7 @@ public abstract class ForwardsFlowAnalyser<N extends FastGraphVertex, E extends 
 			
 			if(preds.size() == 1) {
 				E edge = preds.iterator().next();
+				if(x) System.out.println("src: " + edge.src + ",  out=" + out.get(edge.src));
 				// FIXME: in the future define the
 				// exception in the state rather than
 				// letting DFA discover the catch() statement.
@@ -184,7 +186,6 @@ public abstract class ForwardsFlowAnalyser<N extends FastGraphVertex, E extends 
 				
 				while(it.hasNext()) {
 					edge = it.next();
-					
 					if(edge instanceof TryCatchEdge) {
 						S newS = newState();
 						copyException(out.get(edge.src), newS);
