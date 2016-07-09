@@ -82,11 +82,11 @@ public abstract class FlowGraph<N extends FastGraphVertex, E extends FlowEdge<N>
 		vertexIds.remove(v.getId());
 		super.removeVertex(v);
 	}
-	
+
 	public Set<N> wanderAllTrails(N from, N to) {
 		return wanderAllTrails(from, to, false);
 	}
-	
+
 	public Set<N> wanderAllTrails(N from, N to, boolean followExceptions) {
 		Set<N> visited = new HashSet<>();
 		LinkedList<N> stack = new LinkedList<>();

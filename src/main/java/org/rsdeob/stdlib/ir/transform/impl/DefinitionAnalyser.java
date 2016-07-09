@@ -10,6 +10,7 @@ import java.util.Set;
 import org.rsdeob.stdlib.cfg.edge.FlowEdge;
 import org.rsdeob.stdlib.collections.NullPermeableHashMap;
 import org.rsdeob.stdlib.collections.SetCreator;
+import org.rsdeob.stdlib.collections.graph.flow.ExceptionRange;
 import org.rsdeob.stdlib.ir.Local;
 import org.rsdeob.stdlib.ir.StatementGraph;
 import org.rsdeob.stdlib.ir.StatementVisitor;
@@ -37,9 +38,26 @@ public class DefinitionAnalyser extends ForwardsFlowAnalyser<Statement, FlowEdge
 	
 	@Override
 	protected boolean queue(Statement n, boolean reset) {
+		boolean isHandler = false;
+		handlerCheck:
+		for (ExceptionRange<Statement> range : graph.getRanges()) {
+			Set<Statement> handlerStmts = graph.wanderAllTrails(range.getHandler(), n);
+			for (FlowEdge<Statement> re : graph.getReverseEdges(n)) {
+				if (handlerStmts.contains(re.src)) {
+					isHandler = true;
+					break handlerCheck;
+				}
+			}
+		}
+		System.out.println(n.getId() + ". " + n + ", Is handler: " + isHandler);
+
 		boolean b = false;
-		// System.out.println("queue: " + n.getId() +". " + n);
-		for(Local l : uses.get(n)) {
+		Set<Local> spreadLocals = new HashSet<>(uses.get(n));
+		if (n instanceof CopyVarStatement)
+			spreadLocals.add(((CopyVarStatement) n).getVariable().getLocal());
+		for(Local l : spreadLocals) {
+			if (!in(n).containsKey(l))
+				continue;
 			Set<CopyVarStatement> defs = in(n).get(l);
 			for(CopyVarStatement def : defs) {
 				Statement from = def;
@@ -47,7 +65,7 @@ public class DefinitionAnalyser extends ForwardsFlowAnalyser<Statement, FlowEdge
 					from = synth.get(from);
 				}
 				// System.out.println("local " + l + ", " + from);
-				for(Statement u : graph.wanderAllTrails(from, n, true)) {
+				for(Statement u : graph.wanderAllTrails(from, n, isHandler && !l.isStack())) {
 					appendQueue(u);
 					if(reset) reset(u);
 					b = true;
@@ -55,7 +73,7 @@ public class DefinitionAnalyser extends ForwardsFlowAnalyser<Statement, FlowEdge
 			}
 		}
 		return b;
-	}
+}
 	
 	@Override
 	public void remove(Statement n) {
