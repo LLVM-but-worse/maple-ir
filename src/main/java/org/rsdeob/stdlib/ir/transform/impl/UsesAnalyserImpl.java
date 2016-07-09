@@ -1,12 +1,5 @@
 package org.rsdeob.stdlib.ir.transform.impl;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-
 import org.rsdeob.stdlib.collections.NullPermeableHashMap;
 import org.rsdeob.stdlib.collections.SetCreator;
 import org.rsdeob.stdlib.ir.CodeBody;
@@ -18,6 +11,9 @@ import org.rsdeob.stdlib.ir.expr.VarExpression;
 import org.rsdeob.stdlib.ir.stat.CopyVarStatement;
 import org.rsdeob.stdlib.ir.stat.Statement;
 import org.rsdeob.stdlib.ir.stat.SyntheticStatement;
+
+import java.util.*;
+import java.util.Map.Entry;
 
 public class UsesAnalyserImpl implements ICodeListener<Statement> {
 
@@ -103,13 +99,6 @@ public class UsesAnalyserImpl implements ICodeListener<Statement> {
 		
 		Map<Local, Set<CopyVarStatement>> dmap = definitions.in(stmt);
 		for(Local l : locals) {
-		 	System.out.println("local: " + l + " for " + stmt.getId() + ". " + stmt + " in " + dmap);
-			if (dmap.get(l) == null) { // dbg trap
-				System.out.println("DEBUG TRAP");
-				for (Statement asdf : graph.vertices()) {
-					System.out.println("    " + asdf.getId() + ". " + asdf + " " + definitions.in(asdf));
-				}
-			}
 			for(CopyVarStatement def : dmap.get(l)) {
 				for(Statement use : uses.get(def)) {
 					Statement from = def;
