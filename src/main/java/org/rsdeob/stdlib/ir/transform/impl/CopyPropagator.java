@@ -11,7 +11,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.rsdeob.AnalyticsTest;
 import org.rsdeob.stdlib.ir.CodeBody;
-import org.rsdeob.stdlib.ir.Local;
 import org.rsdeob.stdlib.ir.StatementVisitor;
 import org.rsdeob.stdlib.ir.expr.ArrayLoadExpression;
 import org.rsdeob.stdlib.ir.expr.ConstantExpression;
@@ -20,6 +19,7 @@ import org.rsdeob.stdlib.ir.expr.FieldLoadExpression;
 import org.rsdeob.stdlib.ir.expr.InitialisedObjectExpression;
 import org.rsdeob.stdlib.ir.expr.InvocationExpression;
 import org.rsdeob.stdlib.ir.expr.VarExpression;
+import org.rsdeob.stdlib.ir.locals.Local;
 import org.rsdeob.stdlib.ir.stat.ArrayStoreStatement;
 import org.rsdeob.stdlib.ir.stat.CopyVarStatement;
 import org.rsdeob.stdlib.ir.stat.FieldStoreStatement;
@@ -361,6 +361,10 @@ public class CopyPropagator extends Transformer {
 				Local local = ((VarExpression) s).getLocal();
 				
 				Set<CopyVarStatement> defs = reachingDefs.get(local);
+				if(defs == null) {
+					System.err.println(code);
+					System.err.println("no defs for " + root);
+				}
 				
 				if(defs.size() == 1)  {
 					transformSingleDef(defs.iterator().next(), (VarExpression) s, local);

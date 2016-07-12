@@ -44,9 +44,9 @@ public class TarjanDominanceComputor<N extends FastGraphVertex> {
 		computeIteratedFrontiers();
 	}
 	
-//	public Set<N> dominates(N n) {
-//		return domChildren.getNonNull(n);
-//	}
+	public Set<N> children(N n) {
+		return domChildren.getNonNull(n);
+	}
 	
 	public Set<N> semiDoms(N n) {
 		return semiDoms.getNonNull(n);

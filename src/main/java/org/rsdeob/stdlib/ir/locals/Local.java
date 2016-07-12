@@ -1,4 +1,4 @@
-package org.rsdeob.stdlib.ir;
+package org.rsdeob.stdlib.ir.locals;
 
 import java.util.concurrent.atomic.AtomicInteger;
 

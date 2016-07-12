@@ -1,13 +1,13 @@
 package org.rsdeob.stdlib.ir.transform;
 
+import java.util.Iterator;
+import java.util.Set;
+
 import org.rsdeob.stdlib.cfg.edge.FlowEdge;
 import org.rsdeob.stdlib.cfg.edge.TryCatchEdge;
 import org.rsdeob.stdlib.collections.graph.FastGraphVertex;
 import org.rsdeob.stdlib.collections.graph.flow.ExceptionRange;
 import org.rsdeob.stdlib.collections.graph.flow.FlowGraph;
-
-import java.util.Iterator;
-import java.util.Set;
 
 public abstract class ForwardsFlowAnalyser<N extends FastGraphVertex, E extends FlowEdge<N>, S> extends DataAnalyser<N, E, S>{
 	public boolean x;
@@ -61,8 +61,6 @@ public abstract class ForwardsFlowAnalyser<N extends FastGraphVertex, E extends 
 	// definition is dead :/s
 	@Override
 	public void preRemove(N n) {
-		// System.out.println();
-		// System.out.println();
 		// if it didn't queue anything, queue
 		// the successors
 		if(!queue(n, true)) {
@@ -72,12 +70,6 @@ public abstract class ForwardsFlowAnalyser<N extends FastGraphVertex, E extends 
 				}
 			}
 		}
-		
-		// System.out.println("Removed " + n);
-		// System.out.println("   removeupdate " + queue);
-		
-		// System.out.println();
-		// System.out.println();
 	}
 
 	@Override
@@ -87,8 +79,6 @@ public abstract class ForwardsFlowAnalyser<N extends FastGraphVertex, E extends 
 
 	@Override
 	public void update(N n) {
-		// System.out.println();
-		// System.out.println();
 		super.update(n);
 		
 		queue(n, false);
@@ -100,18 +90,10 @@ public abstract class ForwardsFlowAnalyser<N extends FastGraphVertex, E extends 
 			in.put(n, newState());
 			out.put(n, newState());
 		}
-		
-		// System.out.println("Updated " + n);
-		// System.out.println("   And updated " + queue);
-		// System.out.println();
-		// System.out.println();
 	}
 
 	@Override
 	public void replaced(N old, N n) {
-		if("".equals(""))  {
-			throw new RuntimeException();
-		}
 		super.replaced(old, n);
 		if(graph.getEntries().contains(n)) {
 			in.put(n, newEntryState());
@@ -125,12 +107,9 @@ public abstract class ForwardsFlowAnalyser<N extends FastGraphVertex, E extends 
 
 	@Override
 	public void insert(N p, N s, N n) {
-		if("".equals(""))  {
-			throw new RuntimeException();
-		}
 		update(n);
-		queue(p, false);
-		queue(s, false);
+		update(p);
+		update(s);
 	}
 
 	@Override
