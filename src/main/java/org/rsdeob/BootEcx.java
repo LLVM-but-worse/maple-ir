@@ -40,7 +40,7 @@ import java.util.jar.JarOutputStream;
 public class BootEcx implements Opcodes {
 	public static final File GRAPH_FOLDER = new File("cfg testing");
 
-	public static void main1(String[] args) throws Exception {
+	public static void main(String[] args) throws Exception {
 		InputStream i = new FileInputStream(new File("res/a.class"));
 		ClassReader cr = new ClassReader(i);
 		ClassNode cn = new ClassNode();
@@ -88,12 +88,12 @@ public class BootEcx implements Opcodes {
 			StatementGraph sgraph = StatementGraphBuilder.create(cfg);
 			GraphUtils.output(m.name, sgraph, stmtList, GRAPH_FOLDER, "-sg");
 
-//			LivenessTest.optimise(cfg, stmtList, sgraph);
-//
-//			System.out.println("Optimised IR " + m + ":");
-//			System.out.println(stmtList);
-//			System.out.println();
-//
+			LivenessTest.optimise(cfg, stmtList, sgraph);
+
+			System.out.println("Optimised IR " + m + ":");
+			System.out.println(stmtList);
+			System.out.println();
+
 			DefinitionAnalyser defs = new DefinitionAnalyser(sgraph);
 			LivenessAnalyser liveness = new LivenessAnalyser(sgraph);
 			UsesAnalyserImpl uses = new UsesAnalyserImpl(stmtList, sgraph, defs);
@@ -296,7 +296,7 @@ public class BootEcx implements Opcodes {
 		}
 	}
 
-	public static void main(String[] args) throws Exception {
+	public static void main1(String[] args) throws Exception {
 		ClassReader cr= new ClassReader(BootBibl.class.getCanonicalName());
 		ClassNode cn = new ClassNode();
 		cr.accept(cn, 0);
