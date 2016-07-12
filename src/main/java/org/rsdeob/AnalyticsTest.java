@@ -34,7 +34,7 @@ public class AnalyticsTest {
 		while(it.hasNext()) {
 			MethodNode m = it.next();
 
-			if(!m.toString().equals("a/a/f/a.H(La/a/f/o;J)V")) {
+			if(!m.toString().equals("a/a/f/a.<init>()V")) {
 				continue;
 			}
 //			a/a/f/a.<init>()V
@@ -55,7 +55,7 @@ public class AnalyticsTest {
 			CodeBody code = gen.buildRoot();
 			
 //			System.out.println(((CopyVarStatement) code.getAt(11)));
-			
+
 
 			System.out.println(code);
 			System.out.println();
