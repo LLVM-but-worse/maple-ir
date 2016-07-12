@@ -21,10 +21,10 @@ import org.rsdeob.stdlib.ir.stat.SyntheticStatement;
 import org.rsdeob.stdlib.ir.transform.ForwardsFlowAnalyser;
 
 public class DefinitionAnalyser extends ForwardsFlowAnalyser<Statement, FlowEdge<Statement>, NullPermeableHashMap<Local, Set<CopyVarStatement>>> {
-	
+
 	private Map<CopyVarStatement, SyntheticStatement> synth;
 	private NullPermeableHashMap<Statement, Set<Local>> uses;
-	
+
 	public DefinitionAnalyser(StatementGraph graph) {
 		super(graph);
 	}
@@ -35,7 +35,7 @@ public class DefinitionAnalyser extends ForwardsFlowAnalyser<Statement, FlowEdge
 		uses = new NullPermeableHashMap<>(new SetCreator<>());
 		super.init();
 	}
-	
+
 	@Override
 	public void insert(Statement p, Statement s, Statement n) {
 		System.out.println("insert: " + n);
@@ -57,7 +57,7 @@ public class DefinitionAnalyser extends ForwardsFlowAnalyser<Statement, FlowEdge
 				}
 			}
 		}
-		System.out.println(n.getId() + ". Is handler: " + isHandler);
+		if (x) System.out.println(n.getId() + ". Is handler: " + isHandler);
 
 		boolean b = false;
 		Set<Local> spreadLocals = new HashSet<>(uses.get(n));
@@ -83,15 +83,15 @@ public class DefinitionAnalyser extends ForwardsFlowAnalyser<Statement, FlowEdge
 		}
 		return b;
 }
-	
+
 	@Override
 	public void remove(Statement n) {
 		super.remove(n);
-		
+
 		if(n instanceof SyntheticStatement || synth.get(n) != null) {
 			throw new UnsupportedOperationException(n.toString() + ", type: " + n.getClass().getCanonicalName());
 		}
-		
+
 		if(n instanceof CopyVarStatement) {
 			CopyVarStatement cvs = (CopyVarStatement) n;
 
@@ -109,7 +109,7 @@ public class DefinitionAnalyser extends ForwardsFlowAnalyser<Statement, FlowEdge
 			}
 		}
 	}
-	
+
 	@SuppressWarnings("serial")
 	@Override
 	protected NullPermeableHashMap<Local, Set<CopyVarStatement>> newState() {
@@ -159,20 +159,20 @@ public class DefinitionAnalyser extends ForwardsFlowAnalyser<Statement, FlowEdge
 		Set<Local> keys = new HashSet<>();
 		keys.addAll(s1.keySet());
 		keys.addAll(s2.keySet());
-		
+
 		for(Local key : keys) {
 			if(!s1.containsKey(key) || !s2.containsKey(key)) {
 				return false;
 			}
-			
+
 			Set<CopyVarStatement> set1 = s1.get(key);
 			Set<CopyVarStatement> set2 = s2.get(key);
-			
+
 			if(!set1.equals(set2)) {
 				return false;
 			}
 		}
-		
+
 		return true;
 	}
 
@@ -189,13 +189,13 @@ public class DefinitionAnalyser extends ForwardsFlowAnalyser<Statement, FlowEdge
 		}.visit();
 		return set;
 	}
-	
+
 	@Override
 	protected void execute(Statement n, NullPermeableHashMap<Local, Set<CopyVarStatement>> in, NullPermeableHashMap<Local, Set<CopyVarStatement>> out) {
 		Set<Local> oldSet = uses.getNonNull(n);
 		oldSet.clear();
 		oldSet.addAll(collectUses(n));
-		
+
 		//	System.out.println("propagating " + n);
 		// create a new set here because if we don't, future operations will
 		// affect the in and the out sets. basically don't use out.putAll(in) here.
@@ -210,7 +210,7 @@ public class DefinitionAnalyser extends ForwardsFlowAnalyser<Statement, FlowEdge
 			}
 			n = stmt;
 		}
-		
+
 		if(n instanceof CopyVarStatement) {
 			CopyVarStatement stmt = (CopyVarStatement) n;
 //			System.out.println("mapping def " + stmt.getId() +"  " + stmt);
@@ -224,31 +224,31 @@ public class DefinitionAnalyser extends ForwardsFlowAnalyser<Statement, FlowEdge
 			set.add(stmt);
 		}
 	}
-	
+
 	public String toString(Statement stmt, String indent) {
 		StringBuilder sb = new StringBuilder();
-		
+
 		Map<Local, Set<CopyVarStatement>> in = in(stmt);
 		Map<Local, Set<CopyVarStatement>> out = out(stmt);
-		
+
 		if(in != null) {
 			sb.append(indent).append("IN:\n");
 			for(Entry<Local, Set<CopyVarStatement>> e : in.entrySet()) {
 				sb.append(indent).append("  ").append(e.getKey()).append(" = ").append(e.getValue()).append("\n");
 			}
 		}
-		
+
 		if(out != null) {
 			sb.append(indent).append("OUT:\n");
 			for(Entry<Local, Set<CopyVarStatement>> e : out.entrySet()) {
 				sb.append(indent).append("  ").append(e.getKey()).append(" = ").append(e.getValue()).append("\n");
 			}
 		}
-		
+
 		if(in == null && out == null) {
 			sb.append(indent).append("\n");
 		}
-		
+
 		return sb.toString();
 	}
 
