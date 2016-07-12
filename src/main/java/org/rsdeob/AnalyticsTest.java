@@ -45,11 +45,7 @@ public class AnalyticsTest {
 		while(it.hasNext()) {
 			MethodNode m = it.next();
 
-<<<<<<< HEAD
 			if(!m.toString().equals("a/a/f/a.H(J)La/a/f/o;")) {
-=======
-			if(!m.toString().equals("a/a/f/a.<init>()V")) {
->>>>>>> branch 'sep-ir' of https://github.com/TheBiblMan/redeob-rs.git
 				continue;
 			}
 //			a/a/f/a.<init>()V
