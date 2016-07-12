@@ -7,12 +7,12 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.rsdeob.AnalyticsTest;
 import org.rsdeob.stdlib.ir.CodeBody;
-import org.rsdeob.stdlib.ir.Local;
 import org.rsdeob.stdlib.ir.StatementGraph;
 import org.rsdeob.stdlib.ir.StatementVisitor;
 import org.rsdeob.stdlib.ir.expr.InitialisedObjectExpression;
 import org.rsdeob.stdlib.ir.expr.InvocationExpression;
 import org.rsdeob.stdlib.ir.expr.VarExpression;
+import org.rsdeob.stdlib.ir.locals.Local;
 import org.rsdeob.stdlib.ir.stat.CopyVarStatement;
 import org.rsdeob.stdlib.ir.stat.PopStatement;
 import org.rsdeob.stdlib.ir.stat.Statement;

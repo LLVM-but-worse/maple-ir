@@ -1,10 +1,18 @@
-package org.rsdeob.stdlib.ir;
+package org.rsdeob.stdlib.ir.locals;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import org.rsdeob.stdlib.ir.CodeBody;
+import org.rsdeob.stdlib.ir.StatementVisitor;
 import org.rsdeob.stdlib.ir.expr.VarExpression;
 import org.rsdeob.stdlib.ir.stat.Statement;
-
-import java.util.*;
-import java.util.concurrent.atomic.AtomicInteger;
 
 public class LocalsHandler {
 
@@ -20,11 +28,26 @@ public class LocalsHandler {
 		return get(index, false);
 	}
 	
+	public Local get(int index, int subscript) {
+		return get(index, subscript, false);
+	}
+
 	public List<Local> getOrderedList() {
 		List<Local> list = new ArrayList<>();
 		list.addAll(cache.values());
 		Collections.sort(list);
 		return list;
+	}
+	
+	public VersionedLocal get(int index, int subscript, boolean isStack) {
+		String key = key(index, subscript, isStack);
+		if(cache.containsKey(key)) {
+			return (VersionedLocal) cache.get(key);
+		} else {
+			VersionedLocal v = new VersionedLocal(base, index, subscript, isStack);
+			cache.put(key, v);
+			return v;
+		}
 	}
 	
 	public Local get(int index, boolean isStack) {
@@ -93,11 +116,19 @@ public class LocalsHandler {
 		return base.get();
 	}
 	
+	public AtomicInteger getBase0() {
+		return base;
+	}
+	
 	public void setBase(int b) {
 		base.set(b);
 	}
 	
 	public static String key(int index, boolean stack) {
 		return (stack ? "s" : "l") + "var" + index;
+	}
+	
+	public static String key(int index, int subscript, boolean stack) {
+		return (stack ? "s" : "l") + "var" + index + "_" + subscript;
 	}
 }

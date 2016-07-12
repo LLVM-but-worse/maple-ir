@@ -16,7 +16,8 @@ public abstract class StatementVisitor {
 		currentPtrs = new int[2];
 	}
 	
-	public void reset() {
+	public void reset(Statement root) {
+		this.root = root;
 		current = new Statement[2];
 		currentPtrs = new int[2];
 		broken = false;
