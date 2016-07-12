@@ -9,13 +9,13 @@ import java.util.Set;
 
 import org.objectweb.asm.Opcodes;
 import org.rsdeob.stdlib.ir.CodeBody;
-import org.rsdeob.stdlib.ir.Local;
 import org.rsdeob.stdlib.ir.StatementGraph;
 import org.rsdeob.stdlib.ir.expr.Expression;
 import org.rsdeob.stdlib.ir.expr.InitialisedObjectExpression;
 import org.rsdeob.stdlib.ir.expr.InvocationExpression;
 import org.rsdeob.stdlib.ir.expr.UninitialisedObjectExpression;
 import org.rsdeob.stdlib.ir.expr.VarExpression;
+import org.rsdeob.stdlib.ir.locals.Local;
 import org.rsdeob.stdlib.ir.stat.CopyVarStatement;
 import org.rsdeob.stdlib.ir.stat.PopStatement;
 import org.rsdeob.stdlib.ir.stat.Statement;
@@ -79,11 +79,10 @@ public class NewObjectInitialiserAggregator extends Transformer {
 										// remove the old def
 										// add a copy statement before the pop (x = newExpr)
 										// remove the pop statement
-
-										CopyVarStatement newCvs = new CopyVarStatement(var, newExpr);
-										code.remove(def);
-										code.commit();
 										
+										code.remove(def);
+										
+										CopyVarStatement newCvs = new CopyVarStatement(var, newExpr);
 										int index = code.indexOf(pop);
 										Statement prev = code.getAt(index - 1);
 										Statement next = code.getAt(index);
@@ -91,6 +90,12 @@ public class NewObjectInitialiserAggregator extends Transformer {
 										code.remove(pop);
 										code.forceUpdate(newCvs);
 										code.commit();
+
+										System.out.println("HERE");
+										System.out.println();
+										System.out.println(code);
+										System.out.println();
+										System.out.println();
 										
 										// replace pop(x.<init>()) with x := new Klass();
 										// remove x := new Klass;
@@ -99,6 +104,7 @@ public class NewObjectInitialiserAggregator extends Transformer {
 									throw new RuntimeException("interesting2");
 								}
 							} else {
+								System.err.println(code);
 								throw new RuntimeException("interesting1 " + inst.getClass());
 							}
 						}

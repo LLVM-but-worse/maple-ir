@@ -1,12 +1,12 @@
 package org.rsdeob.stdlib.ir.stat;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.objectweb.asm.MethodVisitor;
 import org.rsdeob.stdlib.cfg.util.TabbedStringWriter;
 import org.rsdeob.stdlib.collections.graph.FastGraphVertex;
 import org.rsdeob.stdlib.ir.transform.impl.CodeAnalytics;
-
-import java.util.ArrayList;
-import java.util.List;
 
 public abstract class Statement implements FastGraphVertex {
 	
@@ -240,9 +240,9 @@ public abstract class Statement implements FastGraphVertex {
 	
 	public static String print(Statement node) {
 		TabbedStringWriter printer = new TabbedStringWriter();
-		if(node.parents.size() == 0) {
-			printer.print(node.getId() + ". ");
-		}
+//		if(node.parents.size() == 0) {
+//			printer.print(node.getId() + ". ");
+//		}
 		node.toString(printer);
 		return printer.toString();
 	}

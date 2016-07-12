@@ -1,5 +1,7 @@
 package org.rsdeob;
 
+import java.util.List;
+
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
@@ -13,8 +15,6 @@ import org.rsdeob.stdlib.ir.StatementGenerator;
 import org.rsdeob.stdlib.ir.StatementGraph;
 import org.rsdeob.stdlib.ir.StatementGraphBuilder;
 import org.rsdeob.stdlib.ir.transform.impl.*;
-
-import java.util.List;
 
 public class LivenessTest {
 
@@ -110,7 +110,7 @@ public class LivenessTest {
 		return new Transformer[] {
 			new CopyPropagator(body, analytics),
 			new DeadAssignmentEliminator(body, analytics),
-//			new NewObjectInitialiserAggregator(body, analytics)
+			new NewObjectInitialiserAggregator(body, analytics)
 		};
 	}
 	

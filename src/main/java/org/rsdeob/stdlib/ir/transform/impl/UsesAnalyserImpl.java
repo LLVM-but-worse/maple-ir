@@ -1,19 +1,23 @@
 package org.rsdeob.stdlib.ir.transform.impl;
 
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+
 import org.rsdeob.stdlib.collections.NullPermeableHashMap;
 import org.rsdeob.stdlib.collections.SetCreator;
 import org.rsdeob.stdlib.ir.CodeBody;
-import org.rsdeob.stdlib.ir.Local;
 import org.rsdeob.stdlib.ir.StatementGraph;
 import org.rsdeob.stdlib.ir.StatementVisitor;
 import org.rsdeob.stdlib.ir.api.ICodeListener;
 import org.rsdeob.stdlib.ir.expr.VarExpression;
+import org.rsdeob.stdlib.ir.locals.Local;
 import org.rsdeob.stdlib.ir.stat.CopyVarStatement;
 import org.rsdeob.stdlib.ir.stat.Statement;
 import org.rsdeob.stdlib.ir.stat.SyntheticStatement;
-
-import java.util.*;
-import java.util.Map.Entry;
 
 public class UsesAnalyserImpl implements ICodeListener<Statement> {
 
@@ -69,7 +73,10 @@ public class UsesAnalyserImpl implements ICodeListener<Statement> {
 
 	@Override
 	public void insert(Statement p, Statement s, Statement n) {
-		throw new RuntimeException();
+		definitions.commit();
+		queue(n);
+		queue(p);
+		queue(s);
 	}
 	
 	@Override
@@ -86,6 +93,7 @@ public class UsesAnalyserImpl implements ICodeListener<Statement> {
 	}
 	
 	public void queue(Statement stmt) {
+		System.out.println("QUEUE: " + stmt);
 		Set<Local> locals = new HashSet<>();
 		new StatementVisitor(stmt) {
 			@Override
@@ -97,21 +105,27 @@ public class UsesAnalyserImpl implements ICodeListener<Statement> {
 			}
 		}.visit();
 		
-		Map<Local, Set<CopyVarStatement>> dmap = definitions.in(stmt);
-		for(Local l : locals) {
-			for(CopyVarStatement def : dmap.get(l)) {
-				for(Statement use : uses.get(def)) {
-					Statement from = def;
-					if(synth.containsKey(from)) {
-						from = synth.get(from);
-					}
-					Set<Statement> trail = graph.wanderAllTrails(from, use);
-					trail.remove(stmt);
-					for(Statement s : trail) {
-						appendQueue(s);
+		try {
+			Map<Local, Set<CopyVarStatement>> dmap = definitions.in(stmt);
+			for(Local l : locals) {
+				for(CopyVarStatement def : dmap.get(l)) {
+					System.out.println("  def: " + def);
+					for(Statement use : uses.getNonNull(def)) {
+						Statement from = def;
+						if(synth.containsKey(from)) {
+							from = synth.get(from);
+						}
+						Set<Statement> trail = graph.wanderAllTrails(from, use);
+						trail.remove(stmt);
+						for(Statement s : trail) {
+							appendQueue(s);
+						}
 					}
 				}
 			}
+		} catch(Exception e) {
+			System.err.println(body);
+			throw e;
 		}
 	}
 	

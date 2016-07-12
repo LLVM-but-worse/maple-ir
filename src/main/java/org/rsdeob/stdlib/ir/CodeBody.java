@@ -9,6 +9,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import org.rsdeob.stdlib.cfg.util.TabbedStringWriter;
 import org.rsdeob.stdlib.ir.api.ICodeListener;
 import org.rsdeob.stdlib.ir.header.StatementHeaderStatement;
+import org.rsdeob.stdlib.ir.locals.LocalsHandler;
 import org.rsdeob.stdlib.ir.stat.Statement;
 
 public class CodeBody implements Collection<Statement> {

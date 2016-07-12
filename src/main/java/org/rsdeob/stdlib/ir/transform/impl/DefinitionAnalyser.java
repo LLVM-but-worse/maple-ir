@@ -1,20 +1,24 @@
 package org.rsdeob.stdlib.ir.transform.impl;
 
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+
 import org.rsdeob.stdlib.cfg.edge.FlowEdge;
 import org.rsdeob.stdlib.collections.NullPermeableHashMap;
 import org.rsdeob.stdlib.collections.SetCreator;
 import org.rsdeob.stdlib.collections.graph.flow.ExceptionRange;
-import org.rsdeob.stdlib.ir.Local;
 import org.rsdeob.stdlib.ir.StatementGraph;
 import org.rsdeob.stdlib.ir.StatementVisitor;
 import org.rsdeob.stdlib.ir.expr.VarExpression;
+import org.rsdeob.stdlib.ir.locals.Local;
 import org.rsdeob.stdlib.ir.stat.CopyVarStatement;
 import org.rsdeob.stdlib.ir.stat.Statement;
 import org.rsdeob.stdlib.ir.stat.SyntheticStatement;
 import org.rsdeob.stdlib.ir.transform.ForwardsFlowAnalyser;
-
-import java.util.*;
-import java.util.Map.Entry;
 
 public class DefinitionAnalyser extends ForwardsFlowAnalyser<Statement, FlowEdge<Statement>, NullPermeableHashMap<Local, Set<CopyVarStatement>>> {
 	
@@ -30,6 +34,14 @@ public class DefinitionAnalyser extends ForwardsFlowAnalyser<Statement, FlowEdge
 		synth = new HashMap<>();
 		uses = new NullPermeableHashMap<>(new SetCreator<>());
 		super.init();
+	}
+	
+	@Override
+	public void insert(Statement p, Statement s, Statement n) {
+		System.out.println("insert: " + n);
+		uses.put(n, collectUses(n));
+		reset(n);
+		super.insert(p, s, n);
 	}
 	
 	@Override
