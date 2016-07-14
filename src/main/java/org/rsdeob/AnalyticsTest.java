@@ -57,10 +57,7 @@ public class AnalyticsTest {
 			ControlFlowGraphDeobfuscator deobber = new ControlFlowGraphDeobfuscator();
 			List<BasicBlock> blocks = deobber.deobfuscate(cfg);
 			deobber.removeEmptyBlocks(cfg, blocks);
-			GraphUtils.naturaliseGraph(cfg, blocks);
-			
-			GraphUtils.output(cfg, blocks, new File("C:/Users/Bibl/Desktop/cfg testing"), "test11");
-			
+			GraphUtils.naturaliseGraph(cfg, blocks);			
 			
 			StatementGenerator gen = new StatementGenerator(cfg);
 			gen.init(m.maxLocals);
