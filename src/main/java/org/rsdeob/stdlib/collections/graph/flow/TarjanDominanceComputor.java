@@ -168,6 +168,7 @@ public class TarjanDominanceComputor<N extends FastGraphVertex> {
 		
 		// ignore entry
 		
+		// i>0 to i > 2
 		for(int i=size; i > 0; i--) {
 			N n = preOrder.get(i);
 			N p = parents.get(n);
