@@ -4,7 +4,6 @@ import java.util.*;
 
 import org.rsdeob.stdlib.cfg.BasicBlock;
 import org.rsdeob.stdlib.cfg.ControlFlowGraph;
-import org.rsdeob.stdlib.cfg.edge.DummyEdge;
 import org.rsdeob.stdlib.cfg.edge.FlowEdge;
 import org.rsdeob.stdlib.collections.NullPermeableHashMap;
 import org.rsdeob.stdlib.collections.SetCreator;
@@ -103,7 +102,7 @@ public class SSAGenerator {
 		for(BasicBlock b : cfg.vertices()) {
 			// connect dummy exit
 			if(cfg.getEdges(b).size() == 0) {
-				cfg.addEdge(b, new DummyEdge<>(b, exit));
+//				cfg.addEdge(b, new DummyEdge<>(b, exit));
 			}
 			// map translation
 			for(Statement s : b.getStatements()) { 
@@ -228,6 +227,7 @@ public class SSAGenerator {
 			throw new NullPointerException(root.toString() + ", " +  l.toString());
 		} else if(stack.isEmpty()) {
 			System.err.println(body);
+			System.err.println(stacks);
 			throw new IllegalStateException(root.toString() + ", " +  l.toString());
 		}
 		return stack.peek();
@@ -265,13 +265,13 @@ public class SSAGenerator {
 			return;
 		}
 		
-		System.out.println("frontier of " + s + " , " + doms.frontier(s));
-		for(BasicBlock x : doms.frontier(s)) {
+		System.out.println("frontier of " + s + " , " + doms.iteratedFronter(s));
+		for(BasicBlock x : doms.iteratedFronter(s)) {
 			if(insertion.get(x) < localCount) {
 
 				List<Statement> stmts = x.getStatements();
-				if(stmts.size() > 0) {
-					int count = cfg.getReverseEdges(x).size();
+				int count = cfg.getReverseEdges(x).size();
+				if(stmts.size() > 0 && count > 1) {
 					List<VersionedLocal> vls = new ArrayList<>();
 					for(int i=0; i < count; i++) {
 						vls.add(handler.get(l.getIndex(), i, l.isStack()));
