@@ -56,6 +56,8 @@ public class AnalyticsTest {
 			deobber.removeEmptyBlocks(cfg, blocks);
 			GraphUtils.naturaliseGraph(cfg, blocks);
 			
+			DotExporter.output(cfg, blocks, new File("C:/Users/Bibl/Desktop/cfg testing"), "test11");
+			
 			
 			StatementGenerator gen = new StatementGenerator(cfg);
 			gen.init(m.maxLocals);
