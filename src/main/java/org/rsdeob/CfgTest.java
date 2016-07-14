@@ -1,10 +1,5 @@
 package org.rsdeob;
 
-import java.io.File;
-import java.nio.charset.UnsupportedCharsetException;
-import java.util.ArrayList;
-import java.util.List;
-
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.rsdeob.byteio.CompleteResolvingJarDumper;
@@ -12,12 +7,18 @@ import org.rsdeob.stdlib.cfg.BasicBlock;
 import org.rsdeob.stdlib.cfg.ControlFlowGraph;
 import org.rsdeob.stdlib.cfg.ControlFlowGraphBuilder;
 import org.rsdeob.stdlib.cfg.util.ControlFlowGraphDeobfuscator;
+import org.rsdeob.stdlib.cfg.util.DotExporter;
 import org.rsdeob.stdlib.cfg.util.GraphUtils;
 import org.rsdeob.stdlib.collections.NodeTable;
 import org.topdank.banalysis.asm.insn.InstructionPrinter;
 import org.topdank.byteengineer.commons.data.JarInfo;
 import org.topdank.byteio.in.SingleJarDownloader;
 import org.topdank.byteio.out.JarDumper;
+
+import java.io.File;
+import java.nio.charset.UnsupportedCharsetException;
+import java.util.ArrayList;
+import java.util.List;
 
 public class CfgTest {
 
@@ -115,7 +116,7 @@ public class CfgTest {
 					InstructionPrinter.consolePrint(m);
 					m.localVariables.clear();
 					ControlFlowGraph cfg = ControlFlowGraphBuilder.create(m);
-					GraphUtils.output(cfg, new ArrayList<>(cfg.vertices()), graphFolder, "post");
+					DotExporter.output(cfg, new ArrayList<>(cfg.vertices()), graphFolder, "post");
 					System.out.println(cfg);
 					
 //					System.out.println(cfg);

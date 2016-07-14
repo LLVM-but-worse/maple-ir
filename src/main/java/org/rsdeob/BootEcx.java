@@ -14,6 +14,7 @@ import org.rsdeob.stdlib.cfg.BasicBlock;
 import org.rsdeob.stdlib.cfg.ControlFlowGraph;
 import org.rsdeob.stdlib.cfg.ControlFlowGraphBuilder;
 import org.rsdeob.stdlib.cfg.util.ControlFlowGraphDeobfuscator;
+import org.rsdeob.stdlib.cfg.util.DotExporter;
 import org.rsdeob.stdlib.cfg.util.GraphUtils;
 import org.rsdeob.stdlib.collections.NodeTable;
 import org.rsdeob.stdlib.deob.IPhase;
@@ -73,7 +74,7 @@ public class BootEcx implements Opcodes {
 			System.out.println("Cfg:");
 			System.out.println(cfg);
 			System.out.println();
-			GraphUtils.output(cfg, blocks, GRAPH_FOLDER, "-cfg");
+			DotExporter.output(cfg, blocks, GRAPH_FOLDER, "-cfg");
 
 			System.out.println("Execution log of " + m + ":");
 			StatementGenerator gen = new StatementGenerator(cfg);
@@ -86,7 +87,7 @@ public class BootEcx implements Opcodes {
 			System.out.println();
 
 			StatementGraph sgraph = StatementGraphBuilder.create(cfg);
-			GraphUtils.output(m.name, sgraph, stmtList, GRAPH_FOLDER, "-sg");
+			DotExporter.output(m.name, sgraph, stmtList, GRAPH_FOLDER, "-sg");
 
 			LivenessTest.optimise(cfg, stmtList, sgraph);
 
@@ -331,7 +332,7 @@ public class BootEcx implements Opcodes {
 			System.out.println("SG: ");
 			System.out.println(GraphUtils.toString(sgraph, stmtList));
 
-			GraphUtils.output(m.name, sgraph, stmtList, GRAPH_FOLDER, "1");
+			DotExporter.output(m.name, sgraph, stmtList, GRAPH_FOLDER, "1");
 
 		}
 	}
