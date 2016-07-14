@@ -55,13 +55,13 @@ public class LocalsHandler {
 		if(cache.containsKey(key)) {
 			return cache.get(key);
 		} else {
-			Local v = new Local(base, index, isStack);
+			BasicLocal v = new BasicLocal(base, index, isStack);
 			cache.put(key, v);
 			return v;
 		}
 	}
 	
-	public Local newLocal(boolean isStack) {
+	/* public Local newLocal(boolean isStack) {
 		int index = cache.size();
 		while(true) {
 			String key = key(index, isStack);
@@ -69,7 +69,7 @@ public class LocalsHandler {
 				return get(index, isStack);
 			}
 		}
-	}
+	} */
 	
 	private void pack(List<Local> list) {
 		Collections.sort(list);

@@ -2,7 +2,7 @@ package org.rsdeob.stdlib.ir.locals;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class Local implements Comparable<Local> {
+public abstract class Local implements Comparable<Local> {
 
 	private final AtomicInteger base; // maxLocals
 	private final boolean stack;
