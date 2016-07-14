@@ -1,15 +1,5 @@
 package org.rsdeob;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.InputStream;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
@@ -17,6 +7,7 @@ import org.rsdeob.stdlib.cfg.BasicBlock;
 import org.rsdeob.stdlib.cfg.ControlFlowGraph;
 import org.rsdeob.stdlib.cfg.ControlFlowGraphBuilder;
 import org.rsdeob.stdlib.cfg.util.ControlFlowGraphDeobfuscator;
+import org.rsdeob.stdlib.cfg.util.DotExporter;
 import org.rsdeob.stdlib.cfg.util.GraphUtils;
 import org.rsdeob.stdlib.ir.CodeBody;
 import org.rsdeob.stdlib.ir.CodeBodyConsistencyChecker;
@@ -30,6 +21,12 @@ import org.rsdeob.stdlib.ir.transform.impl.CodeAnalytics;
 import org.rsdeob.stdlib.ir.transform.impl.DefinitionAnalyser;
 import org.rsdeob.stdlib.ir.transform.impl.LivenessAnalyser;
 import org.rsdeob.stdlib.ir.transform.impl.Transformer;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.InputStream;
+import java.util.*;
+import java.util.Map.Entry;
 
 public class AnalyticsTest {
 
@@ -184,7 +181,7 @@ public class AnalyticsTest {
 			} else {
 				System.err.println("   NULL");
 			}
-			GraphUtils.output("failedat", analytics.sgraph, code, BootEcx.GRAPH_FOLDER, "-sg");
+			DotExporter.output("failedat", analytics.sgraph, code, BootEcx.GRAPH_FOLDER, "-sg");
 			throw new RuntimeException();
 		}
 	}
@@ -235,7 +232,7 @@ public class AnalyticsTest {
 			} else {
 				System.err.println("   NULL");
 			}
-			GraphUtils.output("failedat", analytics.sgraph, code, BootEcx.GRAPH_FOLDER, "-sg");
+			DotExporter.output("failedat", analytics.sgraph, code, BootEcx.GRAPH_FOLDER, "-sg");
 			throw new RuntimeException();
 		}
 	}
