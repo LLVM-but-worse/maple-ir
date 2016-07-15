@@ -1,5 +1,15 @@
 package org.rsdeob;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.InputStream;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
@@ -9,7 +19,11 @@ import org.rsdeob.stdlib.cfg.ControlFlowGraphBuilder;
 import org.rsdeob.stdlib.cfg.util.ControlFlowGraphDeobfuscator;
 import org.rsdeob.stdlib.cfg.util.GraphUtils;
 import org.rsdeob.stdlib.collections.graph.util.DotExporter;
-import org.rsdeob.stdlib.ir.*;
+import org.rsdeob.stdlib.ir.CodeBody;
+import org.rsdeob.stdlib.ir.SSAGenerator;
+import org.rsdeob.stdlib.ir.StatementGenerator;
+import org.rsdeob.stdlib.ir.StatementGraph;
+import org.rsdeob.stdlib.ir.StatementGraphBuilder;
 import org.rsdeob.stdlib.ir.export.SGDotExporter;
 import org.rsdeob.stdlib.ir.header.HeaderStatement;
 import org.rsdeob.stdlib.ir.locals.Local;
@@ -21,12 +35,6 @@ import org.rsdeob.stdlib.ir.transform.impl.DefinitionAnalyser;
 import org.rsdeob.stdlib.ir.transform.impl.LivenessAnalyser;
 import org.rsdeob.stdlib.ir.transform.impl.UsesAnalyserImpl;
 import org.rsdeob.stdlib.ir.transform.ssa.SSAPropagator;
-
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.InputStream;
-import java.util.*;
-import java.util.Map.Entry;
 
 public class AnalyticsTest {
 
@@ -104,21 +112,6 @@ public class AnalyticsTest {
 	public static void verify_callback(CodeBody code, CodeAnalytics analytics, Statement stmt) {
 		code.commit();
 		
-		CodeBodyConsistencyChecker checker = new CodeBodyConsistencyChecker(code, analytics.sgraph);
-		try {
-			checker.compute();
-		} catch(RuntimeException e) {
-			e.printStackTrace();
-			System.out.println("Consistency error report:");
-			System.out.println("  Statements in code but not in graph:");
-			for(Statement g : checker.cFaulty) {
-				System.out.println("   " + g);
-			}
-			System.out.println("  Statements in graph but not in code:");
-			for(Statement c : checker.gFaulty) {
-				System.out.println("   " + c);
-			}
-		}
 		DefinitionAnalyser d1 = new DefinitionAnalyser(analytics.sgraph);
 		LivenessAnalyser l1 = new LivenessAnalyser(analytics.sgraph);
 		
