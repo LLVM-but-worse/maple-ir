@@ -66,20 +66,20 @@ public class AnalyticsTest {
 
 			System.out.println(code);
 			System.out.println();
-			
+
 			SSAGenerator ssagen = new SSAGenerator(code, cfg);
 			ssagen.run();
 			
 			System.out.println("SSA:");
 			System.out.println(code);
-			
+
 			StatementGraph sgraph = StatementGraphBuilder.create(cfg);
 			DefinitionAnalyser defs = new DefinitionAnalyser(sgraph);
 			LivenessAnalyser liveness = new LivenessAnalyser(sgraph);
 			UsesAnalyserImpl uses = new UsesAnalyserImpl(code, sgraph, defs);
 			CodeAnalytics analytics = new CodeAnalytics(cfg, sgraph, defs, liveness, uses);
 			code.registerListener(analytics);
-			
+
 			SSAPropagator prop = new SSAPropagator(code, analytics);
 			prop.run();
 		}
@@ -270,7 +270,7 @@ public class AnalyticsTest {
 		
 		return true;
 	}
-	
+
 	public void tryidiots(int x) {
 		int y = 0;
 		try {
