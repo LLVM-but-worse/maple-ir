@@ -2,6 +2,7 @@ package org.rsdeob.stdlib.cfg.util;
 
 import org.rsdeob.stdlib.cfg.BasicBlock;
 import org.rsdeob.stdlib.cfg.ControlFlowGraph;
+import org.rsdeob.stdlib.cfg.edge.FlowEdge;
 import org.rsdeob.stdlib.collections.graph.util.DotExporter;
 
 import java.util.HashMap;
@@ -37,5 +38,10 @@ public class CFGDotExporter extends DotExporter<ControlFlowGraph, BasicBlock> {
 	protected void printBlock(BasicBlock b, StringBuilder sb) {
 		sb.append("\n");
 		GraphUtils.printBlock(graph, graph.vertices(), sb, b, 0, false);
+	}
+
+	@Override
+	protected void printEdge(FlowEdge<BasicBlock> e, StringBuilder sb) {
+		sb.append(e.toGraphString());
 	}
 }
