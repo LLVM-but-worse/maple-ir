@@ -33,7 +33,6 @@ import org.rsdeob.stdlib.ir.transform.Transformer;
 import org.rsdeob.stdlib.ir.transform.impl.CodeAnalytics;
 import org.rsdeob.stdlib.ir.transform.impl.DefinitionAnalyser;
 import org.rsdeob.stdlib.ir.transform.impl.LivenessAnalyser;
-import org.rsdeob.stdlib.ir.transform.impl.UsesAnalyserImpl;
 import org.rsdeob.stdlib.ir.transform.ssa.SSAPropagator;
 
 public class AnalyticsTest {
@@ -80,16 +79,18 @@ public class AnalyticsTest {
 			
 			System.out.println("SSA:");
 			System.out.println(code);
+			System.out.println();
+			System.out.println();
 
 			StatementGraph sgraph = StatementGraphBuilder.create(cfg);
-			DefinitionAnalyser defs = new DefinitionAnalyser(sgraph);
-			LivenessAnalyser liveness = new LivenessAnalyser(sgraph);
-			UsesAnalyserImpl uses = new UsesAnalyserImpl(code, sgraph, defs);
-			CodeAnalytics analytics = new CodeAnalytics(cfg, sgraph, defs, liveness, uses);
-			code.registerListener(analytics);
 
-			SSAPropagator prop = new SSAPropagator(code, analytics);
+			SSAPropagator prop = new SSAPropagator(code, sgraph);
 			while(prop.run() > 0);
+
+			System.out.println();
+			System.out.println();
+			System.out.println("Optimised SSA:");
+			System.out.println(code);
 		}
 	}
 
