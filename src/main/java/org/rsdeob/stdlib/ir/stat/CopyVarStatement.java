@@ -11,19 +11,31 @@ import org.rsdeob.stdlib.ir.transform.impl.CodeAnalytics;
 
 public class CopyVarStatement extends Statement {
 
+	private final boolean synthetic;
 	private Expression expression;
 	private VarExpression variable;
 	
 	public CopyVarStatement(VarExpression variable, Expression expression) {
+		this(variable, expression, false);
+	}
+	
+	public CopyVarStatement(VarExpression variable, Expression expression, boolean synthetic) {
 		if (variable == null | expression == null)
 			throw new IllegalArgumentException("Neither variable nor statement can be null!");
-
+		
+		this.synthetic = synthetic;
 		this.expression = expression;
 		this.variable = variable;
 		
-		overwrite(expression, 0);
+		if(!synthetic) {
+			overwrite(expression, 0);
+		}
 	}
 
+	public boolean isSynthetic() {
+		return synthetic;
+	}
+	
 	public Expression getExpression() {
 		return expression;
 	}
@@ -38,7 +50,9 @@ public class CopyVarStatement extends Statement {
 	
 	public void setExpression(Expression expression) {
 		this.expression = expression;
-		overwrite(expression, 0);
+		if(!synthetic) {
+			overwrite(expression, 0);
+		}
 	}
 	
 	public int getIndex() {
@@ -51,7 +65,9 @@ public class CopyVarStatement extends Statement {
 
 	@Override
 	public void onChildUpdated(int ptr) {
-		setExpression((Expression) read(ptr));
+		if(!synthetic) {
+			setExpression((Expression) read(ptr));
+		}
 	}
 
 	@Override
@@ -128,7 +144,7 @@ public class CopyVarStatement extends Statement {
 
 	@Override
 	public Statement copy() {
-		return new CopyVarStatement(variable, expression);
+		return new CopyVarStatement(variable, expression, synthetic);
 	}
 
 	@Override

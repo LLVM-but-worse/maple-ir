@@ -8,7 +8,6 @@ import org.rsdeob.stdlib.cfg.edge.FlowEdge;
 import org.rsdeob.stdlib.collections.NullPermeableHashMap;
 import org.rsdeob.stdlib.collections.SetCreator;
 import org.rsdeob.stdlib.collections.graph.flow.TarjanDominanceComputor;
-import org.rsdeob.stdlib.ir.expr.Expression;
 import org.rsdeob.stdlib.ir.expr.PhiExpression;
 import org.rsdeob.stdlib.ir.expr.VarExpression;
 import org.rsdeob.stdlib.ir.locals.Local;
@@ -17,6 +16,7 @@ import org.rsdeob.stdlib.ir.locals.VersionedLocal;
 import org.rsdeob.stdlib.ir.stat.CopyVarStatement;
 import org.rsdeob.stdlib.ir.stat.Statement;
 import org.rsdeob.stdlib.ir.stat.SyntheticStatement;
+import org.rsdeob.stdlib.ir.transform.impl.LivenessAnalyser;
 
 public class SSAGenerator {
 
@@ -68,8 +68,10 @@ public class SSAGenerator {
 	final Map<BasicBlock, Integer> insertion;
 	final Map<BasicBlock, Integer> process;
 	
-	final Map<Local, Integer> count;
+	final Map<Local, Integer> counters;
 	final Map<Local, Stack<Integer>> stacks;
+	
+	final LivenessAnalyser liveness;
 	
 	public SSAGenerator(CodeBody body, ControlFlowGraph cfg) {
 		this.body = body;
@@ -85,8 +87,10 @@ public class SSAGenerator {
 		process = new HashMap<>();
 		exit = new BasicBlock(cfg, "fakeexit", null);
 		
-		count = new HashMap<>();
+		counters = new HashMap<>();
 		stacks = new HashMap<>();
+		
+		liveness = new LivenessAnalyser(StatementGraphBuilder.create(cfg));
 		
 		init();
 		doms = new TarjanDominanceComputor<>(cfg);
@@ -122,122 +126,120 @@ public class SSAGenerator {
 	
 	void rename() {
 		for(Local l : locals) {
-			count.put(l, 0);
+			counters.put(l, 0);
 			stacks.put(l, new Stack<>());
 		}
 		
+		Set<BasicBlock> vis = new HashSet<>();
 		for(BasicBlock e : cfg.getEntries()) {
-			search(e);
+			search(e, vis);
 		}
 	}
 	
-	void search(BasicBlock b) {
-		for(Statement s : b.getStatements()) {
-			boolean isCopy = s instanceof CopyVarStatement;
-			boolean synth = s instanceof SyntheticStatement;
-			
-			if(!synth && !(isCopy && ((CopyVarStatement) s).getExpression() instanceof PhiExpression)) {
-				new StatementVisitor(s) {
-					@Override
-					public Statement visit(Statement stmt) {
-						if(stmt instanceof VarExpression) {
-							VarExpression v = (VarExpression) stmt;
-							Local l = v.getLocal();
-							if(!(l instanceof VersionedLocal)) {
-								VersionedLocal newVar = handler.get(l.getIndex(), top(root, handler.get(l.getIndex(), l.isStack())), l.isStack());
-								v.setLocal(newVar);
-							}
-						}
-						return stmt;
-					}
-				}.visit();
-			}
-			
-			if(synth || isCopy) {
-				CopyVarStatement copy = null;
-				if(synth) {
-					SyntheticStatement syn = (SyntheticStatement) s;
-					Statement s2 = syn.getStatement();
-					if(s2 instanceof CopyVarStatement) {
-						copy = (CopyVarStatement) s2;
-						isCopy = true;
-					}
-				} else {
-					copy = (CopyVarStatement) s;
+	void search(BasicBlock b, Set<BasicBlock> vis) {
+		if(vis.contains(b)) {
+			return;
+		}
+		vis.add(b);
+		
+		for(Statement s : b.getStatements())  {
+			if(s instanceof CopyVarStatement) {
+				CopyVarStatement cvs = ((CopyVarStatement) s);
+				if(cvs.getExpression() instanceof PhiExpression) {
+					VarExpression var = cvs.getVariable();
+					Local lhs = var.getLocal();
+					var.setLocal(_gen_name(lhs.getIndex(), lhs.isStack()));
 				}
-				
-				if(isCopy) {
-					Local lhs = copy.getVariable().getLocal();
-					Local l = handler.get(lhs.getIndex(), lhs.isStack());
-					int c = count.get(l);
-					VersionedLocal newVar = handler.get(lhs.getIndex(), c, lhs.isStack());
-					copy.setVariable(new VarExpression(newVar, copy.getVariable().getType()));
-					stacks.get(l).push(c);
-					count.put(l, c + 1);
+			}
+		}
+		
+		for(Statement s : b.getStatements())  {
+			new StatementVisitor(s) {
+				@Override
+				public Statement visit(Statement stmt) {
+					if(stmt instanceof VarExpression) {
+						VarExpression var = (VarExpression) stmt;
+						Local l = var.getLocal();
+						var.setLocal(_top(s, l.getIndex(), l.isStack()));
+						
+					}
+					return stmt;
+				}
+			}.visit();
+			
+			if(s instanceof CopyVarStatement) {
+				CopyVarStatement copy = (CopyVarStatement) s;
+				if(!(copy.getExpression() instanceof PhiExpression)) {
+					VarExpression var = copy.getVariable();
+					Local lhs = var.getLocal();
+					var.setLocal(_gen_name(lhs.getIndex(), lhs.isStack()));
 				}
 			}
 		}
 		
 		for(FlowEdge<BasicBlock> succE : cfg.getEdges(b)) {
 			BasicBlock succ = succE.dst;
-			int j = pred(succ, b);
+			int j = pred(b, succ);
+			System.out.println("succ: " + succ + ", j=" + j);
 			
-			for(Statement s : succ.getStatements()) {
+			for(Statement s : b.getStatements())  {
 				if(s instanceof CopyVarStatement) {
-					CopyVarStatement copy = (CopyVarStatement) s;
-					Expression expr = copy.getExpression();
-					if(expr instanceof PhiExpression) {
-						PhiExpression phi = (PhiExpression) expr;
-						VersionedLocal l = phi.getLocal(j);
-						int t = top(s, handler.get(l.getIndex(), l.isStack()));
-						l = handler.get(l.getIndex(), t, l.isStack());
-						phi.setLocal(j, l);
+					CopyVarStatement cvs = ((CopyVarStatement) s);
+					if(cvs.getExpression() instanceof PhiExpression) {
+						PhiExpression phi = (PhiExpression) cvs.getExpression();
+						Local l = phi.getLocal(j);
+						phi.setLocal(j, _top(s, l.getIndex(), l.isStack()));
 					}
 				}
 			}
 		}
 		
-		for(BasicBlock c : doms.children(b)) {
-			search(c);
+		for(FlowEdge<BasicBlock> succE : cfg.getEdges(b)) {
+			BasicBlock succ = succE.dst;
+			search(succ, vis);
 		}
 		
-		for(Statement s : b.getStatements()) {
-			CopyVarStatement copy = null;
+		for(Statement s : b.getStatements())  {
 			if(s instanceof CopyVarStatement) {
-				copy = (CopyVarStatement) s;
-			} else if(s instanceof SyntheticStatement) {
-				if(((SyntheticStatement) s).getStatement() instanceof CopyVarStatement) {
-					copy = (CopyVarStatement) ((SyntheticStatement) s).getStatement();
-				}
-			}
-			if(copy != null) {
-				Local l1 = copy.getVariable().getLocal();
-				if(l1 instanceof VersionedLocal) {
-					Local l = handler.get(l1.getIndex(), l1.isStack());
+				CopyVarStatement cvs = (CopyVarStatement) s;
+				if(cvs.isSynthetic()) {
+					Local l = cvs.getVariable().getLocal();
+					l = handler.get(l.getIndex(), l.isStack());
 					stacks.get(l).pop();
 				}
 			}
 		}
 	}
 	
-	int top(Statement root, Local l) {
+	VersionedLocal _gen_name(int index, boolean isStack) {
+		Local l = handler.get(index, isStack);
+		int subscript = counters.get(l);
+		stacks.get(l).push(subscript);
+		counters.put(l, subscript+1);
+		return handler.get(index, subscript, isStack);
+	}
+	
+	VersionedLocal _top(Statement root, int index, boolean isStack) {
+		Local l = handler.get(index, isStack);
 		Stack<Integer> stack = stacks.get(l);
 		if(stack == null) {
 			System.err.println(body);
+			System.err.println(stacks);
 			throw new NullPointerException(root.toString() + ", " +  l.toString());
 		} else if(stack.isEmpty()) {
 			System.err.println(body);
 			System.err.println(stacks);
 			throw new IllegalStateException(root.toString() + ", " +  l.toString());
 		}
-		return stack.peek();
+		int subscript = stack.peek();
+		return handler.get(index, subscript, isStack);
 	}
 	
 	int pred(BasicBlock b, BasicBlock s) {
 		int j = 0;
-		for(FlowEdge<BasicBlock> pE : cfg.getReverseEdges(b)) {
+		for(FlowEdge<BasicBlock> pE : cfg.getReverseEdges(s)) {
 			BasicBlock p = pE.src;
-			if(p == s) {
+			if(p == b) {
 				return j;
 			} else {
 				j++;
@@ -265,23 +267,36 @@ public class SSAGenerator {
 			return;
 		}
 		
-		System.out.println("frontier of " + s + " , " + doms.iteratedFronter(s));
 		for(BasicBlock x : doms.iteratedFronter(s)) {
 			if(insertion.get(x) < localCount) {
 
 				List<Statement> stmts = x.getStatements();
 				int count = cfg.getReverseEdges(x).size();
 				if(stmts.size() > 0 && count > 1) {
-					List<VersionedLocal> vls = new ArrayList<>();
-					for(int i=0; i < count; i++) {
-						vls.add(handler.get(l.getIndex(), i, l.isStack()));
+					Statement first = null;
+					for(Statement stmt : stmts) {
+						if(stmt instanceof CopyVarStatement) {
+							if(((CopyVarStatement) stmt).getExpression() instanceof PhiExpression) {
+								continue;
+							}
+						}
+						
+						first = stmt;
+						break;
 					}
-					PhiExpression phi = new PhiExpression(vls);
-					VersionedLocal l2 = handler.get(l.getIndex(), count, l.isStack());
-					CopyVarStatement assign = new CopyVarStatement(new VarExpression(l2, null), phi);
-					
-					body.add(assign, body.indexOf(stmts.get(0)));
-					stmts.add(0, assign);
+					// pruned SSA
+					if(liveness.out(first).get(l)) {
+						List<VersionedLocal> vls = new ArrayList<>();
+						for(int i=0; i < count; i++) {
+							vls.add(handler.get(l.getIndex(), i, l.isStack()));
+						}
+						PhiExpression phi = new PhiExpression(vls);
+						VersionedLocal l2 = handler.get(l.getIndex(), count, l.isStack());
+						CopyVarStatement assign = new CopyVarStatement(new VarExpression(l2, null), phi);
+						
+						body.add(assign, body.indexOf(stmts.get(0)));
+						stmts.add(0, assign);
+					}
 				}
 				
 				insertion.put(x, localCount);
