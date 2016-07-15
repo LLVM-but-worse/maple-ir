@@ -5,20 +5,16 @@ import org.rsdeob.stdlib.cfg.ControlFlowGraph;
 import org.rsdeob.stdlib.collections.graph.util.DotExporter;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class CFGDotExporter extends DotExporter<ControlFlowGraph, BasicBlock> {
-	public CFGDotExporter(ControlFlowGraph cfg, String fileExt, Map<BasicBlock, String> highlight) {
-		super(cfg, fileExt);
-		addHighlights(highlight);
+	public CFGDotExporter(ControlFlowGraph cfg, List<BasicBlock> order, String name, String fileExt) {
+		super(cfg, order, name, fileExt);
 	}
 
-	public CFGDotExporter(ControlFlowGraph cfg, String fileExt, ControlFlowGraphDeobfuscator.SuperNodeList svList) {
-		this(cfg, fileExt, highlightComputeSuperNodeList(svList));
-	}
-
-	public CFGDotExporter(ControlFlowGraph cfg, String fileExt, Map<BasicBlock, String> highlight, ControlFlowGraphDeobfuscator.SuperNodeList svList) {
-		this(cfg, fileExt, highlight);
+	public CFGDotExporter(ControlFlowGraph cfg, List<BasicBlock> order, String name, String fileExt, ControlFlowGraphDeobfuscator.SuperNodeList svList) {
+		this(cfg, order, name, fileExt);
 		addHighlights(highlightComputeSuperNodeList(svList));
 	}
 
@@ -28,17 +24,18 @@ public class CFGDotExporter extends DotExporter<ControlFlowGraph, BasicBlock> {
 			highlight.put(v, "green");
 		for (int i = 0; i < svList.size(); i++)
 			for (BasicBlock v : svList.get(i).vertices)
-				highlight.put(v, HIGHLIGHT_COLOURS[i]);
+				highlight.put(v, HIGHLIGHT_COLOURS[i % HIGHLIGHT_COLOURS.length]);
 		return highlight;
 	}
 
 	@Override
-	protected String createGraphString() {
-
+	protected boolean filterBlock(BasicBlock b) {
+		return !b.isDummy();
 	}
 
 	@Override
-	protected String getFileName() {
-
+	protected void printBlock(BasicBlock b, StringBuilder sb) {
+		sb.append("\n");
+		GraphUtils.printBlock(graph, graph.vertices(), sb, b, 0, false);
 	}
 }

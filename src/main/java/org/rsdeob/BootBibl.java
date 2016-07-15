@@ -13,6 +13,7 @@ import org.rsdeob.stdlib.IContext;
 import org.rsdeob.stdlib.cfg.BasicBlock;
 import org.rsdeob.stdlib.cfg.ControlFlowGraph;
 import org.rsdeob.stdlib.cfg.ControlFlowGraphBuilder;
+import org.rsdeob.stdlib.cfg.util.CFGDotExporter;
 import org.rsdeob.stdlib.cfg.util.ControlFlowGraphDeobfuscator;
 import org.rsdeob.stdlib.cfg.util.GraphUtils;
 import org.rsdeob.stdlib.collections.NodeTable;
@@ -318,7 +319,7 @@ public class BootBibl implements Opcodes {
 //				List<BasicBlock> blocks = new ArrayList<>(cfg.blocks());
 				System.out.println(GraphUtils.toBlockArray(blocks));
 				deobber.removeEmptyBlocks(cfg, blocks);
-				DotExporter.output(cfg, new ArrayList<>(blocks), GRAPH_FOLDER, "1");
+				(new CFGDotExporter(cfg, blocks, m.toString(), "1")).output(DotExporter.OPT_DEEP);
 				System.out.println(cfg);
 				m.instructions = GraphUtils.recreate(cfg, blocks, true);
 			}
