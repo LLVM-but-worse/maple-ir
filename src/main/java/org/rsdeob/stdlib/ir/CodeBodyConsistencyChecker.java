@@ -1,18 +1,14 @@
 package org.rsdeob.stdlib.ir;
 
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Set;
-
 import org.rsdeob.stdlib.cfg.edge.FlowEdge;
 import org.rsdeob.stdlib.cfg.edge.TryCatchEdge;
 import org.rsdeob.stdlib.cfg.edge.UnconditionalJumpEdge;
-import org.rsdeob.stdlib.ir.stat.ConditionalJumpStatement;
-import org.rsdeob.stdlib.ir.stat.ReturnStatement;
-import org.rsdeob.stdlib.ir.stat.Statement;
-import org.rsdeob.stdlib.ir.stat.SwitchStatement;
-import org.rsdeob.stdlib.ir.stat.ThrowStatement;
-import org.rsdeob.stdlib.ir.stat.UnconditionalJumpStatement;
+import org.rsdeob.stdlib.ir.stat.*;
+
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Set;
 
 public class CodeBodyConsistencyChecker {
 
@@ -31,7 +27,7 @@ public class CodeBodyConsistencyChecker {
 		cFaulty = new HashSet<>();
 		gFaulty = new HashSet<>();
 		
-		for(Statement c : body.stmts()) {
+		for(Statement c : new ArrayList<>(body)) {
 			if(!graph.containsVertex(c)) {
 				gFaulty.add(c);
 			}
@@ -61,10 +57,10 @@ public class CodeBodyConsistencyChecker {
 	private void checkEdges() {
 		int size = body.size();
 		for(int i=0; i < size; i++) {
-			Statement stmt = body.getAt(i);
+			Statement stmt = body.get(i);
 			if(stmt instanceof UnconditionalJumpStatement) {
 				UnconditionalJumpStatement jump = (UnconditionalJumpStatement) stmt;
-				Statement target = body.getAt(body.indexOf(jump.getTarget()) + 1);
+				Statement target = body.get(body.indexOf(jump.getTarget()) + 1);
 				Set<FlowEdge<Statement>> edges = getNonCatchEdges(jump);
 				if(edges.size() != 1) {
 					throw new RuntimeException();

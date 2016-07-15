@@ -1,7 +1,5 @@
 package org.rsdeob.stdlib.ir;
 
-import java.util.*;
-
 import org.rsdeob.stdlib.cfg.BasicBlock;
 import org.rsdeob.stdlib.cfg.ControlFlowGraph;
 import org.rsdeob.stdlib.cfg.edge.DummyEdge;
@@ -18,6 +16,8 @@ import org.rsdeob.stdlib.ir.stat.CopyVarStatement;
 import org.rsdeob.stdlib.ir.stat.Statement;
 import org.rsdeob.stdlib.ir.stat.SyntheticStatement;
 import org.rsdeob.stdlib.ir.transform.impl.LivenessAnalyser;
+
+import java.util.*;
 
 public class SSAGenerator {
 
@@ -307,7 +307,7 @@ public class SSAGenerator {
 						// VersionedLocal l2 = handler.get(l.getIndex(), count, l.isStack());
 						CopyVarStatement assign = new CopyVarStatement(new VarExpression(l, null), phi);
 						
-						body.add(assign, body.indexOf(stmts.get(0)));
+						body.add(body.indexOf(stmts.get(0)), assign);
 						stmts.add(0, assign);
 					}
 				}
