@@ -21,6 +21,10 @@ public class PhiExpression extends Expression {
 		return locals.size();
 	}
 	
+	public List<VersionedLocal> getLocals() {
+		return locals;
+	}
+	
 	public VersionedLocal getLocal(int j) {
 		return locals.get(j);
 	}
