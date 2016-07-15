@@ -27,6 +27,7 @@ import org.rsdeob.stdlib.ir.stat.MonitorStatement;
 import org.rsdeob.stdlib.ir.stat.PopStatement;
 import org.rsdeob.stdlib.ir.stat.Statement;
 import org.rsdeob.stdlib.ir.stat.SyntheticStatement;
+import org.rsdeob.stdlib.ir.transform.Transformer;
 
 public class CopyPropagator extends Transformer {
 
