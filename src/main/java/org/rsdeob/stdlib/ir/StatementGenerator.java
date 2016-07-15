@@ -95,7 +95,7 @@ public class StatementGenerator implements Opcodes {
 	}
 	
 	private CopyVarStatement selfDefine(VarExpression var) {
-		return new CopyVarStatement(var, var, true);
+		return new SyntheticCopyStatement(var, (m.access & ACC_STATIC) == ACC_STATIC);
 	}
 
 	public CodeBody buildRoot() {

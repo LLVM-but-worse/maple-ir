@@ -1,12 +1,5 @@
 package org.rsdeob.stdlib.ir.transform.impl;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-
 import org.rsdeob.stdlib.collections.NullPermeableHashMap;
 import org.rsdeob.stdlib.collections.SetCreator;
 import org.rsdeob.stdlib.ir.CodeBody;
@@ -17,7 +10,12 @@ import org.rsdeob.stdlib.ir.expr.VarExpression;
 import org.rsdeob.stdlib.ir.locals.Local;
 import org.rsdeob.stdlib.ir.stat.CopyVarStatement;
 import org.rsdeob.stdlib.ir.stat.Statement;
-import org.rsdeob.stdlib.ir.stat.SyntheticStatement;
+
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
 
 public class UsesAnalyserImpl implements ICodeListener<Statement> {
 
@@ -26,7 +24,6 @@ public class UsesAnalyserImpl implements ICodeListener<Statement> {
 	private final DefinitionAnalyser definitions;
 	private final NullPermeableHashMap<CopyVarStatement, Set<Statement>> uses;
 //	private final NullPermeableHashMap<Statement, Set<Local>> used;
-	private final Map<CopyVarStatement, SyntheticStatement> synth;
 	private final LinkedList<Statement> queue;
 	
 	public UsesAnalyserImpl(CodeBody body, StatementGraph graph, DefinitionAnalyser defs) {
@@ -35,7 +32,6 @@ public class UsesAnalyserImpl implements ICodeListener<Statement> {
 		definitions = defs;
 		uses = new NullPermeableHashMap<>(new SetCreator<>());
 //		used = new NullPermeableHashMap<>(new SetCreator<>());
-		synth = new HashMap<>();
 		queue = new LinkedList<>();
 		init();
 		commit();
@@ -110,9 +106,6 @@ public class UsesAnalyserImpl implements ICodeListener<Statement> {
 				for(CopyVarStatement def : dmap.get(l)) {
 					for(Statement use : uses.getNonNull(def)) {
 						Statement from = def;
-						if(synth.containsKey(from)) {
-							from = synth.get(from);
-						}
 						Set<Statement> trail = graph.wanderAllTrails(from, use);
 						trail.remove(stmt);
 						for(Statement s : trail) {
@@ -134,10 +127,6 @@ public class UsesAnalyserImpl implements ICodeListener<Statement> {
 //			}
 //		}
 		
-		if(stmt instanceof SyntheticStatement || synth.get(stmt) != null) {
-			throw new UnsupportedOperationException(stmt.toString() + ", type: " + stmt.getClass().getCanonicalName());
-		}
-		
 		uses.remove(stmt);
 //		used.remove(stmt);
 		
@@ -152,14 +141,6 @@ public class UsesAnalyserImpl implements ICodeListener<Statement> {
 	public void build(Statement stmt) {
 //		Set<Local> varSet = used.getNonNull(stmt);
 //		varSet.clear();
-		
-		if(stmt instanceof SyntheticStatement) {
-			SyntheticStatement syn = (SyntheticStatement) stmt;
-			if(syn.getStatement() instanceof CopyVarStatement) {
-				// System.out.println("for " + stmt);
-				synth.put((CopyVarStatement) syn.getStatement(), syn);
-			}
-		}
 		
 		StatementVisitor vis = new StatementVisitor(stmt) {
 			@Override

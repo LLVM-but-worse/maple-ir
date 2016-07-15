@@ -1,14 +1,5 @@
 package org.rsdeob.stdlib.ir.transform.ssa;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-
 import org.rsdeob.stdlib.collections.NullPermeableHashMap;
 import org.rsdeob.stdlib.collections.ValueCreator;
 import org.rsdeob.stdlib.ir.CodeBody;
@@ -17,13 +8,13 @@ import org.rsdeob.stdlib.ir.StatementVisitor;
 import org.rsdeob.stdlib.ir.expr.*;
 import org.rsdeob.stdlib.ir.locals.Local;
 import org.rsdeob.stdlib.ir.locals.VersionedLocal;
-import org.rsdeob.stdlib.ir.stat.ArrayStoreStatement;
-import org.rsdeob.stdlib.ir.stat.CopyVarStatement;
-import org.rsdeob.stdlib.ir.stat.FieldStoreStatement;
-import org.rsdeob.stdlib.ir.stat.MonitorStatement;
-import org.rsdeob.stdlib.ir.stat.PopStatement;
-import org.rsdeob.stdlib.ir.stat.Statement;
+import org.rsdeob.stdlib.ir.stat.*;
 import org.rsdeob.stdlib.ir.transform.Transformer;
+
+import java.util.*;
+import java.util.Map.Entry;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class SSAPropagator extends Transformer {
 
@@ -53,7 +44,7 @@ public class SSAPropagator extends Transformer {
 				// since they have no uses, they are never found by the below
 				// visitor, so we touch the local in map here to mark it.
 				useCount.getNonNull(local); 
-				synth = d.isSynthetic();
+				synth = d instanceof SyntheticCopyStatement;
 			}
 			
 			if(!synth) {
@@ -161,7 +152,7 @@ public class SSAPropagator extends Transformer {
 	}
 	
 	private boolean removeDef(CopyVarStatement def, boolean save) {
-		if(!def.isSynthetic()) {
+		if(!(def instanceof SyntheticCopyStatement)) {
 			defs.remove(def);
 			
 			Expression rhs = def.getExpression();
