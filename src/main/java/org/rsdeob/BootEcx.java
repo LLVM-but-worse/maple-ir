@@ -14,9 +14,9 @@ import org.rsdeob.stdlib.cfg.BasicBlock;
 import org.rsdeob.stdlib.cfg.ControlFlowGraph;
 import org.rsdeob.stdlib.cfg.ControlFlowGraphBuilder;
 import org.rsdeob.stdlib.cfg.util.ControlFlowGraphDeobfuscator;
-import org.rsdeob.stdlib.cfg.util.DotExporter;
 import org.rsdeob.stdlib.cfg.util.GraphUtils;
 import org.rsdeob.stdlib.collections.NodeTable;
+import org.rsdeob.stdlib.collections.graph.util.DotExporter;
 import org.rsdeob.stdlib.deob.IPhase;
 import org.rsdeob.stdlib.ir.CodeBody;
 import org.rsdeob.stdlib.ir.StatementGenerator;
@@ -39,8 +39,6 @@ import java.util.jar.JarOutputStream;
 
 @SuppressWarnings("Duplicates")
 public class BootEcx implements Opcodes {
-	public static final File GRAPH_FOLDER = new File("cfg testing");
-
 	public static void main(String[] args) throws Exception {
 		InputStream i = new FileInputStream(new File("res/a.class"));
 		ClassReader cr = new ClassReader(i);
