@@ -13,18 +13,10 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 public class CopyPropagator extends Transformer {
 
-	private final Map<Statement, SyntheticStatement> synthetics;
 	private int changedStmts;
 	
 	public CopyPropagator(CodeBody root, CodeAnalytics analytics) {
 		super(root, analytics);
-		
-		synthetics = new HashMap<>();
-		for(Statement stmt : root) {
-			if(stmt instanceof SyntheticStatement) {
-				synthetics.put(((SyntheticStatement) stmt).getStatement(), (SyntheticStatement) stmt);
-			}
-		}
 	}
 	
 	@Override
@@ -43,9 +35,6 @@ public class CopyPropagator extends Transformer {
 				stmts.add(stmt);
 			}
 			for(Statement stmt : stmts) {
-				if(stmt instanceof SyntheticStatement)
-					continue;
-				
 				if(stmt instanceof PopStatement) {
 					Expression expr = ((PopStatement) stmt).getExpression();
 					if(expr instanceof ConstantExpression || expr instanceof VarExpression) {
@@ -78,10 +67,7 @@ public class CopyPropagator extends Transformer {
 	
 	private Expression transform(CopyVarStatement localDef, Statement use) {
 		Statement real = localDef;
-		if(synthetics.containsKey(localDef)) {
-			real = synthetics.get(localDef);
-		}
-		
+
 		Local local = localDef.getVariable().getLocal();
 		Expression rhs = localDef.getExpression();
 		

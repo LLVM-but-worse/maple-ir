@@ -14,7 +14,7 @@ import org.rsdeob.stdlib.ir.locals.LocalsHandler;
 import org.rsdeob.stdlib.ir.locals.VersionedLocal;
 import org.rsdeob.stdlib.ir.stat.CopyVarStatement;
 import org.rsdeob.stdlib.ir.stat.Statement;
-import org.rsdeob.stdlib.ir.stat.SyntheticStatement;
+import org.rsdeob.stdlib.ir.stat.SyntheticCopyStatement;
 import org.rsdeob.stdlib.ir.transform.impl.LivenessAnalyser;
 
 import java.util.*;
@@ -42,8 +42,6 @@ public class SSAGenerator {
 			assigns.getNonNull(l).add(b);
 		} else if(s instanceof VarExpression) {
 			locals.add(((VarExpression) s).getLocal());
-		} else if(s instanceof SyntheticStatement) {
-			visitCollect0(s, ((SyntheticStatement) s).getStatement());
 		}
 	}
 	
@@ -215,7 +213,7 @@ public class SSAGenerator {
 		for(Statement s : b.getStatements())  {
 			if(s instanceof CopyVarStatement) {
 				CopyVarStatement cvs = (CopyVarStatement) s;
-				if(cvs.isSynthetic()) {
+				if(cvs instanceof SyntheticCopyStatement) {
 					Local l = cvs.getVariable().getLocal();
 					l = handler.get(l.getIndex(), l.isStack());
 					stacks.get(l).pop();
