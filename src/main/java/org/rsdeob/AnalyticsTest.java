@@ -49,7 +49,7 @@ public class AnalyticsTest {
 		while(it.hasNext()) {
 			MethodNode m = it.next();
 
-			if(!m.toString().equals("a/a/f/a.H(La/a/f/o;J)V")) {
+			if(!m.toString().equals("a/a/f/a.<init>()V")) {
 				continue;
 			}
 //			org/rsdeob/AnalyticsTest.tryidiots(I)V
