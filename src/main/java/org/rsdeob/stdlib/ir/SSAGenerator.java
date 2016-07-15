@@ -4,6 +4,7 @@ import java.util.*;
 
 import org.rsdeob.stdlib.cfg.BasicBlock;
 import org.rsdeob.stdlib.cfg.ControlFlowGraph;
+import org.rsdeob.stdlib.cfg.edge.DummyEdge;
 import org.rsdeob.stdlib.cfg.edge.FlowEdge;
 import org.rsdeob.stdlib.collections.NullPermeableHashMap;
 import org.rsdeob.stdlib.collections.SetCreator;
@@ -99,6 +100,11 @@ public class SSAGenerator {
 	public void run() {
 		computePhis();
 		rename();
+		de_init();
+	}
+	
+	void de_init() {
+		cfg.removeVertex(exit);
 	}
 	
 	void init() {
@@ -106,7 +112,7 @@ public class SSAGenerator {
 		for(BasicBlock b : cfg.vertices()) {
 			// connect dummy exit
 			if(cfg.getEdges(b).size() == 0) {
-//				cfg.addEdge(b, new DummyEdge<>(b, exit));
+				cfg.addEdge(b, new DummyEdge<>(b, exit));
 			}
 			// map translation
 			for(Statement s : b.getStatements()) { 
