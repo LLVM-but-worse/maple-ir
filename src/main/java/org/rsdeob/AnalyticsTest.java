@@ -88,7 +88,7 @@ public class AnalyticsTest {
 			code.registerListener(analytics);
 			
 			SSAPropagator prop = new SSAPropagator(code, analytics);
-			prop.run();
+			while(prop.run() > 0);
 		}
 	}
 
