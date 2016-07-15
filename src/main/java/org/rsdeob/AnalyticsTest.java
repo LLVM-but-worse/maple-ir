@@ -45,6 +45,7 @@ public class AnalyticsTest {
 			if(!m.toString().equals("org/rsdeob/AnalyticsTest.tryidiots(I)V")) {
 				continue;
 			}
+//			org/rsdeob/AnalyticsTest.tryidiots(I)V
 //			a/a/f/a.<init>()V
 //			a/a/f/a.H(J)La/a/f/o;
 //			a/a/f/a.H(La/a/f/o;J)V

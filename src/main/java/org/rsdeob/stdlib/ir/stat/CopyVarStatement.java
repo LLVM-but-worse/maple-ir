@@ -77,7 +77,11 @@ public class CopyVarStatement extends Statement {
 
 	@Override
 	public String toString() {
-		return variable + " = " + expression + ";";
+		if(synthetic) {
+			return "synth(" + variable + " = " + expression + ");";
+		} else {
+			return variable + " = " + expression + ";";
+		}
 	}
 
 	@Override
