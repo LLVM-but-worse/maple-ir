@@ -88,7 +88,5 @@ public class SSAPropagator extends Transformer {
 		// in the expression. this includes
 		// VarExpressions, FieldLoadExpression,
 		// ArrayLoadExpressions and InvokeExpressions.
-		
-
 	}
 }

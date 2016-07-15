@@ -1,13 +1,13 @@
 package org.rsdeob.stdlib.collections.graph.flow;
 
-import java.util.*;
-
 import org.rsdeob.stdlib.cfg.edge.FlowEdge;
 import org.rsdeob.stdlib.collections.NullPermeableHashMap;
 import org.rsdeob.stdlib.collections.SetCreator;
 import org.rsdeob.stdlib.collections.graph.FastGraph;
 import org.rsdeob.stdlib.collections.graph.FastGraphEdge;
 import org.rsdeob.stdlib.collections.graph.FastGraphVertex;
+
+import java.util.*;
 
 public class TarjanDominanceComputor<N extends FastGraphVertex> {
 

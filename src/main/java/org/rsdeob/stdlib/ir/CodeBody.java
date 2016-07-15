@@ -1,21 +1,18 @@
 package org.rsdeob.stdlib.ir;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
-
 import org.rsdeob.stdlib.cfg.util.TabbedStringWriter;
 import org.rsdeob.stdlib.ir.api.ICodeListener;
 import org.rsdeob.stdlib.ir.header.StatementHeaderStatement;
 import org.rsdeob.stdlib.ir.locals.LocalsHandler;
 import org.rsdeob.stdlib.ir.stat.Statement;
 
-public class CodeBody implements Collection<Statement> {
+import java.util.*;
+import java.util.concurrent.CopyOnWriteArrayList;
+
+public class CodeBody implements List<Statement> {
 
 	private final LocalsHandler locals;
-	private final List<Statement> stmts;
+	private final ArrayList<Statement> stmts;
 	private final List<ICodeListener<Statement>> listeners;
 	
 	public CodeBody(int maxL) {
@@ -43,102 +40,15 @@ public class CodeBody implements Collection<Statement> {
 	public LocalsHandler getLocals() {
 		return locals;
 	}
-	
-	public void replace(Statement old, Statement n) {
-		stmts.set(stmts.indexOf(old), n);
-		for(ICodeListener<Statement> l : listeners)
-			l.replaced(old, n);
-	}
-
-	public Statement remove(int index) {
-		Statement p = getAt(index);
-		if(p != null) {
-			if(!remove(p)) {
-				return null;
-			}
-		}
-		return p;
-	}
-
-	@Override
-	public boolean remove(Object o) {
-		if (!(o instanceof Statement))
-			return false;
-		Statement s = (Statement) o;
-		
-		for(ICodeListener<Statement> l : listeners) {
-			l.preRemove(s);
-		}
-		
-		boolean ret = stmts.remove(s);
-		
-		for(ICodeListener<Statement> l : listeners) {
-			l.postRemove(s);
-		}
-		
-		return ret;
-	}
-
-	public boolean add(Statement s, int index) {
-		if(contains(s)) {
-			return false;
-		} else {
-			stmts.add(index, s);
-			for(ICodeListener<Statement> l : listeners)
-				l.update(s);
-			return true;
-		}
-	}
-	
-	@Override
-	public boolean add(Statement s) {
-		boolean ret = stmts.add(s);
-		for(ICodeListener<Statement> l : listeners)
-			l.update(s);
-		return ret;
-	}
 
 	public void forceUpdate(Statement stmt) {
 		for(ICodeListener<Statement> l : listeners)
 			l.update(stmt);
 	}
-	
-	public void insert(int index, Statement stmt) {
-		Statement p = stmts.get(index);
-		Statement s = stmts.get(index + 1);
-		stmts.add(index, stmt);
-		for(ICodeListener<Statement> l : listeners) {
-			l.insert(p, s, stmt);
-		}
-	}
-	
-	public void insert(Statement p, Statement s, Statement n) {
-		stmts.add(stmts.indexOf(p) + 1, n);
-		for(ICodeListener<Statement> l : listeners) {
-			l.insert(p, s, n);
-		}
-	}
 
 	public void commit() {
 		for(ICodeListener<Statement> l : listeners)
 			l.commit();
-	}
-
-	@Override
-	public int size() {
-		return stmts.size();
-	}
-
-	public int indexOf(Statement stmt) {
-		return stmts.indexOf(stmt);
-	}
-
-	public Statement getAt(int index) {
-		return stmts.get(index);
-	}
-
-	public List<Statement> stmts() {
-		return new ArrayList<>(stmts);
 	}
 
 	public void toString(TabbedStringWriter printer) {
@@ -167,10 +77,134 @@ public class CodeBody implements Collection<Statement> {
 		return printer.toString();
 	}
 
-	// todo: implement
+	@Override
+	public Statement remove(int index) {
+		Statement p = get(index);
+		return p != null && !remove(p) ? null : p;
+	}
+
+	@Override
+	public boolean remove(Object o) {
+		if (!(o instanceof Statement))
+			return false;
+		Statement s = (Statement) o;
+
+		for(ICodeListener<Statement> l : listeners)
+			l.preRemove(s);
+
+		boolean ret = stmts.remove(s);
+		for(ICodeListener<Statement> l : listeners)
+			l.postRemove(s);
+
+		return ret;
+	}
+
+	@Override
+	public void add(int index, Statement stmt) {
+//		if(!contains(s)) {
+//			stmts.add(index, s);
+//			for(ICodeListener<Statement> l : listeners)
+//				l.update(s);
+//		}
+		Statement p = stmts.get(index);
+		Statement s = stmts.get(index + 1);
+		stmts.add(index, stmt);
+		for(ICodeListener<Statement> l : listeners) {
+			l.insert(p, s, stmt);
+		}
+	}
+
+	@Override
+	public boolean add(Statement s) {
+		boolean ret = stmts.add(s);
+		for(ICodeListener<Statement> l : listeners)
+			l.update(s);
+		return ret;
+	}
+
+	@Override
+	public Statement set(int index, Statement element) {
+		Statement old = stmts.set(index, element);
+		for(ICodeListener<Statement> l : listeners)
+			l.replaced(old, element);
+		return old;
+	}
+
+	@Override
+	public boolean addAll(Collection<? extends Statement> c) {
+		boolean result = false;
+		for (Statement s : c)
+			result = result || add(s);
+		return result;
+	}
+
+	@Override
+	public boolean addAll(int index, Collection<? extends Statement> c) {
+		for (Statement s : c)
+			add(index, s);
+		return c.size() != 0;
+	}
+
+	@Override
+	public boolean removeAll(Collection<?> c) {
+		boolean result = false;
+		for (Object o : c)
+			result = result || remove(o);
+		return result;
+	}
+
+	@Override
+	public boolean retainAll(Collection<?> c) {
+		boolean result = false;
+		for (Object o : c)
+			if (!contains(o))
+				result = result || remove(o);
+		return result;
+	}
+
+	@Override
+	public void clear() {
+		forEach(this::remove);
+	}
+
+	@Override
+	public int size() {
+		return stmts.size();
+	}
+
+	@Override
+	public int indexOf(Object stmt) {
+		return stmts.indexOf(stmt);
+	}
+
+	@Override
+	public int lastIndexOf(Object o) {
+		return stmts.lastIndexOf(o);
+	}
+
+	@Override
+	public Statement get(int index) {
+		return stmts.get(index);
+	}
+
 	@Override
 	public Iterator<Statement> iterator() {
 		return stmts.iterator();
+	}
+
+	@Override
+	public ListIterator<Statement> listIterator() {
+		return stmts.listIterator();
+	}
+
+	@Override
+	public ListIterator<Statement> listIterator(int index) {
+		return stmts.listIterator(index);
+	}
+
+	@Override
+	public CodeBody subList(int fromIndex, int toIndex) {
+		throw new UnsupportedOperationException("CodeBody does not support subList");
 	}
 
 	@Override
@@ -195,36 +229,6 @@ public class CodeBody implements Collection<Statement> {
 
 	@Override
 	public boolean containsAll(Collection<?> c) {
-		return stmts.contains(c);
-	}
-
-	@Override
-	public boolean addAll(Collection<? extends Statement> c) {
-		boolean result = false;
-		for (Statement s : c)
-			result = result || add(s);
-		return result;
-	}
-
-	@Override
-	public boolean removeAll(Collection<?> c) {
-		boolean result = false;
-		for (Object o : c)
-			result = result || remove(o);
-		return result;
-	}
-
-	@Override
-	public boolean retainAll(Collection<?> c) {
-		boolean result = false;
-		for (Object o : c)
-			if (!contains(o))
-				result = result || remove(o);
-		return result;
-	}
-
-	@Override
-	public void clear() {
-		stmts.forEach(this::remove);
+		return stmts.containsAll(c);
 	}
 }
