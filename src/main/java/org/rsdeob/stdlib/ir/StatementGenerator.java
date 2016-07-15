@@ -96,11 +96,11 @@ public class StatementGenerator implements Opcodes {
 	
 	private void addEntry(int index, Type type, BasicBlock b) {
 		CopyVarStatement stmt = selfDefine(_var_expr(index, type, false));
-		b.getStatements().add(new SyntheticStatement(stmt));
+		b.getStatements().add(/*new SyntheticStatement(stmt)*/ stmt);
 	}
 	
 	private CopyVarStatement selfDefine(VarExpression var) {
-		return new CopyVarStatement(var, var);
+		return new CopyVarStatement(var, var, true);
 	}
 
 	public CodeBody buildRoot() {
