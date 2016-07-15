@@ -1,18 +1,6 @@
 package org.rsdeob.stdlib.cfg;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.function.Predicate;
-import java.util.function.UnaryOperator;
-
-import org.objectweb.asm.tree.AbstractInsnNode;
-import org.objectweb.asm.tree.JumpInsnNode;
-import org.objectweb.asm.tree.LabelNode;
-import org.objectweb.asm.tree.LookupSwitchInsnNode;
-import org.objectweb.asm.tree.TableSwitchInsnNode;
+import org.objectweb.asm.tree.*;
 import org.rsdeob.stdlib.cfg.edge.FlowEdge;
 import org.rsdeob.stdlib.cfg.edge.ImmediateEdge;
 import org.rsdeob.stdlib.cfg.edge.TryCatchEdge;
@@ -20,6 +8,10 @@ import org.rsdeob.stdlib.collections.graph.FastGraphVertex;
 import org.rsdeob.stdlib.collections.graph.flow.ExceptionRange;
 import org.rsdeob.stdlib.ir.ExpressionStack;
 import org.rsdeob.stdlib.ir.stat.Statement;
+
+import java.util.*;
+import java.util.function.Predicate;
+import java.util.function.UnaryOperator;
 
 public class BasicBlock implements FastGraphVertex, Comparable<BasicBlock> {
 

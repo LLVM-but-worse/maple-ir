@@ -1,13 +1,5 @@
 package org.rsdeob.stdlib.ir;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.LinkedList;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.*;
@@ -24,6 +16,9 @@ import org.rsdeob.stdlib.ir.header.HeaderStatement;
 import org.rsdeob.stdlib.ir.stat.*;
 import org.rsdeob.stdlib.ir.stat.ConditionalJumpStatement.ComparisonType;
 import org.rsdeob.stdlib.ir.stat.MonitorStatement.MonitorMode;
+
+import java.util.*;
+import java.util.Map.Entry;
 
 public class StatementGenerator implements Opcodes {
 

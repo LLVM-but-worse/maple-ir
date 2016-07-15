@@ -1,15 +1,5 @@
 package org.rsdeob;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.InputStream;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
@@ -18,12 +8,9 @@ import org.rsdeob.stdlib.cfg.ControlFlowGraph;
 import org.rsdeob.stdlib.cfg.ControlFlowGraphBuilder;
 import org.rsdeob.stdlib.cfg.util.ControlFlowGraphDeobfuscator;
 import org.rsdeob.stdlib.cfg.util.GraphUtils;
-import org.rsdeob.stdlib.ir.CodeBody;
-import org.rsdeob.stdlib.ir.CodeBodyConsistencyChecker;
-import org.rsdeob.stdlib.ir.SSAGenerator;
-import org.rsdeob.stdlib.ir.StatementGenerator;
-import org.rsdeob.stdlib.ir.StatementGraph;
-import org.rsdeob.stdlib.ir.StatementGraphBuilder;
+import org.rsdeob.stdlib.collections.graph.util.DotExporter;
+import org.rsdeob.stdlib.ir.*;
+import org.rsdeob.stdlib.ir.export.SGDotExporter;
 import org.rsdeob.stdlib.ir.header.HeaderStatement;
 import org.rsdeob.stdlib.ir.locals.Local;
 import org.rsdeob.stdlib.ir.stat.CopyVarStatement;
@@ -34,6 +21,12 @@ import org.rsdeob.stdlib.ir.transform.impl.DefinitionAnalyser;
 import org.rsdeob.stdlib.ir.transform.impl.LivenessAnalyser;
 import org.rsdeob.stdlib.ir.transform.impl.UsesAnalyserImpl;
 import org.rsdeob.stdlib.ir.transform.ssa.SSAPropagator;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.InputStream;
+import java.util.*;
+import java.util.Map.Entry;
 
 public class AnalyticsTest {
 
@@ -73,20 +66,20 @@ public class AnalyticsTest {
 
 			System.out.println(code);
 			System.out.println();
-			
+
 			SSAGenerator ssagen = new SSAGenerator(code, cfg);
 			ssagen.run();
 			
 			System.out.println("SSA:");
 			System.out.println(code);
-			
+
 			StatementGraph sgraph = StatementGraphBuilder.create(cfg);
 			DefinitionAnalyser defs = new DefinitionAnalyser(sgraph);
 			LivenessAnalyser liveness = new LivenessAnalyser(sgraph);
 			UsesAnalyserImpl uses = new UsesAnalyserImpl(code, sgraph, defs);
 			CodeAnalytics analytics = new CodeAnalytics(cfg, sgraph, defs, liveness, uses);
 			code.registerListener(analytics);
-			
+
 			SSAPropagator prop = new SSAPropagator(code, analytics);
 			while(prop.run() > 0);
 		}
@@ -178,7 +171,10 @@ public class AnalyticsTest {
 			} else {
 				System.err.println("   NULL");
 			}
-			GraphUtils.output("failedat", analytics.sgraph, code, BootEcx.GRAPH_FOLDER, "-sg");
+			SGDotExporter exporter = new SGDotExporter(analytics.sgraph, code, "failedat_lcheck", "-sg");
+			exporter.addHighlight(stmt, "turquoise2");
+			exporter.addHighlight(cur, "yellow2");
+			exporter.output(DotExporter.OPT_DEEP);
 			throw new RuntimeException();
 		}
 	}
@@ -229,7 +225,12 @@ public class AnalyticsTest {
 			} else {
 				System.err.println("   NULL");
 			}
-			GraphUtils.output("failedat", analytics.sgraph, code, BootEcx.GRAPH_FOLDER, "-sg");
+			SGDotExporter exporter = new SGDotExporter(analytics.sgraph, code, "failedat_dcheck", "-sg");
+			exporter.addLabel(stmt, "Fail");
+			exporter.addHighlight(stmt, "turquoise2");
+			exporter.addLabel(cur, "Cur");
+			exporter.addHighlight(cur, "yellow2");
+			exporter.output(DotExporter.OPT_DEEP);
 			throw new RuntimeException();
 		}
 	}
@@ -269,7 +270,7 @@ public class AnalyticsTest {
 		
 		return true;
 	}
-	
+
 	public void tryidiots(int x) {
 		int y = 0;
 		try {
