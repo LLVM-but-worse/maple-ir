@@ -57,7 +57,7 @@ public class DeadAssignmentEliminator extends Transformer {
 						}
 					}.visit();
 					if(complex.get()) {
-						code.replace(copy, new PopStatement(copy.getExpression()));
+						code.set(code.indexOf(copy), new PopStatement(copy.getExpression()));
 						code.commit();
 					} else {
 						code.remove(copy);
