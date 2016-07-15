@@ -1,21 +1,23 @@
-package org.rsdeob.stdlib.cfg.util;
+package org.rsdeob.stdlib.collections.graph.util;
 
-import org.objectweb.asm.tree.MethodNode;
-import org.rsdeob.stdlib.cfg.BasicBlock;
-import org.rsdeob.stdlib.cfg.ControlFlowGraph;
-import org.rsdeob.stdlib.cfg.edge.FlowEdge;
-import org.rsdeob.stdlib.ir.CodeBody;
-import org.rsdeob.stdlib.ir.StatementGraph;
-import org.rsdeob.stdlib.ir.header.HeaderStatement;
-import org.rsdeob.stdlib.ir.stat.Statement;
+import org.rsdeob.stdlib.collections.graph.FastGraphVertex;
+import org.rsdeob.stdlib.collections.graph.flow.FlowGraph;
 
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
-import java.util.List;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 
-public class DotExporter {
-	public static final String[] GRAPHVIZ_COLOURS = new String[]{
+public abstract class DotExporter<G extends FlowGraph, V extends FastGraphVertex> {
+	private static final String GRAPHVIZ_DOT_PATH = "dot\\dot.exe";
+	private static final File GRAPH_FOLDER = new File("cfg testing");
+
+	/**
+	 * Reserved colors for highlighting structures such as SuperNodes
+	 */
+	protected static final String[] HIGHLIGHT_COLOURS = new String[] {
 			"aliceblue", "antiquewhite", "aquamarine", "brown1", "cadetblue1",
 			"chocolate1", "cornflowerblue", "cyan", "darkgoldenrod1",
 			"darkolivegreen4", "darkorchid1", "darksalmon",
@@ -24,7 +26,76 @@ public class DotExporter {
 			"royalblue1", "slateblue3", "turquoise2", "yellow2"
 	};
 
-	private static final String GRAPHVIZ_DOT_PATH = "dot\\dot.exe";
+	protected final G graph;
+	private final String fileExt;
+	private final Map<V, String> highlight = new HashMap<>();
+
+	public DotExporter(G graph, String fileExt) {
+		this.graph = graph;
+		this.fileExt = fileExt;
+	}
+
+	public DotExporter(G graph) {
+		this(graph, "");
+	}
+
+	public void addHighlight(V v, String color) {
+		highlight.put(v, color);
+	}
+
+	protected void addHighlights(Map<V, String> highlights) {
+		highlight.putAll(highlights);
+	}
+
+	public void output() {
+		String fileName = escapeFileName(getFileName()) + fileExt;
+		BufferedWriter bw = null;
+
+		try {
+			File dotFile = new File(GRAPH_FOLDER, fileName + ".gv");
+			if(dotFile.exists())
+				dotFile.delete();
+
+			bw = new BufferedWriter(new FileWriter(dotFile));
+			bw.write(createGraphString());
+			bw.close();
+
+			File gv = new File(GRAPHVIZ_DOT_PATH);
+			File imgFile = new File(GRAPH_FOLDER, fileName + ".png");
+			if (imgFile.exists())
+				imgFile.delete();
+			ProcessBuilder builder = new ProcessBuilder(gv.getAbsolutePath(), "-Tpng", '"' + dotFile.getAbsolutePath() + '"', "-o", '"' + imgFile.getAbsolutePath() + '"');
+			Process process = builder.start();
+			process.waitFor();
+		} catch (IOException | InterruptedException e) {
+			System.err.println("Exception while exporting graph " + fileName + ":");
+			e.printStackTrace();;
+		} finally {
+			if (bw != null) {
+				try {
+					bw.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+	}
+
+	protected abstract String createGraphString();
+
+	protected abstract String getFileName();
+
+	// '\', '/', ':', '*', '?', '<', '>', '|'
+	private static String escapeFileName(String name) {
+		return name.replaceAll("[/\\:*?\"<>|]", "");
+	}
+}
+
+/*public class DotExporter {
+
+	private static String createFileName(MethodNode m) {
+		return createFileName(m.owner.name + " " + m.name + " " + m.desc);
+	}
 
 	public static void output(ControlFlowGraph cfg, List<BasicBlock> blocks, File graphFolder, String type) throws Exception {
 		File dotFile = new File(graphFolder, createFileName(cfg.getMethod()) + type + ".gv");
@@ -85,16 +156,7 @@ public class DotExporter {
 
 	}
 
-	public static String createFileName(MethodNode m) {
-		return createFileName(m.owner.name + " " + m.name + " " + m.desc);
-	}
-
-	// '\', '/', ':', '*', '?', '<', '>', '|'
-	public static String createFileName(String name) {
-		return name.replaceAll("[/\\:*?\"<>|]", "");
-	}
-
-	public static String toGraphString(ControlFlowGraph cfg, List<BasicBlock> blocks, ControlFlowGraphDeobfuscator.SuperNodeList svList, boolean deep) {
+	public static String toGraphString(ControlFlowGraph cfg, List<BasicBlock> blocks, ControlFlowGraphDeobfuscator.SuperNodeList svList) {
 		StringBuilder sb = new StringBuilder();
 		sb.append("digraph ");
 		sb.append(createFileName(cfg.getMethod().name));
@@ -125,10 +187,10 @@ public class DotExporter {
 					sb.append(", style=filled, fillcolor=green");
 				} else if((sv = svList.find(b)) != null) {
 					if(lastSuperVertex != sv) {
-						if(colourindex >= GRAPHVIZ_COLOURS.length) {
+						if(colourindex >= HIGHLIGHT_COLOURS.length) {
 							colourindex = 0;
 						}
-						colour = GRAPHVIZ_COLOURS[colourindex++];
+						colour = HIGHLIGHT_COLOURS[colourindex++];
 						lastSuperVertex = sv;
 					}
 					sb.append(", style=filled, fillcolor=").append(colour);
@@ -156,7 +218,7 @@ public class DotExporter {
 		return sb.toString();
 	}
 
-	public static String toGraphString(String name, StatementGraph sg, CodeBody stmts, ControlFlowGraphDeobfuscator.SuperNodeList svList, boolean deep) {
+	public static String toGraphString(String name, StatementGraph sg, CodeBody stmts) {
 		StringBuilder sb = new StringBuilder();
 		sb.append("digraph ");
 		sb.append(createFileName(name));
@@ -209,3 +271,4 @@ public class DotExporter {
 		return sb.toString();
 	}
 }
+*/
