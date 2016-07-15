@@ -1,5 +1,8 @@
 package org.rsdeob;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.InputStream;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -19,22 +22,26 @@ import org.rsdeob.stdlib.ir.CodeBody;
 import org.rsdeob.stdlib.ir.CodeBodyConsistencyChecker;
 import org.rsdeob.stdlib.ir.SSAGenerator;
 import org.rsdeob.stdlib.ir.StatementGenerator;
+import org.rsdeob.stdlib.ir.StatementGraph;
+import org.rsdeob.stdlib.ir.StatementGraphBuilder;
 import org.rsdeob.stdlib.ir.header.HeaderStatement;
 import org.rsdeob.stdlib.ir.locals.Local;
 import org.rsdeob.stdlib.ir.stat.CopyVarStatement;
 import org.rsdeob.stdlib.ir.stat.Statement;
+import org.rsdeob.stdlib.ir.transform.Transformer;
 import org.rsdeob.stdlib.ir.transform.impl.CodeAnalytics;
 import org.rsdeob.stdlib.ir.transform.impl.DefinitionAnalyser;
 import org.rsdeob.stdlib.ir.transform.impl.LivenessAnalyser;
-import org.rsdeob.stdlib.ir.transform.impl.Transformer;
+import org.rsdeob.stdlib.ir.transform.impl.UsesAnalyserImpl;
+import org.rsdeob.stdlib.ir.transform.ssa.SSAPropagator;
 
 public class AnalyticsTest {
 
 	public static boolean debug = true;
 	
 	public static void main(String[] args) throws Throwable {
-//		InputStream i = new FileInputStream(new File("res/a.class"));
-		ClassReader cr = new ClassReader(AnalyticsTest.class.getCanonicalName());
+		InputStream i = new FileInputStream(new File("res/a.class"));
+		ClassReader cr = new ClassReader(i);
 		ClassNode cn = new ClassNode();
 		cr.accept(cn, 0);
 
@@ -42,7 +49,7 @@ public class AnalyticsTest {
 		while(it.hasNext()) {
 			MethodNode m = it.next();
 
-			if(!m.toString().equals("org/rsdeob/AnalyticsTest.tryidiots(I)V")) {
+			if(!m.toString().equals("a/a/f/a.H(La/a/f/o;J)V")) {
 				continue;
 			}
 //			org/rsdeob/AnalyticsTest.tryidiots(I)V
@@ -59,42 +66,29 @@ public class AnalyticsTest {
 			
 			// GraphUtils.output(cfg, blocks, new File("C:/Users/Bibl/Desktop/cfg testing"), "test11");
 			
-			
 			StatementGenerator gen = new StatementGenerator(cfg);
 			gen.init(m.maxLocals);
 			gen.createExpressions();
 			CodeBody code = gen.buildRoot();
-			
-//			System.out.println(((CopyVarStatement) code.getAt(11)));
-
 
 			System.out.println(code);
 			System.out.println();
-			
-//			StatementGraph sgraph = StatementGraphBuilder.create(cfg);
-//			GraphUtils.output(m.name, sgraph, code, BootEcx.GRAPH_FOLDER, "-sg");
-//
-//			DefinitionAnalyser defs = new DefinitionAnalyser(sgraph);
-//			LivenessAnalyser liveness = new LivenessAnalyser(sgraph);
-//			UsesAnalyserImpl uses = new UsesAnalyserImpl(code, sgraph, defs);
-//			CodeAnalytics analytics = new CodeAnalytics(cfg, sgraph, defs, liveness, uses);
-//			code.registerListener(analytics);
-//
-//			optimise(code, analytics);
 			
 			SSAGenerator ssagen = new SSAGenerator(code, cfg);
 			ssagen.run();
 			
 			System.out.println("SSA:");
 			System.out.println(code);
-			System.out.println();
-			System.out.println();
-//			for(Statement stmt : code) {
-//				System.out.println(stmt);
-//				System.out.println(defs.in(stmt));
-//				System.out.println(defs.out(stmt));
-//				System.out.println();
-//			}
+			
+			StatementGraph sgraph = StatementGraphBuilder.create(cfg);
+			DefinitionAnalyser defs = new DefinitionAnalyser(sgraph);
+			LivenessAnalyser liveness = new LivenessAnalyser(sgraph);
+			UsesAnalyserImpl uses = new UsesAnalyserImpl(code, sgraph, defs);
+			CodeAnalytics analytics = new CodeAnalytics(cfg, sgraph, defs, liveness, uses);
+			code.registerListener(analytics);
+			
+			SSAPropagator prop = new SSAPropagator(code, analytics);
+			prop.run();
 		}
 	}
 

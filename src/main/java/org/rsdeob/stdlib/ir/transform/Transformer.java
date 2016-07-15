@@ -1,6 +1,7 @@
-package org.rsdeob.stdlib.ir.transform.impl;
+package org.rsdeob.stdlib.ir.transform;
 
 import org.rsdeob.stdlib.ir.CodeBody;
+import org.rsdeob.stdlib.ir.transform.impl.CodeAnalytics;
 
 public abstract class Transformer {
 

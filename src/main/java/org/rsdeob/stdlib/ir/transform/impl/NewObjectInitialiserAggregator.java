@@ -19,6 +19,7 @@ import org.rsdeob.stdlib.ir.locals.Local;
 import org.rsdeob.stdlib.ir.stat.CopyVarStatement;
 import org.rsdeob.stdlib.ir.stat.PopStatement;
 import org.rsdeob.stdlib.ir.stat.Statement;
+import org.rsdeob.stdlib.ir.transform.Transformer;
 
 public class NewObjectInitialiserAggregator extends Transformer {
 
