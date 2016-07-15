@@ -93,7 +93,6 @@ public class UsesAnalyserImpl implements ICodeListener<Statement> {
 	}
 	
 	public void queue(Statement stmt) {
-		System.out.println("QUEUE: " + stmt);
 		Set<Local> locals = new HashSet<>();
 		new StatementVisitor(stmt) {
 			@Override
@@ -109,7 +108,6 @@ public class UsesAnalyserImpl implements ICodeListener<Statement> {
 			Map<Local, Set<CopyVarStatement>> dmap = definitions.in(stmt);
 			for(Local l : locals) {
 				for(CopyVarStatement def : dmap.get(l)) {
-					System.out.println("  def: " + def);
 					for(Statement use : uses.getNonNull(def)) {
 						Statement from = def;
 						if(synth.containsKey(from)) {
