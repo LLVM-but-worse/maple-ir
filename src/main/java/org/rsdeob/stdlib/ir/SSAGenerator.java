@@ -177,12 +177,19 @@ public class SSAGenerator {
 			}
 		}
 		
+		List<FlowEdge<BasicBlock>> succs = new ArrayList<>();
 		for(FlowEdge<BasicBlock> succE : cfg.getEdges(b)) {
+			succs.add(succE);
+		}
+		
+		// TODO: maybe sort succs
+		
+		for(FlowEdge<BasicBlock> succE : succs) {
 			BasicBlock succ = succE.dst;
 			int j = pred(b, succ);
-			System.out.println("succ: " + succ + ", j=" + j);
+			System.out.printf("block=%s, succ=%s, j=%d.%n", b.getId(), succ.getId(), j);
 			
-			for(Statement s : b.getStatements())  {
+			for(Statement s : succ.getStatements())  {
 				if(s instanceof CopyVarStatement) {
 					CopyVarStatement cvs = ((CopyVarStatement) s);
 					if(cvs.getExpression() instanceof PhiExpression) {
@@ -194,7 +201,7 @@ public class SSAGenerator {
 			}
 		}
 		
-		for(FlowEdge<BasicBlock> succE : cfg.getEdges(b)) {
+		for(FlowEdge<BasicBlock> succE : succs) {
 			BasicBlock succ = succE.dst;
 			search(succ, vis);
 		}
@@ -267,7 +274,7 @@ public class SSAGenerator {
 			return;
 		}
 		
-		for(BasicBlock x : doms.iteratedFronter(s)) {
+		for(BasicBlock x : doms.iteratedFrontier(s)) {
 			if(insertion.get(x) < localCount) {
 
 				List<Statement> stmts = x.getStatements();
@@ -285,14 +292,14 @@ public class SSAGenerator {
 						break;
 					}
 					// pruned SSA
-					if(liveness.out(first).get(l)) {
+					if(liveness.in(first).get(l)) {
 						List<VersionedLocal> vls = new ArrayList<>();
 						for(int i=0; i < count; i++) {
 							vls.add(handler.get(l.getIndex(), i, l.isStack()));
 						}
 						PhiExpression phi = new PhiExpression(vls);
-						VersionedLocal l2 = handler.get(l.getIndex(), count, l.isStack());
-						CopyVarStatement assign = new CopyVarStatement(new VarExpression(l2, null), phi);
+						// VersionedLocal l2 = handler.get(l.getIndex(), count, l.isStack());
+						CopyVarStatement assign = new CopyVarStatement(new VarExpression(l, null), phi);
 						
 						body.add(assign, body.indexOf(stmts.get(0)));
 						stmts.add(0, assign);
