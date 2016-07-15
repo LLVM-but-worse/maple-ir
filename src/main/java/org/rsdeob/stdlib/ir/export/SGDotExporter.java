@@ -1,5 +1,6 @@
 package org.rsdeob.stdlib.ir.export;
 
+import org.rsdeob.stdlib.cfg.edge.FlowEdge;
 import org.rsdeob.stdlib.collections.graph.util.DotExporter;
 import org.rsdeob.stdlib.ir.CodeBody;
 import org.rsdeob.stdlib.ir.StatementGraph;
@@ -20,5 +21,10 @@ public class SGDotExporter extends DotExporter<StatementGraph, Statement> {
 	protected void printBlock(Statement stmt, StringBuilder sb) {
 		sb.append(": ");
 		sb.append(stmt.toString().replaceAll("\"", "\\\\\""));
+	}
+
+	@Override
+	protected void printEdge(FlowEdge<Statement> e, StringBuilder sb) {
+		sb.append(e.getClass().getSimpleName().replace("Edge", ""));
 	}
 }

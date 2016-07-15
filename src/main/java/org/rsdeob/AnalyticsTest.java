@@ -171,7 +171,10 @@ public class AnalyticsTest {
 			} else {
 				System.err.println("   NULL");
 			}
-			(new SGDotExporter(analytics.sgraph, code, "failedat_lcheck", "-sg")).output(DotExporter.OPT_DEEP);
+			SGDotExporter exporter = new SGDotExporter(analytics.sgraph, code, "failedat_lcheck", "-sg");
+			exporter.addHighlight(stmt, "turquoise2");
+			exporter.addHighlight(cur, "yellow2");
+			exporter.output(DotExporter.OPT_DEEP);
 			throw new RuntimeException();
 		}
 	}
@@ -222,7 +225,12 @@ public class AnalyticsTest {
 			} else {
 				System.err.println("   NULL");
 			}
-			(new SGDotExporter(analytics.sgraph, code, "failedat_dcheck", "-sg")).output(DotExporter.OPT_DEEP);
+			SGDotExporter exporter = new SGDotExporter(analytics.sgraph, code, "failedat_dcheck", "-sg");
+			exporter.addLabel(stmt, "Fail");
+			exporter.addHighlight(stmt, "turquoise2");
+			exporter.addLabel(cur, "Cur");
+			exporter.addHighlight(cur, "yellow2");
+			exporter.output(DotExporter.OPT_DEEP);
 			throw new RuntimeException();
 		}
 	}
