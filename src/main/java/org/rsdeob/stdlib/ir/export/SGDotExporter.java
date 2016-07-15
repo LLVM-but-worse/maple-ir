@@ -9,7 +9,7 @@ import org.rsdeob.stdlib.ir.stat.Statement;
 
 public class SGDotExporter extends DotExporter<StatementGraph, Statement> {
 	public SGDotExporter(StatementGraph graph, CodeBody order, String name, String fileExt) {
-		super(graph, order.stmts(), name, fileExt); // todo make CodeBody implement List
+		super(graph, order, name, fileExt);
 	}
 
 	@Override

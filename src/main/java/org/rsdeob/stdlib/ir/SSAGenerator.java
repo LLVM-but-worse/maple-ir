@@ -307,7 +307,7 @@ public class SSAGenerator {
 						// VersionedLocal l2 = handler.get(l.getIndex(), count, l.isStack());
 						CopyVarStatement assign = new CopyVarStatement(new VarExpression(l, null), phi);
 						
-						body.add(assign, body.indexOf(stmts.get(0)));
+						body.add(body.indexOf(stmts.get(0)), assign);
 						stmts.add(0, assign);
 					}
 				}
