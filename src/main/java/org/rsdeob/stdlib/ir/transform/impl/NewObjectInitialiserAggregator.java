@@ -76,9 +76,7 @@ public class NewObjectInitialiserAggregator extends Transformer {
 										
 										CopyVarStatement newCvs = new CopyVarStatement(var, newExpr);
 										int index = code.indexOf(pop);
-										Statement prev = code.getAt(index - 1);
-										Statement next = code.getAt(index);
-										code.insert(prev, next, newCvs);
+										code.add(index, newCvs);
 										code.remove(pop);
 										code.forceUpdate(newCvs);
 										code.commit();
