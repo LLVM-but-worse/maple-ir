@@ -57,7 +57,7 @@ public class TarjanDominanceComputor<N extends FastGraphVertex> {
 		return frontiers.getNonNull(n);
 	}
 	
-	public Set<N> iteratedFronter(N n) {
+	public Set<N> iteratedFrontier(N n) {
 		return iteratedFrontiers.getNonNull(n);
 	}
 	

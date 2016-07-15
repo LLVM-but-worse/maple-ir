@@ -21,7 +21,7 @@ import org.rsdeob.stdlib.collections.graph.flow.ExceptionRange;
 import org.rsdeob.stdlib.ir.ExpressionStack;
 import org.rsdeob.stdlib.ir.stat.Statement;
 
-public class BasicBlock implements FastGraphVertex {
+public class BasicBlock implements FastGraphVertex, Comparable<BasicBlock> {
 
 	private final ControlFlowGraph cfg;
 	private final LabelNode label;
@@ -39,7 +39,7 @@ public class BasicBlock implements FastGraphVertex {
 		inputStack = stack;
 		
 		hashcode = 31 + id.hashCode();
-		insns = new ArrayList<AbstractInsnNode>();
+		insns = new ArrayList<>();
 		statements = new ArrayList<>();
 	}
 	
@@ -310,5 +310,10 @@ public class BasicBlock implements FastGraphVertex {
 	@Override
 	public String toString() {
 		return String.format("Block #%s (%s)", id, label != null ? label.hashCode() : "dummy");
+	}
+
+	@Override
+	public int compareTo(BasicBlock o) {
+		return id.compareTo(o.id);
 	}
 }
