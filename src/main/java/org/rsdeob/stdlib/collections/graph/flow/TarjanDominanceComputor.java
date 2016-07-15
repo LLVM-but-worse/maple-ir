@@ -1,12 +1,13 @@
 package org.rsdeob.stdlib.collections.graph.flow;
 
-import java.util.*;
-
+import org.rsdeob.stdlib.cfg.edge.FlowEdge;
 import org.rsdeob.stdlib.collections.NullPermeableHashMap;
 import org.rsdeob.stdlib.collections.SetCreator;
 import org.rsdeob.stdlib.collections.graph.FastGraph;
 import org.rsdeob.stdlib.collections.graph.FastGraphEdge;
 import org.rsdeob.stdlib.collections.graph.FastGraphVertex;
+
+import java.util.*;
 
 public class TarjanDominanceComputor<N extends FastGraphVertex> {
 
@@ -56,7 +57,7 @@ public class TarjanDominanceComputor<N extends FastGraphVertex> {
 		return frontiers.getNonNull(n);
 	}
 	
-	public Set<N> iteratedFronter(N n) {
+	public Set<N> iteratedFrontier(N n) {
 		return iteratedFrontiers.getNonNull(n);
 	}
 	
@@ -128,10 +129,14 @@ public class TarjanDominanceComputor<N extends FastGraphVertex> {
 			Set<N> df = frontiers.getNonNull(n);
 			
 			// DF(local)
-			for(N succ : FastGraph.computeSuccessors(graph, n)) {
-				if(idoms.get(succ) != n) {
-					df.add(succ);
-				}
+			for(FlowEdge<N> e : graph.getEdges(n)) {
+				// svar data isn't propagated across exception edges.
+				// if(!(e instanceof TryCatchEdge)) {
+					N succ = e.dst;
+					if(idoms.get(succ) != n) {
+						df.add(succ);
+					}	
+				// }
 			}
 			
 			// DF(up)

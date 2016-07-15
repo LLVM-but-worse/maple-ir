@@ -1,5 +1,7 @@
 package org.rsdeob.stdlib.collections.graph.util;
 
+import org.rsdeob.stdlib.cfg.edge.FlowEdge;
+import org.rsdeob.stdlib.cfg.edge.TryCatchEdge;
 import org.rsdeob.stdlib.collections.graph.FastGraphVertex;
 import org.rsdeob.stdlib.collections.graph.flow.FlowGraph;
 
@@ -8,9 +10,10 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
-public abstract class DotExporter<G extends FlowGraph, V extends FastGraphVertex> {
+public abstract class DotExporter<G extends FlowGraph<V, FlowEdge<V>>, V extends FastGraphVertex> {
 	private static final String GRAPHVIZ_DOT_PATH = "dot\\dot.exe";
 	private static final File GRAPH_FOLDER = new File("cfg testing");
 
@@ -26,28 +29,38 @@ public abstract class DotExporter<G extends FlowGraph, V extends FastGraphVertex
 			"royalblue1", "slateblue3", "turquoise2", "yellow2"
 	};
 
+	public static final int OPT_DEEP = 1;
+	public static final int OPT_HIDE_HANDLER_EDGES = 2;
+
 	protected final G graph;
+	protected final List<V> order;
+	protected final String name;
 	private final String fileExt;
 	private final Map<V, String> highlight = new HashMap<>();
 
-	public DotExporter(G graph, String fileExt) {
+	public DotExporter(G graph, List<V> order, String name, String fileExt) {
 		this.graph = graph;
+		this.order = order;
+		this.name = name;
 		this.fileExt = fileExt;
+
+		for (V b : graph.getEntries())
+			highlight.put(b, "red");
 	}
 
-	public DotExporter(G graph) {
-		this(graph, "");
+	public DotExporter(G graph, List<V> order, String name) {
+		this(graph, order, name, "");
 	}
 
 	public void addHighlight(V v, String color) {
 		highlight.put(v, color);
 	}
 
-	protected void addHighlights(Map<V, String> highlights) {
+	public void addHighlights(Map<V, String> highlights) {
 		highlight.putAll(highlights);
 	}
 
-	public void output() {
+	public void output(int options) {
 		String fileName = escapeFileName(getFileName()) + fileExt;
 		BufferedWriter bw = null;
 
@@ -57,13 +70,14 @@ public abstract class DotExporter<G extends FlowGraph, V extends FastGraphVertex
 				dotFile.delete();
 
 			bw = new BufferedWriter(new FileWriter(dotFile));
-			bw.write(createGraphString());
+			bw.write(createGraphString(options));
 			bw.close();
 
 			File gv = new File(GRAPHVIZ_DOT_PATH);
 			File imgFile = new File(GRAPH_FOLDER, fileName + ".png");
 			if (imgFile.exists())
 				imgFile.delete();
+			System.out.println(gv.getAbsolutePath() + " " + "-Tpng" + " " + '"' + dotFile.getAbsolutePath() + '"' + " " + "-o" + " " + '"' + imgFile.getAbsolutePath() + '"');
 			ProcessBuilder builder = new ProcessBuilder(gv.getAbsolutePath(), "-Tpng", '"' + dotFile.getAbsolutePath() + '"', "-o", '"' + imgFile.getAbsolutePath() + '"');
 			Process process = builder.start();
 			process.waitFor();
@@ -81,9 +95,53 @@ public abstract class DotExporter<G extends FlowGraph, V extends FastGraphVertex
 		}
 	}
 
-	protected abstract String createGraphString();
+	private String createGraphString(int options) {
+		StringBuilder sb = new StringBuilder();
+		sb.append("digraph \"");
+		sb.append(name);
+		sb.append("\" {").append(System.lineSeparator());
 
-	protected abstract String getFileName();
+		for(V b : order) {
+			if (!filterBlock(b))
+				continue;
+			sb.append(b.getId()).append(" ");
+			sb.append("[shape=box, label=").append('"');
+			sb.append(order.indexOf(b)).append(". ").append(b.getId());
+			if((options & OPT_DEEP) == OPT_DEEP)
+				printBlock(b, sb);
+			sb.append('"');
+
+			if (highlight.containsKey(b))
+				sb.append(", style=filled, fillcolor=").append(highlight.get(b));
+
+			sb.append("]\n");
+		}
+
+		for(V b : order) {
+			if (!filterBlock(b))
+				continue;
+			for(FlowEdge<V> e : graph.getEdges(b)) {
+				if ((options & OPT_HIDE_HANDLER_EDGES) == OPT_HIDE_HANDLER_EDGES && e instanceof TryCatchEdge)
+					continue;
+				sb.append("").append(e.src.getId()).append(" -> ").append(e.dst.getId()).append(" ");
+				if ((options & OPT_DEEP) == OPT_DEEP)
+					sb.append("[label=").append('"').append(e.toGraphString()).append('"').append("]");
+				sb.append(";\n");
+			}
+		}
+
+		sb.append("\n}");
+
+		return sb.toString();
+	}
+
+	protected String getFileName() {
+		return name;
+	}
+
+	protected abstract boolean filterBlock(V b);
+
+	protected abstract void printBlock(V b, StringBuilder sb);
 
 	// '\', '/', ':', '*', '?', '<', '>', '|'
 	private static String escapeFileName(String name) {

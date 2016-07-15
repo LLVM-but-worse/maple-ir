@@ -1,7 +1,5 @@
 package org.rsdeob;
 
-import java.util.List;
-
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
@@ -14,7 +12,10 @@ import org.rsdeob.stdlib.ir.CodeBody;
 import org.rsdeob.stdlib.ir.StatementGenerator;
 import org.rsdeob.stdlib.ir.StatementGraph;
 import org.rsdeob.stdlib.ir.StatementGraphBuilder;
+import org.rsdeob.stdlib.ir.transform.Transformer;
 import org.rsdeob.stdlib.ir.transform.impl.*;
+
+import java.util.List;
 
 public class LivenessTest {
 
