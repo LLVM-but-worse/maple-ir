@@ -1,8 +1,5 @@
 package org.rsdeob;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.InputStream;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -36,8 +33,8 @@ public class AnalyticsTest {
 	public static boolean debug = true;
 	
 	public static void main(String[] args) throws Throwable {
-		InputStream i = new FileInputStream(new File("res/a.class"));
-		ClassReader cr = new ClassReader(i);
+//		InputStream i = new FileInputStream(new File("res/a.class"));
+		ClassReader cr = new ClassReader(AnalyticsTest.class.getCanonicalName());
 		ClassNode cn = new ClassNode();
 		cr.accept(cn, 0);
 
@@ -45,7 +42,7 @@ public class AnalyticsTest {
 		while(it.hasNext()) {
 			MethodNode m = it.next();
 
-			if(!m.toString().equals("a/a/f/a.H(J)La/a/f/o;")) {
+			if(!m.toString().equals("org/rsdeob/AnalyticsTest.tryidiots(I)V")) {
 				continue;
 			}
 //			a/a/f/a.<init>()V
@@ -57,7 +54,10 @@ public class AnalyticsTest {
 			ControlFlowGraphDeobfuscator deobber = new ControlFlowGraphDeobfuscator();
 			List<BasicBlock> blocks = deobber.deobfuscate(cfg);
 			deobber.removeEmptyBlocks(cfg, blocks);
-			GraphUtils.naturaliseGraph(cfg, blocks);			
+			GraphUtils.naturaliseGraph(cfg, blocks);
+			
+			// GraphUtils.output(cfg, blocks, new File("C:/Users/Bibl/Desktop/cfg testing"), "test11");
+			
 			
 			StatementGenerator gen = new StatementGenerator(cfg);
 			gen.init(m.maxLocals);
@@ -273,5 +273,18 @@ public class AnalyticsTest {
 		}
 		
 		return true;
+	}
+	
+	public void tryidiots(int x) {
+		int y = 0;
+		try {
+			if(x == 5) {
+				y = 2;
+			} else {
+				y = 3;
+			}
+		} catch(Exception e) {
+			System.out.println(e.getMessage() + " " + y);
+		}
 	}
 }
