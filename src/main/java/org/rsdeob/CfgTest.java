@@ -6,6 +6,7 @@ import org.rsdeob.byteio.CompleteResolvingJarDumper;
 import org.rsdeob.stdlib.cfg.BasicBlock;
 import org.rsdeob.stdlib.cfg.ControlFlowGraph;
 import org.rsdeob.stdlib.cfg.ControlFlowGraphBuilder;
+import org.rsdeob.stdlib.cfg.util.CFGDotExporter;
 import org.rsdeob.stdlib.cfg.util.ControlFlowGraphDeobfuscator;
 import org.rsdeob.stdlib.cfg.util.GraphUtils;
 import org.rsdeob.stdlib.collections.NodeTable;
@@ -116,7 +117,7 @@ public class CfgTest {
 					InstructionPrinter.consolePrint(m);
 					m.localVariables.clear();
 					ControlFlowGraph cfg = ControlFlowGraphBuilder.create(m);
-					DotExporter.output(cfg, new ArrayList<>(cfg.vertices()), graphFolder, "post");
+					(new CFGDotExporter(cfg, new ArrayList<>(cfg.vertices()), m.toString(), "post")).output(DotExporter.OPT_DEEP);
 					System.out.println(cfg);
 					
 //					System.out.println(cfg);

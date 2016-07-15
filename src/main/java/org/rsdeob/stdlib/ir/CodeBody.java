@@ -1,16 +1,16 @@
 package org.rsdeob.stdlib.ir;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
-
 import org.rsdeob.stdlib.cfg.util.TabbedStringWriter;
 import org.rsdeob.stdlib.ir.api.ICodeListener;
 import org.rsdeob.stdlib.ir.header.StatementHeaderStatement;
 import org.rsdeob.stdlib.ir.locals.LocalsHandler;
 import org.rsdeob.stdlib.ir.stat.Statement;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 public class CodeBody implements Collection<Statement> {
 
@@ -65,17 +65,17 @@ public class CodeBody implements Collection<Statement> {
 		if (!(o instanceof Statement))
 			return false;
 		Statement s = (Statement) o;
-		
+
 		for(ICodeListener<Statement> l : listeners) {
 			l.preRemove(s);
 		}
-		
+
 		boolean ret = stmts.remove(s);
-		
+
 		for(ICodeListener<Statement> l : listeners) {
 			l.postRemove(s);
 		}
-		
+
 		return ret;
 	}
 
@@ -89,7 +89,7 @@ public class CodeBody implements Collection<Statement> {
 			return true;
 		}
 	}
-	
+
 	@Override
 	public boolean add(Statement s) {
 		boolean ret = stmts.add(s);
@@ -102,7 +102,7 @@ public class CodeBody implements Collection<Statement> {
 		for(ICodeListener<Statement> l : listeners)
 			l.update(stmt);
 	}
-	
+
 	public void insert(int index, Statement stmt) {
 		Statement p = stmts.get(index);
 		Statement s = stmts.get(index + 1);

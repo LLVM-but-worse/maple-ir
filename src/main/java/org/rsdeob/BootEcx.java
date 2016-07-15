@@ -13,6 +13,7 @@ import org.rsdeob.stdlib.IContext;
 import org.rsdeob.stdlib.cfg.BasicBlock;
 import org.rsdeob.stdlib.cfg.ControlFlowGraph;
 import org.rsdeob.stdlib.cfg.ControlFlowGraphBuilder;
+import org.rsdeob.stdlib.cfg.util.CFGDotExporter;
 import org.rsdeob.stdlib.cfg.util.ControlFlowGraphDeobfuscator;
 import org.rsdeob.stdlib.cfg.util.GraphUtils;
 import org.rsdeob.stdlib.collections.NodeTable;
@@ -22,6 +23,7 @@ import org.rsdeob.stdlib.ir.CodeBody;
 import org.rsdeob.stdlib.ir.StatementGenerator;
 import org.rsdeob.stdlib.ir.StatementGraph;
 import org.rsdeob.stdlib.ir.StatementGraphBuilder;
+import org.rsdeob.stdlib.ir.export.SGDotExporter;
 import org.rsdeob.stdlib.ir.export.StatementsDumper;
 import org.rsdeob.stdlib.ir.transform.impl.CodeAnalytics;
 import org.rsdeob.stdlib.ir.transform.impl.DefinitionAnalyser;
@@ -72,7 +74,7 @@ public class BootEcx implements Opcodes {
 			System.out.println("Cfg:");
 			System.out.println(cfg);
 			System.out.println();
-			DotExporter.output(cfg, blocks, GRAPH_FOLDER, "-cfg");
+			(new CFGDotExporter(cfg, blocks, m.toString(), "-cfg")).output(DotExporter.OPT_DEEP);
 
 			System.out.println("Execution log of " + m + ":");
 			StatementGenerator gen = new StatementGenerator(cfg);
@@ -85,7 +87,7 @@ public class BootEcx implements Opcodes {
 			System.out.println();
 
 			StatementGraph sgraph = StatementGraphBuilder.create(cfg);
-			DotExporter.output(m.name, sgraph, stmtList, GRAPH_FOLDER, "-sg");
+			(new SGDotExporter(sgraph, stmtList, m.toString(), "-sg")).output(DotExporter.OPT_DEEP);
 
 			LivenessTest.optimise(cfg, stmtList, sgraph);
 
@@ -330,8 +332,7 @@ public class BootEcx implements Opcodes {
 			System.out.println("SG: ");
 			System.out.println(GraphUtils.toString(sgraph, stmtList));
 
-			DotExporter.output(m.name, sgraph, stmtList, GRAPH_FOLDER, "1");
-
+			(new SGDotExporter(sgraph, stmtList, m.toString(), "1")).output(DotExporter.OPT_DEEP);
 		}
 	}
 }

@@ -1,10 +1,5 @@
 package org.rsdeob.stdlib.ir.transform.impl;
 
-import java.util.HashSet;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-
 import org.rsdeob.AnalyticsTest;
 import org.rsdeob.stdlib.ir.CodeBody;
 import org.rsdeob.stdlib.ir.StatementGraph;
@@ -16,6 +11,12 @@ import org.rsdeob.stdlib.ir.locals.Local;
 import org.rsdeob.stdlib.ir.stat.CopyVarStatement;
 import org.rsdeob.stdlib.ir.stat.PopStatement;
 import org.rsdeob.stdlib.ir.stat.Statement;
+import org.rsdeob.stdlib.ir.transform.Transformer;
+
+import java.util.HashSet;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class DeadAssignmentEliminator extends Transformer {
 
