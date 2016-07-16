@@ -32,6 +32,10 @@ public class MethodArgExpression extends Expression {
 		this.index = index;
 	}
 
+	public boolean isThisRef() {
+		return !isStatic && getIndex() == 0;
+	}
+
 	@Override
 	public Type getType() {
 		return type;
@@ -52,7 +56,7 @@ public class MethodArgExpression extends Expression {
 
 	@Override
 	public void toString(TabbedStringWriter printer) {
-		printer.print(!isStatic && getIndex() == 0 ? "this" : "arg_" + getIndex());
+		printer.print(isThisRef() ? "this" : "arg_" + getIndex());
 	}
 
 	@Override

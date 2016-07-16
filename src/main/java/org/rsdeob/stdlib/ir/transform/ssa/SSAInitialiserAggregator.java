@@ -56,8 +56,11 @@ public class SSAInitialiserAggregator extends SSATransformer {
 								// replace pop(x.<init>()) with x := new Klass();
 								// remove x := new Klass;
 							}
+						} else if (inst instanceof MethodArgExpression && ((MethodArgExpression) inst).isThisRef()) {
+							// it should be acceptable to do nothing here
 						} else {
 							System.err.println(code);
+							System.err.println(stmt.getId() + ". " + stmt);
 							throw new RuntimeException("interesting1 " + inst.getClass());
 						}
 					}
