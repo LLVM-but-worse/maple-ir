@@ -91,10 +91,12 @@ public class StatementGenerator implements Opcodes {
 	
 	private void addEntry(int index, Type type, BasicBlock b) {
 		CopyVarStatement stmt = selfDefine(_var_expr(index, type, false));
-		b.getStatements().add(/*new SyntheticStatement(stmt)*/ stmt);
+		b.getStatements().add(stmt);
 	}
 	
 	private CopyVarStatement selfDefine(VarExpression var) {
+		// note: if arg_0 breaks anything, follow this fix:
+		// go into SyntheticCopyStatement's constructor and replace the second parameter to the call to super() with 'var'
 		return new SyntheticCopyStatement(var, (m.access & ACC_STATIC) == ACC_STATIC);
 	}
 
