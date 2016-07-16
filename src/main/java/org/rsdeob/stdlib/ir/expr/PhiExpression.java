@@ -1,5 +1,6 @@
 package org.rsdeob.stdlib.ir.expr;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.objectweb.asm.MethodVisitor;
@@ -11,9 +12,16 @@ import org.rsdeob.stdlib.ir.transform.impl.CodeAnalytics;
 
 public class PhiExpression extends Expression {
 
-	private final List<VersionedLocal> locals;
+	private final List<Expression> locals;
 	
-	public PhiExpression(List<VersionedLocal> locals) {
+	public PhiExpression(List<VersionedLocal> locals, Type type) {
+		this.locals = new ArrayList<>();
+		for(VersionedLocal l : locals)  {
+			this.locals.add(new VarExpression(l, type));
+		}
+	}
+	
+	public PhiExpression(List<Expression> locals) {
 		this.locals = locals;
 	}
 	
@@ -21,16 +29,20 @@ public class PhiExpression extends Expression {
 		return locals.size();
 	}
 	
-	public List<VersionedLocal> getLocals() {
+	public List<Expression> getLocals() {
 		return locals;
 	}
 	
-	public VersionedLocal getLocal(int j) {
+	public Expression getLocal(int j) {
 		return locals.get(j);
 	}
 	
+	public void setLocal(int j, Expression e) {
+		locals.set(j, e);
+	}
+	
 	public void setLocal(int j, VersionedLocal l) {
-		locals.set(j, l);
+		locals.set(j, new VarExpression(l, locals.get(j).getType()));
 	}
 	
 	@Override
@@ -40,6 +52,10 @@ public class PhiExpression extends Expression {
 
 	@Override
 	public Expression copy() {
+		List<Expression> locals = new ArrayList<>();
+		for(Expression e : this.locals) {
+			locals.add(e.copy());
+		}
 		return new PhiExpression(locals);
 	}
 

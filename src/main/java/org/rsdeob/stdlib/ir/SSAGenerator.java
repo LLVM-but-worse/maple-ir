@@ -1,5 +1,7 @@
 package org.rsdeob.stdlib.ir;
 
+import java.util.*;
+
 import org.rsdeob.stdlib.cfg.BasicBlock;
 import org.rsdeob.stdlib.cfg.ControlFlowGraph;
 import org.rsdeob.stdlib.cfg.edge.DummyEdge;
@@ -7,6 +9,7 @@ import org.rsdeob.stdlib.cfg.edge.FlowEdge;
 import org.rsdeob.stdlib.collections.NullPermeableHashMap;
 import org.rsdeob.stdlib.collections.SetCreator;
 import org.rsdeob.stdlib.collections.graph.flow.TarjanDominanceComputor;
+import org.rsdeob.stdlib.ir.expr.Expression;
 import org.rsdeob.stdlib.ir.expr.PhiExpression;
 import org.rsdeob.stdlib.ir.expr.VarExpression;
 import org.rsdeob.stdlib.ir.locals.Local;
@@ -16,8 +19,6 @@ import org.rsdeob.stdlib.ir.stat.CopyVarStatement;
 import org.rsdeob.stdlib.ir.stat.Statement;
 import org.rsdeob.stdlib.ir.stat.SyntheticStatement;
 import org.rsdeob.stdlib.ir.transform.impl.LivenessAnalyser;
-
-import java.util.*;
 
 public class SSAGenerator {
 
@@ -200,8 +201,13 @@ public class SSAGenerator {
 					CopyVarStatement cvs = ((CopyVarStatement) s);
 					if(cvs.getExpression() instanceof PhiExpression) {
 						PhiExpression phi = (PhiExpression) cvs.getExpression();
-						Local l = phi.getLocal(j);
-						phi.setLocal(j, _top(s, l.getIndex(), l.isStack()));
+						Expression e = phi.getLocal(j);
+						if(e instanceof VarExpression) {
+							VersionedLocal l = (VersionedLocal) ((VarExpression) e).getLocal();
+							phi.setLocal(j, _top(s, l.getIndex(), l.isStack()));
+						} else {
+							throw new UnsupportedOperationException(e.toString());
+						}
 					}
 				}
 			}
@@ -303,7 +309,7 @@ public class SSAGenerator {
 						for(int i=0; i < count; i++) {
 							vls.add(handler.get(l.getIndex(), i, l.isStack()));
 						}
-						PhiExpression phi = new PhiExpression(vls);
+						PhiExpression phi = new PhiExpression(vls, null);
 						// VersionedLocal l2 = handler.get(l.getIndex(), count, l.isStack());
 						CopyVarStatement assign = new CopyVarStatement(new VarExpression(l, null), phi);
 						
