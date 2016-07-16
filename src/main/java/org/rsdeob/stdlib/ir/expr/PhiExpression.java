@@ -1,27 +1,24 @@
 package org.rsdeob.stdlib.ir.expr;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
 
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Type;
 import org.rsdeob.stdlib.cfg.util.TabbedStringWriter;
+import org.rsdeob.stdlib.ir.header.HeaderStatement;
 import org.rsdeob.stdlib.ir.locals.VersionedLocal;
 import org.rsdeob.stdlib.ir.stat.Statement;
 import org.rsdeob.stdlib.ir.transform.impl.CodeAnalytics;
 
 public class PhiExpression extends Expression {
 
-	private final List<Expression> locals;
+	private final Map<HeaderStatement, Expression> locals;
 	
-	public PhiExpression(List<VersionedLocal> locals, Type type) {
-		this.locals = new ArrayList<>();
-		for(VersionedLocal l : locals)  {
-			this.locals.add(new VarExpression(l, type));
-		}
-	}
-	
-	public PhiExpression(List<Expression> locals) {
+	public PhiExpression(Map<HeaderStatement, Expression> locals) {
 		this.locals = locals;
 	}
 	
@@ -29,20 +26,34 @@ public class PhiExpression extends Expression {
 		return locals.size();
 	}
 	
-	public List<Expression> getLocals() {
+	public Set<HeaderStatement> headers() {
+		return new HashSet<>(locals.keySet());
+	}
+	
+	public Map<HeaderStatement, Expression> getLocals() {
 		return locals;
 	}
 	
-	public Expression getLocal(int j) {
-		return locals.get(j);
+	public Expression getLocal(HeaderStatement header) {
+		return locals.get(header);
 	}
 	
-	public void setLocal(int j, Expression e) {
-		locals.set(j, e);
+	public void setLocal(HeaderStatement header, Expression e) {
+		if(!locals.containsKey(header)) {
+			locals.put(header, e);
+		} else {
+			throw new IllegalStateException("phi has a fixed size of " + locals.size() + ": " + header + ", " + e);
+		}
 	}
 	
-	public void setLocal(int j, VersionedLocal l) {
-		locals.set(j, new VarExpression(l, locals.get(j).getType()));
+	public void setLocal(HeaderStatement header, VersionedLocal l) {
+		if(!locals.containsKey(header)) {
+			Expression oldE = locals.get(header);
+			locals.put(header, new VarExpression(l, oldE.getType()));
+		} else {
+			System.err.println(locals);
+			throw new IllegalStateException("phi has a fixed size of " + locals.size() + ": " + header + ", " + l);
+		}
 	}
 	
 	@Override
@@ -52,11 +63,11 @@ public class PhiExpression extends Expression {
 
 	@Override
 	public Expression copy() {
-		List<Expression> locals = new ArrayList<>();
-		for(Expression e : this.locals) {
-			locals.add(e.copy());
+		Map<HeaderStatement, Expression> map = new HashMap<>();
+		for(Entry<HeaderStatement, Expression> e : locals.entrySet()) {
+			map.put(e.getKey(), e.getValue());
 		}
-		return new PhiExpression(locals);
+		return new PhiExpression(map);
 	}
 
 	@Override

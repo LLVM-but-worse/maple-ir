@@ -1,5 +1,13 @@
 package org.rsdeob.stdlib.ir;
 
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.*;
@@ -16,9 +24,6 @@ import org.rsdeob.stdlib.ir.header.HeaderStatement;
 import org.rsdeob.stdlib.ir.stat.*;
 import org.rsdeob.stdlib.ir.stat.ConditionalJumpStatement.ComparisonType;
 import org.rsdeob.stdlib.ir.stat.MonitorStatement.MonitorMode;
-
-import java.util.*;
-import java.util.Map.Entry;
 
 public class StatementGenerator implements Opcodes {
 
@@ -44,7 +49,7 @@ public class StatementGenerator implements Opcodes {
 	Set<BasicBlock> updatedStacks;
 	Set<BasicBlock> analysedBlocks;
 	LinkedList<BasicBlock> queue;
-	Map<BasicBlock, BlockHeaderStatement> headers;
+	private Map<BasicBlock, BlockHeaderStatement> headers;
 	CodeBody stmtList;
 	int stackBase;
 
@@ -58,7 +63,6 @@ public class StatementGenerator implements Opcodes {
 		analysedBlocks = new HashSet<>();
 		queue = new LinkedList<>();
 		headers = new HashMap<>();
-		// System.out.println(graph);
 	}
 	
 	public void init(int base) {
@@ -67,7 +71,7 @@ public class StatementGenerator implements Opcodes {
 		stmtList = new CodeBody(m.maxLocals);
 		
 		for (BasicBlock b : graph.vertices()) {
-			headers.put(b, new BlockHeaderStatement(b));
+			getHeaders().put(b, new BlockHeaderStatement(b));
 		}
 		
 		queueEntryBlocks();
@@ -100,7 +104,7 @@ public class StatementGenerator implements Opcodes {
 
 	public CodeBody buildRoot() {
 		for (BasicBlock b : graph.vertices()) {
-			stmtList.add(headers.get(b));
+			stmtList.add(getHeaders().get(b));
 			for (Statement n : b.getStatements()) {
 				stmtList.add(n);
 			}
@@ -597,7 +601,7 @@ public class StatementGenerator implements Opcodes {
 	
 	void _jump_compare(BasicBlock target, ComparisonType type, Expression left, Expression right) {
 		update_target_stack(currentBlock, target, currentStack);
-		addStmt(new ConditionalJumpStatement(left, right, headers.get(target), type));
+		addStmt(new ConditionalJumpStatement(left, right, getHeaders().get(target), type));
 	}
 	
 	void _jump_compare(BasicBlock target, ComparisonType type) {
@@ -622,7 +626,7 @@ public class StatementGenerator implements Opcodes {
 
 	void _jump_uncond(BasicBlock target) {
 		update_target_stack(currentBlock, target, currentStack);
-		addStmt(new UnconditionalJumpStatement(headers.get(target)));
+		addStmt(new UnconditionalJumpStatement(getHeaders().get(target)));
 	}
 
 	void _entry(BasicBlock entry) {
@@ -1085,12 +1089,12 @@ public class StatementGenerator implements Opcodes {
 		Expression expr = pop();
 		for (Entry<Integer, BasicBlock> e : targets.entrySet()) {
 			update_target_stack(currentBlock, e.getValue(), currentStack);
-			targets2.put(e.getKey(), headers.get(e.getValue()));
+			targets2.put(e.getKey(), getHeaders().get(e.getValue()));
 		}
 		
 		update_target_stack(currentBlock, dflt, currentStack);
 		
-		addStmt(new SwitchStatement(expr, targets2, headers.get(dflt)));
+		addStmt(new SwitchStatement(expr, targets2, getHeaders().get(dflt)));
 	}
 
 	void _store_field(int opcode, String owner, String name, String desc) {
@@ -1152,5 +1156,9 @@ public class StatementGenerator implements Opcodes {
 	
 	VarExpression _var_expr(int index, Type type, boolean isStack) {
 		return new VarExpression(stmtList.getLocals().get(index, isStack), type);
+	}
+
+	public Map<BasicBlock, BlockHeaderStatement> getHeaders() {
+		return headers;
 	}
 }
