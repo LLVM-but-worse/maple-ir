@@ -71,6 +71,23 @@ public class SSAPropagator extends Transformer {
 	public int run() {
 		AtomicInteger changes = new AtomicInteger();
 		for(Statement stmt : new HashSet<>(code)) {
+			
+			if(stmt instanceof PopStatement) {
+				PopStatement pop = (PopStatement) stmt;
+				Expression expr = pop.getExpression();
+				if(expr instanceof VarExpression) {
+					VarExpression var = (VarExpression) expr;
+					Local l = var.getLocal();
+					useCount.get(l).decrementAndGet();
+					code.remove(pop);
+					graph.excavate(pop);
+				} else if(expr instanceof ConstantExpression) {
+					code.remove(pop);
+					graph.excavate(pop);
+				}
+				continue;
+			}
+			
 			new StatementVisitor(stmt) {
 				
 				@Override
@@ -99,28 +116,39 @@ public class SSAPropagator extends Transformer {
 							
 							if(expr instanceof ConstantExpression) {
 								useCount.get(l).decrementAndGet();
+								System.out.println("Propagating " + expr + " into " + stmt);
 								return expr;
 							} else if(expr instanceof VarExpression) {
 								VarExpression var = (VarExpression) expr;
 								useCount.get(var.getLocal()).incrementAndGet();
-								useCount.get(l).decrementAndGet();
+								if(useCount.get(l).decrementAndGet() == 0) {
+									removeDef(def, false);
+									useCount.remove(l);
+								}
+								System.out.println("Propagating " + expr + " into " + stmt);
 								return var;
 							} else if(!(expr instanceof CaughtExceptionExpression)) {
 								Expression e = transform(stmt, s, def);
 								if(e != null) {
 									if(e instanceof VarExpression) {
 										useCount.get(((VarExpression) e).getLocal()).incrementAndGet();
-										useCount.get(l).decrementAndGet();
+										if(useCount.get(l).decrementAndGet() == 0) {
+											removeDef(def, false);
+											useCount.remove(l);
+										}
+										System.out.println("Propagating " + e + " into " + stmt);
 										return e;
 									} else if(e instanceof InvocationExpression || e instanceof InitialisedObjectExpression || e instanceof UninitialisedObjectExpression) {
 										if(useCount.get(l).get() == 1) {
 											useCount.get(l).decrementAndGet();
 											removeDef(def, false);
 											useCount.remove(l);
+											System.out.println("Propagating " + e + " into " + stmt);
 											return e;
 										}
 									} else {
 										useCount.get(l).decrementAndGet();
+										System.out.println("Propagating " + e + " into " + stmt);
 										return e;
 									}
 								} else {
@@ -162,6 +190,8 @@ public class SSAPropagator extends Transformer {
 			} else {
 				code.remove(def);
 			}
+			
+			graph.excavate(def);
 			
 			System.out.println("Removed dead def: " + def);
 			return true;
@@ -205,6 +235,12 @@ public class SSAPropagator extends Transformer {
 		
 		Set<Statement> path = graph.wanderAllTrails(def, use);
 		path.remove(def);
+		path.add(use);
+		
+		System.out.println("Path:");
+		for(Statement stmt : path) {
+			System.out.println("    " + stmt);
+		}
 		
 		boolean canPropagate = true;
 		
@@ -245,14 +281,26 @@ public class SSAPropagator extends Transformer {
 			}
 			
 			AtomicBoolean canPropagate2 = new AtomicBoolean(canPropagate);
+			AtomicBoolean breakk = new AtomicBoolean(false);
 			if(invoke.get() || array.get() || !fieldsUsed.isEmpty()) {
 				new StatementVisitor(stmt) {
 					@Override
 					public Statement visit(Statement s) {
-						System.out.println("root==use: " + (root == use));
-						System.out.println("   root:  " + root);
-						System.out.println("   use:   " + use);
+						if(use.toString().equals("svar0_5 = svar0_3.append(a.a.a.d.H(\"O\")).append(lvar2_0);")) {
+							// System.out.println(code);
+							 System.out.println("root==use: " + (root == use));
+							 System.out.println("   fullcond: " + (root == use && (s instanceof VarExpression && ((VarExpression) s).getLocal() == local)));
+							 System.out.println("   s: " + s);
+							 System.out.println("   l: " + local);
+							 System.out.println("   root:  " + root);
+							 System.out.println("   use:   " + use);
+							 System.out.println("   inst: " + this.hashCode());
+							// System.exit(1);
+						}
+						
 						if(root == use && (s instanceof VarExpression && ((VarExpression) s).getLocal() == local)) {
+							// System.out.println("Breaking " + this.hashCode());
+							breakk.set(true);
 							_break();
 						} else {
 							if((s instanceof InvocationExpression || s instanceof InitialisedObjectExpression) || (invoke.get() && (s instanceof FieldStoreStatement || s instanceof ArrayStoreStatement))) {
@@ -268,6 +316,10 @@ public class SSAPropagator extends Transformer {
 				if(!canPropagate) {
 					return null;
 				}
+			}
+			
+			if(breakk.get()) {
+//				break;
 			}
 		}
 		
