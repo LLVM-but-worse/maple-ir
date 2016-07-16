@@ -1,15 +1,5 @@
 package org.rsdeob;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.InputStream;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
@@ -25,10 +15,13 @@ import org.rsdeob.stdlib.ir.header.HeaderStatement;
 import org.rsdeob.stdlib.ir.locals.Local;
 import org.rsdeob.stdlib.ir.stat.CopyVarStatement;
 import org.rsdeob.stdlib.ir.stat.Statement;
+import org.rsdeob.stdlib.ir.transform.SSATransformer;
 import org.rsdeob.stdlib.ir.transform.Transformer;
 import org.rsdeob.stdlib.ir.transform.impl.CodeAnalytics;
 import org.rsdeob.stdlib.ir.transform.impl.DefinitionAnalyser;
 import org.rsdeob.stdlib.ir.transform.impl.LivenessAnalyser;
+import org.rsdeob.stdlib.ir.transform.ssa.SSAInitialiserAggregator;
+import org.rsdeob.stdlib.ir.transform.ssa.SSALocalAccess;
 import org.rsdeob.stdlib.ir.transform.ssa.SSAPropagator;
 
 import java.io.File;
@@ -77,7 +70,7 @@ public class AnalyticsTest {
 			System.out.println(code);
 			System.out.println();
 
-			SSAGenerator ssagen = new SSAGenerator(code, cfg);
+			SSAGenerator ssagen = new SSAGenerator(code, cfg, gen.getHeaders());
 			ssagen.run();
 			
 			System.out.println("SSA:");
@@ -86,10 +79,23 @@ public class AnalyticsTest {
 			System.out.println();
 
 			StatementGraph sgraph = StatementGraphBuilder.create(cfg);
-
-			SSAPropagator prop = new SSAPropagator(code, sgraph);
-			while(prop.run() > 0);
-
+			SSALocalAccess localAccess = new SSALocalAccess(code);
+			
+			SSATransformer[] transforms = new SSATransformer[]{
+				new SSAPropagator(code, sgraph, localAccess),
+				new SSAInitialiserAggregator(code, localAccess)
+			};
+			
+			while(true) {
+				int change = 0;
+				for(SSATransformer t : transforms) {
+					change += t.run();
+				}
+				if(change <= 0) {
+					break;
+				}
+			}
+			
 			System.out.println();
 			System.out.println();
 			System.out.println("Optimised SSA:");
