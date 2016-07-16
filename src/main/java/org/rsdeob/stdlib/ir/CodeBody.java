@@ -1,13 +1,17 @@
 package org.rsdeob.stdlib.ir;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.List;
+import java.util.ListIterator;
+import java.util.concurrent.CopyOnWriteArrayList;
+
 import org.rsdeob.stdlib.cfg.util.TabbedStringWriter;
 import org.rsdeob.stdlib.ir.api.ICodeListener;
 import org.rsdeob.stdlib.ir.header.StatementHeaderStatement;
 import org.rsdeob.stdlib.ir.locals.LocalsHandler;
 import org.rsdeob.stdlib.ir.stat.Statement;
-
-import java.util.*;
-import java.util.concurrent.CopyOnWriteArrayList;
 
 public class CodeBody implements List<Statement> {
 
@@ -101,11 +105,6 @@ public class CodeBody implements List<Statement> {
 
 	@Override
 	public void add(int index, Statement stmt) {
-//		if(!contains(s)) {
-//			stmts.add(index, s);
-//			for(ICodeListener<Statement> l : listeners)
-//				l.update(s);
-//		}
 		Statement p = stmts.get(index);
 		Statement s = stmts.get(index + 1);
 		stmts.add(index, stmt);
