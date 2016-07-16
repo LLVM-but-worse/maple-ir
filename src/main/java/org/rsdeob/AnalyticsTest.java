@@ -1,5 +1,15 @@
 package org.rsdeob;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.InputStream;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
@@ -32,7 +42,7 @@ public class AnalyticsTest {
 	public static boolean debug = true;
 	
 	public static void main(String[] args) throws Throwable {
-		InputStream i = new FileInputStream(new File("res/LocalsTest.class"));
+		InputStream i = new FileInputStream(new File("res/a.class"));
 		ClassReader cr = new ClassReader(i);
 		ClassNode cn = new ClassNode();
 		cr.accept(cn, 0);
@@ -41,9 +51,10 @@ public class AnalyticsTest {
 		while(it.hasNext()) {
 			MethodNode m = it.next();
 
-			if(!m.toString().equals("LocalsTest.main([Ljava/lang/String;)V")) {
+			if(!m.toString().equals("a/a/f/a.<init>()V")) {
 				continue;
 			}
+//			LocalsTest.main([Ljava/lang/String;)V
 //			org/rsdeob/AnalyticsTest.tryidiots(I)V
 //			a/a/f/a.<init>()V
 //			a/a/f/a.H(J)La/a/f/o;
