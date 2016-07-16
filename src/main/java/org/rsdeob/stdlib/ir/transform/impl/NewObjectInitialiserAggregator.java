@@ -8,11 +8,11 @@ import org.rsdeob.stdlib.ir.locals.Local;
 import org.rsdeob.stdlib.ir.stat.CopyVarStatement;
 import org.rsdeob.stdlib.ir.stat.PopStatement;
 import org.rsdeob.stdlib.ir.stat.Statement;
-import org.rsdeob.stdlib.ir.transform.Transformer;
+import org.rsdeob.stdlib.ir.transform.SimpleTransformer;
 
 import java.util.*;
 
-public class NewObjectInitialiserAggregator extends Transformer {
+public class NewObjectInitialiserAggregator extends SimpleTransformer {
 
 	public NewObjectInitialiserAggregator(CodeBody code, CodeAnalytics analytics) {
 		super(code, analytics);

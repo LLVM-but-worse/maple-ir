@@ -101,11 +101,6 @@ public class CodeBody implements List<Statement> {
 
 	@Override
 	public void add(int index, Statement stmt) {
-//		if(!contains(s)) {
-//			stmts.add(index, s);
-//			for(ICodeListener<Statement> l : listeners)
-//				l.update(s);
-//		}
 		Statement p = stmts.get(index);
 		Statement s = stmts.get(index + 1);
 		stmts.add(index, stmt);
