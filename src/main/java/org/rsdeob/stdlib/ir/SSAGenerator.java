@@ -208,7 +208,13 @@ public class SSAGenerator {
 						Expression e = phi.getLocal(header);
 						if(e instanceof VarExpression) {
 							VersionedLocal l = (VersionedLocal) ((VarExpression) e).getLocal();
-							phi.setLocal(header, _top(s, l.getIndex(), l.isStack()));
+							try {
+								phi.setLocal(header, _top(s, l.getIndex(), l.isStack()));
+							} catch (IllegalStateException eg) {
+								System.err.println(body);
+								System.err.println(succ.getId() + ": " + phi.getId() + ". " + phi);
+								throw eg;
+							}
 						} else {
 							throw new UnsupportedOperationException(String.valueOf(e));
 						}
