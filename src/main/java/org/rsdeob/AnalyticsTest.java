@@ -29,10 +29,13 @@ import org.rsdeob.stdlib.ir.header.HeaderStatement;
 import org.rsdeob.stdlib.ir.locals.Local;
 import org.rsdeob.stdlib.ir.stat.CopyVarStatement;
 import org.rsdeob.stdlib.ir.stat.Statement;
+import org.rsdeob.stdlib.ir.transform.SSATransformer;
 import org.rsdeob.stdlib.ir.transform.Transformer;
 import org.rsdeob.stdlib.ir.transform.impl.CodeAnalytics;
 import org.rsdeob.stdlib.ir.transform.impl.DefinitionAnalyser;
 import org.rsdeob.stdlib.ir.transform.impl.LivenessAnalyser;
+import org.rsdeob.stdlib.ir.transform.ssa.SSAInitialiserAggregator;
+import org.rsdeob.stdlib.ir.transform.ssa.SSALocalAccess;
 import org.rsdeob.stdlib.ir.transform.ssa.SSAPropagator;
 
 public class AnalyticsTest {
@@ -74,7 +77,7 @@ public class AnalyticsTest {
 			System.out.println(code);
 			System.out.println();
 
-			SSAGenerator ssagen = new SSAGenerator(code, cfg);
+			SSAGenerator ssagen = new SSAGenerator(code, cfg, gen.getHeaders());
 			ssagen.run();
 			
 			System.out.println("SSA:");
@@ -83,10 +86,23 @@ public class AnalyticsTest {
 			System.out.println();
 
 			StatementGraph sgraph = StatementGraphBuilder.create(cfg);
-
-			SSAPropagator prop = new SSAPropagator(code, sgraph);
-			while(prop.run() > 0);
-
+			SSALocalAccess localAccess = new SSALocalAccess(code);
+			
+			SSATransformer[] transforms = new SSATransformer[]{
+				new SSAPropagator(code, sgraph, localAccess),
+				new SSAInitialiserAggregator(code, localAccess)
+			};
+			
+			while(true) {
+				int change = 0;
+				for(SSATransformer t : transforms) {
+					change += t.run();
+				}
+				if(change <= 0) {
+					break;
+				}
+			}
+			
 			System.out.println();
 			System.out.println();
 			System.out.println("Optimised SSA:");

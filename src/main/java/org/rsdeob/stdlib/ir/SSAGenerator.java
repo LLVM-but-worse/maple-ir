@@ -12,6 +12,8 @@ import org.rsdeob.stdlib.collections.graph.flow.TarjanDominanceComputor;
 import org.rsdeob.stdlib.ir.expr.Expression;
 import org.rsdeob.stdlib.ir.expr.PhiExpression;
 import org.rsdeob.stdlib.ir.expr.VarExpression;
+import org.rsdeob.stdlib.ir.header.BlockHeaderStatement;
+import org.rsdeob.stdlib.ir.header.HeaderStatement;
 import org.rsdeob.stdlib.ir.locals.Local;
 import org.rsdeob.stdlib.ir.locals.LocalsHandler;
 import org.rsdeob.stdlib.ir.locals.VersionedLocal;
@@ -56,6 +58,7 @@ public class SSAGenerator {
 	
 	final LocalsHandler handler;
 	final CodeBody body;
+	final Map<BasicBlock, BlockHeaderStatement> headers;
 	
 	final ControlFlowGraph cfg;
 	final TarjanDominanceComputor<BasicBlock> doms;
@@ -75,9 +78,11 @@ public class SSAGenerator {
 	
 	final LivenessAnalyser liveness;
 	
-	public SSAGenerator(CodeBody body, ControlFlowGraph cfg) {
+	public SSAGenerator(CodeBody body, ControlFlowGraph cfg, Map<BasicBlock, BlockHeaderStatement> headers) {
 		this.body = body;
 		this.cfg = cfg;
+		this.headers = headers;
+		
 		handler = body.getLocals();
 		
 		translation = new HashMap<>();
@@ -193,20 +198,21 @@ public class SSAGenerator {
 		
 		for(FlowEdge<BasicBlock> succE : succs) {
 			BasicBlock succ = succE.dst;
-			int j = pred(b, succ);
-			System.out.printf("block=%s, succ=%s, j=%d.%n", b.getId(), succ.getId(), j);
+			HeaderStatement header = headers.get(b);
+			// int j = pred(b, succ);
+			// System.out.printf("block=%s, succ=%s, j=%d.%n", b.getId(), succ.getId(), j);
 			
 			for(Statement s : succ.getStatements())  {
 				if(s instanceof CopyVarStatement) {
 					CopyVarStatement cvs = ((CopyVarStatement) s);
 					if(cvs.getExpression() instanceof PhiExpression) {
 						PhiExpression phi = (PhiExpression) cvs.getExpression();
-						Expression e = phi.getLocal(j);
+						Expression e = phi.getLocal(header);
 						if(e instanceof VarExpression) {
 							VersionedLocal l = (VersionedLocal) ((VarExpression) e).getLocal();
-							phi.setLocal(j, _top(s, l.getIndex(), l.isStack()));
+							phi.setLocal(header, _top(s, l.getIndex(), l.isStack()));
 						} else {
-							throw new UnsupportedOperationException(e.toString());
+							throw new UnsupportedOperationException(String.valueOf(e));
 						}
 					}
 				}
@@ -305,12 +311,14 @@ public class SSAGenerator {
 					}
 					// pruned SSA
 					if(liveness.in(first).get(l)) {
-						List<VersionedLocal> vls = new ArrayList<>();
-						for(int i=0; i < count; i++) {
-							vls.add(handler.get(l.getIndex(), i, l.isStack()));
+						Map<HeaderStatement, Expression> vls = new HashMap<>();
+						int subscript = 0;
+						for(FlowEdge<BasicBlock> fe : cfg.getReverseEdges(x)) {
+							BasicBlock pred = fe.src;
+							HeaderStatement header = headers.get(pred);
+							vls.put(header, new VarExpression(handler.get(l.getIndex(), subscript++, l.isStack()), null));
 						}
-						PhiExpression phi = new PhiExpression(vls, null);
-						// VersionedLocal l2 = handler.get(l.getIndex(), count, l.isStack());
+						PhiExpression phi = new PhiExpression(vls);
 						CopyVarStatement assign = new CopyVarStatement(new VarExpression(l, null), phi);
 						
 						body.add(body.indexOf(stmts.get(0)), assign);
