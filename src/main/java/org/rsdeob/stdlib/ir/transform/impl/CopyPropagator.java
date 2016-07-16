@@ -6,12 +6,12 @@ import org.rsdeob.stdlib.ir.StatementVisitor;
 import org.rsdeob.stdlib.ir.expr.*;
 import org.rsdeob.stdlib.ir.locals.Local;
 import org.rsdeob.stdlib.ir.stat.*;
-import org.rsdeob.stdlib.ir.transform.Transformer;
+import org.rsdeob.stdlib.ir.transform.SimpleTransformer;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public class CopyPropagator extends Transformer {
+public class CopyPropagator extends SimpleTransformer {
 
 	private int changedStmts;
 	
