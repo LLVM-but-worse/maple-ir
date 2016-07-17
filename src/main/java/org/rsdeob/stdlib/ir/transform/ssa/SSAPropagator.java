@@ -65,6 +65,9 @@ public class SSAPropagator extends SSATransformer {
 		AtomicInteger changes = new AtomicInteger();
 		for(Statement stmt : new HashSet<>(code)) {
 			
+			if(!code.contains(stmt))
+				continue;
+			
 			if(stmt instanceof PopStatement) {
 				PopStatement pop = (PopStatement) stmt;
 				Expression expr = pop.getExpression();
@@ -276,14 +279,32 @@ public class SSAPropagator extends SSATransformer {
 		}
 
 		if (expr instanceof ConstantExpression) {
-			System.out.println("(1)Propagating " + expr + " into " + stmt + ", uses=" + localAccess.useCount.get(l).get());
+			System.out.printf("(1)Propagating %s into %s, def: %s, l: %s, useCount=%d.%n", expr, stmt, def, l, localAccess.useCount.get(l).get());
+			System.out.println(" containsstmt: " + code.contains(stmt));
 			varReplaced(def, l, null);
 			System.out.println("  After uses: " + (localAccess.useCount.containsKey(l) ? localAccess.useCount.get(l).get() : 0));
+			if(l.toString().equals("svar0_3")) {
+
+				System.out.println(code);
+				System.out.println();
+			}
 			return expr;
 		} else if (expr instanceof VarExpression) {
 			if(((VarExpression) expr).getLocal() != l) {
-				System.out.println("(2)Propagating " + expr + " into " + stmt + " , " + def);
+				System.out.printf("(2)Propagating %s into %s, def: %s, l: %s, useCount=%d.%n", expr, stmt, def, l, localAccess.useCount.get(l).get());
+				if(((VarExpression) expr).getLocal().toString().equals("svar0_3")) {
+					System.out.println("presvar03: " + localAccess.useCount.get(((VarExpression) expr).getLocal()).get());
+				}
 				varReplaced(def, l, expr);
+				System.out.println("  after: " + (localAccess.useCount.containsKey(l) ? localAccess.useCount.get(l).get() : 0));
+				if(l.toString().equals("svar0_3")) {
+					System.out.println(code);
+					System.out.println();
+				} else if(((VarExpression) expr).getLocal().toString().equals("svar0_3")) {
+					System.out.println("postsvar03: " + localAccess.useCount.get(((VarExpression) expr).getLocal()).get());
+					System.out.println(code);
+					System.out.println();
+				}
 				return expr;
 			}
 		} else if (!(expr instanceof CaughtExceptionExpression)) {
@@ -312,9 +333,9 @@ public class SSAPropagator extends SSATransformer {
 							return e;
 						}
 					} else {
-						System.out.printf("(6)Propagating %s into %s, newExpr=%s, l=%s, uses=%d.%n", def, stmt, e, l, localAccess.useCount.get(code.getLocals().get(2, 1, false)).get());
-						varReplaced(def, l, localAccess.useCount.get(l).get() > 1 ? e : null);
-						System.out.printf("  After(6)uses=%d.%n", localAccess.useCount.get(code.getLocals().get(2, 1, false)).get());
+						System.out.printf("(6)Propagating %s into %s, newExpr=%s, l=%s, uses=%d.%n", def, stmt, e, l, localAccess.useCount.get(l).get());
+						varReplaced(def, l, e);
+						System.out.printf("  After(6)uses=%d.%n", (localAccess.useCount.containsKey(l) ? localAccess.useCount.get(l).get() : 0));
 						return e;
 					}
 				}
