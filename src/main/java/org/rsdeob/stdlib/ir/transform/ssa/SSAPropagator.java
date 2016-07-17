@@ -21,7 +21,7 @@ public class SSAPropagator extends SSATransformer {
 
 	private final StatementGraph graph;
 
-	public SSAPropagator(CodeBody code, StatementGraph graph, SSALocalAccess localAccess) {
+	public SSAPropagator(CodeBody code, SSALocalAccess localAccess, StatementGraph graph) {
 		super(code, localAccess);
 		this.graph = graph;
 	}
