@@ -39,7 +39,7 @@ public class PhiExpression extends Expression {
 	}
 	
 	public void setLocal(HeaderStatement header, Expression e) {
-		if(!locals.containsKey(header)) {
+		if(locals.containsKey(header)) {
 			locals.put(header, e);
 		} else {
 			throw new IllegalStateException("phi has a fixed size of " + locals.size() + ": " + header + ", " + e);
@@ -47,7 +47,7 @@ public class PhiExpression extends Expression {
 	}
 	
 	public void setLocal(HeaderStatement header, VersionedLocal l) {
-		if(!locals.containsKey(header)) {
+		if(locals.containsKey(header)) {
 			Expression oldE = locals.get(header);
 			locals.put(header, new VarExpression(l, oldE.getType()));
 		} else {
