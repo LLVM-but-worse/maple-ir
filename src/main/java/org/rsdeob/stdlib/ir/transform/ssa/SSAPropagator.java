@@ -20,12 +20,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class SSAPropagator extends SSATransformer {
 
 	private final StatementGraph graph;
-	private final SSALocalAccess localAccess;
 
 	public SSAPropagator(CodeBody code, StatementGraph graph, SSALocalAccess localAccess) {
 		super(code, localAccess);
 		this.graph = graph;
-		this.localAccess = localAccess;
 	}
 
 	@Override
