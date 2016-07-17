@@ -56,7 +56,7 @@ public class AnalyticsTest {
 		while(it.hasNext()) {
 			MethodNode m = it.next();
 
-			if(!m.toString().equals("a/a/f/a.<init>()V")) {
+			if(!m.toString().equals("a/a/f/a.H(J)La/a/f/o;")) {
 				continue;
 			}
 //			LocalsTest.main([Ljava/lang/String;)V
