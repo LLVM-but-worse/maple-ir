@@ -1,5 +1,18 @@
 package org.rsdeob;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
+
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
@@ -9,10 +22,15 @@ import org.rsdeob.stdlib.cfg.ControlFlowGraphBuilder;
 import org.rsdeob.stdlib.cfg.util.ControlFlowGraphDeobfuscator;
 import org.rsdeob.stdlib.cfg.util.GraphUtils;
 import org.rsdeob.stdlib.collections.graph.util.DotExporter;
-import org.rsdeob.stdlib.ir.*;
+import org.rsdeob.stdlib.ir.CodeBody;
+import org.rsdeob.stdlib.ir.SSAGenerator;
+import org.rsdeob.stdlib.ir.StatementGenerator;
+import org.rsdeob.stdlib.ir.StatementGraph;
+import org.rsdeob.stdlib.ir.StatementGraphBuilder;
 import org.rsdeob.stdlib.ir.export.SGDotExporter;
 import org.rsdeob.stdlib.ir.header.HeaderStatement;
 import org.rsdeob.stdlib.ir.locals.Local;
+import org.rsdeob.stdlib.ir.locals.VersionedLocal;
 import org.rsdeob.stdlib.ir.stat.CopyVarStatement;
 import org.rsdeob.stdlib.ir.stat.Statement;
 import org.rsdeob.stdlib.ir.transform.SSATransformer;
@@ -23,12 +41,6 @@ import org.rsdeob.stdlib.ir.transform.impl.LivenessAnalyser;
 import org.rsdeob.stdlib.ir.transform.ssa.SSAInitialiserAggregator;
 import org.rsdeob.stdlib.ir.transform.ssa.SSALocalAccess;
 import org.rsdeob.stdlib.ir.transform.ssa.SSAPropagator;
-
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.InputStream;
-import java.util.*;
-import java.util.Map.Entry;
 
 public class AnalyticsTest {
 
@@ -86,20 +98,55 @@ public class AnalyticsTest {
 				new SSAInitialiserAggregator(code, localAccess, sgraph)
 			};
 			
-			while(true) {
-				int change = 0;
-				for(SSATransformer t : transforms) {
-					change += t.run();
+			try {
+				while(true) {
+					int change = 0;
+					for(SSATransformer t : transforms) {
+						change += t.run();
+					}
+					if(change <= 0) {
+						break;
+					}
 				}
-				if(change <= 0) {
-					break;
-				}
+			} catch (Exception e) {
+				e.printStackTrace();
+				// TODO: handle exception
 			}
 			
 			System.out.println();
 			System.out.println();
 			System.out.println("Optimised SSA:");
 			System.out.println(code);
+			
+//			for(Statement stmt : code) {
+//				if(stmt._getId() == 121) {
+//					new StatementVisitor(stmt) {
+//						@Override
+//						public Statement visit(Statement stmt) {
+//							System.out.println(stmt);
+//							return stmt;
+//						}
+//					}.visit();
+//				}
+//			}
+			
+//			System.out.println(localAccess.defs);
+			SSALocalAccess real = new SSALocalAccess(code);
+			Set<VersionedLocal> set = new HashSet<>(real.useCount.keySet());
+			set.addAll(localAccess.useCount.keySet());
+			List<VersionedLocal> keys = new ArrayList<>(set);
+			Collections.sort(keys);
+			for(VersionedLocal e : keys) {
+				AtomicInteger i1 = real.useCount.get(e);
+				AtomicInteger i2 = localAccess.useCount.get(e);
+				if(i1 == null) {
+					System.err.println("Real no contain: " + e + ", other: " + i2.get());
+				} else if(i2 == null) {
+					System.err.println("Current no contain: " + e + ", other: " + i1.get());
+				} else if(i1.get() != i2.get()) {
+					System.err.println("Mismatch: " + e + " " + i1.get() + ":" + i2.get());
+				}
+			}
 		}
 	}
 
