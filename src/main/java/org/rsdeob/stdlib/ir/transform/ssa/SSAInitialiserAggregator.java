@@ -4,7 +4,6 @@ import org.objectweb.asm.Opcodes;
 import org.rsdeob.stdlib.ir.CodeBody;
 import org.rsdeob.stdlib.ir.StatementGraph;
 import org.rsdeob.stdlib.ir.expr.*;
-import org.rsdeob.stdlib.ir.locals.Local;
 import org.rsdeob.stdlib.ir.locals.VersionedLocal;
 import org.rsdeob.stdlib.ir.stat.CopyVarStatement;
 import org.rsdeob.stdlib.ir.stat.PopStatement;
