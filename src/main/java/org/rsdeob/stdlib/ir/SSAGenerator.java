@@ -1,5 +1,14 @@
 package org.rsdeob.stdlib.ir;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.Stack;
+
 import org.rsdeob.stdlib.cfg.BasicBlock;
 import org.rsdeob.stdlib.cfg.ControlFlowGraph;
 import org.rsdeob.stdlib.cfg.edge.DummyEdge;
@@ -17,10 +26,7 @@ import org.rsdeob.stdlib.ir.locals.LocalsHandler;
 import org.rsdeob.stdlib.ir.locals.VersionedLocal;
 import org.rsdeob.stdlib.ir.stat.CopyVarStatement;
 import org.rsdeob.stdlib.ir.stat.Statement;
-import org.rsdeob.stdlib.ir.stat.SyntheticCopyStatement;
 import org.rsdeob.stdlib.ir.transform.impl.LivenessAnalyser;
-
-import java.util.*;
 
 public class SSAGenerator {
 
@@ -231,7 +237,7 @@ public class SSAGenerator {
 		for(Statement s : b.getStatements())  {
 			if(s instanceof CopyVarStatement) {
 				CopyVarStatement cvs = (CopyVarStatement) s;
-				if(cvs instanceof SyntheticCopyStatement) {
+				if(cvs.isSynthetic()) {
 					Local l = cvs.getVariable().getLocal();
 					l = handler.get(l.getIndex(), l.isStack());
 					stacks.get(l).pop();

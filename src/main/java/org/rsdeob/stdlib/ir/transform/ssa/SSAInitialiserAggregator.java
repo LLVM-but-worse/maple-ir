@@ -64,11 +64,11 @@ public class SSAInitialiserAggregator extends SSATransformer {
 								code.remove(pop);
 								graph.excavate(pop);
 								
+								System.out.println("After aggr for " + newCvs);
+								System.out.println(code);
 								// replace pop(x.<init>()) with x := new Klass();
 								// remove x := new Klass;
 							}
-						} else if (inst instanceof MethodArgExpression && ((MethodArgExpression) inst).isThisRef()) {
-							// it should be acceptable to do nothing here
 						} else {
 							System.err.println(code);
 							System.err.println(stmt.getId() + ". " + stmt);

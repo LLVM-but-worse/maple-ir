@@ -1,5 +1,9 @@
 package org.rsdeob.stdlib.ir.transform.ssa;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
+
 import org.rsdeob.stdlib.collections.NullPermeableHashMap;
 import org.rsdeob.stdlib.collections.ValueCreator;
 import org.rsdeob.stdlib.ir.CodeBody;
@@ -10,11 +14,6 @@ import org.rsdeob.stdlib.ir.expr.VarExpression;
 import org.rsdeob.stdlib.ir.locals.VersionedLocal;
 import org.rsdeob.stdlib.ir.stat.CopyVarStatement;
 import org.rsdeob.stdlib.ir.stat.Statement;
-import org.rsdeob.stdlib.ir.stat.SyntheticCopyStatement;
-
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
 
 public class SSALocalAccess {
 
@@ -41,7 +40,7 @@ public class SSALocalAccess {
 				// since they have no uses, they are never found by the below
 				// visitor, so we touch the local in map here to mark it.
 				useCount.getNonNull(local); 
-				synth = d instanceof SyntheticCopyStatement;
+				synth = d.isSynthetic();
 			}
 			
 			if(!synth) {

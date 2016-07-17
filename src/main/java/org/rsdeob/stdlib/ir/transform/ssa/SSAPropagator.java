@@ -2,6 +2,7 @@ package org.rsdeob.stdlib.ir.transform.ssa;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -10,7 +11,6 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.rsdeob.stdlib.cfg.BasicBlock;
 import org.rsdeob.stdlib.cfg.edge.DummyEdge;
 import org.rsdeob.stdlib.collections.NullPermeableHashMap;
 import org.rsdeob.stdlib.collections.SetCreator;
@@ -37,7 +37,6 @@ import org.rsdeob.stdlib.ir.stat.FieldStoreStatement;
 import org.rsdeob.stdlib.ir.stat.MonitorStatement;
 import org.rsdeob.stdlib.ir.stat.PopStatement;
 import org.rsdeob.stdlib.ir.stat.Statement;
-import org.rsdeob.stdlib.ir.stat.SyntheticCopyStatement;
 import org.rsdeob.stdlib.ir.transform.SSATransformer;
 
 public class SSAPropagator extends SSATransformer {
@@ -90,6 +89,33 @@ public class SSAPropagator extends SSATransformer {
 					if(vis != node) {
 						stmt.overwrite(vis, addr);
 						changes.incrementAndGet();
+						
+						{
+							SSALocalAccess real = new SSALocalAccess(code);
+							Set<VersionedLocal> set = new HashSet<>(real.useCount.keySet());
+							set.addAll(localAccess.useCount.keySet());
+							List<VersionedLocal> keys = new ArrayList<>(set);
+							Collections.sort(keys);
+							boolean b = false;
+							for(VersionedLocal e : keys) {
+								AtomicInteger i1 = real.useCount.get(e);
+								AtomicInteger i2 = localAccess.useCount.get(e);
+								if(i1 == null) {
+									b = true;
+									System.err.println("Real no contain: " + e + ", other: " + i2.get());
+								} else if(i2 == null) {
+									b = true;
+									System.err.println("Current no contain: " + e + ", other: " + i1.get());
+								} else if(i1.get() != i2.get()) {
+									b = true;
+									System.err.println("Mismatch: " + e + " " + i1.get() + ":" + i2.get());
+								}
+							}
+							
+							if(b) {
+								throw new RuntimeException(code.toString());
+							}
+						}
 					}
 				}
 
@@ -108,6 +134,7 @@ public class SSAPropagator extends SSATransformer {
 								e = transform(stmt, (VarExpression) e);
 								if(e != null) {
 									phi.setLocal(header, e);
+									changes.incrementAndGet();
 								}
 							}
 						}
@@ -182,6 +209,8 @@ public class SSAPropagator extends SSATransformer {
 							}
 						}.visit();
 					}
+
+					changes.incrementAndGet();
 				}
 			}
 		}
@@ -202,6 +231,32 @@ public class SSAPropagator extends SSATransformer {
 
 		return changes.get();
 	}
+	
+	private void countUses(Statement s) {
+		if(s instanceof VarExpression) {
+			localAccess.useCount.get(((VarExpression) s).getLocal()).incrementAndGet();
+		} else {
+			new StatementVisitor(s) {
+				@Override
+				public Statement visit(Statement stmt) {
+					if(stmt instanceof VarExpression) {
+						localAccess.useCount.get(((VarExpression) stmt).getLocal()).incrementAndGet();
+					}
+					return stmt;
+				}
+			}.visit();
+		}
+	}
+	
+	private void varReplaced(CopyVarStatement def, Local killed, Statement replacedWith) {
+		if(replacedWith != null) {
+			countUses(replacedWith);
+		}
+		if(localAccess.useCount.get(killed).decrementAndGet() == 0) {
+			removeDef(def, false);
+			localAccess.useCount.remove(killed);
+		}
+	}
 
 	private Expression transform(Statement stmt, VarExpression s) {
 		Local l = s.getLocal();
@@ -221,42 +276,53 @@ public class SSAPropagator extends SSATransformer {
 		}
 
 		if (expr instanceof ConstantExpression) {
-			localAccess.useCount.get(l).decrementAndGet();
-			System.out.println("Propagating " + expr + " into " + stmt);
+			System.out.println("(1)Propagating " + expr + " into " + stmt + ", uses=" + localAccess.useCount.get(l).get());
+			varReplaced(def, l, null);
+			System.out.println("  After uses: " + (localAccess.useCount.containsKey(l) ? localAccess.useCount.get(l).get() : 0));
 			return expr;
 		} else if (expr instanceof VarExpression) {
-			VarExpression var = (VarExpression) expr;
-			localAccess.useCount.get(var.getLocal()).incrementAndGet();
-			if (localAccess.useCount.get(l).decrementAndGet() == 0) {
-				removeDef(def, false);
-				localAccess.useCount.remove(l);
+			if(((VarExpression) expr).getLocal() != l) {
+				System.out.println("(2)Propagating " + expr + " into " + stmt + " , " + def);
+				varReplaced(def, l, expr);
+				return expr;
 			}
-			System.out.println("Propagating " + expr + " into " + stmt);
-			return var;
 		} else if (!(expr instanceof CaughtExceptionExpression)) {
 			Expression e = transform(stmt, s, def);
 			if (e != null) {
 				if (e instanceof VarExpression) {
-					localAccess.useCount.get(((VarExpression) e).getLocal()).incrementAndGet();
-					if (localAccess.useCount.get(l).decrementAndGet() == 0) {
-						removeDef(def, false);
-						localAccess.useCount.remove(l);
-					}
-					System.out.println("Propagating " + e + " into " + stmt);
-					return e;
-				} else if (e instanceof InvocationExpression || e instanceof InitialisedObjectExpression || e instanceof UninitialisedObjectExpression) {
-					if (localAccess.useCount.get(l).get() == 1) {
-						localAccess.useCount.get(l).decrementAndGet();
-						removeDef(def, false);
-						localAccess.useCount.remove(l);
-						System.out.println("Propagating " + e + " into " + stmt);
-						return e;
-					}
-				} else {
-					localAccess.useCount.get(l).decrementAndGet();
-					System.out.println("Propagating " + e + " into " + stmt);
+					varReplaced(def, l, e);
+					System.out.println("(3)Propagating " + e + " into " + stmt);
 					return e;
 				}
+				else if (e instanceof InvocationExpression || e instanceof InitialisedObjectExpression || e instanceof UninitialisedObjectExpression) {
+					if (localAccess.useCount.get(l).get() == 1) {
+						System.out.printf("(4)Propagating %s into %s, newExpr=%s, l=%s.%n", def, stmt, e, l);
+						localAccess.useCount.get(l).decrementAndGet();
+						removeDef(def, false, true);
+						localAccess.useCount.remove(l);
+						return e;
+					} else {
+						System.out.println(localAccess.useCount.get(l).get() + " uses of " + l);
+					}
+				} else {
+					if(e instanceof ArrayLoadExpression) {
+						if (localAccess.useCount.get(l).get() == 1) {
+							System.out.printf("(5)Propagating %s into %s, newExpr=%s, l=%s.%n", def, stmt, e, l);
+							varReplaced(def, l, e);
+							return e;
+						}
+					} else {
+						System.out.printf("(6)Propagating %s into %s, newExpr=%s, l=%s, uses=%d.%n", def, stmt, e, l, localAccess.useCount.get(code.getLocals().get(2, 1, false)).get());
+						varReplaced(def, l, localAccess.useCount.get(l).get() > 1 ? e : null);
+						System.out.printf("  After(6)uses=%d.%n", localAccess.useCount.get(code.getLocals().get(2, 1, false)).get());
+						return e;
+					}
+				}
+//				else {
+//					localAccess.useCount.get(l).decrementAndGet();
+//					System.out.println("(5)Propagating " + e + " into " + stmt);
+//					return e;
+//				}
 			} else {
 				System.out.println("Cannot propagate " + def + " to " + stmt);
 			}
@@ -264,19 +330,49 @@ public class SSAPropagator extends SSATransformer {
 		return null;
 	}
 
+
 	private boolean removeDef(CopyVarStatement def, boolean save) {
-		if(!(def instanceof SyntheticCopyStatement)) {
+		return removeDef(def, save, false);
+	}
+	
+	private boolean removeDef(CopyVarStatement def, boolean save, boolean reused) {
+		if(!def.isSynthetic()) {
 			localAccess.defs.remove(def);
 			
 			Expression rhs = def.getExpression();
-			if(save && rhs instanceof InvocationExpression || rhs instanceof InitialisedObjectExpression) {
+			if(save && (rhs instanceof InvocationExpression || rhs instanceof InitialisedObjectExpression)) {
 				PopStatement pop = new PopStatement(rhs);
 				code.set(code.indexOf(def), pop);
+				graph.replace(def, pop);
+				System.out.println("def->pop " + def + "   ->    " + pop);
+				
+				StackTraceElement[] els = new Exception().getStackTrace();
+				for(int i=0; i < els.length; i++) {
+					StackTraceElement el = els[i];
+					if(!el.getMethodName().equals("removeDef")) {
+						System.out.println(" defpop from " + el.getClassName() + "." + el.getMethodName() + " @ " + el.getLineNumber());
+						break;
+					}
+				}
 			} else {
 				code.remove(def);
+				graph.excavate(def);
+				
+				if(!reused) {
+					new StatementVisitor(def) {
+						@Override
+						public Statement visit(Statement stmt) {
+							if(stmt instanceof VarExpression) {
+								VarExpression var = (VarExpression) stmt;
+								if(localAccess.useCount.get(var.getLocal()).decrementAndGet() <= 0) {
+									System.out.println("Just killed " + var.getLocal() + " , " + def + "  + " + localAccess.useCount.get(var.getLocal())) ;
+								}
+							}
+							return stmt;
+						}
+					}.visit();
+				}
 			}
-			
-			graph.excavate(def);
 			
 			System.out.println("Removed dead def: " + def);
 			return true;
