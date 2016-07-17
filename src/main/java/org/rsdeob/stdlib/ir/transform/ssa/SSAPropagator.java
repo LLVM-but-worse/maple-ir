@@ -1,36 +1,71 @@
 package org.rsdeob.stdlib.ir.transform.ssa;
 
-import org.rsdeob.stdlib.ir.CodeBody;
-import org.rsdeob.stdlib.ir.StatementGraph;
-import org.rsdeob.stdlib.ir.StatementVisitor;
-import org.rsdeob.stdlib.ir.expr.*;
-import org.rsdeob.stdlib.ir.header.HeaderStatement;
-import org.rsdeob.stdlib.ir.locals.Local;
-import org.rsdeob.stdlib.ir.locals.VersionedLocal;
-import org.rsdeob.stdlib.ir.stat.*;
-import org.rsdeob.stdlib.ir.transform.SSATransformer;
-
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.rsdeob.stdlib.cfg.BasicBlock;
+import org.rsdeob.stdlib.cfg.edge.DummyEdge;
+import org.rsdeob.stdlib.collections.NullPermeableHashMap;
+import org.rsdeob.stdlib.collections.SetCreator;
+import org.rsdeob.stdlib.ir.CodeBody;
+import org.rsdeob.stdlib.ir.StatementGraph;
+import org.rsdeob.stdlib.ir.StatementVisitor;
+import org.rsdeob.stdlib.ir.expr.ArrayLoadExpression;
+import org.rsdeob.stdlib.ir.expr.CaughtExceptionExpression;
+import org.rsdeob.stdlib.ir.expr.ConstantExpression;
+import org.rsdeob.stdlib.ir.expr.Expression;
+import org.rsdeob.stdlib.ir.expr.FieldLoadExpression;
+import org.rsdeob.stdlib.ir.expr.InitialisedObjectExpression;
+import org.rsdeob.stdlib.ir.expr.InvocationExpression;
+import org.rsdeob.stdlib.ir.expr.PhiExpression;
+import org.rsdeob.stdlib.ir.expr.UninitialisedObjectExpression;
+import org.rsdeob.stdlib.ir.expr.VarExpression;
+import org.rsdeob.stdlib.ir.header.HeaderStatement;
+import org.rsdeob.stdlib.ir.locals.Local;
+import org.rsdeob.stdlib.ir.locals.VersionedLocal;
+import org.rsdeob.stdlib.ir.stat.ArrayStoreStatement;
+import org.rsdeob.stdlib.ir.stat.CopyVarStatement;
+import org.rsdeob.stdlib.ir.stat.DummyExitStatement;
+import org.rsdeob.stdlib.ir.stat.FieldStoreStatement;
+import org.rsdeob.stdlib.ir.stat.MonitorStatement;
+import org.rsdeob.stdlib.ir.stat.PopStatement;
+import org.rsdeob.stdlib.ir.stat.Statement;
+import org.rsdeob.stdlib.ir.stat.SyntheticCopyStatement;
+import org.rsdeob.stdlib.ir.transform.SSATransformer;
+
 public class SSAPropagator extends SSATransformer {
 
 	private final StatementGraph graph;
-
-	public SSAPropagator(CodeBody code, SSALocalAccess localAccess, StatementGraph graph) {
+	private final Collection<? extends HeaderStatement> headers;
+	private final DummyExitStatement exit;
+	
+	public SSAPropagator(CodeBody code, SSALocalAccess localAccess, StatementGraph graph, Collection<? extends HeaderStatement> headers) {
 		super(code, localAccess);
 		this.graph = graph;
+		this.headers = headers;
+		exit = new DummyExitStatement();
 	}
 
 	@Override
 	public int run() {
+		graph.addVertex(exit);
+		for(Statement b : graph.vertices()) {
+			// connect dummy exit
+			if(graph.getEdges(b).size() == 0) {
+				graph.addEdge(b, new DummyEdge<>(b, exit));
+			}
+		}
+		
 		AtomicInteger changes = new AtomicInteger();
 		for(Statement stmt : new HashSet<>(code)) {
-
+			
 			if(stmt instanceof PopStatement) {
 				PopStatement pop = (PopStatement) stmt;
 				Expression expr = pop.getExpression();
@@ -81,6 +116,75 @@ public class SSAPropagator extends SSATransformer {
 				}
 			}.visit();
 		}
+		
+		// equivalent phis
+		for(HeaderStatement header : headers) {
+			List<CopyVarStatement> phis = new ArrayList<>();
+			for(int i=code.indexOf(header) + 1; i < code.size(); i++) {
+				Statement stmt = code.get(i);
+				if(stmt instanceof CopyVarStatement) {
+					CopyVarStatement cv = (CopyVarStatement) stmt;
+					if(cv.getExpression() instanceof PhiExpression) {
+						phis.add(cv);
+						continue;
+					}
+				}
+				break;
+			}
+			
+			if(phis.size() > 1) {
+				NullPermeableHashMap<CopyVarStatement, Set<CopyVarStatement>> equiv = new NullPermeableHashMap<>(new SetCreator<>());
+				for(CopyVarStatement cvs : phis) {
+					if(equiv.values().contains(cvs)) {
+						continue;
+					}
+					PhiExpression phi = (PhiExpression) cvs.getExpression();
+					for(CopyVarStatement cvs2 : phis) {
+						if(cvs != cvs2) {
+							if(equiv.keySet().contains(cvs2)) {
+								continue;
+							}
+							PhiExpression phi2 = (PhiExpression) cvs2.getExpression();
+							if(phi.equivalent(phi2)) {
+								equiv.getNonNull(cvs).add(cvs2);
+							}
+						}
+					}
+				}
+				
+				for(Entry<CopyVarStatement, Set<CopyVarStatement>> e : equiv.entrySet()) {
+					// key should be earliest
+					// remove vals from code and replace use of val vars with key var
+					CopyVarStatement proper = e.getKey();
+					VersionedLocal properLocal = (VersionedLocal) proper.getVariable().getLocal();
+					Set<VersionedLocal> toReplace = new HashSet<>();
+					for(CopyVarStatement val : e.getValue()) {
+						VersionedLocal local = (VersionedLocal) val.getVariable().getLocal();
+						toReplace.add(local);
+						graph.excavate(val);
+						code.remove(val);
+						localAccess.defs.remove(local);
+						localAccess.useCount.remove(local);
+					}
+					// replace uses
+					for(Statement reachable : graph.wanderAllTrails(proper, exit)) {
+						new StatementVisitor(reachable) {
+							@Override
+							public Statement visit(Statement stmt) {
+								if(stmt instanceof VarExpression) {
+									VarExpression var = (VarExpression) stmt;
+									if(toReplace.contains(var.getLocal())) {
+										localAccess.useCount.get(properLocal).incrementAndGet();
+										return new VarExpression(properLocal, var.getType());
+									}
+								}
+								return stmt;
+							}
+						}.visit();
+					}
+				}
+			}
+		}
 
 		Iterator<Entry<VersionedLocal, AtomicInteger>> it = localAccess.useCount.entrySet().iterator();
 		while(it.hasNext()) {
@@ -93,6 +197,8 @@ public class SSAPropagator extends SSATransformer {
 				}
 			}
 		}
+		
+		graph.removeVertex(exit);
 
 		return changes.get();
 	}
@@ -216,11 +322,6 @@ public class SSAPropagator extends SSATransformer {
 		path.remove(def);
 		path.add(use);
 		
-		System.out.println("Path:");
-		for(Statement stmt : path) {
-			System.out.println("    " + stmt);
-		}
-		
 		boolean canPropagate = true;
 		
 		for(Statement stmt : path) {
@@ -260,26 +361,24 @@ public class SSAPropagator extends SSATransformer {
 			}
 			
 			AtomicBoolean canPropagate2 = new AtomicBoolean(canPropagate);
-			AtomicBoolean breakk = new AtomicBoolean(false);
 			if(invoke.get() || array.get() || !fieldsUsed.isEmpty()) {
 				new StatementVisitor(stmt) {
 					@Override
 					public Statement visit(Statement s) {
-						if(use.toString().equals("svar0_5 = svar0_3.append(a.a.a.d.H(\"O\")).append(lvar2_0);")) {
+						// if(use.toString().equals("svar0_5 = svar0_3.append(a.a.a.d.H(\"O\")).append(lvar2_0);")) {
 							// System.out.println(code);
-							 System.out.println("root==use: " + (root == use));
-							 System.out.println("   fullcond: " + (root == use && (s instanceof VarExpression && ((VarExpression) s).getLocal() == local)));
-							 System.out.println("   s: " + s);
-							 System.out.println("   l: " + local);
-							 System.out.println("   root:  " + root);
-							 System.out.println("   use:   " + use);
-							 System.out.println("   inst: " + this.hashCode());
+							// System.out.println("root==use: " + (root == use));
+							//  System.out.println("   fullcond: " + (root == use && (s instanceof VarExpression && ((VarExpression) s).getLocal() == local)));
+							// 	 System.out.println("   s: " + s);
+							//  System.out.println("   l: " + local);
+							//  System.out.println("   root:  " + root);
+							//  System.out.println("   use:   " + use);
+							//  System.out.println("   inst: " + this.hashCode());
 							// System.exit(1);
-						}
+						// }
 						
 						if(root == use && (s instanceof VarExpression && ((VarExpression) s).getLocal() == local)) {
 							// System.out.println("Breaking " + this.hashCode());
-							breakk.set(true);
 							_break();
 						} else {
 							if((s instanceof InvocationExpression || s instanceof InitialisedObjectExpression) || (invoke.get() && (s instanceof FieldStoreStatement || s instanceof ArrayStoreStatement))) {
@@ -295,10 +394,6 @@ public class SSAPropagator extends SSATransformer {
 				if(!canPropagate) {
 					return null;
 				}
-			}
-			
-			if(breakk.get()) {
-//				break;
 			}
 		}
 		

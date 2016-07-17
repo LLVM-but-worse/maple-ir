@@ -82,7 +82,7 @@ public class AnalyticsTest {
 			SSALocalAccess localAccess = new SSALocalAccess(code);
 			
 			SSATransformer[] transforms = new SSATransformer[]{
-				new SSAPropagator(code, localAccess, sgraph),
+				new SSAPropagator(code, localAccess, sgraph, gen.getHeaders().values()),
 				new SSAInitialiserAggregator(code, localAccess, sgraph)
 			};
 			
