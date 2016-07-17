@@ -2,8 +2,10 @@ package org.rsdeob.stdlib.ir.transform.ssa;
 
 import org.objectweb.asm.Opcodes;
 import org.rsdeob.stdlib.ir.CodeBody;
+import org.rsdeob.stdlib.ir.StatementGraph;
 import org.rsdeob.stdlib.ir.expr.*;
 import org.rsdeob.stdlib.ir.locals.Local;
+import org.rsdeob.stdlib.ir.locals.VersionedLocal;
 import org.rsdeob.stdlib.ir.stat.CopyVarStatement;
 import org.rsdeob.stdlib.ir.stat.PopStatement;
 import org.rsdeob.stdlib.ir.stat.Statement;
@@ -14,8 +16,11 @@ import java.util.HashSet;
 
 public class SSAInitialiserAggregator extends SSATransformer {
 
-	public SSAInitialiserAggregator(CodeBody code, SSALocalAccess localAccess) {
+	private final StatementGraph graph;
+	
+	public SSAInitialiserAggregator(CodeBody code, SSALocalAccess localAccess, StatementGraph graph) {
 		super(code, localAccess);
+		this.graph = graph;
 	}
 
 	@Override
@@ -30,7 +35,7 @@ public class SSAInitialiserAggregator extends SSATransformer {
 						Expression inst = invoke.getInstanceExpression();
 						if (inst instanceof VarExpression) {
 							VarExpression var = (VarExpression) inst;
-							Local local = var.getLocal();
+							VersionedLocal local = (VersionedLocal) var.getLocal();
 
 							CopyVarStatement def = localAccess.defs.get(local);
 
@@ -47,11 +52,18 @@ public class SSAInitialiserAggregator extends SSATransformer {
 								// remove the pop statement
 								
 								code.remove(def);
+								graph.excavate(def);
 								
 								CopyVarStatement newCvs = new CopyVarStatement(var, newExpr);
+								localAccess.defs.put(local, newCvs);
+								localAccess.useCount.get(local).decrementAndGet();
+								
 								int index = code.indexOf(pop);
+								Statement prev = code.get(index - 1);
 								code.add(index, newCvs);
+								graph.jam(prev, pop, newCvs);
 								code.remove(pop);
+								graph.excavate(pop);
 								
 								// replace pop(x.<init>()) with x := new Klass();
 								// remove x := new Klass;
