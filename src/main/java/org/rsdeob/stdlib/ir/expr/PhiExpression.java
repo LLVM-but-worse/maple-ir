@@ -103,7 +103,28 @@ public class PhiExpression extends Expression {
 	@Override
 	public boolean equivalent(Statement s) {
 		if(s instanceof PhiExpression) {
-			return ((PhiExpression) s).locals.equals(locals);
+			PhiExpression phi = (PhiExpression) s;
+			
+			Set<HeaderStatement> sources = new HashSet<>();
+			sources.addAll(locals.keySet());
+			sources.addAll(phi.locals.keySet());
+			
+			if(sources.size() != locals.size()) {
+				return false;
+			}
+			
+			for(HeaderStatement header : sources) {
+				Expression e1 = locals.get(header);
+				Expression e2 = phi.locals.get(header);
+				if(e1 == null || e2 == null) {
+					return false;
+				}
+				if(!e1.equivalent(e2)) {
+					return false;
+				}
+			}
+			
+			return true;
 		}
 		return false;
 	}
