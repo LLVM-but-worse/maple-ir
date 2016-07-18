@@ -92,7 +92,7 @@ public class ConditionalJumpStatement extends Statement {
 		this.trueSuccessor = trueSuccessor;
 	}
 
-	public ComparisonType getType() {
+	public ComparisonType getComparisonType() {
 		return type;
 	}
 

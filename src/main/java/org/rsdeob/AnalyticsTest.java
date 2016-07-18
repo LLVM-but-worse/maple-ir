@@ -24,7 +24,9 @@ import org.rsdeob.stdlib.collections.graph.util.DotExporter;
 import org.rsdeob.stdlib.collections.graph.util.GraphUtils;
 import org.rsdeob.stdlib.collections.graph.util.SGDotExporter;
 import org.rsdeob.stdlib.ir.CodeBody;
+import org.rsdeob.stdlib.ir.ExpressionEvaluator;
 import org.rsdeob.stdlib.ir.StatementGraph;
+import org.rsdeob.stdlib.ir.expr.Expression;
 import org.rsdeob.stdlib.ir.gen.SSAGenerator;
 import org.rsdeob.stdlib.ir.gen.StatementGenerator;
 import org.rsdeob.stdlib.ir.gen.StatementGraphBuilder;
@@ -115,10 +117,20 @@ public class AnalyticsTest {
 				}
 			}
 			
-//			System.out.println();
-//			System.out.println();
-//			System.out.println("Optimised SSA:");
-//			System.out.println(code);
+			System.out.println();
+			System.out.println();
+			System.out.println("Optimised SSA:");
+			System.out.println(code);
+			
+//			SSALocalAccess locals = new SSALocalAccess(code);
+//			for (Statement stmt : code) {
+//				if (stmt instanceof CopyVarStatement) {
+//					Expression expr = ((CopyVarStatement) stmt).getExpression();
+//					if (ExpressionEvaluator.isConstant(expr)) {
+//						System.out.println("constant: " + stmt.getId() + ". " + stmt);
+//					}
+//				}
+//			}
 			
 			UnSSA de = new UnSSA(code, cfg);
 			de.run();
