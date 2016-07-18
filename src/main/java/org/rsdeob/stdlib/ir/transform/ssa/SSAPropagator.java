@@ -342,6 +342,17 @@ public class SSAPropagator extends SSATransformer {
 		}
 		
 		private Statement visitPhi(PhiExpression phi) {
+			for(HeaderStatement header : phi.headers()) {
+				Expression e = phi.getLocal(header);
+				if(e instanceof VarExpression) {
+					CopyVarStatement def = localAccess.defs.get(((VarExpression) e).getLocal());
+					Statement e1 = findSubstitution(def, (VarExpression) e);
+					if(e1 != e) {
+						phi.setLocal(header, (Expression) e1);
+						change = true;
+					}
+				}
+			}
 			return phi;
 		}
 
@@ -494,8 +505,8 @@ public class SSAPropagator extends SSATransformer {
 			if(vis != node) {
 				stmt.overwrite(vis, addr);
 				change = true;
-				verify();
 			}
+			verify();
 		}
 		
 		private void verify() {
