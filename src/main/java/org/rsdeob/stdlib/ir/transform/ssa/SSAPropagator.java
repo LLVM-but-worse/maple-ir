@@ -6,12 +6,14 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Set;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.rsdeob.stdlib.cfg.edge.DummyEdge;
+import org.rsdeob.stdlib.collections.NullPermeableHashMap;
+import org.rsdeob.stdlib.collections.SetCreator;
 import org.rsdeob.stdlib.ir.CodeBody;
 import org.rsdeob.stdlib.ir.StatementGraph;
 import org.rsdeob.stdlib.ir.StatementVisitor;
@@ -75,6 +77,7 @@ public class SSAPropagator extends SSATransformer {
 				continue;
 			if(attempt(stmt, visitor)) changes.incrementAndGet();
 			if(visitor.cleanDead()) changes.incrementAndGet();
+			if(visitor.cleanEquivalentPhis()) changes.incrementAndGet();
 		}
 		
 		graph.removeVertex(exit);
@@ -116,6 +119,78 @@ public class SSAPropagator extends SSATransformer {
 		
 		public FeedbackStatementVisitor(Statement root) {
 			super(root);
+		}
+		
+		private boolean cleanEquivalentPhis() {
+			boolean change = false;
+			// equivalent phis
+			for(HeaderStatement header : headers) {
+				List<CopyVarStatement> phis = new ArrayList<>();
+				for(int i=code.indexOf(header) + 1; i < code.size(); i++) {
+					Statement stmt = code.get(i);
+					if(stmt instanceof CopyVarStatement) {
+						CopyVarStatement cv = (CopyVarStatement) stmt;
+						if(cv.getExpression() instanceof PhiExpression) {
+							phis.add(cv);
+							continue;
+						}
+					}
+					break;
+				}
+				
+				if(phis.size() > 1) {
+					NullPermeableHashMap<CopyVarStatement, Set<CopyVarStatement>> equiv = new NullPermeableHashMap<>(new SetCreator<>());
+					for(CopyVarStatement cvs : phis) {
+						if(equiv.values().contains(cvs)) {
+							continue;
+						}
+						PhiExpression phi = (PhiExpression) cvs.getExpression();
+						for(CopyVarStatement cvs2 : phis) {
+							if(cvs != cvs2) {
+								if(equiv.keySet().contains(cvs2)) {
+									continue;
+								}
+								PhiExpression phi2 = (PhiExpression) cvs2.getExpression();
+								if(phi.equivalent(phi2)) {
+									equiv.getNonNull(cvs).add(cvs2);
+								}
+							}
+						}
+					}
+					
+					for(Entry<CopyVarStatement, Set<CopyVarStatement>> e : equiv.entrySet()) {
+						// key should be earliest
+						// remove vals from code and replace use of val vars with key var
+						CopyVarStatement keepPhi = e.getKey();
+						VersionedLocal phiLocal = (VersionedLocal) keepPhi.getVariable().getLocal();
+						Set<VersionedLocal> toReplace = new HashSet<>();
+						for(CopyVarStatement def : e.getValue()) {
+							VersionedLocal local = (VersionedLocal) def.getVariable().getLocal();
+							toReplace.add(local);
+							killed(def);
+							scalpelDefinition(def);
+						}
+						// replace uses
+						for(Statement reachable : graph.wanderAllTrails(keepPhi, exit)) {
+							if(reachable == keepPhi)
+								continue;
+							
+							for(Statement s : enumerate(reachable)) {
+								if(s instanceof VarExpression) {
+									VarExpression var = (VarExpression) s;
+									VersionedLocal l = (VersionedLocal) var.getLocal();
+									if(toReplace.contains(l)) {
+										System.out.println("rep: " + s);
+										var.setLocal(phiLocal);
+									}
+								}
+							}
+						}
+						change = true;
+					}
+				}
+			}
+			return change;
 		}
 		
 		private boolean cleanDead() {
