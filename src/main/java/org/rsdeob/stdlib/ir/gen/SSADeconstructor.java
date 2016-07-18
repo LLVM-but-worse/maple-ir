@@ -66,7 +66,74 @@ public class SSADeconstructor {
 		}
 	}
 	
-	private void handleUndroppables() {
+	private void init_blocks() {
+		for (BasicBlock b : cfg.vertices()) {
+			b.getStatements().clear();
+		}
+		
+		BasicBlock currentHeader = null;
+		for (Statement stmt : body) {
+			if (stmt instanceof HeaderStatement) {
+				currentHeader = cfg.getBlock(((HeaderStatement) stmt).getHeaderId());
+			} else {
+				if (currentHeader == null) {
+					throw new IllegalStateException();
+				} else if (!(stmt instanceof PhiExpression)) {
+					currentHeader.getStatements().add(stmt);
+				}
+			}
+		}
+	}
+	
+	private void unroll_phis() {
+		for (Statement stmt : new HashSet<>(body)) {
+			if (stmt instanceof CopyVarStatement) {
+				CopyVarStatement copy = (CopyVarStatement) stmt;
+				Expression expr = copy.getExpression();
+				if (expr instanceof PhiExpression) {
+					PhiExpression phi = (PhiExpression) expr;
+					unroll(phi, copy.getVariable().getLocal());
+					body.remove(copy);
+				}
+			}
+		}
+	}
+	
+	private void unroll(PhiExpression phi, Local l) {
+		for (Entry<HeaderStatement, Expression> e : phi.getLocals().entrySet()) {
+			Expression expr = e.getValue();
+			if (expr instanceof VarExpression) {
+				Local l2 = ((VarExpression) expr).getLocal();
+				if (l2.getIndex() == l.getIndex() && l2.isStack() == l.isStack()) {
+					continue;
+				}
+			}
+			HeaderStatement header = e.getKey();
+			if (header instanceof BlockHeaderStatement) {
+				BlockHeaderStatement bh = (BlockHeaderStatement) header;
+				BasicBlock block = bh.getBlock();
+				List<Statement> stmts = block.getStatements();
+				int index = -1;
+				if (stmts.isEmpty()) {
+					index = body.indexOf(bh) + 1;
+				} else {
+					Statement last = stmts.get(stmts.size() - 1);
+					index = body.indexOf(last);
+					if (!last.canChangeFlow()) {
+						index += 1;
+					}
+				}
+				
+				CopyVarStatement copy = new CopyVarStatement(new VarExpression(l, phi.getType()), expr);
+				body.add(index, copy);
+				stmts.add(copy);
+			} else {
+				throw new UnsupportedOperationException(header.toString() + ", " + header.getClass().getCanonicalName());
+			}
+		}
+	}
+	
+	private void calculateUndroppables() {
 		SSALocalAccess localsAccess = new SSALocalAccess(body);
 		for (VersionedLocal local : localsAccess.defs.keySet())
 			if (local.getIndex() > maxLocals)
@@ -121,80 +188,13 @@ public class SSADeconstructor {
 		}
 	}
 	
-	private void init_blocks() {
-		for (BasicBlock b : cfg.vertices()) {
-			b.getStatements().clear();
-		}
-		
-		BasicBlock currentHeader = null;
-		for (Statement stmt : body) {
-			if (stmt instanceof HeaderStatement) {
-				currentHeader = cfg.getBlock(((HeaderStatement) stmt).getHeaderId());
-			} else {
-				if (currentHeader == null) {
-					throw new IllegalStateException();
-				} else if (!(stmt instanceof PhiExpression)) {
-					currentHeader.getStatements().add(stmt);
-				}
-			}
-		}
-	}
-	
-	private void unroll(PhiExpression phi, Local l) {
-		for (Entry<HeaderStatement, Expression> e : phi.getLocals().entrySet()) {
-			Expression expr = e.getValue();
-			if (expr instanceof VarExpression) {
-				Local l2 = ((VarExpression) expr).getLocal();
-				if (l2.getIndex() == l.getIndex() && l2.isStack() == l.isStack()) {
-					continue;
-				}
-			}
-			HeaderStatement header = e.getKey();
-			if (header instanceof BlockHeaderStatement) {
-				BlockHeaderStatement bh = (BlockHeaderStatement) header;
-				BasicBlock block = bh.getBlock();
-				List<Statement> stmts = block.getStatements();
-				int index = -1;
-				if (stmts.isEmpty()) {
-					index = body.indexOf(bh) + 1;
-				} else {
-					Statement last = stmts.get(stmts.size() - 1);
-					index = body.indexOf(last);
-					if (!last.canChangeFlow()) {
-						index += 1;
-					}
-				}
-				
-				CopyVarStatement copy = new CopyVarStatement(new VarExpression(l, phi.getType()), expr);
-				body.add(index, copy);
-				stmts.add(copy);
-			} else {
-				throw new UnsupportedOperationException(header.toString() + ", " + header.getClass().getCanonicalName());
-			}
-		}
-	}
-	
-	private void unroll_phis() {
-		for (Statement stmt : new HashSet<>(body)) {
-			if (stmt instanceof CopyVarStatement) {
-				CopyVarStatement copy = (CopyVarStatement) stmt;
-				Expression expr = copy.getExpression();
-				if (expr instanceof PhiExpression) {
-					PhiExpression phi = (PhiExpression) expr;
-					unroll(phi, copy.getVariable().getLocal());
-					body.remove(copy);
-				}
-			}
-		}
-	}
-	
-	private void drop_subscripts() {
+	private void drop_subscripts() { // yes my child, it's this easy
 		replaceLocals(versionedLocal -> true, versionedLocal -> locals.get(versionedLocal.getIndex(), versionedLocal.isStack()));
 	}
 	
 	public void run() {
 		unroll_phis();
-		handleUndroppables();
+		calculateUndroppables();
 		drop_subscripts();
 	}
 }
