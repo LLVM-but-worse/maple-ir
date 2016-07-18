@@ -64,8 +64,8 @@ public class SSAInitialiserAggregator extends SSATransformer {
 								code.remove(pop);
 								graph.excavate(pop);
 								
-								System.out.println("After aggr for " + newCvs);
-								System.out.println(code);
+//								System.out.println("After aggr for " + newCvs);
+//								System.out.println(code);
 								// replace pop(x.<init>()) with x := new Klass();
 								// remove x := new Klass;
 							}

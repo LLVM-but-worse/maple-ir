@@ -6,14 +6,12 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map.Entry;
 import java.util.Set;
+import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.rsdeob.stdlib.cfg.edge.DummyEdge;
-import org.rsdeob.stdlib.collections.NullPermeableHashMap;
-import org.rsdeob.stdlib.collections.SetCreator;
 import org.rsdeob.stdlib.ir.CodeBody;
 import org.rsdeob.stdlib.ir.StatementGraph;
 import org.rsdeob.stdlib.ir.StatementVisitor;
@@ -40,7 +38,15 @@ import org.rsdeob.stdlib.ir.stat.Statement;
 import org.rsdeob.stdlib.ir.transform.SSATransformer;
 
 public class SSAPropagator extends SSATransformer {
-
+	
+	private static final Set<Class<? extends Statement>> UNCOPYABLE = new HashSet<>();
+	
+	static {
+		UNCOPYABLE.add(InvocationExpression.class);
+		UNCOPYABLE.add(UninitialisedObjectExpression.class);
+		UNCOPYABLE.add(InitialisedObjectExpression.class);
+	}
+	
 	private final StatementGraph graph;
 	private final Collection<? extends HeaderStatement> headers;
 	private final DummyExitStatement exit;
@@ -62,462 +68,460 @@ public class SSAPropagator extends SSATransformer {
 			}
 		}
 		
+		FeedbackStatementVisitor visitor = new FeedbackStatementVisitor(null);
 		AtomicInteger changes = new AtomicInteger();
 		for(Statement stmt : new HashSet<>(code)) {
-			
 			if(!code.contains(stmt))
 				continue;
-			
-			if(stmt instanceof PopStatement) {
-				PopStatement pop = (PopStatement) stmt;
-				Expression expr = pop.getExpression();
-				if(expr instanceof VarExpression) {
-					VarExpression var = (VarExpression) expr;
-					Local l = var.getLocal();
-					localAccess.useCount.get(l).decrementAndGet();
-					code.remove(pop);
-					graph.excavate(pop);
-					continue;
-				} else if(expr instanceof ConstantExpression) {
-					code.remove(pop);
-					graph.excavate(pop);
-					continue;
-				}
-			}
-
-			new StatementVisitor(stmt) {
-
-				@Override
-				protected void visited(Statement stmt, Statement node, int addr, Statement vis) {
-					if(vis != node) {
-						stmt.overwrite(vis, addr);
-						changes.incrementAndGet();
-						
-						{
-							SSALocalAccess real = new SSALocalAccess(code);
-							Set<VersionedLocal> set = new HashSet<>(real.useCount.keySet());
-							set.addAll(localAccess.useCount.keySet());
-							List<VersionedLocal> keys = new ArrayList<>(set);
-							Collections.sort(keys);
-							boolean b = false;
-							for(VersionedLocal e : keys) {
-								AtomicInteger i1 = real.useCount.get(e);
-								AtomicInteger i2 = localAccess.useCount.get(e);
-								if(i1 == null) {
-									b = true;
-									System.err.println("Real no contain: " + e + ", other: " + i2.get());
-								} else if(i2 == null) {
-									b = true;
-									System.err.println("Current no contain: " + e + ", other: " + i1.get());
-								} else if(i1.get() != i2.get()) {
-									b = true;
-									System.err.println("Mismatch: " + e + " " + i1.get() + ":" + i2.get());
-								}
-							}
-							
-							if(b) {
-								throw new RuntimeException(code.toString());
-							}
-						}
-					}
-				}
-
-				@Override
-				public Statement visit(Statement s) {
-					if(s instanceof VarExpression) {
-						Expression e = transform(stmt, (VarExpression) s);
-						if(e != null) {
-							return e;
-						}
-					} else if(s instanceof PhiExpression){
-						PhiExpression phi = (PhiExpression) s;
-						for(HeaderStatement header : phi.headers()) {
-							Expression e = phi.getLocal(header);
-							if(e instanceof VarExpression) {
-								e = transform(stmt, (VarExpression) e);
-								if(e != null) {
-									phi.setLocal(header, e);
-									changes.incrementAndGet();
-								}
-							}
-						}
-					}
-					return s;
-				}
-			}.visit();
-		}
-		
-		// equivalent phis
-		for(HeaderStatement header : headers) {
-			List<CopyVarStatement> phis = new ArrayList<>();
-			for(int i=code.indexOf(header) + 1; i < code.size(); i++) {
-				Statement stmt = code.get(i);
-				if(stmt instanceof CopyVarStatement) {
-					CopyVarStatement cv = (CopyVarStatement) stmt;
-					if(cv.getExpression() instanceof PhiExpression) {
-						phis.add(cv);
-						continue;
-					}
-				}
-				break;
-			}
-			
-			if(phis.size() > 1) {
-				NullPermeableHashMap<CopyVarStatement, Set<CopyVarStatement>> equiv = new NullPermeableHashMap<>(new SetCreator<>());
-				for(CopyVarStatement cvs : phis) {
-					if(equiv.values().contains(cvs)) {
-						continue;
-					}
-					PhiExpression phi = (PhiExpression) cvs.getExpression();
-					for(CopyVarStatement cvs2 : phis) {
-						if(cvs != cvs2) {
-							if(equiv.keySet().contains(cvs2)) {
-								continue;
-							}
-							PhiExpression phi2 = (PhiExpression) cvs2.getExpression();
-							if(phi.equivalent(phi2)) {
-								equiv.getNonNull(cvs).add(cvs2);
-							}
-						}
-					}
-				}
-				
-				for(Entry<CopyVarStatement, Set<CopyVarStatement>> e : equiv.entrySet()) {
-					// key should be earliest
-					// remove vals from code and replace use of val vars with key var
-					CopyVarStatement proper = e.getKey();
-					VersionedLocal properLocal = (VersionedLocal) proper.getVariable().getLocal();
-					Set<VersionedLocal> toReplace = new HashSet<>();
-					for(CopyVarStatement val : e.getValue()) {
-						VersionedLocal local = (VersionedLocal) val.getVariable().getLocal();
-						toReplace.add(local);
-						graph.excavate(val);
-						code.remove(val);
-						localAccess.defs.remove(local);
-						localAccess.useCount.remove(local);
-					}
-					// replace uses
-					for(Statement reachable : graph.wanderAllTrails(proper, exit)) {
-						new StatementVisitor(reachable) {
-							@Override
-							public Statement visit(Statement stmt) {
-								if(stmt instanceof VarExpression) {
-									VarExpression var = (VarExpression) stmt;
-									if(toReplace.contains(var.getLocal())) {
-										localAccess.useCount.get(properLocal).incrementAndGet();
-										return new VarExpression(properLocal, var.getType());
-									}
-								}
-								return stmt;
-							}
-						}.visit();
-					}
-
-					changes.incrementAndGet();
-				}
-			}
-		}
-
-		Iterator<Entry<VersionedLocal, AtomicInteger>> it = localAccess.useCount.entrySet().iterator();
-		while(it.hasNext()) {
-			Entry<VersionedLocal, AtomicInteger> e = it.next();
-			if(e.getValue().get() == 0)  {
-				CopyVarStatement def = localAccess.defs.get(e.getKey());
-				if(removeDef(def, true)) {
-					it.remove();
-					changes.incrementAndGet();
-				}
-			}
+			if(attempt(stmt, visitor)) changes.incrementAndGet();
+			if(visitor.cleanDead()) changes.incrementAndGet();
 		}
 		
 		graph.removeVertex(exit);
-
 		return changes.get();
 	}
 	
-	private void countUses(Statement s) {
-		if(s instanceof VarExpression) {
-			localAccess.useCount.get(((VarExpression) s).getLocal()).incrementAndGet();
-		} else {
-			new StatementVisitor(s) {
-				@Override
-				public Statement visit(Statement stmt) {
-					if(stmt instanceof VarExpression) {
-						localAccess.useCount.get(((VarExpression) stmt).getLocal()).incrementAndGet();
-					}
-					return stmt;
-				}
-			}.visit();
+	private boolean attempt(Statement stmt, FeedbackStatementVisitor visitor) {
+		if(stmt instanceof PopStatement) {
+			boolean at = attemptPop((PopStatement)stmt);
+			if(at) {
+				return true;
+			}
 		}
+
+		visitor.reset(stmt);
+		visitor.visit();
+		return visitor.changed();
 	}
 	
-	private void varReplaced(CopyVarStatement def, Local killed, Statement replacedWith) {
-		if(replacedWith != null) {
-			countUses(replacedWith);
-		}
-		if(localAccess.useCount.get(killed).decrementAndGet() == 0) {
-			removeDef(def, false);
-			localAccess.useCount.remove(killed);
-		}
-	}
-
-	private Expression transform(Statement stmt, VarExpression s) {
-		Local l = s.getLocal();
-		if (!(l instanceof VersionedLocal)) {
-			throw new UnsupportedOperationException("Only SSA body allowed.");
-		}
-
-		CopyVarStatement def = localAccess.defs.get(l);
-		if (def == null) {
-			System.err.println(code);
-			System.err.println("using " + l);
-		}
-
-		Expression expr = def.getExpression();
-		if (expr instanceof PhiExpression) {
-			return s;
-		}
-
-		if (expr instanceof ConstantExpression) {
-			System.out.printf("(1)Propagating %s into %s, def: %s, l: %s, useCount=%d.%n", expr, stmt, def, l, localAccess.useCount.get(l).get());
-			System.out.println(" containsstmt: " + code.contains(stmt));
-			varReplaced(def, l, null);
-			System.out.println("  After uses: " + (localAccess.useCount.containsKey(l) ? localAccess.useCount.get(l).get() : 0));
-			if(l.toString().equals("svar0_3")) {
-
-				System.out.println(code);
-				System.out.println();
-			}
-			return expr;
-		} else if (expr instanceof VarExpression) {
-			if(((VarExpression) expr).getLocal() != l) {
-				System.out.printf("(2)Propagating %s into %s, def: %s, l: %s, useCount=%d.%n", expr, stmt, def, l, localAccess.useCount.get(l).get());
-				if(((VarExpression) expr).getLocal().toString().equals("svar0_3")) {
-					System.out.println("presvar03: " + localAccess.useCount.get(((VarExpression) expr).getLocal()).get());
-				}
-				varReplaced(def, l, expr);
-				System.out.println("  after: " + (localAccess.useCount.containsKey(l) ? localAccess.useCount.get(l).get() : 0));
-				if(l.toString().equals("svar0_3")) {
-					System.out.println(code);
-					System.out.println();
-				} else if(((VarExpression) expr).getLocal().toString().equals("svar0_3")) {
-					System.out.println("postsvar03: " + localAccess.useCount.get(((VarExpression) expr).getLocal()).get());
-					System.out.println(code);
-					System.out.println();
-				}
-				return expr;
-			}
-		} else if (!(expr instanceof CaughtExceptionExpression)) {
-			Expression e = transform(stmt, s, def);
-			if (e != null) {
-				if (e instanceof VarExpression) {
-					varReplaced(def, l, e);
-					System.out.println("(3)Propagating " + e + " into " + stmt);
-					return e;
-				}
-				else if (e instanceof InvocationExpression || e instanceof InitialisedObjectExpression || e instanceof UninitialisedObjectExpression) {
-					if (localAccess.useCount.get(l).get() == 1) {
-						System.out.printf("(4)Propagating %s into %s, newExpr=%s, l=%s.%n", def, stmt, e, l);
-						localAccess.useCount.get(l).decrementAndGet();
-						removeDef(def, false, true);
-						localAccess.useCount.remove(l);
-						return e;
-					} else {
-						System.out.println(localAccess.useCount.get(l).get() + " uses of " + l);
-					}
-				} else {
-					if(e instanceof ArrayLoadExpression) {
-						if (localAccess.useCount.get(l).get() == 1) {
-							System.out.printf("(5)Propagating %s into %s, newExpr=%s, l=%s.%n", def, stmt, e, l);
-							varReplaced(def, l, e);
-							return e;
-						}
-					} else {
-						System.out.printf("(6)Propagating %s into %s, newExpr=%s, l=%s, uses=%d.%n", def, stmt, e, l, localAccess.useCount.get(l).get());
-						varReplaced(def, l, e);
-						System.out.printf("  After(6)uses=%d.%n", (localAccess.useCount.containsKey(l) ? localAccess.useCount.get(l).get() : 0));
-						return e;
-					}
-				}
-//				else {
-//					localAccess.useCount.get(l).decrementAndGet();
-//					System.out.println("(5)Propagating " + e + " into " + stmt);
-//					return e;
-//				}
-			} else {
-				System.out.println("Cannot propagate " + def + " to " + stmt);
-			}
-		}
-		return null;
-	}
-
-
-	private boolean removeDef(CopyVarStatement def, boolean save) {
-		return removeDef(def, save, false);
-	}
-	
-	private boolean removeDef(CopyVarStatement def, boolean save, boolean reused) {
-		if(!def.isSynthetic()) {
-			localAccess.defs.remove(def);
-			
-			Expression rhs = def.getExpression();
-			if(save && (rhs instanceof InvocationExpression || rhs instanceof InitialisedObjectExpression)) {
-				PopStatement pop = new PopStatement(rhs);
-				code.set(code.indexOf(def), pop);
-				graph.replace(def, pop);
-				System.out.println("def->pop " + def + "   ->    " + pop);
-				
-				StackTraceElement[] els = new Exception().getStackTrace();
-				for(int i=0; i < els.length; i++) {
-					StackTraceElement el = els[i];
-					if(!el.getMethodName().equals("removeDef")) {
-						System.out.println(" defpop from " + el.getClassName() + "." + el.getMethodName() + " @ " + el.getLineNumber());
-						break;
-					}
-				}
-			} else {
-				code.remove(def);
-				graph.excavate(def);
-				
-				if(!reused) {
-					new StatementVisitor(def) {
-						@Override
-						public Statement visit(Statement stmt) {
-							if(stmt instanceof VarExpression) {
-								VarExpression var = (VarExpression) stmt;
-								if(localAccess.useCount.get(var.getLocal()).decrementAndGet() <= 0) {
-									System.out.println("Just killed " + var.getLocal() + " , " + def + "  + " + localAccess.useCount.get(var.getLocal())) ;
-								}
-							}
-							return stmt;
-						}
-					}.visit();
-				}
-			}
-			
-			System.out.println("Removed dead def: " + def);
+	private boolean attemptPop(PopStatement pop) {
+		Expression expr = pop.getExpression();
+		if(expr instanceof VarExpression) {
+			VarExpression var = (VarExpression) expr;
+			localAccess.useCount.get(var.getLocal()).decrementAndGet();
+			code.remove(pop);
+			graph.excavate(pop);
+			return true;
+		} else if(expr instanceof ConstantExpression) {
+			code.remove(pop);
+			graph.excavate(pop);
 			return true;
 		}
 		return false;
 	}
 	
-	private Expression transform(Statement use, Statement tail, CopyVarStatement def) {
-		Local local = def.getVariable().getLocal();
-		Expression rhs = def.getExpression();
-
-		Set<String> fieldsUsed = new HashSet<>();
-		AtomicBoolean invoke = new AtomicBoolean();
-		AtomicBoolean array = new AtomicBoolean();
+	class FeedbackStatementVisitor extends StatementVisitor {
 		
-		{
-			if(rhs instanceof FieldLoadExpression) {
-				fieldsUsed.add(((FieldLoadExpression) rhs).getName() + "." + ((FieldLoadExpression) rhs).getDesc());
-			} else if(rhs instanceof InvocationExpression || rhs instanceof InitialisedObjectExpression) {
-				invoke.set(true);
-			} else if(rhs instanceof ArrayLoadExpression) {
-				array.set(true);
-			} else if(rhs instanceof ConstantExpression) {
-				return rhs;
+		private boolean change = false;
+		
+		public FeedbackStatementVisitor(Statement root) {
+			super(root);
+		}
+		
+		private boolean cleanDead() {
+			boolean changed = false;
+			Iterator<Entry<VersionedLocal, AtomicInteger>> it = localAccess.useCount.entrySet().iterator();
+			while(it.hasNext()) {
+				Entry<VersionedLocal, AtomicInteger> e = it.next();
+				if(e.getValue().get() == 0)  {
+					CopyVarStatement def = localAccess.defs.get(e.getKey());
+					if(!fineBladeDefinition(def, it)) {
+						killed(def);
+						changed = true;
+					}
+				}
+			}
+			return changed;
+		}
+		
+		private Set<Statement> enumerate(Statement stmt) {
+			Set<Statement> stmts = new HashSet<>();
+			stmts.add(stmt);
+			if(stmt instanceof PhiExpression) {
+				throw new UnsupportedOperationException(stmt.toString());
+			} else {
+				new StatementVisitor(stmt) {
+					@Override
+					public Statement visit(Statement stmt) {
+						stmts.add(stmt);
+						return stmt;
+					}
+				}.visit();
+			}
+			return stmts;
+		}
+		
+		private void killed(Statement stmt) {
+			for(Statement s : enumerate(stmt)) {
+				if(s instanceof VarExpression) {
+					unuseLocal(((VarExpression) s).getLocal());
+				}
 			}
 		}
 		
-		new StatementVisitor(rhs) {
-			@Override
-			public Statement visit(Statement stmt) {
-				if(stmt instanceof FieldLoadExpression) {
-					fieldsUsed.add(((FieldLoadExpression) stmt).getName() + "." + ((FieldLoadExpression) stmt).getDesc());
-				} else if(stmt instanceof InvocationExpression || stmt instanceof InitialisedObjectExpression) {
-					invoke.set(true);
-				} else if(stmt instanceof ArrayLoadExpression) {
-					array.set(true);
+		private void copied(Statement stmt) {
+			for(Statement s : enumerate(stmt)) {
+				if(s instanceof VarExpression) {
+					reuseLocal(((VarExpression) s).getLocal());
 				}
-				return stmt;
 			}
-		}.visit();
+		}
 		
-		Set<Statement> path = graph.wanderAllTrails(def, use);
-		path.remove(def);
-		path.add(use);
+		private boolean fineBladeDefinition(CopyVarStatement def, Iterator<?> it) {
+			it.remove();
+			Expression rhs = def.getExpression();
+			if(isUncopyable(rhs)) {
+				PopStatement pop = new PopStatement(rhs);
+				code.set(code.indexOf(def), pop);
+				graph.replace(def, pop);
+				return true;
+			} else {
+				// easy remove
+				code.remove(def);
+				graph.excavate(def);
+				Local local = def.getVariable().getLocal();
+				localAccess.useCount.remove(local);
+				return false;
+			}
+		}
 		
-		boolean canPropagate = true;
+		private void scalpelDefinition(CopyVarStatement def) {
+			code.remove(def);
+			graph.excavate(def);
+			Local local = def.getVariable().getLocal();
+			localAccess.useCount.remove(local);
+			localAccess.defs.remove(local);
+		}
 		
-		for(Statement stmt : path) {
-			if(stmt != use) {
-				if(stmt instanceof FieldStoreStatement) {
-					if(invoke.get()) {
-						canPropagate = false;
-						break;
-					} else if(fieldsUsed.size() > 0) {
-						FieldStoreStatement store = (FieldStoreStatement) stmt;
-						String key = store.getName() + "." + store.getDesc();
-						if(fieldsUsed.contains(key)) {
+		private int uses(Local l) {
+			if(localAccess.useCount.containsKey(l)) {
+				return localAccess.useCount.get(l).get();
+			} else {
+				throw new IllegalStateException("Local not in useCount map. Def: " + localAccess.defs.get(l));
+			}
+		}
+		
+		private void _xuselocal(Local l, boolean re) {
+			if(localAccess.useCount.containsKey(l)) {
+				if(re) {
+					localAccess.useCount.get(l).incrementAndGet();
+				} else {
+					localAccess.useCount.get(l).decrementAndGet();
+				}
+			} else {
+				throw new IllegalStateException("Local not in useCount map. Def: " + localAccess.defs.get(l));
+			}
+		}
+		
+		private void unuseLocal(Local l) {
+			_xuselocal(l, false);
+		}
+		
+		private void reuseLocal(Local l) {
+			_xuselocal(l, true);
+		}
+		
+		private Statement handleConstant(CopyVarStatement def, VarExpression use, ConstantExpression rhs) {
+			// x = 7;
+			// use(x)
+			//         goes to
+			// x = 7
+			// use(7)
+			
+			// localCount -= 1;
+			unuseLocal(use.getLocal());
+			return rhs.copy();
+		}
+
+		private Statement handleVar(CopyVarStatement def, VarExpression use, VarExpression rhs) {
+			Local x = use.getLocal();
+			Local y = rhs.getLocal();
+			if(x == y) {
+				return null;
+			}
+			// x = y
+			// use(x)
+			//         goes to
+			// x = y
+			// use(y)
+			
+			// rhsCount += 1;
+			// useCount -= 1;
+			reuseLocal(y);
+			unuseLocal(x);
+			return rhs.copy();
+		}
+
+		private Statement handleComplex(CopyVarStatement def, VarExpression use) {
+			if(!canTransferToUse(root, use, def)) {
+				return null;
+			}
+			
+			// this can be propagated
+			Expression propagatee = def.getExpression();
+			if(isUncopyable(propagatee)) {
+				// say we have
+				// 
+				// void test() {
+				//    x = func();
+				//    use(x);
+				//    use(x);
+				// }
+				//
+				// int func() {
+				//    print("blowing up reactor core " + (++core));
+				//    return core;
+				// }
+				// 
+				// if we lazily propagated the rhs (func()) into both uses
+				// it would blow up two reactor cores instead of the one
+				// that it currently is set to destroy. this is why uncop-
+				// yable statements (in reality these are expressions) ne-
+				// ed to have only  one definition for them to be propaga-
+				// table. at the moment the only possible expressions that
+				// have these side effects are invoke type ones.
+				if(uses(use.getLocal()) == 1) {
+					// since there is only 1 use of this expression, we
+					// will copy the propagatee/rhs to the use and then
+					// remove the definition. this means that the only
+					// change to uses is the variable that was being
+					// propagated. i.e.
+					
+					// svar0_1 = lvar0_0.invoke(lvar1_0, lvar3_0.m)
+					// use(svar0_1)
+					//  will become
+					// use(lvar0_0.invoke(lvar1_0, lvar3_0.m))
+					
+					// here the only thing we need to change is
+					// the useCount of svar0_1 to 0. (1 - 1)
+					unuseLocal(use.getLocal());
+					scalpelDefinition(def);
+					return propagatee;
+				}
+			} else {
+				// these statements here can be copied as many times
+				// as required without causing multiple catastrophic
+				// reactor meltdowns.
+				if(propagatee instanceof ArrayLoadExpression) {
+					// TODO: CSE instead of this cheap assumption.
+				} else {
+					// x = ((y * 2) + (9 / lvar0_0.g))
+					// use(x)
+					//       goes to
+					// x = ((y * 2) + (9 / lvar0_0.g))
+					// use(((y * 2) + (9 / lvar0_0.g)))
+					Local local = use.getLocal();
+					unuseLocal(local);
+					copied(propagatee);
+					if(uses(local) == 0) {
+						// if we just killed the local
+						killed(def);
+						scalpelDefinition(def);
+					}
+					return propagatee;
+				}
+			}
+			return null;
+		}
+		
+		private Statement findSubstitution(CopyVarStatement def, VarExpression use) {
+			Expression rhs = def.getExpression();
+			if(rhs instanceof ConstantExpression) {
+				return handleConstant(def, use, (ConstantExpression) rhs);
+			} else if(rhs instanceof VarExpression) {
+				return handleVar(def, use, (VarExpression) rhs);
+			} else if (!(rhs instanceof CaughtExceptionExpression || rhs instanceof PhiExpression)) {
+				return handleComplex(def, use);
+			}
+			return use;
+		}
+
+		private Statement visitVar(VarExpression var) {
+			CopyVarStatement def = localAccess.defs.get(var.getLocal());
+			return findSubstitution(def, var);
+		}
+		
+		private Statement visitPhi(PhiExpression phi) {
+			return phi;
+		}
+
+		@Override
+		public Statement visit(Statement stmt) {
+			if(stmt instanceof VarExpression) {
+				return choose(visitVar((VarExpression) stmt), stmt);
+			} else if(stmt instanceof PhiExpression) {
+				return choose(visitPhi((PhiExpression) stmt), stmt);
+			}
+			return stmt;
+		}
+		
+		private Statement choose(Statement e, Statement def) {
+			if(e != null) {
+				return e;
+			} else {
+				return def;
+			}
+		}
+		
+		private boolean isUncopyable(Statement stmt) {
+			for(Statement s : enumerate(stmt)) {
+				if(UNCOPYABLE.contains(s.getClass())) {
+					return true;
+				}
+			}
+			return false;
+		}
+		
+		private boolean canTransferToUse(Statement use, Statement tail, CopyVarStatement def) {
+			Local local = def.getVariable().getLocal();
+			Expression rhs = def.getExpression();
+
+			Set<String> fieldsUsed = new HashSet<>();
+			AtomicBoolean invoke = new AtomicBoolean();
+			AtomicBoolean array = new AtomicBoolean();
+			
+			{
+				if(rhs instanceof FieldLoadExpression) {
+					fieldsUsed.add(((FieldLoadExpression) rhs).getName() + "." + ((FieldLoadExpression) rhs).getDesc());
+				} else if(rhs instanceof InvocationExpression || rhs instanceof InitialisedObjectExpression) {
+					invoke.set(true);
+				} else if(rhs instanceof ArrayLoadExpression) {
+					array.set(true);
+				} else if(rhs instanceof ConstantExpression) {
+					return true;
+				}
+			}
+			
+			new StatementVisitor(rhs) {
+				@Override
+				public Statement visit(Statement stmt) {
+					if(stmt instanceof FieldLoadExpression) {
+						fieldsUsed.add(((FieldLoadExpression) stmt).getName() + "." + ((FieldLoadExpression) stmt).getDesc());
+					} else if(stmt instanceof InvocationExpression || stmt instanceof InitialisedObjectExpression) {
+						invoke.set(true);
+					} else if(stmt instanceof ArrayLoadExpression) {
+						array.set(true);
+					}
+					return stmt;
+				}
+			}.visit();
+			
+			Set<Statement> path = graph.wanderAllTrails(def, use);
+			path.remove(def);
+			path.add(use);
+			
+			boolean canPropagate = true;
+			
+			for(Statement stmt : path) {
+				if(stmt != use) {
+					if(stmt instanceof FieldStoreStatement) {
+						if(invoke.get()) {
+							canPropagate = false;
+							break;
+						} else if(fieldsUsed.size() > 0) {
+							FieldStoreStatement store = (FieldStoreStatement) stmt;
+							String key = store.getName() + "." + store.getDesc();
+							if(fieldsUsed.contains(key)) {
+								canPropagate = false;
+								break;
+							}
+						}
+					} else if(stmt instanceof ArrayStoreStatement) {
+						if(invoke.get() || array.get()) {
+							canPropagate = false;
+							break;
+						}
+					} else if(stmt instanceof MonitorStatement) {
+						if(invoke.get()) {
+							canPropagate = false;
+							break;
+						}
+					} else if(stmt instanceof InitialisedObjectExpression || stmt instanceof InvocationExpression) {
+						if(invoke.get() || fieldsUsed.size() > 0 || array.get()) {
 							canPropagate = false;
 							break;
 						}
 					}
-				} else if(stmt instanceof ArrayStoreStatement) {
-					if(invoke.get() || array.get()) {
-						canPropagate = false;
-						break;
-					}
-				} else if(stmt instanceof MonitorStatement) {
-					if(invoke.get()) {
-						canPropagate = false;
-						break;
-					}
-				} else if(stmt instanceof InitialisedObjectExpression || stmt instanceof InvocationExpression) {
-					if(invoke.get() || fieldsUsed.size() > 0 || array.get()) {
-						canPropagate = false;
-						break;
-					}
 				}
-			}
-			
-			if(!canPropagate) {
-				return null;
-			}
-			
-			AtomicBoolean canPropagate2 = new AtomicBoolean(canPropagate);
-			if(invoke.get() || array.get() || !fieldsUsed.isEmpty()) {
-				new StatementVisitor(stmt) {
-					@Override
-					public Statement visit(Statement s) {
-						// if(use.toString().equals("svar0_5 = svar0_3.append(a.a.a.d.H(\"O\")).append(lvar2_0);")) {
-							// System.out.println(code);
-							// System.out.println("root==use: " + (root == use));
-							//  System.out.println("   fullcond: " + (root == use && (s instanceof VarExpression && ((VarExpression) s).getLocal() == local)));
-							// 	 System.out.println("   s: " + s);
-							//  System.out.println("   l: " + local);
-							//  System.out.println("   root:  " + root);
-							//  System.out.println("   use:   " + use);
-							//  System.out.println("   inst: " + this.hashCode());
-							// System.exit(1);
-						// }
-						
-						if(root == use && (s instanceof VarExpression && ((VarExpression) s).getLocal() == local)) {
-							// System.out.println("Breaking " + this.hashCode());
-							_break();
-						} else {
-							if((s instanceof InvocationExpression || s instanceof InitialisedObjectExpression) || (invoke.get() && (s instanceof FieldStoreStatement || s instanceof ArrayStoreStatement))) {
-								canPropagate2.set(false);
-								_break();
-							}
-						}
-						return s;
-					}
-				}.visit();
-				canPropagate = canPropagate2.get();
 				
 				if(!canPropagate) {
-					return null;
+					return false;
 				}
+				
+				AtomicBoolean canPropagate2 = new AtomicBoolean(canPropagate);
+				if(invoke.get() || array.get() || !fieldsUsed.isEmpty()) {
+					new StatementVisitor(stmt) {
+						@Override
+						public Statement visit(Statement s) {
+							if(root == use && (s instanceof VarExpression && ((VarExpression) s).getLocal() == local)) {
+								_break();
+							} else {
+								if((s instanceof InvocationExpression || s instanceof InitialisedObjectExpression) || (invoke.get() && (s instanceof FieldStoreStatement || s instanceof ArrayStoreStatement))) {
+									canPropagate2.set(false);
+									_break();
+								}
+							}
+							return s;
+						}
+					}.visit();
+					canPropagate = canPropagate2.get();
+					
+					if(!canPropagate) {
+						return false;
+					}
+				}
+			}
+			
+			if(canPropagate) {
+				return true;
+			} else {
+				return false;
 			}
 		}
 		
-		if(canPropagate) {
-			return rhs;
+		public boolean changed() {
+			return change;
 		}
 		
-		return null;
+		@Override
+		public void reset(Statement stmt) {
+			super.reset(stmt);
+			change = false;
+		}
+		
+		@Override
+		protected void visited(Statement stmt, Statement node, int addr, Statement vis) {
+			if(vis != node) {
+				stmt.overwrite(vis, addr);
+				change = true;
+				verify();
+			}
+		}
+		
+		private void verify() {
+			SSALocalAccess fresh = new SSALocalAccess(code);
+			
+			Set<VersionedLocal> keySet = new HashSet<>(fresh.useCount.keySet());
+			keySet.addAll(localAccess.useCount.keySet());
+			List<VersionedLocal> sortedKeys = new ArrayList<>(keySet);
+			Collections.sort(sortedKeys);
+			
+			String message = null;
+			for(VersionedLocal e : sortedKeys) {
+				AtomicInteger i1 = fresh.useCount.get(e);
+				AtomicInteger i2 = localAccess.useCount.get(e);
+				if(i1 == null) {
+					message = "Real no contain: " + e + ", other: " + i2.get();
+				} else if(i2 == null) {
+					message = "Current no contain: " + e + ", other: " + i1.get();
+				} else if(i1.get() != i2.get()) {
+					message = "Mismatch: " + e + " " + i1.get() + ":" + i2.get();
+				}
+			}
+			
+			if(message != null) {
+				throw new RuntimeException(message + "\n" + code.toString());
+			}
+		}
 	}
 }
