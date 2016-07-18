@@ -56,8 +56,8 @@ public class AnalyticsTest {
 		while(it.hasNext()) {
 			MethodNode m = it.next();
 
-			if(!m.toString().equals("a/a/f/a.H(J)La/a/f/o;")) {
-				continue;
+			if(!m.toString().equals("a/a/f/a.H(La/a/f/o;J)V")) {
+//				continue;
 			}
 //			LocalsTest.main([Ljava/lang/String;)V
 //			org/rsdeob/AnalyticsTest.tryidiots(I)V
@@ -79,8 +79,8 @@ public class AnalyticsTest {
 			gen.createExpressions();
 			CodeBody code = gen.buildRoot();
 
-			System.out.println(code);
-			System.out.println();
+//			System.out.println(code);
+//			System.out.println();
 
 			SSAGenerator ssagen = new SSAGenerator(code, cfg, gen.getHeaders());
 			ssagen.run();
