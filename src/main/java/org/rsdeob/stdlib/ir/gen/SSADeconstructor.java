@@ -137,12 +137,12 @@ public class SSADeconstructor {
 		unweaveUndroppables();
 	}
 	
-	void computeMaxLocals() {
+	private void computeMaxLocals() {
 		for (VersionedLocal local : localsAccess.defs.keySet())
 			maxLocals = Math.max(maxLocals, local.getIndex());
 	}
 	
-	void mapTypes() {
+	private void mapTypes() {
 		for (Statement stmt : body) {
 			for (Statement child : Statement.enumerate(stmt)) {
 				if (child instanceof VarExpression) {
@@ -154,7 +154,7 @@ public class SSADeconstructor {
 		}
 	}
 	
-	void mapType(VarExpression var) {
+	private void mapType(VarExpression var) {
 		Local local = var.getLocal();
 		if(!(local instanceof VersionedLocal)) {
 			throw new IllegalStateException(local + " " + var);
