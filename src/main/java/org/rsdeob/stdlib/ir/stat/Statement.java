@@ -1,10 +1,5 @@
 package org.rsdeob.stdlib.ir.stat;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-
 import org.objectweb.asm.MethodVisitor;
 import org.rsdeob.stdlib.cfg.util.TabbedStringWriter;
 import org.rsdeob.stdlib.collections.graph.FastGraphVertex;
@@ -12,6 +7,11 @@ import org.rsdeob.stdlib.ir.StatementVisitor;
 import org.rsdeob.stdlib.ir.expr.Expression;
 import org.rsdeob.stdlib.ir.expr.PhiExpression;
 import org.rsdeob.stdlib.ir.transform.impl.CodeAnalytics;
+
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 public abstract class Statement implements FastGraphVertex {
 	

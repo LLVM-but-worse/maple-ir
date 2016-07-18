@@ -1,8 +1,5 @@
 package org.rsdeob.deobimpl;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
@@ -12,6 +9,9 @@ import org.rsdeob.stdlib.cfg.ControlFlowGraph;
 import org.rsdeob.stdlib.collections.graph.flow.ExceptionRange;
 import org.rsdeob.stdlib.collections.graph.util.GraphUtils;
 import org.rsdeob.stdlib.deob.IPhase;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class RTECatchBlockRemoverPhase implements IPhase, Opcodes {
 

@@ -1,9 +1,5 @@
 package org.rsdeob.deobimpl;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.commons.cfg.tree.NodeVisitor;
 import org.objectweb.asm.commons.cfg.tree.node.AbstractNode;
@@ -15,6 +11,10 @@ import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.rsdeob.stdlib.IContext;
 import org.rsdeob.stdlib.deob.IPhase;
+
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 /**
  * Swaps instructions to change null checks as 

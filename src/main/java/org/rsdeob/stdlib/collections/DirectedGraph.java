@@ -1,10 +1,6 @@
 package org.rsdeob.stdlib.collections;
 
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.Set;
+import java.util.*;
 
 public class DirectedGraph<V, E> extends LinkedHashMap<V, Set<E>> implements Iterable<V> {
 

@@ -1,19 +1,14 @@
 package org.rsdeob.stdlib.klass;
 
-import static org.rsdeob.stdlib.klass.ClassHelper.convertToMap;
-import static org.rsdeob.stdlib.klass.ClassHelper.copyOf;
-
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Set;
-
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.rsdeob.stdlib.collections.NullPermeableHashMap;
+
+import java.util.*;
+
+import static org.rsdeob.stdlib.klass.ClassHelper.convertToMap;
+import static org.rsdeob.stdlib.klass.ClassHelper.copyOf;
 
 /**
  * @author Bibl (don't ban me pls)

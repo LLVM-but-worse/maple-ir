@@ -21,12 +21,8 @@ import org.rsdeob.stdlib.ir.transform.ssa.SSALocalAccess;
 
 import java.util.*;
 import java.util.Map.Entry;
-import java.util.function.Function;
-import java.util.function.Predicate;
 
-import static org.rsdeob.stdlib.ir.transform.ssa.SSAUtil.replaceLocals;
-import static org.rsdeob.stdlib.ir.transform.ssa.SSAUtil.visitAll;
-import static org.rsdeob.stdlib.ir.transform.ssa.SSAUtil.vl;
+import static org.rsdeob.stdlib.ir.transform.ssa.SSAUtil.*;
 
 public class SSADeconstructor {
 	

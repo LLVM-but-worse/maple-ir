@@ -1,29 +1,17 @@
 package org.rsdeob.deobimpl;
 
-import java.lang.reflect.Modifier;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
-import org.objectweb.asm.tree.AbstractInsnNode;
-import org.objectweb.asm.tree.ClassNode;
-import org.objectweb.asm.tree.IincInsnNode;
-import org.objectweb.asm.tree.InsnNode;
-import org.objectweb.asm.tree.MethodInsnNode;
-import org.objectweb.asm.tree.MethodNode;
-import org.objectweb.asm.tree.VarInsnNode;
+import org.objectweb.asm.tree.*;
 import org.rsdeob.stdlib.IContext;
 import org.rsdeob.stdlib.deob.IPhase;
 import org.rsdeob.stdlib.klass.ClassTree;
 import org.rsdeob.stdlib.klass.InheritedMethodMap;
 import org.rsdeob.stdlib.klass.MethodCache;
+
+import java.lang.reflect.Modifier;
+import java.util.*;
+import java.util.Map.Entry;
 
 /**
  * <p>

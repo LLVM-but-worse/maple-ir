@@ -1,8 +1,5 @@
 package org.rsdeob.stdlib.ir.stat;
 
-import java.util.*;
-import java.util.Map.Entry;
-
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Type;
@@ -11,6 +8,9 @@ import org.rsdeob.stdlib.cfg.util.TypeUtils;
 import org.rsdeob.stdlib.ir.expr.Expression;
 import org.rsdeob.stdlib.ir.header.HeaderStatement;
 import org.rsdeob.stdlib.ir.transform.impl.CodeAnalytics;
+
+import java.util.*;
+import java.util.Map.Entry;
 
 public class SwitchStatement extends Statement {
 
