@@ -210,9 +210,11 @@ public class SSAPropagator extends SSATransformer {
 				Entry<VersionedLocal, AtomicInteger> e = it.next();
 				if(e.getValue().get() == 0)  {
 					CopyVarStatement def = localAccess.defs.get(e.getKey());
-					if(!fineBladeDefinition(def, it)) {
-						killed(def);
-						changed = true;
+					if(!def.isSynthetic()) {
+						if(!fineBladeDefinition(def, it)) {
+							killed(def);
+							changed = true;
+						}
 					}
 				}
 			}
