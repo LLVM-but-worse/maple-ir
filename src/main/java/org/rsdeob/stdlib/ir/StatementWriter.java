@@ -56,13 +56,13 @@ public class StatementWriter {
 		m.visitCode();
 		m.instructions.clear();
 		m.tryCatchBlocks.clear();
-		stmts.getLocals().setBase(calculateBase());
-		stmts.getLocals().pack(stmts);
+		stmts.getLocals().realloc(stmts);
 
 		for(HeaderStatement header : headers.values())
 			header.resetLabel();
-		for (Statement stmt : stmts)
+		for (Statement stmt : stmts) {
 			stmt.toCode(m, analytics);
+		}
 
 		for(ExceptionRange<BasicBlock> er : cfg.getRanges()) {
 			String type = null;

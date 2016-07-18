@@ -2,13 +2,19 @@ package org.rsdeob.stdlib.ir.locals;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.objectweb.asm.Type;
+import org.rsdeob.stdlib.cfg.util.TypeUtils;
+import org.rsdeob.stdlib.collections.NullPermeableHashMap;
+import org.rsdeob.stdlib.collections.SetCreator;
 import org.rsdeob.stdlib.ir.CodeBody;
 import org.rsdeob.stdlib.ir.StatementVisitor;
 import org.rsdeob.stdlib.ir.expr.VarExpression;
@@ -71,6 +77,70 @@ public class LocalsHandler {
 		}
 	} */
 	
+	public void realloc(CodeBody code) {
+		NullPermeableHashMap<Local, Set<Type>> types = new NullPermeableHashMap<>(new SetCreator<>());
+		for(Statement stmt : code) {
+			for(Statement s : Statement.enumerate(stmt)) {
+				if(s instanceof VarExpression) {
+					VarExpression var = (VarExpression) s;
+					Local local = var.getLocal();
+					types.getNonNull(local).add(var.getType());
+				}
+			}
+		}
+
+		Map<Local, Type> saveTypes = new HashMap<>();
+		
+		for(Entry<Local, Set<Type>> e : types.entrySet()) {
+			Set<Type> set = e.getValue();
+			Set<Type> refined = new HashSet<>();
+			if(set.size() > 1) {
+				for(Type t : set) {
+					refined.add(TypeUtils.asSimpleType(t));
+				}
+				if(refined.size() != 1) {
+					throw new RuntimeException("illegal typesets: " + types);
+				}
+				saveTypes.put(e.getKey(), refined.iterator().next());
+			} else {
+				saveTypes.put(e.getKey(), set.iterator().next());
+			}
+		}
+		
+		System.out.println(saveTypes);
+		
+		// lvars then svars, ordered of course,
+		List<Local> worklist = new ArrayList<>(saveTypes.keySet());
+		Collections.sort(worklist);
+
+		int index = 0;
+		for(Local l : worklist) {
+			Type type = saveTypes.get(l);
+			System.out.println(l + "  set to " + index);
+			l.setIndex(index);
+			index += type.getSize();
+		}
+	}
+	
+	private List<Local> createWorkList(Set<Local> keySet) {
+		List<Local> real = new ArrayList<>();
+		List<Local> stack = new ArrayList<>();
+		for(Local l : keySet) {
+			if(l.isStack()) {
+				stack.add(l);
+			} else {
+				real.add(l);
+			}
+		}
+		Collections.sort(real);
+		Collections.sort(stack);
+		
+		List<Local> res = new ArrayList<>();
+		res.addAll(real);
+		res.addAll(stack);
+		return res;
+	}
+
 	private void pack(List<Local> list) {
 		Collections.sort(list);
 		int index = 0;
