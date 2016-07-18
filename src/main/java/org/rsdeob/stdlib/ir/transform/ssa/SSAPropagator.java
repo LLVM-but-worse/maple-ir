@@ -157,7 +157,7 @@ public class SSAPropagator extends SSATransformer {
 							}
 						}
 					}
-					
+
 					for(Entry<CopyVarStatement, Set<CopyVarStatement>> e : equiv.entrySet()) {
 						// key should be earliest
 						// remove vals from code and replace use of val vars with key var
@@ -168,23 +168,29 @@ public class SSAPropagator extends SSATransformer {
 							VersionedLocal local = (VersionedLocal) def.getVariable().getLocal();
 							toReplace.add(local);
 							killed(def);
-							scalpelDefinition(def);
+							code.remove(def);
+							graph.excavate(def);
 						}
+						
 						// replace uses
 						for(Statement reachable : graph.wanderAllTrails(keepPhi, exit)) {
-							if(reachable == keepPhi)
-								continue;
-							
 							for(Statement s : enumerate(reachable)) {
 								if(s instanceof VarExpression) {
 									VarExpression var = (VarExpression) s;
 									VersionedLocal l = (VersionedLocal) var.getLocal();
 									if(toReplace.contains(l)) {
-										System.out.println("rep: " + s);
+										reuseLocal(phiLocal);
+										unuseLocal(l);
 										var.setLocal(phiLocal);
 									}
 								}
 							}
+						}
+						
+						for(CopyVarStatement def : e.getValue()) {
+							Local local = def.getVariable().getLocal();
+							localAccess.useCount.remove(local);
+							localAccess.defs.remove(local);
 						}
 						change = true;
 					}
@@ -228,6 +234,12 @@ public class SSAPropagator extends SSATransformer {
 					@Override
 					public Statement visit(Statement stmt) {
 						stmts.add(stmt);
+						if(stmt instanceof PhiExpression) {
+							PhiExpression phi = (PhiExpression) stmt;
+							for(Expression s : phi.getLocals().values()) {
+								stmts.addAll(enumerate(s));
+							}
+						}
 						return stmt;
 					}
 				}.visit();
@@ -307,7 +319,7 @@ public class SSAPropagator extends SSATransformer {
 			if(localAccess.useCount.containsKey(l)) {
 				return localAccess.useCount.get(l).get();
 			} else {
-				throw new IllegalStateException("Local not in useCount map. Def: " + localAccess.defs.get(l));
+				throw new IllegalStateException("Local " + l + " not in useCount map. Def: " + localAccess.defs.get(l));
 			}
 		}
 
@@ -324,7 +336,7 @@ public class SSAPropagator extends SSATransformer {
 					localAccess.useCount.get(l).decrementAndGet();
 				}
 			} else {
-				throw new IllegalStateException("Local not in useCount map. Def: " + localAccess.defs.get(l));
+				throw new IllegalStateException("Local " + l + " not in useCount map. Def: " + localAccess.defs.get(l));
 			}
 		}
 		
