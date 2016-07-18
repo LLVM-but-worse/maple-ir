@@ -48,8 +48,8 @@ public class AnalyticsTest {
 	public static boolean debug = true;
 	
 	public static void main(String[] args) throws Throwable {
-//		InputStream i = new FileInputStream(new File("res/a.class"));
-		ClassReader cr = new ClassReader(AnalyticsTest.class.getCanonicalName());
+		InputStream i = new FileInputStream(new File("res/a2.class"));
+		ClassReader cr = new ClassReader(i);
 		ClassNode cn = new ClassNode();
 		cr.accept(cn, 0);
 		//
@@ -57,7 +57,14 @@ public class AnalyticsTest {
 		while(it.hasNext()) {
 			MethodNode m = it.next();
 
-			if(!m.toString().equals("org/rsdeob/AnalyticsTest.tryidiots(I)V")) {
+//			a.f(I)Z 194
+//			a.u(I)V 149
+//			a.<clinit>()V 7
+//			a.bm(Le;I)V 238
+//			a.<init>()V 16
+//			a.di(Lb;ZI)V 268
+//			a.n(Ljava/lang/String;I)I 18
+			if(!m.toString().equals("a.<init>()V")) {
 				continue;
 			}
 //			LocalsTest.main([Ljava/lang/String;)V
@@ -88,69 +95,30 @@ public class AnalyticsTest {
 			SSAGenerator ssagen = new SSAGenerator(code, cfg, gen.getHeaders());
 			ssagen.run();
 			
-			System.out.println("SSA:");
-			System.out.println(code);
-			System.out.println();
-			System.out.println();
+//			System.out.println("SSA:");
+//			System.out.println(code);
+//			System.out.println();
+//			System.out.println();
 
 			StatementGraph sgraph = StatementGraphBuilder.create(cfg);
 			SSALocalAccess localAccess = new SSALocalAccess(code);
 			
-			SSATransformer[] transforms = new SSATransformer[]{
-				new SSAPropagator(code, localAccess, sgraph, gen.getHeaders().values()),
-				new SSAInitialiserAggregator(code, localAccess, sgraph)
-			};
+			SSATransformer[] transforms = initTransforms(code, localAccess, sgraph, gen);
 			
-			try {
-				while(true) {
-					int change = 0;
-					for(SSATransformer t : transforms) {
-						change += t.run();
-					}
-					if(change <= 0) {
-						break;
-					}
+			while(true) {
+				int change = 0;
+				for(SSATransformer t : transforms) {
+					change += t.run();
 				}
-			} catch (Exception e) {
-				e.printStackTrace();
-				// TODO: handle exception
-			}
-			
-			System.out.println();
-			System.out.println();
-			System.out.println("Optimised SSA:");
-			System.out.println(code);
-			
-//			for(Statement stmt : code) {
-//				if(stmt._getId() == 121) {
-//					new StatementVisitor(stmt) {
-//						@Override
-//						public Statement visit(Statement stmt) {
-//							System.out.println(stmt);
-//							return stmt;
-//						}
-//					}.visit();
-//				}
-//			}
-			
-//			System.out.println(localAccess.defs);
-			SSALocalAccess real = new SSALocalAccess(code);
-			Set<VersionedLocal> set = new HashSet<>(real.useCount.keySet());
-			set.addAll(localAccess.useCount.keySet());
-			List<VersionedLocal> keys = new ArrayList<>(set);
-			Collections.sort(keys);
-			for(VersionedLocal e : keys) {
-				AtomicInteger i1 = real.useCount.get(e);
-				AtomicInteger i2 = localAccess.useCount.get(e);
-				if(i1 == null) {
-					System.err.println("Real no contain: " + e + ", other: " + i2.get());
-				} else if(i2 == null) {
-					System.err.println("Current no contain: " + e + ", other: " + i1.get());
-				} else if(i1.get() != i2.get()) {
-					System.err.println("Mismatch: " + e + " " + i1.get() + ":" + i2.get());
+				if(change <= 0) {
+					break;
 				}
 			}
 			
+//			System.out.println();
+//			System.out.println();
+//			System.out.println("Optimised SSA:");
+//			System.out.println(code);
 			
 			UnSSA de = new UnSSA(code, cfg);
 			de.run();
@@ -161,176 +129,12 @@ public class AnalyticsTest {
 			System.out.println(code);
 		}
 	}
-
-	public static void optimise(CodeBody code, CodeAnalytics analytics) {
-		Transformer[] transforms = LivenessTest.transforms(code, analytics);
-		
-		while(true) {
-			int change = 0;
-
-			for(Transformer t : transforms) {
-				change += t.run();
-			}
-			
-			if(change <= 0) {
-				break;
-			}
-		}
-	}
 	
-	public static void verify_callback(CodeBody code, CodeAnalytics analytics, Statement stmt) {
-		code.commit();
-		
-		DefinitionAnalyser d1 = new DefinitionAnalyser(analytics.sgraph);
-		LivenessAnalyser l1 = new LivenessAnalyser(analytics.sgraph);
-		
-		for(Statement s : code) {
-			try {
-				Map<Local, Set<CopyVarStatement>> din1 = analytics.definitions.in(s);
-				Map<Local, Set<CopyVarStatement>> din2 = d1.in(s);
-				Map<Local, Set<CopyVarStatement>> dout1 = analytics.definitions.out(s);
-				Map<Local, Set<CopyVarStatement>> dout2 = d1.out(s);
-
-				dcheck("DIN", din1, din2, analytics, code, stmt, s);
-				dcheck("DOUT", dout1, dout2, analytics, code, stmt, s);
-				
-				Map<Local, Boolean> lin1 = analytics.liveness.in(s);
-				Map<Local, Boolean> lin2 = l1.in(s);
-				Map<Local, Boolean> lout1 = analytics.liveness.out(s);
-				Map<Local, Boolean> lout2 = l1.out(s);
-
-				lcheck("LIN", lin1, lin2, analytics, code, stmt, s);
-				lcheck("LOUT", lout1, lout2, analytics, code, stmt, s);
-			} catch(Exception e) {
-				if(e instanceof RuntimeException) {
-					throw (RuntimeException)e;
-				} else {
-					throw new RuntimeException(e);
-				}
-			}
-		}
-	}
-	
-	public static void lcheck(String type, Map<Local, Boolean> s1, Map<Local, Boolean> s2, CodeAnalytics analytics, CodeBody code, Statement stmt, Statement cur) throws Exception {
-		if(!(cur instanceof HeaderStatement) && !lcheck0(s1, s2)) {
-			System.err.println();
-			System.err.println(code);
-			System.err.println("Fail: " + stmt.getId() + ". " + stmt);
-			System.err.println(" Cur: " + cur.getId() + ". " + cur);
-			System.err.println("  Actual " + type + "1:");
-			if(s1 != null) {
-				for(Entry<Local, Boolean> e : s1.entrySet()) {
-					System.err.println("    " + e.getKey() + " = " + e.getValue());
-				}
-			} else {
-				System.err.println("   NULL");
-			}
-			System.err.println("  Should " + type + "2:");
-			if(s2 != null) {
-				for(Entry<Local, Boolean> e : s2.entrySet()) {
-					System.err.println("    " + e.getKey() + " = " + e.getValue());
-				}
-			} else {
-				System.err.println("   NULL");
-			}
-			SGDotExporter exporter = new SGDotExporter(analytics.sgraph, code, "failedat_lcheck", "-sg");
-			exporter.addHighlight(stmt, "turquoise2");
-			exporter.addHighlight(cur, "yellow2");
-			exporter.output(DotExporter.OPT_DEEP);
-			throw new RuntimeException();
-		}
-	}
-	
-	public static boolean lcheck0(Map<Local, Boolean> s1, Map<Local, Boolean> s2) {
-		if(s1 == null || s2 == null) {
-			return false;
-		}
-		
-		Set<Local> keys = new HashSet<>();
-		keys.addAll(s1.keySet());
-		keys.addAll(s2.keySet());
-		
-		for(Local key : keys) {
-			if(!s1.containsKey(key)) {
-				// return false;
-			} else if(!s2.containsKey(key)) {
-				// return false;
-			} else {
-				if(s1.get(key).booleanValue() != s2.get(key).booleanValue()) {
-					return false;
-				}
-			}
-		}
-		
-		return true;
-	}
-	
-	public static void dcheck(String type, Map<Local, Set<CopyVarStatement>> s1, Map<Local, Set<CopyVarStatement>> s2, CodeAnalytics analytics, CodeBody code, Statement stmt, Statement cur) throws Exception {
-		if(!(s1 == null && s2 == null) && !dcheck0(s1, s2)) {
-			System.err.println();
-			System.err.println(code);
-			System.err.println("Fail: " + stmt.getId() + ". " + stmt);
-			System.err.println(" Cur: " + cur.getId() + ". " + cur);
-			System.err.println("  Actual " + type + "1:");
-			if(s1 != null) {
-				for(Entry<Local, Set<CopyVarStatement>> e : s1.entrySet()) {
-					System.err.println("    " + e.getKey() + " = " + e.getValue());
-				}
-			} else {
-				System.err.println("   NULL");
-			}
-			System.err.println("  Should " + type + "2:");
-			if(s2 != null) {
-				for(Entry<Local, Set<CopyVarStatement>> e : s2.entrySet()) {
-					System.err.println("    " + e.getKey() + " = " + e.getValue());
-				}
-			} else {
-				System.err.println("   NULL");
-			}
-			SGDotExporter exporter = new SGDotExporter(analytics.sgraph, code, "failedat_dcheck", "-sg");
-			exporter.addLabel(stmt, "Fail");
-			exporter.addHighlight(stmt, "turquoise2");
-			exporter.addLabel(cur, "Cur");
-			exporter.addHighlight(cur, "yellow2");
-			exporter.output(DotExporter.OPT_DEEP);
-			throw new RuntimeException();
-		}
-	}
-	
-	public static boolean dcheck0(Map<Local, Set<CopyVarStatement>> s1, Map<Local, Set<CopyVarStatement>> s2) {
-		if(s1 == null || s2 == null) {
-			return false;
-		}
-		
-		Set<Local> keys = new HashSet<>();
-		keys.addAll(s1.keySet());
-		keys.addAll(s2.keySet());
-		
-		for(Local key : keys) {
-			Set<CopyVarStatement> set1 = s1.get(key);
-			Set<CopyVarStatement> set2 = s2.get(key);
-			
-			if(set1 == null && set2.isEmpty()) {
-				continue;
-			} else if(set2 == null && set1.isEmpty()) {
-				continue;
-			}
-			
-			if(!set1.equals(set2)) {
-				for(Local l : keys) {
-					if(s1.get(l) == null || s1.get(l).isEmpty()) {
-						s1.remove(l);
-					}
-					if(s2.get(l) == null || s2.get(l).isEmpty()) {
-						s2.remove(l);
-					}
-				}
-				System.err.println("[D] mistmatch for " + key);
-				return false;
-			}
-		}
-		
-		return true;
+	private static SSATransformer[] initTransforms(CodeBody code, SSALocalAccess localAccess, StatementGraph sgraph, StatementGenerator gen) {
+		return new SSATransformer[] {
+				new SSAPropagator(code, localAccess, sgraph, gen.getHeaders().values()),
+				new SSAInitialiserAggregator(code, localAccess, sgraph)
+			};
 	}
 
 	public void tryidiots(int x) {

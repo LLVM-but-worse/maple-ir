@@ -640,7 +640,16 @@ public class StatementGenerator implements Opcodes {
 		LabelNode label = tc.handler;
 		BasicBlock handler = graph.getBlock(label);
 		ExpressionStack stack = new ExpressionStack(1024 * 8);
-		stack.push(new CaughtExceptionExpression(tc.type));
+		
+		Expression expr = new CaughtExceptionExpression(tc.type);
+		Type type = expr.getType();
+		// VarExpression var = new VarExpression(index, type, true);
+		VarExpression var = _var_expr(0, type, true);
+		CopyVarStatement stmt = new CopyVarStatement(var, expr);
+		handler.getStatements().add(stmt);
+		
+		stack.push(load_stack(0, type));
+		
 		handler.setInputStack(stack);
 
 		queue.addLast(handler);
