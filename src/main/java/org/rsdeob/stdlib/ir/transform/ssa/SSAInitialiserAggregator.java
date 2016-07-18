@@ -58,10 +58,7 @@ public class SSAInitialiserAggregator extends SSATransformer {
 								localAccess.useCount.get(local).decrementAndGet();
 								
 								int index = code.indexOf(pop);
-								Statement prev = code.get(index - 1);
 								code.add(index, newCvs);
-								System.out.println("jammin " + newCvs);
-								System.out.println("  bet " + prev.getId() + ". " + prev + ", " + pop.getId() +". " + pop);
 //								graph.jam(prev, pop, newCvs);
 								graph.replace(pop, newCvs);
 								code.remove(pop);
