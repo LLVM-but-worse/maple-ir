@@ -56,8 +56,8 @@ public class AnalyticsTest {
 		while(it.hasNext()) {
 			MethodNode m = it.next();
 
-			if(!m.toString().equals("a/a/f/a.H(La/a/f/o;J)V")) {
-//				continue;
+			if(!m.toString().equals("a/a/f/a.H(J)La/a/f/o;")) {
+				continue;
 			}
 //			LocalsTest.main([Ljava/lang/String;)V
 //			org/rsdeob/AnalyticsTest.tryidiots(I)V
