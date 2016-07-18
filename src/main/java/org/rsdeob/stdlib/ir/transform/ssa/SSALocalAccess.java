@@ -1,11 +1,6 @@
 package org.rsdeob.stdlib.ir.transform.ssa;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
-
 import org.rsdeob.stdlib.collections.NullPermeableHashMap;
-import org.rsdeob.stdlib.collections.ValueCreator;
 import org.rsdeob.stdlib.ir.CodeBody;
 import org.rsdeob.stdlib.ir.StatementVisitor;
 import org.rsdeob.stdlib.ir.expr.Expression;
@@ -15,6 +10,10 @@ import org.rsdeob.stdlib.ir.locals.VersionedLocal;
 import org.rsdeob.stdlib.ir.stat.CopyVarStatement;
 import org.rsdeob.stdlib.ir.stat.Statement;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
+
 public class SSALocalAccess {
 
 	public final Map<VersionedLocal, CopyVarStatement> defs;
@@ -22,12 +21,7 @@ public class SSALocalAccess {
 	
 	public SSALocalAccess(CodeBody code) {
 		defs = new HashMap<>();
-		useCount = new NullPermeableHashMap<>(new ValueCreator<AtomicInteger>() {
-			@Override
-			public AtomicInteger create() {
-				return new AtomicInteger();
-			}
-		});
+		useCount = new NullPermeableHashMap<>(AtomicInteger::new);
 		
 		for(Statement s : code) {
 			boolean synth = false;

@@ -1,11 +1,11 @@
 package org.rsdeob.stdlib.ir.transform;
 
-import java.util.Iterator;
-import java.util.Set;
-
 import org.rsdeob.stdlib.cfg.edge.FlowEdge;
 import org.rsdeob.stdlib.collections.graph.FastGraphVertex;
 import org.rsdeob.stdlib.collections.graph.flow.FlowGraph;
+
+import java.util.Iterator;
+import java.util.Set;
 
 public abstract class BackwardsFlowAnalyser<N extends FastGraphVertex, E extends FlowEdge<N>, S> extends DataAnalyser<N, E, S> {
 	

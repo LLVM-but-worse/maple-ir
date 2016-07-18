@@ -1,28 +1,20 @@
 package org.rsdeob.stdlib.klass;
 
-import static org.rsdeob.stdlib.klass.ClassHelper.convertToMap;
-import static org.rsdeob.stdlib.klass.ClassHelper.copyOf;
-
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Set;
-
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.rsdeob.stdlib.collections.NullPermeableHashMap;
-import org.rsdeob.stdlib.collections.SetCreator;
+
+import java.util.*;
+
+import static org.rsdeob.stdlib.klass.ClassHelper.convertToMap;
+import static org.rsdeob.stdlib.klass.ClassHelper.copyOf;
 
 /**
  * @author Bibl (don't ban me pls)
  * @created 25 May 2015 (actually before this)
  */
 public class ClassTree implements Iterable<ClassNode> {
-	private static final SetCreator<ClassNode> SET_CREATOR = new SetCreator<ClassNode>();
-
 	private final Map<String, ClassNode>                          classes;
 	private final NullPermeableHashMap<ClassNode, Set<ClassNode>> supers;
 	private final NullPermeableHashMap<ClassNode, Set<ClassNode>> delgates;
@@ -33,8 +25,8 @@ public class ClassTree implements Iterable<ClassNode> {
 
 	public ClassTree(Map<String, ClassNode> classes_) {
 		classes  = copyOf(classes_);
-		supers   = new NullPermeableHashMap<ClassNode, Set<ClassNode>>(SET_CREATOR);
-		delgates = new NullPermeableHashMap<ClassNode, Set<ClassNode>>(SET_CREATOR);
+		supers   = new NullPermeableHashMap<>(HashSet<ClassNode>::new);
+		delgates = new NullPermeableHashMap<>(HashSet<ClassNode>::new);
 
 		build(classes);
 	}

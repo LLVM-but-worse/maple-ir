@@ -1,13 +1,9 @@
 package org.rsdeob.stdlib.collections.graph.flow;
 
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.NoSuchElementException;
-import java.util.Set;
-import java.util.Stack;
-
 import org.rsdeob.stdlib.collections.graph.FastGraph;
 import org.rsdeob.stdlib.collections.graph.FastGraphVertex;
+
+import java.util.*;
 
 public class DepthFirstSorterImpl<N extends FastGraphVertex> implements Sorter<N> {
 

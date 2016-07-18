@@ -4,7 +4,6 @@ import org.rsdeob.stdlib.cfg.BasicBlock;
 import org.rsdeob.stdlib.cfg.ControlFlowGraph;
 import org.rsdeob.stdlib.cfg.edge.FlowEdge;
 import org.rsdeob.stdlib.cfg.util.ControlFlowGraphDeobfuscator;
-import org.rsdeob.stdlib.cfg.util.ControlFlowGraphDeobfuscator.SuperNodeList;
 
 import java.util.HashMap;
 import java.util.List;
