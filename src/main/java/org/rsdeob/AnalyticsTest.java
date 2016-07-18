@@ -80,8 +80,10 @@ public class AnalyticsTest {
 			gen.createExpressions();
 			CodeBody code = gen.buildRoot();
 
-//			System.out.println(code);
-//			System.out.println();
+			System.out.println("Unoptimised Code:");
+			System.out.println(code);
+			System.out.println();
+			System.out.println();
 
 			SSAGenerator ssagen = new SSAGenerator(code, cfg, gen.getHeaders());
 			ssagen.run();
@@ -155,7 +157,7 @@ public class AnalyticsTest {
 
 			System.out.println();
 			System.out.println();
-			System.out.println("Final code:");
+			System.out.println("Optimised Code:");
 			System.out.println(code);
 		}
 	}
