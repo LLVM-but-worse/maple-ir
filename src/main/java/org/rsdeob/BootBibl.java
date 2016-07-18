@@ -1,3 +1,4 @@
+/*
 package org.rsdeob;
 
 import org.objectweb.asm.*;
@@ -287,7 +288,7 @@ public class BootBibl implements Opcodes {
 	}
 
 	private static IPhase[] loadPhases() {
-		return new IPhase[] { new DummyMethodPhase(), new UnusedFieldsPhase(), new RTECatchBlockRemoverPhase(),  /* new OpaquePredicateRemoverPhase(),*/ new ControlFlowFixerPhase() /*new ConstantComparisonReordererPhase(),new EmptyParameterFixerPhase(), new ConstantOperationReordererPhase()*/ };
+		return new IPhase[] { new DummyMethodPhase(), new UnusedFieldsPhase(), new RTECatchBlockRemoverPhase(),  /* new OpaquePredicateRemoverPhase(),*//* new ControlFlowFixerPhase() /*new ConstantComparisonReordererPhase(),new EmptyParameterFixerPhase(), new ConstantOperationReordererPhase()*//* };
 	}
 	
 	public void cfg(int x, int y) {
@@ -338,3 +339,4 @@ public class BootBibl implements Opcodes {
 
 	}
 }
+*/
