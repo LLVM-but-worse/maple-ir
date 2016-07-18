@@ -8,6 +8,8 @@ import org.rsdeob.stdlib.cfg.BasicBlock;
 import org.rsdeob.stdlib.cfg.ControlFlowGraph;
 import org.rsdeob.stdlib.cfg.ControlFlowGraphBuilder;
 import org.rsdeob.stdlib.cfg.util.ControlFlowGraphDeobfuscator;
+import org.rsdeob.stdlib.collections.graph.util.CFGDotExporter;
+import org.rsdeob.stdlib.collections.graph.util.DotExporter;
 import org.rsdeob.stdlib.collections.graph.util.GraphUtils;
 import org.rsdeob.stdlib.collections.graph.util.SGDotExporter;
 import org.rsdeob.stdlib.ir.CodeBody;
@@ -128,6 +130,9 @@ public class BootEcx implements Opcodes {
 			System.out.println(code);
 			
 			sgraph = StatementGraphBuilder.create(cfg);
+//			(new CFGDotExporter(cfg, blocks, m.name, "-optimised-cfg")).output(DotExporter.OPT_DEEP);
+//			(new SGDotExporter(sgraph, code, m.name, "-optimised-sg")).output(DotExporter.OPT_DEEP);
+			
 			LivenessAnalyser liveness = new LivenessAnalyser(sgraph);
 			DefinitionAnalyser definitions = new DefinitionAnalyser(sgraph);
 			CodeAnalytics analytics = new CodeAnalytics(code, cfg, sgraph, liveness, definitions);
