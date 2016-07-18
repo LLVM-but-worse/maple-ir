@@ -5,7 +5,6 @@ import org.rsdeob.stdlib.cfg.BasicBlock;
 import org.rsdeob.stdlib.cfg.ControlFlowGraph;
 import org.rsdeob.stdlib.cfg.util.TypeUtils;
 import org.rsdeob.stdlib.collections.NullPermeableHashMap;
-import org.rsdeob.stdlib.collections.SetCreator;
 import org.rsdeob.stdlib.ir.CodeBody;
 import org.rsdeob.stdlib.ir.expr.Expression;
 import org.rsdeob.stdlib.ir.expr.PhiExpression;
@@ -49,7 +48,7 @@ public class SSADeconstructor {
 		locals = body.getLocals();
 		undroppableLocals = new HashMap<>();
 		localTypes = new HashMap<>();
-		uses = new NullPermeableHashMap<>(new SetCreator<>());
+		uses = new NullPermeableHashMap<>(HashSet::new);
 		
 		initBlocks();
 	}
@@ -166,7 +165,7 @@ public class SSADeconstructor {
 	}
 	
 	private void unweaveUndroppables() {
-		NullPermeableHashMap<BasicLocal, Set<Type>> simpleTypes = new NullPermeableHashMap<>(new SetCreator<>());
+		NullPermeableHashMap<BasicLocal, Set<Type>> simpleTypes = new NullPermeableHashMap<>(HashSet::new);
 		
 		for (Entry<VersionedLocal, Type> e : localTypes.entrySet()) {
 			Local versioned = e.getKey();

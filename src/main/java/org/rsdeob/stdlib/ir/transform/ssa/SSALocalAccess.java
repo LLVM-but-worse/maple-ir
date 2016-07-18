@@ -22,12 +22,7 @@ public class SSALocalAccess {
 	
 	public SSALocalAccess(CodeBody code) {
 		defs = new HashMap<>();
-		useCount = new NullPermeableHashMap<>(new ValueCreator<AtomicInteger>() {
-			@Override
-			public AtomicInteger create() {
-				return new AtomicInteger();
-			}
-		});
+		useCount = new NullPermeableHashMap<>(AtomicInteger::new);
 		
 		for(Statement s : code) {
 			boolean synth = false;

@@ -13,7 +13,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.rsdeob.stdlib.cfg.edge.DummyEdge;
 import org.rsdeob.stdlib.collections.NullPermeableHashMap;
-import org.rsdeob.stdlib.collections.SetCreator;
 import org.rsdeob.stdlib.ir.CodeBody;
 import org.rsdeob.stdlib.ir.StatementGraph;
 import org.rsdeob.stdlib.ir.StatementVisitor;
@@ -141,7 +140,7 @@ public class SSAPropagator extends SSATransformer {
 				}
 				
 				if(phis.size() > 1) {
-					NullPermeableHashMap<CopyVarStatement, Set<CopyVarStatement>> equiv = new NullPermeableHashMap<>(new SetCreator<>());
+					NullPermeableHashMap<CopyVarStatement, Set<CopyVarStatement>> equiv = new NullPermeableHashMap<>(HashSet::new);
 					for(CopyVarStatement cvs : phis) {
 						if(equiv.values().contains(cvs)) {
 							continue;
