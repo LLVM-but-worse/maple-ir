@@ -137,10 +137,6 @@ public class LocalsHandler {
 		return base.get();
 	}
 	
-	public AtomicInteger getBase0() {
-		return base;
-	}
-	
 	public void setBase(int b) {
 		base.set(b);
 	}

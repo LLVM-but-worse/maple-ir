@@ -20,10 +20,10 @@ import org.rsdeob.stdlib.ir.stat.CopyVarStatement;
 import org.rsdeob.stdlib.ir.stat.Statement;
 import org.rsdeob.stdlib.ir.transform.ssa.SSALocalAccess;
 
-import java.util.HashSet;
-import java.util.List;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Set;
+import java.util.function.Function;
+import java.util.function.Predicate;
 
 public class SSADeconstructor {
 	
@@ -31,20 +31,47 @@ public class SSADeconstructor {
 	private final CodeBody body;
 	private final ControlFlowGraph cfg;
 	
-	private final Set<VersionedLocal> undroppableLocals;
+	private final Map<VersionedLocal, BasicLocal> undroppableLocals;
+	private final Map<Local, Type> localTypes;
+	private int maxLocals;
 	
 	public SSADeconstructor(CodeBody body, ControlFlowGraph cfg) {
 		this.body = body;
 		this.cfg = cfg;
 		locals = body.getLocals();
-		undroppableLocals = new HashSet<>();
+		undroppableLocals = new HashMap<>();
+		localTypes = new HashMap<>();
 		
 		init_blocks();
 	}
 	
-	private void findUndroppables() {
+	private void replaceLocals(Predicate<VersionedLocal> filter, Function<VersionedLocal, BasicLocal> replaceFn) {
+		for (Statement stmt : body) {
+			for (Statement s : Statement.enumerate(stmt)) {
+				VarExpression var = null;
+				if (s instanceof VarExpression) {
+					var = (VarExpression) s;
+				} else if (s instanceof CopyVarStatement) {
+					CopyVarStatement copy = (CopyVarStatement) s;
+					var = copy.getVariable();
+				} else if (s instanceof PhiExpression) {
+					throw new IllegalStateException(s.toString());
+				}
+				if (var != null && var.getLocal() instanceof VersionedLocal) {
+					VersionedLocal versionedLocal = (VersionedLocal) var.getLocal();
+					if (filter.test(versionedLocal))
+						var.setLocal(replaceFn.apply(versionedLocal));
+				}
+			}
+		}
+	}
+	
+	private void handleUndroppables() {
 		SSALocalAccess localsAccess = new SSALocalAccess(body);
-		NullPermeableHashMap<BasicLocal, Set<Type>> types = new NullPermeableHashMap<>(new SetCreator<>());
+		for (VersionedLocal local : localsAccess.defs.keySet())
+			if (local.getIndex() > maxLocals)
+				maxLocals = local.getIndex();
+		
 		for (Statement stmt : body) {
 			for (Statement s : Statement.enumerate(stmt)) {
 				VarExpression var = null;
@@ -54,30 +81,44 @@ public class SSADeconstructor {
 					var = ((CopyVarStatement) s).getVariable();
 				if (var != null) {
 					Local local = var.getLocal();
-					BasicLocal basicLocal = locals.get(local.getIndex(), local.isStack());
-					types.getNonNull(basicLocal).add(var.getType());
-					System.out.println("(2.1)type of " + stmt + " = " + var.getType() + ". (local = " + local + ", value = " + localsAccess.defs.get(local).getExpression() + ")");
+					localTypes.put(local, var.getType());
+//					System.out.println("(2.1)type of " + stmt + " = " + var.getType() + ". (local = " + local + ", value = " + localsAccess.defs.get(local).getExpression() + ")");
 				}
 			}
 		}
 		
-		for (Entry<BasicLocal, Set<Type>> e : types.entrySet()) {
-			Set<Type> set = e.getValue();
-			System.out.println("(2.2) " + e.getKey() + ": " + set);
-			Set<Type> refined = new HashSet<>();
-			if (set.size() > 1) {
-				for (Type t : set) {
-					refined.add(TypeUtils.asSimpleType(t));
-					if (refined.size() > 1) {
-						for (VersionedLocal usedLocal : localsAccess.defs.keySet())
-							if (usedLocal.isVersionOf(e.getKey()))
-								undroppableLocals.add(usedLocal);
-						break;
-					}
-				}
-			}
+		NullPermeableHashMap<BasicLocal, Set<Type>> simpleTypes = new NullPermeableHashMap<>(new SetCreator<>());
+		for (Entry<Local, Type> e : localTypes.entrySet()) {
+			Local local = e.getKey();
+			BasicLocal basicLocal = locals.get(local.getIndex(), local.isStack());
+			simpleTypes.getNonNull(basicLocal).add(TypeUtils.asSimpleType(e.getValue()));
+		}
+		for (Entry<BasicLocal, Set<Type>> e : simpleTypes.entrySet()) {
+			Set<Type> simpleSet = e.getValue();
+			System.out.println("(2.2) " + e.getKey() + ": " + simpleSet);
+			if (simpleSet.size() > 1)
+				processUndroppable(localsAccess, e.getKey(), simpleSet);
 		}
 		System.out.println("(2.3)Undroppable locals: " + undroppableLocals);
+	}
+	
+	private void processUndroppable(SSALocalAccess localsAccess, BasicLocal local, Set<Type> set) {
+		Map<Type, BasicLocal> newLocals = new HashMap<>();
+		for (Type simpleType : set) {
+			BasicLocal newLocal = locals.get(++maxLocals, false);
+			newLocals.put(simpleType, newLocal);
+			System.out.println("Reassigning clash type " + simpleType + " to " + newLocal);
+		}
+		for (VersionedLocal usedLocal : localsAccess.defs.keySet()) {
+			if (usedLocal.isVersionOf(local)) {
+				// usedLocal is clashing
+				Type complexType = localTypes.get(usedLocal);
+				BasicLocal reassignLocal = newLocals.get(TypeUtils.asSimpleType(complexType));
+				undroppableLocals.put(usedLocal, reassignLocal);
+				replaceLocals(versionedLocal -> versionedLocal == usedLocal, versionedLocal -> reassignLocal);
+				System.out.println("(2.4) Reassigned clash local " + usedLocal + "(type=" + complexType + ") to " + reassignLocal);
+			}
+		}
 	}
 	
 	private void init_blocks() {
@@ -148,32 +189,12 @@ public class SSADeconstructor {
 	}
 	
 	private void drop_subscripts() {
-		for (Statement stmt : new HashSet<>(body)) {
-			for (Statement s : Statement.enumerate(stmt)) {
-				VarExpression var = null;
-				if (s instanceof VarExpression) {
-					var = (VarExpression) s;
-				} else if (s instanceof CopyVarStatement) {
-					CopyVarStatement copy = (CopyVarStatement) s;
-					var = copy.getVariable();
-				} else if (s instanceof PhiExpression) {
-					throw new IllegalStateException(s.toString());
-				}
-				if (var != null) {
-					Local local = var.getLocal();
-					if (local instanceof VersionedLocal && !undroppableLocals.contains(local)) {
-						System.out.println("(2.4)Dropping " + local);
-						Local unsubscript = locals.get(local.getIndex(), local.isStack());
-						var.setLocal(unsubscript);
-					}
-				}
-			}
-		}
+		replaceLocals(versionedLocal -> true, versionedLocal -> locals.get(versionedLocal.getIndex(), versionedLocal.isStack()));
 	}
 	
 	public void run() {
 		unroll_phis();
-		findUndroppables();
+		handleUndroppables();
 		drop_subscripts();
 	}
 }
