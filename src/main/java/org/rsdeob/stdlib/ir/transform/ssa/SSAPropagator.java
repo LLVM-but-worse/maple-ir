@@ -113,7 +113,7 @@ public class SSAPropagator extends SSATransformer {
 		return false;
 	}
 	
-	class FeedbackStatementVisitor extends StatementVisitor {
+	private class FeedbackStatementVisitor extends StatementVisitor {
 		
 		private boolean change = false;
 		
@@ -356,6 +356,7 @@ public class SSAPropagator extends SSATransformer {
 			_xuselocal(l, true);
 		}
 		
+		// Inline a constant into the given use of the variable
 		private Statement handleConstant(CopyVarStatement def, VarExpression use, ConstantExpression rhs) {
 			// x = 7;
 			// use(x)
@@ -368,6 +369,7 @@ public class SSAPropagator extends SSATransformer {
 			return rhs.copy();
 		}
 
+		// Inline a variable in the place of a variable which is defined as said variable
 		private Statement handleVar(CopyVarStatement def, VarExpression use, VarExpression rhs) {
 			Local x = use.getLocal();
 			Local y = rhs.getLocal();
@@ -387,6 +389,7 @@ public class SSAPropagator extends SSATransformer {
 			return rhs.copy();
 		}
 
+		// Inline a complex expression into the use of the variable which contains its value
 		private Statement handleComplex(CopyVarStatement def, VarExpression use) {
 			if(!canTransferToUse(root, use, def)) {
 				return null;
@@ -459,6 +462,7 @@ public class SSAPropagator extends SSATransformer {
 			return null;
 		}
 		
+		// Attempt to propagate the given def into the given use.
 		private Statement findSubstitution(CopyVarStatement def, VarExpression use) {
 			Expression rhs = def.getExpression();
 			if(rhs instanceof ConstantExpression) {
@@ -471,11 +475,13 @@ public class SSAPropagator extends SSATransformer {
 			return use;
 		}
 
+		// Attempt to inline the value of a var with its definition
 		private Statement visitVar(VarExpression var) {
 			CopyVarStatement def = localAccess.defs.get(var.getLocal());
 			return findSubstitution(def, var);
 		}
 		
+		// Attempt to inline each value of the vars in the phi statement with their respective definitions
 		private Statement visitPhi(PhiExpression phi) {
 			for(HeaderStatement header : phi.headers()) {
 				Expression e = phi.getLocal(header);
@@ -491,6 +497,7 @@ public class SSAPropagator extends SSATransformer {
 			return phi;
 		}
 
+		// Process a statement, switching control flow based on the statement's type.
 		@Override
 		public Statement visit(Statement stmt) {
 			if(stmt instanceof VarExpression) {
@@ -501,6 +508,7 @@ public class SSAPropagator extends SSATransformer {
 			return stmt;
 		}
 		
+		// Returns the non-null one of the two parameters passed
 		private Statement choose(Statement e, Statement def) {
 			if(e != null) {
 				return e;
@@ -641,6 +649,7 @@ public class SSAPropagator extends SSATransformer {
 			return change;
 		}
 		
+		// Selects a statement to be processed.
 		@Override
 		public void reset(Statement stmt) {
 			super.reset(stmt);
