@@ -26,6 +26,8 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 
 import static org.rsdeob.stdlib.ir.transform.ssa.SSAUtil.replaceLocals;
+import static org.rsdeob.stdlib.ir.transform.ssa.SSAUtil.visitAll;
+import static org.rsdeob.stdlib.ir.transform.ssa.SSAUtil.vl;
 
 public class SSADeconstructor {
 	
@@ -89,8 +91,8 @@ public class SSADeconstructor {
 					PhiExpression phi = (PhiExpression) expr;
 					unroll(phi, l);
 					body.remove(copy);
-					localsAccess.defs.remove(l);
-					localsAccess.useCount.remove(l);
+					localsAccess.defs.remove(vl(l));
+					localsAccess.useCount.remove(vl(l));
 				}
 			}
 		}
@@ -147,15 +149,10 @@ public class SSADeconstructor {
 	}
 	
 	private void mapTypes() {
-		for (Statement stmt : body) {
-			for (Statement child : Statement.enumerate(stmt)) {
-				if (child instanceof VarExpression) {
-					mapType((VarExpression) child);
-				} else if (child instanceof CopyVarStatement && ((CopyVarStatement) child).isSynthetic()) {
-					mapType(((CopyVarStatement) child).getVariable());
-				}
-			}
-		}
+		for (Statement var : visitAll(body, child -> child instanceof VarExpression))
+			mapType((VarExpression) var);
+		for (Statement cvs : visitAll(body, child -> child instanceof CopyVarStatement && ((CopyVarStatement) child).isSynthetic()))
+			mapType(((CopyVarStatement) cvs).getVariable());
 	}
 	
 	private void mapType(VarExpression var) {
