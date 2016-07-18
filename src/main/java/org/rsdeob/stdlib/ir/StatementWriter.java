@@ -1,12 +1,10 @@
-package org.rsdeob.stdlib.ir.export;
+package org.rsdeob.stdlib.ir;
 
 import org.objectweb.asm.Label;
 import org.objectweb.asm.tree.MethodNode;
 import org.rsdeob.stdlib.cfg.BasicBlock;
 import org.rsdeob.stdlib.cfg.ControlFlowGraph;
 import org.rsdeob.stdlib.collections.graph.flow.ExceptionRange;
-import org.rsdeob.stdlib.ir.CodeBody;
-import org.rsdeob.stdlib.ir.StatementVisitor;
 import org.rsdeob.stdlib.ir.expr.VarExpression;
 import org.rsdeob.stdlib.ir.header.BlockHeaderStatement;
 import org.rsdeob.stdlib.ir.header.HeaderStatement;
@@ -20,13 +18,13 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class StatementsDumper {
+public class StatementWriter {
 	
 	private final CodeBody stmts;
 	private final ControlFlowGraph cfg;
 	private final Map<BasicBlock, HeaderStatement> headers;
 
-	public StatementsDumper(CodeBody stmts, ControlFlowGraph cfg) {
+	public StatementWriter(CodeBody stmts, ControlFlowGraph cfg) {
 		this.stmts = stmts;
 		this.cfg = cfg;
 

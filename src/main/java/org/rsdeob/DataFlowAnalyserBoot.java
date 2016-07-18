@@ -7,6 +7,8 @@ import org.rsdeob.BootBibl.C2;
 import org.rsdeob.stdlib.cfg.ControlFlowGraph;
 import org.rsdeob.stdlib.cfg.ControlFlowGraphBuilder;
 import org.rsdeob.stdlib.ir.*;
+import org.rsdeob.stdlib.ir.gen.StatementGenerator;
+import org.rsdeob.stdlib.ir.gen.StatementGraphBuilder;
 import org.rsdeob.stdlib.ir.locals.Local;
 import org.rsdeob.stdlib.ir.stat.Statement;
 import org.rsdeob.stdlib.ir.transform.impl.LivenessAnalyser;
