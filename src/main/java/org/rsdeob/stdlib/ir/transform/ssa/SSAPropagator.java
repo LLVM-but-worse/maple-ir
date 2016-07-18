@@ -193,6 +193,10 @@ public class SSAPropagator extends SSATransformer {
 			return change;
 		}
 		
+		/**
+		 * Remove all definitions of versions of locals that have no uses
+		 * @return whether any locals were removed
+		 */
 		private boolean cleanDead() {
 			boolean changed = false;
 			Iterator<Entry<VersionedLocal, AtomicInteger>> it = localAccess.useCount.entrySet().iterator();
@@ -208,7 +212,12 @@ public class SSAPropagator extends SSATransformer {
 			}
 			return changed;
 		}
-		
+				
+		/**
+		 * Computes all statements the given statement contains and itself.
+		 * @param stmt Statement to enumerate child statements for
+		 * @return a set of all child statements of the statement as well as itself.
+		 */
 		private Set<Statement> enumerate(Statement stmt) {
 			Set<Statement> stmts = new HashSet<>();
 			stmts.add(stmt);
@@ -226,6 +235,11 @@ public class SSAPropagator extends SSATransformer {
 			return stmts;
 		}
 		
+		/**
+		 * Called when a statement is removed.
+		 * Updates the use counter of the locals by removing the uses caused by the var references in this statement.
+		 * @param stmt Statement that was removed
+		 */
 		private void killed(Statement stmt) {
 			for(Statement s : enumerate(stmt)) {
 				if(s instanceof VarExpression) {
@@ -234,6 +248,11 @@ public class SSAPropagator extends SSATransformer {
 			}
 		}
 		
+		/**
+		 * Called when a statement is added into the code (to replace a var reference).
+		 * Updates the use counters of the locals by adding the uses caused by the var references in this statement.
+		 * @param stmt Statement that was added
+		 */
 		private void copied(Statement stmt) {
 			for(Statement s : enumerate(stmt)) {
 				if(s instanceof VarExpression) {
@@ -242,6 +261,12 @@ public class SSAPropagator extends SSATransformer {
 			}
 		}
 		
+		/**
+		 * Removes a def and cleans up after it, taking caution for uncopyable statements (i.e. invokes).
+		 * Updates the codebody, graph, and local tracker.
+		 * @param def Definition to remove.
+		 * @return Whether the given def was uncopyable.
+		 */
 		private boolean fineBladeDefinition(CopyVarStatement def, Iterator<?> it) {
 			it.remove();
 			Expression rhs = def.getExpression();
@@ -260,6 +285,10 @@ public class SSAPropagator extends SSATransformer {
 			}
 		}
 		
+		/**
+		 * Remoevs a def and updates the codebody, graph, and local tracker. Does not consider copyability of statement.
+		 * @param def Definition to remove.
+		 */
 		private void scalpelDefinition(CopyVarStatement def) {
 			code.remove(def);
 			graph.excavate(def);
@@ -268,6 +297,12 @@ public class SSAPropagator extends SSATransformer {
 			localAccess.defs.remove(local);
 		}
 		
+
+		/**
+		 * Safely gets the number of uses for a given local.
+		 * @param l Local to get uses count for
+		 * @return Number of uses for the given local.
+		 */
 		private int uses(Local l) {
 			if(localAccess.useCount.containsKey(l)) {
 				return localAccess.useCount.get(l).get();
@@ -275,7 +310,12 @@ public class SSAPropagator extends SSATransformer {
 				throw new IllegalStateException("Local not in useCount map. Def: " + localAccess.defs.get(l));
 			}
 		}
-		
+
+		/**
+		 * Safely increments or decrements the use count for the given local.
+		 * @param l Local to update the use count for.
+		 * @param re If true, the use count is incremented; otherwise, it is decremented.
+		 */
 		private void _xuselocal(Local l, boolean re) {
 			if(localAccess.useCount.containsKey(l)) {
 				if(re) {
@@ -288,10 +328,18 @@ public class SSAPropagator extends SSATransformer {
 			}
 		}
 		
+		/**
+		 * Decrements use counter of local
+		 * @param l Local to update use counter for.
+		 */
 		private void unuseLocal(Local l) {
 			_xuselocal(l, false);
 		}
 		
+		/**
+		 * increment use counter of local
+		 * @param l Local to update use counter for.
+ 		 */
 		private void reuseLocal(Local l) {
 			_xuselocal(l, true);
 		}
@@ -449,6 +497,11 @@ public class SSAPropagator extends SSATransformer {
 			}
 		}
 		
+		/**
+		 * A statement is uncopyable if duplication of statement will change the semantics of the program.
+		 * @param stmt Statement to check for uncopyability.
+		 * @return Whether the statement is uncopyable.
+		 */
 		private boolean isUncopyable(Statement stmt) {
 			for(Statement s : enumerate(stmt)) {
 				if(UNCOPYABLE.contains(s.getClass())) {
@@ -458,6 +511,13 @@ public class SSAPropagator extends SSATransformer {
 			return false;
 		}
 		
+		/**
+		 * A statement is untransferable if the location of the statement impacts the semantics of the program
+		 * @param use Statement that the variable is being used in
+		 * @param tail Variable that will get inlined
+		 * @param def Definition of variable that is being checked for transferability
+		 * @return Whether the statement is uncopyable.
+		 */
 		private boolean canTransferToUse(Statement use, Statement tail, CopyVarStatement def) {
 			Local local = def.getVariable().getLocal();
 			Expression rhs = def.getExpression();
