@@ -1,54 +1,28 @@
 package org.rsdeob.stdlib.ir;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.List;
+import java.util.ListIterator;
+
 import org.rsdeob.stdlib.cfg.util.TabbedStringWriter;
-import org.rsdeob.stdlib.ir.api.ICodeListener;
 import org.rsdeob.stdlib.ir.header.StatementHeaderStatement;
 import org.rsdeob.stdlib.ir.locals.LocalsHandler;
 import org.rsdeob.stdlib.ir.stat.Statement;
-
-import java.util.*;
-import java.util.concurrent.CopyOnWriteArrayList;
 
 public class CodeBody implements List<Statement> {
 
 	private final LocalsHandler locals;
 	private final ArrayList<Statement> stmts;
-	private final List<ICodeListener<Statement>> listeners;
 	
 	public CodeBody(int maxL) {
 		stmts = new ArrayList<>();
 		locals = new LocalsHandler(maxL + 1);
-		listeners = new CopyOnWriteArrayList<>();
-	}
-
-	public void registerListener(ICodeListener<Statement> listener) {
-		listeners.add(listener);
-	}
-	
-	public void unregisterListener(ICodeListener<Statement> listener) {
-		listeners.remove(listener);
-	}
-
-	public void clearListeners() {
-		listeners.clear();
-	}
-
-	public List<ICodeListener<Statement>> getListeners() {
-		return new ArrayList<>(listeners);
 	}
 	
 	public LocalsHandler getLocals() {
 		return locals;
-	}
-
-	public void forceUpdate(Statement stmt) {
-		for(ICodeListener<Statement> l : listeners)
-			l.update(stmt);
-	}
-
-	public void commit() {
-		for(ICodeListener<Statement> l : listeners)
-			l.commit();
 	}
 
 	public void toString(TabbedStringWriter printer) {
@@ -87,42 +61,24 @@ public class CodeBody implements List<Statement> {
 	public boolean remove(Object o) {
 		if (!(o instanceof Statement))
 			return false;
-		Statement s = (Statement) o;
-
-		for(ICodeListener<Statement> l : listeners)
-			l.preRemove(s);
-
-		boolean ret = stmts.remove(s);
-		for(ICodeListener<Statement> l : listeners)
-			l.postRemove(s);
-
-		return ret;
+		return stmts.remove(o);
 	}
 
 	@Override
 	public void add(int index, Statement stmt) {
-		Statement p = stmts.get(index);
-		Statement s = stmts.get(index + 1);
+		// Statement p = stmts.get(index);
+		// Statement s = stmts.get(index + 1);
 		stmts.add(index, stmt);
-		for(ICodeListener<Statement> l : listeners) {
-			l.insert(p, s, stmt);
-		}
 	}
 
 	@Override
 	public boolean add(Statement s) {
-		boolean ret = stmts.add(s);
-		for(ICodeListener<Statement> l : listeners)
-			l.update(s);
-		return ret;
+		return stmts.add(s);
 	}
 
 	@Override
 	public Statement set(int index, Statement element) {
-		Statement old = stmts.set(index, element);
-		for(ICodeListener<Statement> l : listeners)
-			l.replaced(old, element);
-		return old;
+		return stmts.set(index, element);
 	}
 
 	@Override
