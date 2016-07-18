@@ -1,4 +1,4 @@
-package org.rsdeob;
+/*package org.rsdeob;
 
 import org.objectweb.asm.*;
 import org.objectweb.asm.commons.JSRInlinerAdapter;
@@ -280,7 +280,7 @@ public class BootEcx implements Opcodes {
 	}
 
 	private static IPhase[] loadPhases() {
-		return new IPhase[] { new DummyMethodPhase(), new UnusedFieldsPhase(), new RTECatchBlockRemoverPhase(),  /* new OpaquePredicateRemoverPhase(),*/ new ControlFlowFixerPhase() /*new ConstantComparisonReordererPhase(),new EmptyParameterFixerPhase(), new ConstantOperationReordererPhase()*/ };
+		return new IPhase[] { new DummyMethodPhase(), new UnusedFieldsPhase(), new RTECatchBlockRemoverPhase(),  /* new OpaquePredicateRemoverPhase(),*//* new ControlFlowFixerPhase() /*new ConstantComparisonReordererPhase(),new EmptyParameterFixerPhase(), new ConstantOperationReordererPhase()*//* };
 	}
 
 	public void cfg(int x, int y) {
@@ -335,4 +335,4 @@ public class BootEcx implements Opcodes {
 			(new SGDotExporter(sgraph, stmtList, m.toString(), "1")).output(DotExporter.OPT_DEEP);
 		}
 	}
-}
+}*/

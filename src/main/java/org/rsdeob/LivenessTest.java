@@ -1,4 +1,4 @@
-package org.rsdeob;
+/*package org.rsdeob;
 
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.tree.ClassNode;
@@ -152,4 +152,4 @@ public class LivenessTest {
 //		
 //		b.add(b.call(Opcodes.INVOKESTATIC, "test", "use", "(I)V", new Expression[]{x}));
 //	}
-}
+}*/

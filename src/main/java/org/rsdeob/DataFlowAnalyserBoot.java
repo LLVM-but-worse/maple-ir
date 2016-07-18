@@ -1,4 +1,4 @@
-package org.rsdeob;
+/*package org.rsdeob;
 
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.tree.ClassNode;
@@ -151,4 +151,4 @@ public class DataFlowAnalyserBoot {
 	public float ternTest(int i) {
 		return i == 1 ? testNormalReturn(i) : testNormalReturn(i);
 	}
-}
+}*/
