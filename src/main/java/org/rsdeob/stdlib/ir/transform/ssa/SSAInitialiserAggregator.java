@@ -1,17 +1,21 @@
 package org.rsdeob.stdlib.ir.transform.ssa;
 
+import java.util.Arrays;
+import java.util.HashSet;
+
 import org.objectweb.asm.Opcodes;
 import org.rsdeob.stdlib.ir.CodeBody;
 import org.rsdeob.stdlib.ir.StatementGraph;
-import org.rsdeob.stdlib.ir.expr.*;
+import org.rsdeob.stdlib.ir.expr.Expression;
+import org.rsdeob.stdlib.ir.expr.InitialisedObjectExpression;
+import org.rsdeob.stdlib.ir.expr.InvocationExpression;
+import org.rsdeob.stdlib.ir.expr.UninitialisedObjectExpression;
+import org.rsdeob.stdlib.ir.expr.VarExpression;
 import org.rsdeob.stdlib.ir.locals.VersionedLocal;
 import org.rsdeob.stdlib.ir.stat.CopyVarStatement;
 import org.rsdeob.stdlib.ir.stat.PopStatement;
 import org.rsdeob.stdlib.ir.stat.Statement;
 import org.rsdeob.stdlib.ir.transform.SSATransformer;
-
-import java.util.Arrays;
-import java.util.HashSet;
 
 public class SSAInitialiserAggregator extends SSATransformer {
 
@@ -40,6 +44,9 @@ public class SSAInitialiserAggregator extends SSATransformer {
 
 							Expression rhs = def.getExpression();
 							if (rhs instanceof UninitialisedObjectExpression) {
+								// replace pop(x.<init>()) with x := new Klass();
+								// remove x := new Klass;
+								
 								// here we are assuming that the new object
 								// can't be used until it is initialised.
 								UninitialisedObjectExpression obj = (UninitialisedObjectExpression) rhs;
@@ -59,16 +66,19 @@ public class SSAInitialiserAggregator extends SSATransformer {
 								
 								int index = code.indexOf(pop);
 								code.add(index, newCvs);
-//								graph.jam(prev, pop, newCvs);
 								graph.replace(pop, newCvs);
 								code.remove(pop);
-//								graph.excavate(pop);
-								
-//								System.out.println("After aggr for " + newCvs);
-//								System.out.println(code);
-								// replace pop(x.<init>()) with x := new Klass();
-								// remove x := new Klass;
 							}
+						} else if(inst instanceof UninitialisedObjectExpression) {
+							// replace pop(new Klass.<init>(args)) with pop(new Klass(args))
+							UninitialisedObjectExpression obj = (UninitialisedObjectExpression) inst;
+							Expression[] args = invoke.getParameterArguments();
+							Expression[] newArgs = Arrays.copyOf(args, args.length);
+							InitialisedObjectExpression newExpr = new InitialisedObjectExpression(obj.getType(), invoke.getOwner(), invoke.getDesc(), newArgs);
+							// replace pop contents
+							// no changes to defs or uses
+							
+							pop.setExpression(newExpr);
 						} else {
 							System.err.println(code);
 							System.err.println("Stmt: " + stmt.getId() + ". " + stmt);
