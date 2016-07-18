@@ -34,24 +34,6 @@ public class StatementWriter {
 				headers.put(((BlockHeaderStatement) stmt).getBlock(), (HeaderStatement) stmt);
 	}
 
-	private int calculateBase() {
-		final AtomicInteger max = new AtomicInteger(0);
-		for (Statement stmt : stmts) {
-			new StatementVisitor(stmt) {
-				@Override
-				public Statement visit(Statement s) {
-					if (s instanceof VarExpression) {
-						Local local = ((VarExpression) s).getLocal();
-						if (!local.isStack() && local.getIndex() > max.get())
-							max.set(local.getIndex());
-					}
-					return s;
-				}
-			}.visit();
-		}
-		return max.get() + 1;
-	}
-
 	public void dump(MethodNode m, CodeAnalytics analytics) {
 		m.visitCode();
 		m.instructions.clear();
