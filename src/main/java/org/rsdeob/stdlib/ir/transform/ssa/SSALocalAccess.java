@@ -55,6 +55,17 @@ public class SSALocalAccess {
 							for(Expression e : phi.getLocals().values()) {
 								if(e instanceof VarExpression)  {
 									useCount.getNonNull((VersionedLocal) ((VarExpression) e).getLocal()).incrementAndGet();
+								} else {
+									new StatementVisitor(e) {
+										@Override
+										public Statement visit(Statement stmt2) {
+											if(stmt2 instanceof VarExpression) {
+												VersionedLocal l = (VersionedLocal) ((VarExpression) stmt2).getLocal();
+												useCount.getNonNull(l).incrementAndGet();
+											}
+											return stmt2;
+										}
+									}.visit();
 								}
 							}
 						}
