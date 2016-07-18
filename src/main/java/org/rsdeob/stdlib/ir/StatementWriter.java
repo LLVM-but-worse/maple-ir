@@ -1,9 +1,12 @@
 package org.rsdeob.stdlib.ir;
 
 import org.objectweb.asm.Label;
+import org.objectweb.asm.tree.LabelNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.rsdeob.stdlib.cfg.BasicBlock;
 import org.rsdeob.stdlib.cfg.ControlFlowGraph;
+import org.rsdeob.stdlib.cfg.edge.DummyEdge;
+import org.rsdeob.stdlib.cfg.util.LabelHelper;
 import org.rsdeob.stdlib.collections.graph.flow.ExceptionRange;
 import org.rsdeob.stdlib.ir.expr.VarExpression;
 import org.rsdeob.stdlib.ir.header.BlockHeaderStatement;
@@ -62,8 +65,14 @@ public class StatementWriter {
 			BasicBlock endBlock = range.get(range.size() - 1);
 			BasicBlock im = endBlock.getImmediate();
 			if(im == null) {
+				LabelNode label = new LabelNode();
+				m.visitLabel(label.getLabel());
+				BasicBlock newExit = new BasicBlock(cfg, LabelHelper.createBlockName(LabelHelper.numeric(endBlock.getId()) + 1), label);
+				cfg.addVertex(newExit);
+				cfg.addEdge(endBlock, new DummyEdge<BasicBlock>(endBlock, newExit));
+				end = label.getLabel();
 				// end of code?
-				throw new RuntimeException(m.toString());
+				// throw new RuntimeException(m.toString());
 			} else {
 				end = headers.get(im).getLabel();
 			}
