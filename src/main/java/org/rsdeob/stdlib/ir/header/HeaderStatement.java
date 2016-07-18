@@ -40,7 +40,7 @@ public abstract class HeaderStatement extends Statement {
 
 	@Override
 	public boolean canChangeFlow() {
-		throw new UnsupportedOperationException();
+		return false;
 	}
 
 	@Override
