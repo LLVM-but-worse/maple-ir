@@ -1,4 +1,4 @@
-package org.rsdeob.stdlib.ir;
+package org.rsdeob.stdlib.ir.gen;
 
 import java.util.HashMap;
 
@@ -14,6 +14,7 @@ import org.rsdeob.stdlib.cfg.edge.TryCatchEdge;
 import org.rsdeob.stdlib.cfg.edge.UnconditionalJumpEdge;
 import org.rsdeob.stdlib.cfg.util.LabelHelper;
 import org.rsdeob.stdlib.collections.graph.flow.ExceptionRange;
+import org.rsdeob.stdlib.ir.StatementGraph;
 import org.rsdeob.stdlib.ir.stat.Statement;
 
 public class StatementGraphBuilder {

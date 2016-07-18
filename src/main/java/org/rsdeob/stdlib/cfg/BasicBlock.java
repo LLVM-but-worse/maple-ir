@@ -6,7 +6,7 @@ import org.rsdeob.stdlib.cfg.edge.ImmediateEdge;
 import org.rsdeob.stdlib.cfg.edge.TryCatchEdge;
 import org.rsdeob.stdlib.collections.graph.FastGraphVertex;
 import org.rsdeob.stdlib.collections.graph.flow.ExceptionRange;
-import org.rsdeob.stdlib.ir.ExpressionStack;
+import org.rsdeob.stdlib.ir.gen.ExpressionStack;
 import org.rsdeob.stdlib.ir.stat.Statement;
 
 import java.util.*;

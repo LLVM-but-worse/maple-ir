@@ -20,10 +20,10 @@ import org.rsdeob.stdlib.collections.graph.util.DotExporter;
 import org.rsdeob.stdlib.collections.graph.util.GraphUtils;
 import org.rsdeob.stdlib.deob.IPhase;
 import org.rsdeob.stdlib.ir.CodeBody;
-import org.rsdeob.stdlib.ir.StatementGenerator;
+import org.rsdeob.stdlib.ir.StatementWriter;
 import org.rsdeob.stdlib.ir.StatementGraph;
-import org.rsdeob.stdlib.ir.StatementGraphBuilder;
-import org.rsdeob.stdlib.ir.export.StatementsDumper;
+import org.rsdeob.stdlib.ir.gen.StatementGenerator;
+import org.rsdeob.stdlib.ir.gen.StatementGraphBuilder;
 import org.rsdeob.stdlib.ir.transform.impl.CodeAnalytics;
 import org.rsdeob.stdlib.ir.transform.impl.DefinitionAnalyser;
 import org.rsdeob.stdlib.ir.transform.impl.LivenessAnalyser;
@@ -106,7 +106,7 @@ public class BootBibl implements Opcodes {
 			LivenessAnalyser liveness = new LivenessAnalyser(sgraph);
 			UsesAnalyserImpl uses = new UsesAnalyserImpl(code, sgraph, defs);
 			CodeAnalytics analytics = new CodeAnalytics(cfg, sgraph, defs, liveness, uses);
-			StatementsDumper dumper = new StatementsDumper(code, cfg);
+			StatementWriter dumper = new StatementWriter(code, cfg);
 			dumper.dump(m, analytics);
 			
 			System.out.println("End of processing log for " + m);
