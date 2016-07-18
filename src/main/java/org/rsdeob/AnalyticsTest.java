@@ -2,40 +2,29 @@ package org.rsdeob;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import org.objectweb.asm.ClassReader;
+import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.rsdeob.stdlib.cfg.BasicBlock;
 import org.rsdeob.stdlib.cfg.ControlFlowGraph;
 import org.rsdeob.stdlib.cfg.ControlFlowGraphBuilder;
 import org.rsdeob.stdlib.cfg.util.ControlFlowGraphDeobfuscator;
-import org.rsdeob.stdlib.collections.graph.util.DotExporter;
 import org.rsdeob.stdlib.collections.graph.util.GraphUtils;
-import org.rsdeob.stdlib.collections.graph.util.SGDotExporter;
 import org.rsdeob.stdlib.ir.CodeBody;
 import org.rsdeob.stdlib.ir.StatementGraph;
+import org.rsdeob.stdlib.ir.StatementWriter;
 import org.rsdeob.stdlib.ir.gen.SSAGenerator;
 import org.rsdeob.stdlib.ir.gen.StatementGenerator;
 import org.rsdeob.stdlib.ir.gen.StatementGraphBuilder;
 import org.rsdeob.stdlib.ir.gen.UnSSA;
-import org.rsdeob.stdlib.ir.header.HeaderStatement;
-import org.rsdeob.stdlib.ir.locals.Local;
-import org.rsdeob.stdlib.ir.locals.VersionedLocal;
-import org.rsdeob.stdlib.ir.stat.CopyVarStatement;
-import org.rsdeob.stdlib.ir.stat.Statement;
 import org.rsdeob.stdlib.ir.transform.SSATransformer;
-import org.rsdeob.stdlib.ir.transform.Transformer;
 import org.rsdeob.stdlib.ir.transform.impl.CodeAnalytics;
 import org.rsdeob.stdlib.ir.transform.impl.DefinitionAnalyser;
 import org.rsdeob.stdlib.ir.transform.impl.LivenessAnalyser;
@@ -53,7 +42,7 @@ public class AnalyticsTest {
 		ClassNode cn = new ClassNode();
 		cr.accept(cn, 0);
 		//
-		Iterator<MethodNode> it = cn.methods.listIterator();
+		Iterator<MethodNode> it = new ArrayList<>(cn.methods).listIterator();
 		while(it.hasNext()) {
 			MethodNode m = it.next();
 
@@ -127,7 +116,25 @@ public class AnalyticsTest {
 			System.out.println();
 			System.out.println("Optimised Code:");
 			System.out.println(code);
+			
+			sgraph = StatementGraphBuilder.create(cfg);
+			LivenessAnalyser liveness = new LivenessAnalyser(sgraph);
+			DefinitionAnalyser definitions = new DefinitionAnalyser(sgraph);
+			CodeAnalytics analytics = new CodeAnalytics(code, cfg, sgraph, liveness, definitions);
+			StatementWriter writer = new StatementWriter(code, cfg);
+			MethodNode m2 = new MethodNode(m.owner, m.access, m.name, m.desc, m.signature, m.exceptions.toArray(new String[0]));
+			writer.dump(m2, analytics);
+			it.remove();
+			cn.methods.add(m2);
+			cn.methods.remove(m);
 		}
+
+		ClassWriter clazz = new ClassWriter(0);
+		cn.accept(clazz);
+		byte[] saved = clazz.toByteArray();
+		FileOutputStream out = new FileOutputStream(new File("out/testclass.class"));
+		out.write(saved, 0, saved.length);
+		out.close();
 	}
 	
 	private static SSATransformer[] initTransforms(CodeBody code, SSALocalAccess localAccess, StatementGraph sgraph, StatementGenerator gen) {

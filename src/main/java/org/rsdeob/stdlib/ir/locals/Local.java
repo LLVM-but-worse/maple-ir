@@ -36,7 +36,8 @@ public abstract class Local implements Comparable<Local> {
 	}
 	
 	public int getCodeIndex() {
-		return stack ? getBase() + index : index;
+//		return stack ? getBase() + index : index;
+		return index;
 	}
 	
 	@Override
