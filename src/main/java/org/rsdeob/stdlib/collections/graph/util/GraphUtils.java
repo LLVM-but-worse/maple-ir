@@ -1,4 +1,4 @@
-package org.rsdeob.stdlib.cfg.util;
+package org.rsdeob.stdlib.collections.graph.util;
 
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.*;
@@ -9,6 +9,8 @@ import org.rsdeob.stdlib.cfg.edge.DefaultSwitchEdge;
 import org.rsdeob.stdlib.cfg.edge.FlowEdge;
 import org.rsdeob.stdlib.cfg.edge.JumpEdge;
 import org.rsdeob.stdlib.cfg.edge.SwitchEdge;
+import org.rsdeob.stdlib.cfg.util.ControlFlowGraphDeobfuscator;
+import org.rsdeob.stdlib.cfg.util.LabelHelper;
 import org.rsdeob.stdlib.cfg.util.ControlFlowGraphDeobfuscator.SuperNode;
 import org.rsdeob.stdlib.collections.graph.flow.ExceptionRange;
 import org.rsdeob.stdlib.ir.StatementGraph;

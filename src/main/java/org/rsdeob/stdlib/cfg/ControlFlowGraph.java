@@ -1,7 +1,7 @@
 package org.rsdeob.stdlib.cfg;
 
 import org.objectweb.asm.tree.MethodNode;
-import org.rsdeob.stdlib.cfg.util.GraphUtils;
+import org.rsdeob.stdlib.collections.graph.util.GraphUtils;
 
 public class ControlFlowGraph extends FastBlockGraph {
 	

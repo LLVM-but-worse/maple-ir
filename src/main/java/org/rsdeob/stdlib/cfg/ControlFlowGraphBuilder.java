@@ -2,9 +2,9 @@ package org.rsdeob.stdlib.cfg;
 
 import org.objectweb.asm.tree.*;
 import org.rsdeob.stdlib.cfg.edge.*;
-import org.rsdeob.stdlib.cfg.util.GraphUtils;
 import org.rsdeob.stdlib.cfg.util.LabelHelper;
 import org.rsdeob.stdlib.collections.graph.flow.ExceptionRange;
+import org.rsdeob.stdlib.collections.graph.util.GraphUtils;
 
 import java.util.*;
 
