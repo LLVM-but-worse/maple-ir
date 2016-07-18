@@ -1,6 +1,8 @@
 package org.rsdeob.stdlib.ir.gen;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -111,6 +113,8 @@ public class SSAGenerator {
 	
 	public void run() {
 		computePhis();
+		System.out.println("Post PHI:");
+		System.out.println(body);
 		rename();
 		de_init();
 	}
@@ -159,7 +163,6 @@ public class SSAGenerator {
 			return;
 		}
 		vis.add(b);
-		
 		for(Statement s : b.getStatements())  {
 			if(s instanceof CopyVarStatement) {
 				CopyVarStatement cvs = ((CopyVarStatement) s);
@@ -179,7 +182,6 @@ public class SSAGenerator {
 						VarExpression var = (VarExpression) stmt;
 						Local l = var.getLocal();
 						var.setLocal(_top(s, l.getIndex(), l.isStack()));
-						
 					}
 					return stmt;
 				}
@@ -195,11 +197,14 @@ public class SSAGenerator {
 			}
 		}
 		
-		List<FlowEdge<BasicBlock>> succs = new ArrayList<>();
-		for(FlowEdge<BasicBlock> succE : cfg.getEdges(b)) {
-			succs.add(succE);
-		}
-		
+		List<FlowEdge<BasicBlock>> succs = new ArrayList<>(cfg.getEdges(b));
+		Collections.sort(succs, new Comparator<FlowEdge<BasicBlock>>() {
+			@Override
+			public int compare(FlowEdge<BasicBlock> o1, FlowEdge<BasicBlock> o2) {
+				return o1.dst.compareTo(o2.dst);
+			}
+		});
+				
 		// TODO: maybe sort succs
 		
 		for(FlowEdge<BasicBlock> succE : succs) {
@@ -239,11 +244,11 @@ public class SSAGenerator {
 		for(Statement s : b.getStatements())  {
 			if(s instanceof CopyVarStatement) {
 				CopyVarStatement cvs = (CopyVarStatement) s;
-				if(cvs.isSynthetic()) {
+//				if(cvs.isSynthetic()) {
 					Local l = cvs.getVariable().getLocal();
 					l = handler.get(l.getIndex(), l.isStack());
 					stacks.get(l).pop();
-				}
+//				}
 			}
 		}
 	}

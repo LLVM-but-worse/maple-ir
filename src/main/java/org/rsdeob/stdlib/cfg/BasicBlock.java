@@ -306,6 +306,9 @@ public class BasicBlock implements FastGraphVertex, Comparable<BasicBlock> {
 
 	@Override
 	public int compareTo(BasicBlock o) {
+		if(o.isDummy()) {
+			return 1;
+		}
 		return id.compareTo(o.id);
 	}
 }
