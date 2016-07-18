@@ -23,6 +23,7 @@ import org.rsdeob.stdlib.cfg.util.ControlFlowGraphDeobfuscator;
 import org.rsdeob.stdlib.cfg.util.GraphUtils;
 import org.rsdeob.stdlib.collections.graph.util.DotExporter;
 import org.rsdeob.stdlib.ir.CodeBody;
+import org.rsdeob.stdlib.ir.UnSSA;
 import org.rsdeob.stdlib.ir.SSAGenerator;
 import org.rsdeob.stdlib.ir.StatementGenerator;
 import org.rsdeob.stdlib.ir.StatementGraph;
@@ -47,8 +48,8 @@ public class AnalyticsTest {
 	public static boolean debug = true;
 	
 	public static void main(String[] args) throws Throwable {
-		InputStream i = new FileInputStream(new File("res/a.class"));
-		ClassReader cr = new ClassReader(i);
+//		InputStream i = new FileInputStream(new File("res/a.class"));
+		ClassReader cr = new ClassReader(AnalyticsTest.class.getCanonicalName());
 		ClassNode cn = new ClassNode();
 		cr.accept(cn, 0);
 		//
@@ -56,7 +57,7 @@ public class AnalyticsTest {
 		while(it.hasNext()) {
 			MethodNode m = it.next();
 
-			if(!m.toString().equals("a/a/f/a.H(J)La/a/f/o;")) {
+			if(!m.toString().equals("org/rsdeob/AnalyticsTest.tryidiots(I)V")) {
 				continue;
 			}
 //			LocalsTest.main([Ljava/lang/String;)V
@@ -147,6 +148,15 @@ public class AnalyticsTest {
 					System.err.println("Mismatch: " + e + " " + i1.get() + ":" + i2.get());
 				}
 			}
+			
+			
+			UnSSA de = new UnSSA(code, cfg);
+			de.run();
+
+			System.out.println();
+			System.out.println();
+			System.out.println("Final code:");
+			System.out.println(code);
 		}
 	}
 

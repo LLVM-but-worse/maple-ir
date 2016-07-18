@@ -174,7 +174,7 @@ public class SSAPropagator extends SSATransformer {
 						
 						// replace uses
 						for(Statement reachable : graph.wanderAllTrails(keepPhi, exit)) {
-							for(Statement s : enumerate(reachable)) {
+							for(Statement s : Statement.enumerate(reachable)) {
 								if(s instanceof VarExpression) {
 									VarExpression var = (VarExpression) s;
 									VersionedLocal l = (VersionedLocal) var.getLocal();
@@ -218,34 +218,6 @@ public class SSAPropagator extends SSATransformer {
 			}
 			return changed;
 		}
-				
-		/**
-		 * Computes all statements the given statement contains and itself.
-		 * @param stmt Statement to enumerate child statements for
-		 * @return a set of all child statements of the statement as well as itself.
-		 */
-		private Set<Statement> enumerate(Statement stmt) {
-			Set<Statement> stmts = new HashSet<>();
-			stmts.add(stmt);
-			if(stmt instanceof PhiExpression) {
-				throw new UnsupportedOperationException(stmt.toString());
-			} else {
-				new StatementVisitor(stmt) {
-					@Override
-					public Statement visit(Statement stmt) {
-						stmts.add(stmt);
-						if(stmt instanceof PhiExpression) {
-							PhiExpression phi = (PhiExpression) stmt;
-							for(Expression s : phi.getLocals().values()) {
-								stmts.addAll(enumerate(s));
-							}
-						}
-						return stmt;
-					}
-				}.visit();
-			}
-			return stmts;
-		}
 		
 		/**
 		 * Called when a statement is removed.
@@ -253,7 +225,7 @@ public class SSAPropagator extends SSATransformer {
 		 * @param stmt Statement that was removed
 		 */
 		private void killed(Statement stmt) {
-			for(Statement s : enumerate(stmt)) {
+			for(Statement s : Statement.enumerate(stmt)) {
 				if(s instanceof VarExpression) {
 					unuseLocal(((VarExpression) s).getLocal());
 				}
@@ -266,7 +238,7 @@ public class SSAPropagator extends SSATransformer {
 		 * @param stmt Statement that was added
 		 */
 		private void copied(Statement stmt) {
-			for(Statement s : enumerate(stmt)) {
+			for(Statement s : Statement.enumerate(stmt)) {
 				if(s instanceof VarExpression) {
 					reuseLocal(((VarExpression) s).getLocal());
 				}
@@ -523,7 +495,7 @@ public class SSAPropagator extends SSATransformer {
 		 * @return Whether the statement is uncopyable.
 		 */
 		private boolean isUncopyable(Statement stmt) {
-			for(Statement s : enumerate(stmt)) {
+			for(Statement s : Statement.enumerate(stmt)) {
 				if(UNCOPYABLE.contains(s.getClass())) {
 					return true;
 				}

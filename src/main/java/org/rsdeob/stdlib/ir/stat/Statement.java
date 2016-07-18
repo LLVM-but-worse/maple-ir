@@ -1,11 +1,16 @@
 package org.rsdeob.stdlib.ir.stat;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.objectweb.asm.MethodVisitor;
 import org.rsdeob.stdlib.cfg.util.TabbedStringWriter;
 import org.rsdeob.stdlib.collections.graph.FastGraphVertex;
+import org.rsdeob.stdlib.ir.StatementVisitor;
+import org.rsdeob.stdlib.ir.expr.Expression;
+import org.rsdeob.stdlib.ir.expr.PhiExpression;
 import org.rsdeob.stdlib.ir.transform.impl.CodeAnalytics;
 
 public abstract class Statement implements FastGraphVertex {
@@ -245,5 +250,33 @@ public abstract class Statement implements FastGraphVertex {
 //		}
 		node.toString(printer);
 		return printer.toString();
+	}
+	
+	/**
+	 * Computes all statements the given statement contains and itself.
+	 * @param stmt Statement to enumerate child statements for
+	 * @return a set of all child statements of the statement as well as itself.
+	 */
+	public static Set<Statement> enumerate(Statement stmt) {
+		Set<Statement> stmts = new HashSet<>();
+		stmts.add(stmt);
+		if(stmt instanceof PhiExpression) {
+			throw new UnsupportedOperationException(stmt.toString());
+		} else {
+			new StatementVisitor(stmt) {
+				@Override
+				public Statement visit(Statement stmt) {
+					stmts.add(stmt);
+					if(stmt instanceof PhiExpression) {
+						PhiExpression phi = (PhiExpression) stmt;
+						for(Expression s : phi.getLocals().values()) {
+							stmts.addAll(enumerate(s));
+						}
+					}
+					return stmt;
+				}
+			}.visit();
+		}
+		return stmts;
 	}
 }
