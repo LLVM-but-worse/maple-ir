@@ -1,14 +1,14 @@
 package org.rsdeob.stdlib.asm;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.analysis.AnalyzerException;
 import org.objectweb.asm.tree.analysis.Interpreter;
 import org.objectweb.asm.tree.analysis.Value;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class TupleInterpreter<T1 extends Value, T2 extends Value, V extends TupleValue<T1, T2>> extends Interpreter<V> implements Opcodes {
 	

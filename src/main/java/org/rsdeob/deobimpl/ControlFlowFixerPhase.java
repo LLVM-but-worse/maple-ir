@@ -1,7 +1,5 @@
 package org.rsdeob.deobimpl;
 
-import java.util.List;
-
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.rsdeob.stdlib.IContext;
@@ -11,6 +9,8 @@ import org.rsdeob.stdlib.cfg.ControlFlowGraphBuilder;
 import org.rsdeob.stdlib.cfg.util.ControlFlowGraphDeobfuscator;
 import org.rsdeob.stdlib.collections.graph.util.GraphUtils;
 import org.rsdeob.stdlib.deob.IPhase;
+
+import java.util.List;
 
 public class ControlFlowFixerPhase implements IPhase {
 	public static final String KEY_ID = ControlFlowFixerPhase.class.getCanonicalName();

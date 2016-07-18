@@ -1,10 +1,10 @@
 package org.rsdeob.deobimpl;
 
-import java.util.HashSet;
-import java.util.Set;
-
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.MethodNode;
+
+import java.util.HashSet;
+import java.util.Set;
 
 public class ParameterUtil {
 

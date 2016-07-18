@@ -1,20 +1,16 @@
 package org.rsdeob.deobimpl;
 
+import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.tree.*;
+import org.rsdeob.stdlib.IContext;
+import org.rsdeob.stdlib.deob.IPhase;
+import org.rsdeob.stdlib.klass.ClassTree;
+
 import java.lang.reflect.Modifier;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
-
-import org.objectweb.asm.Opcodes;
-import org.objectweb.asm.tree.AbstractInsnNode;
-import org.objectweb.asm.tree.ClassNode;
-import org.objectweb.asm.tree.FieldInsnNode;
-import org.objectweb.asm.tree.FieldNode;
-import org.objectweb.asm.tree.MethodNode;
-import org.rsdeob.stdlib.IContext;
-import org.rsdeob.stdlib.deob.IPhase;
-import org.rsdeob.stdlib.klass.ClassTree;
 
 public class UnusedFieldsPhase implements IPhase, Opcodes {
 	

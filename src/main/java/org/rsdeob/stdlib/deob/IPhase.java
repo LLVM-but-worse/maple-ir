@@ -1,8 +1,8 @@
 package org.rsdeob.stdlib.deob;
 
-import java.util.List;
-
 import org.rsdeob.stdlib.IContext;
+
+import java.util.List;
 
 public interface IPhase {
 	
