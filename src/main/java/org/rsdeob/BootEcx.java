@@ -9,6 +9,7 @@ import org.rsdeob.stdlib.cfg.ControlFlowGraph;
 import org.rsdeob.stdlib.cfg.ControlFlowGraphBuilder;
 import org.rsdeob.stdlib.cfg.util.ControlFlowGraphDeobfuscator;
 import org.rsdeob.stdlib.collections.graph.util.GraphUtils;
+import org.rsdeob.stdlib.collections.graph.util.SGDotExporter;
 import org.rsdeob.stdlib.ir.CodeBody;
 import org.rsdeob.stdlib.ir.StatementGraph;
 import org.rsdeob.stdlib.ir.StatementWriter;

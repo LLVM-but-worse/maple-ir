@@ -37,130 +37,20 @@ public class SSADeconstructor {
 	private final NullPermeableHashMap<VersionedLocal, Set<VarExpression>> uses;
 	private int maxLocals;
 	
-	public SSADeconstructor(CodeBody body, SSALocalAccess localsAccess, ControlFlowGraph cfg) {
+	public SSADeconstructor(CodeBody body, ControlFlowGraph cfg) {
 		this.body = body;
-		this.localsAccess = localsAccess;
 		this.cfg = cfg;
+		localsAccess = new SSALocalAccess(body);
 		
 		locals = body.getLocals();
 		undroppableLocals = new HashMap<>();
 		localTypes = new HashMap<>();
 		uses = new NullPermeableHashMap<>(new SetCreator<>());
 		
-		init_blocks();
+		initBlocks();
 	}
 	
-	void maxl() {
-		for (VersionedLocal local : localsAccess.defs.keySet()) {
-			maxLocals = Math.max(maxLocals, local.getIndex());
-		}
-	}
-	
-	void map_types() {
-		for (Statement stmt : body) {
-			for (Statement s : Statement.enumerate(stmt)) {
-				if (s instanceof VarExpression) {
-					_map_type((VarExpression) s);
-				} else if (s instanceof CopyVarStatement && ((CopyVarStatement) s).isSynthetic()) {
-					_map_type(((CopyVarStatement) s).getVariable());
-				}
-			}
-		}
-	}
-	
-	void _map_type(VarExpression var) {
-		Local _l = var.getLocal();
-		if(!(_l instanceof VersionedLocal)) {
-			throw new IllegalStateException(_l + " " + var);
-		}
-		VersionedLocal l = (VersionedLocal) _l;
-		uses.getNonNull(l).add(var);
-		Type t = var.getType();
-		if(t != null) {
-			localTypes.put(l, t);
-		}
-	}
-	
-	Map<BasicLocal, Set<Type>> compute_typesets() {
-		NullPermeableHashMap<BasicLocal, Set<Type>> res = new NullPermeableHashMap<>(new SetCreator<>());
-		
-		for (Entry<VersionedLocal, Type> e : localTypes.entrySet()) {
-			Local versioned = e.getKey();
-			BasicLocal unversioned = locals.get(versioned.getIndex(), versioned.isStack());
-			res.getNonNull(unversioned).add(TypeUtils.asSimpleType(e.getValue()));
-		}
-		
-		return res;
-	}
-	
-	void unweave_vars() {
-		Map<BasicLocal, Set<Type>> typesets = compute_typesets();
-		for (Entry<BasicLocal, Set<Type>> e : typesets.entrySet()) {
-			BasicLocal local = e.getKey();
-			Set<Type> types = e.getValue();
-			System.out.println("(2.2) " + local + ": " + types);
-			if (types.size() > 1) {
-				unweave(local, types);
-			}
-		}
-		System.out.println("(2.3)Undroppable locals: " + undroppableLocals);
-	}
-	
-	private void unweave(BasicLocal local, Set<Type> set) {
-		Map<Type, BasicLocal> spindle = new HashMap<>();
-		
-		System.out.println("Need to unweave " + local);
-		for (Type t : set) {
-			BasicLocal l = locals.get(++maxLocals, local.isStack());
-			spindle.put(t, l);
-			System.out.println("Reassigning clash type " + t + " to " + l);
-		}
-		
-		for (VersionedLocal usedLocal : localsAccess.defs.keySet()) {
-			System.out.println(usedLocal + " " + usedLocal.isVersionOf(local));
-			if (usedLocal.isVersionOf(local)) {
-				// usedLocal is clashing
-				Type t = localTypes.get(usedLocal);
-				BasicLocal reassignLocal = spindle.get(TypeUtils.asSimpleType(t));
-				undroppableLocals.put(usedLocal, reassignLocal);
-				replaceLocals(versionedLocal -> versionedLocal == usedLocal, versionedLocal -> reassignLocal);
-				System.out.println("(2.4) Reassigned clash local " + usedLocal + "(type=" + t + ") to " + reassignLocal);
-			}
-		}
-	}
-	
-	private void replaceLocals(Predicate<VersionedLocal> filter, Function<VersionedLocal, BasicLocal> replaceFn) {
-		for (Statement stmt : body) {
-			for (Statement s : Statement.enumerate(stmt)) {
-				VarExpression var = null;
-				if (s instanceof VarExpression) {
-					var = (VarExpression) s;
-				} else if (s instanceof CopyVarStatement) {
-					CopyVarStatement copy = (CopyVarStatement) s;
-					var = copy.getVariable();
-				} else if (s instanceof PhiExpression) {
-					throw new IllegalStateException(s.toString());
-				}
-				if (var != null && var.getLocal() instanceof VersionedLocal) {
-					VersionedLocal versionedLocal = (VersionedLocal) var.getLocal();
-					if (filter.test(versionedLocal))
-						var.setLocal(replaceFn.apply(versionedLocal));
-				}
-			}
-		}
-	}
-	
-	private void drop_subscripts() { // yes my child, it's this easy
-		replaceLocals(versionedLocal -> true, versionedLocal -> locals.get(versionedLocal.getIndex(), versionedLocal.isStack()));
-	}
-	
-	void type_vars() {
-		maxl();
-		map_types();
-		unweave_vars();
-	}
-	
-	private void init_blocks() {
+	private void initBlocks() {
 		for (BasicBlock b : cfg.vertices()) {
 			b.getStatements().clear();
 		}
@@ -179,7 +69,15 @@ public class SSADeconstructor {
 		}
 	}
 	
-	private void unroll_phis() {
+	// Processing code
+	public void run() {
+		unrollPhis();
+		typeVars();
+		dropSubscripts();
+	}
+	
+	// Phi removal
+	private void unrollPhis() {
 		for (Statement stmt : new HashSet<>(body)) {
 			if (stmt instanceof CopyVarStatement) {
 				CopyVarStatement copy = (CopyVarStatement) stmt;
@@ -232,9 +130,113 @@ public class SSADeconstructor {
 		}
 	}
 	
-	public void run() {
-		unroll_phis();
-		type_vars();
-		drop_subscripts();
+	// Variable typing
+	private void typeVars() {
+		computeMaxLocals();
+		mapTypes();
+		unweaveUndroppables();
+	}
+	
+	void computeMaxLocals() {
+		for (VersionedLocal local : localsAccess.defs.keySet())
+			maxLocals = Math.max(maxLocals, local.getIndex());
+	}
+	
+	void mapTypes() {
+		for (Statement stmt : body) {
+			for (Statement child : Statement.enumerate(stmt)) {
+				if (child instanceof VarExpression) {
+					mapType((VarExpression) child);
+				} else if (child instanceof CopyVarStatement && ((CopyVarStatement) child).isSynthetic()) {
+					mapType(((CopyVarStatement) child).getVariable());
+				}
+			}
+		}
+	}
+	
+	void mapType(VarExpression var) {
+		Local local = var.getLocal();
+		if(!(local instanceof VersionedLocal)) {
+			throw new IllegalStateException(local + " " + var);
+		}
+		VersionedLocal versionedLocal = (VersionedLocal) local;
+		uses.getNonNull(versionedLocal).add(var);
+		localTypes.put(versionedLocal, var.getType());
+	}
+	
+	private void unweaveUndroppables() {
+		NullPermeableHashMap<BasicLocal, Set<Type>> simpleTypes = new NullPermeableHashMap<>(new SetCreator<>());
+		
+		for (Entry<VersionedLocal, Type> e : localTypes.entrySet()) {
+			Local versioned = e.getKey();
+			BasicLocal unversioned = locals.get(versioned.getIndex(), versioned.isStack());
+			simpleTypes.getNonNull(unversioned).add(TypeUtils.asSimpleType(e.getValue()));
+		}
+		
+		for (Entry<BasicLocal, Set<Type>> e : simpleTypes.entrySet()) {
+			BasicLocal local = e.getKey();
+			Set<Type> types = e.getValue();
+			System.out.println("(2.2) " + local + ": " + types);
+			if (types.size() > 1) {
+				unweaveLocal(local, types);
+			}
+		}
+		System.out.println("(2.3)Undroppable locals: " + undroppableLocals);
+	}
+	
+	private void unweaveLocal(BasicLocal local, Set<Type> set) {
+		System.out.println("Need to unweave " + local);
+		
+		// wind up spindle
+		Map<Type, BasicLocal> spindle = new HashMap<>();
+		for (Type simpleType : set) {
+			BasicLocal newLocal = locals.get(++maxLocals, local.isStack());
+			spindle.put(simpleType, newLocal);
+			System.out.println("Reassigning clash type " + simpleType + " to " + newLocal);
+		}
+		
+		// unwind spindle
+		for (VersionedLocal usedLocal : localsAccess.defs.keySet()) {
+			System.out.println(usedLocal + " " + usedLocal.isVersionOf(local));
+			if (usedLocal.isVersionOf(local)) {
+				// usedLocal is clashing
+				Type complexType = localTypes.get(usedLocal);
+				if (complexType == null) {
+					throw new IllegalStateException(usedLocal.toString());
+				}
+				BasicLocal reassignLocal = spindle.get(TypeUtils.asSimpleType(complexType));
+				undroppableLocals.put(usedLocal, reassignLocal);
+				replaceLocals(versionedLocal -> versionedLocal == usedLocal, versionedLocal -> reassignLocal);
+				System.out.println("(2.4) Reassigned clash local " + usedLocal + "(type=" + complexType + ") to " + reassignLocal);
+			}
+		}
+	}
+	
+	// Subscript removal
+	private void dropSubscripts() { // yes my child, it's this easy
+		replaceLocals(versionedLocal -> true, versionedLocal -> locals.get(versionedLocal.getIndex(), versionedLocal.isStack()));
+	}
+	
+	// End of processing code
+	
+	private void replaceLocals(Predicate<VersionedLocal> filter, Function<VersionedLocal, BasicLocal> replaceFn) {
+		for (Statement stmt : body) {
+			for (Statement s : Statement.enumerate(stmt)) {
+				VarExpression var = null;
+				if (s instanceof VarExpression) {
+					var = (VarExpression) s;
+				} else if (s instanceof CopyVarStatement) {
+					CopyVarStatement copy = (CopyVarStatement) s;
+					var = copy.getVariable();
+				} else if (s instanceof PhiExpression) {
+					throw new IllegalStateException(s.toString());
+				}
+				if (var != null && var.getLocal() instanceof VersionedLocal) {
+					VersionedLocal versionedLocal = (VersionedLocal) var.getLocal();
+					if (filter.test(versionedLocal))
+						var.setLocal(replaceFn.apply(versionedLocal));
+				}
+			}
+		}
 	}
 }
