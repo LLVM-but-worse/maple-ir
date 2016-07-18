@@ -37,8 +37,8 @@ public class AnalyticsTest {
 	public static boolean debug = true;
 	
 	public static void main(String[] args) throws Throwable {
-		InputStream i = new FileInputStream(new File("res/uc_inline.class"));
-		ClassReader cr = new ClassReader(i);
+		InputStream i = new FileInputStream(new File("res/a.class"));
+		ClassReader cr = new ClassReader(AnalyticsTest.class.getCanonicalName());
 		ClassNode cn = new ClassNode();
 		cr.accept(cn, 0);
 		//
@@ -59,7 +59,7 @@ public class AnalyticsTest {
 //			a.n(Ljava/lang/String;I)I 18
 			System.out.println(m + " " + m.instructions.size());
 			if(!m.toString().equals("e/uc.a(Ljava/lang/String;)Ljava/lang/String;")) {
-				continue;
+//				continue;
 			}
 //			LocalsTest.main([Ljava/lang/String;)V
 //			org/rsdeob/AnalyticsTest.tryidiots(I)V

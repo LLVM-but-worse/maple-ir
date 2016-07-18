@@ -71,7 +71,8 @@ public class SSAInitialiserAggregator extends SSATransformer {
 							}
 						} else {
 							System.err.println(code);
-							System.err.println(stmt.getId() + ". " + stmt);
+							System.err.println("Stmt: " + stmt.getId() + ". " + stmt);
+							System.err.println("Inst: " + inst);
 							throw new RuntimeException("interesting1 " + inst.getClass());
 						}
 					}
