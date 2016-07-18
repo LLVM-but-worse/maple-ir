@@ -60,9 +60,12 @@ public class SSAInitialiserAggregator extends SSATransformer {
 								int index = code.indexOf(pop);
 								Statement prev = code.get(index - 1);
 								code.add(index, newCvs);
-								graph.jam(prev, pop, newCvs);
+								System.out.println("jammin " + newCvs);
+								System.out.println("  bet " + prev.getId() + ". " + prev + ", " + pop.getId() +". " + pop);
+//								graph.jam(prev, pop, newCvs);
+								graph.replace(pop, newCvs);
 								code.remove(pop);
-								graph.excavate(pop);
+//								graph.excavate(pop);
 								
 //								System.out.println("After aggr for " + newCvs);
 //								System.out.println(code);
