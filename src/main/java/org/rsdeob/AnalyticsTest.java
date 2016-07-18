@@ -37,7 +37,7 @@ public class AnalyticsTest {
 	public static boolean debug = true;
 	
 	public static void main(String[] args) throws Throwable {
-		InputStream i = new FileInputStream(new File("res/a.class"));
+		InputStream i = new FileInputStream(new File("res/uc.class"));
 		ClassReader cr = new ClassReader(i);
 		ClassNode cn = new ClassNode();
 		cr.accept(cn, 0);
@@ -46,6 +46,10 @@ public class AnalyticsTest {
 		while(it.hasNext()) {
 			MethodNode m = it.next();
 
+//			e/uc.<init>()V 5
+//			e/uc.a(Ljava/util/Hashtable;Ljava/security/MessageDigest;)V 111
+//			e/uc.<clinit>()V 6
+			
 //			a.f(I)Z 194
 //			a.u(I)V 149
 //			a.<clinit>()V 7
@@ -53,7 +57,8 @@ public class AnalyticsTest {
 //			a.<init>()V 16
 //			a.di(Lb;ZI)V 268
 //			a.n(Ljava/lang/String;I)I 18
-			if(!m.toString().equals("a/a/f/a.H(J)La/a/f/o;")) {
+			System.out.println(m + " " + m.instructions.size());
+			if(!m.toString().equals("e/uc.a(Ljava/util/Hashtable;Ljava/security/MessageDigest;)V")) {
 				continue;
 			}
 //			LocalsTest.main([Ljava/lang/String;)V
