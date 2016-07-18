@@ -1,11 +1,11 @@
 package org.rsdeob.stdlib.klass;
 
+import org.objectweb.asm.tree.ClassNode;
+import org.topdank.banalysis.filter.Filter;
+
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
-
-import org.objectweb.asm.tree.ClassNode;
-import org.topdank.banalysis.filter.Filter;
 
 /**
  * @author Bibl (don't ban me pls)

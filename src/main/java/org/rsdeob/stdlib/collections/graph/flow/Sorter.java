@@ -1,10 +1,10 @@
 package org.rsdeob.stdlib.collections.graph.flow;
 
+import org.rsdeob.stdlib.collections.graph.FastGraphVertex;
+
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-
-import org.rsdeob.stdlib.collections.graph.FastGraphVertex;
 
 public interface Sorter<N extends FastGraphVertex> {
 

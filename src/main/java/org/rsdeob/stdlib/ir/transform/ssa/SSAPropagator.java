@@ -1,42 +1,21 @@
 package org.rsdeob.stdlib.ir.transform.ssa;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-
 import org.rsdeob.stdlib.cfg.edge.DummyEdge;
 import org.rsdeob.stdlib.collections.NullPermeableHashMap;
 import org.rsdeob.stdlib.ir.CodeBody;
 import org.rsdeob.stdlib.ir.StatementGraph;
 import org.rsdeob.stdlib.ir.StatementVisitor;
-import org.rsdeob.stdlib.ir.expr.ArrayLoadExpression;
-import org.rsdeob.stdlib.ir.expr.CaughtExceptionExpression;
-import org.rsdeob.stdlib.ir.expr.ConstantExpression;
-import org.rsdeob.stdlib.ir.expr.Expression;
-import org.rsdeob.stdlib.ir.expr.FieldLoadExpression;
-import org.rsdeob.stdlib.ir.expr.InitialisedObjectExpression;
-import org.rsdeob.stdlib.ir.expr.InvocationExpression;
-import org.rsdeob.stdlib.ir.expr.PhiExpression;
-import org.rsdeob.stdlib.ir.expr.UninitialisedObjectExpression;
-import org.rsdeob.stdlib.ir.expr.VarExpression;
+import org.rsdeob.stdlib.ir.expr.*;
 import org.rsdeob.stdlib.ir.header.HeaderStatement;
 import org.rsdeob.stdlib.ir.locals.Local;
 import org.rsdeob.stdlib.ir.locals.VersionedLocal;
-import org.rsdeob.stdlib.ir.stat.ArrayStoreStatement;
-import org.rsdeob.stdlib.ir.stat.CopyVarStatement;
-import org.rsdeob.stdlib.ir.stat.DummyExitStatement;
-import org.rsdeob.stdlib.ir.stat.FieldStoreStatement;
-import org.rsdeob.stdlib.ir.stat.MonitorStatement;
-import org.rsdeob.stdlib.ir.stat.PopStatement;
-import org.rsdeob.stdlib.ir.stat.Statement;
+import org.rsdeob.stdlib.ir.stat.*;
 import org.rsdeob.stdlib.ir.transform.SSATransformer;
+
+import java.util.*;
+import java.util.Map.Entry;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.rsdeob.stdlib.ir.transform.ssa.SSAUtil.vl;
 

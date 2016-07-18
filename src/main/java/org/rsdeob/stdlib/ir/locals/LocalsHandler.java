@@ -1,16 +1,5 @@
 package org.rsdeob.stdlib.ir.locals;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.Map.Entry;
-import java.util.concurrent.atomic.AtomicInteger;
-
 import org.objectweb.asm.Type;
 import org.rsdeob.stdlib.cfg.util.TypeUtils;
 import org.rsdeob.stdlib.collections.NullPermeableHashMap;
@@ -18,6 +7,10 @@ import org.rsdeob.stdlib.ir.CodeBody;
 import org.rsdeob.stdlib.ir.expr.VarExpression;
 import org.rsdeob.stdlib.ir.stat.CopyVarStatement;
 import org.rsdeob.stdlib.ir.stat.Statement;
+
+import java.util.*;
+import java.util.Map.Entry;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class LocalsHandler {
 
