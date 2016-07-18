@@ -2,11 +2,11 @@ package org.rsdeob;
 
 import org.objectweb.asm.Type;
 import org.rsdeob.stdlib.ir.expr.ArithmeticExpression.Operator;
-import org.rsdeob.stdlib.ir.stat.ConditionalJumpStatement;
 import org.rsdeob.stdlib.ir.stat.ConditionalJumpStatement.ComparisonType;
 
 import static org.objectweb.asm.Type.*;
-import static org.rsdeob.stdlib.ir.expr.ArithmeticExpression.Operator.*;
+import static org.rsdeob.stdlib.ir.expr.ArithmeticExpression.Operator.REM;
+import static org.rsdeob.stdlib.ir.expr.ArithmeticExpression.Operator.XOR;
 import static org.rsdeob.stdlib.ir.stat.ConditionalJumpStatement.ComparisonType.LE;
 
 /**

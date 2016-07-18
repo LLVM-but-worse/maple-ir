@@ -1,7 +1,5 @@
 package org.rsdeob.stdlib.ir.expr;
 
-import static org.objectweb.asm.Opcodes.*;
-
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.util.Printer;
@@ -9,6 +7,8 @@ import org.rsdeob.stdlib.cfg.util.TabbedStringWriter;
 import org.rsdeob.stdlib.cfg.util.TypeUtils;
 import org.rsdeob.stdlib.ir.stat.Statement;
 import org.rsdeob.stdlib.ir.transform.impl.CodeAnalytics;
+
+import static org.objectweb.asm.Opcodes.*;
 
 public class ArithmeticExpression extends Expression {
 

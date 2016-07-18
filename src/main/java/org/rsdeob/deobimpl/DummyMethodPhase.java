@@ -1,7 +1,5 @@
 package org.rsdeob.deobimpl;
 
-import java.util.List;
-
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
@@ -10,6 +8,8 @@ import org.rsdeob.stdlib.call.CallGraph;
 import org.rsdeob.stdlib.call.CallGraph.CallgraphAdapter;
 import org.rsdeob.stdlib.deob.IPhase;
 import org.rsdeob.stdlib.klass.ClassTree;
+
+import java.util.List;
 
 public class DummyMethodPhase implements IPhase {
 

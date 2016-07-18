@@ -1,8 +1,5 @@
 package org.rsdeob.stdlib.ir;
 
-import java.util.HashSet;
-import java.util.Set;
-
 import org.rsdeob.stdlib.cfg.edge.FlowEdge;
 import org.rsdeob.stdlib.cfg.edge.ImmediateEdge;
 import org.rsdeob.stdlib.cfg.edge.TryCatchEdge;
@@ -10,6 +7,9 @@ import org.rsdeob.stdlib.collections.graph.flow.ExceptionRange;
 import org.rsdeob.stdlib.collections.graph.flow.FlowGraph;
 import org.rsdeob.stdlib.collections.graph.util.GraphUtils;
 import org.rsdeob.stdlib.ir.stat.Statement;
+
+import java.util.HashSet;
+import java.util.Set;
 
 public class StatementGraph extends FlowGraph<Statement, FlowEdge<Statement>>  {
 	
