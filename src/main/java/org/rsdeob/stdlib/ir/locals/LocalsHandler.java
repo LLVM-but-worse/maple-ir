@@ -18,6 +18,7 @@ import org.rsdeob.stdlib.collections.SetCreator;
 import org.rsdeob.stdlib.ir.CodeBody;
 import org.rsdeob.stdlib.ir.StatementVisitor;
 import org.rsdeob.stdlib.ir.expr.VarExpression;
+import org.rsdeob.stdlib.ir.stat.CopyVarStatement;
 import org.rsdeob.stdlib.ir.stat.Statement;
 
 public class LocalsHandler {
@@ -85,6 +86,13 @@ public class LocalsHandler {
 					VarExpression var = (VarExpression) s;
 					Local local = var.getLocal();
 					types.getNonNull(local).add(var.getType());
+				} else if(s instanceof CopyVarStatement) {
+					CopyVarStatement cp = (CopyVarStatement) s;
+					if(cp.isSynthetic()) {
+						VarExpression var = cp.getVariable();
+						Local local = var.getLocal();
+						types.getNonNull(local).add(var.getType());
+					}
 				}
 			}
 		}
@@ -122,24 +130,24 @@ public class LocalsHandler {
 		}
 	}
 	
-	private List<Local> createWorkList(Set<Local> keySet) {
-		List<Local> real = new ArrayList<>();
-		List<Local> stack = new ArrayList<>();
-		for(Local l : keySet) {
-			if(l.isStack()) {
-				stack.add(l);
-			} else {
-				real.add(l);
-			}
-		}
-		Collections.sort(real);
-		Collections.sort(stack);
-		
-		List<Local> res = new ArrayList<>();
-		res.addAll(real);
-		res.addAll(stack);
-		return res;
-	}
+//	private List<Local> createWorkList(Set<Local> keySet) {
+//		List<Local> real = new ArrayList<>();
+//		List<Local> stack = new ArrayList<>();
+//		for(Local l : keySet) {
+//			if(l.isStack()) {
+//				stack.add(l);
+//			} else {
+//				real.add(l);
+//			}
+//		}
+//		Collections.sort(real);
+//		Collections.sort(stack);
+//		
+//		List<Local> res = new ArrayList<>();
+//		res.addAll(real);
+//		res.addAll(stack);
+//		return res;
+//	}
 
 	private void pack(List<Local> list) {
 		Collections.sort(list);
