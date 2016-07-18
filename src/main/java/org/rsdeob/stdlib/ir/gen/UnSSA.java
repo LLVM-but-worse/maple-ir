@@ -62,12 +62,15 @@ public class UnSSA {
 				List<Statement> stmts = block.getStatements();
 				int index = -1;
 				if(stmts.isEmpty()) {
-					index = body.indexOf(bh) +1;
+					index = body.indexOf(bh) + 1;
 				} else {
 					Statement last = stmts.get(stmts.size() - 1);
 					index = body.indexOf(last);
+					if(!last.canChangeFlow()) {
+						index += 1;
+					}
 				}
-				
+
 				CopyVarStatement copy = new CopyVarStatement(new VarExpression(l, phi.getType()), e.getValue());
 				body.add(index, copy);
 				stmts.add(copy);
