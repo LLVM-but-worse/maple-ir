@@ -65,12 +65,17 @@ public class StatementWriter {
 			BasicBlock endBlock = range.get(range.size() - 1);
 			BasicBlock im = endBlock.getImmediate();
 			if(im == null) {
-				LabelNode label = new LabelNode();
-				m.visitLabel(label.getLabel());
-				BasicBlock newExit = new BasicBlock(cfg, LabelHelper.createBlockName(LabelHelper.numeric(endBlock.getId()) + 1), label);
-				cfg.addVertex(newExit);
-				cfg.addEdge(endBlock, new DummyEdge<BasicBlock>(endBlock, newExit));
-				end = label.getLabel();
+				BasicBlock nextBlock = cfg.getBlock(LabelHelper.createBlockName(LabelHelper.numeric(endBlock.getId()) + 1));
+				if(nextBlock != null) {
+					end = headers.get(nextBlock).getLabel();
+				} else {
+					LabelNode label = new LabelNode();
+					m.visitLabel(label.getLabel());
+					BasicBlock newExit = new BasicBlock(cfg, LabelHelper.createBlockName(LabelHelper.numeric(endBlock.getId()) + 1), label);
+					cfg.addVertex(newExit);
+					cfg.addEdge(endBlock, new DummyEdge<BasicBlock>(endBlock, newExit));
+					end = label.getLabel();
+				}
 				// end of code?
 				// throw new RuntimeException(m.toString());
 			} else {
@@ -80,5 +85,6 @@ public class StatementWriter {
 			m.visitTryCatchBlock(start, end, handler, type);
 		}
 		m.visitEnd();
+		
 	}
 }
