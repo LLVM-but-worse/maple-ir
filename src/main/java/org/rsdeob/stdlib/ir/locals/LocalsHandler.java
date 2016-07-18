@@ -86,12 +86,14 @@ public class LocalsHandler {
 					VarExpression var = (VarExpression) s;
 					Local local = var.getLocal();
 					types.getNonNull(local).add(var.getType());
+					System.out.println("(1)type of " + stmt + " = " + var.getType());
 				} else if(s instanceof CopyVarStatement) {
 					CopyVarStatement cp = (CopyVarStatement) s;
 					if(cp.isSynthetic()) {
 						VarExpression var = cp.getVariable();
 						Local local = var.getLocal();
 						types.getNonNull(local).add(var.getType());
+						System.out.println("(2)type of " + cp + " = " + var.getType());
 					}
 				}
 			}
@@ -128,66 +130,6 @@ public class LocalsHandler {
 			l.setIndex(index);
 			index += type.getSize();
 		}
-	}
-	
-//	private List<Local> createWorkList(Set<Local> keySet) {
-//		List<Local> real = new ArrayList<>();
-//		List<Local> stack = new ArrayList<>();
-//		for(Local l : keySet) {
-//			if(l.isStack()) {
-//				stack.add(l);
-//			} else {
-//				real.add(l);
-//			}
-//		}
-//		Collections.sort(real);
-//		Collections.sort(stack);
-//		
-//		List<Local> res = new ArrayList<>();
-//		res.addAll(real);
-//		res.addAll(stack);
-//		return res;
-//	}
-
-	private void pack(List<Local> list) {
-		Collections.sort(list);
-		int index = 0;
-		for(Local local : list) {
-			local.setIndex(index++);
-		}
-	}
-	
-	public void pack(CodeBody stmtList) {
-		Set<Local> locals = new HashSet<>();
-		for (Statement s : stmtList) {
-			new StatementVisitor(s) {
-				@Override
-				public Statement visit(Statement stmt) {
-					if (stmt instanceof VarExpression) {
-						locals.add(((VarExpression) stmt).getLocal());
-					}
-					return stmt;
-				}
-			}.visit();
-		}
-		pack(locals);
-	}
-	
-	public void pack(Set<Local> used) {
-		// FIXME: longs and doubles
-		List<Local> stacks = new ArrayList<>();
-		List<Local> locals = new ArrayList<>();
-		for(Local l : cache.values()) {
-			if(!used.contains(l))
-				continue;
-			if(l.isStack()) {
-				stacks.add(l);
-			} else {
-				locals.add(l);
-			}
-		}
-		pack(stacks);
-		pack(locals);
 	}
 	
 	public int getBase() {
