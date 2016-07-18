@@ -109,15 +109,16 @@ public class LocalsHandler {
 					refined.add(TypeUtils.asSimpleType(t));
 				}
 				if(refined.size() != 1) {
-					throw new RuntimeException("illegal typesets: " + types);
+					for(Entry<Local, Set<Type>> e1 : types.entrySet()) {
+						System.err.println(e1.getKey() + "  ==  " + e1.getValue());
+					}
+					throw new RuntimeException("illegal typesets for " + e.getKey());
 				}
 				saveTypes.put(e.getKey(), refined.iterator().next());
 			} else {
 				saveTypes.put(e.getKey(), set.iterator().next());
 			}
 		}
-		
-		System.out.println(saveTypes);
 		
 		// lvars then svars, ordered of course,
 		List<Local> worklist = new ArrayList<>(saveTypes.keySet());
