@@ -23,7 +23,7 @@ import org.rsdeob.stdlib.ir.StatementWriter;
 import org.rsdeob.stdlib.ir.gen.SSAGenerator;
 import org.rsdeob.stdlib.ir.gen.StatementGenerator;
 import org.rsdeob.stdlib.ir.gen.StatementGraphBuilder;
-import org.rsdeob.stdlib.ir.gen.UnSSA;
+import org.rsdeob.stdlib.ir.gen.SSADeconstructor;
 import org.rsdeob.stdlib.ir.transform.SSATransformer;
 import org.rsdeob.stdlib.ir.transform.impl.CodeAnalytics;
 import org.rsdeob.stdlib.ir.transform.impl.DefinitionAnalyser;
@@ -114,7 +114,7 @@ public class AnalyticsTest {
 			System.out.println("Optimised SSA:");
 			System.out.println(code);
 			
-			UnSSA de = new UnSSA(code, cfg);
+			SSADeconstructor de = new SSADeconstructor(code, cfg);
 			de.run();
 
 			System.out.println();

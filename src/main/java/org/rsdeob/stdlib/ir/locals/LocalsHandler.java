@@ -57,10 +57,10 @@ public class LocalsHandler {
 		}
 	}
 	
-	public Local get(int index, boolean isStack) {
+	public BasicLocal get(int index, boolean isStack) {
 		String key = key(index, isStack);
 		if(cache.containsKey(key)) {
-			return cache.get(key);
+			return (BasicLocal) cache.get(key);
 		} else {
 			BasicLocal v = new BasicLocal(base, index, isStack);
 			cache.put(key, v);
@@ -86,14 +86,14 @@ public class LocalsHandler {
 					VarExpression var = (VarExpression) s;
 					Local local = var.getLocal();
 					types.getNonNull(local).add(var.getType());
-					System.out.println("(1)type of " + stmt + " = " + var.getType());
+					System.out.println("(1)type of " + stmt + " = " + var.getType() + " (local=" + local + ")");
 				} else if(s instanceof CopyVarStatement) {
 					CopyVarStatement cp = (CopyVarStatement) s;
 					if(cp.isSynthetic()) {
 						VarExpression var = cp.getVariable();
 						Local local = var.getLocal();
 						types.getNonNull(local).add(var.getType());
-						System.out.println("(2)type of " + cp + " = " + var.getType());
+						System.out.println("(2)type of " + cp + " = " + var.getType() + " (local=" + local + ")");
 					}
 				}
 			}
