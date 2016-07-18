@@ -35,7 +35,7 @@ import java.util.List;
 @SuppressWarnings("Duplicates")
 public class BootEcx implements Opcodes {
 	public static void main(String[] args) throws Throwable {
-		InputStream i = new FileInputStream(new File("res/uc_inline.class"));
+		InputStream i = new FileInputStream(new File("res/a.class"));
 		ClassReader cr = new ClassReader(i);
 		ClassNode cn = new ClassNode();
 		cr.accept(new ClassVisitor(Opcodes.ASM5, cn) {
@@ -61,8 +61,7 @@ public class BootEcx implements Opcodes {
 //			a.<init>()V 16
 //			a.di(Lb;ZI)V 268
 //			a.n(Ljava/lang/String;I)I 18
-			System.out.println(m + " " + m.instructions.size());
-			if (!m.toString().equals("e/uc.a(Ljava/lang/String;)Ljava/lang/String;")) {
+			if (!m.toString().equals("a/a/f/a.H(J)La/a/f/o;") && !m.toString().equals("a/a/f/a.<init>()V")) {
 				continue;
 			}
 //			LocalsTest.main([Ljava/lang/String;)V
@@ -136,7 +135,6 @@ public class BootEcx implements Opcodes {
 			StatementWriter writer = new StatementWriter(code, cfg);
 			MethodNode m2 = new MethodNode(m.owner, m.access, m.name, m.desc, m.signature, m.exceptions.toArray(new String[0]));
 			writer.dump(m2, analytics);
-			it.remove();
 			cn.methods.add(m2);
 			cn.methods.remove(m);
 			
@@ -145,7 +143,7 @@ public class BootEcx implements Opcodes {
 			System.out.println("============================================================\n\n");
 		}
 		
-		ClassWriter clazz = new ClassWriter(0);
+		ClassWriter clazz = new ClassWriter(ClassWriter.COMPUTE_FRAMES);
 		cn.accept(clazz);
 		byte[] saved = clazz.toByteArray();
 		FileOutputStream out = new FileOutputStream(new File("out/testclass.class"));

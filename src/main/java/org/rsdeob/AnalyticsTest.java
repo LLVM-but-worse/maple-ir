@@ -1,7 +1,11 @@
 package org.rsdeob;
 
 import org.objectweb.asm.ClassReader;
+import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.ClassWriter;
+import org.objectweb.asm.MethodVisitor;
+import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.commons.JSRInlinerAdapter;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.rsdeob.stdlib.cfg.BasicBlock;
@@ -33,23 +37,29 @@ import java.util.Iterator;
 import java.util.List;
 
 public class AnalyticsTest {
-
+	
 	public static boolean debug = true;
 	
 	public static void main(String[] args) throws Throwable {
 		InputStream i = new FileInputStream(new File("res/a.class"));
-		ClassReader cr = new ClassReader(AnalyticsTest.class.getCanonicalName());
+		ClassReader cr = new ClassReader(i);
 		ClassNode cn = new ClassNode();
-		cr.accept(cn, 0);
-		//
+		cr.accept(new ClassVisitor(Opcodes.ASM5, cn) {
+			@Override
+			public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
+				MethodVisitor mv = super.visitMethod(access, name, desc, signature, exceptions);
+				return new JSRInlinerAdapter(mv, access, name, desc, signature, exceptions);
+			}
+		}, 0);
+		
 		Iterator<MethodNode> it = new ArrayList<>(cn.methods).listIterator();
-		while(it.hasNext()) {
+		while (it.hasNext()) {
 			MethodNode m = it.next();
 
 //			e/uc.<init>()V 5
 //			e/uc.a(Ljava/util/Hashtable;Ljava/security/MessageDigest;)V 111
 //			e/uc.<clinit>()V 6
-			
+//
 //			a.f(I)Z 194
 //			a.u(I)V 149
 //			a.<clinit>()V 7
@@ -57,9 +67,8 @@ public class AnalyticsTest {
 //			a.<init>()V 16
 //			a.di(Lb;ZI)V 268
 //			a.n(Ljava/lang/String;I)I 18
-			System.out.println(m + " " + m.instructions.size());
-			if(!m.toString().equals("e/uc.a(Ljava/lang/String;)Ljava/lang/String;")) {
-//				continue;
+			if (!m.toString().equals("a/a/f/a.H(J)La/a/f/o;") && !m.toString().equals("a/a/f/a.<init>()V")) {
+				continue;
 			}
 //			LocalsTest.main([Ljava/lang/String;)V
 //			org/rsdeob/AnalyticsTest.tryidiots(I)V
@@ -80,31 +89,31 @@ public class AnalyticsTest {
 			gen.init(m.maxLocals);
 			gen.createExpressions();
 			CodeBody code = gen.buildRoot();
-
+			
 			System.out.println("Unoptimised Code:");
 			System.out.println(code);
 			System.out.println();
 			System.out.println();
-
+			
 			SSAGenerator ssagen = new SSAGenerator(code, cfg, gen.getHeaders());
 			ssagen.run();
-			
+
 //			System.out.println("SSA:");
 //			System.out.println(code);
 //			System.out.println();
 //			System.out.println();
-
+			
 			StatementGraph sgraph = StatementGraphBuilder.create(cfg);
 			SSALocalAccess localAccess = new SSALocalAccess(code);
 			
 			SSATransformer[] transforms = initTransforms(code, localAccess, sgraph, gen);
 			
-			while(true) {
+			while (true) {
 				int change = 0;
-				for(SSATransformer t : transforms) {
+				for (SSATransformer t : transforms) {
 					change += t.run();
 				}
-				if(change <= 0) {
+				if (change <= 0) {
 					break;
 				}
 			}
@@ -116,25 +125,31 @@ public class AnalyticsTest {
 			
 			SSADeconstructor de = new SSADeconstructor(code, cfg);
 			de.run();
-
+			
 			System.out.println();
 			System.out.println();
 			System.out.println("Optimised Code:");
 			System.out.println(code);
 			
 			sgraph = StatementGraphBuilder.create(cfg);
+//			(new CFGDotExporter(cfg, blocks, m.name, "-optimised-cfg")).output(DotExporter.OPT_DEEP);
+//			(new SGDotExporter(sgraph, code, m.name, "-optimised-sg")).output(DotExporter.OPT_DEEP);
+			
 			LivenessAnalyser liveness = new LivenessAnalyser(sgraph);
 			DefinitionAnalyser definitions = new DefinitionAnalyser(sgraph);
 			CodeAnalytics analytics = new CodeAnalytics(code, cfg, sgraph, liveness, definitions);
 			StatementWriter writer = new StatementWriter(code, cfg);
 			MethodNode m2 = new MethodNode(m.owner, m.access, m.name, m.desc, m.signature, m.exceptions.toArray(new String[0]));
 			writer.dump(m2, analytics);
-			it.remove();
 			cn.methods.add(m2);
 			cn.methods.remove(m);
+			
+			System.out.println("End of processing log for " + m);
+			System.out.println("============================================================");
+			System.out.println("============================================================\n\n");
 		}
-
-		ClassWriter clazz = new ClassWriter(0);
+		
+		ClassWriter clazz = new ClassWriter(ClassWriter.COMPUTE_FRAMES);
 		cn.accept(clazz);
 		byte[] saved = clazz.toByteArray();
 		FileOutputStream out = new FileOutputStream(new File("out/testclass.class"));
@@ -146,9 +161,9 @@ public class AnalyticsTest {
 		return new SSATransformer[] {
 				new SSAPropagator(code, localAccess, sgraph, gen.getHeaders().values()),
 				new SSAInitialiserAggregator(code, localAccess, sgraph)
-			};
+		};
 	}
-
+	
 	public void tryidiots(int x) {
 		int y = 0;
 		try {
