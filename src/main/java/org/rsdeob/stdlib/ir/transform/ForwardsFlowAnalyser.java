@@ -9,9 +9,8 @@ import org.rsdeob.stdlib.collections.graph.FastGraphVertex;
 import org.rsdeob.stdlib.collections.graph.flow.ExceptionRange;
 import org.rsdeob.stdlib.collections.graph.flow.FlowGraph;
 
-public abstract class ForwardsFlowAnalyser<N extends FastGraphVertex, E extends FlowEdge<N>, S> extends DataAnalyser<N, E, S>{
-	public boolean x;
-
+public abstract class ForwardsFlowAnalyser<N extends FastGraphVertex, E extends FlowEdge<N>, S> extends DataAnalyser<N, E, S> {
+	
 	public ForwardsFlowAnalyser(FlowGraph<N, E> graph, boolean commit) {
 		super(graph, commit);
 	}
@@ -56,62 +55,6 @@ public abstract class ForwardsFlowAnalyser<N extends FastGraphVertex, E extends 
 		}
 	}
 	
-	// for pre and post remove, we need to
-	// assume for the time being that the
-	// definition is dead :/s
-	@Override
-	public void preRemove(N n) {
-		// if it didn't queue anything, queue
-		// the successors
-		if(!queue(n, true)) {
-			for(E e : graph.getEdges(n)) {
-				if(!(e instanceof TryCatchEdge)) {
-					appendQueue(e.dst);
-				}
-			}
-		}
-	}
-
-	@Override
-	public void postRemove(N n) {
-		remove(n);
-	}
-
-	@Override
-	public void update(N n) {
-		super.update(n);
-		
-		queue(n, false);
-		
-		if(graph.getEntries().contains(n)) {
-			in.put(n, newEntryState());
-			out.put(n, newState());
-		} else {
-			in.put(n, newState());
-			out.put(n, newState());
-		}
-	}
-
-	@Override
-	public void replaced(N old, N n) {
-		super.replaced(old, n);
-		if(graph.getEntries().contains(n)) {
-			in.put(n, newEntryState());
-			out.put(n, newState());
-		} else {
-			in.put(n, newState());
-			out.put(n, newState());
-		}
-		queue(n, false);
-	}
-
-	@Override
-	public void insert(N p, N s, N n) {
-		update(n);
-		update(p);
-		update(s);
-	}
-
 	@Override
 	public void processImpl() {
 		while(!queue.isEmpty()) {
@@ -131,7 +74,6 @@ public abstract class ForwardsFlowAnalyser<N extends FastGraphVertex, E extends 
 			
 			if(preds.size() == 1) {
 				E edge = preds.iterator().next();
-				if(x) System.out.println("src: " + edge.src + ",  out=" + out.get(edge.src));
 				// FIXME: in the future define the
 				// exception in the state rather than
 				// letting DFA discover the catch() statement.

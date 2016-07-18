@@ -7,9 +7,8 @@ import java.util.Map;
 import org.rsdeob.stdlib.cfg.edge.FlowEdge;
 import org.rsdeob.stdlib.collections.graph.FastGraphVertex;
 import org.rsdeob.stdlib.collections.graph.flow.FlowGraph;
-import org.rsdeob.stdlib.ir.api.ICodeListener;
 
-public abstract class DataAnalyser<N extends FastGraphVertex, E extends FlowEdge<N>, S> implements ICodeListener<N> {
+public abstract class DataAnalyser<N extends FastGraphVertex, E extends FlowEdge<N>, S> {
 	
 	protected final FlowGraph<N, E> graph;
 	protected final Map<N, S> in;
@@ -30,7 +29,11 @@ public abstract class DataAnalyser<N extends FastGraphVertex, E extends FlowEdge
 	
 	private void run(boolean commit) {
 		init();
-		if(commit) commit();
+		if(commit) analyse();
+	}
+	
+	public void analyse() {
+		processImpl();
 	}
 	
 	protected void init() {
@@ -39,12 +42,6 @@ public abstract class DataAnalyser<N extends FastGraphVertex, E extends FlowEdge
 			in.put(n, newState());
 			out.put(n, newState());
 		}
-	}
-
-	
-	@Override
-	public void commit() {
-		processImpl();
 	}
 	
 	public S in(N n) {
@@ -69,19 +66,6 @@ public abstract class DataAnalyser<N extends FastGraphVertex, E extends FlowEdge
 		if(!queue.contains(n)) {
 			queue.add(n);
 		}
-	}
-	
-	@Override
-	public void update(N n) {
-		appendQueue(n);
-	}
-
-	@Override
-	public void replaced(N old, N n) {
-		if(old != n) {
-			remove(old);
-		}
-		update(n);
 	}
 
 	public void remove(N n) {
