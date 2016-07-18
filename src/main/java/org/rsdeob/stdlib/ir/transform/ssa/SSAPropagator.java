@@ -416,6 +416,11 @@ public class SSAPropagator extends SSATransformer {
 				// reactor meltdowns.
 				if(propagatee instanceof ArrayLoadExpression) {
 					// TODO: CSE instead of this cheap assumption.
+					if(uses(use.getLocal()) == 1) {
+						unuseLocal(use.getLocal());
+						scalpelDefinition(def);
+						return propagatee;
+					}
 				} else {
 					// x = ((y * 2) + (9 / lvar0_0.g))
 					// use(x)
@@ -437,7 +442,16 @@ public class SSAPropagator extends SSATransformer {
 		}
 		
 		// Attempt to propagate the given def into the given use.
-		private Statement findSubstitution(CopyVarStatement def, VarExpression use) {
+		private Statement findSubstitution(Statement root, CopyVarStatement def, VarExpression use) {
+			Local local = use.getLocal();
+			if(!local.isStack()) {
+				if(root instanceof CopyVarStatement) {
+					CopyVarStatement cp = (CopyVarStatement) root;
+					if(cp.getVariable().getLocal().isStack()) {
+						return use;
+					}
+				}
+			}
 			Expression rhs = def.getExpression();
 			if(rhs instanceof ConstantExpression) {
 				return handleConstant(def, use, (ConstantExpression) rhs);
@@ -452,7 +466,7 @@ public class SSAPropagator extends SSATransformer {
 		// Attempt to inline the value of a var with its definition
 		private Statement visitVar(VarExpression var) {
 			CopyVarStatement def = localAccess.defs.get(var.getLocal());
-			return findSubstitution(def, var);
+			return findSubstitution(root, def, var);
 		}
 		
 		// Attempt to inline each value of the vars in the phi statement with their respective definitions
@@ -461,7 +475,7 @@ public class SSAPropagator extends SSATransformer {
 				Expression e = phi.getLocal(header);
 				if(e instanceof VarExpression) {
 					CopyVarStatement def = localAccess.defs.get(((VarExpression) e).getLocal());
-					Statement e1 = findSubstitution(def, (VarExpression) e);
+					Statement e1 = findSubstitution(phi, def, (VarExpression) e);
 					if(e1 != e) {
 						phi.setLocal(header, (Expression) e1);
 						change = true;
