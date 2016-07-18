@@ -25,11 +25,13 @@ import java.util.Map.Entry;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
+import static org.rsdeob.stdlib.ir.transform.ssa.SSAUtil.replaceLocals;
+
 public class SSADeconstructor {
 	
 	private final LocalsHandler locals;
 	private final CodeBody body;
-	private final SSALocalAccess localsAccess;
+	private SSALocalAccess localsAccess;
 	private final ControlFlowGraph cfg;
 	
 	private final Map<VersionedLocal, BasicLocal> undroppableLocals;
@@ -132,9 +134,11 @@ public class SSADeconstructor {
 	
 	// Variable typing
 	private void typeVars() {
+		localsAccess = new SSALocalAccess(body);
 		computeMaxLocals();
 		mapTypes();
 		unweaveUndroppables();
+		localsAccess = null;
 	}
 	
 	private void computeMaxLocals() {
@@ -201,12 +205,9 @@ public class SSADeconstructor {
 			if (usedLocal.isVersionOf(local)) {
 				// usedLocal is clashing
 				Type complexType = localTypes.get(usedLocal);
-				if (complexType == null) {
-					throw new IllegalStateException(usedLocal.toString());
-				}
 				BasicLocal reassignLocal = spindle.get(TypeUtils.asSimpleType(complexType));
 				undroppableLocals.put(usedLocal, reassignLocal);
-				replaceLocals(versionedLocal -> versionedLocal == usedLocal, versionedLocal -> reassignLocal);
+				replaceLocals(body, versionedLocal -> versionedLocal == usedLocal, versionedLocal -> reassignLocal);
 				System.out.println("(2.4) Reassigned clash local " + usedLocal + "(type=" + complexType + ") to " + reassignLocal);
 			}
 		}
@@ -214,29 +215,6 @@ public class SSADeconstructor {
 	
 	// Subscript removal
 	private void dropSubscripts() { // yes my child, it's this easy
-		replaceLocals(versionedLocal -> true, versionedLocal -> locals.get(versionedLocal.getIndex(), versionedLocal.isStack()));
-	}
-	
-	// End of processing code
-	
-	private void replaceLocals(Predicate<VersionedLocal> filter, Function<VersionedLocal, BasicLocal> replaceFn) {
-		for (Statement stmt : body) {
-			for (Statement s : Statement.enumerate(stmt)) {
-				VarExpression var = null;
-				if (s instanceof VarExpression) {
-					var = (VarExpression) s;
-				} else if (s instanceof CopyVarStatement) {
-					CopyVarStatement copy = (CopyVarStatement) s;
-					var = copy.getVariable();
-				} else if (s instanceof PhiExpression) {
-					throw new IllegalStateException(s.toString());
-				}
-				if (var != null && var.getLocal() instanceof VersionedLocal) {
-					VersionedLocal versionedLocal = (VersionedLocal) var.getLocal();
-					if (filter.test(versionedLocal))
-						var.setLocal(replaceFn.apply(versionedLocal));
-				}
-			}
-		}
+		replaceLocals(body, versionedLocal -> true, versionedLocal -> locals.get(versionedLocal.getIndex(), versionedLocal.isStack()));
 	}
 }
