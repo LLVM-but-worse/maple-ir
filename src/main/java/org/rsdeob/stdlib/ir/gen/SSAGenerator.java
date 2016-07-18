@@ -16,7 +16,6 @@ import org.rsdeob.stdlib.cfg.ControlFlowGraph;
 import org.rsdeob.stdlib.cfg.edge.DummyEdge;
 import org.rsdeob.stdlib.cfg.edge.FlowEdge;
 import org.rsdeob.stdlib.collections.NullPermeableHashMap;
-import org.rsdeob.stdlib.collections.SetCreator;
 import org.rsdeob.stdlib.collections.graph.flow.TarjanDominanceComputor;
 import org.rsdeob.stdlib.ir.CodeBody;
 import org.rsdeob.stdlib.ir.StatementVisitor;
@@ -97,7 +96,7 @@ public class SSAGenerator {
 		
 		locals = new HashSet<>();
 		queue = new LinkedList<>();
-		assigns = new NullPermeableHashMap<>(new SetCreator<>());
+		assigns = new NullPermeableHashMap<>(HashSet::new);
 		insertion = new HashMap<>();
 		process = new HashMap<>();
 		exit = new BasicBlock(cfg, "fakeexit", null);

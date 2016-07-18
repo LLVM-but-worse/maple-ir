@@ -2,7 +2,6 @@ package org.rsdeob.stdlib.collections.graph.flow;
 
 import org.rsdeob.stdlib.cfg.edge.FlowEdge;
 import org.rsdeob.stdlib.collections.NullPermeableHashMap;
-import org.rsdeob.stdlib.collections.SetCreator;
 import org.rsdeob.stdlib.collections.graph.FastGraph;
 import org.rsdeob.stdlib.collections.graph.FastGraphEdge;
 import org.rsdeob.stdlib.collections.graph.FastGraphVertex;
@@ -33,10 +32,10 @@ public class TarjanDominanceComputor<N extends FastGraphVertex> {
 		propagationMap = new HashMap<>();
 		ancestors = new HashMap<>();
 		idoms = new HashMap<>();
-		semiDoms = new NullPermeableHashMap<>(new SetCreator<>());
-		domChildren = new NullPermeableHashMap<>(new SetCreator<>());
-		frontiers = new NullPermeableHashMap<>(new SetCreator<>());
-		iteratedFrontiers = new NullPermeableHashMap<>(new SetCreator<>());
+		semiDoms = new NullPermeableHashMap<>(HashSet::new);
+		domChildren = new NullPermeableHashMap<>(HashSet::new);
+		frontiers = new NullPermeableHashMap<>(HashSet::new);
+		iteratedFrontiers = new NullPermeableHashMap<>(HashSet::new);
 		
 		computePreOrder();
 		computeDominators();

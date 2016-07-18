@@ -8,7 +8,6 @@ import java.util.Set;
 
 import org.rsdeob.stdlib.cfg.edge.FlowEdge;
 import org.rsdeob.stdlib.collections.NullPermeableHashMap;
-import org.rsdeob.stdlib.collections.SetCreator;
 import org.rsdeob.stdlib.ir.StatementGraph;
 import org.rsdeob.stdlib.ir.StatementVisitor;
 import org.rsdeob.stdlib.ir.expr.VarExpression;
@@ -27,14 +26,14 @@ public class DefinitionAnalyser extends ForwardsFlowAnalyser<Statement, FlowEdge
 
 	@Override
 	public void init() {
-		uses = new NullPermeableHashMap<>(new SetCreator<>());
+		uses = new NullPermeableHashMap<>(HashSet::new);
 		super.init();
 	}
 
 	@SuppressWarnings("serial")
 	@Override
 	protected NullPermeableHashMap<Local, Set<CopyVarStatement>> newState() {
-		return new NullPermeableHashMap<Local, Set<CopyVarStatement>>(new SetCreator<>()) {
+		return new NullPermeableHashMap<Local, Set<CopyVarStatement>>(HashSet::new) {
 			@Override
 			public String toString() {
 				StringBuilder sb= new StringBuilder();

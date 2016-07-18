@@ -14,9 +14,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.objectweb.asm.Type;
 import org.rsdeob.stdlib.cfg.util.TypeUtils;
 import org.rsdeob.stdlib.collections.NullPermeableHashMap;
-import org.rsdeob.stdlib.collections.SetCreator;
 import org.rsdeob.stdlib.ir.CodeBody;
-import org.rsdeob.stdlib.ir.StatementVisitor;
 import org.rsdeob.stdlib.ir.expr.VarExpression;
 import org.rsdeob.stdlib.ir.stat.CopyVarStatement;
 import org.rsdeob.stdlib.ir.stat.Statement;
@@ -79,7 +77,7 @@ public class LocalsHandler {
 	} */
 	
 	public void realloc(CodeBody code) {
-		NullPermeableHashMap<Local, Set<Type>> types = new NullPermeableHashMap<>(new SetCreator<>());
+		NullPermeableHashMap<Local, Set<Type>> types = new NullPermeableHashMap<>(HashSet::new);
 		for(Statement stmt : code) {
 			for(Statement s : Statement.enumerate(stmt)) {
 				if(s instanceof VarExpression) {
