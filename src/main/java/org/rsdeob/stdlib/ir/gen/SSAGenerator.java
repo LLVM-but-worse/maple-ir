@@ -113,8 +113,6 @@ public class SSAGenerator {
 	
 	public void run() {
 		computePhis();
-		System.out.println("Post PHI:");
-		System.out.println(body);
 		rename();
 		de_init();
 	}
