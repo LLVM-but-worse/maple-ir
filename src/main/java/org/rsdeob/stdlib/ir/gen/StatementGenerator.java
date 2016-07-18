@@ -1,4 +1,4 @@
-package org.rsdeob.stdlib.ir;
+package org.rsdeob.stdlib.ir.gen;
 
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
@@ -8,6 +8,7 @@ import org.rsdeob.stdlib.cfg.BasicBlock;
 import org.rsdeob.stdlib.cfg.ControlFlowGraph;
 import org.rsdeob.stdlib.cfg.util.TypeUtils;
 import org.rsdeob.stdlib.cfg.util.TypeUtils.ArrayType;
+import org.rsdeob.stdlib.ir.CodeBody;
 import org.rsdeob.stdlib.ir.expr.*;
 import org.rsdeob.stdlib.ir.expr.ArithmeticExpression.Operator;
 import org.rsdeob.stdlib.ir.expr.ComparisonExpression.ValueComparisonType;

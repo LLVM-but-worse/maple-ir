@@ -1,4 +1,4 @@
-package org.rsdeob.stdlib.ir;
+package org.rsdeob.stdlib.ir.gen;
 
 import org.rsdeob.stdlib.ir.expr.Expression;
 
