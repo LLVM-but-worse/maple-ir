@@ -1,4 +1,3 @@
-/*
 package org.rsdeob;
 
 import org.objectweb.asm.*;
@@ -21,14 +20,19 @@ import org.rsdeob.stdlib.collections.graph.util.DotExporter;
 import org.rsdeob.stdlib.collections.graph.util.GraphUtils;
 import org.rsdeob.stdlib.deob.IPhase;
 import org.rsdeob.stdlib.ir.CodeBody;
-import org.rsdeob.stdlib.ir.StatementWriter;
 import org.rsdeob.stdlib.ir.StatementGraph;
+import org.rsdeob.stdlib.ir.StatementWriter;
+import org.rsdeob.stdlib.ir.gen.SSADeconstructor;
+import org.rsdeob.stdlib.ir.gen.SSAGenerator;
 import org.rsdeob.stdlib.ir.gen.StatementGenerator;
 import org.rsdeob.stdlib.ir.gen.StatementGraphBuilder;
+import org.rsdeob.stdlib.ir.transform.SSATransformer;
 import org.rsdeob.stdlib.ir.transform.impl.CodeAnalytics;
 import org.rsdeob.stdlib.ir.transform.impl.DefinitionAnalyser;
 import org.rsdeob.stdlib.ir.transform.impl.LivenessAnalyser;
-import org.rsdeob.stdlib.ir.transform.impl.UsesAnalyserImpl;
+import org.rsdeob.stdlib.ir.transform.ssa.SSAInitialiserAggregator;
+import org.rsdeob.stdlib.ir.transform.ssa.SSALocalAccess;
+import org.rsdeob.stdlib.ir.transform.ssa.SSAPropagator;
 import org.topdank.byteengineer.commons.data.JarInfo;
 import org.topdank.byteio.in.SingleJarDownloader;
 
@@ -41,9 +45,9 @@ import java.util.jar.JarOutputStream;
 
 public class BootBibl implements Opcodes {
 	public static final File GRAPH_FOLDER = new File("C://Users//Bibl//Desktop//cfg testing");
-
-	public static void main(String[] args) throws Exception {
-		InputStream i = new FileInputStream(new File("res/a.class"));
+	
+	public static void main(String[] args) throws Throwable {
+		InputStream i = new FileInputStream(new File("res/uc_inline.class"));
 		ClassReader cr = new ClassReader(i);
 		ClassNode cn = new ClassNode();
 		cr.accept(new ClassVisitor(Opcodes.ASM5, cn) {
@@ -53,62 +57,97 @@ public class BootBibl implements Opcodes {
 				return new JSRInlinerAdapter(mv, access, name, desc, signature, exceptions);
 			}
 		}, 0);
-
-		Iterator<MethodNode> it = cn.methods.listIterator();
+		
+		Iterator<MethodNode> it = new ArrayList<>(cn.methods).listIterator();
 		while(it.hasNext()) {
 			MethodNode m = it.next();
-
 			
-			if(!m.toString().equals("a/a/f/a.<init>()V")) {
-//				continue;
+//			e/uc.<init>()V 5
+//			e/uc.a(Ljava/util/Hashtable;Ljava/security/MessageDigest;)V 111
+//			e/uc.<clinit>()V 6
+//
+//			a.f(I)Z 194
+//			a.u(I)V 149
+//			a.<clinit>()V 7
+//			a.bm(Le;I)V 238
+//			a.<init>()V 16
+//			a.di(Lb;ZI)V 268
+//			a.n(Ljava/lang/String;I)I 18
+			System.out.println(m + " " + m.instructions.size());
+			if(!m.toString().equals("e/uc.a(Ljava/lang/String;)Ljava/lang/String;")) {
+				continue;
 			}
-			
-			System.out.println("Processing " + m + ": ");
-
-			// System.out.println("Instruction listing for " + m + ": ");
-			// InstructionPrinter.consolePrint(m);
-
+//			LocalsTest.main([Ljava/lang/String;)V
+//			org/rsdeob/AnalyticsTest.tryidiots(I)V
+//			a/a/f/a.<init>()V
+//			a/a/f/a.H(J)La/a/f/o;
+//			a/a/f/a.H(La/a/f/o;J)V
+			System.out.println("Processing " + m + "\n");
 			ControlFlowGraphBuilder builder = new ControlFlowGraphBuilder(m);
 			ControlFlowGraph cfg = builder.build();
-
 			ControlFlowGraphDeobfuscator deobber = new ControlFlowGraphDeobfuscator();
 			List<BasicBlock> blocks = deobber.deobfuscate(cfg);
 			deobber.removeEmptyBlocks(cfg, blocks);
 			GraphUtils.naturaliseGraph(cfg, blocks);
-
-//			GraphUtils.output(cfg, blocks, GRAPH_FOLDER, "");
-//			System.out.println(cfg);
-
-			System.out.println("Cfg:");
-			System.out.println(cfg);
-			System.out.println();
-
-			System.out.println("Execution log of " + m + ":");
+			
+			// GraphUtils.output(cfg, blocks, new File("C:/Users/Bibl/Desktop/cfg testing"), "test11");
+			
 			StatementGenerator gen = new StatementGenerator(cfg);
 			gen.init(m.maxLocals);
 			gen.createExpressions();
 			CodeBody code = gen.buildRoot();
 			
-			System.out.println("IR representation of " + m + ":");
+			System.out.println("Unoptimised Code:");
 			System.out.println(code);
 			System.out.println();
 			System.out.println();
+			
+			SSAGenerator ssagen = new SSAGenerator(code, cfg, gen.getHeaders());
+			ssagen.run();
+			
+//			System.out.println("SSA:");
+//			System.out.println(code);
+//			System.out.println();
+//			System.out.println();
 			
 			StatementGraph sgraph = StatementGraphBuilder.create(cfg);
-			LivenessTest.optimise(cfg, code, sgraph);
-
-			code.getLocals().pack(code);
+			SSALocalAccess localAccess = new SSALocalAccess(code);
 			
-			System.out.println("Optimised IR " + m + ":");
-			System.out.println(code);
+			SSATransformer[] transforms = initTransforms(code, localAccess, sgraph, gen);
+			
+			while(true) {
+				int change = 0;
+				for(SSATransformer t : transforms) {
+					change += t.run();
+				}
+				if(change <= 0) {
+					break;
+				}
+			}
+			
 			System.out.println();
-
-			DefinitionAnalyser defs = new DefinitionAnalyser(sgraph);
+			System.out.println();
+			System.out.println("Optimised SSA:");
+			System.out.println(code);
+			
+			SSADeconstructor de = new SSADeconstructor(code, cfg);
+			de.run();
+			
+			System.out.println();
+			System.out.println();
+			System.out.println("Optimised Code:");
+			System.out.println(code);
+			
+			sgraph = StatementGraphBuilder.create(cfg);
 			LivenessAnalyser liveness = new LivenessAnalyser(sgraph);
-			UsesAnalyserImpl uses = new UsesAnalyserImpl(code, sgraph, defs);
-			CodeAnalytics analytics = new CodeAnalytics(cfg, sgraph, defs, liveness, uses);
-			StatementWriter dumper = new StatementWriter(code, cfg);
-			dumper.dump(m, analytics);
+			DefinitionAnalyser definitions = new DefinitionAnalyser(sgraph);
+			CodeAnalytics analytics = new CodeAnalytics(code, cfg, sgraph, liveness, definitions);
+			StatementWriter writer = new StatementWriter(code, cfg);
+			MethodNode m2 = new MethodNode(m.owner, m.access, m.name, m.desc, m.signature, m.exceptions.toArray(new String[0]));
+			writer.dump(m2, analytics);
+			it.remove();
+			cn.methods.add(m2);
+			cn.methods.remove(m);
 			
 			System.out.println("End of processing log for " + m);
 			System.out.println("============================================================");
@@ -123,6 +162,26 @@ public class BootBibl implements Opcodes {
 		out.close();
 	}
 	
+	private static SSATransformer[] initTransforms(CodeBody code, SSALocalAccess localAccess, StatementGraph sgraph, StatementGenerator gen) {
+		return new SSATransformer[] {
+				new SSAPropagator(code, localAccess, sgraph, gen.getHeaders().values()),
+				new SSAInitialiserAggregator(code, localAccess, sgraph)
+			};
+	}
+	
+	public void tryidiots(int x) {
+		int y = 0;
+		try {
+			if(x == 5) {
+				y = 2;
+			} else {
+				y = 3;
+			}
+		} catch(Exception e) {
+			System.out.println(e.getMessage() + " " + y);
+		}
+	}
+	
 	public void t3(Object o) {
 		synchronized (o == null ? this : o) {
 			System.out.println(o);
@@ -133,7 +192,7 @@ public class BootBibl implements Opcodes {
 	
 	public void t2(int i, int j, int k) {
 		t1(5);
-		if(i > 0) {
+		if (i > 0) {
 			t2(i - 1, j, k);
 		}
 		t1(16);
@@ -143,7 +202,7 @@ public class BootBibl implements Opcodes {
 		System.out.println(i);
 		System.out.println(i + " hi " + i);
 	}
-
+	
 	public void test4() {
 		BootBibl newBoot = new BootBibl();
 		newBoot.DVAL += new C2().FVAL;
@@ -153,7 +212,7 @@ public class BootBibl implements Opcodes {
 	}
 	
 	public void test6() {
-		for(int i=0; i < 3; i++) {
+		for (int i = 0; i < 3; i++) {
 			test5();
 		}
 	}
@@ -174,7 +233,7 @@ public class BootBibl implements Opcodes {
 		double d = DVAL * 847545D;
 		float f = FVAL * 8573845743F;
 		double c = 0;
-		if(d > f) {
+		if (d > f) {
 			c = (d + f);
 		} else {
 			c = (d - f);
@@ -202,7 +261,7 @@ public class BootBibl implements Opcodes {
 	}
 	
 	public float normalReturnTest(int i) {
-		if(i == 1) {
+		if (i == 1) {
 			return 5F;
 		} else {
 			return 10F;
@@ -217,13 +276,13 @@ public class BootBibl implements Opcodes {
 //		Thread.sleep(15000);
 		System.out.println("starting");
 		IPhase[] phases = loadPhases();
-		if(phases.length <= 0) {
+		if (phases.length <= 0) {
 			System.err.println("No passes to complete.");
 			return;
 		}
 		
 		int rev = 107;
-		if(args.length > 0) {
+		if (args.length > 0) {
 			rev = Integer.parseInt(args[0]);
 		}
 		
@@ -236,7 +295,7 @@ public class BootBibl implements Opcodes {
 			public NodeTable<ClassNode> getNodes() {
 				return nt;
 			}
-
+			
 			@Override
 			public ControlFlowGraph createControlFlowGraph(MethodNode m) {
 				return ControlFlowGraphBuilder.create(m);
@@ -245,14 +304,14 @@ public class BootBibl implements Opcodes {
 		
 		List<IPhase> completed = new ArrayList<>();
 		IPhase prev = null;
-		for(IPhase p : phases) {
+		for (IPhase p : phases) {
 			System.out.println("Running " + p.getId());
 			try {
 				p.accept(cxt, prev, Collections.unmodifiableList(completed));
 				prev = p;
 				completed.add(p);
 				System.out.println("Completed " + p.getId());
-			} catch(RuntimeException e) {
+			} catch (RuntimeException e) {
 				System.err.println("Error: " + p.getId());
 				System.err.flush();
 				e.printStackTrace(System.err);
@@ -263,7 +322,7 @@ public class BootBibl implements Opcodes {
 		CompleteResolvingJarDumper dumper = new CompleteResolvingJarDumper(dl.getJarContents()) {
 			@Override
 			public int dumpResource(JarOutputStream out, String name, byte[] file) throws IOException {
-				if(name.startsWith("META-INF")) {
+				if (name.startsWith("META-INF")) {
 					return 0;
 				} else {
 					return super.dumpResource(out, name, file);
@@ -273,7 +332,7 @@ public class BootBibl implements Opcodes {
 		File outFile = new File(String.format("out/%d/%d.jar", rev, rev));
 		outFile.mkdirs();
 		dumper.dump(outFile);
-		
+
 
 //		URLClassLoader cl = new URLClassLoader(new URL[]{outFile.toURI().toURL()});
 //		Class<?> c = cl.loadClass("aa");
@@ -286,35 +345,35 @@ public class BootBibl implements Opcodes {
 //		System.out.println(o);
 		Runtime.getRuntime().exec(new String[]{"java", "-jar", "F:/bcv.jar", outFile.getAbsolutePath()});
 	}
-
+	
 	private static IPhase[] loadPhases() {
-		return new IPhase[] { new DummyMethodPhase(), new UnusedFieldsPhase(), new RTECatchBlockRemoverPhase(),  /* new OpaquePredicateRemoverPhase(),*//* new ControlFlowFixerPhase() /*new ConstantComparisonReordererPhase(),new EmptyParameterFixerPhase(), new ConstantOperationReordererPhase()*//* };
+		return new IPhase[]{new DummyMethodPhase(), new UnusedFieldsPhase(), new RTECatchBlockRemoverPhase(),  /* new OpaquePredicateRemoverPhase(),*/ new ControlFlowFixerPhase() /*new ConstantComparisonReordererPhase(),new EmptyParameterFixerPhase(), new ConstantOperationReordererPhase()*/};
 	}
 	
 	public void cfg(int x, int y) {
 		int s = 0;
 		int d = 0;
-		while(x < y) {
-			x+=3;
-			y+=2;
-			if(x + y < 100) {
-				s+= (x + y);
+		while (x < y) {
+			x += 3;
+			y += 2;
+			if (x + y < 100) {
+				s += (x + y);
 			} else {
-				d+= (x + y);
+				d += (x + y);
 			}
 		}
 	}
 	
 	public static void main2(String[] args) throws Exception {
-		ClassReader cr= new ClassReader(BootBibl.class.getCanonicalName());
+		ClassReader cr = new ClassReader(BootBibl.class.getCanonicalName());
 		ClassNode cn = new ClassNode();
 		cr.accept(cn, 0);
 		
-		for(MethodNode m : cn.methods) {
-			if(m.name.equals("cfg")) {
+		for (MethodNode m : cn.methods) {
+			if (m.name.equals("cfg")) {
 				ControlFlowGraph cfg = ControlFlowGraphBuilder.create(m);
 				System.out.println(cfg);
-
+				
 				ControlFlowGraphDeobfuscator deobber = new ControlFlowGraphDeobfuscator();
 				List<BasicBlock> blocks = deobber.deobfuscate(cfg);
 //				List<BasicBlock> blocks = new ArrayList<>(cfg.blocks());
@@ -336,7 +395,6 @@ public class BootBibl implements Opcodes {
 		fos.close();
 		
 		Runtime.getRuntime().exec(new String[]{"java", "-jar", "F:/bcv.jar", out.getAbsolutePath()});
-
+		
 	}
 }
-*/

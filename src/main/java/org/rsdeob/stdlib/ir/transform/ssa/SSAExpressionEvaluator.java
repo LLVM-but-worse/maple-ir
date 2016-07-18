@@ -1,7 +1,8 @@
-package org.rsdeob.stdlib.ir;
+package org.rsdeob.stdlib.ir.transform.ssa;
 
 import org.objectweb.asm.Type;
 import org.rsdeob.stdlib.cfg.util.TypeUtils;
+import org.rsdeob.stdlib.ir.StatementVisitor;
 import org.rsdeob.stdlib.ir.expr.*;
 import org.rsdeob.stdlib.ir.locals.Local;
 import org.rsdeob.stdlib.ir.stat.ConditionalJumpStatement;
@@ -17,7 +18,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.objectweb.asm.Type.*;
 
-public class ExpressionEvaluator {
+public class SSAExpressionEvaluator {
 	public static Expression evaluate(Expression in, SSALocalAccess vars) {
 		if (in instanceof VarExpression && vars.defs.containsKey(((VarExpression) in).getLocal()))
 			in = vars.defs.get(((VarExpression) in).getLocal()).getExpression();
