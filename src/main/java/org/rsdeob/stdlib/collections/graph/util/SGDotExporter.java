@@ -1,7 +1,6 @@
-package org.rsdeob.stdlib.ir.export;
+package org.rsdeob.stdlib.collections.graph.util;
 
 import org.rsdeob.stdlib.cfg.edge.FlowEdge;
-import org.rsdeob.stdlib.collections.graph.util.DotExporter;
 import org.rsdeob.stdlib.ir.CodeBody;
 import org.rsdeob.stdlib.ir.StatementGraph;
 import org.rsdeob.stdlib.ir.header.HeaderStatement;

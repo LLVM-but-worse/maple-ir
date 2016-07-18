@@ -9,7 +9,7 @@ import org.rsdeob.stdlib.cfg.BasicBlock;
 import org.rsdeob.stdlib.cfg.ControlFlowGraph;
 import org.rsdeob.stdlib.cfg.ControlFlowGraphBuilder;
 import org.rsdeob.stdlib.cfg.util.ControlFlowGraphDeobfuscator;
-import org.rsdeob.stdlib.cfg.util.GraphUtils;
+import org.rsdeob.stdlib.collections.graph.util.GraphUtils;
 import org.rsdeob.stdlib.deob.IPhase;
 
 public class ControlFlowFixerPhase implements IPhase {

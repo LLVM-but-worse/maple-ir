@@ -9,8 +9,8 @@ import org.objectweb.asm.tree.MethodNode;
 import org.rsdeob.stdlib.IContext;
 import org.rsdeob.stdlib.cfg.BasicBlock;
 import org.rsdeob.stdlib.cfg.ControlFlowGraph;
-import org.rsdeob.stdlib.cfg.util.GraphUtils;
 import org.rsdeob.stdlib.collections.graph.flow.ExceptionRange;
+import org.rsdeob.stdlib.collections.graph.util.GraphUtils;
 import org.rsdeob.stdlib.deob.IPhase;
 
 public class RTECatchBlockRemoverPhase implements IPhase, Opcodes {
