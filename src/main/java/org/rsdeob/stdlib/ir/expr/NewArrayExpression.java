@@ -1,13 +1,12 @@
 package org.rsdeob.stdlib.ir.expr;
 
+import com.sun.xml.internal.ws.org.objectweb.asm.Opcodes;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Type;
 import org.rsdeob.stdlib.cfg.util.TabbedStringWriter;
 import org.rsdeob.stdlib.cfg.util.TypeUtils;
 import org.rsdeob.stdlib.ir.stat.Statement;
 import org.rsdeob.stdlib.ir.transform.impl.CodeAnalytics;
-
-import com.sun.xml.internal.ws.org.objectweb.asm.Opcodes;
 
 public class NewArrayExpression extends Expression {
 

@@ -1,10 +1,10 @@
 package org.rsdeob.stdlib.klass;
 
-import java.util.Collection;
-
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.FieldNode;
 import org.topdank.banalysis.filter.Filter;
+
+import java.util.Collection;
 
 /**
  * @author Bibl (don't ban me pls)

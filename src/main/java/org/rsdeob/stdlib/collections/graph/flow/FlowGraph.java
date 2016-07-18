@@ -1,11 +1,11 @@
 package org.rsdeob.stdlib.collections.graph.flow;
 
-import java.util.*;
-
 import org.rsdeob.stdlib.cfg.edge.FlowEdge;
 import org.rsdeob.stdlib.cfg.edge.TryCatchEdge;
 import org.rsdeob.stdlib.collections.graph.FastGraph;
 import org.rsdeob.stdlib.collections.graph.FastGraphVertex;
+
+import java.util.*;
 
 public abstract class FlowGraph<N extends FastGraphVertex, E extends FlowEdge<N>> extends FastGraph<N, E> {
 

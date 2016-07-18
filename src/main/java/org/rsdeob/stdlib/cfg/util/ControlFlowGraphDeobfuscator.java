@@ -1,10 +1,5 @@
 package org.rsdeob.stdlib.cfg.util;
 
-import static org.objectweb.asm.Opcodes.GOTO;
-
-import java.util.*;
-import java.util.Map.Entry;
-
 import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.LabelNode;
 import org.objectweb.asm.tree.LdcInsnNode;
@@ -16,6 +11,11 @@ import org.rsdeob.stdlib.cfg.edge.TryCatchEdge;
 import org.rsdeob.stdlib.cfg.edge.UnconditionalJumpEdge;
 import org.rsdeob.stdlib.collections.graph.flow.ExceptionRange;
 import org.rsdeob.stdlib.collections.graph.util.GraphUtils;
+
+import java.util.*;
+import java.util.Map.Entry;
+
+import static org.objectweb.asm.Opcodes.GOTO;
 
 public class ControlFlowGraphDeobfuscator {
 	

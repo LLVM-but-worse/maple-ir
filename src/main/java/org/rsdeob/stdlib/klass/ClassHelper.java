@@ -1,11 +1,11 @@
 package org.rsdeob.stdlib.klass;
 
+import org.objectweb.asm.tree.ClassNode;
+
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
-
-import org.objectweb.asm.tree.ClassNode;
 
 /**
  * @author Bibl (don't ban me pls)

@@ -1,11 +1,11 @@
 package org.rsdeob.test;
 
-import static org.junit.Assert.assertTrue;
-
 import org.junit.Test;
 import org.rsdeob.stdlib.cfg.BasicBlock;
 import org.rsdeob.stdlib.cfg.FastBlockGraph;
 import org.rsdeob.stdlib.cfg.edge.ImmediateEdge;
+
+import static org.junit.Assert.assertTrue;
 
 public class FastBlockGraphTest {
 

@@ -1,13 +1,5 @@
 package org.rsdeob;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.tree.ClassNode;
@@ -20,10 +12,10 @@ import org.rsdeob.stdlib.collections.graph.util.GraphUtils;
 import org.rsdeob.stdlib.ir.CodeBody;
 import org.rsdeob.stdlib.ir.StatementGraph;
 import org.rsdeob.stdlib.ir.StatementWriter;
+import org.rsdeob.stdlib.ir.gen.SSADeconstructor;
 import org.rsdeob.stdlib.ir.gen.SSAGenerator;
 import org.rsdeob.stdlib.ir.gen.StatementGenerator;
 import org.rsdeob.stdlib.ir.gen.StatementGraphBuilder;
-import org.rsdeob.stdlib.ir.gen.SSADeconstructor;
 import org.rsdeob.stdlib.ir.transform.SSATransformer;
 import org.rsdeob.stdlib.ir.transform.impl.CodeAnalytics;
 import org.rsdeob.stdlib.ir.transform.impl.DefinitionAnalyser;
@@ -31,6 +23,14 @@ import org.rsdeob.stdlib.ir.transform.impl.LivenessAnalyser;
 import org.rsdeob.stdlib.ir.transform.ssa.SSAInitialiserAggregator;
 import org.rsdeob.stdlib.ir.transform.ssa.SSALocalAccess;
 import org.rsdeob.stdlib.ir.transform.ssa.SSAPropagator;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 
 public class AnalyticsTest {
 

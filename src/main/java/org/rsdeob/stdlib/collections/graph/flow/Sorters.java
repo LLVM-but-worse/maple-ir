@@ -1,9 +1,9 @@
 package org.rsdeob.stdlib.collections.graph.flow;
 
+import org.rsdeob.stdlib.collections.graph.FastGraphVertex;
+
 import java.util.HashMap;
 import java.util.Map;
-
-import org.rsdeob.stdlib.collections.graph.FastGraphVertex;
 
 public final class Sorters {
 

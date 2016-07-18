@@ -1,14 +1,7 @@
 package org.rsdeob.stdlib.ir.transform.impl;
 
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-
 import org.rsdeob.stdlib.cfg.edge.FlowEdge;
 import org.rsdeob.stdlib.collections.NullPermeableHashMap;
-import org.rsdeob.stdlib.collections.SetCreator;
 import org.rsdeob.stdlib.ir.StatementGraph;
 import org.rsdeob.stdlib.ir.StatementVisitor;
 import org.rsdeob.stdlib.ir.expr.VarExpression;
@@ -16,6 +9,12 @@ import org.rsdeob.stdlib.ir.locals.Local;
 import org.rsdeob.stdlib.ir.stat.CopyVarStatement;
 import org.rsdeob.stdlib.ir.stat.Statement;
 import org.rsdeob.stdlib.ir.transform.ForwardsFlowAnalyser;
+
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
 
 public class DefinitionAnalyser extends ForwardsFlowAnalyser<Statement, FlowEdge<Statement>, NullPermeableHashMap<Local, Set<CopyVarStatement>>> {
 
@@ -27,14 +26,14 @@ public class DefinitionAnalyser extends ForwardsFlowAnalyser<Statement, FlowEdge
 
 	@Override
 	public void init() {
-		uses = new NullPermeableHashMap<>(new SetCreator<>());
+		uses = new NullPermeableHashMap<>(HashSet::new);
 		super.init();
 	}
 
 	@SuppressWarnings("serial")
 	@Override
 	protected NullPermeableHashMap<Local, Set<CopyVarStatement>> newState() {
-		return new NullPermeableHashMap<Local, Set<CopyVarStatement>>(new SetCreator<>()) {
+		return new NullPermeableHashMap<Local, Set<CopyVarStatement>>(HashSet::new) {
 			@Override
 			public String toString() {
 				StringBuilder sb= new StringBuilder();

@@ -1,10 +1,10 @@
 package org.rsdeob.stdlib.klass;
 
-import java.io.IOException;
-import java.io.InputStream;
-
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.tree.ClassNode;
+
+import java.io.IOException;
+import java.io.InputStream;
 
 public class ClassNodeUtil {
 
