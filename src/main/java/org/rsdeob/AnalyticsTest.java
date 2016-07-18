@@ -114,7 +114,7 @@ public class AnalyticsTest {
 			System.out.println("Optimised SSA:");
 			System.out.println(code);
 			
-			SSADeconstructor de = new SSADeconstructor(code, cfg);
+			SSADeconstructor de = new SSADeconstructor(code, localAccess, cfg);
 			de.run();
 
 			System.out.println();
