@@ -24,9 +24,7 @@ import org.rsdeob.stdlib.collections.graph.util.DotExporter;
 import org.rsdeob.stdlib.collections.graph.util.GraphUtils;
 import org.rsdeob.stdlib.collections.graph.util.SGDotExporter;
 import org.rsdeob.stdlib.ir.CodeBody;
-import org.rsdeob.stdlib.ir.ExpressionEvaluator;
 import org.rsdeob.stdlib.ir.StatementGraph;
-import org.rsdeob.stdlib.ir.expr.Expression;
 import org.rsdeob.stdlib.ir.gen.SSAGenerator;
 import org.rsdeob.stdlib.ir.gen.StatementGenerator;
 import org.rsdeob.stdlib.ir.gen.StatementGraphBuilder;
@@ -50,7 +48,7 @@ public class AnalyticsTest {
 	public static boolean debug = true;
 	
 	public static void main(String[] args) throws Throwable {
-		InputStream i = new FileInputStream(new File("res/a2.class"));
+		InputStream i = new FileInputStream(new File("res/a.class"));
 		ClassReader cr = new ClassReader(i);
 		ClassNode cn = new ClassNode();
 		cr.accept(cn, 0);
@@ -66,7 +64,7 @@ public class AnalyticsTest {
 //			a.<init>()V 16
 //			a.di(Lb;ZI)V 268
 //			a.n(Ljava/lang/String;I)I 18
-			if(!m.toString().equals("a.<init>()V")) {
+			if(!m.toString().equals("a/a/f/a.H(J)La/a/f/o;")) {
 				continue;
 			}
 //			LocalsTest.main([Ljava/lang/String;)V
@@ -121,16 +119,6 @@ public class AnalyticsTest {
 			System.out.println();
 			System.out.println("Optimised SSA:");
 			System.out.println(code);
-			
-//			SSALocalAccess locals = new SSALocalAccess(code);
-//			for (Statement stmt : code) {
-//				if (stmt instanceof CopyVarStatement) {
-//					Expression expr = ((CopyVarStatement) stmt).getExpression();
-//					if (ExpressionEvaluator.isConstant(expr)) {
-//						System.out.println("constant: " + stmt.getId() + ". " + stmt);
-//					}
-//				}
-//			}
 			
 			UnSSA de = new UnSSA(code, cfg);
 			de.run();
