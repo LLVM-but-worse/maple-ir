@@ -476,7 +476,7 @@ public class SSAPropagator extends SSATransformer {
 				if(e instanceof VarExpression) {
 					CopyVarStatement def = localAccess.defs.get(((VarExpression) e).getLocal());
 					Statement e1 = findSubstitution(phi, def, (VarExpression) e);
-					if(e1 != e) {
+					if(e1 != null && e1 != e) {
 						phi.setLocal(header, (Expression) e1);
 						change = true;
 					}
