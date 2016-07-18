@@ -39,6 +39,8 @@ import org.rsdeob.stdlib.ir.stat.PopStatement;
 import org.rsdeob.stdlib.ir.stat.Statement;
 import org.rsdeob.stdlib.ir.transform.SSATransformer;
 
+import static org.rsdeob.stdlib.ir.transform.ssa.SSAUtil.vl;
+
 public class SSAPropagator extends SSATransformer {
 	
 	private static final Set<Class<? extends Statement>> UNCOPYABLE = new HashSet<>();
@@ -101,7 +103,7 @@ public class SSAPropagator extends SSATransformer {
 		Expression expr = pop.getExpression();
 		if(expr instanceof VarExpression) {
 			VarExpression var = (VarExpression) expr;
-			localAccess.useCount.get(var.getLocal()).decrementAndGet();
+			localAccess.useCount.get(vl(var.getLocal())).decrementAndGet();
 			code.remove(pop);
 			graph.excavate(pop);
 			return true;
@@ -189,8 +191,8 @@ public class SSAPropagator extends SSATransformer {
 						
 						for(CopyVarStatement def : e.getValue()) {
 							Local local = def.getVariable().getLocal();
-							localAccess.useCount.remove(local);
-							localAccess.defs.remove(local);
+							localAccess.useCount.remove(vl(local));
+							localAccess.defs.remove(vl(local));
 						}
 						change = true;
 					}
@@ -266,7 +268,7 @@ public class SSAPropagator extends SSATransformer {
 				code.remove(def);
 				graph.excavate(def);
 				Local local = def.getVariable().getLocal();
-				localAccess.useCount.remove(local);
+				localAccess.useCount.remove(vl(local));
 				return false;
 			}
 		}
@@ -279,8 +281,8 @@ public class SSAPropagator extends SSATransformer {
 			code.remove(def);
 			graph.excavate(def);
 			Local local = def.getVariable().getLocal();
-			localAccess.useCount.remove(local);
-			localAccess.defs.remove(local);
+			localAccess.useCount.remove(vl(local));
+			localAccess.defs.remove(vl(local));
 		}
 		
 
@@ -290,10 +292,10 @@ public class SSAPropagator extends SSATransformer {
 		 * @return Number of uses for the given local.
 		 */
 		private int uses(Local l) {
-			if(localAccess.useCount.containsKey(l)) {
-				return localAccess.useCount.get(l).get();
+			if(localAccess.useCount.containsKey(vl(l))) {
+				return localAccess.useCount.get(vl(l)).get();
 			} else {
-				throw new IllegalStateException("Local " + l + " not in useCount map. Def: " + localAccess.defs.get(l));
+				throw new IllegalStateException("Local " + l + " not in useCount map. Def: " + localAccess.defs.get(vl(l)));
 			}
 		}
 
@@ -303,14 +305,14 @@ public class SSAPropagator extends SSATransformer {
 		 * @param re If true, the use count is incremented; otherwise, it is decremented.
 		 */
 		private void _xuselocal(Local l, boolean re) {
-			if(localAccess.useCount.containsKey(l)) {
+			if(localAccess.useCount.containsKey(vl(l))) {
 				if(re) {
-					localAccess.useCount.get(l).incrementAndGet();
+					localAccess.useCount.get(vl(l)).incrementAndGet();
 				} else {
-					localAccess.useCount.get(l).decrementAndGet();
+					localAccess.useCount.get(vl(l)).decrementAndGet();
 				}
 			} else {
-				throw new IllegalStateException("Local " + l + " not in useCount map. Def: " + localAccess.defs.get(l));
+				throw new IllegalStateException("Local " + l + " not in useCount map. Def: " + localAccess.defs.get(vl(l)));
 			}
 		}
 		
@@ -465,7 +467,7 @@ public class SSAPropagator extends SSATransformer {
 
 		// Attempt to inline the value of a var with its definition
 		private Statement visitVar(VarExpression var) {
-			CopyVarStatement def = localAccess.defs.get(var.getLocal());
+			CopyVarStatement def = localAccess.defs.get(vl(var.getLocal()));
 			return findSubstitution(root, def, var);
 		}
 		
@@ -474,7 +476,7 @@ public class SSAPropagator extends SSATransformer {
 			for(HeaderStatement header : phi.headers()) {
 				Expression e = phi.getLocal(header);
 				if(e instanceof VarExpression) {
-					CopyVarStatement def = localAccess.defs.get(((VarExpression) e).getLocal());
+					CopyVarStatement def = localAccess.defs.get(vl(((VarExpression) e).getLocal()));
 					Statement e1 = findSubstitution(phi, def, (VarExpression) e);
 					if(e1 != null && e1 != e) {
 						phi.setLocal(header, (Expression) e1);
