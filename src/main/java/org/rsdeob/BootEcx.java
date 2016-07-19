@@ -1,6 +1,10 @@
 package org.rsdeob;
 
-import org.objectweb.asm.*;
+import org.objectweb.asm.ClassReader;
+import org.objectweb.asm.ClassVisitor;
+import org.objectweb.asm.ClassWriter;
+import org.objectweb.asm.MethodVisitor;
+import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.commons.JSRInlinerAdapter;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
@@ -61,7 +65,7 @@ public class BootEcx implements Opcodes {
 //			a.<init>()V 16
 //			a.di(Lb;ZI)V 268
 //			a.n(Ljava/lang/String;I)I 18
-			if (!m.toString().equals("a/a/f/a.H(J)La/a/f/o;") && !m.toString().equals("a/a/f/a.<init>()V")) {
+			if (!m.toString().equals("a/a/f/a.H(J)La/a/f/o;")) {
 				continue;
 			}
 //			LocalsTest.main([Ljava/lang/String;)V

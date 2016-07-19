@@ -1,6 +1,10 @@
 package org.rsdeob;
 
-import org.objectweb.asm.*;
+import org.objectweb.asm.ClassReader;
+import org.objectweb.asm.ClassVisitor;
+import org.objectweb.asm.ClassWriter;
+import org.objectweb.asm.MethodVisitor;
+import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.commons.JSRInlinerAdapter;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
@@ -13,9 +17,9 @@ import org.rsdeob.stdlib.IContext;
 import org.rsdeob.stdlib.cfg.BasicBlock;
 import org.rsdeob.stdlib.cfg.ControlFlowGraph;
 import org.rsdeob.stdlib.cfg.ControlFlowGraphBuilder;
+import org.rsdeob.stdlib.cfg.util.CFGDotExporter;
 import org.rsdeob.stdlib.cfg.util.ControlFlowGraphDeobfuscator;
 import org.rsdeob.stdlib.collections.NodeTable;
-import org.rsdeob.stdlib.collections.graph.util.CFGDotExporter;
 import org.rsdeob.stdlib.collections.graph.util.DotExporter;
 import org.rsdeob.stdlib.collections.graph.util.GraphUtils;
 import org.rsdeob.stdlib.deob.IPhase;
@@ -36,7 +40,11 @@ import org.rsdeob.stdlib.ir.transform.ssa.SSAPropagator;
 import org.topdank.byteengineer.commons.data.JarInfo;
 import org.topdank.byteio.in.SingleJarDownloader;
 
-import java.io.*;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
