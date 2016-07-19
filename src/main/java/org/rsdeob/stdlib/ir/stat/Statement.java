@@ -6,12 +6,14 @@ import org.rsdeob.stdlib.collections.graph.FastGraphVertex;
 import org.rsdeob.stdlib.ir.StatementVisitor;
 import org.rsdeob.stdlib.ir.expr.Expression;
 import org.rsdeob.stdlib.ir.expr.PhiExpression;
+import org.rsdeob.stdlib.ir.expr.VarExpression;
 import org.rsdeob.stdlib.ir.transform.impl.CodeAnalytics;
 
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Predicate;
 
 public abstract class Statement implements FastGraphVertex {
 	
@@ -256,25 +258,36 @@ public abstract class Statement implements FastGraphVertex {
 		return printer.toString();
 	}
 	
+	@SuppressWarnings("unchecked")
+	public Set<VarExpression> getUsedVars() {
+		return (Set<VarExpression>) (Object) enumerate(stmt -> stmt instanceof VarExpression);
+	}
+	
+	public Set<Statement> enumerate() {
+		return enumerate(statement -> true);
+	}
+	
 	/**
-	 * Computes all statements the given statement contains and itself.
-	 * @param stmt Statement to enumerate child statements for
-	 * @return a set of all child statements of the statement as well as itself.
+	 * Computes all statements the given statement contains and itself that match the given filter.
+	 * @param filter Filter that is applied to statements
+	 * @return a set of all child statements of the statement as well as itself that match the given filter.
 	 */
-	public static Set<Statement> enumerate(Statement stmt) {
+	public Set<Statement> enumerate(Predicate<Statement> filter) {
 		Set<Statement> stmts = new HashSet<>();
-		stmts.add(stmt);
-		if(stmt instanceof PhiExpression) {
-			throw new UnsupportedOperationException(stmt.toString());
+		if (filter.test(this))
+			stmts.add(this);
+		if(this instanceof PhiExpression) {
+			throw new UnsupportedOperationException(this.toString());
 		} else {
-			new StatementVisitor(stmt) {
+			new StatementVisitor(this) {
 				@Override
 				public Statement visit(Statement stmt) {
-					stmts.add(stmt);
+					if (filter.test(stmt))
+						stmts.add(stmt);
 					if(stmt instanceof PhiExpression) {
 						PhiExpression phi = (PhiExpression) stmt;
 						for(Expression s : phi.getLocals().values()) {
-							stmts.addAll(enumerate(s));
+							stmts.addAll(s.enumerate(filter));
 						}
 					}
 					return stmt;
@@ -284,22 +297,24 @@ public abstract class Statement implements FastGraphVertex {
 		return stmts;
 	}
 	
-	public static Set<Statement> enumerate_deep(Statement stmt) {
+	public Set<Statement> enumerate_deep() {
+		return enumerate_deep(stmt -> true);
+	}
+	
+	public Set<Statement> enumerate_deep(Predicate<Statement> filter) {
 		Set<Statement> stmts = new HashSet<>();
-		stmts.add(stmt);
-		if(stmt instanceof PhiExpression) {
-			if(stmt instanceof PhiExpression) {
-				PhiExpression phi = (PhiExpression) stmt;
-				for(Expression s : phi.getLocals().values()) {
-					stmts.addAll(enumerate_deep(s));
-				}
+		stmts.add(this);
+		if(this instanceof PhiExpression) {
+			PhiExpression phi = (PhiExpression) this;
+			for(Expression s : phi.getLocals().values()) {
+				stmts.addAll(s.enumerate_deep());
 			}
 		} else {
-			new StatementVisitor(stmt) {
+			new StatementVisitor(this) {
 				@Override
 				public Statement visit(Statement stmt) {
 					if(stmt instanceof PhiExpression) {
-						stmts.addAll(enumerate_deep(stmt));
+						stmts.addAll(stmt.enumerate_deep());
 					} else {
 						stmts.add(stmt);
 					}

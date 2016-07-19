@@ -14,8 +14,6 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-import static org.rsdeob.stdlib.ir.stat.Statement.enumerate;
-
 public class SSAUtil {
 	/**
 	 * Safely casts a local into a versioned local;
@@ -37,7 +35,7 @@ public class SSAUtil {
 	 */
 	public static Set<Statement> visitAll(CodeBody code, Predicate<Statement> filter) {
 		Set<Statement> allStmts = new HashSet<>();
-		code.forEach(stmt -> enumerate(stmt).stream().filter(filter).forEach(allStmts::add));
+		code.forEach(stmt -> stmt.enumerate(filter).forEach(allStmts::add));
 		return allStmts;
 	}
 	
