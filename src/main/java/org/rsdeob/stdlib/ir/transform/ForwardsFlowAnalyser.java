@@ -9,6 +9,7 @@ import org.rsdeob.stdlib.collections.graph.flow.FlowGraph;
 import java.util.Iterator;
 import java.util.Set;
 
+// TODO: refactor to use MultiMap
 public abstract class ForwardsFlowAnalyser<N extends FastGraphVertex, E extends FlowEdge<N>, S> extends DataAnalyser<N, E, S> {
 	
 	public ForwardsFlowAnalyser(FlowGraph<N, E> graph, boolean commit) {

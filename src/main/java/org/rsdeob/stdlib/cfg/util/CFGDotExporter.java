@@ -1,9 +1,10 @@
-package org.rsdeob.stdlib.collections.graph.util;
+package org.rsdeob.stdlib.cfg.util;
 
 import org.rsdeob.stdlib.cfg.BasicBlock;
 import org.rsdeob.stdlib.cfg.ControlFlowGraph;
 import org.rsdeob.stdlib.cfg.edge.FlowEdge;
-import org.rsdeob.stdlib.cfg.util.ControlFlowGraphDeobfuscator;
+import org.rsdeob.stdlib.collections.graph.util.DotExporter;
+import org.rsdeob.stdlib.collections.graph.util.GraphUtils;
 
 import java.util.HashMap;
 import java.util.List;

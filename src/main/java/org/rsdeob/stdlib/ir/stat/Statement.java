@@ -226,7 +226,7 @@ public abstract class Statement implements FastGraphVertex {
 	}
 	
 	public void debugPrint() {
-		System.out.println(getId() + ". " + toString() + " (class=" + getClass().getSimpleName() + ")");
+		System.err.println(getId() + ". " + toString() + " (class=" + getClass().getSimpleName() + ")");
 	}
 	
 	public long _getId() {

@@ -1,19 +1,40 @@
 package org.rsdeob.stdlib.ir.transform.ssa;
 
 import org.rsdeob.stdlib.cfg.edge.DummyEdge;
-import org.rsdeob.stdlib.collections.NullPermeableHashMap;
+import org.rsdeob.stdlib.collections.SetMultimap;
 import org.rsdeob.stdlib.ir.CodeBody;
 import org.rsdeob.stdlib.ir.StatementGraph;
 import org.rsdeob.stdlib.ir.StatementVisitor;
-import org.rsdeob.stdlib.ir.expr.*;
+import org.rsdeob.stdlib.ir.expr.ArrayLoadExpression;
+import org.rsdeob.stdlib.ir.expr.CaughtExceptionExpression;
+import org.rsdeob.stdlib.ir.expr.ConstantExpression;
+import org.rsdeob.stdlib.ir.expr.Expression;
+import org.rsdeob.stdlib.ir.expr.FieldLoadExpression;
+import org.rsdeob.stdlib.ir.expr.InitialisedObjectExpression;
+import org.rsdeob.stdlib.ir.expr.InvocationExpression;
+import org.rsdeob.stdlib.ir.expr.PhiExpression;
+import org.rsdeob.stdlib.ir.expr.UninitialisedObjectExpression;
+import org.rsdeob.stdlib.ir.expr.VarExpression;
 import org.rsdeob.stdlib.ir.header.HeaderStatement;
 import org.rsdeob.stdlib.ir.locals.Local;
 import org.rsdeob.stdlib.ir.locals.VersionedLocal;
-import org.rsdeob.stdlib.ir.stat.*;
+import org.rsdeob.stdlib.ir.stat.ArrayStoreStatement;
+import org.rsdeob.stdlib.ir.stat.CopyVarStatement;
+import org.rsdeob.stdlib.ir.stat.DummyExitStatement;
+import org.rsdeob.stdlib.ir.stat.FieldStoreStatement;
+import org.rsdeob.stdlib.ir.stat.MonitorStatement;
+import org.rsdeob.stdlib.ir.stat.PopStatement;
+import org.rsdeob.stdlib.ir.stat.Statement;
 import org.rsdeob.stdlib.ir.transform.SSATransformer;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -119,32 +140,33 @@ public class SSAPropagator extends SSATransformer {
 				}
 				
 				if(phis.size() > 1) {
-					NullPermeableHashMap<CopyVarStatement, Set<CopyVarStatement>> equiv = new NullPermeableHashMap<>(HashSet::new);
+					SetMultimap<CopyVarStatement, CopyVarStatement> equiv = new SetMultimap<>();
 					for(CopyVarStatement cvs : phis) {
-						if(equiv.values().contains(cvs)) {
+						if(equiv.values().contains(cvs)) { // bug fixed
 							continue;
 						}
 						PhiExpression phi = (PhiExpression) cvs.getExpression();
 						for(CopyVarStatement cvs2 : phis) {
 							if(cvs != cvs2) {
-								if(equiv.keySet().contains(cvs2)) {
+								if(equiv.containsKey(cvs2)) {
 									continue;
 								}
 								PhiExpression phi2 = (PhiExpression) cvs2.getExpression();
 								if(phi.equivalent(phi2)) {
-									equiv.getNonNull(cvs).add(cvs2);
+									equiv.put(cvs, cvs2);
 								}
 							}
 						}
 					}
 
-					for(Entry<CopyVarStatement, Set<CopyVarStatement>> e : equiv.entrySet()) {
+					for(Entry<CopyVarStatement, CopyVarStatement> e : equiv.entrySet()) {
 						// key should be earliest
 						// remove vals from code and replace use of val vars with key var
 						CopyVarStatement keepPhi = e.getKey();
 						VersionedLocal phiLocal = (VersionedLocal) keepPhi.getVariable().getLocal();
 						Set<VersionedLocal> toReplace = new HashSet<>();
-						for(CopyVarStatement def : e.getValue()) {
+						CopyVarStatement def = e.getValue();
+						{
 							VersionedLocal local = (VersionedLocal) def.getVariable().getLocal();
 							toReplace.add(local);
 							killed(def);
@@ -167,7 +189,7 @@ public class SSAPropagator extends SSATransformer {
 							}
 						}
 						
-						for(CopyVarStatement def : e.getValue()) {
+						{
 							Local local = def.getVariable().getLocal();
 							localAccess.useCount.remove(vl(local));
 							localAccess.defs.remove(vl(local));

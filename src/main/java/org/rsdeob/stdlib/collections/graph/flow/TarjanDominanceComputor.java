@@ -1,12 +1,19 @@
 package org.rsdeob.stdlib.collections.graph.flow;
 
 import org.rsdeob.stdlib.cfg.edge.FlowEdge;
-import org.rsdeob.stdlib.collections.NullPermeableHashMap;
+import org.rsdeob.stdlib.collections.SetMultimap;
 import org.rsdeob.stdlib.collections.graph.FastGraph;
 import org.rsdeob.stdlib.collections.graph.FastGraphEdge;
 import org.rsdeob.stdlib.collections.graph.FastGraphVertex;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 public class TarjanDominanceComputor<N extends FastGraphVertex> {
 
@@ -19,10 +26,10 @@ public class TarjanDominanceComputor<N extends FastGraphVertex> {
 	private final Map<N, N> propagationMap;
 	private final Map<N, N> ancestors;
 	private final Map<N, N> idoms;
-	private final NullPermeableHashMap<N, Set<N>> semiDoms;
-	private final NullPermeableHashMap<N, Set<N>> domChildren;
-	private final NullPermeableHashMap<N, Set<N>> frontiers;
-	private final NullPermeableHashMap<N, Set<N>> iteratedFrontiers;
+	private final SetMultimap<N, N> semiDoms;
+	private final SetMultimap<N, N> domChildren;
+	private final SetMultimap<N, N> frontiers;
+	private final SetMultimap<N, N> iteratedFrontiers;
 	
 	public TarjanDominanceComputor(FlowGraph<N, ?> graph) {
 		this.graph = graph;
@@ -32,10 +39,10 @@ public class TarjanDominanceComputor<N extends FastGraphVertex> {
 		propagationMap = new HashMap<>();
 		ancestors = new HashMap<>();
 		idoms = new HashMap<>();
-		semiDoms = new NullPermeableHashMap<>(HashSet::new);
-		domChildren = new NullPermeableHashMap<>(HashSet::new);
-		frontiers = new NullPermeableHashMap<>(HashSet::new);
-		iteratedFrontiers = new NullPermeableHashMap<>(HashSet::new);
+		semiDoms = new SetMultimap<>();
+		domChildren = new SetMultimap<>();
+		frontiers = new SetMultimap<>();
+		iteratedFrontiers = new SetMultimap<>();
 		
 		computePreOrder();
 		computeDominators();
@@ -45,19 +52,19 @@ public class TarjanDominanceComputor<N extends FastGraphVertex> {
 	}
 	
 	public Set<N> children(N n) {
-		return domChildren.getNonNull(n);
+		return domChildren.get(n);
 	}
 	
 	public Set<N> semiDoms(N n) {
-		return semiDoms.getNonNull(n);
+		return semiDoms.get(n);
 	}
 	
 	public Set<N> frontier(N n) {
-		return frontiers.getNonNull(n);
+		return frontiers.get(n);
 	}
 	
 	public Set<N> iteratedFrontier(N n) {
-		return iteratedFrontiers.getNonNull(n);
+		return iteratedFrontiers.get(n);
 	}
 	
 	public N idom(N n) {
@@ -71,7 +78,7 @@ public class TarjanDominanceComputor<N extends FastGraphVertex> {
 	
 	private void touchTree() {
 		for(N n : idoms.keySet()) {
-			domChildren.getNonNull(idoms.get(n)).add(n);
+			domChildren.put(idoms.get(n), n);
 		}
 	}
 	
@@ -118,14 +125,13 @@ public class TarjanDominanceComputor<N extends FastGraphVertex> {
 			workingSet = newWorkingSet;
 		} while(!workingSet.isEmpty());
 		
-		iteratedFrontiers.put(n, res);
+		iteratedFrontiers.putAll(n, res);
 	}
 	
 	private void computeFrontiers() {
 		Iterator<N> it = topoSort();
 		while(it.hasNext()) {
 			N n = it.next();
-			Set<N> df = frontiers.getNonNull(n);
 			
 			// DF(local)
 			for(FlowEdge<N> e : graph.getEdges(n)) {
@@ -133,16 +139,16 @@ public class TarjanDominanceComputor<N extends FastGraphVertex> {
 				// if(!(e instanceof TryCatchEdge)) {
 					N succ = e.dst;
 					if(idoms.get(succ) != n) {
-						df.add(succ);
-					}	
+						frontiers.put(n, succ);
+					}
 				// }
 			}
 			
 			// DF(up)
-			for(N forest : domChildren.getNonNull(n)) {
-				for(N forestFrontier : frontiers.getNonNull(forest)) {
+			for(N forest : domChildren.get(n)) {
+				for(N forestFrontier : frontiers.get(forest)) {
 					if(idoms.get(forestFrontier) != n) {
-						df.add(forestFrontier);
+						frontiers.put(n, forestFrontier);
 					}
 				}
 			}
@@ -185,11 +191,11 @@ public class TarjanDominanceComputor<N extends FastGraphVertex> {
 			semiIndices.put(n, newIndex);
 			
 			N semiIndex = preOrder.get(newIndex);
-			semiDoms.getNonNull(semiIndex).add(n);
+			semiDoms.put(semiIndex, n);
 			
 			ancestors.put(n, p);
 			
-			for(N v : semiDoms.getNonNull(p)) {
+			for(N v : semiDoms.get(p)) {
 				N u = calcSemiDom(v);
 				
 				if(semiIndices.get(u) < semiIndices.get(v)) {
@@ -199,7 +205,7 @@ public class TarjanDominanceComputor<N extends FastGraphVertex> {
 				}
 			}
 			
-			semiDoms.get(p).clear();
+			semiDoms.remove(p);
 		}
 		
 		for(int i=1; i <= size; i++) {

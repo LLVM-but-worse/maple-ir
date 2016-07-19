@@ -4,7 +4,7 @@ import org.objectweb.asm.Type;
 import org.rsdeob.stdlib.cfg.BasicBlock;
 import org.rsdeob.stdlib.cfg.ControlFlowGraph;
 import org.rsdeob.stdlib.cfg.util.TypeUtils;
-import org.rsdeob.stdlib.collections.NullPermeableHashMap;
+import org.rsdeob.stdlib.collections.SetMultimap;
 import org.rsdeob.stdlib.ir.CodeBody;
 import org.rsdeob.stdlib.ir.expr.Expression;
 import org.rsdeob.stdlib.ir.expr.PhiExpression;
@@ -19,10 +19,16 @@ import org.rsdeob.stdlib.ir.stat.CopyVarStatement;
 import org.rsdeob.stdlib.ir.stat.Statement;
 import org.rsdeob.stdlib.ir.transform.ssa.SSALocalAccess;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 
-import static org.rsdeob.stdlib.ir.transform.ssa.SSAUtil.*;
+import static org.rsdeob.stdlib.ir.transform.ssa.SSAUtil.replaceLocals;
+import static org.rsdeob.stdlib.ir.transform.ssa.SSAUtil.visitAll;
+import static org.rsdeob.stdlib.ir.transform.ssa.SSAUtil.vl;
 
 public class SSADeconstructor {
 	
@@ -33,7 +39,7 @@ public class SSADeconstructor {
 	
 	private final Map<VersionedLocal, BasicLocal> undroppableLocals;
 	private final Map<VersionedLocal, Type> localTypes;
-	private final NullPermeableHashMap<VersionedLocal, Set<VarExpression>> uses;
+	private final SetMultimap<VersionedLocal, VarExpression> uses; // umm...this is updated but never queried. what
 	private int maxLocals;
 	
 	public SSADeconstructor(CodeBody body, ControlFlowGraph cfg) {
@@ -44,7 +50,7 @@ public class SSADeconstructor {
 		locals = body.getLocals();
 		undroppableLocals = new HashMap<>();
 		localTypes = new HashMap<>();
-		uses = new NullPermeableHashMap<>(HashSet::new);
+		uses = new SetMultimap<>();
 		
 		initBlocks();
 	}
@@ -84,10 +90,35 @@ public class SSADeconstructor {
 				if (expr instanceof PhiExpression) {
 					Local l = copy.getVariable().getLocal();
 					PhiExpression phi = (PhiExpression) expr;
+					phiSanityCheck(phi);
 					unroll(phi, l);
 					body.remove(copy);
 					localsAccess.defs.remove(vl(l));
 					localsAccess.useCount.remove(vl(l));
+				}
+			}
+		}
+	}
+	
+	private void phiSanityCheck(PhiExpression phi) {
+		// Sanity check
+		BasicLocal unversionedLocal = null;
+		for (Expression phiLocal : phi.getLocals().values()) {
+			for (Statement child : Statement.enumerate(phiLocal)) {
+				if (child instanceof VarExpression) {
+					VarExpression childVar = (VarExpression) child;
+					if (!(childVar.getLocal() instanceof VersionedLocal)) {
+						phi.debugPrint();
+						throw new IllegalArgumentException("Phi has invalid non-versioned local " + phiLocal);
+					} else {
+						VersionedLocal versionedLocal = (VersionedLocal) childVar.getLocal();
+						if (unversionedLocal == null)
+							unversionedLocal = locals.unversion(versionedLocal);
+						if (!versionedLocal.isVersionOf(unversionedLocal)) {
+							phi.debugPrint();
+							throw new IllegalArgumentException("Mismatched base locals " + versionedLocal + " " + unversionedLocal + " (we need to implement register allocation)");
+						}
+					}
 				}
 			}
 		}
@@ -156,20 +187,20 @@ public class SSADeconstructor {
 			throw new IllegalStateException(local + " " + var);
 		}
 		VersionedLocal versionedLocal = (VersionedLocal) local;
-		uses.getNonNull(versionedLocal).add(var);
+		uses.put(versionedLocal, var);
 		localTypes.put(versionedLocal, var.getType());
 	}
 	
 	private void unweaveUndroppables() {
-		NullPermeableHashMap<BasicLocal, Set<Type>> simpleTypes = new NullPermeableHashMap<>(HashSet::new);
+		SetMultimap<BasicLocal, Type> simpleTypes = new SetMultimap<>();
 		
 		for (Entry<VersionedLocal, Type> e : localTypes.entrySet()) {
-			Local versioned = e.getKey();
-			BasicLocal unversioned = locals.get(versioned.getIndex(), versioned.isStack());
-			simpleTypes.getNonNull(unversioned).add(TypeUtils.asSimpleType(e.getValue()));
+			VersionedLocal versioned = vl(e.getKey());
+			BasicLocal unversioned = locals.unversion(versioned);
+			simpleTypes.put(unversioned, TypeUtils.asSimpleType(e.getValue()));
 		}
 		
-		for (Entry<BasicLocal, Set<Type>> e : simpleTypes.entrySet()) {
+		for (Entry<BasicLocal, Set<Type>> e : simpleTypes.asMap().entrySet()) {
 			BasicLocal local = e.getKey();
 			Set<Type> types = e.getValue();
 			System.out.println("(2.2) " + local + ": " + types);
@@ -207,6 +238,6 @@ public class SSADeconstructor {
 	
 	// Subscript removal
 	private void dropSubscripts() { // yes my child, it's this easy
-		replaceLocals(body, versionedLocal -> true, versionedLocal -> locals.get(versionedLocal.getIndex(), versionedLocal.isStack()));
+		replaceLocals(body, versionedLocal -> true, locals::unversion);
 	}
 }
