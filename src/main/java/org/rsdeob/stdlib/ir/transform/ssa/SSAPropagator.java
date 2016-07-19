@@ -176,15 +176,13 @@ public class SSAPropagator extends SSATransformer {
 						
 						// replace uses
 						for(Statement reachable : graph.wanderAllTrails(keepPhi, exit)) {
-							for(Statement s : Statement.enumerate(reachable)) {
-								if(s instanceof VarExpression) {
-									VarExpression var = (VarExpression) s;
-									VersionedLocal l = (VersionedLocal) var.getLocal();
-									if(toReplace.contains(l)) {
-										reuseLocal(phiLocal);
-										unuseLocal(l);
-										var.setLocal(phiLocal);
-									}
+							for(Statement s : reachable.getUsedVars()) {
+								VarExpression var = (VarExpression) s;
+								VersionedLocal l = (VersionedLocal) var.getLocal();
+								if(toReplace.contains(l)) {
+									reuseLocal(phiLocal);
+									unuseLocal(l);
+									var.setLocal(phiLocal);
 								}
 							}
 						}
@@ -229,11 +227,8 @@ public class SSAPropagator extends SSATransformer {
 		 * @param stmt Statement that was removed
 		 */
 		private void killed(Statement stmt) {
-			for(Statement s : Statement.enumerate(stmt)) {
-				if(s instanceof VarExpression) {
-					unuseLocal(((VarExpression) s).getLocal());
-				}
-			}
+			for(Statement s : stmt.getUsedVars())
+				unuseLocal(((VarExpression) s).getLocal());
 		}
 		
 		/**
@@ -242,11 +237,8 @@ public class SSAPropagator extends SSATransformer {
 		 * @param stmt Statement that was added
 		 */
 		private void copied(Statement stmt) {
-			for(Statement s : Statement.enumerate(stmt)) {
-				if(s instanceof VarExpression) {
-					reuseLocal(((VarExpression) s).getLocal());
-				}
-			}
+			for(Statement s : stmt.getUsedVars())
+				reuseLocal(((VarExpression) s).getLocal());
 		}
 		
 		/**
@@ -513,11 +505,9 @@ public class SSAPropagator extends SSATransformer {
 		 * @return Whether the statement is uncopyable.
 		 */
 		private boolean isUncopyable(Statement stmt) {
-			for(Statement s : Statement.enumerate(stmt)) {
-				if(UNCOPYABLE.contains(s.getClass())) {
+			for(Statement s : stmt.enumerate())
+				if (UNCOPYABLE.contains(s.getClass()))
 					return true;
-				}
-			}
 			return false;
 		}
 		

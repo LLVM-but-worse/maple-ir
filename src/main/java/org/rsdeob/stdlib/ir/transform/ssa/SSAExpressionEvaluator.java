@@ -3,7 +3,19 @@ package org.rsdeob.stdlib.ir.transform.ssa;
 import org.objectweb.asm.Type;
 import org.rsdeob.stdlib.cfg.util.TypeUtils;
 import org.rsdeob.stdlib.ir.StatementVisitor;
-import org.rsdeob.stdlib.ir.expr.*;
+import org.rsdeob.stdlib.ir.expr.ArithmeticExpression;
+import org.rsdeob.stdlib.ir.expr.ArrayLengthExpression;
+import org.rsdeob.stdlib.ir.expr.ArrayLoadExpression;
+import org.rsdeob.stdlib.ir.expr.ComparisonExpression;
+import org.rsdeob.stdlib.ir.expr.ConstantExpression;
+import org.rsdeob.stdlib.ir.expr.Expression;
+import org.rsdeob.stdlib.ir.expr.FieldLoadExpression;
+import org.rsdeob.stdlib.ir.expr.InitialisedObjectExpression;
+import org.rsdeob.stdlib.ir.expr.InvocationExpression;
+import org.rsdeob.stdlib.ir.expr.NegationExpression;
+import org.rsdeob.stdlib.ir.expr.PhiExpression;
+import org.rsdeob.stdlib.ir.expr.UninitialisedObjectExpression;
+import org.rsdeob.stdlib.ir.expr.VarExpression;
 import org.rsdeob.stdlib.ir.locals.Local;
 import org.rsdeob.stdlib.ir.stat.ConditionalJumpStatement;
 import org.rsdeob.stdlib.ir.stat.Statement;
@@ -13,7 +25,14 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static org.objectweb.asm.Type.*;
+import static org.objectweb.asm.Type.BOOLEAN_TYPE;
+import static org.objectweb.asm.Type.BYTE_TYPE;
+import static org.objectweb.asm.Type.CHAR_TYPE;
+import static org.objectweb.asm.Type.DOUBLE_TYPE;
+import static org.objectweb.asm.Type.FLOAT_TYPE;
+import static org.objectweb.asm.Type.INT_TYPE;
+import static org.objectweb.asm.Type.LONG_TYPE;
+import static org.objectweb.asm.Type.SHORT_TYPE;
 
 public class SSAExpressionEvaluator {
 	public static Expression evaluate(Expression in, SSALocalAccess vars) {
@@ -65,7 +84,7 @@ public class SSAExpressionEvaluator {
 	public static boolean isConstant(Expression expr) {
 		if (expr instanceof PhiExpression)
 			return false;
-		for (Statement stmt : Statement.enumerate(expr)) {
+		for (Statement stmt : expr.enumerate()) {
 			if (NOT_CONSTANT.contains(stmt.getClass()))
 				return false;
 			else if (stmt instanceof Expression && TypeUtils.isPrimitive(((Expression) stmt).getType()))

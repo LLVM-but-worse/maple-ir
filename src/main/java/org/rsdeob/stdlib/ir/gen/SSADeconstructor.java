@@ -104,20 +104,18 @@ public class SSADeconstructor {
 		// Sanity check
 		BasicLocal unversionedLocal = null;
 		for (Expression phiLocal : phi.getLocals().values()) {
-			for (Statement child : Statement.enumerate(phiLocal)) {
-				if (child instanceof VarExpression) {
-					VarExpression childVar = (VarExpression) child;
-					if (!(childVar.getLocal() instanceof VersionedLocal)) {
+			for (Statement child : phiLocal.getUsedVars()) {
+				VarExpression childVar = (VarExpression) child;
+				if (!(childVar.getLocal() instanceof VersionedLocal)) {
+					phi.debugPrint();
+					throw new IllegalArgumentException("Phi has invalid non-versioned local " + phiLocal);
+				} else {
+					VersionedLocal versionedLocal = (VersionedLocal) childVar.getLocal();
+					if (unversionedLocal == null)
+						unversionedLocal = locals.unversion(versionedLocal);
+					if (!versionedLocal.isVersionOf(unversionedLocal)) {
 						phi.debugPrint();
-						throw new IllegalArgumentException("Phi has invalid non-versioned local " + phiLocal);
-					} else {
-						VersionedLocal versionedLocal = (VersionedLocal) childVar.getLocal();
-						if (unversionedLocal == null)
-							unversionedLocal = locals.unversion(versionedLocal);
-						if (!versionedLocal.isVersionOf(unversionedLocal)) {
-							phi.debugPrint();
-							throw new IllegalArgumentException("Mismatched base locals " + versionedLocal + " " + unversionedLocal + " (we need to implement register allocation)");
-						}
+						throw new IllegalArgumentException("Mismatched base locals " + versionedLocal + " " + unversionedLocal + " (we need to implement register allocation)");
 					}
 				}
 			}
