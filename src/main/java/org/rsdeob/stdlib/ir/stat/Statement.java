@@ -283,4 +283,30 @@ public abstract class Statement implements FastGraphVertex {
 		}
 		return stmts;
 	}
+	
+	public static Set<Statement> enumerate_deep(Statement stmt) {
+		Set<Statement> stmts = new HashSet<>();
+		stmts.add(stmt);
+		if(stmt instanceof PhiExpression) {
+			if(stmt instanceof PhiExpression) {
+				PhiExpression phi = (PhiExpression) stmt;
+				for(Expression s : phi.getLocals().values()) {
+					stmts.addAll(enumerate_deep(s));
+				}
+			}
+		} else {
+			new StatementVisitor(stmt) {
+				@Override
+				public Statement visit(Statement stmt) {
+					if(stmt instanceof PhiExpression) {
+						stmts.addAll(enumerate_deep(stmt));
+					} else {
+						stmts.add(stmt);
+					}
+					return stmt;
+				}
+			}.visit();
+		}
+		return stmts;
+	}
 }
