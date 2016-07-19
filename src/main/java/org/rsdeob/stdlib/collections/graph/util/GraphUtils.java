@@ -1,7 +1,34 @@
 package org.rsdeob.stdlib.collections.graph.util;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.function.Predicate;
+
 import org.objectweb.asm.Opcodes;
-import org.objectweb.asm.tree.*;
+import org.objectweb.asm.tree.AbstractInsnNode;
+import org.objectweb.asm.tree.FieldInsnNode;
+import org.objectweb.asm.tree.IincInsnNode;
+import org.objectweb.asm.tree.InsnList;
+import org.objectweb.asm.tree.IntInsnNode;
+import org.objectweb.asm.tree.JumpInsnNode;
+import org.objectweb.asm.tree.LabelNode;
+import org.objectweb.asm.tree.LdcInsnNode;
+import org.objectweb.asm.tree.LineNumberNode;
+import org.objectweb.asm.tree.LookupSwitchInsnNode;
+import org.objectweb.asm.tree.MethodInsnNode;
+import org.objectweb.asm.tree.MultiANewArrayInsnNode;
+import org.objectweb.asm.tree.TableSwitchInsnNode;
+import org.objectweb.asm.tree.TryCatchBlockNode;
+import org.objectweb.asm.tree.TypeInsnNode;
+import org.objectweb.asm.tree.VarInsnNode;
 import org.objectweb.asm.util.Printer;
 import org.rsdeob.stdlib.cfg.BasicBlock;
 import org.rsdeob.stdlib.cfg.ControlFlowGraph;
@@ -12,13 +39,11 @@ import org.rsdeob.stdlib.cfg.edge.SwitchEdge;
 import org.rsdeob.stdlib.cfg.util.ControlFlowGraphDeobfuscator.SuperNode;
 import org.rsdeob.stdlib.cfg.util.LabelHelper;
 import org.rsdeob.stdlib.collections.graph.flow.ExceptionRange;
+import org.rsdeob.stdlib.ir.CodeBody;
 import org.rsdeob.stdlib.ir.StatementGraph;
+import org.rsdeob.stdlib.ir.expr.PhiExpression;
 import org.rsdeob.stdlib.ir.header.HeaderStatement;
 import org.rsdeob.stdlib.ir.stat.Statement;
-
-import java.util.*;
-import java.util.Map.Entry;
-import java.util.function.Predicate;
 
 public class GraphUtils {
 
@@ -34,6 +59,25 @@ public class GraphUtils {
 			return false;
 		}
 	};
+	
+	public static void rewriteCfg(ControlFlowGraph cfg, CodeBody body) {
+		for (BasicBlock b : cfg.vertices()) {
+			b.getStatements().clear();
+		}
+		
+		BasicBlock currentHeader = null;
+		for (Statement stmt : body) {
+			if (stmt instanceof HeaderStatement) {
+				currentHeader = cfg.getBlock(((HeaderStatement) stmt).getHeaderId());
+			} else {
+				if (currentHeader == null) {
+					throw new IllegalStateException();
+				} else if (!(stmt instanceof PhiExpression)) {
+					currentHeader.getStatements().add(stmt);
+				}
+			}
+		}
+	}
 	
 	public static boolean isFlowBlock(BasicBlock b) {
 		AbstractInsnNode last = b.last();
