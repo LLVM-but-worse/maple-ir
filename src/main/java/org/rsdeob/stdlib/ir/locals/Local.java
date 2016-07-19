@@ -58,10 +58,6 @@ public abstract class Local implements Comparable<Local> {
 	public boolean isStoredInLocal() {
 		return !isStack() || isTempLocal();
 	}
-	
-	public boolean isVersionOf(Local l) {
-		return l.isStack() == isStack() && l.getIndex() == getIndex();
-	}
 
 	@Override
 	public int compareTo(Local o) {

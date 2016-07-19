@@ -29,4 +29,8 @@ public class VersionedLocal extends Local {
 	public String toString() {
 		return super.toString() + "_" + subscript;
 	}
+	
+	public boolean isVersionOf(Local l) {
+		return l.isStack() == isStack() && l.getIndex() == getIndex();
+	}
 }

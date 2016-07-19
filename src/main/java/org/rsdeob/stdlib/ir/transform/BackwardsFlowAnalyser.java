@@ -7,6 +7,7 @@ import org.rsdeob.stdlib.collections.graph.flow.FlowGraph;
 import java.util.Iterator;
 import java.util.Set;
 
+// TODO: refactor to use Multimap
 public abstract class BackwardsFlowAnalyser<N extends FastGraphVertex, E extends FlowEdge<N>, S> extends DataAnalyser<N, E, S> {
 	
 	public BackwardsFlowAnalyser(FlowGraph<N, E> graph) {

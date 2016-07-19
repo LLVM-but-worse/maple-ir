@@ -67,9 +67,9 @@ public class AnalyticsTest {
 //			a.<init>()V 16
 //			a.di(Lb;ZI)V 268
 //			a.n(Ljava/lang/String;I)I 18
-			if (!m.toString().equals("a/a/f/a.H(J)La/a/f/o;") && !m.toString().equals("a/a/f/a.<init>()V")) {
-				continue;
-			}
+//			if (!m.toString().equals("a/a/f/a.<init>()V")) {
+//				continue;
+//			}
 //			LocalsTest.main([Ljava/lang/String;)V
 //			org/rsdeob/AnalyticsTest.tryidiots(I)V
 //			a/a/f/a.<init>()V
@@ -98,10 +98,10 @@ public class AnalyticsTest {
 			SSAGenerator ssagen = new SSAGenerator(code, cfg, gen.getHeaders());
 			ssagen.run();
 
-//			System.out.println("SSA:");
-//			System.out.println(code);
-//			System.out.println();
-//			System.out.println();
+			System.out.println("SSA:");
+			System.out.println(code);
+			System.out.println();
+			System.out.println();
 			
 			StatementGraph sgraph = StatementGraphBuilder.create(cfg);
 			SSALocalAccess localAccess = new SSALocalAccess(code);
@@ -149,7 +149,7 @@ public class AnalyticsTest {
 			System.out.println("============================================================\n\n");
 		}
 		
-		ClassWriter clazz = new ClassWriter(ClassWriter.COMPUTE_FRAMES);
+		ClassWriter clazz = new ClassWriter(0);
 		cn.accept(clazz);
 		byte[] saved = clazz.toByteArray();
 		FileOutputStream out = new FileOutputStream(new File("out/testclass.class"));

@@ -2,14 +2,20 @@ package org.rsdeob.stdlib.ir.locals;
 
 import org.objectweb.asm.Type;
 import org.rsdeob.stdlib.cfg.util.TypeUtils;
-import org.rsdeob.stdlib.collections.NullPermeableHashMap;
+import org.rsdeob.stdlib.collections.SetMultimap;
 import org.rsdeob.stdlib.ir.CodeBody;
 import org.rsdeob.stdlib.ir.expr.VarExpression;
 import org.rsdeob.stdlib.ir.stat.CopyVarStatement;
 import org.rsdeob.stdlib.ir.stat.Statement;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class LocalsHandler {
@@ -59,6 +65,10 @@ public class LocalsHandler {
 		}
 	}
 	
+	public BasicLocal unversion(VersionedLocal versionedLocal) {
+		return get(versionedLocal.getIndex(), versionedLocal.isStack());
+	}
+	
 	/* public Local newLocal(boolean isStack) {
 		int index = cache.size();
 		while(true) {
@@ -70,20 +80,20 @@ public class LocalsHandler {
 	} */
 	
 	public void realloc(CodeBody code) {
-		NullPermeableHashMap<Local, Set<Type>> types = new NullPermeableHashMap<>(HashSet::new);
+		SetMultimap<Local, Type> types = new SetMultimap<>();
 		for(Statement stmt : code) {
 			for(Statement s : Statement.enumerate(stmt)) {
 				if(s instanceof VarExpression) {
 					VarExpression var = (VarExpression) s;
 					Local local = var.getLocal();
-					types.getNonNull(local).add(var.getType());
+					types.put(local, var.getType());
 					System.out.println("(1)type of " + stmt + " = " + var.getType() + " (local=" + local + ")");
 				} else if(s instanceof CopyVarStatement) {
 					CopyVarStatement cp = (CopyVarStatement) s;
 					if(cp.isSynthetic()) {
 						VarExpression var = cp.getVariable();
 						Local local = var.getLocal();
-						types.getNonNull(local).add(var.getType());
+						types.put(local, var.getType());
 						System.out.println("(2)type of " + cp + " = " + var.getType() + " (local=" + local + ")");
 					}
 				}
@@ -92,7 +102,7 @@ public class LocalsHandler {
 
 		Map<Local, Type> saveTypes = new HashMap<>();
 		
-		for(Entry<Local, Set<Type>> e : types.entrySet()) {
+		for(Entry<Local, Set<Type>> e : types.asMap().entrySet()) {
 			Set<Type> set = e.getValue();
 			Set<Type> refined = new HashSet<>();
 			if(set.size() > 1) {
@@ -100,9 +110,7 @@ public class LocalsHandler {
 					refined.add(TypeUtils.asSimpleType(t));
 				}
 				if(refined.size() != 1) {
-					for(Entry<Local, Set<Type>> e1 : types.entrySet()) {
-						System.err.println(e1.getKey() + "  ==  " + e1.getValue());
-					}
+					System.err.println(e);
 					throw new RuntimeException("illegal typesets for " + e.getKey());
 				}
 				saveTypes.put(e.getKey(), refined.iterator().next());

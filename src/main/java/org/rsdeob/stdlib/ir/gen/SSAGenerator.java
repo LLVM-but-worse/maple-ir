@@ -4,7 +4,7 @@ import org.rsdeob.stdlib.cfg.BasicBlock;
 import org.rsdeob.stdlib.cfg.ControlFlowGraph;
 import org.rsdeob.stdlib.cfg.edge.DummyEdge;
 import org.rsdeob.stdlib.cfg.edge.FlowEdge;
-import org.rsdeob.stdlib.collections.NullPermeableHashMap;
+import org.rsdeob.stdlib.collections.SetMultimap;
 import org.rsdeob.stdlib.collections.graph.flow.TarjanDominanceComputor;
 import org.rsdeob.stdlib.ir.CodeBody;
 import org.rsdeob.stdlib.ir.StatementVisitor;
@@ -20,7 +20,16 @@ import org.rsdeob.stdlib.ir.stat.CopyVarStatement;
 import org.rsdeob.stdlib.ir.stat.Statement;
 import org.rsdeob.stdlib.ir.transform.impl.LivenessAnalyser;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.Stack;
 
 public class SSAGenerator {
 
@@ -42,7 +51,7 @@ public class SSAGenerator {
 			if(b == null) {
 				throw new IllegalStateException(root.toString());
 			}
-			assigns.getNonNull(l).add(b);
+			assigns.put(l, b);
 		} else if(s instanceof VarExpression) {
 			locals.add(((VarExpression) s).getLocal());
 		}
@@ -64,7 +73,7 @@ public class SSAGenerator {
 	
 	final Map<Statement, BasicBlock> translation;
 	final Set<Local> locals;
-	final NullPermeableHashMap<Local, Set<BasicBlock>> assigns;
+	final SetMultimap<Local, BasicBlock> assigns;
 	
 	final LinkedList<BasicBlock> queue;
 	
@@ -87,7 +96,7 @@ public class SSAGenerator {
 		
 		locals = new HashSet<>();
 		queue = new LinkedList<>();
-		assigns = new NullPermeableHashMap<>(HashSet::new);
+		assigns = new SetMultimap<Local, BasicBlock>();
 		insertion = new HashMap<>();
 		process = new HashMap<>();
 		exit = new BasicBlock(cfg, "fakeexit", null);
