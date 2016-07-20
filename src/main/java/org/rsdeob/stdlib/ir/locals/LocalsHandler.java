@@ -18,6 +18,8 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static org.rsdeob.stdlib.util.DebugPrinter.dbgPrintln;
+
 public class LocalsHandler {
 
 	private final AtomicInteger base;
@@ -86,12 +88,12 @@ public class LocalsHandler {
 				VarExpression var = ((CopyVarStatement) s).getVariable();
 				Local local = var.getLocal();
 				types.put(local, var.getType());
-				System.err.println("(2.0.0) type of " + s + " = " + var.getType() + " (local=" + local + ")");
+				dbgPrintln(200, "type of " + s + " = " + var.getType() + " (local=" + local + ")");
 			}
 			for (VarExpression var : stmt.getUsedVars()) {
 				Local local = var.getLocal();
 				types.put(local, var.getType());
-				System.err.println("(2.0.1) type of " + stmt + " = " + var.getType() + " (local=" + local + ")");
+				dbgPrintln(201, "type of " + stmt + " = " + var.getType() + " (local=" + local + ")");
 			}
 		}
 
@@ -121,7 +123,7 @@ public class LocalsHandler {
 		int index = 0;
 		for(Local l : worklist) {
 			Type type = saveTypes.get(l);
-			System.err.println("(2.1.0) " + l + "  set to " + index);
+			dbgPrintln(210, l + "  set to " + index);
 			l.setIndex(index);
 			index += type.getSize();
 		}

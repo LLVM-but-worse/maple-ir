@@ -30,6 +30,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
 
+import static org.rsdeob.stdlib.util.DebugPrinter.dbgPrintln;
+
 public class SSAGenerator {
 
 	// if only CodeBody extended Statement ;(
@@ -284,7 +286,7 @@ public class SSAGenerator {
 	private void computePhis() {
 		int localCount = 0;
 		for(Local local : locals) {
-			System.err.println("(0.0.0) process " + local);
+			dbgPrintln(0, "process " + local);
 			localCount++;
 			for(BasicBlock b : assigns.get(local)) {
 				process.put(b, localCount);
