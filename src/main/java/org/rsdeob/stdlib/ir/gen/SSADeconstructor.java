@@ -30,6 +30,7 @@ import java.util.Set;
 import static org.rsdeob.stdlib.ir.transform.ssa.SSAUtil.replaceLocals;
 import static org.rsdeob.stdlib.ir.transform.ssa.SSAUtil.visitAll;
 import static org.rsdeob.stdlib.ir.transform.ssa.SSAUtil.vl;
+import static org.rsdeob.stdlib.util.DebugPrinter.dbgPrintln;
 
 public class SSADeconstructor {
 	
@@ -123,7 +124,7 @@ public class SSADeconstructor {
 	private void computeMaxLocals() {
 		for (VersionedLocal local : localsAccess.defs.keySet())
 			maxLocals = Math.max(maxLocals, local.getIndex());
-		System.err.println("(1.0.0) maxLocals = " + maxLocals);
+		dbgPrintln(100, "maxLocals = " + maxLocals);
 	}
 	
 	private void resolveInterferingVars() {
@@ -147,7 +148,7 @@ public class SSADeconstructor {
 							usedLocals.put(unversioned, versioned.getSubscript());
 						if (usedLocals.get(unversioned) != versioned.getSubscript()) {
 							interferingLocals.add(versioned);
-							System.err.println("(1.1.0) #" + block.getId() + ", " + unversioned + " interferes (" + usedLocals.get(unversioned) + " vs " + versioned.getSubscript() + ")");
+							dbgPrintln(110, "#" + block.getId() + ", " + unversioned + " interferes (" + usedLocals.get(unversioned) + " vs " + versioned.getSubscript() + ")");
 						}
 					}
 				}
@@ -159,7 +160,7 @@ public class SSADeconstructor {
 		for (VersionedLocal usedLocal : interferingLocals) {
 			VersionedLocal reassignLocal = locals.get(++maxLocals, 0, false);
 			replaceLocals(body, versionedLocal -> versionedLocal == usedLocal, versionedLocal -> reassignLocal);
-			System.err.println("(1.1.1) Reassigned interfering local " + usedLocal + " to " + reassignLocal);
+			dbgPrintln(111, "Reassigned interfering local " + usedLocal + " to " + reassignLocal);
 		}
 	}
 	
@@ -202,7 +203,7 @@ public class SSADeconstructor {
 		for (Entry<BasicLocal, Set<Type>> e : simpleTypes.asMap().entrySet()) {
 			BasicLocal local = e.getKey();
 			Set<Type> types = e.getValue();
-			System.err.println("(1.3.0) " + local + ": " + types);
+			dbgPrintln(130, local + ": " + types);
 			if (types.size() > 1) {
 				unweaveLocal(local, types);
 			}
@@ -210,14 +211,14 @@ public class SSADeconstructor {
 	}
 	
 	private void unweaveLocal(BasicLocal local, Set<Type> set) {
-		System.err.println("(1.3.1) Need to unweave " + local);
+		dbgPrintln(131, "Need to unweave " + local);
 		
 		// wind up spindle
 		Map<Type, BasicLocal> spindle = new HashMap<>();
 		for (Type simpleType : set) {
 			BasicLocal newLocal = locals.get(++maxLocals, false);
 			spindle.put(simpleType, newLocal);
-			System.err.println("(1.3.2) Reassigning clash type " + simpleType + " to " + newLocal);
+			dbgPrintln(132, "Reassigning clash type " + simpleType + " to " + newLocal);
 		}
 		
 		// unwind spindle
@@ -228,7 +229,7 @@ public class SSADeconstructor {
 				Type complexType = localTypes.get(usedLocal);
 				BasicLocal reassignLocal = spindle.get(TypeUtils.asSimpleType(complexType));
 				replaceLocals(body, versionedLocal -> versionedLocal == usedLocal, versionedLocal -> reassignLocal);
-				System.err.println("(1.3.3) Reassigned clash local " + usedLocal + "(type=" + complexType + ") to " + reassignLocal);
+				dbgPrintln(133, "Reassigned clash local " + usedLocal + "(type=" + complexType + ") to " + reassignLocal);
 			}
 		}
 	}
