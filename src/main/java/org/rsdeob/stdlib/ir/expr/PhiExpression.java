@@ -13,6 +13,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.function.Predicate;
 
 public class PhiExpression extends Expression {
 
@@ -127,5 +128,20 @@ public class PhiExpression extends Expression {
 			return true;
 		}
 		return false;
+	}
+	
+	@Override
+	public Set<Statement> enumerate(Predicate<Statement> filter) {
+		throw new UnsupportedOperationException(this.toString());
+	}
+	
+	@Override
+	public Set<Statement> enumerate_deep(Predicate<Statement> filter) {
+		Set<Statement> stmts = new HashSet<>();
+		stmts.add(this);
+		for(Expression s : getLocals().values()) {
+			stmts.addAll(s.enumerate_deep());
+		}
+		return stmts;
 	}
 }

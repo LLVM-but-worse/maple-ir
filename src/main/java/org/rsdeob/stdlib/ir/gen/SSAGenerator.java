@@ -22,7 +22,6 @@ import org.rsdeob.stdlib.ir.transform.impl.LivenessAnalyser;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -34,7 +33,7 @@ import java.util.Stack;
 public class SSAGenerator {
 
 	// if only CodeBody extended Statement ;(
-	final StatementVisitor collectionVisitor = new StatementVisitor(null) {
+	private final StatementVisitor collectionVisitor = new StatementVisitor(null) {
 		@Override
 		public Statement visit(Statement stmt) {
 			visitCollect0(stmt, stmt);
@@ -42,7 +41,7 @@ public class SSAGenerator {
 		}
 	};
 
-	void visitCollect0(Statement root, Statement s) {
+	private void visitCollect0(Statement root, Statement s) {
 		if(s instanceof CopyVarStatement) {
 			Local l = ((CopyVarStatement) s).getVariable().getLocal();
 			locals.add(l);
@@ -57,33 +56,33 @@ public class SSAGenerator {
 		}
 	}
 	
-	void collectLocals(Statement s) {
+	private void collectLocals(Statement s) {
 		visitCollect0(s, s);
 		collectionVisitor.reset(s);
 		collectionVisitor.visit();
 	}
 	
-	final LocalsHandler handler;
-	final CodeBody body;
-	final Map<BasicBlock, BlockHeaderStatement> headers;
+	private final LocalsHandler handler;
+	private final CodeBody body;
+	private final Map<BasicBlock, BlockHeaderStatement> headers;
 	
-	final ControlFlowGraph cfg;
-	final TarjanDominanceComputor<BasicBlock> doms;
-	final BasicBlock exit;
+	private final ControlFlowGraph cfg;
+	private final TarjanDominanceComputor<BasicBlock> doms;
+	private final BasicBlock exit;
 	
-	final Map<Statement, BasicBlock> translation;
-	final Set<Local> locals;
-	final SetMultimap<Local, BasicBlock> assigns;
+	private final Map<Statement, BasicBlock> translation;
+	private final Set<Local> locals;
+	private final SetMultimap<Local, BasicBlock> assigns;
 	
-	final LinkedList<BasicBlock> queue;
+	private final LinkedList<BasicBlock> queue;
 	
-	final Map<BasicBlock, Integer> insertion;
-	final Map<BasicBlock, Integer> process;
+	private final Map<BasicBlock, Integer> insertion;
+	private final Map<BasicBlock, Integer> process;
 	
-	final Map<Local, Integer> counters;
-	final Map<Local, Stack<Integer>> stacks;
+	private final Map<Local, Integer> counters;
+	private final Map<Local, Stack<Integer>> stacks;
 	
-	final LivenessAnalyser liveness;
+	private	final LivenessAnalyser liveness;
 	
 	public SSAGenerator(CodeBody body, ControlFlowGraph cfg, Map<BasicBlock, BlockHeaderStatement> headers) {
 		this.body = body;
@@ -96,7 +95,7 @@ public class SSAGenerator {
 		
 		locals = new HashSet<>();
 		queue = new LinkedList<>();
-		assigns = new SetMultimap<Local, BasicBlock>();
+		assigns = new SetMultimap<>();
 		insertion = new HashMap<>();
 		process = new HashMap<>();
 		exit = new BasicBlock(cfg, "fakeexit", null);
@@ -116,11 +115,11 @@ public class SSAGenerator {
 		de_init();
 	}
 	
-	void de_init() {
+	private void de_init() {
 		cfg.removeVertex(exit);
 	}
 	
-	void init() {
+	private void init() {
 		cfg.addVertex(exit);
 		for(BasicBlock b : cfg.vertices()) {
 			// connect dummy exit
@@ -143,7 +142,7 @@ public class SSAGenerator {
 		}
 	}
 	
-	void rename() {
+	private void rename() {
 		for(Local l : locals) {
 			counters.put(l, 0);
 			stacks.put(l, new Stack<>());
@@ -155,7 +154,7 @@ public class SSAGenerator {
 		}
 	}
 	
-	void search(BasicBlock b, Set<BasicBlock> vis) {
+	private void search(BasicBlock b, Set<BasicBlock> vis) {
 		if(vis.contains(b)) {
 			return;
 		}
@@ -195,12 +194,7 @@ public class SSAGenerator {
 		}
 		
 		List<FlowEdge<BasicBlock>> succs = new ArrayList<>(cfg.getEdges(b));
-		Collections.sort(succs, new Comparator<FlowEdge<BasicBlock>>() {
-			@Override
-			public int compare(FlowEdge<BasicBlock> o1, FlowEdge<BasicBlock> o2) {
-				return o1.dst.compareTo(o2.dst);
-			}
-		});
+		Collections.sort(succs, (o1, o2) -> o1.dst.compareTo(o2.dst));
 				
 		// TODO: maybe sort succs
 		
@@ -250,7 +244,7 @@ public class SSAGenerator {
 		}
 	}
 	
-	VersionedLocal _gen_name(int index, boolean isStack) {
+	private VersionedLocal _gen_name(int index, boolean isStack) {
 		Local l = handler.get(index, isStack);
 		int subscript = counters.get(l);
 		stacks.get(l).push(subscript);
@@ -258,7 +252,7 @@ public class SSAGenerator {
 		return handler.get(index, subscript, isStack);
 	}
 	
-	VersionedLocal _top(Statement root, int index, boolean isStack) {
+	private VersionedLocal _top(Statement root, int index, boolean isStack) {
 		Local l = handler.get(index, isStack);
 		Stack<Integer> stack = stacks.get(l);
 		if(stack == null) {
@@ -287,7 +281,7 @@ public class SSAGenerator {
 		throw new IllegalStateException(b.getId() + " /-> " + s);
 	}
 	
-	void computePhis() {
+	private void computePhis() {
 		int localCount = 0;
 		for(Local local : new HashSet<>(locals)) {
 			localCount++;
@@ -301,7 +295,7 @@ public class SSAGenerator {
 		}
 	}
 	
-	void process(int localCount, Local l, BasicBlock s) {
+	private void process(int localCount, Local l, BasicBlock s) {
 		if(s == exit) {
 			return;
 		}
