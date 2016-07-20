@@ -283,7 +283,8 @@ public class SSAGenerator {
 	
 	private void computePhis() {
 		int localCount = 0;
-		for(Local local : new HashSet<>(locals)) {
+		for(Local local : locals) {
+			System.err.println("(0.0.0) process " + local);
 			localCount++;
 			for(BasicBlock b : assigns.get(local)) {
 				process.put(b, localCount);
