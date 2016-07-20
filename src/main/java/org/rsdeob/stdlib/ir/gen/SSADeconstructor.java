@@ -5,6 +5,7 @@ import org.rsdeob.stdlib.cfg.BasicBlock;
 import org.rsdeob.stdlib.cfg.ControlFlowGraph;
 import org.rsdeob.stdlib.cfg.util.TypeUtils;
 import org.rsdeob.stdlib.collections.SetMultimap;
+import org.rsdeob.stdlib.collections.graph.util.GraphUtils;
 import org.rsdeob.stdlib.ir.CodeBody;
 import org.rsdeob.stdlib.ir.expr.Expression;
 import org.rsdeob.stdlib.ir.expr.PhiExpression;
@@ -52,26 +53,7 @@ public class SSADeconstructor {
 		localTypes = new HashMap<>();
 		uses = new SetMultimap<>();
 		
-		initBlocks();
-	}
-	
-	private void initBlocks() {
-		for (BasicBlock b : cfg.vertices()) {
-			b.getStatements().clear();
-		}
-		
-		BasicBlock currentHeader = null;
-		for (Statement stmt : body) {
-			if (stmt instanceof HeaderStatement) {
-				currentHeader = cfg.getBlock(((HeaderStatement) stmt).getHeaderId());
-			} else {
-				if (currentHeader == null) {
-					throw new IllegalStateException();
-				} else if (!(stmt instanceof PhiExpression)) {
-					currentHeader.getStatements().add(stmt);
-				}
-			}
-		}
+		GraphUtils.rewriteCfg(cfg, body);
 	}
 	
 	// Processing code
@@ -90,33 +72,10 @@ public class SSADeconstructor {
 				if (expr instanceof PhiExpression) {
 					Local l = copy.getVariable().getLocal();
 					PhiExpression phi = (PhiExpression) expr;
-					phiSanityCheck(phi);
 					unroll(phi, l);
 					body.remove(copy);
 					localsAccess.defs.remove(vl(l));
 					localsAccess.useCount.remove(vl(l));
-				}
-			}
-		}
-	}
-	
-	private void phiSanityCheck(PhiExpression phi) {
-		// Sanity check
-		BasicLocal unversionedLocal = null;
-		for (Expression phiLocal : phi.getLocals().values()) {
-			for (Statement child : phiLocal.getUsedVars()) {
-				VarExpression childVar = (VarExpression) child;
-				if (!(childVar.getLocal() instanceof VersionedLocal)) {
-					phi.debugPrint();
-					throw new IllegalArgumentException("Phi has invalid non-versioned local " + phiLocal);
-				} else {
-					VersionedLocal versionedLocal = (VersionedLocal) childVar.getLocal();
-					if (unversionedLocal == null)
-						unversionedLocal = locals.unversion(versionedLocal);
-					if (!versionedLocal.isVersionOf(unversionedLocal)) {
-						phi.debugPrint();
-						throw new IllegalArgumentException("Mismatched base locals " + versionedLocal + " " + unversionedLocal + " (we need to implement register allocation)");
-					}
 				}
 			}
 		}
