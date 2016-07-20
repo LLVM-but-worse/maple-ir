@@ -3,7 +3,6 @@ package org.rsdeob.stdlib.ir.transform.ssa;
 import org.rsdeob.stdlib.ir.CodeBody;
 import org.rsdeob.stdlib.ir.expr.PhiExpression;
 import org.rsdeob.stdlib.ir.expr.VarExpression;
-import org.rsdeob.stdlib.ir.locals.BasicLocal;
 import org.rsdeob.stdlib.ir.locals.Local;
 import org.rsdeob.stdlib.ir.locals.VersionedLocal;
 import org.rsdeob.stdlib.ir.stat.CopyVarStatement;
@@ -13,8 +12,6 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public class SSAUtil {
 	/**
@@ -41,23 +38,11 @@ public class SSAUtil {
 		return allStmts;
 	}
 	
-	public static Stream<CopyVarStatement> getPhiCopies(CodeBody code) {
-		return code.stream().filter(stmt -> stmt instanceof CopyVarStatement).map(cvs -> (CopyVarStatement) cvs)
-						.filter(cvs -> cvs.getExpression() instanceof PhiExpression);
-	}
-	
-	public static Set<VersionedLocal> getPhiLocals(CodeBody code) {
-		Set<VersionedLocal> locals = new HashSet<>();
-		getPhiCopies(code).map(Statement::getUsedVars).flatMap(Set::stream).map(VarExpression::getLocal) // flatten Stream<Set<Local>> to Stream<VersionedLocal>
-				.map(SSAUtil::vl).collect(Collectors.toCollection(() -> locals));
-		return locals;
-	}
-	
 	public static Set<Statement> visitAll(CodeBody code) {
 		return visitAll(code, stmt -> true);
 	}
 	
-	public static void replaceLocals(CodeBody code, Predicate<VersionedLocal> filter, Function<VersionedLocal, BasicLocal> replaceFn) {
+	public static void replaceLocals(CodeBody code, Predicate<VersionedLocal> filter, Function<VersionedLocal, Local> replaceFn) {
 		for (Statement child : visitAll(code)) {
 			VarExpression var = null;
 			if (child instanceof VarExpression) {

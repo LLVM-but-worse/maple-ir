@@ -38,10 +38,14 @@ public class SSADeconstructor {
 	private SSALocalAccess localsAccess;
 	private final ControlFlowGraph cfg;
 	
-	private final Map<VersionedLocal, BasicLocal> undroppableLocals;
-	private final Map<VersionedLocal, Type> localTypes;
-	private final SetMultimap<VersionedLocal, VarExpression> uses; // umm...this is updated but never queried. what
+	// variable interference resolution
+	private Set<VersionedLocal> interferingLocals;
+	
+	// SetMultimap<>() type enforcement
+	private Map<VersionedLocal, Type> localTypes;
 	private int maxLocals;
+	
+	private final SetMultimap<VersionedLocal, VarExpression> uses; // umm...this is updated but never queried. what
 	
 	public SSADeconstructor(CodeBody body, ControlFlowGraph cfg) {
 		this.body = body;
@@ -49,8 +53,6 @@ public class SSADeconstructor {
 		localsAccess = new SSALocalAccess(body);
 		
 		locals = body.getLocals();
-		undroppableLocals = new HashMap<>();
-		localTypes = new HashMap<>();
 		uses = new SetMultimap<>();
 		
 		GraphUtils.rewriteCfg(cfg, body);
@@ -59,7 +61,8 @@ public class SSADeconstructor {
 	// Processing code
 	public void run() {
 		unrollPhis();
-		typeVars();
+		resolveInterferingVars();
+		enforceVarTyping();
 		dropSubscripts();
 	}
 	
@@ -117,8 +120,51 @@ public class SSADeconstructor {
 		}
 	}
 	
+	private void computeMaxLocals() {
+		for (VersionedLocal local : localsAccess.defs.keySet())
+			maxLocals = Math.max(maxLocals, local.getIndex());
+		System.err.println("(1.0.0) maxLocals = " + maxLocals);
+	}
+	
+	private void resolveInterferingVars() {
+		localsAccess = new SSALocalAccess(body);
+		computeMaxLocals();
+		findInterferingVars();
+		fixInterferingVars();
+		localsAccess = null;
+	}
+	
+	private void findInterferingVars() {
+		interferingLocals = new HashSet<>();
+		for (BasicBlock block : cfg.vertices()) {
+			Map<BasicLocal, Integer> usedLocals = new HashMap<>();
+			for (Statement stmt : block.getStatements()) {
+				for (VarExpression var : stmt.getUsedVars()) {
+					if (var.getLocal() instanceof VersionedLocal) {
+						VersionedLocal versioned = (VersionedLocal) var.getLocal();
+						BasicLocal unversioned = locals.unversion(versioned);
+						if (!usedLocals.containsKey(unversioned))
+							usedLocals.put(unversioned, versioned.getSubscript());
+						if (usedLocals.get(unversioned) != versioned.getSubscript()) {
+							interferingLocals.add(versioned);
+							System.err.println("(1.1.0) #" + block.getId() + ", " + unversioned + " interferes (" + usedLocals.get(unversioned) + " vs " + versioned.getSubscript() + ")");
+						}
+					}
+				}
+			}
+		}
+	}
+	
+	private void fixInterferingVars() {
+		for (VersionedLocal usedLocal : interferingLocals) {
+			VersionedLocal reassignLocal = locals.get(++maxLocals, 0, false);
+			replaceLocals(body, versionedLocal -> versionedLocal == usedLocal, versionedLocal -> reassignLocal);
+			System.err.println("(1.1.1) Reassigned interfering local " + usedLocal + " to " + reassignLocal);
+		}
+	}
+	
 	// Variable typing
-	private void typeVars() {
+	private void enforceVarTyping() {
 		localsAccess = new SSALocalAccess(body);
 		computeMaxLocals();
 		mapTypes();
@@ -126,12 +172,8 @@ public class SSADeconstructor {
 		localsAccess = null;
 	}
 	
-	private void computeMaxLocals() {
-		for (VersionedLocal local : localsAccess.defs.keySet())
-			maxLocals = Math.max(maxLocals, local.getIndex());
-	}
-	
 	private void mapTypes() {
+		localTypes = new HashMap<>();
 		for (Statement var : visitAll(body, child -> child instanceof VarExpression))
 			mapType((VarExpression) var);
 		for (Statement cvs : visitAll(body, child -> child instanceof CopyVarStatement && ((CopyVarStatement) child).isSynthetic()))
@@ -160,35 +202,33 @@ public class SSADeconstructor {
 		for (Entry<BasicLocal, Set<Type>> e : simpleTypes.asMap().entrySet()) {
 			BasicLocal local = e.getKey();
 			Set<Type> types = e.getValue();
-			System.out.println("(2.2) " + local + ": " + types);
+			System.err.println("(1.3.0) " + local + ": " + types);
 			if (types.size() > 1) {
 				unweaveLocal(local, types);
 			}
 		}
-		System.out.println("(2.3)Undroppable locals: " + undroppableLocals);
 	}
 	
 	private void unweaveLocal(BasicLocal local, Set<Type> set) {
-		System.out.println("Need to unweave " + local);
+		System.err.println("(1.3.1) Need to unweave " + local);
 		
 		// wind up spindle
 		Map<Type, BasicLocal> spindle = new HashMap<>();
 		for (Type simpleType : set) {
-			BasicLocal newLocal = locals.get(++maxLocals, local.isStack());
+			BasicLocal newLocal = locals.get(++maxLocals, false);
 			spindle.put(simpleType, newLocal);
-			System.out.println("Reassigning clash type " + simpleType + " to " + newLocal);
+			System.err.println("(1.3.2) Reassigning clash type " + simpleType + " to " + newLocal);
 		}
 		
 		// unwind spindle
 		for (VersionedLocal usedLocal : localsAccess.defs.keySet()) {
-			System.out.println(usedLocal + " " + usedLocal.isVersionOf(local));
+			System.err.println(usedLocal + " " + usedLocal.isVersionOf(local));
 			if (usedLocal.isVersionOf(local)) {
 				// usedLocal is clashing
 				Type complexType = localTypes.get(usedLocal);
 				BasicLocal reassignLocal = spindle.get(TypeUtils.asSimpleType(complexType));
-				undroppableLocals.put(usedLocal, reassignLocal);
 				replaceLocals(body, versionedLocal -> versionedLocal == usedLocal, versionedLocal -> reassignLocal);
-				System.out.println("(2.4) Reassigned clash local " + usedLocal + "(type=" + complexType + ") to " + reassignLocal);
+				System.err.println("(1.3.3) Reassigned clash local " + usedLocal + "(type=" + complexType + ") to " + reassignLocal);
 			}
 		}
 	}
