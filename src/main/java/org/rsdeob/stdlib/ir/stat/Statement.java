@@ -276,24 +276,20 @@ public abstract class Statement implements FastGraphVertex {
 		Set<Statement> stmts = new HashSet<>();
 		if (filter.test(this))
 			stmts.add(this);
-		if(this instanceof PhiExpression) {
-			throw new UnsupportedOperationException(this.toString());
-		} else {
-			new StatementVisitor(this) {
-				@Override
-				public Statement visit(Statement stmt) {
-					if (filter.test(stmt))
-						stmts.add(stmt);
-					if(stmt instanceof PhiExpression) {
-						PhiExpression phi = (PhiExpression) stmt;
-						for(Expression s : phi.getLocals().values()) {
-							stmts.addAll(s.enumerate(filter));
-						}
+		new StatementVisitor(this) {
+			@Override
+			public Statement visit(Statement stmt) {
+				if (filter.test(stmt))
+					stmts.add(stmt);
+				if(stmt instanceof PhiExpression) {
+					PhiExpression phi = (PhiExpression) stmt;
+					for(Expression s : phi.getLocals().values()) {
+						stmts.addAll(s.enumerate(filter));
 					}
-					return stmt;
 				}
-			}.visit();
-		}
+				return stmt;
+			}
+		}.visit();
 		return stmts;
 	}
 	
@@ -304,24 +300,17 @@ public abstract class Statement implements FastGraphVertex {
 	public Set<Statement> enumerate_deep(Predicate<Statement> filter) {
 		Set<Statement> stmts = new HashSet<>();
 		stmts.add(this);
-		if(this instanceof PhiExpression) {
-			PhiExpression phi = (PhiExpression) this;
-			for(Expression s : phi.getLocals().values()) {
-				stmts.addAll(s.enumerate_deep());
-			}
-		} else {
-			new StatementVisitor(this) {
-				@Override
-				public Statement visit(Statement stmt) {
-					if(stmt instanceof PhiExpression) {
-						stmts.addAll(stmt.enumerate_deep());
-					} else {
-						stmts.add(stmt);
-					}
-					return stmt;
+		new StatementVisitor(this) {
+			@Override
+			public Statement visit(Statement stmt) {
+				if(stmt instanceof PhiExpression) {
+					stmts.addAll(stmt.enumerate_deep());
+				} else {
+					stmts.add(stmt);
 				}
-			}.visit();
-		}
+				return stmt;
+			}
+		}.visit();
 		return stmts;
 	}
 }

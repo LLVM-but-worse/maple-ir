@@ -13,6 +13,8 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class SSAUtil {
 	/**
@@ -37,6 +39,18 @@ public class SSAUtil {
 		Set<Statement> allStmts = new HashSet<>();
 		code.forEach(stmt -> stmt.enumerate(filter).forEach(allStmts::add));
 		return allStmts;
+	}
+	
+	public static Stream<CopyVarStatement> getPhiCopies(CodeBody code) {
+		return code.stream().filter(stmt -> stmt instanceof CopyVarStatement).map(cvs -> (CopyVarStatement) cvs)
+						.filter(cvs -> cvs.getExpression() instanceof PhiExpression);
+	}
+	
+	public static Set<VersionedLocal> getPhiLocals(CodeBody code) {
+		Set<VersionedLocal> locals = new HashSet<>();
+		getPhiCopies(code).map(Statement::getUsedVars).flatMap(Set::stream).map(VarExpression::getLocal) // flatten Stream<Set<Local>> to Stream<VersionedLocal>
+				.map(SSAUtil::vl).collect(Collectors.toCollection(() -> locals));
+		return locals;
 	}
 	
 	public static Set<Statement> visitAll(CodeBody code) {
