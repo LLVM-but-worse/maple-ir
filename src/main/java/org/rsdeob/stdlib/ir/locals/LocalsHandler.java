@@ -82,16 +82,16 @@ public class LocalsHandler {
 	public void realloc(CodeBody code) {
 		SetMultimap<Local, Type> types = new SetMultimap<>();
 		for(Statement stmt : code) {
-			for (VarExpression var : stmt.getUsedVars()) {
-				Local local = var.getLocal();
-				types.put(local, var.getType());
-				System.out.println("(1)type of " + stmt + " = " + var.getType() + " (local=" + local + ")");
-			}
 			for(Statement s : stmt.enumerate(child -> child instanceof CopyVarStatement && ((CopyVarStatement) child).isSynthetic())) {
 				VarExpression var = ((CopyVarStatement) s).getVariable();
 				Local local = var.getLocal();
 				types.put(local, var.getType());
-				System.out.println("(2)type of " + s + " = " + var.getType() + " (local=" + local + ")");
+				System.err.println("(2.0.0) type of " + s + " = " + var.getType() + " (local=" + local + ")");
+			}
+			for (VarExpression var : stmt.getUsedVars()) {
+				Local local = var.getLocal();
+				types.put(local, var.getType());
+				System.err.println("(2.0.1) type of " + stmt + " = " + var.getType() + " (local=" + local + ")");
 			}
 		}
 
@@ -121,7 +121,7 @@ public class LocalsHandler {
 		int index = 0;
 		for(Local l : worklist) {
 			Type type = saveTypes.get(l);
-			System.out.println(l + "  set to " + index);
+			System.err.println("(2.1.0) " + l + "  set to " + index);
 			l.setIndex(index);
 			index += type.getSize();
 		}

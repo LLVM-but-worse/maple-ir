@@ -67,9 +67,9 @@ public class AnalyticsTest {
 //			a.<init>()V 16
 //			a.di(Lb;ZI)V 268
 //			a.n(Ljava/lang/String;I)I 18
-//			if (!m.toString().equals("a/a/f/a.<init>()V")) {
-//				continue;
-//			}
+			if (!m.toString().equals("a/a/f/a.H(J)La/a/f/o;") && (!m.toString().equals("a/a/f/a.<init>()V") || false)) {
+				continue;
+			}
 //			LocalsTest.main([Ljava/lang/String;)V
 //			org/rsdeob/AnalyticsTest.tryidiots(I)V
 //			a/a/f/a.<init>()V
@@ -135,9 +135,9 @@ public class AnalyticsTest {
 //			(new CFGDotExporter(cfg, blocks, m.name, "-optimised-cfg")).output(DotExporter.OPT_DEEP);
 //			(new SGDotExporter(sgraph, code, m.name, "-optimised-sg")).output(DotExporter.OPT_DEEP);
 			
-			LivenessAnalyser liveness = new LivenessAnalyser(sgraph);
+			LivenessAnalyser liveness2 = new LivenessAnalyser(sgraph);
 			DefinitionAnalyser definitions = new DefinitionAnalyser(sgraph);
-			CodeAnalytics analytics = new CodeAnalytics(code, cfg, sgraph, liveness, definitions);
+			CodeAnalytics analytics = new CodeAnalytics(code, cfg, sgraph, liveness2, definitions);
 			StatementWriter writer = new StatementWriter(code, cfg);
 			MethodNode m2 = new MethodNode(m.owner, m.access, m.name, m.desc, m.signature, m.exceptions.toArray(new String[0]));
 			writer.dump(m2, analytics);
@@ -149,7 +149,7 @@ public class AnalyticsTest {
 			System.out.println("============================================================\n\n");
 		}
 		
-		ClassWriter clazz = new ClassWriter(0);
+		ClassWriter clazz = new ClassWriter(ClassWriter.COMPUTE_FRAMES);
 		cn.accept(clazz);
 		byte[] saved = clazz.toByteArray();
 		FileOutputStream out = new FileOutputStream(new File("out/testclass.class"));
