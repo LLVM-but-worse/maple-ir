@@ -242,7 +242,8 @@ public class SSAGenerator {
 								} else {
 									Type t = varDef.getType();
 									Type oldT = cvs.getType();
-									if(!oldT.equals(t)) {
+									// TODO: common supertypes
+									if(!oldT.equals(TypeUtils.asSimpleType(t))) {
 										throw new IllegalStateException(l + " " + cvs + " " + t + " " + cvs.getType());
 									}
 								}
