@@ -15,6 +15,7 @@ import org.mapleir.stdlib.cfg.BasicBlock;
 import org.mapleir.stdlib.cfg.ControlFlowGraph;
 import org.mapleir.stdlib.cfg.edge.DummyEdge;
 import org.mapleir.stdlib.cfg.edge.FlowEdge;
+import org.mapleir.stdlib.cfg.util.TypeUtils;
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.SetCreator;
 import org.mapleir.stdlib.collections.graph.flow.TarjanDominanceComputor;
@@ -31,6 +32,7 @@ import org.mapleir.stdlib.ir.locals.VersionedLocal;
 import org.mapleir.stdlib.ir.stat.CopyVarStatement;
 import org.mapleir.stdlib.ir.stat.Statement;
 import org.mapleir.stdlib.ir.transform.impl.LivenessAnalyser;
+import org.objectweb.asm.Type;
 
 public class SSAGenerator {
 
@@ -84,6 +86,8 @@ public class SSAGenerator {
 	final Map<Local, Integer> counters;
 	final Map<Local, Stack<Integer>> stacks;
 	
+	final Map<VersionedLocal, CopyVarStatement> defs;
+	
 	final LivenessAnalyser liveness;
 	
 	public SSAGenerator(CodeBody body, ControlFlowGraph cfg, Map<BasicBlock, BlockHeaderStatement> headers) {
@@ -106,6 +110,7 @@ public class SSAGenerator {
 		stacks = new HashMap<>();
 		
 		liveness = new LivenessAnalyser(StatementGraphBuilder.create(cfg));
+		defs = new HashMap<>();
 		
 		init();
 		doms = new TarjanDominanceComputor<>(cfg);
@@ -168,12 +173,15 @@ public class SSAGenerator {
 				if(cvs.getExpression() instanceof PhiExpression) {
 					VarExpression var = cvs.getVariable();
 					Local lhs = var.getLocal();
-					var.setLocal(_gen_name(lhs.getIndex(), lhs.isStack()));
+					VersionedLocal vl = _gen_name(lhs.getIndex(), lhs.isStack());
+					var.setLocal(vl);
+					defs.put(vl, cvs);
 				}
 			}
 		}
 		
 		for(Statement s : b.getStatements())  {
+			// doesn't even phi arguments.
 			new StatementVisitor(s) {
 				@Override
 				public Statement visit(Statement stmt) {
@@ -181,7 +189,6 @@ public class SSAGenerator {
 						VarExpression var = (VarExpression) stmt;
 						Local l = var.getLocal();
 						var.setLocal(_top(s, l.getIndex(), l.isStack()));
-						
 					}
 					return stmt;
 				}
@@ -192,7 +199,9 @@ public class SSAGenerator {
 				if(!(copy.getExpression() instanceof PhiExpression)) {
 					VarExpression var = copy.getVariable();
 					Local lhs = var.getLocal();
-					var.setLocal(_gen_name(lhs.getIndex(), lhs.isStack()));
+					VersionedLocal vl = _gen_name(lhs.getIndex(), lhs.isStack());
+					var.setLocal(vl);
+					defs.put(vl, copy);
 				}
 			}
 		}
@@ -222,9 +231,23 @@ public class SSAGenerator {
 						PhiExpression phi = (PhiExpression) cvs.getExpression();
 						Expression e = phi.getLocal(header);
 						if(e instanceof VarExpression) {
-							VersionedLocal l = (VersionedLocal) ((VarExpression) e).getLocal();
+							Local l = (VersionedLocal) ((VarExpression) e).getLocal();
+							l = _top(s, l.getIndex(), l.isStack());
 							try {
-								phi.setLocal(header, _top(s, l.getIndex(), l.isStack()));
+								CopyVarStatement varDef = defs.get(l);
+								if(cvs.getType() == null) {
+									Type t = TypeUtils.asSimpleType(varDef.getType());
+									cvs.getVariable().setType(t);
+									phi.setType(t);
+								} else {
+									Type t = varDef.getType();
+									Type oldT = cvs.getType();
+									if(!oldT.equals(t)) {
+										throw new IllegalStateException(l + " " + cvs + " " + t + " " + cvs.getType());
+									}
+								}
+								VarExpression var = new VarExpression(l, varDef.getType());
+								phi.setLocal(header, var);
 							} catch (IllegalStateException eg) {
 								System.err.println(body);
 								System.err.println(succ.getId() + ": " + phi.getId() + ". " + phi);
