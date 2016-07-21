@@ -1,22 +1,22 @@
 package org.mapleir.stdlib.ir.expr;
 
-import org.mapleir.stdlib.cfg.util.TabbedStringWriter;
-import org.mapleir.stdlib.ir.header.HeaderStatement;
-import org.mapleir.stdlib.ir.locals.VersionedLocal;
-import org.mapleir.stdlib.ir.stat.Statement;
-import org.mapleir.stdlib.ir.transform.impl.CodeAnalytics;
-import org.objectweb.asm.MethodVisitor;
-import org.objectweb.asm.Type;
-
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import org.mapleir.stdlib.cfg.util.TabbedStringWriter;
+import org.mapleir.stdlib.ir.header.HeaderStatement;
+import org.mapleir.stdlib.ir.stat.Statement;
+import org.mapleir.stdlib.ir.transform.impl.CodeAnalytics;
+import org.objectweb.asm.MethodVisitor;
+import org.objectweb.asm.Type;
+
 public class PhiExpression extends Expression {
 
 	private final Map<HeaderStatement, Expression> locals;
+	private Type type;
 	
 	public PhiExpression(Map<HeaderStatement, Expression> locals) {
 		this.locals = locals;
@@ -46,16 +46,6 @@ public class PhiExpression extends Expression {
 		}
 	}
 	
-	public void setLocal(HeaderStatement header, VersionedLocal l) {
-		if(locals.containsKey(header)) {
-			Expression oldE = locals.get(header);
-			locals.put(header, new VarExpression(l, oldE.getType()));
-		} else {
-			System.err.println(locals);
-			throw new IllegalStateException("phi has a fixed size of " + locals.size() + ": " + header + ", " + l);
-		}
-	}
-	
 	@Override
 	public void onChildUpdated(int ptr) {
 		
@@ -72,7 +62,11 @@ public class PhiExpression extends Expression {
 
 	@Override
 	public Type getType() {
-		return Type.VOID_TYPE;
+		return type;
+	}
+	
+	public void setType(Type type) {
+		this.type = type;
 	}
 
 	@Override
