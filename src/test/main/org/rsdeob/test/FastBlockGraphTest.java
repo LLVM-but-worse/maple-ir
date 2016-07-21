@@ -1,11 +1,11 @@
 package org.rsdeob.test;
 
-import org.junit.Test;
-import org.rsdeob.stdlib.cfg.BasicBlock;
-import org.rsdeob.stdlib.cfg.FastBlockGraph;
-import org.rsdeob.stdlib.cfg.edge.ImmediateEdge;
-
 import static org.junit.Assert.assertTrue;
+
+import org.junit.Test;
+import org.mapleir.stdlib.cfg.BasicBlock;
+import org.mapleir.stdlib.cfg.FastBlockGraph;
+import org.mapleir.stdlib.cfg.edge.ImmediateEdge;
 
 public class FastBlockGraphTest {
 
@@ -124,15 +124,15 @@ public class FastBlockGraphTest {
 		graph.addEdge(e, new ImmediateEdge<BasicBlock>(e, g));
 
 		graph.addEdge(f, new ImmediateEdge<BasicBlock>(f, g));
-
+		
 		System.out.println("preexcavate");
 		System.out.println(graph);
-
+	
 		graph.excavate(b);
 		System.out.println("postexcavate");
 		System.out.println(graph);
 	}
-
+	
 	private class TestFastBlockGraph extends FastBlockGraph {
 	}
 }
