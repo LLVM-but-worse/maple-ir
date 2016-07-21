@@ -2,8 +2,17 @@ package org.mapleir.stdlib.cfg.util;
 
 import static org.objectweb.asm.Opcodes.*;
 
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Set;
+
+import org.mapleir.stdlib.klass.ClassTree;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
+import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.util.Printer;
 
 public class TypeUtils {
@@ -559,5 +568,59 @@ public class TypeUtils {
 		} else {
 			throw new IllegalArgumentException(type.toString());
 		}
+	}
+	
+	/*
+	 * sorry this is a bit weird:
+	 * 1. bfs search to build list of all super classes of the types
+	 * 2. intersect search results to show things in common
+	 * 3. it's ordered. first in the list is nearest, end of the list is the furthest.
+	 */
+	public static List<Type> getCommonType(Type a, Type b, ClassTree tree) {
+		ClassNode an = tree.getClass(a.getClassName());
+		ClassNode bn = tree.getClass(b.getClassName());
+		
+		Set<ClassNode> ancestorsa = getClassesBfs(an, tree);
+		Set<ClassNode> ancestorsb = getClassesBfs(bn, tree);
+		
+		// ancestorsa ∩ ancestorsb
+		ancestorsa.retainAll(ancestorsb);
+		
+		List<Type> types = new ArrayList<Type>(); 
+			
+		for (ClassNode cn : ancestorsa) {
+			types.add(Type.getType(cn.name));
+		}
+		
+		return types;
+	}
+	
+	private static Set<ClassNode> getClassesBfs(ClassNode cn, ClassTree tree) {
+		// need to be linked hash set (preserves order)
+		Set<ClassNode> classes = new LinkedHashSet<ClassNode>();
+		Set<ClassNode> up = new LinkedHashSet<ClassNode>();
+		
+		up.add(cn);
+		
+		// dowhile because needs to exec once
+		do {
+			classes.addAll(up);
+			Set<ClassNode> cur = new LinkedHashSet<ClassNode>(up);
+			up.clear();
+			for (ClassNode each : cur) {
+				ClassNode spr = tree.getClass(each.superName);
+				
+				if (spr != null && !spr.name.equals("Object")) {
+					up.add(spr);
+				}
+				
+				for (String itfn : spr.interfaces) {
+					ClassNode itf = tree.getClass(itfn);
+					up.add(itf);
+				}
+			}
+		} while (!up.isEmpty());
+		
+		return classes;
 	}
 }
