@@ -29,9 +29,9 @@
  */
 package org.objectweb.asm.tree;
 
+import org.mapleir.stdlib.collections.graph.FastGraphVertex;
 import org.objectweb.asm.*;
 import org.objectweb.asm.commons.cfg.query.InsnQuery;
-import org.rsdeob.stdlib.collections.graph.FastGraphVertex;
 
 import java.util.ArrayList;
 import java.util.Arrays;
