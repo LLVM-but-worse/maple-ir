@@ -33,7 +33,7 @@ public class InstanceofExpression extends Expression {
 
 	@Override
 	public Type getType() {
-		return type;
+		return Type.BOOLEAN_TYPE;
 	}
 
 	public void setType(Type type) {
