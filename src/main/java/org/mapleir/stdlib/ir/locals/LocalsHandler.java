@@ -78,6 +78,8 @@ public class LocalsHandler {
 	
 	public void realloc(CodeBody code) {
 		NullPermeableHashMap<Local, Set<Type>> types = new NullPermeableHashMap<>(new SetCreator<>());
+		int min = 0;
+		Set<Local> safe = new HashSet<>();
 		for(Statement stmt : code) {
 			for(Statement s : Statement.enumerate(stmt)) {
 				if(s instanceof VarExpression) {
@@ -86,10 +88,13 @@ public class LocalsHandler {
 					types.getNonNull(local).add(var.getType());
 				} else if(s instanceof CopyVarStatement) {
 					CopyVarStatement cp = (CopyVarStatement) s;
-					if(cp.isSynthetic()) {
-						VarExpression var = cp.getVariable();
-						Local local = var.getLocal();
+					VarExpression var = cp.getVariable();
+					Local local = var.getLocal();
+					if(!cp.isSynthetic()) {
 						types.getNonNull(local).add(var.getType());
+					} else {
+						min = Math.max(min, local.getIndex());
+						safe.add(local);
 					}
 				}
 			}
@@ -110,20 +115,28 @@ public class LocalsHandler {
 					}
 					throw new RuntimeException("illegal typesets for " + e.getKey());
 				}
-				stypes.put(e.getKey(), refined.iterator().next());
+				Local l = e.getKey();
+				if(!safe.contains(l)) {
+					stypes.put(l, refined.iterator().next());
+				}
 			} else {
-				stypes.put(e.getKey(), set.iterator().next());
+				Local l = e.getKey();
+				if(!safe.contains(l)) {
+					stypes.put(l, set.iterator().next());
+				}
 			}
 		}
 		
-		System.out.println(stypes);
+//		for(Entry<Local, Type> e : stypes.entrySet()) {
+//			System.out.println(e.getKey() + "  ==  " + e.getValue());
+//		}
 		
 		// lvars then svars, ordered of course,
 		List<Local> wl = new ArrayList<>(stypes.keySet());
 		Collections.sort(wl);
 
 		Map<Local, Local> remap = new HashMap<>();
-		int idx = 0;
+		int idx = min + 1;
 		for(Local l : wl) {
 			Type type = stypes.get(l);
 			Local newL = get(idx, false);
