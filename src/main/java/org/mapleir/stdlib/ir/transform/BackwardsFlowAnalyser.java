@@ -4,6 +4,7 @@ import java.util.Iterator;
 import java.util.Set;
 
 import org.mapleir.stdlib.cfg.edge.FlowEdge;
+import org.mapleir.stdlib.cfg.edge.ImmediateEdge;
 import org.mapleir.stdlib.collections.graph.FastGraphVertex;
 import org.mapleir.stdlib.collections.graph.flow.FlowGraph;
 
@@ -29,7 +30,7 @@ public abstract class BackwardsFlowAnalyser<N extends FastGraphVertex, E extends
 		// the default flow states into our tables.
 		
 		for(N n : graph.vertices()) {
-			appendQueue(n);
+			queue.add(0, n);
 			in.put(n, newState());
 			out.put(n, newState());
 			
@@ -58,20 +59,23 @@ public abstract class BackwardsFlowAnalyser<N extends FastGraphVertex, E extends
 			
 			S currentOut = out.get(n);
 			Set<E> succs = graph.getEdges(n);
-			
+						
 			if(succs.size() == 1) {
 				N succ = succs.iterator().next().dst;
 				S succIn = in.get(succ);
-				copy(succIn, currentOut);
+				flowThrough(succ, succIn, n, currentOut);
 			} else if(succs.size() > 1) {
 				Iterator<E> it = succs.iterator();
 
-				N firstSucc = it.next().dst;
-				copy(in.get(firstSucc), currentOut);
-
 				while(it.hasNext()) {
-					S merging = in.get(it.next().dst);
-					merge(currentOut, merging);
+					E e = it.next();
+					N dst = e.dst;
+					if(e instanceof ImmediateEdge) {
+						flowThrough(dst, in.get(dst), n, currentOut);
+					} else {
+						S merging = in.get(dst);
+						merge(n, currentOut, dst, merging);
+					}
 				}
 			}
 			
@@ -93,10 +97,7 @@ public abstract class BackwardsFlowAnalyser<N extends FastGraphVertex, E extends
 	protected abstract S newEntryState();
 
 	@Override
-	protected abstract void merge(S in1, S in2, S out);
-	
-	@Override
-	protected abstract void copy(S src, S dst);
+	protected abstract void merge(N nIn1, S in1, N nIn2, S in2, S out);
 	
 	@Override
 	protected abstract boolean equals(S s1, S s2);
