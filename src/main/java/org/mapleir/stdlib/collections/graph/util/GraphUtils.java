@@ -7,6 +7,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -19,6 +20,7 @@ import org.mapleir.stdlib.cfg.edge.FlowEdge;
 import org.mapleir.stdlib.cfg.edge.JumpEdge;
 import org.mapleir.stdlib.cfg.edge.SwitchEdge;
 import org.mapleir.stdlib.cfg.util.LabelHelper;
+import org.mapleir.stdlib.cfg.util.TabbedStringWriter;
 import org.mapleir.stdlib.cfg.util.ControlFlowGraphDeobfuscator.SuperNode;
 import org.mapleir.stdlib.collections.graph.flow.ExceptionRange;
 import org.mapleir.stdlib.ir.CodeBody;
@@ -287,7 +289,7 @@ public class GraphUtils {
 		StringBuilder sb = new StringBuilder("\n=========CFG(block_count=").append(blocks.size()).append("(").append(LabelHelper.createBlockName(blocks.size())).append("), ").append("insn_count=").append(total).append(") ").append("=========\n\n");
 		int i = 0;
 		for(BasicBlock b : blocks) {
-			printBlock(cfg, blocks, sb, b, i);
+			printBlock(cfg, blocks, sb, b, i, false);
 			i += b.size();
 			i++; // label
 		}
@@ -312,110 +314,127 @@ public class GraphUtils {
 		return sb.toString();
 	}
 
-	public static void printBlock(ControlFlowGraph cfg, Collection<BasicBlock> blocks, StringBuilder sb, BasicBlock b, int insns, boolean headers) {
+	public static void printBlock(ControlFlowGraph cfg, Collection<BasicBlock> blocks, StringBuilder sb, BasicBlock b, int insns, boolean headers, boolean stmts) {
 		if(headers) {
 			sb.append("===#").append(b.isDummy() ? "Dummy" : "").append("Block ").append(b.getId()).append("(size=").append(b.size()).append(", ident=").append(b.getLabel() != null ? b.getLabel().hashCode() : "null").append(")===\n");
 		}
 
-		for(AbstractInsnNode ain : b.getInsns()) {
-			if(ain.type() != AbstractInsnNode.FRAME && headers) {
-				sb.append("       ").append(insns).append(". ");
+		if(stmts) {
+			TabbedStringWriter sw = new TabbedStringWriter();
+			sw.tab();
+			sw.tab();
+			sw.forceIndent();
+			ListIterator<Statement> lit = b.getStatements().listIterator();
+			while(lit.hasNext()) {
+				lit.next().toString(sw);
+				if(!lit.hasNext()) {
+					sw.untab();
+					sw.untab();
+				}
+				sw.print("\n");
 			}
-			insns++;
-			if(ain.type() != AbstractInsnNode.FRAME && ain.type() != AbstractInsnNode.LINE && ain.type() != AbstractInsnNode.LABEL) {
-				sb.append(Printer.OPCODES[ain.opcode()].toLowerCase());
-			}
-			switch(ain.type()) {
-				case AbstractInsnNode.LINE:
-					sb.append(" Line ").append(((LineNumberNode)ain).line);
-					break;
-				case AbstractInsnNode.FRAME:
-					break;
-				case AbstractInsnNode.LABEL:
-					sb.append(" Label").append(' ').append(cfg.getBlock((LabelNode) ain));
-					break;
+			sb.append(sw.toString());
+		} else {
+			for(AbstractInsnNode ain : b.getInsns()) {
+				if(ain.type() != AbstractInsnNode.FRAME && headers) {
+					sb.append("       ").append(insns).append(". ");
+				}
+				insns++;
+				if(ain.type() != AbstractInsnNode.FRAME && ain.type() != AbstractInsnNode.LINE && ain.type() != AbstractInsnNode.LABEL) {
+					sb.append(Printer.OPCODES[ain.opcode()].toLowerCase());
+				}
+				switch(ain.type()) {
+					case AbstractInsnNode.LINE:
+						sb.append(" Line ").append(((LineNumberNode)ain).line);
+						break;
+					case AbstractInsnNode.FRAME:
+						break;
+					case AbstractInsnNode.LABEL:
+						sb.append(" Label").append(' ').append(cfg.getBlock((LabelNode) ain));
+						break;
 
-				case AbstractInsnNode.INSN: {
-					break;
-				}
-				case AbstractInsnNode.INT_INSN: {
-					sb.append(' ').append(((IntInsnNode) ain).operand);
-					break;
-				}
-				case AbstractInsnNode.VAR_INSN: {
-					sb.append(' ').append(((VarInsnNode) ain).var);
-					break;
-				}
-				case AbstractInsnNode.TYPE_INSN: {
-					sb.append(' ').append(((TypeInsnNode) ain).desc);
-					break;
-				}
-				case AbstractInsnNode.FIELD_INSN: {
-					FieldInsnNode fin = (FieldInsnNode) ain;
-					if(headers) sb.append(' ').append(fin.owner).append('.').append(fin.name).append(' ').append(fin.desc);
-					break;
-				}
-				case AbstractInsnNode.METHOD_INSN: {
-					MethodInsnNode min = (MethodInsnNode) ain;
-					if(headers) sb.append(' ').append(min.owner).append('.').append(min.name).append(' ').append(min.desc);
-					break;
-				}
-				case AbstractInsnNode.INVOKE_DYNAMIC_INSN: {
-					// TODO: if it turns up
-					System.err.println("dynamic");
-					break;
-				}
-				case AbstractInsnNode.JUMP_INSN: {
-					JumpInsnNode jin = (JumpInsnNode) ain;
-					BasicBlock jb = cfg.getBlock(jin.label);
-					if(headers) {
-						sb.append(" #").append(jb != null ? jb.getId() : "null").append("   (").append(System.identityHashCode(jin)).append(", ").append(System.identityHashCode(jin.label)).append(")");
-					} else {
-						sb.append(" #").append(jb != null ? jb.getId() : "null");
+					case AbstractInsnNode.INSN: {
+						break;
 					}
-					break;
-				}
-				case AbstractInsnNode.LDC_INSN: {
-					LdcInsnNode ldc = (LdcInsnNode) ain;
-					sb.append(' ').append(ldc.cst).append(" (").append(ldc.cst != null ? ldc.cst.getClass().getSimpleName() : "").append(')');
-					break;
-				}
-				case AbstractInsnNode.IINC_INSN: {
-					IincInsnNode iinc = (IincInsnNode) ain;
-					sb.append(' ').append(iinc.var).append(' ').append(iinc.incr);
-					break;
-				}
-				case AbstractInsnNode.TABLESWITCH_INSN: {
-					TableSwitchInsnNode tsin = (TableSwitchInsnNode) ain;
-					for(int i=tsin.min; i <= tsin.max; i++) {
-						BasicBlock target = cfg.getBlock(tsin.labels.get(i - tsin.min));
-						sb.append("\n        [").append(i).append("] -> ").append('#').append(target.getId());
+					case AbstractInsnNode.INT_INSN: {
+						sb.append(' ').append(((IntInsnNode) ain).operand);
+						break;
 					}
-					BasicBlock dflt = cfg.getBlock(tsin.dflt);
-					sb.append("\n        [").append("dflt").append("] -> ").append('#').append(dflt.getId());
-					break;
-				}
-				case AbstractInsnNode.LOOKUPSWITCH_INSN: {
-					LookupSwitchInsnNode lsin = (LookupSwitchInsnNode) ain;
-					for(int i=0; i < lsin.keys.size(); i++) {
-						BasicBlock target = cfg.getBlock(lsin.labels.get(i));
-						sb.append("\n        [").append(lsin.keys.get(i)).append("] -> ").append('#').append(target.getId());
+					case AbstractInsnNode.VAR_INSN: {
+						sb.append(' ').append(((VarInsnNode) ain).var);
+						break;
 					}
-					BasicBlock dflt = cfg.getBlock(lsin.dflt);
-					sb.append("\n        [").append("dflt").append("] -> ").append('#').append(dflt.getId());
-					break;
+					case AbstractInsnNode.TYPE_INSN: {
+						sb.append(' ').append(((TypeInsnNode) ain).desc);
+						break;
+					}
+					case AbstractInsnNode.FIELD_INSN: {
+						FieldInsnNode fin = (FieldInsnNode) ain;
+						if(headers) sb.append(' ').append(fin.owner).append('.').append(fin.name).append(' ').append(fin.desc);
+						break;
+					}
+					case AbstractInsnNode.METHOD_INSN: {
+						MethodInsnNode min = (MethodInsnNode) ain;
+						if(headers) sb.append(' ').append(min.owner).append('.').append(min.name).append(' ').append(min.desc);
+						break;
+					}
+					case AbstractInsnNode.INVOKE_DYNAMIC_INSN: {
+						// TODO: if it turns up
+						System.err.println("dynamic");
+						break;
+					}
+					case AbstractInsnNode.JUMP_INSN: {
+						JumpInsnNode jin = (JumpInsnNode) ain;
+						BasicBlock jb = cfg.getBlock(jin.label);
+						if(headers) {
+							sb.append(" #").append(jb != null ? jb.getId() : "null").append("   (").append(System.identityHashCode(jin)).append(", ").append(System.identityHashCode(jin.label)).append(")");
+						} else {
+							sb.append(" #").append(jb != null ? jb.getId() : "null");
+						}
+						break;
+					}
+					case AbstractInsnNode.LDC_INSN: {
+						LdcInsnNode ldc = (LdcInsnNode) ain;
+						sb.append(' ').append(ldc.cst).append(" (").append(ldc.cst != null ? ldc.cst.getClass().getSimpleName() : "").append(')');
+						break;
+					}
+					case AbstractInsnNode.IINC_INSN: {
+						IincInsnNode iinc = (IincInsnNode) ain;
+						sb.append(' ').append(iinc.var).append(' ').append(iinc.incr);
+						break;
+					}
+					case AbstractInsnNode.TABLESWITCH_INSN: {
+						TableSwitchInsnNode tsin = (TableSwitchInsnNode) ain;
+						for(int i=tsin.min; i <= tsin.max; i++) {
+							BasicBlock target = cfg.getBlock(tsin.labels.get(i - tsin.min));
+							sb.append("\n        [").append(i).append("] -> ").append('#').append(target.getId());
+						}
+						BasicBlock dflt = cfg.getBlock(tsin.dflt);
+						sb.append("\n        [").append("dflt").append("] -> ").append('#').append(dflt.getId());
+						break;
+					}
+					case AbstractInsnNode.LOOKUPSWITCH_INSN: {
+						LookupSwitchInsnNode lsin = (LookupSwitchInsnNode) ain;
+						for(int i=0; i < lsin.keys.size(); i++) {
+							BasicBlock target = cfg.getBlock(lsin.labels.get(i));
+							sb.append("\n        [").append(lsin.keys.get(i)).append("] -> ").append('#').append(target.getId());
+						}
+						BasicBlock dflt = cfg.getBlock(lsin.dflt);
+						sb.append("\n        [").append("dflt").append("] -> ").append('#').append(dflt.getId());
+						break;
+					}
+					case AbstractInsnNode.MULTIANEWARRAY_INSN: {
+						MultiANewArrayInsnNode main = (MultiANewArrayInsnNode) ain;
+						sb.append(" ").append(main.desc).append(' ').append(main.dims);
+						break;
+					}
+					default: {
+						throw new UnsupportedOperationException(ain.toString());
+					}
 				}
-				case AbstractInsnNode.MULTIANEWARRAY_INSN: {
-					MultiANewArrayInsnNode main = (MultiANewArrayInsnNode) ain;
-					sb.append(" ").append(main.desc).append(' ').append(main.dims);
-					break;
+				if(ain.type() != AbstractInsnNode.FRAME) {
+					sb.append('\n');
 				}
-				default: {
-					throw new UnsupportedOperationException(ain.toString());
-				}
-			}
-			if(ain.type() != AbstractInsnNode.FRAME) {
-				sb.append('\n');
 			}
 		}
 
@@ -430,8 +449,8 @@ public class GraphUtils {
 		}
 	}
 
-	public static void printBlock(ControlFlowGraph cfg, Collection<BasicBlock> blocks, StringBuilder sb, BasicBlock b, int insns) {
-		printBlock(cfg, blocks, sb, b, insns, true);
+	public static void printBlock(ControlFlowGraph cfg, Collection<BasicBlock> blocks, StringBuilder sb, BasicBlock b, int insns, boolean stmts) {
+		printBlock(cfg, blocks, sb, b, insns, true, stmts);
 	}
 
 	// modes: 1 - recreate and destroy
@@ -455,7 +474,7 @@ public class GraphUtils {
 						Set<FlowEdge<BasicBlock>> jumps = b.getSuccessors(e -> e instanceof JumpEdge);
 						if(jumps.size() != 1) {
 							StringBuilder sb = new StringBuilder();
-							GraphUtils.printBlock(cfg, cfg.vertices(), sb, b, 0);
+							GraphUtils.printBlock(cfg, cfg.vertices(), sb, b, 0, false);
 							System.err.println(sb);
 							throw new IllegalStateException(cfg.getMethod() + " " + b.getId() + " " + Printer.OPCODES[ain.opcode()] + " " + jumps.toString() + " " + b.getSuccessors());
 						}
