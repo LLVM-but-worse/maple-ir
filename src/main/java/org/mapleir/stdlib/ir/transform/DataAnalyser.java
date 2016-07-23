@@ -56,10 +56,10 @@ public abstract class DataAnalyser<N extends FastGraphVertex, E extends FlowEdge
 		return graph;
 	}
 	
-	protected void merge(S mainBranch, S mergingBranch) {
+	protected void merge(N mainBranch, S mainBranchS, N mergingBranch, S mergingBranchS) {
 		S result = newState();
-		merge(mainBranch, mergingBranch, result);
-		copy(result, mainBranch);
+		merge(mainBranch, mainBranchS, mergingBranch, mergingBranchS, result);
+		copy(result, mainBranchS);
 	}
 	
 	public void appendQueue(N n) {
@@ -80,11 +80,17 @@ public abstract class DataAnalyser<N extends FastGraphVertex, E extends FlowEdge
 
 	protected abstract void copy(S src, S dst);
 	
-	protected abstract void copyException(S src, S dst);
-	
 	protected abstract boolean equals(S s1, S s2);
 	
-	protected abstract void merge(S in1, S in2, S out);
+	protected void flowThrough(N src, S srcS, N dst, S dstS) {
+		copy(srcS, dstS);
+	}
+	
+	protected void flowException(N src, S srcS, N dst, S dstS) {
+		copy(srcS, dstS);
+	}
+	
+	protected abstract void merge(N nIn1, S in1, N nIn2, S in2, S out);
 	
 	protected abstract void execute(N n, S currentOut, S currentIn);
 	

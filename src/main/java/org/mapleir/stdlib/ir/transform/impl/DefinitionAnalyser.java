@@ -59,8 +59,7 @@ public class DefinitionAnalyser extends ForwardsFlowAnalyser<Statement, FlowEdge
 		return newState();
 	}
 
-	@Override
-	protected void merge(NullPermeableHashMap<Local, Set<CopyVarStatement>> in1, NullPermeableHashMap<Local, Set<CopyVarStatement>> in2, NullPermeableHashMap<Local, Set<CopyVarStatement>> out) {
+	protected void merge(Statement nIn1, NullPermeableHashMap<Local, Set<CopyVarStatement>> in1, Statement nIn2, NullPermeableHashMap<Local, Set<CopyVarStatement>> in2, NullPermeableHashMap<Local, Set<CopyVarStatement>> out) {
 		for(Entry<Local, Set<CopyVarStatement>> e : in1.entrySet()) {
 			out.getNonNull(e.getKey()).addAll(e.getValue());
 		}
@@ -166,7 +165,7 @@ public class DefinitionAnalyser extends ForwardsFlowAnalyser<Statement, FlowEdge
 	}
 
 	@Override
-	protected void copyException(NullPermeableHashMap<Local, Set<CopyVarStatement>> src, NullPermeableHashMap<Local, Set<CopyVarStatement>> dst) {
+	protected void flowThrough(Statement srcS, NullPermeableHashMap<Local, Set<CopyVarStatement>> src, Statement dstS, NullPermeableHashMap<Local, Set<CopyVarStatement>> dst) {
 		for(Entry<Local, Set<CopyVarStatement>> e : src.entrySet()) {
 			Local local = e.getKey();
 			if(!local.isStack()) {

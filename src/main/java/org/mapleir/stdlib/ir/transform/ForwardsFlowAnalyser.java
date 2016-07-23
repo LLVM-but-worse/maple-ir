@@ -77,10 +77,11 @@ public abstract class ForwardsFlowAnalyser<N extends FastGraphVertex, E extends 
 				// FIXME: in the future define the
 				// exception in the state rather than
 				// letting DFA discover the catch() statement.
+				N src = edge.src;
 				if(edge instanceof TryCatchEdge) {
-					copyException(out.get(edge.src), currentIn);
+					flowException(src, out.get(src), n, currentIn);
 				} else {
-					copy(out.get(edge.src), currentIn);
+					flowThrough(src, out.get(src), n, currentIn);
 				}
 				
 				
@@ -97,26 +98,30 @@ public abstract class ForwardsFlowAnalyser<N extends FastGraphVertex, E extends 
 				
 				E edge = it.next();
 				if(edge instanceof TryCatchEdge) {
-					copyException(out.get(edge.src), currentIn);
+					N src = edge.src;
+					flowException(src, out.get(src), n, currentIn);
 				} else {
 					if(exc) {
 						throw new IllegalStateException("Natural flow into exception block?");
 					}
-					copy(out.get(edge.src), currentIn);
+					N src = edge.src;
+					flowThrough(src, out.get(src), n, currentIn);
 				}
 				
 				while(it.hasNext()) {
 					edge = it.next();
 					if(edge instanceof TryCatchEdge) {
 						S newS = newState();
-						copyException(out.get(edge.src), newS);
+						N src = edge.src;
+						flowException(src, out.get(src), n, newS);
 						copy(newS, currentIn);
 					} else {
 						if(exc) {
 							throw new IllegalStateException("Natural flow into exception block?");
 						}
-						S merging = out.get(edge.src);
-						merge(currentIn, merging);
+						N src = edge.src;
+						S merging = out.get(src);
+						merge(n, currentIn, src, merging);
 					}
 				}
 			}
@@ -139,13 +144,7 @@ public abstract class ForwardsFlowAnalyser<N extends FastGraphVertex, E extends 
 	protected abstract S newEntryState();
 
 	@Override
-	protected abstract void merge(S in1, S in2, S out);
-	
-	@Override
-	protected abstract void copy(S src, S dst);
-	
-	@Override
-	protected abstract void copyException(S src, S dst);
+	protected abstract void merge(N nIn1, S in1, N nIn2, S in2, S out);
 	
 	@Override
 	protected abstract boolean equals(S s1, S s2);
