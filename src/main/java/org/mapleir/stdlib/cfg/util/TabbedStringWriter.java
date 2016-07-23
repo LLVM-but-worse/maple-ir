@@ -44,6 +44,10 @@ public class TabbedStringWriter {
 	public void tab() {
 		tabCount++;
 	}
+	
+	public void forceIndent() {
+		buff.append(getTabs());
+	}
 
 	public void untab() {
 		if (tabCount <= 0) {
