@@ -68,12 +68,12 @@ public class SSADestructor {
 	void unroll(PhiExpression phi, Local l) {
 		for(Entry<HeaderStatement, Expression> e : phi.getLocals().entrySet()) {
 			Expression expr = e.getValue();
-			if(expr instanceof VarExpression) {
-				Local l2 = ((VarExpression) expr).getLocal();
-				if(l2.getIndex() == l.getIndex() && l2.isStack() == l.isStack()) {
-					continue;
-				}
-			}
+//			if(expr instanceof VarExpression) {
+//				Local l2 = ((VarExpression) expr).getLocal();
+//				if(l2.getIndex() == l.getIndex() && l2.isStack() == l.isStack()) {
+//					continue;
+//				}
+//			}
 			HeaderStatement header = e.getKey();
 			if(header instanceof BlockHeaderStatement) {
 				BlockHeaderStatement bh = (BlockHeaderStatement) header;
