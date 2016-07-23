@@ -103,7 +103,7 @@ public class LivenessAnalyser extends BackwardsFlowAnalyser<Statement, FlowEdge<
 	}
 
 	@Override
-	protected void merge(Map<Local, Boolean> in1, Map<Local, Boolean> in2, Map<Local, Boolean> out) {
+	protected void merge(Statement nIn1, Map<Local, Boolean> in1, Statement nIn2, Map<Local, Boolean> in2, Map<Local, Boolean> out) {
 		Set<Local> keys = new HashSet<>();
 		keys.addAll(in1.keySet());
 		keys.addAll(in2.keySet());
@@ -139,7 +139,7 @@ public class LivenessAnalyser extends BackwardsFlowAnalyser<Statement, FlowEdge<
 	}
 
 	@Override
-	protected void copyException(Map<Local, Boolean> src, Map<Local, Boolean> dst) {
+	protected void flowThrough(Statement srcS, Map<Local, Boolean> src, Statement dstS, Map<Local, Boolean> dst) {
 		for(Entry<Local, Boolean> e : src.entrySet()) {
 			Local l = e.getKey();
 			if(l.isStack()) {
