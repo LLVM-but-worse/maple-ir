@@ -41,8 +41,6 @@ public class StatementWriter {
 		m.instructions.clear();
 		m.tryCatchBlocks.clear();
 		stmts.getLocals().realloc(stmts);
-
-		System.out.println(stmts);
 		
 		for(HeaderStatement header : headers.values())
 			header.resetLabel();
