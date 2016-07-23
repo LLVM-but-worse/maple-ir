@@ -491,7 +491,7 @@ public class SSAPropagator extends SSATransformer {
 			if(stmt instanceof VarExpression) {
 				return choose(visitVar((VarExpression) stmt), stmt);
 			} else if(stmt instanceof PhiExpression) {
-				return choose(visitPhi((PhiExpression) stmt), stmt);
+//				return choose(visitPhi((PhiExpression) stmt), stmt);
 			}
 			return stmt;
 		}
