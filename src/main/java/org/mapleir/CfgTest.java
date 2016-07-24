@@ -1,12 +1,17 @@
 package org.mapleir;
 
+import java.io.File;
+import java.nio.charset.UnsupportedCharsetException;
+import java.util.ArrayList;
+import java.util.List;
+
 import org.mapleir.byteio.CompleteResolvingJarDumper;
 import org.mapleir.stdlib.cfg.BasicBlock;
 import org.mapleir.stdlib.cfg.ControlFlowGraph;
 import org.mapleir.stdlib.cfg.ControlFlowGraphBuilder;
+import org.mapleir.stdlib.cfg.util.CFGDotExporter;
 import org.mapleir.stdlib.cfg.util.ControlFlowGraphDeobfuscator;
 import org.mapleir.stdlib.collections.NodeTable;
-import org.mapleir.stdlib.collections.graph.util.CFGDotExporter;
 import org.mapleir.stdlib.collections.graph.util.DotExporter;
 import org.mapleir.stdlib.collections.graph.util.GraphUtils;
 import org.objectweb.asm.tree.ClassNode;
@@ -15,11 +20,6 @@ import org.topdank.banalysis.asm.insn.InstructionPrinter;
 import org.topdank.byteengineer.commons.data.JarInfo;
 import org.topdank.byteio.in.SingleJarDownloader;
 import org.topdank.byteio.out.JarDumper;
-
-import java.io.File;
-import java.nio.charset.UnsupportedCharsetException;
-import java.util.ArrayList;
-import java.util.List;
 
 public class CfgTest {
 

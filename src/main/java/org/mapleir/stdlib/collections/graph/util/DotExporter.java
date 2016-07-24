@@ -5,11 +5,14 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.mapleir.stdlib.cfg.edge.FlowEdge;
 import org.mapleir.stdlib.cfg.edge.TryCatchEdge;
+import org.mapleir.stdlib.collections.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.graph.FastGraphVertex;
 import org.mapleir.stdlib.collections.graph.flow.FlowGraph;
 
@@ -31,19 +34,28 @@ public abstract class DotExporter<G extends FlowGraph<V, FlowEdge<V>>, V extends
 
 	public static final int OPT_DEEP = 1;
 	public static final int OPT_HIDE_HANDLER_EDGES = 2;
+	
+	public static final int LABEL_START = 0;
+	public static final int LABEL_END = 1;
 
 	protected final G graph;
 	protected final List<V> order;
 	protected final String name;
 	private final String fileExt;
 	private final Map<V, String> highlight = new HashMap<>();
-	private final Map<V, String> labels = new HashMap<>();
+	private final NullPermeableHashMap<V, Set<String>> startLabels = new NullPermeableHashMap<>(HashSet::new);
+	private final NullPermeableHashMap<V, Set<String>> endLabels = new NullPermeableHashMap<>(HashSet::new);
+	
+	private String fontName;
+	private double fontSize;
 
 	public DotExporter(G graph, List<V> order, String name, String fileExt) {
 		this.graph = graph;
 		this.order = order;
 		this.name = name;
 		this.fileExt = fileExt;
+		fontName = "consolas bold";
+		fontSize = 8.0;
 
 		for (V b : graph.getEntries())
 			highlight.put(b, "red");
@@ -61,11 +73,19 @@ public abstract class DotExporter<G extends FlowGraph<V, FlowEdge<V>>, V extends
 		highlight.putAll(highlights);
 	}
 
-	public void addLabel(V v, String label) {
-		labels.put(v, label.replaceAll("\"", "\\\\\""));
+	public void addLabel(V v, String label, int position) {
+		(position == LABEL_START? startLabels : endLabels).getNonNull(v).add(label.replaceAll("\"", "\\\\\""));
+	}
+	
+	public void setFont(String fontName) {
+		this.fontName = fontName;
+	}
+	
+	public void setFontSize(double newSize) {
+		fontSize = newSize;
 	}
 
-	public void output(int options) {
+	public void export(int options) {
 		String fileName = escapeFileName(getFileName()) + fileExt;
 		BufferedWriter bw = null;
 
@@ -104,17 +124,22 @@ public abstract class DotExporter<G extends FlowGraph<V, FlowEdge<V>>, V extends
 		sb.append("digraph \"");
 		sb.append(name);
 		sb.append("\" {").append(System.lineSeparator());
+		sb.append("graph [fontname = \"").append(fontName).append("\", fontsize = ").append(fontSize).append(", dpi=200.0").append("];\n");
+		sb.append("node [fontname = \"").append(fontName).append("\", fontsize = ").append(fontSize).append(", dpi=200.0").append("];\n");
+		sb.append("edge [fontname = \"").append(fontName).append("\", fontsize = ").append(fontSize).append(", dpi=200.0").append("];\n");
 
 		for(V b : graph.vertices()) {
 			if (!filterBlock(b))
 				continue;
 			sb.append(b.getId()).append(" ");
-			sb.append("[shape=box, label=").append('"');
+			sb.append("[shape=box, labeljust=\"l\", label=").append('"');
 			sb.append(order.indexOf(b)).append(". ").append(b.getId());
+			for (String label : startLabels.getNonNull(b))
+				sb.append("\\l// ").append(label);
 			if((options & OPT_DEEP) == OPT_DEEP)
 				printBlock(b, sb);
-			if (labels.containsKey(b))
-				sb.append(" // ").append(labels.get(b));
+			for (String label : endLabels.getNonNull(b))
+				sb.append("// ").append(label).append("\\l");
 			sb.append('"');
 
 			if (highlight.containsKey(b))
