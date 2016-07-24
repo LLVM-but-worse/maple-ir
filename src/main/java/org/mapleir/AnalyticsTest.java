@@ -6,10 +6,10 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map.Entry;
 import java.util.jar.JarOutputStream;
 
 import org.mapleir.byteio.CompleteResolvingJarDumper;
@@ -18,12 +18,16 @@ import org.mapleir.stdlib.cfg.ControlFlowGraph;
 import org.mapleir.stdlib.cfg.ControlFlowGraphBuilder;
 import org.mapleir.stdlib.cfg.util.ControlFlowGraphDeobfuscator;
 import org.mapleir.stdlib.collections.NodeTable;
+import org.mapleir.stdlib.collections.graph.util.DotExporter;
 import org.mapleir.stdlib.collections.graph.util.GraphUtils;
+import org.mapleir.stdlib.collections.graph.util.SGBlockDotExporter;
 import org.mapleir.stdlib.ir.CodeBody;
 import org.mapleir.stdlib.ir.StatementGraph;
 import org.mapleir.stdlib.ir.StatementWriter;
+import org.mapleir.stdlib.ir.gen.InterferenceGraph;
 import org.mapleir.stdlib.ir.gen.SSADestructor;
 import org.mapleir.stdlib.ir.gen.SSAGenerator;
+import org.mapleir.stdlib.ir.gen.SreedharDestructor;
 import org.mapleir.stdlib.ir.gen.StatementGenerator;
 import org.mapleir.stdlib.ir.gen.StatementGraphBuilder;
 import org.mapleir.stdlib.ir.locals.Local;
@@ -50,11 +54,15 @@ public class AnalyticsTest {
 		int x = 0;
 		while(x < 21) {
 			if(b) {
+				int y = x;
 				System.out.println(b);
 				x += 5;
+				System.out.println(y);
 			} else {
+				int y = x;
 				System.out.println(b);
 				x += 10;
+				System.out.println(y);
 			}
 		}
 		
@@ -110,24 +118,34 @@ public class AnalyticsTest {
 			System.out.println();
 			System.out.println();
 			
+			SGBlockDotExporter ex = new SGBlockDotExporter(cfg, new ArrayList<>(cfg.vertices()), "graph", "");
+			ex.export(DotExporter.OPT_DEEP);
 			SSALivenessAnalyser liveness = new SSALivenessAnalyser(cfg);
+			InterferenceGraph ig = InterferenceGraph.build(liveness);
 			
-			System.out.println(cfg);
-			
-			for(BasicBlock b : cfg.vertices()) {
-				StringBuilder sb = new StringBuilder();
-				GraphUtils.printBlock(cfg, cfg.vertices(), sb, b, 0, true);
-				System.out.print(sb);
-				System.out.println("IN:");
-				for(Entry<Local, Boolean> e : liveness.in(b).entrySet()) {
-					System.out.println("  " + e.getKey() + " is " + (e.getValue() ? "live" : "dead"));
-				}
-				System.out.println("OUT:");
-				for(Entry<Local, Boolean> e : liveness.out(b).entrySet()) {
-					System.out.println("  " + e.getKey() + " is " + (e.getValue() ? "live" : "dead"));
-				}
-				System.out.println();
+			SSALocalAccess accses = new SSALocalAccess(code);
+			List<Local> lst = new ArrayList<>(accses.defs.keySet());
+			Collections.sort(lst);
+			for(Local l : lst) {
+				System.out.println(l + " interferes with " + ig.getInterferingVariables(l));
 			}
+						
+//			for(BasicBlock b : cfg.vertices()) {
+//				StringBuilder sb = new StringBuilder();
+//				GraphUtils.printBlock(cfg, cfg.vertices(), sb, b, 0, true);
+//				System.out.print(sb);
+//				System.out.println("IN:");
+//				for(Entry<Local, Boolean> e : liveness.in(b).entrySet()) {
+//					System.out.println("  " + e.getKey() + " is " + (e.getValue() ? "live" : "dead"));
+//				}
+//				System.out.println("OUT:");
+//				for(Entry<Local, Boolean> e : liveness.out(b).entrySet()) {
+//					System.out.println("  " + e.getKey() + " is " + (e.getValue() ? "live" : "dead"));
+//				}
+//				System.out.println();
+//			}
+			
+			SreedharDestructor dest = new SreedharDestructor(code, cfg);
 		}
 	}
 	

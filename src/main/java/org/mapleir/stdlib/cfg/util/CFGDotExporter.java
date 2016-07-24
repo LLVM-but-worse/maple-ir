@@ -1,4 +1,4 @@
-package org.mapleir.stdlib.collections.graph.util;
+package org.mapleir.stdlib.cfg.util;
 
 import java.util.HashMap;
 import java.util.List;
@@ -7,8 +7,8 @@ import java.util.Map;
 import org.mapleir.stdlib.cfg.BasicBlock;
 import org.mapleir.stdlib.cfg.ControlFlowGraph;
 import org.mapleir.stdlib.cfg.edge.FlowEdge;
-import org.mapleir.stdlib.cfg.util.ControlFlowGraphDeobfuscator;
-import org.mapleir.stdlib.cfg.util.ControlFlowGraphDeobfuscator.SuperNodeList;
+import org.mapleir.stdlib.collections.graph.util.DotExporter;
+import org.mapleir.stdlib.collections.graph.util.GraphUtils;
 
 public class CFGDotExporter extends DotExporter<ControlFlowGraph, BasicBlock> {
 	public CFGDotExporter(ControlFlowGraph cfg, List<BasicBlock> order, String name, String fileExt) {
@@ -37,8 +37,10 @@ public class CFGDotExporter extends DotExporter<ControlFlowGraph, BasicBlock> {
 
 	@Override
 	protected void printBlock(BasicBlock b, StringBuilder sb) {
-		sb.append("\n");
-		GraphUtils.printBlock(graph, graph.vertices(), sb, b, 0, false);
+		sb.append("\\l");
+		StringBuilder buf = new StringBuilder();
+		GraphUtils.printBlock(graph, graph.vertices(), buf, b, 0, false);
+		sb.append(buf.toString().replaceAll("\n", "\\\\l"));
 	}
 
 	@Override
