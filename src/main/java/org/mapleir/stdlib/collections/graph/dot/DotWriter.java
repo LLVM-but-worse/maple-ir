@@ -6,7 +6,6 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.UnsupportedEncodingException;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -131,13 +130,7 @@ public class DotWriter<G extends FastGraph<N, E>, N extends FastGraphVertex, E e
 		newLine();
 		print("}");
 		
-		try {
-			return new String(toString().getBytes("UTF-8"));
-		} catch (UnsupportedEncodingException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		return null;
+		return toString();
 	}
 	
 	public DotWriter<G, N, E> esc() {
