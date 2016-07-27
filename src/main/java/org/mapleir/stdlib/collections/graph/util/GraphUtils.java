@@ -1,16 +1,7 @@
 package org.mapleir.stdlib.collections.graph.util;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.ListIterator;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Set;
 import java.util.function.Predicate;
 
 import org.mapleir.stdlib.cfg.BasicBlock;
@@ -19,9 +10,9 @@ import org.mapleir.stdlib.cfg.edge.DefaultSwitchEdge;
 import org.mapleir.stdlib.cfg.edge.FlowEdge;
 import org.mapleir.stdlib.cfg.edge.JumpEdge;
 import org.mapleir.stdlib.cfg.edge.SwitchEdge;
+import org.mapleir.stdlib.cfg.util.ControlFlowGraphDeobfuscator.SuperNode;
 import org.mapleir.stdlib.cfg.util.LabelHelper;
 import org.mapleir.stdlib.cfg.util.TabbedStringWriter;
-import org.mapleir.stdlib.cfg.util.ControlFlowGraphDeobfuscator.SuperNode;
 import org.mapleir.stdlib.collections.graph.flow.ExceptionRange;
 import org.mapleir.stdlib.ir.CodeBody;
 import org.mapleir.stdlib.ir.StatementGraph;
@@ -29,22 +20,7 @@ import org.mapleir.stdlib.ir.expr.PhiExpression;
 import org.mapleir.stdlib.ir.header.HeaderStatement;
 import org.mapleir.stdlib.ir.stat.Statement;
 import org.objectweb.asm.Opcodes;
-import org.objectweb.asm.tree.AbstractInsnNode;
-import org.objectweb.asm.tree.FieldInsnNode;
-import org.objectweb.asm.tree.IincInsnNode;
-import org.objectweb.asm.tree.InsnList;
-import org.objectweb.asm.tree.IntInsnNode;
-import org.objectweb.asm.tree.JumpInsnNode;
-import org.objectweb.asm.tree.LabelNode;
-import org.objectweb.asm.tree.LdcInsnNode;
-import org.objectweb.asm.tree.LineNumberNode;
-import org.objectweb.asm.tree.LookupSwitchInsnNode;
-import org.objectweb.asm.tree.MethodInsnNode;
-import org.objectweb.asm.tree.MultiANewArrayInsnNode;
-import org.objectweb.asm.tree.TableSwitchInsnNode;
-import org.objectweb.asm.tree.TryCatchBlockNode;
-import org.objectweb.asm.tree.TypeInsnNode;
-import org.objectweb.asm.tree.VarInsnNode;
+import org.objectweb.asm.tree.*;
 import org.objectweb.asm.util.Printer;
 
 public class GraphUtils {
@@ -165,7 +141,7 @@ public class GraphUtils {
 			System.out.println(cfg.vertices());
 			throw new IllegalStateException("no block for " + cfg.getMethod() + " " + block);
 		}
-		List<BasicBlock> list = new ArrayList<BasicBlock>();
+		List<BasicBlock> list = new ArrayList<>();
 		for(FlowEdge<BasicBlock> e : cfg.getEdges(block)) {
 			if(blocks.contains(e.dst) && !list.contains(e.dst)) {
 				list.add(e.dst);
@@ -179,7 +155,7 @@ public class GraphUtils {
 			System.out.println(cfg.vertices());
 			throw new IllegalStateException("no block for " + cfg.getMethod() + " " + block);
 		}
-		List<BasicBlock> list = new ArrayList<BasicBlock>();
+		List<BasicBlock> list = new ArrayList<>();
 		for(FlowEdge<BasicBlock> e : cfg.getEdges(block)) {
 			if(!list.contains(e.dst)) {
 				list.add(e.dst);
@@ -189,7 +165,7 @@ public class GraphUtils {
 	}
 
 	public static Set<BasicBlock> collectPredecessors(ControlFlowGraph cfg, BasicBlock block) {
-		Set<BasicBlock> list = new HashSet<BasicBlock>();
+		Set<BasicBlock> list = new HashSet<>();
 		for(FlowEdge<BasicBlock> e : cfg.getReverseEdges(block)) {
 			if(!list.contains(e.src)) {
 				list.add(e.src);
@@ -229,7 +205,7 @@ public class GraphUtils {
 			throw new IllegalArgumentException("startIndex > endIndex: " + startIndex + " > " + endIndex);
 		}
 
-		List<BasicBlock> blocks = new ArrayList<BasicBlock>();
+		List<BasicBlock> blocks = new ArrayList<>();
 		for(int i=startIndex; i <= endIndex; i++) {
 			BasicBlock block = gblocks.get(i);
 			if(block == null) {
@@ -242,7 +218,7 @@ public class GraphUtils {
 	}
 
 	public static List<FlowEdge<BasicBlock>> findCommonEdges(ControlFlowGraph cfg, BasicBlock src, BasicBlock dst) {
-		List<FlowEdge<BasicBlock>> edges = new ArrayList<FlowEdge<BasicBlock>>();
+		List<FlowEdge<BasicBlock>> edges = new ArrayList<>();
 		for(FlowEdge<BasicBlock> e : cfg.getEdges(src)) {
 			if(e.dst == dst) {
 				edges.add(e);
@@ -289,7 +265,7 @@ public class GraphUtils {
 		StringBuilder sb = new StringBuilder("\n=========CFG(block_count=").append(blocks.size()).append("(").append(LabelHelper.createBlockName(blocks.size())).append("), ").append("insn_count=").append(total).append(") ").append("=========\n\n");
 		int i = 0;
 		for(BasicBlock b : blocks) {
-			printBlock(cfg, blocks, sb, b, i, false);
+			printBlock(cfg, sb, b, i, false);
 			i += b.size();
 			i++; // label
 		}
@@ -314,7 +290,7 @@ public class GraphUtils {
 		return sb.toString();
 	}
 
-	public static void printBlock(ControlFlowGraph cfg, Collection<BasicBlock> blocks, StringBuilder sb, BasicBlock b, int insns, boolean headers, boolean stmts) {
+	public static void printBlock(ControlFlowGraph cfg, StringBuilder sb, BasicBlock b, int insns, boolean headers, boolean stmts) {
 		if(headers) {
 			sb.append("===#").append(b.isDummy() ? "Dummy" : "").append("Block ").append(b.getId()).append("(size=").append(b.size()).append(", ident=").append(b.getLabel() != null ? b.getLabel().hashCode() : "null").append(")===\n");
 		}
@@ -449,8 +425,8 @@ public class GraphUtils {
 		}
 	}
 
-	public static void printBlock(ControlFlowGraph cfg, Collection<BasicBlock> blocks, StringBuilder sb, BasicBlock b, int insns, boolean stmts) {
-		printBlock(cfg, blocks, sb, b, insns, true, stmts);
+	public static void printBlock(ControlFlowGraph cfg, StringBuilder sb, BasicBlock b, int insns, boolean stmts) {
+		printBlock(cfg, sb, b, insns, true, stmts);
 	}
 
 	// modes: 1 - recreate and destroy
@@ -474,7 +450,7 @@ public class GraphUtils {
 						Set<FlowEdge<BasicBlock>> jumps = b.getSuccessors(e -> e instanceof JumpEdge);
 						if(jumps.size() != 1) {
 							StringBuilder sb = new StringBuilder();
-							GraphUtils.printBlock(cfg, cfg.vertices(), sb, b, 0, false);
+							GraphUtils.printBlock(cfg, sb, b, 0, false);
 							System.err.println(sb);
 							throw new IllegalStateException(cfg.getMethod() + " " + b.getId() + " " + Printer.OPCODES[ain.opcode()] + " " + jumps.toString() + " " + b.getSuccessors());
 						}
@@ -593,9 +569,9 @@ public class GraphUtils {
 	public static Set<FlowEdge<BasicBlock>> getEdgesOf(ControlFlowGraph cfg, BasicBlock v, Predicate<FlowEdge<?>> exclusionPredicate) {
 		Set<FlowEdge<BasicBlock>> e = cfg.getEdges(v);
 		if(e != null) {
-			e = new HashSet<FlowEdge<BasicBlock>>(e);
+			e = new HashSet<>(e);
 		} else {
-			e = new HashSet<FlowEdge<BasicBlock>>();
+			e = new HashSet<>();
 		}
 		e.removeIf(exclusionPredicate);
 		return e;

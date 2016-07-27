@@ -1,5 +1,6 @@
 package org.mapleir.stdlib.collections.graph.dot.impl;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -17,13 +18,33 @@ public class ControlFlowGraphDotWriter extends DotWriter<ControlFlowGraph, Basic
 	public static final int OPT_DEEP = 0x01;
 	public static final int OPT_HIDE_HANDLER_EDGES = 0x02;
 	
-	private final int flags;
-	private final List<BasicBlock> order;
+	private int flags;
+	private List<BasicBlock> order;
 	
-	public ControlFlowGraphDotWriter(DotConfiguration<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> config, ControlFlowGraph graph, String name, int flags, List<BasicBlock> order) {
-		super(config, graph, name);
+	public ControlFlowGraphDotWriter(DotConfiguration<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> config, ControlFlowGraph graph) {
+		super(config, graph);
+		flags = 0;
+		order = new ArrayList<>();
+	}
+	
+	public int getFlags() {
+		return flags;
+	}
+	
+	public ControlFlowGraphDotWriter setFlags(int flags) {
 		this.flags = flags;
-		this.order = order;
+		return this;
+	}
+	
+	public List<BasicBlock> getOrder() {
+		return order;
+	}
+	
+	public ControlFlowGraphDotWriter setOrder(List<BasicBlock> order) {
+		if(order != null) {
+			this.order = order;
+		}
+		return this;
 	}
 	
 	@Override
@@ -55,8 +76,8 @@ public class ControlFlowGraphDotWriter extends DotWriter<ControlFlowGraph, Basic
 		if((flags & OPT_DEEP) != 0) {
 			sb.append("\\l");
 			StringBuilder sb2 = new StringBuilder();
-			GraphUtils.printBlock(graph, graph.vertices(), sb2, n, 0, false, false);
-			sb.append(sb2.toString().replaceAll("\n", "\\\\l"));
+			GraphUtils.printBlock(graph, sb2, n, 0, false, false);
+			sb.append(sb2.toString().replace("\n", "\\l"));
 		}
 		map.put("label", sb.toString());
 		
