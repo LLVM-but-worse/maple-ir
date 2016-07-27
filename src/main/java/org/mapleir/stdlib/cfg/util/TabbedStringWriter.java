@@ -17,7 +17,7 @@ public class TabbedStringWriter {
 			print(str.charAt(i));
 		}
 	}
-
+	
 	public void print(char c, boolean indent) {
 		buff.append(c);
 		if (c == '\n' && indent) {
@@ -54,6 +54,11 @@ public class TabbedStringWriter {
 			throw new UnsupportedOperationException();
 		}
 		tabCount--;
+	}
+	
+	public void clear() {
+		buff = new StringWriter();
+		tabCount = 0;
 	}
 
 	@Override

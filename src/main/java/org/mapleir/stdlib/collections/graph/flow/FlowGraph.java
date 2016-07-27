@@ -4,10 +4,10 @@ import java.util.*;
 
 import org.mapleir.stdlib.cfg.edge.FlowEdge;
 import org.mapleir.stdlib.cfg.edge.TryCatchEdge;
-import org.mapleir.stdlib.collections.graph.FastGraph;
+import org.mapleir.stdlib.collections.graph.FastDirectedGraph;
 import org.mapleir.stdlib.collections.graph.FastGraphVertex;
 
-public abstract class FlowGraph<N extends FastGraphVertex, E extends FlowEdge<N>> extends FastGraph<N, E> {
+public abstract class FlowGraph<N extends FastGraphVertex, E extends FlowEdge<N>> extends FastDirectedGraph<N, E> {
 
 	private final List<ExceptionRange<N>> ranges;
 	private final Set<N> entries;

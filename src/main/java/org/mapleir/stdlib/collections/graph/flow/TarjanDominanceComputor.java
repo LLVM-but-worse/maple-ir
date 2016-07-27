@@ -5,7 +5,7 @@ import java.util.*;
 import org.mapleir.stdlib.cfg.edge.FlowEdge;
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.SetCreator;
-import org.mapleir.stdlib.collections.graph.FastGraph;
+import org.mapleir.stdlib.collections.graph.FastDirectedGraph;
 import org.mapleir.stdlib.collections.graph.FastGraphEdge;
 import org.mapleir.stdlib.collections.graph.FastGraphVertex;
 
@@ -159,7 +159,7 @@ public class TarjanDominanceComputor<N extends FastGraphVertex> {
 				semiIndices.put(n, semiIndices.size());
 				propagationMap.put(n, n);
 				
-				for(N succ : FastGraph.computeSuccessors(graph, n)) {
+				for(N succ : FastDirectedGraph.computeSuccessors(graph, n)) {
 					if(!semiIndices.containsKey(succ)) {
 						parents.put(succ, n);
 					}

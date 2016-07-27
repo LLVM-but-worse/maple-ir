@@ -6,7 +6,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -16,11 +15,13 @@ import org.mapleir.byteio.CompleteResolvingJarDumper;
 import org.mapleir.stdlib.cfg.BasicBlock;
 import org.mapleir.stdlib.cfg.ControlFlowGraph;
 import org.mapleir.stdlib.cfg.ControlFlowGraphBuilder;
+import org.mapleir.stdlib.cfg.edge.FlowEdge;
 import org.mapleir.stdlib.cfg.util.ControlFlowGraphDeobfuscator;
 import org.mapleir.stdlib.collections.NodeTable;
-import org.mapleir.stdlib.collections.graph.util.DotExporter;
+import org.mapleir.stdlib.collections.graph.dot.BasicDotConfiguration;
+import org.mapleir.stdlib.collections.graph.dot.DotConfiguration.GraphType;
+import org.mapleir.stdlib.collections.graph.dot.impl.ControlFlowGraphDotWriter;
 import org.mapleir.stdlib.collections.graph.util.GraphUtils;
-import org.mapleir.stdlib.collections.graph.util.SGBlockDotExporter;
 import org.mapleir.stdlib.ir.CodeBody;
 import org.mapleir.stdlib.ir.StatementGraph;
 import org.mapleir.stdlib.ir.StatementWriter;
@@ -30,7 +31,6 @@ import org.mapleir.stdlib.ir.gen.SSAGenerator;
 import org.mapleir.stdlib.ir.gen.SreedharDestructor;
 import org.mapleir.stdlib.ir.gen.StatementGenerator;
 import org.mapleir.stdlib.ir.gen.StatementGraphBuilder;
-import org.mapleir.stdlib.ir.locals.Local;
 import org.mapleir.stdlib.ir.transform.SSATransformer;
 import org.mapleir.stdlib.ir.transform.impl.CodeAnalytics;
 import org.mapleir.stdlib.ir.transform.impl.DefinitionAnalyser;
@@ -118,18 +118,16 @@ public class AnalyticsTest {
 			System.out.println();
 			System.out.println();
 			
-			SGBlockDotExporter ex = new SGBlockDotExporter(cfg, new ArrayList<>(cfg.vertices()), "graph", "");
-			ex.export(DotExporter.OPT_DEEP);
+//			SGBlockDotExporter ex = new SGBlockDotExporter(cfg, new ArrayList<>(cfg.vertices()), "graph", "");
+//			ex.export(DotExporter.OPT_DEEP);
 			SSALivenessAnalyser liveness = new SSALivenessAnalyser(cfg);
 			InterferenceGraph ig = InterferenceGraph.build(liveness);
+			System.out.println(ig);
 			
-			SSALocalAccess accses = new SSALocalAccess(code);
-			List<Local> lst = new ArrayList<>(accses.defs.keySet());
-			Collections.sort(lst);
-			for(Local l : lst) {
-				System.out.println(l + " interferes with " + ig.getInterferingVariables(l));
-			}
-						
+			BasicDotConfiguration<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> config = new BasicDotConfiguration<>(GraphType.DIRECTED);
+			ControlFlowGraphDotWriter writer = new ControlFlowGraphDotWriter(config, cfg, "graph111", ControlFlowGraphDotWriter.OPT_DEEP, new ArrayList<>(cfg.vertices()));
+			writer.export();
+			
 //			for(BasicBlock b : cfg.vertices()) {
 //				StringBuilder sb = new StringBuilder();
 //				GraphUtils.printBlock(cfg, cfg.vertices(), sb, b, 0, true);
