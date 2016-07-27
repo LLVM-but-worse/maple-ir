@@ -1,9 +1,5 @@
 package org.mapleir.stdlib.call;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.ListIterator;
-
 import org.mapleir.stdlib.call.CallGraph.Invocation;
 import org.mapleir.stdlib.collections.graph.FastDirectedGraph;
 import org.mapleir.stdlib.collections.graph.FastGraphEdge;
@@ -13,6 +9,10 @@ import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodInsnNode;
 import org.objectweb.asm.tree.MethodNode;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.ListIterator;
 
 public class CallGraph extends FastDirectedGraph<MethodNode, Invocation> {
 	
@@ -131,7 +131,13 @@ public class CallGraph extends FastDirectedGraph<MethodNode, Invocation> {
 		// TODO:
 		throw new UnsupportedOperationException();
 	}
-
+	
+	@Override
+	public Invocation invert(Invocation edge) {
+		// TODO:
+		throw new UnsupportedOperationException();
+	}
+	
 	@Override
 	public boolean excavate(MethodNode n) {
 		throw new UnsupportedOperationException();

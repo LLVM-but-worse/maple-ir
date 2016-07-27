@@ -1,16 +1,5 @@
 package org.mapleir;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.jar.JarOutputStream;
-
 import org.mapleir.byteio.CompleteResolvingJarDumper;
 import org.mapleir.stdlib.cfg.BasicBlock;
 import org.mapleir.stdlib.cfg.ControlFlowGraph;
@@ -20,6 +9,8 @@ import org.mapleir.stdlib.cfg.util.ControlFlowGraphDeobfuscator;
 import org.mapleir.stdlib.collections.NodeTable;
 import org.mapleir.stdlib.collections.graph.dot.BasicDotConfiguration;
 import org.mapleir.stdlib.collections.graph.dot.DotConfiguration.GraphType;
+import org.mapleir.stdlib.collections.graph.dot.DotWriter;
+import org.mapleir.stdlib.collections.graph.dot.impl.CFGStatementDotWriter;
 import org.mapleir.stdlib.collections.graph.dot.impl.ControlFlowGraphDotWriter;
 import org.mapleir.stdlib.collections.graph.util.GraphUtils;
 import org.mapleir.stdlib.ir.CodeBody;
@@ -45,6 +36,17 @@ import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.topdank.byteengineer.commons.data.JarInfo;
 import org.topdank.byteio.in.SingleJarDownloader;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.jar.JarOutputStream;
 
 public class AnalyticsTest {
 
@@ -118,14 +120,17 @@ public class AnalyticsTest {
 			System.out.println();
 			System.out.println();
 			
-//			SGBlockDotExporter ex = new SGBlockDotExporter(cfg, new ArrayList<>(cfg.vertices()), "graph", "");
+//			CFGStatementDotWriter ex = new CFGStatementDotWriter(cfg, new ArrayList<>(cfg.vertices()), "graph", "");
 //			ex.export(DotExporter.OPT_DEEP);
-			SSALivenessAnalyser liveness = new SSALivenessAnalyser(cfg);
+			SSALivenessAnalyser liveness = new SSALivenessAnalyser(cfg, code);
+			liveness.init();
 			InterferenceGraph ig = InterferenceGraph.build(liveness);
 			System.out.println(ig);
 			
 			BasicDotConfiguration<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> config = new BasicDotConfiguration<>(GraphType.DIRECTED);
-			ControlFlowGraphDotWriter writer = new ControlFlowGraphDotWriter(config, cfg, "graph111", ControlFlowGraphDotWriter.OPT_DEEP, new ArrayList<>(cfg.vertices()));
+			DotWriter writer = new ControlFlowGraphDotWriter(config, cfg, "graph111", ControlFlowGraphDotWriter.OPT_DEEP, new ArrayList<>(cfg.vertices()));
+			writer.export();
+			writer = new CFGStatementDotWriter(config, cfg, "graph111-statements", ControlFlowGraphDotWriter.OPT_DEEP, new ArrayList<>(cfg.vertices()));
 			writer.export();
 			
 //			for(BasicBlock b : cfg.vertices()) {
