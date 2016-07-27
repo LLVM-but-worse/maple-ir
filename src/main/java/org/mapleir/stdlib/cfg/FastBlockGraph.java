@@ -151,4 +151,9 @@ public class FastBlockGraph extends FlowGraph<BasicBlock, FlowEdge<BasicBlock>> 
 	public boolean jam(BasicBlock prev, BasicBlock succ, BasicBlock n) {
 		throw new UnsupportedOperationException();
 	}
+
+	@Override
+	public FlowEdge<BasicBlock> invert(FlowEdge<BasicBlock> edge) {
+		return edge.clone(edge.dst, edge.src);
+	}
 }

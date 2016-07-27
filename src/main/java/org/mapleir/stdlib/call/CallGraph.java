@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.ListIterator;
 
 import org.mapleir.stdlib.call.CallGraph.Invocation;
-import org.mapleir.stdlib.collections.graph.FastGraph;
+import org.mapleir.stdlib.collections.graph.FastDirectedGraph;
 import org.mapleir.stdlib.collections.graph.FastGraphEdge;
 import org.mapleir.stdlib.klass.ClassTree;
 import org.objectweb.asm.Opcodes;
@@ -14,7 +14,7 @@ import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodInsnNode;
 import org.objectweb.asm.tree.MethodNode;
 
-public class CallGraph extends FastGraph<MethodNode, Invocation> {
+public class CallGraph extends FastDirectedGraph<MethodNode, Invocation> {
 	
 	private final CallgraphAdapter adapter;
 	private final ClassTree classTree;

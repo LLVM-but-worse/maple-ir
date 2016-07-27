@@ -6,7 +6,7 @@ import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.Stack;
 
-import org.mapleir.stdlib.collections.graph.FastGraph;
+import org.mapleir.stdlib.collections.graph.FastDirectedGraph;
 import org.mapleir.stdlib.collections.graph.FastGraphVertex;
 
 public class DepthFirstSorterImpl<N extends FastGraphVertex> implements Sorter<N> {
@@ -21,7 +21,7 @@ public class DepthFirstSorterImpl<N extends FastGraphVertex> implements Sorter<N
 	
 	public static class DepthFirstSorterImplIteratorImpl<N extends FastGraphVertex> implements Iterator<N> {
 
-		private final FastGraph<N, ?> graph;
+		private final FlowGraph<N, ?> graph;
 		private final Set<N> visited;
 		private final Stack<Iterator<N>> stack;
 		private N current;
@@ -36,7 +36,7 @@ public class DepthFirstSorterImpl<N extends FastGraphVertex> implements Sorter<N
 		}
 		
 		private Iterator<N> succs(N n) {
-			return FastGraph.computeSuccessors(graph, n).iterator();
+			return FastDirectedGraph.computeSuccessors(graph, n).iterator();
 		}
 		
 		@Override

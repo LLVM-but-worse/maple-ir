@@ -3,9 +3,7 @@ package org.mapleir.stdlib.cfg.util;
 import static org.objectweb.asm.Opcodes.*;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.LinkedHashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
@@ -586,7 +584,7 @@ public class TypeUtils {
 		// ancestorsa ∩ ancestorsb
 		ancestorsa.retainAll(ancestorsb);
 		
-		List<Type> types = new ArrayList<Type>(); 
+		List<Type> types = new ArrayList<>(); 
 			
 		for (ClassNode cn : ancestorsa) {
 			types.add(Type.getType(cn.name));
@@ -597,15 +595,15 @@ public class TypeUtils {
 	
 	private static Set<ClassNode> getClassesBfs(ClassNode cn, ClassTree tree) {
 		// need to be linked hash set (preserves order)
-		Set<ClassNode> classes = new LinkedHashSet<ClassNode>();
-		Set<ClassNode> up = new LinkedHashSet<ClassNode>();
+		Set<ClassNode> classes = new LinkedHashSet<>();
+		Set<ClassNode> up = new LinkedHashSet<>();
 		
 		up.add(cn);
 		
 		// dowhile because needs to exec once
 		do {
 			classes.addAll(up);
-			Set<ClassNode> cur = new LinkedHashSet<ClassNode>(up);
+			Set<ClassNode> cur = new LinkedHashSet<>(up);
 			up.clear();
 			for (ClassNode each : cur) {
 				ClassNode spr = tree.getClass(each.superName);
