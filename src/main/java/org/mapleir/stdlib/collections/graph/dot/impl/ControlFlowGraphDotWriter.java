@@ -1,9 +1,5 @@
 package org.mapleir.stdlib.collections.graph.dot.impl;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 import org.mapleir.stdlib.cfg.BasicBlock;
 import org.mapleir.stdlib.cfg.ControlFlowGraph;
 import org.mapleir.stdlib.cfg.edge.FlowEdge;
@@ -12,13 +8,17 @@ import org.mapleir.stdlib.collections.graph.dot.DotConfiguration;
 import org.mapleir.stdlib.collections.graph.dot.DotWriter;
 import org.mapleir.stdlib.collections.graph.util.GraphUtils;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 public class ControlFlowGraphDotWriter extends DotWriter<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> {
 
 	public static final int OPT_DEEP = 0x01;
 	public static final int OPT_HIDE_HANDLER_EDGES = 0x02;
 	
-	private final int flags;
-	private final List<BasicBlock> order;
+	protected final int flags;
+	protected final List<BasicBlock> order;
 	
 	public ControlFlowGraphDotWriter(DotConfiguration<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> config, ControlFlowGraph graph, String name, int flags, List<BasicBlock> order) {
 		super(config, graph, name);

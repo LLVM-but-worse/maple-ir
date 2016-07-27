@@ -1,5 +1,10 @@
 package org.mapleir.stdlib.collections.graph.dot;
 
+import org.mapleir.stdlib.cfg.util.TabbedStringWriter;
+import org.mapleir.stdlib.collections.graph.FastGraph;
+import org.mapleir.stdlib.collections.graph.FastGraphEdge;
+import org.mapleir.stdlib.collections.graph.FastGraphVertex;
+
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -10,14 +15,9 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import org.mapleir.stdlib.cfg.util.TabbedStringWriter;
-import org.mapleir.stdlib.collections.graph.FastGraph;
-import org.mapleir.stdlib.collections.graph.FastGraphEdge;
-import org.mapleir.stdlib.collections.graph.FastGraphVertex;
-
 public class DotWriter<G extends FastGraph<N, E>, N extends FastGraphVertex, E extends FastGraphEdge<N>> extends TabbedStringWriter {
 	
-	private static final String GRAPHVIZ_DOT_PATH = "F:/Program Files (x86)/Graphviz2.38/bin/dot.exe";
+	private static final String GRAPHVIZ_DOT_PATH = "dot/dot.exe";
 	private static final File GRAPH_FOLDER = new File("cfg testing");
 	
 	protected final DotConfiguration<G, N, E> config;
@@ -81,7 +81,7 @@ public class DotWriter<G extends FastGraph<N, E>, N extends FastGraphVertex, E e
 				continue;
 			}
 			
-			print(n.getId()).print(". ").print("[");
+			print(n.getId()).print(" [");
 			Map<String, Object> nprops = getNodeProperties(n);
 			if(nprops != null) {
 				writeSettings(nprops);
