@@ -22,12 +22,20 @@ public class DotWriter<G extends FastGraph<N, E>, N extends FastGraphVertex, E e
 	
 	protected final DotConfiguration<G, N, E> config;
 	protected final G graph;
-	protected final String name;
+	private String name;
 	
-	public DotWriter(DotConfiguration<G, N, E> config, G graph, String name) {
+	public DotWriter(DotConfiguration<G, N, E> config, G graph) {
 		this.config = config;
 		this.graph = graph;
+	}
+	
+	public String getName() {
+		return name;
+	}
+	
+	public DotWriter<G, N, E> setName(String name) {
 		this.name = name;
+		return this;
 	}
 	
 	private void writeSettings(Map<String, Object> properties) {
@@ -81,7 +89,7 @@ public class DotWriter<G extends FastGraph<N, E>, N extends FastGraphVertex, E e
 				continue;
 			}
 			
-			print(n.getId()).print(". ").print("[");
+			print(n.getId()).print(" [");
 			Map<String, Object> nprops = getNodeProperties(n);
 			if(nprops != null) {
 				writeSettings(nprops);
