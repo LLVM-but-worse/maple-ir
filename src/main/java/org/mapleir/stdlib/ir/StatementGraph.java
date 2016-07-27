@@ -162,4 +162,9 @@ public class StatementGraph extends FlowGraph<Statement, FlowEdge<Statement>>  {
 		
 		return true;
 	}
+	
+	@Override
+	public FlowEdge<Statement> invert(FlowEdge<Statement> edge) {
+		return edge.clone(edge.dst, edge.src);
+	}
 }
