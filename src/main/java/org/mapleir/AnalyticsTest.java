@@ -9,9 +9,11 @@ import org.mapleir.stdlib.cfg.util.ControlFlowGraphDeobfuscator;
 import org.mapleir.stdlib.collections.NodeTable;
 import org.mapleir.stdlib.collections.graph.dot.BasicDotConfiguration;
 import org.mapleir.stdlib.collections.graph.dot.DotConfiguration.GraphType;
-import org.mapleir.stdlib.collections.graph.dot.impl.CFGStatementDotWriter;
-import org.mapleir.stdlib.collections.graph.dot.impl.ControlFlowGraphDotWriter;
-import org.mapleir.stdlib.collections.graph.dot.impl.InterferenceGraphDotWriter;
+import org.mapleir.stdlib.collections.graph.dot.DotWriter;
+import org.mapleir.stdlib.collections.graph.dot.impl.CFGStatementDecorator;
+import org.mapleir.stdlib.collections.graph.dot.impl.ControlFlowGraphDecorator;
+import org.mapleir.stdlib.collections.graph.dot.impl.InterferenceGraphDecorator;
+import org.mapleir.stdlib.collections.graph.dot.impl.LivenessDecorator;
 import org.mapleir.stdlib.collections.graph.util.GraphUtils;
 import org.mapleir.stdlib.ir.CodeBody;
 import org.mapleir.stdlib.ir.StatementGraph;
@@ -25,7 +27,6 @@ import org.mapleir.stdlib.ir.gen.interference.ColourableNode;
 import org.mapleir.stdlib.ir.gen.interference.InterferenceEdge;
 import org.mapleir.stdlib.ir.gen.interference.InterferenceGraph;
 import org.mapleir.stdlib.ir.gen.interference.InterferenceGraphBuilder;
-import org.mapleir.stdlib.ir.locals.Local;
 import org.mapleir.stdlib.ir.transform.SSATransformer;
 import org.mapleir.stdlib.ir.transform.impl.CodeAnalytics;
 import org.mapleir.stdlib.ir.transform.impl.DefinitionAnalyser;
@@ -51,8 +52,6 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import java.util.jar.JarOutputStream;
 
 public class AnalyticsTest {
@@ -127,48 +126,27 @@ public class AnalyticsTest {
 			System.out.println();
 			System.out.println();
 			
-//			CFGStatementDotWriter ex = new CFGStatementDotWriter(cfg, new ArrayList<>(cfg.vertices()), "graph", "");
+//			CFGStatementDecorator ex = new CFGStatementDecorator(cfg, new ArrayList<>(cfg.vertices()), "graph", "");
 //			ex.export(DotExporter.OPT_DEEP);
 			SSALivenessAnalyser liveness = new SSALivenessAnalyser(cfg);
 			InterferenceGraph ig = InterferenceGraphBuilder.build(liveness);
 			System.out.println(ig);
 			
 			BasicDotConfiguration<InterferenceGraph, ColourableNode, InterferenceEdge> config2 = new BasicDotConfiguration<>(GraphType.UNDIRECTED);
-			InterferenceGraphDotWriter w2 = new InterferenceGraphDotWriter(config2, ig);
-			w2.setName("ig1").export();
+			DotWriter<InterferenceGraph, ColourableNode, InterferenceEdge> w2 = new DotWriter<>(config2, ig);
+			w2.addDecorator(new InterferenceGraphDecorator()).setName("ig1").export();
 			
 			BasicDotConfiguration<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> config = new BasicDotConfiguration<>(GraphType.DIRECTED);
-			ControlFlowGraphDotWriter w = new ControlFlowGraphDotWriter(config, cfg);
-			w.setFlags(ControlFlowGraphDotWriter.OPT_DEEP).setName("graph111");
-			w.export();
+			DotWriter<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> w = new DotWriter<>(config, cfg);
+			w.addDecorator(new ControlFlowGraphDecorator().setFlags(ControlFlowGraphDecorator.OPT_DEEP));
+			w.setName("graph111").export();
 			
-			w = new CFGStatementDotWriter(config, cfg);
-			w.setFlags(ControlFlowGraphDotWriter.OPT_DEEP).setName("graph-liveness");
 			SSABlockLivenessAnalyser blockLiveness = new SSABlockLivenessAnalyser(cfg);
 			GraphUtils.rewriteCfg(cfg, code);
 			blockLiveness.compute();
-			for (BasicBlock n : cfg.vertices()) {
-				w.decorator.addStartComment(n, "IN: " + blockLiveness.in(n).toString());
-				w.decorator.addStartComment(n, "Preds: " + cfg.getReverseEdges(n).size());
-				w.decorator.addEndComment(n, "OUT: " + blockLiveness.out(n).toString());
-				w.decorator.addEndComment(n, "Succs: " + cfg.getEdges(n).size());
-			}
-			w.export();
-			
-			w = new CFGStatementDotWriter(config, cfg);
-			w.setFlags(ControlFlowGraphDotWriter.OPT_DEEP).setName("graph-liveness2");
-			for (BasicBlock n : cfg.vertices()) {
-				Set<Local> liveIn = new HashSet<>();
-				for (Map.Entry<Local, Boolean> e : liveness.in(n).entrySet())
-					if (e.getValue())
-						liveIn.add(e.getKey());
-				Set<Local> liveOut = new HashSet<>();
-				for (Map.Entry<Local, Boolean> e : liveness.out(n).entrySet())
-					if (e.getValue())
-						liveOut.add(e.getKey());
-				w.decorator.addStartComment(n, "IN: " + liveIn.toString());
-				w.decorator.addEndComment(n, "OUT: " + liveOut.toString());
-			}
+			w.clearDecorators().setName("graph-liveness");
+			w.addDecorator(new CFGStatementDecorator().setFlags(ControlFlowGraphDecorator.OPT_DEEP));
+			w.addDecorator(new LivenessDecorator().setLiveness(blockLiveness));
 			w.export();
 			
 //			for(BasicBlock b : cfg.vertices()) {
