@@ -25,6 +25,15 @@ import org.objectweb.asm.util.Printer;
 
 public class GraphUtils {
 
+	public static final String[] HIGHLIGHT_COLOURS = new String[] {
+			"aliceblue", "antiquewhite", "aquamarine", "brown1", "cadetblue1",
+			"chocolate1", "cornflowerblue", "cyan", "darkgoldenrod1",
+			"darkolivegreen4", "darkorchid1", "darksalmon",
+			"deeppink", "deepskyblue1", "firebrick1", "gold1", "hotpink1", "khaki1",
+			"mediumseagreen", "orangered", "mediumpurple1", "magenta", "plum1",
+			"royalblue1", "slateblue3", "turquoise2", "yellow2"
+	};
+	
 	public static final Comparator<BasicBlock> BLOCK_COMPARATOR = new Comparator<BasicBlock>() {
 		@Override
 		public int compare(BasicBlock o1, BasicBlock o2) {
