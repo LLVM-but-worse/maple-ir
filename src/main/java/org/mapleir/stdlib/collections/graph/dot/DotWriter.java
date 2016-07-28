@@ -47,21 +47,21 @@ public class DotWriter<G extends FastGraph<N, E>, N extends FastGraphVertex, E e
 		return this;
 	}
 	
-	public DotWriter<G, N, E> addDecorator(DotPropertyDecorator<G, N, E> decorator) {
-		decorators.add(decorator);
+	public DotWriter<G, N, E> addDecorator(DotPropertyDecorator<G, N, E> d) {
+		decorators.add(d);
 		return this;
 	}
 	
-	public DotWriter<G, N, E> addDecorator(int index, DotPropertyDecorator<G, N, E> decorator) {
-		decorators.add(index, decorator);
+	public DotWriter<G, N, E> addDecorator(int index, DotPropertyDecorator<G, N, E> d) {
+		decorators.add(index, d);
 		return this;
 	}
 	
 	public DotWriter<G, N, E> removeDecorator(Class<? extends DotPropertyDecorator<G, N, E>> type) {
 		Iterator<DotPropertyDecorator<G, N, E>> it = decorators.iterator();
 		while (it.hasNext()) {
-			DotPropertyDecorator<G, N, E> decorator = it.next();
-			if (type.isAssignableFrom(decorator.getClass()))
+			DotPropertyDecorator<G, N, E> d = it.next();
+			if (type.isAssignableFrom(d.getClass()))
 				it.remove();
 		}
 		return this;
@@ -127,8 +127,8 @@ public class DotWriter<G extends FastGraph<N, E>, N extends FastGraphVertex, E e
 			
 			print(n.getId()).print(" [");
 			Map<String, Object> nprops = new HashMap<>();
-			for (DotPropertyDecorator<G, N, E> decorator : decorators)
-				decorator.decorateNodeProperties(graph, n, nprops);
+			for (DotPropertyDecorator<G, N, E> d : decorators)
+				d.decorateNodeProperties(graph, n, nprops);
 			writeSettings(nprops);
 			print("]").newLine();
 		}
@@ -149,8 +149,8 @@ public class DotWriter<G extends FastGraph<N, E>, N extends FastGraphVertex, E e
 				
 				print(e.src.getId()).print(arrow).print(e.dst.getId()).print(" ").print("[");
 				Map<String, Object> eprops = new HashMap<>();
-				for (DotPropertyDecorator<G, N, E> decorator : decorators)
-					decorator.decorateEdgeProperties(graph, n, e, eprops);
+				for (DotPropertyDecorator<G, N, E> d : decorators)
+					d.decorateEdgeProperties(graph, n, e, eprops);
 				writeSettings(eprops);
 				print("];").newLine();
 			}
