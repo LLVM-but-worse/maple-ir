@@ -1,8 +1,6 @@
 package org.mapleir.stdlib.collections.graph.dot;
 
 import org.mapleir.stdlib.cfg.util.TabbedStringWriter;
-import org.mapleir.stdlib.collections.ListCreator;
-import org.mapleir.stdlib.collections.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.graph.FastGraph;
 import org.mapleir.stdlib.collections.graph.FastGraphEdge;
 import org.mapleir.stdlib.collections.graph.FastGraphVertex;
@@ -15,9 +13,7 @@ import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.CharsetEncoder;
-import java.util.HashMap;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
@@ -31,16 +27,12 @@ public class DotWriter<G extends FastGraph<N, E>, N extends FastGraphVertex, E e
 	protected final DotConfiguration<G, N, E> config;
 	protected final G graph;
 	private String name;
-	private final NullPermeableHashMap<N, List<String>> vertexStartComments;
-	private final NullPermeableHashMap<N, List<String>> vertexEndComments;
-	private final Map<N, String> vertexColors;
+	public final DotDecorator<N> decorator;
 	
 	public DotWriter(DotConfiguration<G, N, E> config, G graph) {
 		this.config = config;
 		this.graph = graph;
-		vertexStartComments = new NullPermeableHashMap<>(new ListCreator<>());
-		vertexEndComments = new NullPermeableHashMap<>(new ListCreator<>());
-		vertexColors = new HashMap<>();
+		decorator = new DotDecorator<>();
 	}
 	
 	public String getName() {
@@ -49,21 +41,6 @@ public class DotWriter<G extends FastGraph<N, E>, N extends FastGraphVertex, E e
 	
 	public DotWriter<G, N, E> setName(String name) {
 		this.name = name;
-		return this;
-	}
-	
-	public DotWriter addStartComment(N n, String comment) {
-		vertexStartComments.getNonNull(n).add(comment);
-		return this;
-	}
-	
-	public DotWriter addEndComment(N n, String comment) {
-		vertexEndComments.getNonNull(n).add(comment);
-		return this;
-	}
-	
-	public DotWriter setColor(N n, String color) {
-		vertexColors.put(n, color);
 		return this;
 	}
 	
@@ -121,27 +98,10 @@ public class DotWriter<G extends FastGraph<N, E>, N extends FastGraphVertex, E e
 			print(n.getId()).print(" [");
 			Map<String, Object> nprops = getNodeProperties(n);
 			if(nprops != null) {
-				processNodeProperties(n, nprops);
+				decorator.decorateNodeProperties(n, nprops);
 				writeSettings(nprops);
 			}
 			print("]").newLine();
-		}
-	}
-	
-	private void processNodeProperties(N n, Map<String, Object> nprops) {
-		if (nprops.containsKey("label")) {
-			StringBuilder sb = new StringBuilder();
-			for (String comment : vertexStartComments.getNonNull(n))
-				sb.append("// ").append(comment).append("\\l");
-			sb.append(nprops.get("label").toString());
-			sb.append("\\l");
-			for (String comment : vertexEndComments.getNonNull(n))
-				sb.append("// ").append(comment).append("\\l");
-			nprops.put("label", sb.toString());
-		}
-		if (vertexColors.containsKey(n)) {
-			nprops.put("style", "filled");
-			nprops.put("fillcolor", vertexColors.get(n));
 		}
 	}
 	
