@@ -21,16 +21,20 @@ import org.mapleir.stdlib.collections.NodeTable;
 import org.mapleir.stdlib.collections.graph.dot.BasicDotConfiguration;
 import org.mapleir.stdlib.collections.graph.dot.DotConfiguration.GraphType;
 import org.mapleir.stdlib.collections.graph.dot.impl.ControlFlowGraphDotWriter;
+import org.mapleir.stdlib.collections.graph.dot.impl.InterferenceGraphDotWriter;
 import org.mapleir.stdlib.collections.graph.util.GraphUtils;
 import org.mapleir.stdlib.ir.CodeBody;
 import org.mapleir.stdlib.ir.StatementGraph;
 import org.mapleir.stdlib.ir.StatementWriter;
-import org.mapleir.stdlib.ir.gen.InterferenceGraph;
 import org.mapleir.stdlib.ir.gen.SSADestructor;
 import org.mapleir.stdlib.ir.gen.SSAGenerator;
 import org.mapleir.stdlib.ir.gen.SreedharDestructor;
 import org.mapleir.stdlib.ir.gen.StatementGenerator;
 import org.mapleir.stdlib.ir.gen.StatementGraphBuilder;
+import org.mapleir.stdlib.ir.gen.interference.ColourableNode;
+import org.mapleir.stdlib.ir.gen.interference.InterferenceEdge;
+import org.mapleir.stdlib.ir.gen.interference.InterferenceGraph;
+import org.mapleir.stdlib.ir.gen.interference.InterferenceGraphBuilder;
 import org.mapleir.stdlib.ir.transform.SSATransformer;
 import org.mapleir.stdlib.ir.transform.impl.CodeAnalytics;
 import org.mapleir.stdlib.ir.transform.impl.DefinitionAnalyser;
@@ -121,8 +125,12 @@ public class AnalyticsTest {
 //			SGBlockDotExporter ex = new SGBlockDotExporter(cfg, new ArrayList<>(cfg.vertices()), "graph", "");
 //			ex.export(DotExporter.OPT_DEEP);
 			SSALivenessAnalyser liveness = new SSALivenessAnalyser(cfg);
-			InterferenceGraph ig = InterferenceGraph.build(liveness);
+			InterferenceGraph ig = InterferenceGraphBuilder.build(liveness);
 			System.out.println(ig);
+			
+			BasicDotConfiguration<InterferenceGraph, ColourableNode, InterferenceEdge> config2 = new BasicDotConfiguration<>(GraphType.UNDIRECTED);
+			InterferenceGraphDotWriter w2 = new InterferenceGraphDotWriter(config2, ig);
+			w2.setName("ig1").export();
 			
 			BasicDotConfiguration<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> config = new BasicDotConfiguration<>(GraphType.DIRECTED);
 			ControlFlowGraphDotWriter w = new ControlFlowGraphDotWriter(config, cfg);
