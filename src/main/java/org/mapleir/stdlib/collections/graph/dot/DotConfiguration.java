@@ -1,27 +1,32 @@
 package org.mapleir.stdlib.collections.graph.dot;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Map.Entry;
-
 import org.mapleir.stdlib.collections.graph.FastGraph;
 import org.mapleir.stdlib.collections.graph.FastGraphEdge;
 import org.mapleir.stdlib.collections.graph.FastGraphVertex;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Map.Entry;
+
 public abstract class DotConfiguration<G extends FastGraph<N, E>, N extends FastGraphVertex, E extends FastGraphEdge<N>> {
 
 	public enum GraphType {
-		DIRECTED("digraph"), UNDIRECTED("graph");
+		DIRECTED("digraph", "->"), UNDIRECTED("graph", "--");
 		
 		private final String printType;
+		private final String edgeArrow;
 		
-		private GraphType(String printType) {
+		private GraphType(String printType, String edgeArrow) {
 			this.printType = printType;
+			this.edgeArrow = " " + edgeArrow + " ";
 		}
 		
-		@Override
-		public String toString()  {
+		public String getPrintType()  {
 			return printType;
+		}
+		
+		public String getEdgeArrow() {
+			return edgeArrow;
 		}
 	}
 	

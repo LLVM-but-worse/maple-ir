@@ -8,6 +8,7 @@ import org.mapleir.stdlib.collections.graph.dot.DotConfiguration;
 import org.mapleir.stdlib.collections.graph.dot.DotWriter;
 import org.mapleir.stdlib.collections.graph.util.GraphUtils;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -17,13 +18,33 @@ public class ControlFlowGraphDotWriter extends DotWriter<ControlFlowGraph, Basic
 	public static final int OPT_DEEP = 0x01;
 	public static final int OPT_HIDE_HANDLER_EDGES = 0x02;
 	
-	protected final int flags;
-	protected final List<BasicBlock> order;
+	protected int flags;
+	protected List<BasicBlock> order;
 	
-	public ControlFlowGraphDotWriter(DotConfiguration<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> config, ControlFlowGraph graph, String name, int flags, List<BasicBlock> order) {
-		super(config, graph, name);
+	public ControlFlowGraphDotWriter(DotConfiguration<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> config, ControlFlowGraph graph) {
+		super(config, graph);
+		flags = 0;
+		order = new ArrayList<>(graph.vertices());
+	}
+	
+	public int getFlags() {
+		return flags;
+	}
+	
+	public ControlFlowGraphDotWriter setFlags(int flags) {
 		this.flags = flags;
-		this.order = order;
+		return this;
+	}
+	
+	public List<BasicBlock> getOrder() {
+		return order;
+	}
+	
+	public ControlFlowGraphDotWriter setOrder(List<BasicBlock> order) {
+		if(order != null) {
+			this.order = order;
+		}
+		return this;
 	}
 	
 	@Override
@@ -51,12 +72,12 @@ public class ControlFlowGraphDotWriter extends DotWriter<ControlFlowGraph, Basic
 		}
 		
 		StringBuilder sb = new StringBuilder();
-		sb.append(order.indexOf(n)).append(n.getId()).append(". ");
+		sb.append(order.indexOf(n)).append(". ").append(n.getId());
 		if((flags & OPT_DEEP) != 0) {
 			sb.append("\\l");
 			StringBuilder sb2 = new StringBuilder();
-			GraphUtils.printBlock(graph, graph.vertices(), sb2, n, 0, false, false);
-			sb.append(sb2.toString().replaceAll("\n", "\\\\l"));
+			GraphUtils.printBlock(graph, sb2, n, 0, false, false);
+			sb.append(sb2.toString().replace("\n", "\\l"));
 		}
 		map.put("label", sb.toString());
 		

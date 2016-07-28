@@ -8,9 +8,11 @@ import java.util.Set;
 public abstract class FastUndirectedGraph<N extends FastGraphVertex, E extends FastGraphEdge<N>> implements FastGraph<N, E>{
 
 	protected final Map<N, Set<E>> map;
+	protected final Map<N, Set<E>> reverseMap;
 	
 	public FastUndirectedGraph() {
 		map = createMap();
+		reverseMap = createMap();
 	}
 
 	@Override
@@ -23,13 +25,19 @@ public abstract class FastUndirectedGraph<N extends FastGraphVertex, E extends F
 		if(!map.containsKey(n)) {
 			map.put(n, new HashSet<>());
 		}
+		if(!reverseMap.containsKey(n)) {
+			reverseMap.put(n, new HashSet<>());
+		}
 	}
 
 	@Override
 	public void removeVertex(N n) {
-		Set<E> set = map.remove(n);
-		for(E e : set) {
-			map.get(e.dst).remove(e);
+		for(E e : map.remove(n)) {
+			reverseMap.get(/*getDestination(v, e)*/ e.dst).remove(e);
+		}
+		
+		for(E e : reverseMap.remove(n)) {
+			map.get(/*getSource(v, e)*/ e.src).remove(e);
 		}
 	}
 
@@ -46,10 +54,11 @@ public abstract class FastUndirectedGraph<N extends FastGraphVertex, E extends F
 		map.get(n).add(e);
 		
 		N dst = e.dst;
-		if(!map.containsKey(dst)) {
-			map.put(dst, new HashSet<>());
+		if(!reverseMap.containsKey(dst)) {
+			reverseMap.put(dst, new HashSet<>());
 		}
-		map.get(dst).add(e);
+		
+		reverseMap.get(dst).add(e);
 	}
 
 	@Override
@@ -58,8 +67,8 @@ public abstract class FastUndirectedGraph<N extends FastGraphVertex, E extends F
 			map.get(n).remove(e);
 		}
 		N dst = e.dst;
-		if(map.containsKey(dst)) {
-			map.get(dst).remove(e);
+		if(reverseMap.containsKey(dst)) {
+			reverseMap.get(dst).remove(e);
 		}
 	}
 
@@ -81,18 +90,29 @@ public abstract class FastUndirectedGraph<N extends FastGraphVertex, E extends F
 	@Override
 	public void replace(N old, N n) {
 		Set<E> succs = getEdges(old);
+		Set<E> preds = reverseMap.get(old);
+		
 		addVertex(n);
+		
 		for(E succ : new HashSet<>(succs)) {
 			E newEdge = clone(succ, old, n);
 			removeEdge(old, succ);
 			addEdge(n, newEdge);
 		}
+		
+		for(E pred : new HashSet<>(preds)) {
+			E newEdge = clone(pred, old, n);
+			removeEdge(pred.src, pred);
+			addEdge(pred.src, newEdge);
+		}
+		
 		removeVertex(old);
 	}
 
 	@Override
 	public void clear() {
 		map.clear();
+		reverseMap.clear();
 	}
 	
 	@Override

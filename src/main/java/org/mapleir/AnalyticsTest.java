@@ -9,19 +9,21 @@ import org.mapleir.stdlib.cfg.util.ControlFlowGraphDeobfuscator;
 import org.mapleir.stdlib.collections.NodeTable;
 import org.mapleir.stdlib.collections.graph.dot.BasicDotConfiguration;
 import org.mapleir.stdlib.collections.graph.dot.DotConfiguration.GraphType;
-import org.mapleir.stdlib.collections.graph.dot.DotWriter;
-import org.mapleir.stdlib.collections.graph.dot.impl.CFGStatementDotWriter;
 import org.mapleir.stdlib.collections.graph.dot.impl.ControlFlowGraphDotWriter;
+import org.mapleir.stdlib.collections.graph.dot.impl.InterferenceGraphDotWriter;
 import org.mapleir.stdlib.collections.graph.util.GraphUtils;
 import org.mapleir.stdlib.ir.CodeBody;
 import org.mapleir.stdlib.ir.StatementGraph;
 import org.mapleir.stdlib.ir.StatementWriter;
-import org.mapleir.stdlib.ir.gen.InterferenceGraph;
 import org.mapleir.stdlib.ir.gen.SSADestructor;
 import org.mapleir.stdlib.ir.gen.SSAGenerator;
 import org.mapleir.stdlib.ir.gen.SreedharDestructor;
 import org.mapleir.stdlib.ir.gen.StatementGenerator;
 import org.mapleir.stdlib.ir.gen.StatementGraphBuilder;
+import org.mapleir.stdlib.ir.gen.interference.ColourableNode;
+import org.mapleir.stdlib.ir.gen.interference.InterferenceEdge;
+import org.mapleir.stdlib.ir.gen.interference.InterferenceGraph;
+import org.mapleir.stdlib.ir.gen.interference.InterferenceGraphBuilder;
 import org.mapleir.stdlib.ir.transform.SSATransformer;
 import org.mapleir.stdlib.ir.transform.impl.CodeAnalytics;
 import org.mapleir.stdlib.ir.transform.impl.DefinitionAnalyser;
@@ -122,16 +124,18 @@ public class AnalyticsTest {
 			
 //			CFGStatementDotWriter ex = new CFGStatementDotWriter(cfg, new ArrayList<>(cfg.vertices()), "graph", "");
 //			ex.export(DotExporter.OPT_DEEP);
-			SSALivenessAnalyser liveness = new SSALivenessAnalyser(cfg, code);
-			liveness.init();
-			InterferenceGraph ig = InterferenceGraph.build(liveness);
+			SSALivenessAnalyser liveness = new SSALivenessAnalyser(cfg);
+			InterferenceGraph ig = InterferenceGraphBuilder.build(liveness);
 			System.out.println(ig);
 			
+			BasicDotConfiguration<InterferenceGraph, ColourableNode, InterferenceEdge> config2 = new BasicDotConfiguration<>(GraphType.UNDIRECTED);
+			InterferenceGraphDotWriter w2 = new InterferenceGraphDotWriter(config2, ig);
+			w2.setName("ig1").export();
+			
 			BasicDotConfiguration<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> config = new BasicDotConfiguration<>(GraphType.DIRECTED);
-			DotWriter writer = new ControlFlowGraphDotWriter(config, cfg, "graph111", ControlFlowGraphDotWriter.OPT_DEEP, new ArrayList<>(cfg.vertices()));
-			writer.export();
-			writer = new CFGStatementDotWriter(config, cfg, "graph111-statements", ControlFlowGraphDotWriter.OPT_DEEP, new ArrayList<>(cfg.vertices()));
-			writer.export();
+			ControlFlowGraphDotWriter w = new ControlFlowGraphDotWriter(config, cfg);
+			w.setFlags(ControlFlowGraphDotWriter.OPT_DEEP).setName("graph111");
+			w.export();
 			
 //			for(BasicBlock b : cfg.vertices()) {
 //				StringBuilder sb = new StringBuilder();
