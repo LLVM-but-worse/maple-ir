@@ -1,16 +1,15 @@
 package org.mapleir.stdlib.collections.graph.dot.impl;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
 import org.mapleir.stdlib.cfg.BasicBlock;
 import org.mapleir.stdlib.cfg.ControlFlowGraph;
 import org.mapleir.stdlib.cfg.edge.FlowEdge;
 import org.mapleir.stdlib.cfg.edge.TryCatchEdge;
 import org.mapleir.stdlib.collections.graph.dot.DotPropertyDecorator;
 import org.mapleir.stdlib.collections.graph.util.GraphUtils;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 public class ControlFlowGraphDecorator implements DotPropertyDecorator<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> {
 	public static final int OPT_DEEP = 0x01;
@@ -60,12 +59,12 @@ public class ControlFlowGraphDecorator implements DotPropertyDecorator<ControlFl
 	}
 	
 	@Override
-	public void decorateNodePrintability(ControlFlowGraph g, BasicBlock n, AtomicBoolean printable) {
-		printable.set(!n.isDummy());
+	public boolean isNodePrintable(ControlFlowGraph g, BasicBlock n) {
+		return !n.isDummy();
 	}
 	
 	@Override
-	public void decorateEdgePrintability(ControlFlowGraph g, BasicBlock n, FlowEdge<BasicBlock> e, AtomicBoolean printable) {
-		printable.set(!((flags & OPT_HIDE_HANDLER_EDGES) != 0 && e instanceof TryCatchEdge));
+	public boolean isEdgePrintable(ControlFlowGraph g, BasicBlock n, FlowEdge<BasicBlock> e) {
+		return !((flags & OPT_HIDE_HANDLER_EDGES) != 0 && e instanceof TryCatchEdge);
 	}
 }
