@@ -146,7 +146,7 @@ public class AnalyticsTest {
 			blockLiveness.compute();
 			w.clearDecorators().setName("graph-liveness");
 			w.addDecorator(new CFGStatementDecorator().setFlags(ControlFlowGraphDecorator.OPT_DEEP));
-			w.addDecorator(new LivenessDecorator().setLiveness(blockLiveness));
+			w.addDecorator(new LivenessDecorator().setBlockLiveness(blockLiveness)); // or .setLiveness(liveness)
 			w.export();
 			
 //			for(BasicBlock b : cfg.vertices()) {
