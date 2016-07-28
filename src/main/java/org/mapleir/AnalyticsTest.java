@@ -125,8 +125,9 @@ public class AnalyticsTest {
 			System.out.println(ig);
 			
 			BasicDotConfiguration<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> config = new BasicDotConfiguration<>(GraphType.DIRECTED);
-			ControlFlowGraphDotWriter writer = new ControlFlowGraphDotWriter(config, cfg, "graph111", ControlFlowGraphDotWriter.OPT_DEEP, new ArrayList<>(cfg.vertices()));
-			writer.export();
+			ControlFlowGraphDotWriter w = new ControlFlowGraphDotWriter(config, cfg);
+			w.setFlags(ControlFlowGraphDotWriter.OPT_DEEP).setOrder(new ArrayList<>(cfg.vertices())).setName("graph111");
+			w.export();
 			
 //			for(BasicBlock b : cfg.vertices()) {
 //				StringBuilder sb = new StringBuilder();
