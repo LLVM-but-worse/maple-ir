@@ -113,7 +113,7 @@ public class DotWriter<G extends FastGraph<N, E>, N extends FastGraphVertex, E e
 					continue;
 				}
 				
-				print(e.src.getId()).print(" -> ").print(e.dst.getId()).print(" ").print("[");
+				print(e.src.getId()).print(config.getType().getEdgeArrow()).print(e.dst.getId()).print(" ").print("[");
 				Map<String, Object> eprops = getEdgeProperties(n, e);
 				if(eprops != null) {
 					writeSettings(eprops);
@@ -126,7 +126,7 @@ public class DotWriter<G extends FastGraph<N, E>, N extends FastGraphVertex, E e
 	public String toDotString() {
 		clear();
 		
-		print(config.getType().toString());
+		print(config.getType().getPrintType());
 		if(name != null) {
 			print(" ").esc(name);
 		}
