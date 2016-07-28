@@ -4,8 +4,6 @@ import org.mapleir.stdlib.cfg.BasicBlock;
 import org.mapleir.stdlib.cfg.ControlFlowGraph;
 import org.mapleir.stdlib.cfg.edge.FlowEdge;
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
-import org.mapleir.stdlib.collections.graph.util.GraphUtils;
-import org.mapleir.stdlib.ir.CodeBody;
 import org.mapleir.stdlib.ir.expr.Expression;
 import org.mapleir.stdlib.ir.expr.PhiExpression;
 import org.mapleir.stdlib.ir.expr.VarExpression;
@@ -34,9 +32,8 @@ public class SSABlockLivenessAnalyser {
 	private final Queue<BasicBlock> queue;
 	
 	private final ControlFlowGraph cfg;
-	private final CodeBody body;
 	
-	public SSABlockLivenessAnalyser(ControlFlowGraph cfg, CodeBody body) {
+	public SSABlockLivenessAnalyser(ControlFlowGraph cfg) {
 		use = new NullPermeableHashMap<>(HashSet::new);
 		def = new NullPermeableHashMap<>(HashSet::new);
 		phiUse = new NullPermeableHashMap<>(() -> new NullPermeableHashMap<BasicBlock, Set<Local>>(HashSet::new));
@@ -48,7 +45,6 @@ public class SSABlockLivenessAnalyser {
 		queue = new LinkedList<>();
 		
 		this.cfg = cfg;
-		this.body = body;
 		
 		init();
 	}
@@ -61,9 +57,6 @@ public class SSABlockLivenessAnalyser {
 	}
 	
 	private void init() {
-		// update BasicBlock statement lists
-		GraphUtils.rewriteCfg(cfg, body);
-		
 		// initialize in and out
 		for (BasicBlock b : cfg.vertices()) {
 			in.getNonNull(b);
