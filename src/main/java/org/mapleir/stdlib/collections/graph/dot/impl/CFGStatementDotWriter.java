@@ -7,6 +7,7 @@ import org.mapleir.stdlib.collections.graph.dot.DotConfiguration;
 import org.mapleir.stdlib.ir.stat.Statement;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class CFGStatementDotWriter extends ControlFlowGraphDotWriter {
@@ -22,9 +23,13 @@ public class CFGStatementDotWriter extends ControlFlowGraphDotWriter {
 		sb.append(order.indexOf(n)).append(n.getId()).append(". ");
 		if((flags & OPT_DEEP) != 0) {
 			sb.append("\\l");
-			for (Statement stmt : n.getStatements()) {
+			List<Statement> statements = n.getStatements();
+			for (int i = 0; i < statements.size(); i++) {
+				Statement stmt = statements.get(i);
 				sb.append(stmt.getId()).append(": ");
-				sb.append(stmt.toString().replaceAll("\"", "\\\\\"").replaceAll("\n", "\\\\l")).append("\\l");
+				sb.append(stmt.toString().replaceAll("\"", "\\\\\"").replaceAll("\n", "\\\\l"));
+				if (i < statements.size() - 1)
+					sb.append("\\l");
 			}
 		}
 		map.put("label", sb.toString());
