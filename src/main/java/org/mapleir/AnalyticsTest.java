@@ -54,23 +54,23 @@ public class AnalyticsTest {
 
 	public static boolean debug = true;
 	
-	void test111(boolean b) {
-		int x = 0;
-		while(x < 21) {
-			if(b) {
-				int y = x;
-				System.out.println(b);
-				x += 5;
+	void test111(boolean lvar1_0) {
+		int lvar2_0 = 0;
+		while(lvar2_0 < 21) {
+			if(lvar1_0) {
+				int y = lvar2_0;
+				System.out.println(lvar1_0);
+				lvar2_0 += 5;
 				System.out.println(y);
 			} else {
-				int y = x;
-				System.out.println(b);
-				x += 10;
+				int y = lvar2_0;
+				System.out.println(lvar1_0);
+				lvar2_0 += 10;
 				System.out.println(y);
 			}
 		}
 		
-		System.out.println(x);
+		System.out.println(lvar2_0);
 	}
 	
 	public static void main(String[] args) throws IOException {
