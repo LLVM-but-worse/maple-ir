@@ -126,7 +126,7 @@ public class AnalyticsTest {
 			
 			BasicDotConfiguration<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> config = new BasicDotConfiguration<>(GraphType.DIRECTED);
 			ControlFlowGraphDotWriter w = new ControlFlowGraphDotWriter(config, cfg);
-			w.setFlags(ControlFlowGraphDotWriter.OPT_DEEP).setOrder(new ArrayList<>(cfg.vertices())).setName("graph111");
+			w.setFlags(ControlFlowGraphDotWriter.OPT_DEEP).setName("graph111");
 			w.export();
 			
 //			for(BasicBlock b : cfg.vertices()) {

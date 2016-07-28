@@ -24,7 +24,7 @@ public class ControlFlowGraphDotWriter extends DotWriter<ControlFlowGraph, Basic
 	public ControlFlowGraphDotWriter(DotConfiguration<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> config, ControlFlowGraph graph) {
 		super(config, graph);
 		flags = 0;
-		order = new ArrayList<>();
+		order = new ArrayList<>(graph.vertices());
 	}
 	
 	public int getFlags() {
