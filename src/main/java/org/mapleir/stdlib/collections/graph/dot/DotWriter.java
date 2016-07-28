@@ -135,6 +135,8 @@ public class DotWriter<G extends FastGraph<N, E>, N extends FastGraphVertex, E e
 	}
 	
 	private void writeEdges() {
+		final String arrow = config.getType().getEdgeArrow();
+		
 		for(N n : graph.vertices()) {
 			if(!isNodePrintable(n)) {
 				continue;
@@ -145,7 +147,7 @@ public class DotWriter<G extends FastGraph<N, E>, N extends FastGraphVertex, E e
 					continue;
 				}
 				
-				print(e.src.getId()).print(config.getType().getEdgeArrow()).print(e.dst.getId()).print(" ").print("[");
+				print(e.src.getId()).print(arrow).print(e.dst.getId()).print(" ").print("[");
 				Map<String, Object> eprops = new HashMap<>();
 				for (DotPropertyDecorator<G, N, E> decorator : decorators)
 					decorator.decorateEdgeProperties(graph, n, e, eprops);
