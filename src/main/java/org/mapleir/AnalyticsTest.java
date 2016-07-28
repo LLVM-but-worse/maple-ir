@@ -148,12 +148,10 @@ public class AnalyticsTest {
 			GraphUtils.rewriteCfg(cfg, code);
 			blockLiveness.compute();
 			for (BasicBlock n : cfg.vertices()) {
-				w.addStartComment(n, "IN: " + blockLiveness.in(n).toString());
-				w.addStartComment(n, "Preds: " + cfg.getReverseEdges(n).size());
-				w.addEndComment(n, "OUT: " + blockLiveness.out(n).toString());
-				w.addEndComment(n, "Succs: " + cfg.getEdges(n).size());
-				if (cfg.getReverseEdges(n).size() == 1 && cfg.getEdges(n).size() == 1) // just a test for the highlighter
-					w.setColor(n, "yellow");
+				w.decorator.addStartComment(n, "IN: " + blockLiveness.in(n).toString());
+				w.decorator.addStartComment(n, "Preds: " + cfg.getReverseEdges(n).size());
+				w.decorator.addEndComment(n, "OUT: " + blockLiveness.out(n).toString());
+				w.decorator.addEndComment(n, "Succs: " + cfg.getEdges(n).size());
 			}
 			w.export();
 			
@@ -168,8 +166,8 @@ public class AnalyticsTest {
 				for (Map.Entry<Local, Boolean> e : liveness.out(n).entrySet())
 					if (e.getValue())
 						liveOut.add(e.getKey());
-				w.addStartComment(n, "IN: " + liveIn.toString());
-				w.addEndComment(n, "OUT: " + liveOut.toString());
+				w.decorator.addStartComment(n, "IN: " + liveIn.toString());
+				w.decorator.addEndComment(n, "OUT: " + liveOut.toString());
 			}
 			w.export();
 			
