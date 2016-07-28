@@ -49,8 +49,22 @@ public class DotWriter<G extends FastGraph<N, E>, N extends FastGraphVertex, E e
 	}
 	
 	public DotWriter<G, N, E> addDecorator(DotPropertyDecorator<G, N, E> decorator) {
-		decorator.setGraph(graph);
 		decorators.add(decorator);
+		return this;
+	}
+	
+	public DotWriter<G, N, E> addDecorator(int index, DotPropertyDecorator<G, N, E> decorator) {
+		decorators.add(index, decorator);
+		return this;
+	}
+	
+	public DotWriter<G, N, E> removeDecorator(Class<? extends DotPropertyDecorator<G, N, E>> type) {
+		Iterator<DotPropertyDecorator<G, N, E>> it = decorators.iterator();
+		while (it.hasNext()) {
+			DotPropertyDecorator<G, N, E> decorator = it.next();
+			if (type.isAssignableFrom(decorator.getClass()))
+				it.remove();
+		}
 		return this;
 	}
 	
@@ -91,14 +105,14 @@ public class DotWriter<G extends FastGraph<N, E>, N extends FastGraphVertex, E e
 	private boolean printable(N n) {
 		AtomicBoolean printable = new AtomicBoolean(true);
 		for (DotPropertyDecorator<G, N, E> decorator : decorators)
-			decorator.decorateNodePrintability(n, printable);
+			decorator.decorateNodePrintability(graph, n, printable);
 		return printable.get();
 	}
 	
 	private boolean printable(N n, E e) {
 		AtomicBoolean printable = new AtomicBoolean(true);
 		for (DotPropertyDecorator<G, N, E> decorator : decorators)
-			decorator.decorateEdgePrintability(n, e, printable);
+			decorator.decorateEdgePrintability(graph, n, e, printable);
 		return printable.get();
 	}
 	
@@ -111,7 +125,7 @@ public class DotWriter<G extends FastGraph<N, E>, N extends FastGraphVertex, E e
 			print(n.getId()).print(" [");
 			Map<String, Object> nprops = new HashMap<>();
 			for (DotPropertyDecorator<G, N, E> decorator : decorators)
-				decorator.decorateNodeProperties(n, nprops);
+				decorator.decorateNodeProperties(graph, n, nprops);
 			writeSettings(nprops);
 			print("]").newLine();
 		}
@@ -131,7 +145,7 @@ public class DotWriter<G extends FastGraph<N, E>, N extends FastGraphVertex, E e
 				print(e.src.getId()).print(config.getType().getEdgeArrow()).print(e.dst.getId()).print(" ").print("[");
 				Map<String, Object> eprops = new HashMap<>();
 				for (DotPropertyDecorator<G, N, E> decorator : decorators)
-					decorator.decorateEdgeProperties(n, e, eprops);
+					decorator.decorateEdgeProperties(graph, n, e, eprops);
 				writeSettings(eprops);
 				print("];").newLine();
 			}

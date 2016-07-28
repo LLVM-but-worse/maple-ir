@@ -12,33 +12,20 @@ import java.util.Map;
 import java.util.Set;
 
 public class LivenessDecorator extends BlockCommentDecorator<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> {
-	protected ControlFlowGraph graph;
 	private SSABlockLivenessAnalyser blockLiveness;
 	private SSALivenessAnalyser liveness;
-		
-	@Override
-	public LivenessDecorator setGraph(ControlFlowGraph graph) {
-		this.graph = graph;
-		if (blockLiveness != null || liveness != null)
-			applyComments();
-		return this;
-	}
 	
 	public LivenessDecorator setBlockLiveness(SSABlockLivenessAnalyser blockLiveness) {
 		this.blockLiveness = blockLiveness;
-		if (graph != null)
-			applyComments();
 		return this;
 	}
 	
 	public LivenessDecorator setLiveness(SSALivenessAnalyser liveness) {
 		this.liveness = liveness;
-		if (graph != null)
-			applyComments();
 		return this;
 	}
 	
-	public LivenessDecorator applyComments() {
+	public LivenessDecorator applyComments(ControlFlowGraph graph) {
 		clearComments();
 		for (BasicBlock n : graph.vertices()) {
 			if (blockLiveness != null) {
