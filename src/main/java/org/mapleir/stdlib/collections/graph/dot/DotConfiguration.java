@@ -11,17 +11,22 @@ import org.mapleir.stdlib.collections.graph.FastGraphVertex;
 public abstract class DotConfiguration<G extends FastGraph<N, E>, N extends FastGraphVertex, E extends FastGraphEdge<N>> {
 
 	public enum GraphType {
-		DIRECTED("digraph"), UNDIRECTED("graph");
+		DIRECTED("digraph", "->"), UNDIRECTED("graph", "--");
 		
 		private final String printType;
+		private final String edgeArrow;
 		
-		private GraphType(String printType) {
+		private GraphType(String printType, String edgeArrow) {
 			this.printType = printType;
+			this.edgeArrow = " " + edgeArrow + " ";
 		}
 		
-		@Override
-		public String toString()  {
+		public String getPrintType()  {
 			return printType;
+		}
+		
+		public String getEdgeArrow() {
+			return edgeArrow;
 		}
 	}
 	
