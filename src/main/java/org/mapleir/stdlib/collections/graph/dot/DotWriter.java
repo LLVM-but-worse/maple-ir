@@ -1,10 +1,5 @@
 package org.mapleir.stdlib.collections.graph.dot;
 
-import org.mapleir.stdlib.cfg.util.TabbedStringWriter;
-import org.mapleir.stdlib.collections.graph.FastGraph;
-import org.mapleir.stdlib.collections.graph.FastGraphEdge;
-import org.mapleir.stdlib.collections.graph.FastGraphVertex;
-
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -19,7 +14,11 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.concurrent.atomic.AtomicBoolean;
+
+import org.mapleir.stdlib.cfg.util.TabbedStringWriter;
+import org.mapleir.stdlib.collections.graph.FastGraph;
+import org.mapleir.stdlib.collections.graph.FastGraphEdge;
+import org.mapleir.stdlib.collections.graph.FastGraphVertex;
 
 public class DotWriter<G extends FastGraph<N, E>, N extends FastGraphVertex, E extends FastGraphEdge<N>> extends TabbedStringWriter {
 	
@@ -102,23 +101,27 @@ public class DotWriter<G extends FastGraph<N, E>, N extends FastGraphVertex, E e
 		}
 	}
 	
-	private boolean printable(N n) {
-		AtomicBoolean printable = new AtomicBoolean(true);
-		for (DotPropertyDecorator<G, N, E> decorator : decorators)
-			decorator.decorateNodePrintability(graph, n, printable);
-		return printable.get();
+	private boolean isNodePrintable(N n) {
+		for (DotPropertyDecorator<G, N, E> d : decorators) {
+			if(!d.isNodePrintable(graph, n)) {
+				return false;
+			}
+		}
+		return true;
 	}
 	
-	private boolean printable(N n, E e) {
-		AtomicBoolean printable = new AtomicBoolean(true);
-		for (DotPropertyDecorator<G, N, E> decorator : decorators)
-			decorator.decorateEdgePrintability(graph, n, e, printable);
-		return printable.get();
+	private boolean isEdgePrintable(N n, E e) {
+		for (DotPropertyDecorator<G, N, E> d : decorators) {
+			if(!d.isEdgePrintable(graph, n, e)) {
+				return false;
+			}
+		}
+		return true;
 	}
 	
 	private void writeNodes() {
 		for(N n : graph.vertices()) {
-			if(!printable(n)) {
+			if(!isNodePrintable(n)) {
 				continue;
 			}
 			
@@ -133,12 +136,12 @@ public class DotWriter<G extends FastGraph<N, E>, N extends FastGraphVertex, E e
 	
 	private void writeEdges() {
 		for(N n : graph.vertices()) {
-			if(!printable(n)) {
+			if(!isNodePrintable(n)) {
 				continue;
 			}
 			
 			for(E e : graph.getEdges(n)) {
-				if(!printable(n, e)) {
+				if(!isEdgePrintable(n, e)) {
 					continue;
 				}
 				
