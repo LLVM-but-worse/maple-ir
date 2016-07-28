@@ -72,7 +72,7 @@ public class ControlFlowGraphDotWriter extends DotWriter<ControlFlowGraph, Basic
 		}
 		
 		StringBuilder sb = new StringBuilder();
-		sb.append(order.indexOf(n)).append(n.getId()).append(". ");
+		sb.append(order.indexOf(n)).append(". ").append(n.getId());
 		if((flags & OPT_DEEP) != 0) {
 			sb.append("\\l");
 			StringBuilder sb2 = new StringBuilder();
