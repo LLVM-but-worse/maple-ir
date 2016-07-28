@@ -5,12 +5,14 @@ import org.mapleir.stdlib.collections.graph.FastGraph;
 import org.mapleir.stdlib.collections.graph.FastGraphEdge;
 import org.mapleir.stdlib.collections.graph.FastGraphVertex;
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
+import java.io.DataOutputStream;
 import java.io.File;
-import java.io.FileWriter;
+import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStreamReader;
+import java.nio.ByteBuffer;
+import java.nio.CharBuffer;
+import java.nio.charset.Charset;
+import java.nio.charset.CharsetEncoder;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -20,14 +22,24 @@ public class DotWriter<G extends FastGraph<N, E>, N extends FastGraphVertex, E e
 	private static final String GRAPHVIZ_DOT_PATH = "dot/dot.exe";
 	private static final File GRAPH_FOLDER = new File("cfg testing");
 	
+	private static final CharsetEncoder UTF8_ENCODER = Charset.forName("UTF-8").newEncoder();
+	
 	protected final DotConfiguration<G, N, E> config;
 	protected final G graph;
-	protected final String name;
+	private String name;
 	
-	public DotWriter(DotConfiguration<G, N, E> config, G graph, String name) {
+	public DotWriter(DotConfiguration<G, N, E> config, G graph) {
 		this.config = config;
 		this.graph = graph;
+	}
+	
+	public String getName() {
+		return name;
+	}
+	
+	public DotWriter<G, N, E> setName(String name) {
 		this.name = name;
+		return this;
 	}
 	
 	private void writeSettings(Map<String, Object> properties) {
@@ -101,7 +113,7 @@ public class DotWriter<G extends FastGraph<N, E>, N extends FastGraphVertex, E e
 					continue;
 				}
 				
-				print(e.src.getId()).print(" -> ").print(e.dst.getId()).print(" ").print("[");
+				print(e.src.getId()).print(config.getType().getEdgeArrow()).print(e.dst.getId()).print(" ").print("[");
 				Map<String, Object> eprops = getEdgeProperties(n, e);
 				if(eprops != null) {
 					writeSettings(eprops);
@@ -114,7 +126,7 @@ public class DotWriter<G extends FastGraph<N, E>, N extends FastGraphVertex, E e
 	public String toDotString() {
 		clear();
 		
-		print(config.getType().toString());
+		print(config.getType().getPrintType());
 		if(name != null) {
 			print(" ").esc(name);
 		}
@@ -158,49 +170,25 @@ public class DotWriter<G extends FastGraph<N, E>, N extends FastGraphVertex, E e
 	public void export() {
 		String fname = escapeFileName(name);
 		
-		File dotFile = new File(GRAPH_FOLDER, fname + "x.gv");
+		File dotFile = new File(GRAPH_FOLDER, fname + ".gv");
 		if(dotFile.exists())
 			dotFile.delete();
 		
-		try (BufferedWriter bw = new BufferedWriter(new FileWriter(dotFile))){
+		try (DataOutputStream dos = new DataOutputStream(new FileOutputStream(dotFile))){
 			String d = toDotString();
-			System.err.println(d);
-			bw.write(d);
-			bw.close();
+			System.out.println(d);
+			ByteBuffer buf = UTF8_ENCODER.encode(CharBuffer.wrap(d));
+			byte[] dst = new byte[buf.remaining()];
+			buf.get(dst);
+			dos.write(dst);
+
 			File gv = new File(GRAPHVIZ_DOT_PATH);
-			File imgFile = new File(GRAPH_FOLDER, fname + "y.png");
+			File imgFile = new File(GRAPH_FOLDER, fname + ".png");
 			if (imgFile.exists())
 				imgFile.delete();
 			ProcessBuilder builder = new ProcessBuilder('"' + gv.getAbsolutePath() + '"', "-Tpng", '"' + dotFile.getAbsolutePath() + '"', "-o", '"' + imgFile.getAbsolutePath() + '"');
-			for(String s : builder.command()) {
-				System.out.print(s + " ");
-			}
-			System.out.println();
 			Process process = builder.start();
 			process.waitFor();
-			
-			BufferedReader br = new BufferedReader(new InputStreamReader(process.getErrorStream(), "UTF-8"));
-			String line;
-			System.err.flush();
-			while((line = br.readLine()) != null) {
-				System.err.println(line);
-				char[] chars = line.toCharArray();
-				for(int i=0; i < chars.length; i++) {
-					char c = chars[i];
-					
-					if(i > 0 && chars[i - 1] == '\'') {
-						System.err.println();
-						System.err.println("char: " + c);
-						System.err.println("set: " + Character.getName(c));
-						Character c1 = c;
-						System.err.println("id: " + (int)c);
-						System.err.println("id: " + (int)c1.charValue());
-					} else {
-						System.err.print(c);
-					}
-				}
-				System.err.println();
-			}
 		} catch (IOException | InterruptedException e) {
 			System.err.println("Exception while exporting graph " + fname + ":");
 			e.printStackTrace();;
