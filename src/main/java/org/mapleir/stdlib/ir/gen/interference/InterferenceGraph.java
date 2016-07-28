@@ -1,4 +1,4 @@
-package org.mapleir.stdlib.ir.gen;
+package org.mapleir.stdlib.ir.gen.interference;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -7,14 +7,10 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import org.mapleir.stdlib.cfg.BasicBlock;
-import org.mapleir.stdlib.collections.graph.FastGraphEdge;
-import org.mapleir.stdlib.collections.graph.FastGraphVertex;
 import org.mapleir.stdlib.collections.graph.FastUndirectedGraph;
 import org.mapleir.stdlib.ir.expr.Expression;
 import org.mapleir.stdlib.ir.expr.PhiExpression;
 import org.mapleir.stdlib.ir.expr.VarExpression;
-import org.mapleir.stdlib.ir.gen.InterferenceGraph.ColourableNode;
-import org.mapleir.stdlib.ir.gen.InterferenceGraph.InterferenceEdge;
 import org.mapleir.stdlib.ir.locals.Local;
 import org.mapleir.stdlib.ir.stat.CopyVarStatement;
 import org.mapleir.stdlib.ir.stat.Statement;
@@ -119,51 +115,6 @@ public class InterferenceGraph extends FastUndirectedGraph<ColourableNode, Inter
 		}
 		sb.append("}");
 		return sb.toString();
-	}
-	
-	public static class ColourableNode implements FastGraphVertex {
-
-		private final Local local;
-		private int colour;
-		
-		public ColourableNode(Local local, int colour) {
-			this.local = local;
-			this.colour = colour;
-		}
-		
-		public Local getLocal() {
-			return local;
-		}
-		
-		public int getColour() {
-			return colour;
-		}
-		
-		@Override
-		public String getId() {
-			return local.toString() + " [paint=" + Integer.toString(colour) + "]";
-		}
-		
-		@Override
-		public String toString() {
-			return getId();
-		}
-	}
-	
-	public static class InterferenceEdge extends FastGraphEdge<ColourableNode> implements Comparable<InterferenceEdge> {
-		public InterferenceEdge(ColourableNode src, ColourableNode dst) {
-			super(src, dst);
-		}
-		
-		@Override
-		public String toString() {
-			return dst.getLocal().toString();
-		}
-
-		@Override
-		public int compareTo(InterferenceEdge o) {
-			return src.getLocal().compareTo(dst.getLocal());
-		}
 	}
 
 	@Override
