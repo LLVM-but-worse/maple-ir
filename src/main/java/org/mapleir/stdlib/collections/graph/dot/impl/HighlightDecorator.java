@@ -20,7 +20,8 @@ public class HighlightDecorator<G extends FastGraph<N, E>, N extends FastGraphVe
 		return this;
 	}
 	
-	public void decorateNodeProperties(N n, Map<String, Object> nprops) {
+	@Override
+	public void decorateNodeProperties(G g, N n, Map<String, Object> nprops) {
 		if (vertexColors.containsKey(n)) {
 			nprops.put("style", "filled");
 			nprops.put("fillcolor", vertexColors.get(n));

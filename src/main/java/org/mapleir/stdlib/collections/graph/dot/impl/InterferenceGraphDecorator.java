@@ -10,7 +10,7 @@ import java.util.Map;
 
 public class InterferenceGraphDecorator implements DotPropertyDecorator<InterferenceGraph, ColourableNode, InterferenceEdge> {
 	@Override
-	public void decorateNodeProperties(ColourableNode n, Map<String, Object> nprops) {
+	public void decorateNodeProperties(InterferenceGraph g, ColourableNode n, Map<String, Object> nprops) {
 		nprops.put("shape", "box");
 		nprops.put("style", "filled");
 		nprops.put("fillcolor", GraphUtils.HIGHLIGHT_COLOURS[n.getColour()]);

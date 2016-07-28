@@ -35,7 +35,8 @@ public class BlockCommentDecorator<G extends FastGraph<N, E>, N extends FastGrap
 		return this;
 	}
 	
-	public void decorateNodeProperties(N n, Map<String, Object> nprops) {
+	@Override
+	public void decorateNodeProperties(G g, N n, Map<String, Object> nprops) {
 		if (nprops.containsKey("label")) {
 			StringBuilder sb = new StringBuilder();
 			for (String comment : vertexStartComments.getNonNull(n))
