@@ -7,12 +7,11 @@ import org.mapleir.stdlib.collections.graph.dot.DotConfiguration;
 import org.mapleir.stdlib.ir.stat.Statement;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 public class CFGStatementDotWriter extends ControlFlowGraphDotWriter {
-	public CFGStatementDotWriter(DotConfiguration<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> config, ControlFlowGraph graph, String name, int flags, List<BasicBlock> order) {
-		super(config, graph, name, flags, order);
+	public CFGStatementDotWriter(DotConfiguration<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> config, ControlFlowGraph graph) {
+		super(config, graph);
 	}
 	
 	@Override

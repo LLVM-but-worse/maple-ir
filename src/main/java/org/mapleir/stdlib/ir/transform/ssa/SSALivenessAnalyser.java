@@ -1,195 +1,207 @@
 package org.mapleir.stdlib.ir.transform.ssa;
 
 import org.mapleir.stdlib.cfg.BasicBlock;
-import org.mapleir.stdlib.cfg.ControlFlowGraph;
 import org.mapleir.stdlib.cfg.edge.FlowEdge;
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
-import org.mapleir.stdlib.collections.graph.util.GraphUtils;
-import org.mapleir.stdlib.ir.CodeBody;
+import org.mapleir.stdlib.collections.SetCreator;
+import org.mapleir.stdlib.collections.graph.flow.FlowGraph;
 import org.mapleir.stdlib.ir.expr.Expression;
 import org.mapleir.stdlib.ir.expr.PhiExpression;
 import org.mapleir.stdlib.ir.expr.VarExpression;
-import org.mapleir.stdlib.ir.header.BlockHeaderStatement;
-import org.mapleir.stdlib.ir.header.HeaderStatement;
 import org.mapleir.stdlib.ir.locals.Local;
 import org.mapleir.stdlib.ir.stat.CopyVarStatement;
 import org.mapleir.stdlib.ir.stat.Statement;
+import org.mapleir.stdlib.ir.transform.BackwardsFlowAnalyser;
 
+import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
-import java.util.Queue;
+import java.util.Map.Entry;
 import java.util.Set;
 
-public class SSALivenessAnalyser {
-	private boolean initialized;
-	private final NullPermeableHashMap<BasicBlock, Set<Local>> use;
-	private final NullPermeableHashMap<BasicBlock, Set<Local>> def;
-	private final NullPermeableHashMap<BasicBlock, NullPermeableHashMap<BasicBlock, Set<Local>>> phiUse;
-	private final NullPermeableHashMap<BasicBlock, Set<Local>> phiDef;
+public class SSALivenessAnalyser extends BackwardsFlowAnalyser<BasicBlock, FlowEdge<BasicBlock>, Map<Local, Boolean>> {
+
+	private Map<Local, Boolean> initial;
+	private NullPermeableHashMap<BasicBlock, Set<Local>> def;
+	private NullPermeableHashMap<BasicBlock, Set<Local>> phiDef;
+	private NullPermeableHashMap<BasicBlock, Set<Local>> phiUse;
 	
-	private final NullPermeableHashMap<BasicBlock, Set<Local>> out;
-	private final NullPermeableHashMap<BasicBlock, Set<Local>> in;
 	
-	private final Queue<BasicBlock> queue;
-	
-	private final ControlFlowGraph cfg;
-	private final CodeBody body;
-	
-	public SSALivenessAnalyser(ControlFlowGraph cfg, CodeBody body) {
-		initialized = false;
-		use = new NullPermeableHashMap<>(HashSet::new);
-		def = new NullPermeableHashMap<>(HashSet::new);
-		phiUse = new NullPermeableHashMap<>(() -> new NullPermeableHashMap<BasicBlock, Set<Local>>(HashSet::new));
-		phiDef = new NullPermeableHashMap<>(HashSet::new);
-		
-		out = new NullPermeableHashMap<>(HashSet::new);
-		in = new NullPermeableHashMap<>(HashSet::new);
-		
-		queue = new LinkedList<>();
-		
-		this.cfg = cfg;
-		this.body = body;
+	public SSALivenessAnalyser(FlowGraph<BasicBlock, FlowEdge<BasicBlock>> graph, boolean commit) {
+		super(graph, commit);
 	}
 	
-	private void enqueue(BasicBlock b) {
-		if (!queue.contains(b)) {
-			System.out.println("Enqueue " + b);
-			queue.add(b);
-		}
+	public SSALivenessAnalyser(FlowGraph<BasicBlock, FlowEdge<BasicBlock>> graph) {
+		this(graph, true);
 	}
 	
-	public void init() {
-		// update BasicBlock statement lists
-		GraphUtils.rewriteCfg(cfg, body);
-		
-		// initialize in and out
-		for (BasicBlock b : cfg.vertices()) {
-			in.getNonNull(b);
-			out.getNonNull(b);
-		}
-		
-		// compute def, use, and phi for each block
-		for (BasicBlock b : cfg.vertices())
-			precomputeBlock(b);
-		
-		// enqueue every block
-		for (BasicBlock b : cfg.vertices())
-			enqueue(b);
-		
-		initialized = true;
-		
-		System.out.println();
-		System.out.println();
-		for (BasicBlock b : cfg.vertices())
-			System.out.println(b.getId() + "    ||||    DEF: " + def.get(b) + "    |||||    USE: " + use.get(b));
-		System.out.println();
-		for (BasicBlock b : cfg.vertices())
-			System.out.println(b.getId() + "    ||||    \u0278DEF: " + phiDef.get(b) + "    |||||    \u0278USE: " + phiUse.get(b));
-	}
-	
-	// compute def, use, and phi for given block
-	private void precomputeBlock(BasicBlock b) {
-		def.getNonNull(b);
-		use.getNonNull(b);
-		phiUse.getNonNull(b);
-		phiDef.getNonNull(b);
-		
-		// we have to iterate in reverse order because a definition will kill a use in the current block
-		// this is so that uses do not escape a block if its def is in the same block. this is basically
-		// simulating a statement graph analysis
-		List<Statement> stmts = b.getStatements();
-		for (int i = stmts.size() - 1; i >= 0; i--) {
-			Statement stmt = stmts.get(i);
-			if (stmt instanceof CopyVarStatement) {
-				CopyVarStatement cvs = (CopyVarStatement) stmt;
-				VarExpression var = cvs.getVariable();
-				Local defLocal = var.getLocal();
-				Expression rhs = cvs.getExpression();
-				if (rhs instanceof PhiExpression) {
-					phiDef.get(b).add(defLocal);
-					PhiExpression phi = (PhiExpression) rhs;
-					for (Map.Entry<HeaderStatement, Expression> e : phi.getLocals().entrySet()) {
-						if (!(e.getKey() instanceof BlockHeaderStatement))
-							throw new IllegalArgumentException("Illegal phi expression source header: " + e.getClass().getSimpleName());
-						BasicBlock exprSource = ((BlockHeaderStatement) e.getKey()).getBlock();
-						Expression phiExpr = e.getValue();
-						phiUse.get(b).getNonNull(exprSource).addAll(phiExpr.getUsedLocals());
+	@Override
+	protected void init() {
+		initial = new HashMap<>();
+		def = new NullPermeableHashMap<>(new SetCreator<>());
+		phiDef = new NullPermeableHashMap<>(new SetCreator<>());
+		phiUse = new NullPermeableHashMap<>(new SetCreator<>());
+
+		for (BasicBlock b : graph.vertices()) {
+			for (Statement stmt : b.getStatements()) {
+				for (Statement s : Statement.enumerate(stmt)) {
+					if (s instanceof CopyVarStatement) {
+						CopyVarStatement copy = (CopyVarStatement) s;
+						
+						Local l = copy.getVariable().getLocal();
+						initial.put(l, Boolean.valueOf(false));
+						Expression expr = copy.getExpression();
+						if(expr instanceof PhiExpression) {
+							phiDef.getNonNull(b).add(l);
+							Set<Local> set = phiUse.getNonNull(b);
+							for(Expression e : ((PhiExpression) expr).getLocals().values()) {
+								for(Statement s1 : Statement.enumerate(e)) {
+									if(s1 instanceof VarExpression) {
+										VarExpression v = (VarExpression) s1;
+										set.add(v.getLocal());
+									}
+								}
+							}
+						} else {
+							def.getNonNull(b).add(l);
+						}
+					} else if (s instanceof VarExpression) {
+						initial.put(((VarExpression) s).getLocal(), Boolean.valueOf(false));
 					}
-					continue; // do this to avoid adding used locals of phi copies
 				}
-				
-				def.get(b).add(defLocal);
-				use.get(b).remove(defLocal);
 			}
-			use.get(b).addAll(stmt.getUsedLocals());
+		}
+
+		super.init();
+	}
+
+	@Override
+	protected Map<Local, Boolean> newState() {
+		return new HashMap<>(initial);
+	}
+
+	@Override
+	protected Map<Local, Boolean> newEntryState() {
+		return new HashMap<>(initial);
+	}
+
+	@Override
+	protected void merge(BasicBlock srcB, Map<Local, Boolean> srcOut, BasicBlock dstB, Map<Local, Boolean> dstIn, Map<Local, Boolean> out) {
+		for(Entry<Local, Boolean> e : srcOut.entrySet()) {
+			out.put(e.getKey(), e.getValue());
+		}
+		flowThrough(dstB, dstIn, srcB, out);
+		for(Entry<Local, Boolean> e : srcOut.entrySet()) {
+			out.put(e.getKey(), out.get(e.getKey()) || e.getValue());
 		}
 	}
 	
-	public Set<Local> in(BasicBlock b) {
-		return new HashSet<>(in.get(b));
-	}
-	
-	public Set<Local> out(BasicBlock b) {
-		return new HashSet<>(out.get(b));
-	}
-	
-	public void compute() {
-		if (!initialized)
-			throw new IllegalStateException("Call init() before compute()");
+	@Override
+	protected void flowThrough(BasicBlock dstB, Map<Local, Boolean> dstIn, BasicBlock srcB, Map<Local, Boolean> srcOut) {
+		// propagate upwards simple flow.
+
+		Set<Local> defs = def.getNonNull(srcB);
+		Set<Local> phiDefs = phiDef.getNonNull(dstB);
+		for(Entry<Local, Boolean> e : dstIn.entrySet()) {
+			// upwards propagation cases:
+			
+			// dst-live-in: {var}
+			//  this could be because var is the target of a phi
+			//  in which case it is considered live-in to the dst
+			//  but dead-out to the src block.
+			// or
+			//  if the var isn't the target of a phi, then it means
+			//  that the local is genuinely live-in and so we can
+			//  just propagate it across the block boundary.
+			Local l = e.getKey();
+			if(phiDefs.contains(l)) {
+				srcOut.put(l, false);
+			} else {
+				srcOut.put(l, srcOut.get(l) || e.getValue());
+			}
+		}
 		
-		// +use and -def affect out
-		// -use and +def affect in
-		// negative handling always goes after positive and any adds
-		while (!queue.isEmpty()) {
-			BasicBlock b = queue.remove();
-			System.out.println("\n\nProcessing " + b.getId());
-			
-			Set<Local> oldIn = new HashSet<>(in.get(b));
-			Set<Local> curIn = new HashSet<>(use.get(b));
-			Set<Local> curOut = new HashSet<>();
-			
-			// out[n] = U(s in succ[n])(in[s])
-			for (FlowEdge<BasicBlock> succEdge : cfg.getEdges(b))
-				curOut.addAll(in.get(succEdge.dst));
-			
-			// positive phi handling for uses, see §5.4.2 "Meaning of copy statements in Sreedhar's method"
-			for (FlowEdge<BasicBlock> succEdge : cfg.getEdges(b))
-				curOut.addAll(phiUse.get(succEdge.dst).getNonNull(b));
-			
-			// negative phi handling for defs
-			for (FlowEdge<BasicBlock> succEdge : cfg.getEdges(b))
-				curOut.removeAll(phiDef.get(succEdge.dst));
-			
-			// positive phi handling for defs
-			curIn.addAll(phiDef.get(b));
-			oldIn.addAll(phiDef.get(b));
-			
-			// in[n] = use[n] U(out[n] - def[n])
-			HashSet<Local> toAdd = new HashSet<>(curOut);
-			toAdd.removeAll(def.get(b));
-			curIn.addAll(toAdd);
-			
-			// negative phi handling for uses
-			for (FlowEdge<BasicBlock> predEdge : cfg.getReverseEdges(b))
-				curIn.removeAll(phiUse.get(b).getNonNull(predEdge.src));
-			
-			in.put(b, curIn);
-			out.put(b, curOut);
-			
-			// queue preds if dataflow state changed
-			if (!oldIn.equals(curIn)) {
-				cfg.getReverseEdges(b).stream().map(e -> e.src).forEach(this::enqueue);
-				
-				for (BasicBlock b2 : cfg.vertices()) {
-					System.out.println(b2.getId() + "   ||||    IN: " + in.get(b2) + "   |||||   OUT: " + out.get(b2));
-				}
+		// phi uses are considered live-out for the src and semi
+		// live-in for the dst.
+		for(Local l : phiUse.getNonNull(dstB)) {
+			if(defs.contains(l)) {
+				srcOut.put(l, true);
 			}
 		}
 	}
 	
-	public ControlFlowGraph getGraph() {
-		return cfg;
+	@Override
+	protected void execute(BasicBlock b, Map<Local, Boolean> out, Map<Local, Boolean> in) {
+		for(Entry<Local, Boolean> e : out.entrySet()) {
+			Local l = e.getKey();
+			in.put(l, e.getValue());
+		}
+		Set<Local> defs = def.getNonNull(b);
+		
+		for(Local l : defs) {
+			in.put(l, false);
+		}
+		
+		for(Statement stmt : b.getStatements()) {
+			if(stmt instanceof CopyVarStatement) {
+				CopyVarStatement copy = (CopyVarStatement) stmt;
+				if(copy.getExpression() instanceof PhiExpression) {
+					in.put(copy.getVariable().getLocal(), true);
+					continue;
+				}
+			}
+			
+			// since we are skipping phis, the phi argument variables are
+			// considered dead-in unless they are used further on in the block
+			// in a non phi statement. this is because the phis are on the
+			// edges and not in the actual block.
+			
+			for(Statement s : Statement.enumerate(stmt)) {
+				if(s instanceof VarExpression) {
+					VarExpression var = (VarExpression) s;
+					Local l = var.getLocal();
+					// if it was defined in this block, then it can't be live-in,
+					//    UNLESS: it was defined by a phi, in which case it is
+					//            in fact live-in.
+					if(!defs.contains(l)) {
+						in.put(l, true);
+					}
+				}
+			}
+		}
+	}
+
+	@Override
+	protected boolean equals(Map<Local, Boolean> s1, Map<Local, Boolean> s2) {
+		Set<Local> keys = new HashSet<>();
+		keys.addAll(s1.keySet());
+		keys.addAll(s2.keySet());
+		
+		for(Local key : keys) {
+			if(s1.get(key).booleanValue() != s2.get(key).booleanValue()) {
+				return false;
+			}
+		}
+		return true;
+	}
+	
+	@Override
+	protected void copy(Map<Local, Boolean> src, Map<Local, Boolean> dst) {
+		for(Entry<Local, Boolean> e : src.entrySet()) {
+			dst.put(e.getKey(), e.getValue());
+		}
+	}
+
+	@Override
+	protected void flowException(BasicBlock srcB, Map<Local, Boolean> src, BasicBlock dstB, Map<Local, Boolean> dst) {
+		throw new UnsupportedOperationException();
+//		for(Entry<Local, Boolean> e : src.entrySet()) {
+//			Local l = e.getKey();
+//			if(l.isStack()) {
+//				dst.put(l, false);
+//			} else {
+//				dst.put(l, e.getValue());
+//			}
+//		}
 	}
 }
