@@ -1,12 +1,12 @@
 package org.mapleir.stdlib.collections.graph.dot;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Map.Entry;
-
 import org.mapleir.stdlib.collections.graph.FastGraph;
 import org.mapleir.stdlib.collections.graph.FastGraphEdge;
 import org.mapleir.stdlib.collections.graph.FastGraphVertex;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Map.Entry;
 
 public abstract class DotConfiguration<G extends FastGraph<N, E>, N extends FastGraphVertex, E extends FastGraphEdge<N>> {
 

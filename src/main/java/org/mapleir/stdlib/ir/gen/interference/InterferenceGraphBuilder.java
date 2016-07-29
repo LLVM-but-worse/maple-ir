@@ -1,10 +1,5 @@
 package org.mapleir.stdlib.ir.gen.interference;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-
 import org.mapleir.stdlib.cfg.BasicBlock;
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.SetCreator;
@@ -15,6 +10,11 @@ import org.mapleir.stdlib.ir.locals.Local;
 import org.mapleir.stdlib.ir.stat.CopyVarStatement;
 import org.mapleir.stdlib.ir.stat.Statement;
 import org.mapleir.stdlib.ir.transform.ssa.SSALivenessAnalyser;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
 
 public class InterferenceGraphBuilder {
 
