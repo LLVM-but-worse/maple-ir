@@ -17,16 +17,7 @@ import org.mapleir.stdlib.collections.SetCreator;
 import org.mapleir.stdlib.ir.CodeBody;
 import org.mapleir.stdlib.ir.StatementGraph;
 import org.mapleir.stdlib.ir.StatementVisitor;
-import org.mapleir.stdlib.ir.expr.ArrayLoadExpression;
-import org.mapleir.stdlib.ir.expr.CaughtExceptionExpression;
-import org.mapleir.stdlib.ir.expr.ConstantExpression;
-import org.mapleir.stdlib.ir.expr.Expression;
-import org.mapleir.stdlib.ir.expr.FieldLoadExpression;
-import org.mapleir.stdlib.ir.expr.InitialisedObjectExpression;
-import org.mapleir.stdlib.ir.expr.InvocationExpression;
-import org.mapleir.stdlib.ir.expr.PhiExpression;
-import org.mapleir.stdlib.ir.expr.UninitialisedObjectExpression;
-import org.mapleir.stdlib.ir.expr.VarExpression;
+import org.mapleir.stdlib.ir.expr.*;
 import org.mapleir.stdlib.ir.header.HeaderStatement;
 import org.mapleir.stdlib.ir.locals.Local;
 import org.mapleir.stdlib.ir.locals.VersionedLocal;
@@ -475,10 +466,12 @@ public class SSAPropagator extends SSATransformer {
 				Expression e = phi.getLocal(header);
 				if(e instanceof VarExpression) {
 					CopyVarStatement def = localAccess.defs.get(((VarExpression) e).getLocal());
-					Statement e1 = findSubstitution(phi, def, (VarExpression) e);
-					if(e1 != null && e1 != e) {
-						phi.setLocal(header, (Expression) e1);
-						change = true;
+					if(def.getExpression() instanceof VarExpression) {
+						Statement e1 = findSubstitution(phi, def, (VarExpression) e);
+						if(e1 != null && e1 != e) {
+							phi.setLocal(header, (Expression) e1);
+							change = true;
+						}
 					}
 				}
 			}
@@ -491,7 +484,7 @@ public class SSAPropagator extends SSATransformer {
 			if(stmt instanceof VarExpression) {
 				return choose(visitVar((VarExpression) stmt), stmt);
 			} else if(stmt instanceof PhiExpression) {
-//				return choose(visitPhi((PhiExpression) stmt), stmt);
+				return choose(visitPhi((PhiExpression) stmt), stmt);
 			}
 			return stmt;
 		}
