@@ -214,7 +214,6 @@ public class DotWriter<G extends FastGraph<N, E>, N extends FastGraphVertex, E e
 		
 		try (DataOutputStream dos = new DataOutputStream(new FileOutputStream(dotFile))){
 			String d = toDotString();
-			System.out.println(d);
 			ByteBuffer buf = UTF8_ENCODER.encode(CharBuffer.wrap(d));
 			byte[] dst = new byte[buf.remaining()];
 			buf.get(dst);
