@@ -1,5 +1,18 @@
 package org.mapleir;
 
+import static org.mapleir.stdlib.collections.graph.dot.impl.ControlFlowGraphDecorator.*;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.jar.JarOutputStream;
+
 import org.mapleir.byteio.CompleteResolvingJarDumper;
 import org.mapleir.stdlib.cfg.BasicBlock;
 import org.mapleir.stdlib.cfg.ControlFlowGraph;
@@ -10,7 +23,6 @@ import org.mapleir.stdlib.collections.NodeTable;
 import org.mapleir.stdlib.collections.graph.dot.BasicDotConfiguration;
 import org.mapleir.stdlib.collections.graph.dot.DotConfiguration.GraphType;
 import org.mapleir.stdlib.collections.graph.dot.DotWriter;
-import org.mapleir.stdlib.collections.graph.dot.impl.CFGStatementDecorator;
 import org.mapleir.stdlib.collections.graph.dot.impl.ControlFlowGraphDecorator;
 import org.mapleir.stdlib.collections.graph.dot.impl.InterferenceGraphDecorator;
 import org.mapleir.stdlib.collections.graph.dot.impl.LivenessDecorator;
@@ -42,17 +54,6 @@ import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.topdank.byteengineer.commons.data.JarInfo;
 import org.topdank.byteio.in.SingleJarDownloader;
-
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.jar.JarOutputStream;
 
 public class AnalyticsTest {
 
@@ -138,14 +139,14 @@ public class AnalyticsTest {
 			
 			BasicDotConfiguration<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> config = new BasicDotConfiguration<>(GraphType.DIRECTED);
 			DotWriter<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> w = new DotWriter<>(config, cfg);
-			w.addDecorator(new ControlFlowGraphDecorator().setFlags(ControlFlowGraphDecorator.OPT_DEEP));
+			w.addDecorator(new ControlFlowGraphDecorator().setFlags(OPT_DEEP));
 			w.setName("graph111").export();
 			
 			SSABlockLivenessAnalyser blockLiveness = new SSABlockLivenessAnalyser(cfg);
 			GraphUtils.rewriteCfg(cfg, code);
 			blockLiveness.compute();
 			w.clearDecorators().setName("graph-liveness");
-			w.addDecorator(new CFGStatementDecorator().setFlags(ControlFlowGraphDecorator.OPT_DEEP));
+			w.addDecorator(new ControlFlowGraphDecorator().setFlags(OPT_DEEP | OPT_STMTS));
 			w.addDecorator(new LivenessDecorator().setBlockLiveness(blockLiveness).applyComments(cfg)); // or .setLiveness(liveness)
 			w.export();
 			
