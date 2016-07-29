@@ -28,7 +28,7 @@ public class DotWriter<G extends FastGraph<N, E>, N extends FastGraphVertex, E e
 	private static final CharsetEncoder UTF8_ENCODER = Charset.forName("UTF-8").newEncoder();
 	
 	private final DotConfiguration<G, N, E> config;
-	protected final G graph;
+	private final G graph;
 	private String name;
 	public final List<DotPropertyDecorator<G, N, E>> decorators;
 	
