@@ -1,10 +1,10 @@
 package org.mapleir.stdlib.ir.gen.interference;
 
+import org.mapleir.stdlib.collections.graph.FastUndirectedGraph;
+
 import java.util.HashSet;
 import java.util.Map.Entry;
 import java.util.Set;
-
-import org.mapleir.stdlib.collections.graph.FastUndirectedGraph;
 
 public class InterferenceGraph extends FastUndirectedGraph<ColourableNode, InterferenceEdge> {
 
