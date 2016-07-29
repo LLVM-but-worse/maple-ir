@@ -1,5 +1,9 @@
 package org.mapleir.stdlib.collections.graph.dot.impl;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
 import org.mapleir.stdlib.cfg.BasicBlock;
 import org.mapleir.stdlib.cfg.ControlFlowGraph;
 import org.mapleir.stdlib.cfg.edge.FlowEdge;
@@ -7,14 +11,10 @@ import org.mapleir.stdlib.cfg.edge.TryCatchEdge;
 import org.mapleir.stdlib.collections.graph.dot.DotPropertyDecorator;
 import org.mapleir.stdlib.collections.graph.util.GraphUtils;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicBoolean;
-
 public class ControlFlowGraphDecorator implements DotPropertyDecorator<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> {
 	public static final int OPT_DEEP = 0x01;
 	public static final int OPT_HIDE_HANDLER_EDGES = 0x02;
+	public static final int OPT_STMTS = 0x04;
 	
 	protected int flags = 0;
 	
@@ -47,7 +47,7 @@ public class ControlFlowGraphDecorator implements DotPropertyDecorator<ControlFl
 		if((flags & OPT_DEEP) != 0) {
 			sb.append("\\l");
 			StringBuilder sb2 = new StringBuilder();
-			GraphUtils.printBlock(g, sb2, n, 0, false, false);
+			GraphUtils.printBlock(g, sb2, n, 0, false, (flags & OPT_STMTS) != 0);
 			sb.append(sb2.toString().replace("\n", "\\l"));
 		}
 		nprops.put("label", sb.toString());
@@ -60,12 +60,12 @@ public class ControlFlowGraphDecorator implements DotPropertyDecorator<ControlFl
 	}
 	
 	@Override
-	public void decorateNodePrintability(ControlFlowGraph g, BasicBlock n, AtomicBoolean printable) {
-		printable.set(!n.isDummy());
+	public boolean isNodePrintable(ControlFlowGraph g, BasicBlock n) {
+		return !n.isDummy();
 	}
 	
 	@Override
-	public void decorateEdgePrintability(ControlFlowGraph g, BasicBlock n, FlowEdge<BasicBlock> e, AtomicBoolean printable) {
-		printable.set(!((flags & OPT_HIDE_HANDLER_EDGES) != 0 && e instanceof TryCatchEdge));
+	public boolean isEdgePrintable(ControlFlowGraph g, BasicBlock n, FlowEdge<BasicBlock> e) {
+		return !((flags & OPT_HIDE_HANDLER_EDGES) != 0 && e instanceof TryCatchEdge);
 	}
 }

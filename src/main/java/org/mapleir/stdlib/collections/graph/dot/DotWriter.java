@@ -1,10 +1,5 @@
 package org.mapleir.stdlib.collections.graph.dot;
 
-import org.mapleir.stdlib.cfg.util.TabbedStringWriter;
-import org.mapleir.stdlib.collections.graph.FastGraph;
-import org.mapleir.stdlib.collections.graph.FastGraphEdge;
-import org.mapleir.stdlib.collections.graph.FastGraphVertex;
-
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -19,7 +14,11 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.concurrent.atomic.AtomicBoolean;
+
+import org.mapleir.stdlib.cfg.util.TabbedStringWriter;
+import org.mapleir.stdlib.collections.graph.FastGraph;
+import org.mapleir.stdlib.collections.graph.FastGraphEdge;
+import org.mapleir.stdlib.collections.graph.FastGraphVertex;
 
 public class DotWriter<G extends FastGraph<N, E>, N extends FastGraphVertex, E extends FastGraphEdge<N>> extends TabbedStringWriter {
 	
@@ -28,8 +27,8 @@ public class DotWriter<G extends FastGraph<N, E>, N extends FastGraphVertex, E e
 	
 	private static final CharsetEncoder UTF8_ENCODER = Charset.forName("UTF-8").newEncoder();
 	
-	protected final DotConfiguration<G, N, E> config;
-	protected final G graph;
+	private final DotConfiguration<G, N, E> config;
+	private final G graph;
 	private String name;
 	public final List<DotPropertyDecorator<G, N, E>> decorators;
 	
@@ -37,6 +36,10 @@ public class DotWriter<G extends FastGraph<N, E>, N extends FastGraphVertex, E e
 		this.config = config;
 		this.graph = graph;
 		decorators = new ArrayList<>();
+	}
+	
+	public DotConfiguration<G, N, E> getConfiguration() {
+		return config;
 	}
 	
 	public String getName() {
@@ -48,21 +51,21 @@ public class DotWriter<G extends FastGraph<N, E>, N extends FastGraphVertex, E e
 		return this;
 	}
 	
-	public DotWriter<G, N, E> addDecorator(DotPropertyDecorator<G, N, E> decorator) {
-		decorators.add(decorator);
+	public DotWriter<G, N, E> addDecorator(DotPropertyDecorator<G, N, E> d) {
+		decorators.add(d);
 		return this;
 	}
 	
-	public DotWriter<G, N, E> addDecorator(int index, DotPropertyDecorator<G, N, E> decorator) {
-		decorators.add(index, decorator);
+	public DotWriter<G, N, E> addDecorator(int index, DotPropertyDecorator<G, N, E> d) {
+		decorators.add(index, d);
 		return this;
 	}
 	
 	public DotWriter<G, N, E> removeDecorator(Class<? extends DotPropertyDecorator<G, N, E>> type) {
 		Iterator<DotPropertyDecorator<G, N, E>> it = decorators.iterator();
 		while (it.hasNext()) {
-			DotPropertyDecorator<G, N, E> decorator = it.next();
-			if (type.isAssignableFrom(decorator.getClass()))
+			DotPropertyDecorator<G, N, E> d = it.next();
+			if (type.isAssignableFrom(d.getClass()))
 				it.remove();
 		}
 		return this;
@@ -102,50 +105,56 @@ public class DotWriter<G extends FastGraph<N, E>, N extends FastGraphVertex, E e
 		}
 	}
 	
-	private boolean printable(N n) {
-		AtomicBoolean printable = new AtomicBoolean(true);
-		for (DotPropertyDecorator<G, N, E> decorator : decorators)
-			decorator.decorateNodePrintability(graph, n, printable);
-		return printable.get();
+	private boolean isNodePrintable(N n) {
+		for (DotPropertyDecorator<G, N, E> d : decorators) {
+			if(!d.isNodePrintable(graph, n)) {
+				return false;
+			}
+		}
+		return true;
 	}
 	
-	private boolean printable(N n, E e) {
-		AtomicBoolean printable = new AtomicBoolean(true);
-		for (DotPropertyDecorator<G, N, E> decorator : decorators)
-			decorator.decorateEdgePrintability(graph, n, e, printable);
-		return printable.get();
+	private boolean isEdgePrintable(N n, E e) {
+		for (DotPropertyDecorator<G, N, E> d : decorators) {
+			if(!d.isEdgePrintable(graph, n, e)) {
+				return false;
+			}
+		}
+		return true;
 	}
 	
 	private void writeNodes() {
 		for(N n : graph.vertices()) {
-			if(!printable(n)) {
+			if(!isNodePrintable(n)) {
 				continue;
 			}
 			
 			print(n.getId()).print(" [");
 			Map<String, Object> nprops = new HashMap<>();
-			for (DotPropertyDecorator<G, N, E> decorator : decorators)
-				decorator.decorateNodeProperties(graph, n, nprops);
+			for (DotPropertyDecorator<G, N, E> d : decorators)
+				d.decorateNodeProperties(graph, n, nprops);
 			writeSettings(nprops);
 			print("]").newLine();
 		}
 	}
 	
 	private void writeEdges() {
+		final String arrow = config.getType().getEdgeArrow();
+		
 		for(N n : graph.vertices()) {
-			if(!printable(n)) {
+			if(!isNodePrintable(n)) {
 				continue;
 			}
 			
 			for(E e : graph.getEdges(n)) {
-				if(!printable(n, e)) {
+				if(!isEdgePrintable(n, e)) {
 					continue;
 				}
 				
-				print(e.src.getId()).print(config.getType().getEdgeArrow()).print(e.dst.getId()).print(" ").print("[");
+				print(e.src.getId()).print(arrow).print(e.dst.getId()).print(" ").print("[");
 				Map<String, Object> eprops = new HashMap<>();
-				for (DotPropertyDecorator<G, N, E> decorator : decorators)
-					decorator.decorateEdgeProperties(graph, n, e, eprops);
+				for (DotPropertyDecorator<G, N, E> d : decorators)
+					d.decorateEdgeProperties(graph, n, e, eprops);
 				writeSettings(eprops);
 				print("];").newLine();
 			}
@@ -205,7 +214,6 @@ public class DotWriter<G extends FastGraph<N, E>, N extends FastGraphVertex, E e
 		
 		try (DataOutputStream dos = new DataOutputStream(new FileOutputStream(dotFile))){
 			String d = toDotString();
-			System.out.println(d);
 			ByteBuffer buf = UTF8_ENCODER.encode(CharBuffer.wrap(d));
 			byte[] dst = new byte[buf.remaining()];
 			buf.get(dst);
