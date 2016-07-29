@@ -1,5 +1,9 @@
 package org.mapleir.stdlib.collections.graph.util;
 
+import java.util.*;
+import java.util.Map.Entry;
+import java.util.function.Predicate;
+
 import org.mapleir.stdlib.cfg.BasicBlock;
 import org.mapleir.stdlib.cfg.ControlFlowGraph;
 import org.mapleir.stdlib.cfg.edge.DefaultSwitchEdge;
@@ -16,36 +20,8 @@ import org.mapleir.stdlib.ir.expr.PhiExpression;
 import org.mapleir.stdlib.ir.header.HeaderStatement;
 import org.mapleir.stdlib.ir.stat.Statement;
 import org.objectweb.asm.Opcodes;
-import org.objectweb.asm.tree.AbstractInsnNode;
-import org.objectweb.asm.tree.FieldInsnNode;
-import org.objectweb.asm.tree.IincInsnNode;
-import org.objectweb.asm.tree.InsnList;
-import org.objectweb.asm.tree.IntInsnNode;
-import org.objectweb.asm.tree.JumpInsnNode;
-import org.objectweb.asm.tree.LabelNode;
-import org.objectweb.asm.tree.LdcInsnNode;
-import org.objectweb.asm.tree.LineNumberNode;
-import org.objectweb.asm.tree.LookupSwitchInsnNode;
-import org.objectweb.asm.tree.MethodInsnNode;
-import org.objectweb.asm.tree.MultiANewArrayInsnNode;
-import org.objectweb.asm.tree.TableSwitchInsnNode;
-import org.objectweb.asm.tree.TryCatchBlockNode;
-import org.objectweb.asm.tree.TypeInsnNode;
-import org.objectweb.asm.tree.VarInsnNode;
+import org.objectweb.asm.tree.*;
 import org.objectweb.asm.util.Printer;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.ListIterator;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.function.Predicate;
 
 public class GraphUtils {
 
@@ -330,17 +306,22 @@ public class GraphUtils {
 
 		if(stmts) {
 			TabbedStringWriter sw = new TabbedStringWriter();
-			sw.tab();
-			sw.tab();
+			if(headers) {
+				sw.tab();
+				sw.tab();
+			}
 			sw.forceIndent();
 			ListIterator<Statement> lit = b.getStatements().listIterator();
 			while(lit.hasNext()) {
 				lit.next().toString(sw);
 				if(!lit.hasNext()) {
-					sw.untab();
-					sw.untab();
+					if(headers) {
+						sw.untab();
+						sw.untab();
+					}
+				} else {
+					sw.print("\n");
 				}
-				sw.print("\n");
 			}
 			sb.append(sw.toString());
 		} else {
