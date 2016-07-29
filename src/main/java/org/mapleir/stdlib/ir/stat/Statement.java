@@ -1,17 +1,19 @@
 package org.mapleir.stdlib.ir.stat;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-
 import org.mapleir.stdlib.cfg.util.TabbedStringWriter;
 import org.mapleir.stdlib.collections.graph.FastGraphVertex;
 import org.mapleir.stdlib.ir.StatementVisitor;
 import org.mapleir.stdlib.ir.expr.Expression;
 import org.mapleir.stdlib.ir.expr.PhiExpression;
+import org.mapleir.stdlib.ir.expr.VarExpression;
+import org.mapleir.stdlib.ir.locals.Local;
 import org.mapleir.stdlib.ir.transform.impl.CodeAnalytics;
 import org.objectweb.asm.MethodVisitor;
+
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 public abstract class Statement implements FastGraphVertex {
 	
@@ -242,6 +244,14 @@ public abstract class Statement implements FastGraphVertex {
 	public abstract Statement copy();
 	
 	public abstract boolean equivalent(Statement s);
+	
+	public Set<Local> getUsedLocals() {
+		Set<Local> locals = new HashSet<>();
+		for (Statement stmt : enumerate(this))
+			if (stmt instanceof VarExpression)
+				locals.add(((VarExpression) stmt).getLocal());
+		return locals;
+	}
 	
 	public static String print(Statement node) {
 		TabbedStringWriter printer = new TabbedStringWriter();

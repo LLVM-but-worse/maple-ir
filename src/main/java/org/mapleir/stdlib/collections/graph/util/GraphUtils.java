@@ -306,17 +306,22 @@ public class GraphUtils {
 
 		if(stmts) {
 			TabbedStringWriter sw = new TabbedStringWriter();
-			sw.tab();
-			sw.tab();
-			sw.forceIndent();
+			if(headers) {
+				sw.tab();
+				sw.tab();
+				sw.forceIndent();
+			}
 			ListIterator<Statement> lit = b.getStatements().listIterator();
 			while(lit.hasNext()) {
 				lit.next().toString(sw);
 				if(!lit.hasNext()) {
-					sw.untab();
-					sw.untab();
+					if(headers) {
+						sw.untab();
+						sw.untab();
+					}
+				} else {
+					sw.print("\n");
 				}
-				sw.print("\n");
 			}
 			sb.append(sw.toString());
 		} else {
