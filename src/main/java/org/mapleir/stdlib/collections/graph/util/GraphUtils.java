@@ -309,8 +309,8 @@ public class GraphUtils {
 			if(headers) {
 				sw.tab();
 				sw.tab();
+				sw.forceIndent();
 			}
-			sw.forceIndent();
 			ListIterator<Statement> lit = b.getStatements().listIterator();
 			while(lit.hasNext()) {
 				lit.next().toString(sw);
