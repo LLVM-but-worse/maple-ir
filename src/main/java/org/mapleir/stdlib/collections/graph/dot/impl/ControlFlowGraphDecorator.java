@@ -14,6 +14,7 @@ import org.mapleir.stdlib.collections.graph.util.GraphUtils;
 public class ControlFlowGraphDecorator implements DotPropertyDecorator<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> {
 	public static final int OPT_DEEP = 0x01;
 	public static final int OPT_HIDE_HANDLER_EDGES = 0x02;
+	public static final int OPT_STMTS = 0x04;
 	
 	protected int flags = 0;
 	
@@ -46,7 +47,7 @@ public class ControlFlowGraphDecorator implements DotPropertyDecorator<ControlFl
 		if((flags & OPT_DEEP) != 0) {
 			sb.append("\\l");
 			StringBuilder sb2 = new StringBuilder();
-			GraphUtils.printBlock(g, sb2, n, 0, false, false);
+			GraphUtils.printBlock(g, sb2, n, 0, false, (flags & OPT_STMTS) != 0);
 			sb.append(sb2.toString().replace("\n", "\\l"));
 		}
 		nprops.put("label", sb.toString());
