@@ -135,20 +135,24 @@ public class AnalyticsTest {
 			
 			BasicDotConfiguration<InterferenceGraph, ColourableNode, InterferenceEdge> config2 = new BasicDotConfiguration<>(GraphType.UNDIRECTED);
 			DotWriter<InterferenceGraph, ColourableNode, InterferenceEdge> w2 = new DotWriter<>(config2, ig);
-			w2.addDecorator(new InterferenceGraphDecorator()).setName("ig1").export();
+			w2.add(new InterferenceGraphDecorator()).setName("ig1").export();
 			
 			BasicDotConfiguration<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> config = new BasicDotConfiguration<>(GraphType.DIRECTED);
 			DotWriter<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> w = new DotWriter<>(config, cfg);
-			w.addDecorator(new ControlFlowGraphDecorator().setFlags(OPT_DEEP));
-			w.setName("graph111").export();
-			
+			w.add(new ControlFlowGraphDecorator().setFlags(OPT_DEEP))
+				.setName("graph111")
+				.export();
+
 			SSABlockLivenessAnalyser blockLiveness = new SSABlockLivenessAnalyser(cfg);
 			GraphUtils.rewriteCfg(cfg, code);
 			blockLiveness.compute();
-			w.clearDecorators().setName("graph-liveness");
-			w.addDecorator(new ControlFlowGraphDecorator().setFlags(OPT_DEEP | OPT_STMTS));
-			w.addDecorator(new LivenessDecorator().setBlockLiveness(blockLiveness).applyComments(cfg)); // or .setLiveness(liveness)
-			w.export();
+			
+			w.removeAll()
+				.setName("graph-liveness")
+				.add("liveness", new LivenessDecorator().setBlockLiveness(blockLiveness).applyComments(cfg))
+				.addBefore("liveness", "cfg", new ControlFlowGraphDecorator().setFlags(OPT_DEEP | OPT_STMTS))
+				.export();
+
 			
 //			for(BasicBlock b : cfg.vertices()) {
 //				StringBuilder sb = new StringBuilder();
