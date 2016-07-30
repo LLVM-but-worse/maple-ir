@@ -23,10 +23,20 @@ public class LocalsHandler {
 
 	private final AtomicInteger base;
 	private final Map<String, Local> cache;
+	private final Map<BasicLocal, VersionedLocal> latest;
 	
 	public LocalsHandler(int base) {
 		this.base = new AtomicInteger(base);
 		cache = new HashMap<>();
+		latest = new HashMap<>();
+	}
+	
+	public BasicLocal asSimpleLocal(Local l) {
+		return get(l.getIndex(), l.isStack());
+	}
+	
+	public VersionedLocal getLatestVersion(Local l) {
+		return latest.get(asSimpleLocal(l));
 	}
 
 	public List<Local> getOrderedList() {
@@ -47,6 +57,19 @@ public class LocalsHandler {
 		} else {
 			VersionedLocal v = new VersionedLocal(base, index, subscript, isStack);
 			cache.put(key, v);
+			
+			BasicLocal bl = get(index, isStack);
+			if(latest.containsKey(bl)) {
+				VersionedLocal old = latest.get(bl);
+				if(subscript > old.getSubscript()) {
+					latest.put(bl, v);
+				} else if(subscript == old.getSubscript()) {
+					throw new IllegalStateException("Created " + v + " with " + old + ", " + bl);
+				}
+			} else {
+				latest.put(bl, v);
+			}
+			
 			return v;
 		}
 	}
