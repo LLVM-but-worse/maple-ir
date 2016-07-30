@@ -59,23 +59,21 @@ public class AnalyticsTest {
 
 	public static boolean debug = true;
 	
-	void test111(boolean lvar1_0) {
-		int lvar2_0 = 0;
-		while(lvar2_0 < 21) {
-			if(lvar1_0) {
-				int y = lvar2_0;
-				System.out.println(lvar1_0);
-				lvar2_0 += 5;
-				System.out.println(y);
-			} else {
-				int y = lvar2_0;
-				System.out.println(lvar1_0);
-				lvar2_0 += 10;
-				System.out.println(y);
-			}
+	void test111() {
+		int x = 1;
+		int y = 2;
+		while(!p()) {
+			int z = x;
+			x = y;
+			y = z;
 		}
 		
-		System.out.println(lvar2_0);
+		System.out.println(x);
+		System.out.println(y);
+	}
+	
+	boolean p() {
+		return true;
 	}
 	
 	public static void main(String[] args) throws IOException {
@@ -87,7 +85,7 @@ public class AnalyticsTest {
 		while(it.hasNext()) {
 			MethodNode m = it.next();
 
-			if(!m.toString().equals("org/mapleir/AnalyticsTest.test111(Z)V")) {
+			if(!m.toString().equals("org/mapleir/AnalyticsTest.test111()V")) {
 				continue;
 			}
 			System.out.println("Processing " + m + "\n");
@@ -104,6 +102,12 @@ public class AnalyticsTest {
 			CodeBody code = gen.buildRoot();
 			SSAGenerator ssagen = new SSAGenerator(code, cfg, gen.getHeaders());
 			ssagen.run();
+			
+			System.out.println("Unopt SSA:");
+			System.out.println(code);
+			System.out.println();
+			System.out.println();
+			System.out.println();
 			
 			StatementGraph sgraph = StatementGraphBuilder.create(cfg);
 			SSALocalAccess localAccess = new SSALocalAccess(code);
@@ -191,8 +195,8 @@ public class AnalyticsTest {
 					continue;
 				}
 				
-//				if(!m.toString().equals("aa.ac(II[[IIII)Lck;"))
-//					continue;
+				if(!m.toString().equals("aa.ac(II[[IIII)Lck;"))
+					continue;
 				System.out.println(m);
 				
 				ControlFlowGraphBuilder builder = new ControlFlowGraphBuilder(m);
@@ -240,8 +244,27 @@ public class AnalyticsTest {
 //				System.out.println("Optimised SSA:");
 //				System.out.println(code);
 				
+
+				SreedharDestructor dest = new SreedharDestructor(code, cfg);
+
+				System.out.println();
+				System.out.println();
+				System.out.println();
+				System.out.println();
+				System.out.println(code);
+				System.out.println();
+				System.out.println();
+				System.out.println();
+				System.out.println();
 				SSADestructor de = new SSADestructor(code, cfg);
 				de.run();
+
+				System.out.println();
+				System.out.println();
+				System.out.println(code);
+				System.out.println();
+				System.out.println();
+				System.out.println();
 
 //				System.out.println();
 //				System.out.println();
