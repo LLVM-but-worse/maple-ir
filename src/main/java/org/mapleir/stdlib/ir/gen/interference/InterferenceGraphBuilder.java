@@ -1,20 +1,19 @@
 package org.mapleir.stdlib.ir.gen.interference;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+
 import org.mapleir.stdlib.cfg.BasicBlock;
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.SetCreator;
 import org.mapleir.stdlib.ir.expr.Expression;
-import org.mapleir.stdlib.ir.expr.PhiExpression;
 import org.mapleir.stdlib.ir.expr.VarExpression;
 import org.mapleir.stdlib.ir.locals.Local;
 import org.mapleir.stdlib.ir.stat.CopyVarStatement;
 import org.mapleir.stdlib.ir.stat.Statement;
 import org.mapleir.stdlib.ir.transform.ssa.SSALivenessAnalyser;
-
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
 
 public class InterferenceGraphBuilder {
 
@@ -67,24 +66,16 @@ public class InterferenceGraphBuilder {
 					Local def = copy.getVariable().getLocal();
 					Expression e = copy.getExpression();
 					
-					if(out.containsKey(def)) {
-						for(Entry<Local, Boolean> entry : out.entrySet()) {
-							if(entry.getValue()) {
-								Local l = entry.getKey();
-								if(def != l) {
-									interfere.getNonNull(def).add(l);
-									interfere.getNonNull(l).remove(def);
+					if(!(e instanceof VarExpression)) {
+						if(out.containsKey(def)) {
+							for(Entry<Local, Boolean> entry : out.entrySet()) {
+								if(entry.getValue()) {
+									Local l = entry.getKey();
+									if(def != l) {
+										interfere.getNonNull(def).add(l);
+										interfere.getNonNull(l).add(def);
+									}
 								}
-							}
-						}
-					}
-					
-					if(e instanceof PhiExpression) {
-						
-					} else if(!(e instanceof VarExpression)) {
-						for(Statement s : Statement.enumerate(e)) {
-							if(s instanceof VarExpression) {
-								VarExpression v = (VarExpression) s;
 							}
 						}
 					}
