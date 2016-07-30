@@ -288,6 +288,9 @@ public class DotWriter<G extends FastGraph<N, E>, N extends FastGraphVertex, E e
 	public void export() {
 		String fname = escapeFileName(name);
 		
+		if (!GRAPH_FOLDER.exists())
+			GRAPH_FOLDER.mkdir();
+		
 		File dotFile = new File(GRAPH_FOLDER, fname + ".gv");
 		if(dotFile.exists())
 			dotFile.delete();
