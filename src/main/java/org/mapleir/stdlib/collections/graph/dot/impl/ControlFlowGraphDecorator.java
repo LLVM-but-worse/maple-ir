@@ -15,6 +15,7 @@ public class ControlFlowGraphDecorator implements DotPropertyDecorator<ControlFl
 	public static final int OPT_DEEP = 0x01;
 	public static final int OPT_HIDE_HANDLER_EDGES = 0x02;
 	public static final int OPT_STMTS = 0x04;
+	public static final int OPT_SIMPLE_EDGES = 0x08;
 	
 	protected int flags = 0;
 	
@@ -56,7 +57,7 @@ public class ControlFlowGraphDecorator implements DotPropertyDecorator<ControlFl
 	@Override
 	public void decorateEdgeProperties(ControlFlowGraph g, BasicBlock n, FlowEdge<BasicBlock> e, Map<String, Object> eprops) {
 		if((flags & OPT_DEEP) != 0)
-			eprops.put("label", e.toGraphString());
+			eprops.put("label", (flags & OPT_SIMPLE_EDGES) != 0 ? e.getClass().getSimpleName().replace("Edge", "") : e.toGraphString());
 	}
 	
 	@Override
