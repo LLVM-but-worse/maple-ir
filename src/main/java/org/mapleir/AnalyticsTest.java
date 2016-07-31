@@ -187,6 +187,11 @@ public class AnalyticsTest {
 //			}
 			
 			SreedharDestructor dest = new SreedharDestructor(code, cfg);
+			
+			System.out.println("Norm SSA:");
+			System.out.println(code);
+			System.out.println();
+			System.out.println();
 		}
 	}
 	
