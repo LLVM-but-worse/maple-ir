@@ -92,27 +92,30 @@ public class LivenessTest implements Opcodes {
 			List<BasicBlock> blocks = deobber.deobfuscate(cfg);
 			deobber.removeEmptyBlocks(cfg, blocks);
 			GraphUtils.naturaliseGraph(cfg, blocks);
-//			CFGStatementDecorator ex = new CFGStatementDecorator(cfg, new ArrayList<>(cfg.vertices()), "graph", "");
-//			ex.export(DotExporter.OPT_DEEP);
+			BasicDotConfiguration<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> config = new BasicDotConfiguration<>(DotConfiguration.GraphType.DIRECTED);
+			DotWriter<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> w = new DotWriter<>(config, cfg);
+			w.add(new ControlFlowGraphDecorator().setFlags(OPT_DEEP))
+					.setName(m.name + "-cfg")
+					.export();
 			
 			// Build statements
 			StatementGenerator gen = new StatementGenerator(cfg);
 			gen.init(m.maxLocals);
 			gen.createExpressions();
 			CodeBody code = gen.buildRoot();
-			
-			GraphUtils.rewriteCfg(cfg, code);
-			BasicDotConfiguration<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> config1 = new BasicDotConfiguration<>(DotConfiguration.GraphType.DIRECTED);
-			DotWriter<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> w3 = new DotWriter<>(config1, cfg);
-			w3.removeAll()
-					.setName(m.name + "-stmts")
-					.add("cfg", new ControlFlowGraphDecorator().setFlags(OPT_DEEP | OPT_STMTS))
+			w.removeAll()
+					.add(new ControlFlowGraphDecorator().setFlags(OPT_DEEP | OPT_STMTS))
+					.setName(m.name + "-stmts-unopt")
 					.export();
-			System.out.println(code);
 			
 			// Build SSA
 			SSAGenerator ssagen = new SSAGenerator(code, cfg, gen.getHeaders());
 			ssagen.run();
+			GraphUtils.rewriteCfg(cfg, code);
+			w.removeAll()
+					.add(new ControlFlowGraphDecorator().setFlags(OPT_DEEP | OPT_STMTS))
+					.setName(m.name + "-ssa-unopt")
+					.export();
 			
 			// Transform
 			StatementGraph sgraph = StatementGraphBuilder.create(cfg);
@@ -129,31 +132,29 @@ public class LivenessTest implements Opcodes {
 			}
 			GraphUtils.rewriteCfg(cfg, code);
 			
+			w.removeAll()
+					.add(new ControlFlowGraphDecorator().setFlags(OPT_DEEP | OPT_STMTS))
+					.setName(m.name + "-ssa-opt")
+					.export();
+			
 			SSALivenessAnalyser liveness = new SSALivenessAnalyser(cfg);
+			w.removeAll()
+					.setName(m.name + "-liveness")
+					.add("liveness", new LivenessDecorator().setLiveness(liveness))
+					.addBefore("liveness", "cfg", new ControlFlowGraphDecorator().setFlags(OPT_DEEP | OPT_STMTS))
+					.export();
+			
 			InterferenceGraph ig = InterferenceGraphBuilder.build(liveness);
 			BasicDotConfiguration<InterferenceGraph, ColourableNode, InterferenceEdge> config2 = new BasicDotConfiguration<>(DotConfiguration.GraphType.UNDIRECTED);
 			DotWriter<InterferenceGraph, ColourableNode, InterferenceEdge> w2 = new DotWriter<>(config2, ig);
 			w2.add(new InterferenceGraphDecorator()).setName(m.name + "-ig").export();
 			
-			BasicDotConfiguration<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> config = new BasicDotConfiguration<>(DotConfiguration.GraphType.DIRECTED);
-			DotWriter<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> w = new DotWriter<>(config, cfg);
-			w.add(new ControlFlowGraphDecorator().setFlags(OPT_DEEP))
-					.setName(m.name + "-cfg")
-					.export();
-			
 			SSABlockLivenessAnalyser blockLiveness = new SSABlockLivenessAnalyser(cfg);
 			GraphUtils.rewriteCfg(cfg, code);
 			blockLiveness.compute();
-			
 			w.removeAll()
 					.setName(m.name + "-bliveness")
 					.add("liveness", new LivenessDecorator().setBlockLiveness(blockLiveness))
-					.addBefore("liveness", "cfg", new ControlFlowGraphDecorator().setFlags(OPT_DEEP | OPT_STMTS))
-					.export();
-			
-			w.removeAll()
-					.setName(m.name + "-liveness")
-					.add("liveness", new LivenessDecorator().setLiveness(liveness))
 					.addBefore("liveness", "cfg", new ControlFlowGraphDecorator().setFlags(OPT_DEEP | OPT_STMTS))
 					.export();
 		}
