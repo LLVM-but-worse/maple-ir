@@ -92,6 +92,7 @@ public class SSADestructor {
 
 				CopyVarStatement copy = new CopyVarStatement(new VarExpression(l, phi.getType()), expr);
 				body.add(index, copy);
+				// FIXME: position
 				stmts.add(copy);
 			} else {
 				throw new UnsupportedOperationException(header.toString() + ", " + header.getClass().getCanonicalName());
