@@ -3,6 +3,7 @@ package org.mapleir.stdlib.collections.graph.dot.impl;
 import org.mapleir.stdlib.cfg.BasicBlock;
 import org.mapleir.stdlib.cfg.ControlFlowGraph;
 import org.mapleir.stdlib.cfg.edge.FlowEdge;
+import org.mapleir.stdlib.collections.graph.flow.FlowGraph;
 import org.mapleir.stdlib.ir.locals.Local;
 import org.mapleir.stdlib.ir.transform.ssa.SSABlockLivenessAnalyser;
 import org.mapleir.stdlib.ir.transform.ssa.SSALivenessAnalyser;
@@ -17,16 +18,19 @@ public class LivenessDecorator extends BlockCommentDecorator<ControlFlowGraph, B
 	
 	public LivenessDecorator setBlockLiveness(SSABlockLivenessAnalyser blockLiveness) {
 		this.blockLiveness = blockLiveness;
+		applyComments();
 		return this;
 	}
 	
 	public LivenessDecorator setLiveness(SSALivenessAnalyser liveness) {
 		this.liveness = liveness;
+		applyComments();
 		return this;
 	}
 	
-	public LivenessDecorator applyComments(ControlFlowGraph graph) {
+	private LivenessDecorator applyComments() {
 		clearComments();
+		FlowGraph<BasicBlock, FlowEdge<BasicBlock>> graph = blockLiveness != null ? blockLiveness.getGraph() : liveness.getGraph();
 		for (BasicBlock n : graph.vertices()) {
 			if (blockLiveness != null) {
 				addStartComment(n, "IN: " + blockLiveness.in(n).toString());
