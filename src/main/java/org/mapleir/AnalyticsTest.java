@@ -51,8 +51,6 @@ import org.topdank.byteio.in.SingleJarDownloader;
 
 public class AnalyticsTest {
 
-	public static boolean debug = true;
-	
 	void test111() {
 		int x = 1;
 		int y = 2;
