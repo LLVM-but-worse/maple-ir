@@ -51,7 +51,7 @@ public class SSABlockLivenessAnalyser {
 	
 	private void enqueue(BasicBlock b) {
 		if (!queue.contains(b)) {
-			System.out.println("Enqueue " + b);
+//			System.out.println("Enqueue " + b);
 			queue.add(b);
 		}
 	}
@@ -71,13 +71,13 @@ public class SSABlockLivenessAnalyser {
 		for (BasicBlock b : cfg.vertices())
 			enqueue(b);
 		
-		System.out.println();
-		System.out.println();
-		for (BasicBlock b : cfg.vertices())
-			System.out.println(b.getId() + "    ||||    DEF: " + def.get(b) + "    |||||    USE: " + use.get(b));
-		System.out.println();
-		for (BasicBlock b : cfg.vertices())
-			System.out.println(b.getId() + "    ||||    \u0278DEF: " + phiDef.get(b) + "    |||||    \u0278USE: " + phiUse.get(b));
+//		System.out.println();
+//		System.out.println();
+//		for (BasicBlock b : cfg.vertices())
+//			System.out.println(b.getId() + "    ||||    DEF: " + def.get(b) + "    |||||    USE: " + use.get(b));
+//		System.out.println();
+//		for (BasicBlock b : cfg.vertices())
+//			System.out.println(b.getId() + "    ||||    \u0278DEF: " + phiDef.get(b) + "    |||||    \u0278USE: " + phiUse.get(b));
 	}
 	
 	// compute def, use, and phi for given block
@@ -132,7 +132,7 @@ public class SSABlockLivenessAnalyser {
 		// negative handling always goes after positive and any adds
 		while (!queue.isEmpty()) {
 			BasicBlock b = queue.remove();
-			System.out.println("\n\nProcessing " + b.getId());
+//			System.out.println("\n\nProcessing " + b.getId());
 			
 			Set<Local> oldIn = new HashSet<>(in.get(b));
 			Set<Local> curIn = new HashSet<>(use.get(b));
@@ -170,9 +170,8 @@ public class SSABlockLivenessAnalyser {
 			if (!oldIn.equals(curIn)) {
 				cfg.getReverseEdges(b).stream().map(e -> e.src).forEach(this::enqueue);
 				
-				for (BasicBlock b2 : cfg.vertices()) {
-					System.out.println(b2.getId() + "   ||||    IN: " + in.get(b2) + "   |||||   OUT: " + out.get(b2));
-				}
+//				for (BasicBlock b2 : cfg.vertices())
+//					System.out.println(b2.getId() + "   ||||    IN: " + in.get(b2) + "   |||||   OUT: " + out.get(b2));
 			}
 		}
 	}
