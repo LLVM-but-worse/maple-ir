@@ -134,13 +134,13 @@ public class LivenessTest implements Opcodes {
 			
 			w.removeAll()
 					.setName(m.name + "-bliveness")
-					.add("liveness", new LivenessDecorator().setBlockLiveness(blockLiveness).applyComments(cfg))
+					.add("liveness", new LivenessDecorator().setBlockLiveness(blockLiveness))
 					.addBefore("liveness", "cfg", new ControlFlowGraphDecorator().setFlags(OPT_DEEP | OPT_STMTS))
 					.export();
 			
 			w.removeAll()
 					.setName(m.name + "-liveness")
-					.add("liveness", new LivenessDecorator().setLiveness(liveness).applyComments(cfg))
+					.add("liveness", new LivenessDecorator().setLiveness(liveness))
 					.addBefore("liveness", "cfg", new ControlFlowGraphDecorator().setFlags(OPT_DEEP | OPT_STMTS))
 					.export();
 		}
