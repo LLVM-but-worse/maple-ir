@@ -142,13 +142,17 @@ public class SSABlockLivenessAnalyser {
 			for (FlowEdge<BasicBlock> succEdge : cfg.getEdges(b))
 				curOut.addAll(in.get(succEdge.dst));
 			
+			// negative phi handling for defs
+			for (FlowEdge<BasicBlock> succEdge : cfg.getEdges(b))
+				curOut.removeAll(phiDef.get(succEdge.dst));
+			
 			// positive phi handling for uses, see §5.4.2 "Meaning of copy statements in Sreedhar's method"
 			for (FlowEdge<BasicBlock> succEdge : cfg.getEdges(b))
 				curOut.addAll(phiUse.get(succEdge.dst).getNonNull(b));
 			
-			// negative phi handling for defs
-			for (FlowEdge<BasicBlock> succEdge : cfg.getEdges(b))
-				curOut.removeAll(phiDef.get(succEdge.dst));
+			// negative phi handling for uses
+			for (FlowEdge<BasicBlock> predEdge : cfg.getReverseEdges(b))
+				curIn.removeAll(phiUse.get(b).getNonNull(predEdge.src));
 			
 			// positive phi handling for defs
 			curIn.addAll(phiDef.get(b));
@@ -158,10 +162,6 @@ public class SSABlockLivenessAnalyser {
 			HashSet<Local> toAdd = new HashSet<>(curOut);
 			toAdd.removeAll(def.get(b));
 			curIn.addAll(toAdd);
-			
-			// negative phi handling for uses
-			for (FlowEdge<BasicBlock> predEdge : cfg.getReverseEdges(b))
-				curIn.removeAll(phiUse.get(b).getNonNull(predEdge.src));
 			
 			in.put(b, curIn);
 			out.put(b, curOut);
