@@ -308,6 +308,7 @@ public class DotWriter<G extends FastGraph<N, E>, N extends FastGraphVertex, E e
 				imgFile.delete();
 			ProcessBuilder builder = new ProcessBuilder('"' + gv.getAbsolutePath() + '"', "-Tpng", '"' + dotFile.getAbsolutePath() + '"', "-o", '"' + imgFile.getAbsolutePath() + '"');
 			Process process = builder.start();
+			builder.redirectError(ProcessBuilder.Redirect.INHERIT);
 			process.waitFor();
 		} catch (IOException | InterruptedException e) {
 			System.err.println("Exception while exporting graph " + fname + ":");
