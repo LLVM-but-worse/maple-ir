@@ -14,7 +14,10 @@ import org.mapleir.stdlib.cfg.edge.UnconditionalJumpEdge;
 import org.mapleir.stdlib.cfg.util.LabelHelper;
 import org.mapleir.stdlib.collections.graph.flow.ExceptionRange;
 import org.mapleir.stdlib.ir.StatementGraph;
+import org.mapleir.stdlib.ir.stat.ConditionalJumpStatement;
 import org.mapleir.stdlib.ir.stat.Statement;
+import org.mapleir.stdlib.ir.stat.SwitchStatement;
+import org.mapleir.stdlib.ir.stat.UnconditionalJumpStatement;
 import org.objectweb.asm.tree.TryCatchBlockNode;
 
 public class StatementGraphBuilder {
@@ -43,9 +46,13 @@ public class StatementGraphBuilder {
 				FlowEdge<Statement> edge;
 				switch (e.getClass().getSimpleName()) {
 					case "ConditionalJumpEdge":
+						if (!(last instanceof ConditionalJumpStatement))
+							throw new IllegalArgumentException("Last statement of block with ConditionalJumpEdge is not a ConditionalJumpStatement");
 						edge = new ConditionalJumpEdge<>(last, targetStmt, ((ConditionalJumpEdge<BasicBlock>) e).opcode);
 						break;
 					case "UnconditionalJumpEdge":
+						if (!(last instanceof UnconditionalJumpStatement))
+							throw new IllegalArgumentException("Last statement of block with UnconditionalJumpEdge is not a UnconditionalJumpStatement");
 						edge = new UnconditionalJumpEdge<>(last, targetStmt, ((UnconditionalJumpEdge<BasicBlock>) e).opcode);
 						break;
 					case "ImmediateEdge":
@@ -81,10 +88,14 @@ public class StatementGraphBuilder {
 						}
 						break;
 					case "SwitchEdge":
+						if (!(last instanceof SwitchStatement))
+							throw new IllegalArgumentException("Last statement of block with SwitchEdge is not a SwitchStatement");
 						SwitchEdge<BasicBlock> se = (SwitchEdge<BasicBlock>) e;
 						edge = new SwitchEdge<>(last, targetStmt, se.insn, se.value);
 						break;
 					case "DefaultSwitchEdge":
+						if (!(last instanceof SwitchStatement))
+							throw new IllegalArgumentException("Last statement of block with DefaultSwitchEdge is not a SwitchStatement");
 						edge = new DefaultSwitchEdge<>(last, targetStmt, ((DefaultSwitchEdge<BasicBlock>) e).insn);
 						break;
 					default:

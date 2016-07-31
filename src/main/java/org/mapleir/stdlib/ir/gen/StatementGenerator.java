@@ -48,6 +48,7 @@ public class StatementGenerator implements Opcodes {
 	private Map<BasicBlock, BlockHeaderStatement> headers;
 	CodeBody stmtList;
 	int stackBase;
+	boolean stackSaved = false;
 
 	transient volatile BasicBlock currentBlock;
 	transient volatile ExpressionStack currentStack;
@@ -161,7 +162,10 @@ public class StatementGenerator implements Opcodes {
 		return b.getStatements().get(b.getStatements().size() - 1);
 	}
 	
-	 void save_stack() {
+	void save_stack() {
+		if (!currentBlock.getStatements().isEmpty() && currentBlock.getStatements().get(currentBlock.getStatements().size() - 1).canChangeFlow())
+			throw new IllegalStateException("Flow instruction already added to block; cannot save stack");
+			
 		int height = currentStack.height();
 		while(height > 0) {
 			int index = height - 1;
@@ -171,10 +175,11 @@ public class StatementGenerator implements Opcodes {
 			
 			height -= type.getSize();
 		}
-	} 
+		stackSaved = true;
+	}
 
 	void update_target_stack(BasicBlock b, BasicBlock target, ExpressionStack stack) {
-		if(updatedStacks.contains(b)) {
+		if(updatedStacks.contains(b) && !stackSaved) {
 			save_stack();
 		}
 		// called just before a jump to a successor block may
@@ -247,6 +252,7 @@ public class StatementGenerator implements Opcodes {
 
 		currentBlock = b;
 		currentStack = stack;
+		stackSaved = false;
 
 		for (AbstractInsnNode ain : b.getInsns()) {
 			int opcode = ain.opcode();
