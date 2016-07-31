@@ -64,12 +64,14 @@ public class LivenessTest implements Opcodes {
 	}
 	
 	private static void testHandler() {
+		int x = 0, y = 0;
 		try {
-			int x = 1;
-			int y = predicate() ? Integer.parseInt("2") : 2;
+			x = consumer(1, 2, 3);
+			y = predicate() ? Integer.parseInt("2") : 2;
 			System.out.println(consumer(x - y, x, y));
 		} catch (IllegalArgumentException e) {
-			System.err.println("o no :(");
+			System.err.println(x > y ? x : y);
+			System.err.println("o no :( " + x + " " + y);
 		}
 	}
 	
@@ -79,7 +81,7 @@ public class LivenessTest implements Opcodes {
 		cr.accept(cn, 0);
 		
 		for (MethodNode m : new ArrayList<>(cn.methods)) {
-			if (!m.name.equals("testSwap"))
+			if (!m.name.equals("testHandler"))
 				continue;
 			System.out.println("Processing " + m + "\n");
 			
@@ -98,6 +100,17 @@ public class LivenessTest implements Opcodes {
 			gen.init(m.maxLocals);
 			gen.createExpressions();
 			CodeBody code = gen.buildRoot();
+			
+			GraphUtils.rewriteCfg(cfg, code);
+			BasicDotConfiguration<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> config1 = new BasicDotConfiguration<>(DotConfiguration.GraphType.DIRECTED);
+			DotWriter<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> w3 = new DotWriter<>(config1, cfg);
+			w3.removeAll()
+					.setName(m.name + "-stmts")
+					.add("cfg", new ControlFlowGraphDecorator().setFlags(OPT_DEEP | OPT_STMTS))
+					.export();
+			System.out.println(code);
+			
+			// Build SSA
 			SSAGenerator ssagen = new SSAGenerator(code, cfg, gen.getHeaders());
 			ssagen.run();
 			
@@ -125,7 +138,7 @@ public class LivenessTest implements Opcodes {
 			BasicDotConfiguration<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> config = new BasicDotConfiguration<>(DotConfiguration.GraphType.DIRECTED);
 			DotWriter<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> w = new DotWriter<>(config, cfg);
 			w.add(new ControlFlowGraphDecorator().setFlags(OPT_DEEP))
-					.setName(m.name + "-stmts")
+					.setName(m.name + "-cfg")
 					.export();
 			
 			SSABlockLivenessAnalyser blockLiveness = new SSABlockLivenessAnalyser(cfg);
