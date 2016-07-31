@@ -13,6 +13,7 @@ import org.mapleir.stdlib.ir.expr.VarExpression;
 import org.mapleir.stdlib.ir.locals.Local;
 import org.mapleir.stdlib.ir.stat.CopyVarStatement;
 import org.mapleir.stdlib.ir.stat.Statement;
+import org.mapleir.stdlib.ir.transform.ssa.SSABlockLivenessAnalyser;
 import org.mapleir.stdlib.ir.transform.ssa.SSALivenessAnalyser;
 
 public class InterferenceGraphBuilder {
@@ -83,6 +84,35 @@ public class InterferenceGraphBuilder {
 			}
 		}
 		
+		
+		return new InterferenceGraphBuilder().build(interfere);
+	}
+	
+	public static InterferenceGraph build(SSABlockLivenessAnalyser blockLiveness) {
+		NullPermeableHashMap<Local, Set<Local>> interfere = new NullPermeableHashMap<>(new SetCreator<>());
+		
+		for(BasicBlock b : blockLiveness.getGraph().vertices()) {
+			Set<Local> out = blockLiveness.out(b);
+			
+			for(Statement stmt : b.getStatements()) {
+				if(stmt instanceof CopyVarStatement) {
+					CopyVarStatement copy = (CopyVarStatement) stmt;
+					Local def = copy.getVariable().getLocal();
+					Expression e = copy.getExpression();
+					
+					if(!(e instanceof VarExpression)) {
+						if(out.contains(def)) {
+							for(Local l : out) {
+								if(def != l) {
+									interfere.getNonNull(def).add(l);
+									interfere.getNonNull(l).add(def);
+								}
+							}
+						}
+					}
+				}
+			}
+		}
 		
 		return new InterferenceGraphBuilder().build(interfere);
 	}
