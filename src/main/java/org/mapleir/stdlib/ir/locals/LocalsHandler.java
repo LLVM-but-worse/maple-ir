@@ -36,7 +36,12 @@ public class LocalsHandler {
 	}
 	
 	public VersionedLocal getLatestVersion(Local l) {
-		return latest.get(asSimpleLocal(l));
+		l = asSimpleLocal(l);
+		if(!latest.containsKey(l)) {
+			return get(l.getIndex(), 0, l.isStack());
+		} else {
+			return latest.get(l);
+		}
 	}
 
 	public List<Local> getOrderedList() {
@@ -86,6 +91,16 @@ public class LocalsHandler {
 			BasicLocal v = new BasicLocal(base, index, isStack);
 			cache.put(key, v);
 			return v;
+		}
+	}
+
+	public BasicLocal newLocal(int i, boolean isStack) {
+		while(true) {
+			String key = key(i, isStack);
+			if(!cache.containsKey(key)) {
+				return get(i, isStack);
+			}
+			i++;
 		}
 	}
 	
