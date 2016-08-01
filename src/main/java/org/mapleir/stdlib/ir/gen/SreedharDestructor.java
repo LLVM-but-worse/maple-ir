@@ -79,7 +79,7 @@ public class SreedharDestructor {
 		DotWriter<InterferenceGraph, ColourableNode, InterferenceEdge> w2 = new DotWriter<>(config2, ig);
 		w2.add(new InterferenceGraphDecorator()).setName("sreedhar-cssa-ig").export();
 		nullify();
-		coalesce();
+//		coalesce();
 		System.out.println("after:");
 		System.out.println(code);
 		w.removeAll()
@@ -406,59 +406,57 @@ public class SreedharDestructor {
 	}
 	
 	Local resolve_conflicts(CopyVarStatement phiCopy, BasicBlock l0, PhiResource r) {
+		System.out.println("resolve " + r + " in " + phiCopy + " at " + l0.getId());
+		
 		verify();
 		
-		System.out.println("resolve " + r + " in " + phiCopy + " at " + l0.getId());
 		PhiExpression phi = (PhiExpression) phiCopy.getExpression();
-		
 		Local xi = r.local;
 		Type type = r.type;
 		BasicBlock li = r.block;
-		
-//		VersionedLocal latest = code.getLocals().getLatestVersion(xi);
-//		System.out.println("xi: " + xi);
-//		System.out.println("latest: " + latest);
-//		VersionedLocal newi = code.getLocals().get(latest.getIndex(), latest.getSubscript() + 1, latest.isStack());
-		Local l2 = code.getLocals().newLocal(xi.getIndex(), xi.isStack());
-		VersionedLocal newi = code.getLocals().getLatestVersion(l2);
-		VarExpression nv = new VarExpression(newi, type);
-		
-		vusages.getNonNull(xi).remove(phiCopy);
-		vusages.getNonNull(newi).add(phiCopy);
-		// copy locals _added in insert methods.
-		
-		// System.out.println("inserting " + copy);
-		
-		if(!phiCongruenceClasses.containsKey(newi)) {
-			Set<Local> set = new HashSet<>();
-			set.add(newi);
-			phiCongruenceClasses.put(newi, set);
-		}
-		else {
-			phiCongruenceClasses.get(newi).add(newi);
-		}
-		
-		VarExpression xiVar = new VarExpression(xi, type);
+
+		Local newL = null;
 		if(r.target) {
-			CopyVarStatement copy = new CopyVarStatement(xiVar, nv);
+			VersionedLocal latest = code.getLocals().getLatestVersion(xi);
+			VersionedLocal new0 = code.getLocals().get(latest.getIndex(), latest.getIndex() + 1, latest.isStack());
+			CopyVarStatement copy = new CopyVarStatement(new VarExpression(xi, type), new VarExpression(new0, type));
 			insert_start(l0, copy);
 			
-			phiCopy.setVariable(nv);
+			if (!phiCongruenceClasses.containsKey(new0)) {
+				Set<Local> set = new HashSet<>();
+				set.add(new0);
+				phiCongruenceClasses.put(new0, set);
+			}
+			
+			phiCopy.setVariable(new VarExpression(new0, type));
+			
+			newL = new0;
 		} else {
-			CopyVarStatement copy = new CopyVarStatement(nv, xiVar);
+			VersionedLocal latest = code.getLocals().getLatestVersion(xi);
+			VersionedLocal newi = code.getLocals().get(latest.getIndex(), latest.getIndex() + 1, latest.isStack());
+			CopyVarStatement copy = new CopyVarStatement(new VarExpression(newi, type), new VarExpression(xi, type));
 			insert_end(li, copy);
+			
+			if (!phiCongruenceClasses.containsKey(newi)) {
+				Set<Local> set = new HashSet<>();
+				set.add(newi);
+				phiCongruenceClasses.put(newi, set);
+			}
 			
 			HeaderStatement header = headers.get(li);
 			Map<HeaderStatement, Expression> cont = phi.getLocals();
-			cont.put(header, nv);
+			cont.put(header, new VarExpression(newi, type));
+			
+			newL = newi;
 		}
 		
-		find_interference();
+		vusages.getNonNull(xi).remove(phiCopy);
+		vusages.getNonNull(newL).add(phiCopy);
 		
-
+		find_interference();
 		verify();
 		
-		return newi;
+		return newL;
 	}
 	
 	void insert_start(BasicBlock b, Statement s) {
@@ -667,7 +665,7 @@ public class SreedharDestructor {
 						code.remove(stmt);
 						continue;
 					} else {
-						rename(c.getVariable(), remap);
+						 rename(c.getVariable(), remap);
 					}
 				}
 				
@@ -686,11 +684,10 @@ public class SreedharDestructor {
 		Set<Local> pcc = phiCongruenceClasses.get(l);
 		if(pcc != null) {
 			if(!remap.containsKey(pcc)) {
-				remap.put(pcc, code.getLocals().asSimpleLocal(l));
+				remap.put(pcc, l);
 			}
 			
 			System.out.println("remap " + l + " to " + remap.get(pcc));
-			l = remap.get(pcc);
 			v.setLocal(l);
 		}
 	}
