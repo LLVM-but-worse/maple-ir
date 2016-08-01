@@ -1,5 +1,10 @@
 package org.mapleir.stdlib.ir.gen;
 
+import static org.mapleir.stdlib.collections.graph.dot.impl.ControlFlowGraphDecorator.*;
+
+import java.util.*;
+import java.util.Map.Entry;
+
 import org.mapleir.stdlib.cfg.BasicBlock;
 import org.mapleir.stdlib.cfg.ControlFlowGraph;
 import org.mapleir.stdlib.cfg.edge.FlowEdge;
@@ -29,19 +34,6 @@ import org.mapleir.stdlib.ir.stat.CopyVarStatement;
 import org.mapleir.stdlib.ir.stat.Statement;
 import org.mapleir.stdlib.ir.transform.ssa.SSALivenessAnalyser;
 import org.objectweb.asm.Type;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-
-import static org.mapleir.stdlib.collections.graph.dot.impl.ControlFlowGraphDecorator.OPT_DEEP;
-import static org.mapleir.stdlib.collections.graph.dot.impl.ControlFlowGraphDecorator.OPT_STMTS;
 
 public class SreedharDestructor {
 
@@ -320,7 +312,7 @@ public class SreedharDestructor {
 					Local xi = ri.local;
 					Local xj = rj.local;
 					Case c = frame.find_case();
-					// System.out.printf("xi:%s, xj:%s, c:%s.%n", xi, xj, c);
+					System.out.printf("xi:%s, xj:%s, c:%s.%n", xi, xj, c);
 					if(c == Case.FIRST || c == Case.THIRD) {
 						candidates.add(ri);
 					}
@@ -366,11 +358,15 @@ public class SreedharDestructor {
 			boolean should = false;
 			for(Local n : neighbours) {
 				// this should be a small set i think.
+				boolean contains = false;
 				for(PhiResource c : candidates) {
 					if(c.local == n) {
-						should = true;
+						contains = true;
 						break;
 					}
+				}
+				if(!contains) {
+					should = true;
 				}
 			}
 			if(should) {
@@ -378,6 +374,7 @@ public class SreedharDestructor {
 			}
 		}
 		
+		System.out.println("cand: " + candidates);
 		return candidates;
 	}
 	
@@ -557,9 +554,15 @@ public class SreedharDestructor {
 		} else if(l == 0 && r > 0) {
 			// check if lhs interferes with (pcc[rhs] - rhs)
 			b = interfere(rpcc, rhs, lhs);
+			if(!b) {
+				System.out.println("coalesce case 1");
+			}
 		} else if(l > 0 && r == 0) {
 			// check if rhs interferes with (pcc[lhs] - lhs)
 			b = interfere(lpcc, lhs, rhs);
+			if(!b) {
+				System.out.println("coalesce case 2");
+			}
 		} else if(l > 0 && r > 0) {
 			// i.e. if the pcc's are different, we need to
 			//      check for interference. if they are the
@@ -569,6 +572,9 @@ public class SreedharDestructor {
 				//    or
 				//          (rpcc - r) interferes with lpcc
 				b = interfere(lpcc, rpcc, lhs, rhs);
+				if(!b) {
+					System.out.println("coalesce case 3");
+				}
 			}
 		}
 		
