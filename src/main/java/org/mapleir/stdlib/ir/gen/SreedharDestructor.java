@@ -50,7 +50,12 @@ public class SreedharDestructor {
 		find_interference();
 		csaa_iii();
 		nullify();
+		System.out.println("after:");
+		System.out.println(code);
 		coalesce();
+		System.out.println("after:");
+		System.out.println(code);
+		unssa();
 	}
 	
 	void verify() {
@@ -192,7 +197,7 @@ public class SreedharDestructor {
 				
 				for(PhiResource r : cand) {
 					Local newL = resolve_conflicts(copy, l0, r);
-					PhiResource newR = new PhiResource(r.block, newL, r.type);
+					PhiResource newR = new PhiResource(r.block, newL, r.target, r.type);
 					ress.remove(r);
 					ress.add(newR);
 				}
@@ -220,7 +225,7 @@ public class SreedharDestructor {
 		phis.add(copy);
 		phiDefs.put(def, copy);
 		
-		res.add(map_initial_pcc(l0, dv));
+		res.add(map_initial_pcc(l0, dv, true));
 		
 		PhiExpression phi = (PhiExpression) copy.getExpression();
 		for(Entry<HeaderStatement, Expression> en : phi.getLocals().entrySet()) {
@@ -230,11 +235,11 @@ public class SreedharDestructor {
 			}
 			VarExpression v = (VarExpression) e;
 			BasicBlock li = ((BlockHeaderStatement) en.getKey()).getBlock();
-			res.add(map_initial_pcc(li, v));
+			res.add(map_initial_pcc(li, v, false));
 		}
 	}
 	
-	PhiResource map_initial_pcc(BasicBlock li, VarExpression v) {
+	PhiResource map_initial_pcc(BasicBlock li, VarExpression v, boolean target) {
 		Local xi = v.getLocal();
 		// phiCongruenceClass[x] = {x};
 		if(!phiCongruenceClasses.containsKey(xi)) {
@@ -250,14 +255,13 @@ public class SreedharDestructor {
 		// 	unresolvedNeighbours.put(xi, new HashSet<>());
 		// }
 		
-		PhiResource pr = new PhiResource(li, xi, v.getType());
+		PhiResource pr = new PhiResource(li, xi, target, v.getType());
 		return pr;
 	}
 	
 	Set<PhiResource> find_copy_candidates(BasicBlock b, List<PhiResource> resources) {
 		int len = resources.size();
 		
-
 		Map<Local, Set<Local>> unresolvedNeighbours = new HashMap<>();
 		
 		Set<PhiResource> conflicts = new HashSet<>();
@@ -315,7 +319,7 @@ public class SreedharDestructor {
 		
 		for(PhiResource r : sorted) {
 			Local l = r.local;
-			if(candidates.contains(l)) {
+			if(candidates.contains(r)) {
 				continue;
 			}
 			
@@ -368,14 +372,19 @@ public class SreedharDestructor {
 	Local resolve_conflicts(CopyVarStatement phiCopy, BasicBlock l0, PhiResource r) {
 		verify();
 		
+		System.out.println("resolve " + r + " in " + phiCopy + " at " + l0.getId());
 		PhiExpression phi = (PhiExpression) phiCopy.getExpression();
 		
 		Local xi = r.local;
 		Type type = r.type;
 		BasicBlock li = r.block;
 		
-		VersionedLocal latest = code.getLocals().getLatestVersion(xi);
-		VersionedLocal newi = code.getLocals().get(latest.getIndex(), latest.getSubscript() + 1, latest.isStack());
+//		VersionedLocal latest = code.getLocals().getLatestVersion(xi);
+//		System.out.println("xi: " + xi);
+//		System.out.println("latest: " + latest);
+//		VersionedLocal newi = code.getLocals().get(latest.getIndex(), latest.getSubscript() + 1, latest.isStack());
+		Local l2 = code.getLocals().newLocal(xi.getIndex(), xi.isStack());
+		VersionedLocal newi = code.getLocals().getLatestVersion(l2);
 		VarExpression nv = new VarExpression(newi, type);
 		
 		vusages.getNonNull(xi).remove(phiCopy);
@@ -389,10 +398,13 @@ public class SreedharDestructor {
 			Set<Local> set = new HashSet<>();
 			set.add(newi);
 			phiCongruenceClasses.put(newi, set);
+		} 
+		else {
+			phiCongruenceClasses.get(newi).add(newi);
 		}
 		
-		if(phiCopy.getVariable().getLocal() == xi) {
-			insert_start(li, copy);
+		if(r.target) {
+			insert_start(l0, copy);
 			
 			phiCopy.setVariable(nv);
 		} else {
@@ -497,7 +509,9 @@ public class SreedharDestructor {
 		int r = rpcc.size();
 		boolean b = false;
 		
-		if(l == 0 && r > 0) {
+		if(l == 0 && r == 0) { 
+			
+		} else if(l == 0 && r > 0) {
 			// check if lhs interferes with (pcc[rhs] - rhs)
 			b = interfere(rpcc, rhs, lhs);
 		} else if(l > 0 && r == 0) {
@@ -551,7 +565,7 @@ public class SreedharDestructor {
 	}
 	
 	void coalesce(BasicBlock b, Statement s, Local lhs, Local rhs, Set<Local> lpcc, Set<Local> rpcc) {
-		// System.out.println("coalesce " + s);
+		System.out.println("coalesce " + s);
 		
 		// remove lhs = rhs
 		//  so replace all uses of lhs with rhs.
@@ -565,7 +579,6 @@ public class SreedharDestructor {
 			vusages.getNonNull(rhs).add(t);
 			it.remove();
 		}
-		
 		
 		b.getStatements().remove(s);
 		code.remove(s);
@@ -593,6 +606,46 @@ public class SreedharDestructor {
 		return interfere.getNonNull(i).contains(j);
 	}
 	
+	void unssa() {
+		Map<Set<Local>, Local> remap = new HashMap<>();
+		
+		for(BasicBlock b : cfg.vertices()) {
+			for(Statement stmt : new ArrayList<>(b.getStatements())) {
+				if(stmt instanceof CopyVarStatement) {
+					CopyVarStatement c = (CopyVarStatement) stmt;
+					if(c.getExpression() instanceof PhiExpression) {
+						b.getStatements().remove(stmt);
+						code.remove(stmt);
+						continue;
+					} else {
+						rename(c.getVariable(), remap);
+					}
+				}
+				
+				for(Statement s : Statement.enumerate_deep(stmt)) {
+					if(s instanceof VarExpression) {
+						VarExpression v = (VarExpression) s;
+						rename(v, remap);
+					}
+				}
+			}
+		}
+	}
+	
+	void rename(VarExpression v, Map<Set<Local>, Local> remap) {
+		Local l = v.getLocal();
+		Set<Local> pcc = phiCongruenceClasses.get(l);
+		if(pcc != null) {
+			if(!remap.containsKey(pcc)) {
+				remap.put(pcc, code.getLocals().asSimpleLocal(l));
+			}
+			
+			System.out.println("remap " + l + " to " + remap.get(pcc));
+			l = remap.get(pcc);
+			v.setLocal(l);
+		}
+	}
+
 	boolean intersects(Set<Local> pcc, Map<Local, Boolean> live) {
 		Set<Local> merged = merge_pcc(extract_live(live));
 		
@@ -702,17 +755,19 @@ public class SreedharDestructor {
 	static class PhiResource {
 		final BasicBlock block;
 		final Local local;
+		final boolean target;
 		final Type type;
 		
-		PhiResource(BasicBlock block, Local local, Type type) {
+		PhiResource(BasicBlock block, Local local, boolean target, Type type) {
 			this.block = block;
 			this.local = local;
+			this.target = target;
 			this.type = type;
 		}
 		
 		@Override
 		public String toString() {
-			return block.getId() + ":" + local + "(" + type + ")";
+			return block.getId() + ":" + local + "(" + type + ")" + " (targ=" + Boolean.toString(target).substring(0, 1) + ")";
 		}
 	}
 }
