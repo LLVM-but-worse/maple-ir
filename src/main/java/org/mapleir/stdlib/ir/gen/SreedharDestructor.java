@@ -1,17 +1,26 @@
 package org.mapleir.stdlib.ir.gen;
 
-import java.util.*;
-import java.util.Map.Entry;
-
 import org.mapleir.stdlib.cfg.BasicBlock;
 import org.mapleir.stdlib.cfg.ControlFlowGraph;
+import org.mapleir.stdlib.cfg.edge.FlowEdge;
 import org.mapleir.stdlib.collections.ListCreator;
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.SetCreator;
+import org.mapleir.stdlib.collections.graph.dot.BasicDotConfiguration;
+import org.mapleir.stdlib.collections.graph.dot.DotConfiguration;
+import org.mapleir.stdlib.collections.graph.dot.DotWriter;
+import org.mapleir.stdlib.collections.graph.dot.impl.ControlFlowGraphDecorator;
+import org.mapleir.stdlib.collections.graph.dot.impl.InterferenceGraphDecorator;
+import org.mapleir.stdlib.collections.graph.dot.impl.LivenessDecorator;
+import org.mapleir.stdlib.collections.graph.util.GraphUtils;
 import org.mapleir.stdlib.ir.CodeBody;
 import org.mapleir.stdlib.ir.expr.Expression;
 import org.mapleir.stdlib.ir.expr.PhiExpression;
 import org.mapleir.stdlib.ir.expr.VarExpression;
+import org.mapleir.stdlib.ir.gen.interference.ColourableNode;
+import org.mapleir.stdlib.ir.gen.interference.InterferenceEdge;
+import org.mapleir.stdlib.ir.gen.interference.InterferenceGraph;
+import org.mapleir.stdlib.ir.gen.interference.InterferenceGraphBuilder;
 import org.mapleir.stdlib.ir.header.BlockHeaderStatement;
 import org.mapleir.stdlib.ir.header.HeaderStatement;
 import org.mapleir.stdlib.ir.locals.Local;
@@ -20,6 +29,19 @@ import org.mapleir.stdlib.ir.stat.CopyVarStatement;
 import org.mapleir.stdlib.ir.stat.Statement;
 import org.mapleir.stdlib.ir.transform.ssa.SSALivenessAnalyser;
 import org.objectweb.asm.Type;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+
+import static org.mapleir.stdlib.collections.graph.dot.impl.ControlFlowGraphDecorator.OPT_DEEP;
+import static org.mapleir.stdlib.collections.graph.dot.impl.ControlFlowGraphDecorator.OPT_STMTS;
 
 public class SreedharDestructor {
 
@@ -49,12 +71,29 @@ public class SreedharDestructor {
 		init();
 		find_interference();
 		csaa_iii();
-		nullify();
 		System.out.println("after:");
 		System.out.println(code);
+		GraphUtils.rewriteCfg(cfg, code);
+		BasicDotConfiguration<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> config = new BasicDotConfiguration<>(DotConfiguration.GraphType.DIRECTED);
+		DotWriter<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> w = new DotWriter<>(config, cfg);
+		SSALivenessAnalyser liveness = new SSALivenessAnalyser(cfg);
+		w.removeAll()
+				.setName("sreedhar-cssa")
+				.add("liveness", new LivenessDecorator().setLiveness(liveness))
+				.addBefore("liveness", "cfg", new ControlFlowGraphDecorator().setFlags(OPT_DEEP | OPT_STMTS))
+				.export();
+		InterferenceGraph ig = InterferenceGraphBuilder.build(liveness);
+		BasicDotConfiguration<InterferenceGraph, ColourableNode, InterferenceEdge> config2 = new BasicDotConfiguration<>(DotConfiguration.GraphType.UNDIRECTED);
+		DotWriter<InterferenceGraph, ColourableNode, InterferenceEdge> w2 = new DotWriter<>(config2, ig);
+		w2.add(new InterferenceGraphDecorator()).setName("sreedhar-cssa-ig").export();
+		nullify();
 		coalesce();
 		System.out.println("after:");
 		System.out.println(code);
+		w.removeAll()
+				.setName("sreedhar-coalesce")
+				.add("cfg", new ControlFlowGraphDecorator().setFlags(OPT_DEEP | OPT_STMTS))
+				.export();
 		unssa();
 	}
 	
@@ -390,7 +429,6 @@ public class SreedharDestructor {
 		vusages.getNonNull(xi).remove(phiCopy);
 		vusages.getNonNull(newi).add(phiCopy);
 		// copy locals _added in insert methods.
-		CopyVarStatement copy = new CopyVarStatement(nv, new VarExpression(xi, type));
 		
 		// System.out.println("inserting " + copy);
 		
@@ -398,16 +436,19 @@ public class SreedharDestructor {
 			Set<Local> set = new HashSet<>();
 			set.add(newi);
 			phiCongruenceClasses.put(newi, set);
-		} 
+		}
 		else {
 			phiCongruenceClasses.get(newi).add(newi);
 		}
 		
+		VarExpression xiVar = new VarExpression(xi, type);
 		if(r.target) {
+			CopyVarStatement copy = new CopyVarStatement(xiVar, nv);
 			insert_start(l0, copy);
 			
 			phiCopy.setVariable(nv);
 		} else {
+			CopyVarStatement copy = new CopyVarStatement(nv, xiVar);
 			insert_end(li, copy);
 			
 			HeaderStatement header = headers.get(li);
@@ -430,7 +471,9 @@ public class SreedharDestructor {
 		if(i == -1) {
 			throw new IllegalStateException(b.getId());
 		}
-		code.add(i + 1, s);
+		Statement stmt;
+		while ((stmt = code.get(++i)) instanceof CopyVarStatement && ((CopyVarStatement) stmt).getExpression() instanceof PhiExpression);
+		code.add(i, s);
 		stmts.add(0, s);
 		
 		_added(s);
