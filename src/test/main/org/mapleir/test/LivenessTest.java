@@ -14,7 +14,9 @@ import org.mapleir.stdlib.collections.graph.dot.impl.LivenessDecorator;
 import org.mapleir.stdlib.collections.graph.util.GraphUtils;
 import org.mapleir.stdlib.ir.CodeBody;
 import org.mapleir.stdlib.ir.StatementGraph;
+import org.mapleir.stdlib.ir.gen.SSADestructor;
 import org.mapleir.stdlib.ir.gen.SSAGenerator;
+import org.mapleir.stdlib.ir.gen.SreedharDestructor;
 import org.mapleir.stdlib.ir.gen.StatementGenerator;
 import org.mapleir.stdlib.ir.gen.StatementGraphBuilder;
 import org.mapleir.stdlib.ir.gen.interference.ColourableNode;
@@ -38,7 +40,7 @@ import java.util.List;
 import static org.mapleir.stdlib.collections.graph.dot.impl.ControlFlowGraphDecorator.OPT_DEEP;
 import static org.mapleir.stdlib.collections.graph.dot.impl.ControlFlowGraphDecorator.OPT_STMTS;
 
-@SuppressWarnings({"Duplicates", "ConstantConditions"})
+@SuppressWarnings({"Duplicates", "ConstantConditions", "unused"})
 public class LivenessTest implements Opcodes {
 	private static boolean predicate() {
 		return true;
@@ -51,16 +53,16 @@ public class LivenessTest implements Opcodes {
 	}
 	
 	private static void testSwap() {
-		int x = 1;
-		int y = 2;
+		int lvar0 = 1;
+		int lvar2 = 2;
 		while(!predicate()) {
-			int z = x;
-			x = y;
-			y = z;
+			int z = lvar0;
+			lvar0 = lvar2;
+			lvar2 = z;
 		}
 		
-		System.out.println(x);
-		System.out.println(y);
+		System.out.println(lvar0);
+		System.out.println(lvar2);
 	}
 	
 	private static void testHandler() {
@@ -81,11 +83,12 @@ public class LivenessTest implements Opcodes {
 		cr.accept(cn, 0);
 		
 		for (MethodNode m : new ArrayList<>(cn.methods)) {
-			if (!m.name.equals("testHandler"))
+			if (!m.name.equals("testSwap"))
 				continue;
 			System.out.println("Processing " + m + "\n");
 			
 			// Build CFG
+			System.out.println("Building CFG");
 			ControlFlowGraphBuilder builder = new ControlFlowGraphBuilder(m);
 			ControlFlowGraph cfg = builder.build();
 			ControlFlowGraphDeobfuscator deobber = new ControlFlowGraphDeobfuscator();
@@ -99,6 +102,7 @@ public class LivenessTest implements Opcodes {
 					.export();
 			
 			// Build statements
+			System.out.println("Building statements");
 			StatementGenerator gen = new StatementGenerator(cfg);
 			gen.init(m.maxLocals);
 			gen.createExpressions();
@@ -109,6 +113,7 @@ public class LivenessTest implements Opcodes {
 					.export();
 			
 			// Build SSA
+			System.out.println("Building SSA");
 			SSAGenerator ssagen = new SSAGenerator(code, cfg, gen.getHeaders());
 			ssagen.run();
 			GraphUtils.rewriteCfg(cfg, code);
@@ -118,6 +123,7 @@ public class LivenessTest implements Opcodes {
 					.export();
 			
 			// Transform
+			System.out.println("Transforming SSA");
 			StatementGraph sgraph = StatementGraphBuilder.create(cfg);
 			SSALocalAccess localAccess = new SSALocalAccess(code);
 			SSATransformer[] transforms = initTransforms(code, localAccess, sgraph, gen);
@@ -131,12 +137,13 @@ public class LivenessTest implements Opcodes {
 				}
 			}
 			GraphUtils.rewriteCfg(cfg, code);
-			
 			w.removeAll()
 					.add(new ControlFlowGraphDecorator().setFlags(OPT_DEEP | OPT_STMTS))
 					.setName(m.name + "-ssa-opt")
 					.export();
 			
+			// Liveness and interference tests
+			System.out.println("Liveness tests");
 			SSALivenessAnalyser liveness = new SSALivenessAnalyser(cfg);
 			w.removeAll()
 					.setName(m.name + "-liveness")
@@ -157,6 +164,17 @@ public class LivenessTest implements Opcodes {
 					.add("liveness", new LivenessDecorator().setBlockLiveness(blockLiveness))
 					.addBefore("liveness", "cfg", new ControlFlowGraphDecorator().setFlags(OPT_DEEP | OPT_STMTS))
 					.export();
+			
+			// Destruct SSA
+			System.out.println("Destructing SSA");
+			SreedharDestructor de = new SreedharDestructor(code, cfg);
+			GraphUtils.rewriteCfg(cfg, code);
+			w.removeAll()
+					.setName(m.name + "-dessa")
+					.add("cfg", new ControlFlowGraphDecorator().setFlags(OPT_DEEP | OPT_STMTS))
+					.export();
+			
+			System.out.println("Done processing " + m.toString());
 		}
 	}
 	
