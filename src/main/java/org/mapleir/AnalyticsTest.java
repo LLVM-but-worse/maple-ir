@@ -57,8 +57,6 @@ import org.topdank.byteio.in.SingleJarDownloader;
 
 public class AnalyticsTest {
 
-	public static boolean debug = true;
-	
 	void test111() {
 		int x = 1;
 		int y = 2;
@@ -153,8 +151,8 @@ public class AnalyticsTest {
 			
 			w.removeAll()
 				.setName("graph-liveness")
-				.add("liveness", new LivenessDecorator().setBlockLiveness(blockLiveness).applyComments(cfg))
-				.addBefore("liveness", "cfg", new ControlFlowGraphDecorator().setFlags(OPT_DEEP | OPT_STMTS))
+				.add("cfg", new ControlFlowGraphDecorator().setFlags(OPT_DEEP | OPT_STMTS | OPT_SIMPLE_EDGES))
+				.addAfter("cfg", "liveness", new LivenessDecorator().setBlockLiveness(blockLiveness))
 				.export();
 
 			
