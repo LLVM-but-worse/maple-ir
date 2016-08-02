@@ -60,11 +60,11 @@ public class AnalyticsTest {
 	void test111() {
 		int x = 1;
 		int y = 2;
-		while(!p()) {
+		do {
 			int z = x;
 			x = y;
 			y = z;
-		}
+		} while(!p());
 		
 		System.out.println(x);
 		System.out.println(y);
