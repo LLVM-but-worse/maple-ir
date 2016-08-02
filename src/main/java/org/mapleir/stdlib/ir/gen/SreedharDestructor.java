@@ -2,8 +2,14 @@ package org.mapleir.stdlib.ir.gen;
 
 import static org.mapleir.stdlib.collections.graph.dot.impl.ControlFlowGraphDecorator.*;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import org.mapleir.stdlib.cfg.BasicBlock;
 import org.mapleir.stdlib.cfg.ControlFlowGraph;
@@ -79,7 +85,7 @@ public class SreedharDestructor {
 		DotWriter<InterferenceGraph, ColourableNode, InterferenceEdge> w2 = new DotWriter<>(config2, ig);
 		w2.add(new InterferenceGraphDecorator()).setName("sreedhar-cssa-ig").export();
 		nullify();
-//		coalesce();
+		coalesce();
 		System.out.println("after:");
 		System.out.println(code);
 		w.removeAll()
@@ -90,6 +96,9 @@ public class SreedharDestructor {
 	}
 	
 	void verify() {
+		if("".equals(""))
+			return;
+		
 		NullPermeableHashMap<Local, Set<Statement>> vusages = new NullPermeableHashMap<>(new SetCreator<>());
 		for(Statement stmt : code) {
 			for(Statement s : Statement.enumerate_deep(stmt)) {
@@ -619,13 +628,13 @@ public class SreedharDestructor {
 		
 		verify();
 		
-		Iterator<Statement> it = vusages.getNonNull(lhs).iterator();
-		while(it.hasNext()) {
-			Statement t = it.next();
-			replace_uses(t, lhs, rhs);
-			vusages.getNonNull(rhs).add(t);
-			it.remove();
-		}
+//		Iterator<Statement> it = vusages.getNonNull(lhs).iterator();
+//		while(it.hasNext()) {
+//			Statement t = it.next();
+//			replace_uses(t, lhs, rhs);
+//			vusages.getNonNull(rhs).add(t);
+//			it.remove();
+//		}
 		
 		b.getStatements().remove(s);
 		code.remove(s);
@@ -637,11 +646,11 @@ public class SreedharDestructor {
 		newPcc.addAll(lpcc);
 		newPcc.addAll(rpcc);
 		
-		newPcc = merge_pcc(newPcc);
+		Set<Local> mset = merge_pcc(newPcc);
 		
 		for(Local l : newPcc) {
 			phiCongruenceClasses.remove(l);
-			phiCongruenceClasses.put(l, newPcc);
+			phiCongruenceClasses.put(l, mset);
 			
 			// TODO: update other info.
 		}
