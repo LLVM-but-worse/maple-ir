@@ -415,8 +415,6 @@ public class SreedharDestructor {
 	}
 	
 	Local resolve_conflicts(CopyVarStatement phiCopy, BasicBlock l0, PhiResource r) {
-		System.out.println("resolve " + r + " in " + phiCopy + " at " + l0.getId());
-		
 		verify();
 		
 		PhiExpression phi = (PhiExpression) phiCopy.getExpression();
@@ -425,38 +423,42 @@ public class SreedharDestructor {
 		BasicBlock li = r.block;
 
 		Local newL = null;
+		Local dst = null;
+		Local src = null;
+		
 		if(r.target) {
 			VersionedLocal latest = code.getLocals().getLatestVersion(xi);
 			VersionedLocal new0 = code.getLocals().get(latest.getIndex(), latest.getIndex() + 1, latest.isStack());
-			CopyVarStatement copy = new CopyVarStatement(new VarExpression(xi, type), new VarExpression(new0, type));
-			insert_start(l0, copy);
 			
-			if (!phiCongruenceClasses.containsKey(new0)) {
-				Set<Local> set = new HashSet<>();
-				set.add(new0);
-				phiCongruenceClasses.put(new0, set);
-			}
-			
-			phiCopy.setVariable(new VarExpression(new0, type));
-			
+			dst = xi;
+			src = new0;
 			newL = new0;
 		} else {
 			VersionedLocal latest = code.getLocals().getLatestVersion(xi);
 			VersionedLocal newi = code.getLocals().get(latest.getIndex(), latest.getIndex() + 1, latest.isStack());
-			CopyVarStatement copy = new CopyVarStatement(new VarExpression(newi, type), new VarExpression(xi, type));
-			insert_end(li, copy);
 			
-			if (!phiCongruenceClasses.containsKey(newi)) {
-				Set<Local> set = new HashSet<>();
-				set.add(newi);
-				phiCongruenceClasses.put(newi, set);
-			}
+			dst = newi;
+			src = xi;
+			newL = newi;
+		}
+		
+		CopyVarStatement copy = new CopyVarStatement(new VarExpression(dst, type), new VarExpression(src, type));
+		
+		if (!phiCongruenceClasses.containsKey(newL)) {
+			Set<Local> set = new HashSet<>();
+			set.add(newL);
+			phiCongruenceClasses.put(newL, set);
+		}
+		
+		if(r.target) {
+			insert_start(l0, copy);
+			phiCopy.setVariable(new VarExpression(newL, type));
+		} else {
+			insert_end(li, copy);
 			
 			HeaderStatement header = headers.get(li);
 			Map<HeaderStatement, Expression> cont = phi.getLocals();
-			cont.put(header, new VarExpression(newi, type));
-			
-			newL = newi;
+			cont.put(header, new VarExpression(newL, type));
 		}
 		
 		vusages.getNonNull(xi).remove(phiCopy);
