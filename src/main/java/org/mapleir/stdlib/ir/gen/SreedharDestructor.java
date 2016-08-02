@@ -428,14 +428,14 @@ public class SreedharDestructor {
 		
 		if(r.target) {
 			VersionedLocal latest = code.getLocals().getLatestVersion(xi);
-			VersionedLocal new0 = code.getLocals().get(latest.getIndex(), latest.getIndex() + 1, latest.isStack());
+			VersionedLocal new0 = code.getLocals().get(latest.getIndex(), latest.getSubscript() + 1, latest.isStack());
 			
 			dst = xi;
 			src = new0;
 			newL = new0;
 		} else {
 			VersionedLocal latest = code.getLocals().getLatestVersion(xi);
-			VersionedLocal newi = code.getLocals().get(latest.getIndex(), latest.getIndex() + 1, latest.isStack());
+			VersionedLocal newi = code.getLocals().get(latest.getIndex(), latest.getSubscript() + 1, latest.isStack());
 			
 			dst = newi;
 			src = xi;
