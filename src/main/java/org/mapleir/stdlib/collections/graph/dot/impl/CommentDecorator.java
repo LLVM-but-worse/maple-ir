@@ -8,7 +8,7 @@ import org.mapleir.stdlib.collections.graph.FastGraphEdge;
 import org.mapleir.stdlib.collections.graph.FastGraphVertex;
 import org.mapleir.stdlib.collections.graph.dot.DotPropertyDecorator;
 
-public abstract class BlockCommentDecorator<G extends FastGraph<N, E>, N extends FastGraphVertex, E extends FastGraphEdge<N>> implements DotPropertyDecorator<G, N, E> {
+public abstract class CommentDecorator<G extends FastGraph<N, E>, N extends FastGraphVertex, E extends FastGraphEdge<N>> implements DotPropertyDecorator<G, N, E> {
 	
 	public abstract List<String> getVertexStartComments(G g, N n);
 	

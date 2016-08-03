@@ -8,7 +8,7 @@ import org.mapleir.stdlib.collections.graph.FastGraphEdge;
 import org.mapleir.stdlib.collections.graph.FastGraphVertex;
 import org.mapleir.stdlib.ir.transform.Liveness;
 
-public class LivenessDecorator<G extends FastGraph<N, E>, N extends FastGraphVertex, E extends FastGraphEdge<N>> extends BlockCommentDecorator<G, N, E> {
+public class LivenessDecorator<G extends FastGraph<N, E>, N extends FastGraphVertex, E extends FastGraphEdge<N>> extends CommentDecorator<G, N, E> {
 	
 	private Liveness<N> liveness;
 	
