@@ -44,6 +44,16 @@ public class CachedDotCommentDecorator<G extends FastGraph<N, E>, N extends Fast
 		return this;
 	}
 	
+	public CachedDotCommentDecorator<G, N, E> clearStartComments() {
+		startComments.clear();
+		return this;
+	}
+	
+	public CachedDotCommentDecorator<G, N, E> clearEndComments() {
+		endComments.clear();
+		return this;
+	}
+	
 	@Override
 	public List<String> getVertexStartComments(G g, N n) {
 		return startComments.get(n);
