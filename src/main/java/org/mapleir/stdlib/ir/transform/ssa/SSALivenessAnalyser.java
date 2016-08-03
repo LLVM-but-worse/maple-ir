@@ -52,7 +52,6 @@ public class SSALivenessAnalyser extends BackwardsFlowAnalyser<BasicBlock, FlowE
 				for (Statement s : Statement.enumerate(stmt)) {
 					if (s instanceof CopyVarStatement) {
 						CopyVarStatement copy = (CopyVarStatement) s;
-						
 						Local l = copy.getVariable().getLocal();
 						Expression expr = copy.getExpression();
 						if(expr instanceof PhiExpression) {
@@ -128,11 +127,6 @@ public class SSALivenessAnalyser extends BackwardsFlowAnalyser<BasicBlock, FlowE
 		
 		// phi uses are considered live-out for the src and semi
 		// live-in for the dst.
-//		for(Local l : phiUse.getNonNull(dstB)) {
-//			if(defs.contains(l)) {
-//				srcOut.put(l, true);
-//			}
-//		}
 		
 		for(Local l : phiUse.getNonNull(dstB).getNonNull(srcB))
 			srcOut.add(l);
