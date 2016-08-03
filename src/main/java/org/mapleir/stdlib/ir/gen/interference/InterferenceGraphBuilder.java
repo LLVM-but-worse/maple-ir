@@ -1,6 +1,12 @@
 package org.mapleir.stdlib.ir.gen.interference;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+
 import org.mapleir.stdlib.cfg.BasicBlock;
+import org.mapleir.stdlib.cfg.ControlFlowGraph;
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.SetCreator;
 import org.mapleir.stdlib.ir.expr.Expression;
@@ -9,12 +15,7 @@ import org.mapleir.stdlib.ir.expr.VarExpression;
 import org.mapleir.stdlib.ir.locals.Local;
 import org.mapleir.stdlib.ir.stat.CopyVarStatement;
 import org.mapleir.stdlib.ir.stat.Statement;
-import org.mapleir.stdlib.ir.transform.ssa.SSALivenessAnalyser;
-
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
+import org.mapleir.stdlib.ir.transform.Liveness;
 
 public class InterferenceGraphBuilder {
 
@@ -55,11 +56,11 @@ public class InterferenceGraphBuilder {
 		return graph;
 	}
 	
-	public static InterferenceGraph build(SSALivenessAnalyser liveness) {
+	public static InterferenceGraph build(ControlFlowGraph cfg, Liveness<BasicBlock> liveness) {
 		NullPermeableHashMap<Local, Set<Local>> interfere = new NullPermeableHashMap<>(new SetCreator<>());
 		
-		for(BasicBlock b : liveness.getGraph().vertices()) {
-			Map<Local, Boolean> out = liveness.out(b);
+		for(BasicBlock b : cfg.vertices()) {
+			Set<Local> out = liveness.out(b);
 			
 			for(Statement stmt : b.getStatements()) {
 				if(stmt instanceof CopyVarStatement) {
@@ -67,16 +68,9 @@ public class InterferenceGraphBuilder {
 					Local def = copy.getVariable().getLocal();
 					Expression e = copy.getExpression();
 					
-					if(out.containsKey(def)) {
-						for(Entry<Local, Boolean> entry : out.entrySet()) {
-							if(entry.getValue()) {
-								Local l = entry.getKey();
-								if(def != l) {
-									interfere.getNonNull(def).add(l);
-									interfere.getNonNull(l).remove(def);
-								}
-							}
-						}
+					for(Local o : out) {
+						interfere.getNonNull(o).add(def);
+						interfere.getNonNull(def).add(o);
 					}
 					
 					if(e instanceof PhiExpression) {
