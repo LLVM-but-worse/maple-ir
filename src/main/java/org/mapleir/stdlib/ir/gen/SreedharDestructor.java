@@ -426,8 +426,6 @@ public class SreedharDestructor {
 		} else {
 			VersionedLocal latest = code.getLocals().getLatestVersion(xi);
 			VersionedLocal newi = code.getLocals().get(latest.getIndex(), latest.getSubscript() + 1, latest.isStack());
-			CopyVarStatement copy = new CopyVarStatement(new VarExpression(newi, type), new VarExpression(xi, type));
-			insert_end(li, copy);
 			
 			dst = newi;
 			src = xi;
