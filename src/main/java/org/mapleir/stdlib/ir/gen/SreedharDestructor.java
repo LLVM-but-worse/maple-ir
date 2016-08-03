@@ -77,10 +77,10 @@ public class SreedharDestructor {
 		SSALivenessAnalyser liveness = new SSALivenessAnalyser(cfg);
 		w.removeAll()
 				.setName("sreedhar-cssa")
-				.add("liveness", new LivenessDecorator().setLiveness(liveness))
+				.add("liveness", new LivenessDecorator<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>>().setLiveness(liveness))
 				.addBefore("liveness", "cfg", new ControlFlowGraphDecorator().setFlags(OPT_DEEP | OPT_STMTS))
 				.export();
-		InterferenceGraph ig = InterferenceGraphBuilder.build(liveness);
+		InterferenceGraph ig = InterferenceGraphBuilder.build(cfg, liveness);
 		BasicDotConfiguration<InterferenceGraph, ColourableNode, InterferenceEdge> config2 = new BasicDotConfiguration<>(DotConfiguration.GraphType.UNDIRECTED);
 		DotWriter<InterferenceGraph, ColourableNode, InterferenceEdge> w2 = new DotWriter<>(config2, ig);
 		w2.add(new InterferenceGraphDecorator()).setName("sreedhar-cssa-ig").export();
@@ -183,7 +183,7 @@ public class SreedharDestructor {
 		interfere.clear();
 		
 		for(BasicBlock b : liveness.getGraph().vertices()) {
-			Map<Local, Boolean> out = liveness.out(b);
+			Set<Local> out = liveness.out(b);
 			
 			for(Statement stmt : b.getStatements()) {
 				if(stmt instanceof CopyVarStatement) {
@@ -192,15 +192,10 @@ public class SreedharDestructor {
 					Expression e = copy.getExpression();
 					
 					if(!(e instanceof VarExpression)) {
-						if(out.containsKey(def)) {
-							for(Entry<Local, Boolean> entry : out.entrySet()) {
-								if(entry.getValue()) {
-									Local l = entry.getKey();
-									if(def != l) {
-										interfere.getNonNull(def).add(l);
-										interfere.getNonNull(l).add(def);
-									}
-								}
+						if(out.contains(def)) {
+							for(Local o : out) {
+								interfere.getNonNull(def).add(o);
+								interfere.getNonNull(o).add(def);
 							}
 						}
 					}
@@ -415,8 +410,6 @@ public class SreedharDestructor {
 	}
 	
 	Local resolve_conflicts(CopyVarStatement phiCopy, BasicBlock l0, PhiResource r) {
-		System.out.println("resolve " + r + " in " + phiCopy + " at " + l0.getId());
-		
 		verify();
 		
 		PhiExpression phi = (PhiExpression) phiCopy.getExpression();
@@ -425,20 +418,15 @@ public class SreedharDestructor {
 		BasicBlock li = r.block;
 
 		Local newL = null;
+		Local dst = null;
+		Local src = null;
+		
 		if(r.target) {
 			VersionedLocal latest = code.getLocals().getLatestVersion(xi);
 			VersionedLocal new0 = code.getLocals().get(latest.getIndex(), latest.getIndex() + 1, latest.isStack());
-			CopyVarStatement copy = new CopyVarStatement(new VarExpression(xi, type), new VarExpression(new0, type));
-			insert_start(l0, copy);
 			
-			if (!phiCongruenceClasses.containsKey(new0)) {
-				Set<Local> set = new HashSet<>();
-				set.add(new0);
-				phiCongruenceClasses.put(new0, set);
-			}
-			
-			phiCopy.setVariable(new VarExpression(new0, type));
-			
+			dst = xi;
+			src = new0;
 			newL = new0;
 		} else {
 			VersionedLocal latest = code.getLocals().getLatestVersion(xi);
@@ -446,17 +434,28 @@ public class SreedharDestructor {
 			CopyVarStatement copy = new CopyVarStatement(new VarExpression(newi, type), new VarExpression(xi, type));
 			insert_end(li, copy);
 			
-			if (!phiCongruenceClasses.containsKey(newi)) {
-				Set<Local> set = new HashSet<>();
-				set.add(newi);
-				phiCongruenceClasses.put(newi, set);
-			}
+			dst = newi;
+			src = xi;
+			newL = newi;
+		}
+		
+		CopyVarStatement copy = new CopyVarStatement(new VarExpression(dst, type), new VarExpression(src, type));
+		
+		if (!phiCongruenceClasses.containsKey(newL)) {
+			Set<Local> set = new HashSet<>();
+			set.add(newL);
+			phiCongruenceClasses.put(newL, set);
+		}
+		
+		if(r.target) {
+			insert_start(l0, copy);
+			phiCopy.setVariable(new VarExpression(newL, type));
+		} else {
+			insert_end(li, copy);
 			
 			HeaderStatement header = headers.get(li);
 			Map<HeaderStatement, Expression> cont = phi.getLocals();
-			cont.put(header, new VarExpression(newi, type));
-			
-			newL = newi;
+			cont.put(header, new VarExpression(newL, type));
 		}
 		
 		vusages.getNonNull(xi).remove(phiCopy);
@@ -701,8 +700,8 @@ public class SreedharDestructor {
 		}
 	}
 
-	boolean intersects(Set<Local> pcc, Map<Local, Boolean> live) {
-		Set<Local> merged = merge_pcc(extract_live(live));
+	boolean intersects(Set<Local> pcc, Set<Local> live) {
+		Set<Local> merged = merge_pcc(live);
 		
 		for(Local l : pcc) {
 			if(merged.contains(l)) {
@@ -710,16 +709,6 @@ public class SreedharDestructor {
 			}
 		}
 		return false;
-	}
-	
-	Set<Local> extract_live(Map<Local, Boolean> live) {
-		Set<Local> set = new HashSet<>();
-		for(Entry<Local, Boolean> e : live.entrySet()) {
-			if(e.getValue()) {
-				set.add(e.getKey());
-			}
-		}
-		return set;
 	}
 	
 	Set<Local> merge_pcc(Set<Local> pcc) {
@@ -747,8 +736,8 @@ public class SreedharDestructor {
 		final PhiResource rj;
 		final Set<Local> ipcc;
 		final Set<Local> jpcc;
-		final Map<Local, Boolean> iLive;
-		final Map<Local, Boolean> jLive;
+		final Set<Local> iLive;
+		final Set<Local> jLive;
 		
 		// only xi can be the target of a phi where l0 is the definition block
 		ResolverFrame(BasicBlock l0, PhiResource ri, PhiResource rj, boolean target) {
