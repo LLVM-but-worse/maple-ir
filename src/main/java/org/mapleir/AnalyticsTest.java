@@ -78,6 +78,25 @@ public class AnalyticsTest {
 		System.out.println(lvar2_0);
 	}
 	
+//	for(BasicBlock b : cfg.vertices()) {
+//		Set<Local> in1 = l1.in(b);
+//		Set<Local> in2 = l2.in(b);
+//		
+//		Set<Local> out1 = l1.out(b);
+//		Set<Local> out2 = l2.out(b);
+//		
+//		if(!in1.equals(in2)) {
+//			System.err.println("IN1: " + in1);
+//			System.err.println("IN2: " + in2);
+//			throw new RuntimeException(b.getId());
+//		}
+//		if(!out1.equals(out2)) {
+//			System.err.println("OUT1: " + out1);
+//			System.err.println("OUT2: " + out2);
+//			throw new RuntimeException(b.getId());
+//		}
+//	}
+	
 	public static void main(String[] args) throws IOException {
 		ClassReader cr = new ClassReader(AnalyticsTest.class.getCanonicalName());
 		ClassNode cn = new ClassNode();
