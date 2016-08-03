@@ -24,7 +24,6 @@ import org.mapleir.stdlib.collections.graph.dot.BasicDotConfiguration;
 import org.mapleir.stdlib.collections.graph.dot.DotConfiguration.GraphType;
 import org.mapleir.stdlib.collections.graph.dot.DotWriter;
 import org.mapleir.stdlib.collections.graph.dot.impl.ControlFlowGraphDecorator;
-import org.mapleir.stdlib.collections.graph.dot.impl.InterferenceGraphDecorator;
 import org.mapleir.stdlib.collections.graph.dot.impl.LivenessDecorator;
 import org.mapleir.stdlib.collections.graph.util.GraphUtils;
 import org.mapleir.stdlib.ir.CodeBody;
@@ -35,17 +34,12 @@ import org.mapleir.stdlib.ir.gen.SSAGenerator;
 import org.mapleir.stdlib.ir.gen.SreedharDestructor;
 import org.mapleir.stdlib.ir.gen.StatementGenerator;
 import org.mapleir.stdlib.ir.gen.StatementGraphBuilder;
-import org.mapleir.stdlib.ir.gen.interference.ColourableNode;
-import org.mapleir.stdlib.ir.gen.interference.InterferenceEdge;
-import org.mapleir.stdlib.ir.gen.interference.InterferenceGraph;
-import org.mapleir.stdlib.ir.gen.interference.InterferenceGraphBuilder;
 import org.mapleir.stdlib.ir.transform.SSATransformer;
 import org.mapleir.stdlib.ir.transform.impl.CodeAnalytics;
 import org.mapleir.stdlib.ir.transform.impl.DefinitionAnalyser;
 import org.mapleir.stdlib.ir.transform.impl.LivenessAnalyser;
 import org.mapleir.stdlib.ir.transform.ssa.SSABlockLivenessAnalyser;
 import org.mapleir.stdlib.ir.transform.ssa.SSAInitialiserAggregator;
-import org.mapleir.stdlib.ir.transform.ssa.SSALivenessAnalyser;
 import org.mapleir.stdlib.ir.transform.ssa.SSALocalAccess;
 import org.mapleir.stdlib.ir.transform.ssa.SSAPropagator;
 import org.objectweb.asm.ClassReader;
@@ -148,13 +142,13 @@ public class AnalyticsTest {
 			
 //			CFGStatementDecorator ex = new CFGStatementDecorator(cfg, new ArrayList<>(cfg.vertices()), "graph", "");
 //			ex.export(DotExporter.OPT_DEEP);
-			SSALivenessAnalyser liveness = new SSALivenessAnalyser(cfg);
-			InterferenceGraph ig = InterferenceGraphBuilder.build(liveness);
-			System.out.println(ig);
-			
-			BasicDotConfiguration<InterferenceGraph, ColourableNode, InterferenceEdge> config2 = new BasicDotConfiguration<>(GraphType.UNDIRECTED);
-			DotWriter<InterferenceGraph, ColourableNode, InterferenceEdge> w2 = new DotWriter<>(config2, ig);
-			w2.add(new InterferenceGraphDecorator()).setName("ig1").export();
+//			SSALivenessAnalyser liveness = new SSALivenessAnalyser(cfg);
+//			InterferenceGraph ig = InterferenceGraphBuilder.build(liveness);
+//			System.out.println(ig);
+//			
+//			BasicDotConfiguration<InterferenceGraph, ColourableNode, InterferenceEdge> config2 = new BasicDotConfiguration<>(GraphType.UNDIRECTED);
+//			DotWriter<InterferenceGraph, ColourableNode, InterferenceEdge> w2 = new DotWriter<>(config2, ig);
+//			w2.add(new InterferenceGraphDecorator()).setName("ig1").export();
 			
 			BasicDotConfiguration<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> config = new BasicDotConfiguration<>(GraphType.DIRECTED);
 			DotWriter<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> w = new DotWriter<>(config, cfg);
@@ -169,7 +163,7 @@ public class AnalyticsTest {
 			w.removeAll()
 				.setName("graph-liveness")
 				.add("cfg", new ControlFlowGraphDecorator().setFlags(OPT_DEEP | OPT_STMTS | OPT_SIMPLE_EDGES))
-				.addAfter("cfg", "liveness", new LivenessDecorator().setBlockLiveness(blockLiveness))
+				.addAfter("cfg", "liveness", new LivenessDecorator<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>>().setLiveness(blockLiveness))
 				.export();
 
 			
