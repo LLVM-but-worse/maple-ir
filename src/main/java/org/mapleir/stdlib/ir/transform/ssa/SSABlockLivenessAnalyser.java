@@ -1,5 +1,12 @@
 package org.mapleir.stdlib.ir.transform.ssa;
 
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Queue;
+import java.util.Set;
+
 import org.mapleir.stdlib.cfg.BasicBlock;
 import org.mapleir.stdlib.cfg.ControlFlowGraph;
 import org.mapleir.stdlib.cfg.edge.FlowEdge;
@@ -12,15 +19,9 @@ import org.mapleir.stdlib.ir.header.HeaderStatement;
 import org.mapleir.stdlib.ir.locals.Local;
 import org.mapleir.stdlib.ir.stat.CopyVarStatement;
 import org.mapleir.stdlib.ir.stat.Statement;
+import org.mapleir.stdlib.ir.transform.Liveness;
 
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Queue;
-import java.util.Set;
-
-public class SSABlockLivenessAnalyser {
+public class SSABlockLivenessAnalyser implements Liveness<BasicBlock> {
 	private final NullPermeableHashMap<BasicBlock, Set<Local>> use;
 	private final NullPermeableHashMap<BasicBlock, Set<Local>> def;
 	private final NullPermeableHashMap<BasicBlock, NullPermeableHashMap<BasicBlock, Set<Local>>> phiUse;
@@ -36,7 +37,7 @@ public class SSABlockLivenessAnalyser {
 	public SSABlockLivenessAnalyser(ControlFlowGraph cfg) {
 		use = new NullPermeableHashMap<>(HashSet::new);
 		def = new NullPermeableHashMap<>(HashSet::new);
-		phiUse = new NullPermeableHashMap<>(() -> new NullPermeableHashMap<BasicBlock, Set<Local>>(HashSet::new));
+		phiUse = new NullPermeableHashMap<>(() -> new NullPermeableHashMap<>(HashSet::new));
 		phiDef = new NullPermeableHashMap<>(HashSet::new);
 		
 		out = new NullPermeableHashMap<>(HashSet::new);
@@ -118,10 +119,12 @@ public class SSABlockLivenessAnalyser {
 		}
 	}
 	
+	@Override
 	public Set<Local> in(BasicBlock b) {
 		return new HashSet<>(in.get(b));
 	}
 	
+	@Override
 	public Set<Local> out(BasicBlock b) {
 		return new HashSet<>(out.get(b));
 	}
