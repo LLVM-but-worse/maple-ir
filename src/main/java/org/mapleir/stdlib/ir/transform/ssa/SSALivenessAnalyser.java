@@ -15,8 +15,9 @@ import org.mapleir.stdlib.ir.locals.Local;
 import org.mapleir.stdlib.ir.stat.CopyVarStatement;
 import org.mapleir.stdlib.ir.stat.Statement;
 import org.mapleir.stdlib.ir.transform.BackwardsFlowAnalyser;
+import org.mapleir.stdlib.ir.transform.Liveness;
 
-public class SSALivenessAnalyser extends BackwardsFlowAnalyser<BasicBlock, FlowEdge<BasicBlock>, Set<Local>> {
+public class SSALivenessAnalyser extends BackwardsFlowAnalyser<BasicBlock, FlowEdge<BasicBlock>, Set<Local>> implements Liveness<BasicBlock> {
 
 	private NullPermeableHashMap<BasicBlock, Set<Local>> def;
 	private NullPermeableHashMap<BasicBlock, Set<Local>> phiDef;
