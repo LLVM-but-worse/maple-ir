@@ -68,9 +68,11 @@ public class InterferenceGraphBuilder {
 					Local def = copy.getVariable().getLocal();
 					Expression e = copy.getExpression();
 					
-					for(Local o : out) {
-						interfere.getNonNull(o).add(def);
-						interfere.getNonNull(def).add(o);
+					if(out.contains(def)) {
+						for(Local o : out) {
+							interfere.getNonNull(o).add(def);
+							interfere.getNonNull(def).add(o);
+						}
 					}
 					
 					if(e instanceof PhiExpression) {
