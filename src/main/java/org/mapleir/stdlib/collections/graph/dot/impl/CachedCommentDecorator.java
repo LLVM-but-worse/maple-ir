@@ -8,48 +8,48 @@ import org.mapleir.stdlib.collections.graph.FastGraph;
 import org.mapleir.stdlib.collections.graph.FastGraphEdge;
 import org.mapleir.stdlib.collections.graph.FastGraphVertex;
 
-public class CachedDotCommentDecorator<G extends FastGraph<N, E>, N extends FastGraphVertex, E extends FastGraphEdge<N>> extends CommentDecorator<G, N, E> {
+public class CachedCommentDecorator<G extends FastGraph<N, E>, N extends FastGraphVertex, E extends FastGraphEdge<N>> extends CommentDecorator<G, N, E> {
 
 	private final NullPermeableHashMap<N, List<String>> startComments;
 	private final NullPermeableHashMap<N, List<String>> endComments;
 	
-	public CachedDotCommentDecorator() {
+	public CachedCommentDecorator() {
 		startComments = new NullPermeableHashMap<>(new ListCreator<>());
 		endComments = new NullPermeableHashMap<>(new ListCreator<>());
 	}
 	
-	public CachedDotCommentDecorator<G, N, E> addStartComment(N n, String l) {
+	public CachedCommentDecorator<G, N, E> addStartComment(N n, String l) {
 		startComments.getNonNull(n).add(l);
 		return this;
 	}
 	
-	public CachedDotCommentDecorator<G, N, E> addEndComment(N n, String l) {
+	public CachedCommentDecorator<G, N, E> addEndComment(N n, String l) {
 		endComments.getNonNull(n).add(l);
 		return this;
 	}
 	
-	public CachedDotCommentDecorator<G, N, E> removeStartComment(N n, String l) {
+	public CachedCommentDecorator<G, N, E> removeStartComment(N n, String l) {
 		startComments.getNonNull(n).remove(l);
 		return this;
 	}
 	
-	public CachedDotCommentDecorator<G, N, E> removeEndComment(N n, String l) {
+	public CachedCommentDecorator<G, N, E> removeEndComment(N n, String l) {
 		endComments.getNonNull(n).remove(l);
 		return this;
 	}
 	
-	public CachedDotCommentDecorator<G, N, E> clear() {
+	public CachedCommentDecorator<G, N, E> clear() {
 		startComments.clear();
 		endComments.clear();
 		return this;
 	}
 	
-	public CachedDotCommentDecorator<G, N, E> clearStartComments() {
+	public CachedCommentDecorator<G, N, E> clearStartComments() {
 		startComments.clear();
 		return this;
 	}
 	
-	public CachedDotCommentDecorator<G, N, E> clearEndComments() {
+	public CachedCommentDecorator<G, N, E> clearEndComments() {
 		endComments.clear();
 		return this;
 	}
