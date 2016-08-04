@@ -1,6 +1,7 @@
 package org.mapleir.stdlib.ir.gen.interference;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -12,6 +13,8 @@ import org.mapleir.stdlib.collections.SetCreator;
 import org.mapleir.stdlib.ir.expr.Expression;
 import org.mapleir.stdlib.ir.expr.PhiExpression;
 import org.mapleir.stdlib.ir.expr.VarExpression;
+import org.mapleir.stdlib.ir.header.BlockHeaderStatement;
+import org.mapleir.stdlib.ir.header.HeaderStatement;
 import org.mapleir.stdlib.ir.locals.Local;
 import org.mapleir.stdlib.ir.stat.CopyVarStatement;
 import org.mapleir.stdlib.ir.stat.Statement;
@@ -57,38 +60,40 @@ public class InterferenceGraphBuilder {
 	}
 	
 	public static InterferenceGraph build(ControlFlowGraph cfg, Liveness<BasicBlock> liveness) {
+		return new InterferenceGraphBuilder().build(buildMap(cfg, liveness));
+	}
+	
+	public static NullPermeableHashMap<Local, Set<Local>> buildMap(ControlFlowGraph cfg, Liveness<BasicBlock> liveness) {
 		NullPermeableHashMap<Local, Set<Local>> interfere = new NullPermeableHashMap<>(new SetCreator<>());
 		
 		for(BasicBlock b : cfg.vertices()) {
-			Set<Local> out = liveness.out(b);
+			Set<Local> alive = liveness.out(b);
+			for (Local l1 : alive) {
+				for (Local l2 : alive) {
+					interfere.getNonNull(l1).add(l2);
+					interfere.getNonNull(l2).add(l1);
+				}
+			}
 			
-			for(Statement stmt : b.getStatements()) {
-				if(stmt instanceof CopyVarStatement) {
-					CopyVarStatement copy = (CopyVarStatement) stmt;
-					Local def = copy.getVariable().getLocal();
-					Expression e = copy.getExpression();
-					
-					if(out.contains(def)) {
-						for(Local o : out) {
-							interfere.getNonNull(o).add(def);
-							interfere.getNonNull(def).add(o);
-						}
-					}
-					
-					if(e instanceof PhiExpression) {
-						
-					} else if(!(e instanceof VarExpression)) {
-						for(Statement s : Statement.enumerate(e)) {
-							if(s instanceof VarExpression) {
-								VarExpression v = (VarExpression) s;
-							}
-						}
+			for (int i = b.getStatements().size() - 1; i >= 0; i--) {
+				Statement stmt = b.getStatements().get(i);
+				if (stmt instanceof CopyVarStatement) {
+					CopyVarStatement cvs = (CopyVarStatement) stmt;
+					alive.remove(cvs.getVariable().getLocal());
+					if (cvs.getExpression() instanceof PhiExpression)
+						continue; // do not add uses for phi copy
+				}
+				Set<Local> usedLocals = stmt.getUsedLocals();
+				for (Local useLocal : usedLocals) {
+					for (Local liveLocal : alive) {
+						interfere.getNonNull(useLocal).add(liveLocal);
+						interfere.getNonNull(liveLocal).add(useLocal);
 					}
 				}
+				alive.addAll(usedLocals);
 			}
 		}
 		
-		
-		return new InterferenceGraphBuilder().build(interfere);
+		return interfere;
 	}
 }
