@@ -38,6 +38,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.mapleir.stdlib.collections.graph.dot.impl.ControlFlowGraphDecorator.OPT_DEEP;
+import static org.mapleir.stdlib.collections.graph.dot.impl.ControlFlowGraphDecorator.OPT_SIMPLE_EDGES;
 import static org.mapleir.stdlib.collections.graph.dot.impl.ControlFlowGraphDecorator.OPT_STMTS;
 
 @SuppressWarnings({"Duplicates", "ConstantConditions", "unused"})
@@ -147,8 +148,8 @@ public class LivenessTest implements Opcodes {
 			SSALivenessAnalyser liveness = new SSALivenessAnalyser(cfg);
 			w.removeAll()
 					.setName(m.name + "-liveness")
-					.add("liveness", new LivenessDecorator<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>>().setLiveness(liveness))
-					.addBefore("liveness", "cfg", new ControlFlowGraphDecorator().setFlags(OPT_DEEP | OPT_STMTS))
+					.add("cfg", new ControlFlowGraphDecorator().setFlags(OPT_DEEP | OPT_STMTS | OPT_SIMPLE_EDGES))
+					.addAfter("cfg", "liveness", new LivenessDecorator<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>>().setLiveness(liveness))
 					.export();
 			
 			InterferenceGraph ig = InterferenceGraphBuilder.build(cfg, liveness);
@@ -161,8 +162,8 @@ public class LivenessTest implements Opcodes {
 			blockLiveness.compute();
 			w.removeAll()
 					.setName(m.name + "-bliveness")
+					.add("cfg", new ControlFlowGraphDecorator().setFlags(OPT_DEEP | OPT_STMTS | OPT_SIMPLE_EDGES))
 					.addAfter("cfg", "liveness", new LivenessDecorator<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>>().setLiveness(blockLiveness))
-					.addBefore("liveness", "cfg", new ControlFlowGraphDecorator().setFlags(OPT_DEEP | OPT_STMTS))
 					.export();
 			
 			// Destruct SSA
@@ -171,7 +172,7 @@ public class LivenessTest implements Opcodes {
 			GraphUtils.rewriteCfg(cfg, code);
 			w.removeAll()
 					.setName(m.name + "-dessa")
-					.add("cfg", new ControlFlowGraphDecorator().setFlags(OPT_DEEP | OPT_STMTS))
+					.add("cfg", new ControlFlowGraphDecorator().setFlags(OPT_DEEP | OPT_STMTS | OPT_SIMPLE_EDGES))
 					.export();
 			
 			System.out.println("Done processing " + m.toString());
