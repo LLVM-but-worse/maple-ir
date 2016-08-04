@@ -188,6 +188,11 @@ public class AnalyticsTest {
 			
 			System.out.println("Norm SSA:");
 			System.out.println(code);
+			
+			w.removeAll()
+				.setName("test111-dessa")
+				.add("cfg", new ControlFlowGraphDecorator().setFlags(OPT_DEEP | OPT_STMTS | OPT_SIMPLE_EDGES))
+				.export();
 			System.out.println();
 			System.out.println();
 		}
