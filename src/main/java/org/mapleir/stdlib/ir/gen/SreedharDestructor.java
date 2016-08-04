@@ -32,7 +32,7 @@ import org.mapleir.stdlib.ir.locals.Local;
 import org.mapleir.stdlib.ir.locals.VersionedLocal;
 import org.mapleir.stdlib.ir.stat.CopyVarStatement;
 import org.mapleir.stdlib.ir.stat.Statement;
-import org.mapleir.stdlib.ir.transform.ssa.SSALivenessAnalyser;
+import org.mapleir.stdlib.ir.transform.ssa.SSABlockLivenessAnalyser;
 import org.objectweb.asm.Type;
 
 public class SreedharDestructor {
@@ -41,7 +41,7 @@ public class SreedharDestructor {
 	final ControlFlowGraph cfg;
 	final Map<BasicBlock, BlockHeaderStatement> headers;
 	
-	SSALivenessAnalyser liveness;
+	SSABlockLivenessAnalyser liveness;
 	NullPermeableHashMap<Local, Set<Local>> interfere;
 	
 	// critical maps.
@@ -61,31 +61,44 @@ public class SreedharDestructor {
 		vusages = new NullPermeableHashMap<>(new SetCreator<>());
 		
 		init();
-		find_interference();
+		updateInterference();
 		csaa_iii();
-		System.out.println("after:");
-		System.out.println(code);
-		GraphUtils.rewriteCfg(cfg, code);
-		BasicDotConfiguration<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> config = new BasicDotConfiguration<>(DotConfiguration.GraphType.DIRECTED);
-		DotWriter<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> w = new DotWriter<>(config, cfg);
-		SSALivenessAnalyser liveness = new SSALivenessAnalyser(cfg);
-		w.removeAll()
-				.setName("sreedhar-cssa")
-				.add("liveness", new LivenessDecorator<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>>().setLiveness(liveness))
-				.addBefore("liveness", "cfg", new ControlFlowGraphDecorator().setFlags(OPT_DEEP | OPT_STMTS))
-				.export();
-		InterferenceGraph ig = InterferenceGraphBuilder.build(cfg, liveness);
-		BasicDotConfiguration<InterferenceGraph, ColourableNode, InterferenceEdge> config2 = new BasicDotConfiguration<>(DotConfiguration.GraphType.UNDIRECTED);
-		DotWriter<InterferenceGraph, ColourableNode, InterferenceEdge> w2 = new DotWriter<>(config2, ig);
-		w2.add(new InterferenceGraphDecorator()).setName("sreedhar-cssa-ig").export();
+		
+		{ // scope here to help me keep track of where all the debug crap is
+			System.out.println("after:");
+			System.out.println(code);
+			GraphUtils.rewriteCfg(cfg, code);
+			BasicDotConfiguration<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> config = new BasicDotConfiguration<>(DotConfiguration.GraphType.DIRECTED);
+			DotWriter<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> w = new DotWriter<>(config, cfg);
+			SSABlockLivenessAnalyser livenessDbg = new SSABlockLivenessAnalyser(cfg);
+			GraphUtils.rewriteCfg(cfg, code);
+			livenessDbg.compute();
+			w.removeAll()
+					.setName("sreedhar-cssa")
+					.add("liveness", new LivenessDecorator<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>>().setLiveness(livenessDbg))
+					.addBefore("liveness", "cfg", new ControlFlowGraphDecorator().setFlags(OPT_DEEP | OPT_STMTS))
+					.export();
+			InterferenceGraph ig = InterferenceGraphBuilder.build(cfg, livenessDbg);
+			BasicDotConfiguration<InterferenceGraph, ColourableNode, InterferenceEdge> config2 = new BasicDotConfiguration<>(DotConfiguration.GraphType.UNDIRECTED);
+			DotWriter<InterferenceGraph, ColourableNode, InterferenceEdge> w2 = new DotWriter<>(config2, ig);
+			w2.add(new InterferenceGraphDecorator()).setName("sreedhar-cssa-ig").export();
+		}
+		
 		nullify();
+		updateInterference();
 		coalesce();
-		System.out.println("after:");
-		System.out.println(code);
-		w.removeAll()
-				.setName("sreedhar-coalesce")
-				.add("cfg", new ControlFlowGraphDecorator().setFlags(OPT_DEEP | OPT_STMTS))
-				.export();
+		
+		{ // scope here to help me keep track of where all the debug crap is
+			System.out.println("after:");
+			System.out.println(code);
+			BasicDotConfiguration<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> config = new BasicDotConfiguration<>(DotConfiguration.GraphType.DIRECTED);
+			DotWriter<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> w = new DotWriter<>(config, cfg);
+			w.removeAll()
+					.setName("sreedhar-coalesce")
+					.add("cfg", new ControlFlowGraphDecorator().setFlags(OPT_DEEP | OPT_STMTS))
+					.export();
+		}
+			
 		unssa();
 	}
 	
@@ -169,30 +182,11 @@ public class SreedharDestructor {
 		}
 	}
 	
-	void find_interference() {
-		liveness = new SSALivenessAnalyser(cfg);
-		interfere.clear();
-		
-		for(BasicBlock b : liveness.getGraph().vertices()) {
-			Set<Local> out = liveness.out(b);
-			
-			for(Statement stmt : b.getStatements()) {
-				if(stmt instanceof CopyVarStatement) {
-					CopyVarStatement copy = (CopyVarStatement) stmt;
-					Local def = copy.getVariable().getLocal();
-					Expression e = copy.getExpression();
-					
-					if(!(e instanceof VarExpression)) {
-						if(out.contains(def)) {
-							for(Local o : out) {
-								interfere.getNonNull(def).add(o);
-								interfere.getNonNull(o).add(def);
-							}
-						}
-					}
-				}
-			}
-		}
+	void updateInterference() {
+		liveness = new SSABlockLivenessAnalyser(cfg);
+		GraphUtils.rewriteCfg(cfg, code);
+		liveness.compute();
+		interfere = InterferenceGraphBuilder.buildMap(cfg, liveness);
 	}
 
 	
@@ -457,7 +451,7 @@ public class SreedharDestructor {
 		vusages.getNonNull(xi).remove(phiCopy);
 		vusages.getNonNull(newL).add(phiCopy);
 		
-		find_interference();
+		updateInterference();
 		verify();
 		
 		return newL;
@@ -517,7 +511,7 @@ public class SreedharDestructor {
 	}
 	
 	void coalesce() {
-		find_interference();
+		updateInterference();
 		for(BasicBlock b : cfg.vertices()) {
 			for(Statement stmt : new ArrayList<>(b.getStatements())) {
 				if(stmt instanceof CopyVarStatement) {
@@ -540,7 +534,7 @@ public class SreedharDestructor {
 					if(check_coalesce(lhs, rhs, lpcc, rpcc)) {
 						verify();
 						coalesce(b, stmt, lhs, rhs, lpcc, rpcc);
-						find_interference();
+						updateInterference();
 						verify();
 					}
 				}
@@ -551,7 +545,7 @@ public class SreedharDestructor {
 	boolean check_coalesce(Local lhs, Local rhs, Set<Local> lpcc, Set<Local> rpcc) {
 		int l = lpcc.size();
 		int r = rpcc.size();
-		boolean b = false;
+		boolean valid = true;
 		
 		System.out.println("co: ");
 		System.out.println("  lhs: " + lhs);
@@ -560,19 +554,19 @@ public class SreedharDestructor {
 		System.out.println("  rpcc: " + rpcc);
 		
 		if(l == 0 && r == 0) { 
-			
+			// if pcc[x] and pcc[y] are both empty then the copy can be removed regardless of interference.
+			System.out.println("coalesce case 1");
 		} else if(l == 0 && r > 0) {
 			// check if lhs interferes with (pcc[rhs] - rhs)
-			b = interfere(rpcc, rhs, lhs);
-			if(!b) {
-				System.out.println("coalesce case 1");
-			}
+			System.out.println("check cc2 (left-handed)");
+			valid = !interfereSingle(rpcc, rhs, lhs);
+			if(valid)
+				System.out.println("coalesce case 2 (lpcc empty)");
 		} else if(l > 0 && r == 0) {
 			// check if rhs interferes with (pcc[lhs] - lhs)
-			b = interfere(lpcc, lhs, rhs);
-			if(!b) {
-				System.out.println("coalesce case 2");
-			}
+			valid = !interfereSingle(lpcc, lhs, rhs);
+			if(valid)
+				System.out.println("coalesce case 2 (rpcc empty)");
 		} else if(l > 0 && r > 0) {
 			// i.e. if the pcc's are different, we need to
 			//      check for interference. if they are the
@@ -581,25 +575,23 @@ public class SreedharDestructor {
 				// check if (lpcc - l) interferes with rpcc
 				//    or
 				//          (rpcc - r) interferes with lpcc
-				b = interfere(lpcc, rpcc, lhs, rhs);
-				if(!b) {
+				valid = !interfere(lpcc, rpcc, lhs, rhs);
+				if(valid)
 					System.out.println("coalesce case 3");
-				}
 			}
 		}
 		
-		return !b;
+		return valid;
 	}
 
+	// 1. check any in jpcc vs (ipcc - i)
+	// 2. check any in ipcc vs (jpcc - j)
 	boolean interfere(Set<Local> ipcc, Set<Local> jpcc, Local i, Local j) {
-		if(interfere0(ipcc, jpcc, i, j)) {
-			return true;
-		} else {
-			return interfere0(jpcc, ipcc, j, i);
-		}
+		return interfereAny(ipcc, i, jpcc) || interfereAny(jpcc, j, ipcc);
 	}
 	
-	boolean interfere0(Set<Local> ipcc, Set<Local> jpcc, Local i, Local j) {
+	// check if any in jpcc interfere with (ipcc - i)
+	boolean interfereAny(Set<Local> ipcc, Local i, Set<Local> jpcc) {
 		for(Local m : ipcc) {
 			// (pcc[l] - l)
 			if(m != i) {
@@ -613,7 +605,8 @@ public class SreedharDestructor {
 		return false;
 	}
 	
-	boolean interfere(Set<Local> ipcc, Local i, Local j) {
+	// check if j interferes with any in (ipcc - i)
+	boolean interfereSingle(Set<Local> ipcc, Local i, Local j) {
 		for(Local l : ipcc) {
 			// (pcc[l] - l) interfere with j
 			if(l != i && interfere(j, l)) {
@@ -665,6 +658,7 @@ public class SreedharDestructor {
 	}
 
 	boolean interfere(Local i, Local j) {
+		System.out.println(i + " vs " + j + " " + interfere.getNonNull(i).contains(j));
 		return interfere.getNonNull(i).contains(j);
 	}
 	
