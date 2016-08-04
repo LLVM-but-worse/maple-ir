@@ -147,11 +147,11 @@ public class LivenessTest implements Opcodes {
 			SSALivenessAnalyser liveness = new SSALivenessAnalyser(cfg);
 			w.removeAll()
 					.setName(m.name + "-liveness")
-					.add("liveness", new LivenessDecorator().setLiveness(liveness))
+					.add("liveness", new LivenessDecorator<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>>().setLiveness(liveness))
 					.addBefore("liveness", "cfg", new ControlFlowGraphDecorator().setFlags(OPT_DEEP | OPT_STMTS))
 					.export();
 			
-			InterferenceGraph ig = InterferenceGraphBuilder.build(liveness);
+			InterferenceGraph ig = InterferenceGraphBuilder.build(cfg, liveness);
 			BasicDotConfiguration<InterferenceGraph, ColourableNode, InterferenceEdge> config2 = new BasicDotConfiguration<>(DotConfiguration.GraphType.UNDIRECTED);
 			DotWriter<InterferenceGraph, ColourableNode, InterferenceEdge> w2 = new DotWriter<>(config2, ig);
 			w2.add(new InterferenceGraphDecorator()).setName(m.name + "-ig").export();
@@ -161,7 +161,7 @@ public class LivenessTest implements Opcodes {
 			blockLiveness.compute();
 			w.removeAll()
 					.setName(m.name + "-bliveness")
-					.add("liveness", new LivenessDecorator().setBlockLiveness(blockLiveness))
+					.addAfter("cfg", "liveness", new LivenessDecorator<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>>().setLiveness(blockLiveness))
 					.addBefore("liveness", "cfg", new ControlFlowGraphDecorator().setFlags(OPT_DEEP | OPT_STMTS))
 					.export();
 			
