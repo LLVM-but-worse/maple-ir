@@ -8,6 +8,7 @@ import java.util.Set;
 
 import org.mapleir.stdlib.cfg.util.TabbedStringWriter;
 import org.mapleir.stdlib.ir.header.HeaderStatement;
+import org.mapleir.stdlib.ir.stat.CopyVarStatement;
 import org.mapleir.stdlib.ir.stat.Statement;
 import org.mapleir.stdlib.ir.transform.impl.CodeAnalytics;
 import org.objectweb.asm.MethodVisitor;
@@ -121,5 +122,9 @@ public class PhiExpression extends Expression {
 			return true;
 		}
 		return false;
+	}
+	
+	public static boolean phi(Statement stmt) {
+		return stmt instanceof CopyVarStatement && ((CopyVarStatement) stmt).getExpression() instanceof PhiExpression;
 	}
 }
