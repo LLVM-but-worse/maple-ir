@@ -128,6 +128,34 @@ public class SreedharDestructor {
 				throw new RuntimeException();
 			}
 		}
+		
+		updateInterference();
+		
+		for(BasicBlock b : cfg.vertices()) {
+			for(Statement stmt : b.getStatements()) {
+				if(stmt instanceof CopyVarStatement) {
+					CopyVarStatement copy = (CopyVarStatement) stmt;
+					if(copy.getExpression() instanceof PhiExpression) {
+						Local l = copy.getVariable().getLocal();
+						List<Local> pcc = new ArrayList<>(phiCongruenceClasses.get(l));
+
+						for(int i=0; i < pcc.size(); i++) {
+							Local j = pcc.get(i);
+							
+							for(int k=i+1; k < pcc.size(); k++) {
+								Local m = pcc.get(k);
+								
+								if(interfere(j, m)) {
+									System.err.println(stmt);
+									System.err.println("j: " + j +", m: " + m);
+									throw new RuntimeException();
+								}
+							}
+						}
+					}
+				}
+			}
+		}
 	}
 	
 	void replace_uses(Statement stmt, Local o, Local l) {
