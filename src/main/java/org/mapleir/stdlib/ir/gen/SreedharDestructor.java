@@ -724,6 +724,7 @@ public class SreedharDestructor {
 				remap.put(pcc, l);
 			}
 			
+			l = remap.get(pcc);
 			System.out.println("remap " + l + " to " + remap.get(pcc));
 			v.setLocal(l);
 		}
