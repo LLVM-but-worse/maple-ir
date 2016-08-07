@@ -9,9 +9,9 @@ import org.mapleir.stdlib.collections.graph.FastGraphVertex;
 
 public abstract class FlowGraph<N extends FastGraphVertex, E extends FlowEdge<N>> extends FastDirectedGraph<N, E> {
 
-	private final List<ExceptionRange<N>> ranges;
-	private final Set<N> entries;
-	private final Map<String, N> vertexIds;
+	protected final List<ExceptionRange<N>> ranges;
+	protected final Set<N> entries;
+	protected final Map<String, N> vertexIds;
 	
 	public FlowGraph() {
 		ranges = new ArrayList<>();
