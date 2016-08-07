@@ -35,6 +35,11 @@ public class LocalsHandler {
 		return get(l.getIndex(), l.isStack());
 	}
 	
+	public VersionedLocal makeLatestVersion(Local l) {
+		VersionedLocal vl = getLatestVersion(l);
+		return get(vl.getIndex(), vl.getSubscript() + 1, vl.isStack());
+	}
+	
 	public VersionedLocal getLatestVersion(Local l) {
 		l = asSimpleLocal(l);
 		if(!latest.containsKey(l)) {
