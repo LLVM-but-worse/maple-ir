@@ -4,6 +4,7 @@ import static org.mapleir.stdlib.collections.graph.dot.impl.ControlFlowGraphDeco
 
 import java.util.*;
 import java.util.Map.Entry;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.mapleir.stdlib.cfg.BasicBlock;
 import org.mapleir.stdlib.cfg.ControlFlowGraph;
@@ -492,8 +493,9 @@ public class SreedharDestructor {
 		if(i == -1) {
 			throw new IllegalStateException(b.getId());
 		}
-		Statement stmt;
-		while ((stmt = code.get(++i)) instanceof CopyVarStatement && ((CopyVarStatement) stmt).getExpression() instanceof PhiExpression);
+		
+		while (PhiExpression.phi(code.get(++i)));
+		
 		code.add(i, s);
 		stmts.add(0, s);
 		
@@ -655,10 +657,10 @@ public class SreedharDestructor {
 		
 		Iterator<Statement> it = vusages.getNonNull(lhs).iterator();
 		while(it.hasNext()) {
-			Statement t = it.next();
-			replace_uses(t, lhs, rhs);
-			vusages.getNonNull(rhs).add(t);
-			it.remove();
+//			Statement t = it.next();
+//			replace_uses(t, lhs, rhs);
+//			vusages.getNonNull(rhs).add(t);
+//			it.remove();
 		}
 		
 		b.getStatements().remove(s);
@@ -675,7 +677,7 @@ public class SreedharDestructor {
 		mset.add(lhs);
 		mset.add(rhs);
 		
-		for(Local l : newPcc) {
+		for(Local l : mset) {
 			phiCongruenceClasses.remove(l);
 			phiCongruenceClasses.put(l, mset);
 			
@@ -691,8 +693,11 @@ public class SreedharDestructor {
 	}
 	
 	void unssa() {
+		for(Entry<Local, Set<Local>> e : phiCongruenceClasses.entrySet()) {
+			System.out.println(e.getKey() + " " + e.getValue());
+		}
+		AtomicInteger cur = new AtomicInteger(0);
 		Map<Set<Local>, Local> remap = new HashMap<>();
-		
 		for(BasicBlock b : cfg.vertices()) {
 			for(Statement stmt : new ArrayList<>(b.getStatements())) {
 				if(stmt instanceof CopyVarStatement) {
@@ -702,21 +707,23 @@ public class SreedharDestructor {
 						code.remove(stmt);
 						continue;
 					} else {
-						 rename(c.getVariable(), remap);
+						 
 					}
+					
+					rename(c.getVariable(), cur, remap);
 				}
 				
 				for(Statement s : Statement.enumerate_deep(stmt)) {
 					if(s instanceof VarExpression) {
 						VarExpression v = (VarExpression) s;
-						rename(v, remap);
+						rename(v, cur, remap);
 					}
 				}
 			}
 		}
 	}
 	
-	void rename(VarExpression v, Map<Set<Local>, Local> remap) {
+	void rename(VarExpression v, AtomicInteger cur, Map<Set<Local>, Local> remap) {
 		Local l = v.getLocal();
 		Set<Local> pcc = phiCongruenceClasses.get(l);
 		if(pcc != null) {
@@ -724,8 +731,8 @@ public class SreedharDestructor {
 				remap.put(pcc, l);
 			}
 			
+			System.out.println("remap " + l + " to " + remap.get(pcc) + " " + pcc + " (" + pcc.hashCode() + ")");
 			l = remap.get(pcc);
-			System.out.println("remap " + l + " to " + remap.get(pcc));
 			v.setLocal(l);
 		}
 	}
