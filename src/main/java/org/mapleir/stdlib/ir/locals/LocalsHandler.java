@@ -23,10 +23,30 @@ public class LocalsHandler {
 
 	private final AtomicInteger base;
 	private final Map<String, Local> cache;
+	private final Map<BasicLocal, VersionedLocal> latest;
 	
 	public LocalsHandler(int base) {
 		this.base = new AtomicInteger(base);
 		cache = new HashMap<>();
+		latest = new HashMap<>();
+	}
+	
+	public BasicLocal asSimpleLocal(Local l) {
+		return get(l.getIndex(), l.isStack());
+	}
+	
+	public VersionedLocal makeLatestVersion(Local l) {
+		VersionedLocal vl = getLatestVersion(l);
+		return get(vl.getIndex(), vl.getSubscript() + 1, vl.isStack());
+	}
+	
+	public VersionedLocal getLatestVersion(Local l) {
+		l = asSimpleLocal(l);
+		if(!latest.containsKey(l)) {
+			return get(l.getIndex(), 0, l.isStack());
+		} else {
+			return latest.get(l);
+		}
 	}
 
 	public List<Local> getOrderedList() {
@@ -47,6 +67,19 @@ public class LocalsHandler {
 		} else {
 			VersionedLocal v = new VersionedLocal(base, index, subscript, isStack);
 			cache.put(key, v);
+			
+			BasicLocal bl = get(index, isStack);
+			if(latest.containsKey(bl)) {
+				VersionedLocal old = latest.get(bl);
+				if(subscript > old.getSubscript()) {
+					latest.put(bl, v);
+				} else if(subscript == old.getSubscript()) {
+					throw new IllegalStateException("Created " + v + " with " + old + ", " + bl);
+				}
+			} else {
+				latest.put(bl, v);
+			}
+			
 			return v;
 		}
 	}
@@ -63,6 +96,16 @@ public class LocalsHandler {
 			BasicLocal v = new BasicLocal(base, index, isStack);
 			cache.put(key, v);
 			return v;
+		}
+	}
+
+	public BasicLocal newLocal(int i, boolean isStack) {
+		while(true) {
+			String key = key(i, isStack);
+			if(!cache.containsKey(key)) {
+				return get(i, isStack);
+			}
+			i++;
 		}
 	}
 	

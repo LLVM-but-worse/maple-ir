@@ -268,7 +268,7 @@ public class DotWriter<G extends FastGraph<N, E>, N extends FastGraphVertex, E e
 	}
 	
 	public DotWriter<G, N, E> esc(String s) {
-		return esc().print(s).esc();
+		return esc().print(s.replaceAll("\"", "\\\\\"")).esc();
 	}
 
 	public DotWriter<G, N, E> newLine() {
@@ -307,7 +307,9 @@ public class DotWriter<G extends FastGraph<N, E>, N extends FastGraphVertex, E e
 			if (imgFile.exists())
 				imgFile.delete();
 			ProcessBuilder builder = new ProcessBuilder('"' + gv.getAbsolutePath() + '"', "-Tpng", '"' + dotFile.getAbsolutePath() + '"', "-o", '"' + imgFile.getAbsolutePath() + '"');
+			builder.redirectError(ProcessBuilder.Redirect.INHERIT);
 			Process process = builder.start();
+			builder.redirectError(ProcessBuilder.Redirect.INHERIT);
 			process.waitFor();
 		} catch (IOException | InterruptedException e) {
 			System.err.println("Exception while exporting graph " + fname + ":");
