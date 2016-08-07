@@ -1,16 +1,20 @@
 package org.mapleir.stdlib.ir.transform.ssa;
 
 import java.util.HashSet;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import org.mapleir.stdlib.cfg.BasicBlock;
 import org.mapleir.stdlib.cfg.edge.FlowEdge;
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.SetCreator;
+import org.mapleir.stdlib.collections.ValueCreator;
 import org.mapleir.stdlib.collections.graph.flow.FlowGraph;
 import org.mapleir.stdlib.ir.expr.Expression;
 import org.mapleir.stdlib.ir.expr.PhiExpression;
 import org.mapleir.stdlib.ir.expr.VarExpression;
+import org.mapleir.stdlib.ir.header.BlockHeaderStatement;
+import org.mapleir.stdlib.ir.header.HeaderStatement;
 import org.mapleir.stdlib.ir.locals.Local;
 import org.mapleir.stdlib.ir.stat.CopyVarStatement;
 import org.mapleir.stdlib.ir.stat.Statement;
@@ -21,7 +25,7 @@ public class SSALivenessAnalyser extends BackwardsFlowAnalyser<BasicBlock, FlowE
 
 	private NullPermeableHashMap<BasicBlock, Set<Local>> def;
 	private NullPermeableHashMap<BasicBlock, Set<Local>> phiDef;
-	private NullPermeableHashMap<BasicBlock, Set<Local>> phiUse;
+	private NullPermeableHashMap<BasicBlock, NullPermeableHashMap<BasicBlock, Set<Local>>> phiUse;
 	
 	
 	public SSALivenessAnalyser(FlowGraph<BasicBlock, FlowEdge<BasicBlock>> graph, boolean commit) {
@@ -36,24 +40,28 @@ public class SSALivenessAnalyser extends BackwardsFlowAnalyser<BasicBlock, FlowE
 	protected void init() {
 		def = new NullPermeableHashMap<>(new SetCreator<>());
 		phiDef = new NullPermeableHashMap<>(new SetCreator<>());
-		phiUse = new NullPermeableHashMap<>(new SetCreator<>());
+		phiUse = new NullPermeableHashMap<>(new ValueCreator<NullPermeableHashMap<BasicBlock, Set<Local>>>() { // (smh)
+			@Override
+			public NullPermeableHashMap<BasicBlock, Set<Local>> create() {
+				return new NullPermeableHashMap<>(new SetCreator<>());
+			}
+		});
 
 		for (BasicBlock b : graph.vertices()) {
 			for (Statement stmt : b.getStatements()) {
 				for (Statement s : Statement.enumerate(stmt)) {
 					if (s instanceof CopyVarStatement) {
 						CopyVarStatement copy = (CopyVarStatement) s;
-						
 						Local l = copy.getVariable().getLocal();
 						Expression expr = copy.getExpression();
 						if(expr instanceof PhiExpression) {
 							phiDef.getNonNull(b).add(l);
-							Set<Local> set = phiUse.getNonNull(b);
-							for(Expression e : ((PhiExpression) expr).getLocals().values()) {
-								for(Statement s1 : Statement.enumerate(e)) {
+							NullPermeableHashMap<BasicBlock, Set<Local>> map = phiUse.getNonNull(b);
+							for(Entry<HeaderStatement, Expression> e : ((PhiExpression) expr).getLocals().entrySet()) {
+								for(Statement s1 : Statement.enumerate(e.getValue())) {
 									if(s1 instanceof VarExpression) {
 										VarExpression v = (VarExpression) s1;
-										set.add(v.getLocal());
+										map.getNonNull(((BlockHeaderStatement)e.getKey()).getBlock()).add(v.getLocal());
 									}
 								}
 							}
@@ -119,17 +127,9 @@ public class SSALivenessAnalyser extends BackwardsFlowAnalyser<BasicBlock, FlowE
 		
 		// phi uses are considered live-out for the src and semi
 		// live-in for the dst.
-//		for(Local l : phiUse.getNonNull(dstB)) {
-//			if(defs.contains(l)) {
-//				srcOut.put(l, true);
-//			}
-//		}
 		
-		for(Local l : phiUse.getNonNull(dstB)) {
-			if(defs.contains(l)) {
-				srcOut.add(l);
-			}
-		}
+		for(Local l : phiUse.getNonNull(dstB).getNonNull(srcB))
+			srcOut.add(l);
 	}
 	
 	@Override
