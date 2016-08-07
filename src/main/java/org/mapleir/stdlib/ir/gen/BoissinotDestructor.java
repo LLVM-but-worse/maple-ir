@@ -11,6 +11,7 @@ import org.mapleir.stdlib.cfg.edge.ImmediateEdge;
 import org.mapleir.stdlib.cfg.util.TabbedStringWriter;
 import org.mapleir.stdlib.collections.ListCreator;
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
+import org.mapleir.stdlib.collections.SetCreator;
 import org.mapleir.stdlib.collections.ValueCreator;
 import org.mapleir.stdlib.collections.graph.dot.BasicDotConfiguration;
 import org.mapleir.stdlib.collections.graph.dot.DotConfiguration.GraphType;
@@ -173,8 +174,25 @@ public class BoissinotDestructor {
 		
 	}
 	
-	final Map<BasicBlock, Set<BasicBlock>> rv = new HashMap<>();
+	ControlFlowGraph reducedCfg;
+	final List<BasicBlock> postorder = new ArrayList<>(); // postorder is toposort backwards
+	
+	final NullPermeableHashMap<BasicBlock, Set<BasicBlock>> rv = new NullPermeableHashMap<>(new SetCreator<>());
 	final Map<BasicBlock, Set<BasicBlock>> tq = new HashMap<>();
+	
+	private List<BasicBlock> computePostorder(ControlFlowGraph cfg, BasicBlock entry) {
+		Set<BasicBlock> visited = new HashSet<>();
+		dfsPostorder(cfg, entry, visited, postorder);
+		return postorder;
+	}
+	
+	private void dfsPostorder(ControlFlowGraph cfg, BasicBlock b, Set<BasicBlock> visited, List<BasicBlock> postorder) {
+		visited.add(b);
+		for (FlowEdge<BasicBlock> e : cfg.getEdges(b))
+			if (!visited.contains(e.dst))
+				dfsPostorder(cfg, e.dst, visited, postorder);
+		postorder.add(b);
+	}
 	
 	void compute_reduced_reachability() {
 		// This gives rise to the reduced graph 'eG' of G 
@@ -192,12 +210,19 @@ public class BoissinotDestructor {
 			throw new IllegalStateException(cfg.getEntries().toString());
 		}
 		
-		ExtendedDfs dfs = new ExtendedDfs(cfg.getEntries().iterator().next());
+		BasicBlock entry = cfg.getEntries().iterator().next();
+		ExtendedDfs dfs = new ExtendedDfs(entry);
 
 		Set<FlowEdge<BasicBlock>> back = dfs.edges.get(ExtendedDfs.BACK);
-		for(BasicBlock b : cfg.vertices()) {
-			rv.put(b, reduced_reachable(b, back));
-		}
+		reducedCfg = cfg.copy();
+		for (FlowEdge<BasicBlock> backEdge : back)
+			reducedCfg.removeEdge(backEdge.src, backEdge);
+		
+		computePostorder(reducedCfg, entry);
+		rv.getNonNull(postorder.get(0)).add(postorder.get(0));
+		for (BasicBlock b : postorder)
+			for (FlowEdge<BasicBlock> e : cfg.getReverseEdges(b))
+				rv.getNonNull(e.src).addAll(rv.get(e.dst));
 		
 		// Paths Containing Back Edges: Of course, for the 
 		//  completeness of our algorithm we must also handle 
@@ -253,36 +278,6 @@ public class BoissinotDestructor {
 		}
 		
 		return res;
-	}
-	
-	public Set<BasicBlock> reduced_reachable(BasicBlock n, Set<FlowEdge<BasicBlock>> back) {
-		Set<BasicBlock> visited = new HashSet<>();
-		LinkedList<BasicBlock> stack = new LinkedList<>();
-		stack.add(n);
-		
-		while(!stack.isEmpty()) {
-			BasicBlock s = stack.pop();
-			
-			for(FlowEdge<BasicBlock> e : cfg.getEdges(s)) {
-				BasicBlock succ = e.dst;
-				if(!back.contains(e) && !visited.contains(succ)) {
-					stack.add(succ);
-					visited.add(succ);
-				}
-			}
-		}
-		
-		visited.add(n);
-		
-		return visited;
-	}
-	
-	ControlFlowGraph make_eg(ExtendedDfs dfs) {
-		ControlFlowGraph eg = cfg.copy();
-		for(FlowEdge<BasicBlock> back : dfs.edges.get(ExtendedDfs.BACK)) {
-			eg.removeEdge(back.src, back);
-		}
-		return eg;
 	}
 	
 	FastBlockGraph make_dfs_tree(ExtendedDfs dfs) {
