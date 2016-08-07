@@ -13,7 +13,7 @@ import org.objectweb.asm.tree.LabelNode;
 
 public class FastBlockGraph extends FlowGraph<BasicBlock, FlowEdge<BasicBlock>> {
 
-	private final Map<LabelNode, BasicBlock> blockLabels;
+	protected final Map<LabelNode, BasicBlock> blockLabels;
 	
 	public FastBlockGraph() {
 		blockLabels = new HashMap<>();
