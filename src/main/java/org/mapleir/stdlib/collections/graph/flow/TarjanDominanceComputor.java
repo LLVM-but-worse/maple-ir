@@ -45,6 +45,10 @@ public class TarjanDominanceComputor<N extends FastGraphVertex> {
 		computeIteratedFrontiers();
 	}
 	
+	public Map<N, Set<N>> getTree() {
+		return domChildren;
+	}
+	
 	public Set<N> children(N n) {
 		return domChildren.getNonNull(n);
 	}
