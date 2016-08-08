@@ -314,7 +314,7 @@ public class BasicBlock implements FastGraphVertex, Comparable<BasicBlock> {
 
 	@Override
 	public String toString() {
-		return String.format("Block #%s (%s)", id, label != null ? label.hashCode() : "dummy");
+		return String.format("Block #%s (%s)", LabelHelper.createBlockName(id), label != null ? label.hashCode() : "dummy");
 	}
 
 	@Override
