@@ -19,7 +19,7 @@ public class VarExpression extends Expression {
 		this.type = type;
 	}
 
-	public int getIndex() {
+	public long getIndex() {
 		return local.getIndex();
 	}
 	
