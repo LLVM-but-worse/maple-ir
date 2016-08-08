@@ -8,7 +8,7 @@ public interface FastGraphVertex extends BitSetElement {
 	String getId();
 	
 	@Override
-	default int getIndex() {
+	default long getIndex() {
 		return LabelHelper.numeric(getId());
 	}
 }
