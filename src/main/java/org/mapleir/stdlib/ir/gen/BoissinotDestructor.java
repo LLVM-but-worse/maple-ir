@@ -182,7 +182,6 @@ public class BoissinotDestructor {
 	Set<FlowEdge<BasicBlock>> back;
 	final NullPermeableHashMap<BasicBlock, Set<BasicBlock>> rv = new NullPermeableHashMap<>(new SetCreator<>());
 	final Map<BasicBlock, Set<BasicBlock>> tq = new HashMap<>();
-	List<BasicBlock> postorder;
 	List<BasicBlock> preorder;
 	
 	ControlFlowGraph reduce(ControlFlowGraph cfg, Set<FlowEdge<BasicBlock>> back) {
@@ -216,7 +215,6 @@ public class BoissinotDestructor {
 		
 		ControlFlowGraph reduced = reduce(cfg, back);
 		ExtendedDfs reduced_dfs = new ExtendedDfs(reduced, entry, ExtendedDfs.POST | ExtendedDfs.PRE);
-		postorder = reduced_dfs.post;
 		preorder = reduced_dfs.pre;
 		
 		for (BasicBlock b : reduced_dfs.post) {
@@ -269,8 +267,14 @@ public class BoissinotDestructor {
 			for (BasicBlock w : tupCache.get(v))
 				tv.get(v).addAll(tv.get(w));
 		}
+		
+		System.out.println("preorder: " + preorder);
+		System.out.println("tv: ");
+		for (BasicBlock v : preorder)
+			System.out.println(v.getId() + " = " + tv.get(v));
 	}
 	
+	// Tup(t) = set of unreachable backedge targets from reachable sources
 	Set<BasicBlock> tup(BasicBlock t, Set<FlowEdge<BasicBlock>> back) {
 		Set<BasicBlock> rt = rv.get(t);
 		
@@ -290,9 +294,9 @@ public class BoissinotDestructor {
 		for(BasicBlock tdash : set) {
 			for(FlowEdge<BasicBlock> pred : cfg.getReverseEdges(tdash)) {
 				BasicBlock src = pred.src;
-				// s' = src
+				// s' = src, t' = dst
 				if(back.contains(pred) && rt.contains(src)) {
-					res.add(src);
+					res.add(pred.dst); // backedge TARGETS
 				}
 			}
 		}
