@@ -74,6 +74,11 @@ public class BasicBlock implements FastGraphVertex, Comparable<BasicBlock> {
 		return LabelHelper.createBlockName(id);
 	}
 	
+	@Override
+	public long getIndex() {
+		return (int)id;
+	}
+	
 	public long getNumericId() {
 		return id;
 	}
