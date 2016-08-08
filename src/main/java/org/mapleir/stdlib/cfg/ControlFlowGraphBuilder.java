@@ -1,16 +1,20 @@
 package org.mapleir.stdlib.cfg;
 
-import org.mapleir.stdlib.cfg.edge.*;
+import static org.objectweb.asm.Opcodes.*;
+import static org.objectweb.asm.tree.AbstractInsnNode.*;
+
+import java.util.*;
+
+import org.mapleir.stdlib.cfg.edge.ConditionalJumpEdge;
+import org.mapleir.stdlib.cfg.edge.DefaultSwitchEdge;
+import org.mapleir.stdlib.cfg.edge.ImmediateEdge;
+import org.mapleir.stdlib.cfg.edge.SwitchEdge;
+import org.mapleir.stdlib.cfg.edge.TryCatchEdge;
+import org.mapleir.stdlib.cfg.edge.UnconditionalJumpEdge;
 import org.mapleir.stdlib.cfg.util.LabelHelper;
 import org.mapleir.stdlib.collections.graph.flow.ExceptionRange;
 import org.mapleir.stdlib.collections.graph.util.GraphUtils;
 import org.objectweb.asm.tree.*;
-
-import java.util.*;
-
-import static org.objectweb.asm.Opcodes.GOTO;
-import static org.objectweb.asm.Opcodes.JSR;
-import static org.objectweb.asm.tree.AbstractInsnNode.*;
 
 public class ControlFlowGraphBuilder {
 	
@@ -71,7 +75,7 @@ public class ControlFlowGraphBuilder {
 			if(ranges.containsKey(key)) {
 				erange = ranges.get(key);
 			} else {
-				erange = new ExceptionRange<BasicBlock>(tc);
+				erange = new ExceptionRange<>(tc);
 				erange.setHandler(handler);
 				erange.addVertices(range);
 				ranges.put(key, erange);
@@ -87,13 +91,13 @@ public class ControlFlowGraphBuilder {
 			ListIterator<BasicBlock> lit = range.listIterator();
 			while(lit.hasNext()) {
 				BasicBlock block = lit.next();
-				graph.addEdge(block, new TryCatchEdge<BasicBlock>(block, erange));
+				graph.addEdge(block, new TryCatchEdge<>(block, erange));
 			}
 		}
 	}
 	
 	BasicBlock makeBlock(int index, LabelNode label) {
-		BasicBlock b = new BasicBlock(graph, LabelHelper.createBlockName(index), label);
+		BasicBlock b = new BasicBlock(graph, index, label);
 		queue.add(label);
 		graph.addVertex(b);
 		return b;
@@ -135,7 +139,7 @@ public class ControlFlowGraphBuilder {
 			if(type == LABEL) {
 				// split into new block
 				BasicBlock immediate = resolveTarget((LabelNode) ain, insns);
-				graph.addEdge(block, new ImmediateEdge<BasicBlock>(block, immediate));
+				graph.addEdge(block, new ImmediateEdge<>(block, immediate));
 				break;
 			} else  if(type == JUMP_INSN) {
 				JumpInsnNode jin = (JumpInsnNode) ain;
@@ -144,9 +148,9 @@ public class ControlFlowGraphBuilder {
 				if(jin.opcode() == JSR) {
 					throw new UnsupportedOperationException("jsr " + method);
 				} else if(jin.opcode() == GOTO) {
-					graph.addEdge(block, new UnconditionalJumpEdge<BasicBlock>(block, target, jin.opcode()));
+					graph.addEdge(block, new UnconditionalJumpEdge<>(block, target, jin.opcode()));
 				} else {
-					graph.addEdge(block, new ConditionalJumpEdge<BasicBlock>(block, target, jin.opcode()));
+					graph.addEdge(block, new ConditionalJumpEdge<>(block, target, jin.opcode()));
 					int nextIndex = codeIndex + 1;
 					AbstractInsnNode nextInsn = insns.get(nextIndex);
 					if(!(nextInsn instanceof LabelNode)) {
@@ -157,7 +161,7 @@ public class ControlFlowGraphBuilder {
 					
 					// create immediate successor reference if it's not already done
 					BasicBlock immediate = resolveTarget((LabelNode) nextInsn, insns);
-					graph.addEdge(block, new ImmediateEdge<BasicBlock>(block, immediate));
+					graph.addEdge(block, new ImmediateEdge<>(block, immediate));
 				}
 				break;
 			} else if(type == LOOKUPSWITCH_INSN) {
@@ -165,20 +169,20 @@ public class ControlFlowGraphBuilder {
 				
 				for(int i=0; i < lsin.keys.size(); i++) {
 					BasicBlock target = resolveTarget(lsin.labels.get(i), insns);
-					graph.addEdge(block, new SwitchEdge<BasicBlock>(block, target, lsin, lsin.keys.get(i)));
+					graph.addEdge(block, new SwitchEdge<>(block, target, lsin, lsin.keys.get(i)));
 				}
 				
 				BasicBlock dflt = resolveTarget(lsin.dflt, insns);
-				graph.addEdge(block, new DefaultSwitchEdge<BasicBlock>(block, dflt, lsin));
+				graph.addEdge(block, new DefaultSwitchEdge<>(block, dflt, lsin));
 				break;
 			} else if(type == TABLESWITCH_INSN) {
 				TableSwitchInsnNode tsin = (TableSwitchInsnNode) ain;
 				for(int i=tsin.min; i <= tsin.max; i++) {
 					BasicBlock target = resolveTarget(tsin.labels.get(i - tsin.min), insns);
-					graph.addEdge(block, new SwitchEdge<BasicBlock>(block, target, tsin, i));
+					graph.addEdge(block, new SwitchEdge<>(block, target, tsin, i));
 				}
 				BasicBlock dflt = resolveTarget(tsin.dflt, insns);
-				graph.addEdge(block, new DefaultSwitchEdge<BasicBlock>(block, dflt, tsin));
+				graph.addEdge(block, new DefaultSwitchEdge<>(block, dflt, tsin));
 				break;
 			} else if(GraphUtils.isExitOpcode(ain.opcode())) {
 				break;

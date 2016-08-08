@@ -8,6 +8,15 @@ import org.mapleir.stdlib.cfg.BasicBlock;
  */
 public class LabelHelper {
 
+	public static String createBlockName(long n) {
+		char[] buf = new char[(int) Math.floor(Math.log(25 * (n + 1)) / Math.log(26))];
+		for (int i = buf.length - 1; i >= 0; i--) {
+			buf[i] = (char) ('A' + (--n) % 26);
+			n /= 26;
+		}
+		return new String(buf);
+	}
+	
 	public static String createBlockName(int n) {
 		char[] buf = new char[(int) Math.floor(Math.log(25 * (n + 1)) / Math.log(26))];
 		for (int i = buf.length - 1; i >= 0; i--) {
