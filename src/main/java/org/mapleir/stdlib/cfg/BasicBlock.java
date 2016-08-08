@@ -1,41 +1,50 @@
 package org.mapleir.stdlib.cfg;
 
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Predicate;
+import java.util.function.UnaryOperator;
+
 import org.mapleir.stdlib.cfg.edge.FlowEdge;
 import org.mapleir.stdlib.cfg.edge.ImmediateEdge;
 import org.mapleir.stdlib.cfg.edge.TryCatchEdge;
+import org.mapleir.stdlib.cfg.util.LabelHelper;
 import org.mapleir.stdlib.collections.graph.FastGraphVertex;
 import org.mapleir.stdlib.collections.graph.flow.ExceptionRange;
 import org.mapleir.stdlib.ir.gen.ExpressionStack;
 import org.mapleir.stdlib.ir.stat.Statement;
-import org.objectweb.asm.tree.*;
-
-import java.util.*;
-import java.util.function.Predicate;
-import java.util.function.UnaryOperator;
+import org.objectweb.asm.tree.AbstractInsnNode;
+import org.objectweb.asm.tree.JumpInsnNode;
+import org.objectweb.asm.tree.LabelNode;
+import org.objectweb.asm.tree.LookupSwitchInsnNode;
+import org.objectweb.asm.tree.TableSwitchInsnNode;
 
 public class BasicBlock implements FastGraphVertex, Comparable<BasicBlock> {
 
 	private final ControlFlowGraph cfg;
 	private final LabelNode label;
 	private final List<AbstractInsnNode> insns;
-	private String id;
+	private long id;
 	private int hashcode;
 	private List<ExceptionRange<BasicBlock>> ranges;
 	private ExpressionStack inputStack;
 	private List<Statement> statements;
 	
-	public BasicBlock(ControlFlowGraph cfg, String id, LabelNode label, ExpressionStack stack) {
+	public BasicBlock(ControlFlowGraph cfg, long id, LabelNode label, ExpressionStack stack) {
 		this.cfg = cfg;
 		this.id = id;
 		this.label = label;
 		inputStack = stack;
 		
-		hashcode = 31 + id.hashCode();
+		hashcode = 31 + getId().hashCode();
 		insns = new ArrayList<>();
 		statements = new ArrayList<>();
 	}
 	
-	public BasicBlock(ControlFlowGraph cfg, String id, LabelNode label) {
+	public BasicBlock(ControlFlowGraph cfg, long id, LabelNode label) {
 		this(cfg, id, label, null);
 	}
 
@@ -55,13 +64,17 @@ public class BasicBlock implements FastGraphVertex, Comparable<BasicBlock> {
 		return label == null;
 	}
 	
-	public void setId(String id) {
+	public void setId(int id) {
 		this.id = id;
-		hashcode = 31 + id.hashCode();
+		hashcode = 31 + getId().hashCode();
 	}
 
 	@Override
 	public String getId() {
+		return LabelHelper.createBlockName(id);
+	}
+	
+	public long getNumericId() {
 		return id;
 	}
 
@@ -309,6 +322,6 @@ public class BasicBlock implements FastGraphVertex, Comparable<BasicBlock> {
 		if(o.isDummy()) {
 			return 1;
 		}
-		return id.compareTo(o.id);
+		return Long.compare(id, o.id);
 	}
 }
