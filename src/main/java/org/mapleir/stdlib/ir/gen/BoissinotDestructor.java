@@ -173,25 +173,16 @@ public class BoissinotDestructor {
 		compute_reduced_reachability();
 		
 	}
-	
-	ControlFlowGraph reducedCfg;
-	final List<BasicBlock> postorder = new ArrayList<>(); // postorder is toposort backwards
-	
+		
 	final NullPermeableHashMap<BasicBlock, Set<BasicBlock>> rv = new NullPermeableHashMap<>(new SetCreator<>());
 	final Map<BasicBlock, Set<BasicBlock>> tq = new HashMap<>();
 	
-	private List<BasicBlock> computePostorder(ControlFlowGraph cfg, BasicBlock entry) {
-		Set<BasicBlock> visited = new HashSet<>();
-		dfsPostorder(cfg, entry, visited, postorder);
-		return postorder;
-	}
-	
-	private void dfsPostorder(ControlFlowGraph cfg, BasicBlock b, Set<BasicBlock> visited, List<BasicBlock> postorder) {
-		visited.add(b);
-		for (FlowEdge<BasicBlock> e : cfg.getEdges(b))
-			if (!visited.contains(e.dst))
-				dfsPostorder(cfg, e.dst, visited, postorder);
-		postorder.add(b);
+	ControlFlowGraph reduce(ControlFlowGraph cfg, Set<FlowEdge<BasicBlock>> back) {
+		ControlFlowGraph reducedCfg = cfg.copy();
+		for (FlowEdge<BasicBlock> e : back) {
+			reducedCfg.removeEdge(e.src, e);
+		}
+		return reducedCfg;
 	}
 	
 	void compute_reduced_reachability() {
@@ -211,22 +202,20 @@ public class BoissinotDestructor {
 		}
 		
 		BasicBlock entry = cfg.getEntries().iterator().next();
-		ExtendedDfs dfs = new ExtendedDfs(entry);
-
-		Set<FlowEdge<BasicBlock>> back = dfs.edges.get(ExtendedDfs.BACK);
-		reducedCfg = cfg.copy();
-		for (FlowEdge<BasicBlock> backEdge : back)
-			reducedCfg.removeEdge(backEdge.src, backEdge);
 		
-		computePostorder(reducedCfg, entry);
-		for (BasicBlock b : postorder) {
+		ExtendedDfs cfg_dfs = new ExtendedDfs(cfg, entry, ExtendedDfs.EDGES);
+		Set<FlowEdge<BasicBlock>> back = cfg_dfs.edges.get(ExtendedDfs.BACK);
+		
+		ControlFlowGraph reduced = reduce(cfg, back);
+		ExtendedDfs reduced_dfs = new ExtendedDfs(reduced, entry, ExtendedDfs.POST);
+		
+		for (BasicBlock b : reduced_dfs.post) {
 			rv.getNonNull(b).add(b);
-			for (FlowEdge<BasicBlock> e : cfg.getReverseEdges(b))
+			for (FlowEdge<BasicBlock> e : cfg.getReverseEdges(b)) {
 				rv.getNonNull(e.src).addAll(rv.get(b));
+			}
 		}
-		for(BasicBlock b : postorder) {
-			System.out.println(b.getId());
-		}
+		
 		for(BasicBlock b : cfg.vertices()) {
 			System.out.println(b.getId() + " = " + rv.get(b));
 		}
@@ -248,7 +237,8 @@ public class BoissinotDestructor {
 		//  how do we decide which back edge targets of Tq to 
 		//  consider? Apparently, this choice depends on the 
 		//  variable or more precisely on its dominance subtree.
-		FastBlockGraph dfs_tree = make_dfs_tree(dfs);
+		
+		// FastBlockGraph dfs_tree = make_dfs_tree(dfs);
 	
 		// tq0 = {q}
 		for(BasicBlock b : cfg.vertices()) {
@@ -299,49 +289,63 @@ public class BoissinotDestructor {
 		return g;
 	}
 	
-	class ExtendedDfs {
+	static class ExtendedDfs {
 		static final int WHITE = 0, GREY = 1, BLACK = 2;
 		static final int TREE = WHITE, BACK = GREY, FOR_CROSS = BLACK;
+		static final int EDGES = 0x1, PARENTS = 0x2, PRE = 0x4, POST = 0x8;
 		
+		final int opt;
+		final FastBlockGraph graph;
 		final NullPermeableHashMap<BasicBlock, Integer> colours;
 		final Map<Integer, Set<FlowEdge<BasicBlock>>> edges;
 		final Map<BasicBlock, BasicBlock> parents;
 		final List<BasicBlock> pre;
 		final List<BasicBlock> post;
 		
-		ExtendedDfs(BasicBlock entry) {
+		ExtendedDfs(FastBlockGraph graph, BasicBlock entry, int opt) {
+			this.opt = opt;
+			this.graph = graph;
 			colours = new NullPermeableHashMap<>(new ValueCreator<Integer>() {
 				@Override
 				public Integer create() {
 					return Integer.valueOf(0);
 				}
 			});
-			parents = new HashMap<>();
-			edges = new HashMap<>();
-			pre = new ArrayList<>();
-			post = new ArrayList<>();
 			
-			edges.put(TREE, new HashSet<>());
-			edges.put(BACK, new HashSet<>());
-			edges.put(FOR_CROSS, new HashSet<>());
+			parents = opt(PARENTS) ? new HashMap<>() : null;
+			pre = opt(PRE) ? new ArrayList<>() : null;
+			post = opt(POST) ? new ArrayList<>() : null;
+			
+			if(opt(EDGES)) {
+				edges = new HashMap<>();
+				edges.put(TREE, new HashSet<>());
+				edges.put(BACK, new HashSet<>());
+				edges.put(FOR_CROSS, new HashSet<>());
+			} else {
+				edges = null;
+			}
 			
 			dfs(entry);
 		}
+		
+		boolean opt(int i) {
+			return (opt & i) != 0;
+		}
 
 		void dfs(BasicBlock b) {
+			if(opt(PRE)) pre.add(b);
 			colours.put(b, GREY);
-			pre.add(b);
 			
-			for(FlowEdge<BasicBlock> sE : cfg.getEdges(b))  {
+			for(FlowEdge<BasicBlock> sE : graph.getEdges(b))  {
 				BasicBlock s = sE.dst;
-				edges.get(colours.getNonNull(s)).add(sE);
+				if(opt(EDGES)) edges.get(colours.getNonNull(s)).add(sE);
 				if(colours.getNonNull(s).intValue() == WHITE) {
-					parents.put(s, b);
+					if(opt(PARENTS)) parents.put(s, b);
 					dfs(s);
 				}
 			}
 			
-			post.add(b);
+			if(opt(POST)) post.add(b);
 			colours.put(b, BLACK);
 		}
 	}
