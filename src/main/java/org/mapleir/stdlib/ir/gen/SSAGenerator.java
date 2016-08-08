@@ -1,15 +1,6 @@
 package org.mapleir.stdlib.ir.gen;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.Stack;
+import java.util.*;
 
 import org.mapleir.stdlib.cfg.BasicBlock;
 import org.mapleir.stdlib.cfg.ControlFlowGraph;
@@ -104,7 +95,7 @@ public class SSAGenerator {
 		assigns = new NullPermeableHashMap<>(new SetCreator<>());
 		insertion = new HashMap<>();
 		process = new HashMap<>();
-		exit = new BasicBlock(cfg, "fakeexit", null);
+		exit = new BasicBlock(cfg, cfg.size() * 2, null);
 		
 		counters = new HashMap<>();
 		stacks = new HashMap<>();
