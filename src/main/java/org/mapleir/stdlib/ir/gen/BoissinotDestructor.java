@@ -219,10 +219,17 @@ public class BoissinotDestructor {
 			reducedCfg.removeEdge(backEdge.src, backEdge);
 		
 		computePostorder(reducedCfg, entry);
-		rv.getNonNull(postorder.get(0)).add(postorder.get(0));
-		for (BasicBlock b : postorder)
+		for (BasicBlock b : postorder) {
+			rv.getNonNull(b).add(b);
 			for (FlowEdge<BasicBlock> e : cfg.getReverseEdges(b))
-				rv.getNonNull(e.src).addAll(rv.get(e.dst));
+				rv.getNonNull(e.src).addAll(rv.get(b));
+		}
+		for(BasicBlock b : postorder) {
+			System.out.println(b.getId());
+		}
+		for(BasicBlock b : cfg.vertices()) {
+			System.out.println(b.getId() + " = " + rv.get(b));
+		}
 		
 		// Paths Containing Back Edges: Of course, for the 
 		//  completeness of our algorithm we must also handle 
