@@ -65,6 +65,17 @@ public class AnalyticsTest {
 		System.out.println(y);
 	}
 	
+	void loopTest() {
+		int x = 1;
+		do {
+			if (x > 5)
+				x--;
+			else
+				x++;
+		} while(!p());
+		System.out.println(x);
+	}
+	
 	boolean p() {
 		return true;
 	}
@@ -97,7 +108,7 @@ public class AnalyticsTest {
 		while(it.hasNext()) {
 			MethodNode m = it.next();
 
-			if(!m.toString().equals("org/mapleir/AnalyticsTest.test111()V")) {
+			if(!m.toString().equals("org/mapleir/AnalyticsTest.loopTest()V")) {
 				continue;
 			}
 			System.out.println("Processing " + m + "\n");
