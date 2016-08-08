@@ -28,7 +28,7 @@ public class StatementWriter {
 		this.stmts = stmts;
 		this.cfg = cfg;
 
-		this.headers = new HashMap<>();
+		headers = new HashMap<>();
 		for (Statement stmt : stmts) {
 			if (stmt instanceof BlockHeaderStatement) {
 				headers.put(((BlockHeaderStatement) stmt).getBlock(), (HeaderStatement) stmt);
@@ -70,9 +70,9 @@ public class StatementWriter {
 				} else {
 					LabelNode label = new LabelNode();
 					m.visitLabel(label.getLabel());
-					BasicBlock newExit = new BasicBlock(cfg, LabelHelper.createBlockName(LabelHelper.numeric(endBlock.getId()) + 1), label);
+					BasicBlock newExit = new BasicBlock(cfg, endBlock.getNumericId() + 1, label);
 					cfg.addVertex(newExit);
-					cfg.addEdge(endBlock, new DummyEdge<BasicBlock>(endBlock, newExit));
+					cfg.addEdge(endBlock, new DummyEdge<>(endBlock, newExit));
 					end = label.getLabel();
 				}
 			} else {
