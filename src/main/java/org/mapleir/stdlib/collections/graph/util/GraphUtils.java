@@ -682,10 +682,7 @@ public class GraphUtils {
 		// rename and add blocks
 		int label = 1;
 		for(BasicBlock b : order) {
-			String id = LabelHelper.createBlockName(label);
-			label++;
-			
-			b.setId(id);
+			b.setId(label++);
 			cfg.addVertex(b);
 		}
 		
