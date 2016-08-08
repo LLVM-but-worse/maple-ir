@@ -170,12 +170,20 @@ public class BoissinotDestructor {
 		
 		System.out.println(reversePostOrder);
 		
-		compute_reduced_reachability();
+		precompute();
 		
 	}
 		
+	void precompute() {
+		compute_reduced_reachability();
+		computeTv();
+	}
+	
+	Set<FlowEdge<BasicBlock>> back;
 	final NullPermeableHashMap<BasicBlock, Set<BasicBlock>> rv = new NullPermeableHashMap<>(new SetCreator<>());
 	final Map<BasicBlock, Set<BasicBlock>> tq = new HashMap<>();
+	List<BasicBlock> postorder;
+	List<BasicBlock> preorder;
 	
 	ControlFlowGraph reduce(ControlFlowGraph cfg, Set<FlowEdge<BasicBlock>> back) {
 		ControlFlowGraph reducedCfg = cfg.copy();
@@ -204,10 +212,12 @@ public class BoissinotDestructor {
 		BasicBlock entry = cfg.getEntries().iterator().next();
 		
 		ExtendedDfs cfg_dfs = new ExtendedDfs(cfg, entry, ExtendedDfs.EDGES);
-		Set<FlowEdge<BasicBlock>> back = cfg_dfs.edges.get(ExtendedDfs.BACK);
+		back = cfg_dfs.edges.get(ExtendedDfs.BACK);
 		
 		ControlFlowGraph reduced = reduce(cfg, back);
-		ExtendedDfs reduced_dfs = new ExtendedDfs(reduced, entry, ExtendedDfs.POST);
+		ExtendedDfs reduced_dfs = new ExtendedDfs(reduced, entry, ExtendedDfs.POST | ExtendedDfs.PRE);
+		postorder = reduced_dfs.post;
+		preorder = reduced_dfs.pre;
 		
 		for (BasicBlock b : reduced_dfs.post) {
 			rv.getNonNull(b).add(b);
@@ -245,6 +255,19 @@ public class BoissinotDestructor {
 			Set<BasicBlock> set = new HashSet<>();
 			set.add(b);
 			tq.put(b, set);
+		}
+	}
+	
+	final Map<BasicBlock, Set<BasicBlock>> tupCache = new HashMap<>();
+	final NullPermeableHashMap<BasicBlock, Set<BasicBlock>> tv = new NullPermeableHashMap<>(new SetCreator<>());
+	
+	void computeTv() {
+		for (BasicBlock b : cfg.vertices())
+			tupCache.put(b, tup(b, back));
+		for (BasicBlock v : preorder) {
+			tv.getNonNull(v).add(v);
+			for (BasicBlock w : tupCache.get(v))
+				tv.get(v).addAll(tv.get(w));
 		}
 	}
 	
