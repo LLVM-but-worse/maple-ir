@@ -16,17 +16,12 @@ import org.mapleir.stdlib.collections.graph.dot.BasicDotConfiguration;
 import org.mapleir.stdlib.collections.graph.dot.DotConfiguration;
 import org.mapleir.stdlib.collections.graph.dot.DotWriter;
 import org.mapleir.stdlib.collections.graph.dot.impl.ControlFlowGraphDecorator;
-import org.mapleir.stdlib.collections.graph.dot.impl.InterferenceGraphDecorator;
 import org.mapleir.stdlib.collections.graph.dot.impl.LivenessDecorator;
 import org.mapleir.stdlib.collections.graph.util.GraphUtils;
 import org.mapleir.stdlib.ir.CodeBody;
 import org.mapleir.stdlib.ir.expr.Expression;
 import org.mapleir.stdlib.ir.expr.PhiExpression;
 import org.mapleir.stdlib.ir.expr.VarExpression;
-import org.mapleir.stdlib.ir.gen.interference.ColourableNode;
-import org.mapleir.stdlib.ir.gen.interference.InterferenceEdge;
-import org.mapleir.stdlib.ir.gen.interference.InterferenceGraph;
-import org.mapleir.stdlib.ir.gen.interference.InterferenceGraphBuilder;
 import org.mapleir.stdlib.ir.header.BlockHeaderStatement;
 import org.mapleir.stdlib.ir.header.HeaderStatement;
 import org.mapleir.stdlib.ir.locals.Local;
@@ -79,10 +74,10 @@ public class SreedharDestructor {
 					.add("liveness", new LivenessDecorator<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>>().setLiveness(livenessDbg))
 					.addBefore("liveness", "cfg", new ControlFlowGraphDecorator().setFlags(OPT_DEEP | OPT_STMTS))
 					.export();
-			InterferenceGraph ig = InterferenceGraphBuilder.build(cfg, livenessDbg);
-			BasicDotConfiguration<InterferenceGraph, ColourableNode, InterferenceEdge> config2 = new BasicDotConfiguration<>(DotConfiguration.GraphType.UNDIRECTED);
-			DotWriter<InterferenceGraph, ColourableNode, InterferenceEdge> w2 = new DotWriter<>(config2, ig);
-			w2.add(new InterferenceGraphDecorator()).setName("sreedhar-cssa-ig").export();
+//			InterferenceGraph ig = InterferenceGraphBuilder.build(cfg, livenessDbg);
+//			BasicDotConfiguration<InterferenceGraph, ColourableNode, InterferenceEdge> config2 = new BasicDotConfiguration<>(DotConfiguration.GraphType.UNDIRECTED);
+//			DotWriter<InterferenceGraph, ColourableNode, InterferenceEdge> w2 = new DotWriter<>(config2, ig);
+//			w2.add(new InterferenceGraphDecorator()).setName("sreedhar-cssa-ig").export();
 		}
 		
 		nullify();
@@ -215,7 +210,8 @@ public class SreedharDestructor {
 		liveness = new SSABlockLivenessAnalyser(cfg);
 		GraphUtils.rewriteCfg(cfg, code);
 		liveness.compute();
-		interfere = InterferenceGraphBuilder.buildMap(cfg, liveness);
+		// FIXME: interference
+//		interfere = InterferenceGraphBuilder.buildMap(cfg, liveness);
 	}
 
 	
