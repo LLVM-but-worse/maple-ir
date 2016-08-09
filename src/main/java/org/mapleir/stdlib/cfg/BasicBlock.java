@@ -27,13 +27,13 @@ public class BasicBlock implements FastGraphVertex, Comparable<BasicBlock> {
 	private final ControlFlowGraph cfg;
 	private final LabelNode label;
 	private final List<AbstractInsnNode> insns;
-	private long id;
+	private int id;
 	private int hashcode;
 	private List<ExceptionRange<BasicBlock>> ranges;
 	private ExpressionStack inputStack;
 	private List<Statement> statements;
 	
-	public BasicBlock(ControlFlowGraph cfg, long id, LabelNode label, ExpressionStack stack) {
+	public BasicBlock(ControlFlowGraph cfg, int id, LabelNode label, ExpressionStack stack) {
 		this.cfg = cfg;
 		this.id = id;
 		this.label = label;
@@ -44,7 +44,7 @@ public class BasicBlock implements FastGraphVertex, Comparable<BasicBlock> {
 		statements = new ArrayList<>();
 	}
 	
-	public BasicBlock(ControlFlowGraph cfg, long id, LabelNode label) {
+	public BasicBlock(ControlFlowGraph cfg, int id, LabelNode label) {
 		this(cfg, id, label, null);
 	}
 
@@ -74,12 +74,7 @@ public class BasicBlock implements FastGraphVertex, Comparable<BasicBlock> {
 		return LabelHelper.createBlockName(id);
 	}
 	
-	@Override
-	public long getIndex() {
-		return (int)id;
-	}
-	
-	public long getNumericId() {
+	public int getNumericId() {
 		return id;
 	}
 

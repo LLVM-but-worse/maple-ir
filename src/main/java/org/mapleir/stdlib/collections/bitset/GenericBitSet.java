@@ -1,34 +1,36 @@
-package org.mapleir.stdlib.collections;
+package org.mapleir.stdlib.collections.bitset;
 
 import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 import java.util.BitSet;
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Set;
 import java.util.Spliterator;
 
-public class GenericBitSet<N extends BitSetElement> implements Set<N> {
+public class GenericBitSet<N> implements Set<N> {
 	private BitSet bitset;
+	private BitSetIndexer<N> indexer;
 	
-	public GenericBitSet() {
+	public GenericBitSet(BitSetIndexer<N> indexer) {
 		bitset = new BitSet();
+		this.indexer = indexer;
 	}
 	
 	@Override
 	public boolean add(N n) {
 		boolean ret = !contains(n);
-		bitset.set(n.getIndex());
+		bitset.set(indexer.getIndex(n));
 		return ret;
 	}
 	
 	@Override
 	public boolean remove(Object o) {
-		if (!(o instanceof BitSetElement))
+		boolean ret = contains(o);
+		if (!ret)
 			return false;
-		N n = ((N) o);
-		boolean ret = contains(n);
-		bitset.set(n.getIndex(), false);
+		bitset.set(indexer.getIndex((N) o), false);
 		return ret;
 	}
 	
@@ -47,6 +49,8 @@ public class GenericBitSet<N extends BitSetElement> implements Set<N> {
 	}
 	
 	public boolean addAll(GenericBitSet<N> n) {
+		if (indexer != n.indexer)
+			throw new IllegalArgumentException("Fast addAll operands must share the same BitSetIndexer");
 		BitSet temp = (BitSet) n.bitset.clone();
 		temp.or(n.bitset);
 		return !bitset.equals(temp);
@@ -55,9 +59,8 @@ public class GenericBitSet<N extends BitSetElement> implements Set<N> {
 	@Override
 	public boolean addAll(Collection<? extends N> c) {
 		boolean ret = false;
-		for (Object o : c)
-			if (o instanceof BitSetElement)
-				ret = ret || add((N) o);
+		for (N o : c)
+			ret = ret || add(o);
 		return ret;
 	}
 	
@@ -90,8 +93,7 @@ public class GenericBitSet<N extends BitSetElement> implements Set<N> {
 	public boolean removeAll(Collection<?> c) {
 		boolean ret = false;
 		for (Object o : c)
-			if (o instanceof BitSetElement)
-				ret = ret || remove((N) o);
+			ret = ret || remove(o);
 		return ret;
 	}
 	
@@ -102,7 +104,7 @@ public class GenericBitSet<N extends BitSetElement> implements Set<N> {
 	
 	@Override
 	public int size() {
-		return bitset.size();
+		return bitset.cardinality();
 	}
 	
 	@Override
@@ -112,9 +114,9 @@ public class GenericBitSet<N extends BitSetElement> implements Set<N> {
 	
 	@Override
 	public boolean contains(Object o) {
-		if (!(o instanceof BitSetElement))
+		if (!indexer.isIndexed(o))
 			return false;
-		return bitset.get(((N) o).getIndex());
+		return bitset.get(indexer.getIndex((N) o));
 	}
 	
 	@Override
@@ -129,9 +131,14 @@ public class GenericBitSet<N extends BitSetElement> implements Set<N> {
 			
 			@Override
 			public N next() {
-				return bitset.get(bitset.nextSetBit(index));
+				return indexer.get(index = bitset.nextSetBit(index));
 			}
-		}
+			
+			@Override
+			public void remove() {
+				 bitset.set(index, false);
+			}
+		};
 	}
 	
 	@Override
