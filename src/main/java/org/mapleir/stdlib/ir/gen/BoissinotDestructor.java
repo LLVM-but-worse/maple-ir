@@ -141,36 +141,33 @@ public class BoissinotDestructor {
 
 		final NullPermeableHashMap<BasicBlock, Set<BasicBlock>> rv;
 		final NullPermeableHashMap<BasicBlock, Set<BasicBlock>> tq;
+		final NullPermeableHashMap<BasicBlock, Set<BasicBlock>> sdoms;
 		
 		final ControlFlowGraph cfg;
 		ControlFlowGraph red_cfg;
 		ExtendedDfs cfg_dfs;
 		ExtendedDfs reduced_dfs;
-		Map<BasicBlock, Set<BasicBlock>> sdoms;
 		
 		public InterferenceResolver(ControlFlowGraph cfg) {
 			this.cfg = cfg;
 			rv = new NullPermeableHashMap<>(new SetCreator<>());
 			tq = new NullPermeableHashMap<>(new SetCreator<>());
+			sdoms = new NullPermeableHashMap<>(new SetCreator<>());
 			
 			compute_reduced_reachability();
-			compute_value_interference();
+			compute_strict_doms();
 		}
 		
-		void compute_value_interference() {
+		void compute_strict_doms() {
 			TarjanDominanceComputor<BasicBlock> domc = new TarjanDominanceComputor<>(cfg);
 			
-			for(Entry<BasicBlock, Set<BasicBlock>> e : domc.getTree().entrySet()) {
-				BasicBlock b = e.getKey();
-				Set<BasicBlock> sdom = new HashSet<>();
-				for(BasicBlock l : e.getValue()) {
-					sdom.add(l);
+			// i think this is how you do it..
+			for(BasicBlock b : cfg_dfs.pre) {
+				BasicBlock idom = domc.idom(b);
+				if(idom != null) {
+					sdoms.getNonNull(b).add(idom);
+					sdoms.getNonNull(b).addAll(sdoms.getNonNull(idom));
 				}
-			}
-			
-			
-			for(BasicBlock b : cfg.vertices()) {
-				System.out.println(b.getId() + " sdom " + domc.semiDoms(b));
 			}
 		}
 		
@@ -192,7 +189,7 @@ public class BoissinotDestructor {
 			
 			BasicBlock entry = cfg.getEntries().iterator().next();
 			
-			cfg_dfs = new ExtendedDfs(cfg, entry, ExtendedDfs.EDGES);
+			cfg_dfs = new ExtendedDfs(cfg, entry, ExtendedDfs.EDGES | ExtendedDfs.PRE /* for sdoms*/ );
 			Set<FlowEdge<BasicBlock>> back = cfg_dfs.edges.get(ExtendedDfs.BACK);
 			
 			red_cfg = reduce(cfg, back);
