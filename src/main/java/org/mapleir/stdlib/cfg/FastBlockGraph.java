@@ -42,6 +42,25 @@ public class FastBlockGraph extends FlowGraph<BasicBlock, FlowEdge<BasicBlock>> 
 	public FastBlockGraph(FastBlockGraph g) {
 		super(g);
 		blockLabels = new HashMap<>(g.blockLabels);
+		
+		// TODO: clean
+		indexMap = new HashMap<>();
+		indexer = new BitSetIndexer<BasicBlock>() {
+			@Override
+			public int getIndex(BasicBlock basicBlock) {
+				return basicBlock.getNumericId();
+			}
+			
+			@Override
+			public BasicBlock get(int index) {
+				return indexMap.get(index);
+			}
+			
+			@Override
+			public boolean isIndexed(Object o) {
+				return vertices().contains(o);
+			}
+		};
 	}
 	
 	public BasicBlock getBlock(LabelNode label) {
