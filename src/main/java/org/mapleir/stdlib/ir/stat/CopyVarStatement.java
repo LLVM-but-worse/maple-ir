@@ -55,7 +55,7 @@ public class CopyVarStatement extends Statement {
 		}
 	}
 	
-	public long getIndex() {
+	public int getIndex() {
 		return variable.getLocal().getIndex();
 	}
 
