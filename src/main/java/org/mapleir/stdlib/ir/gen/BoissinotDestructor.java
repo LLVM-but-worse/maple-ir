@@ -20,6 +20,7 @@ import org.mapleir.stdlib.collections.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.SetCreator;
 import org.mapleir.stdlib.collections.ValueCreator;
 import org.mapleir.stdlib.collections.graph.flow.TarjanDominanceComputor;
+import org.mapleir.stdlib.collections.graph.util.GraphUtils;
 import org.mapleir.stdlib.ir.CodeBody;
 import org.mapleir.stdlib.ir.expr.Expression;
 import org.mapleir.stdlib.ir.expr.PhiExpression;
@@ -30,6 +31,7 @@ import org.mapleir.stdlib.ir.locals.Local;
 import org.mapleir.stdlib.ir.stat.CopyVarStatement;
 import org.mapleir.stdlib.ir.stat.Statement;
 import org.mapleir.stdlib.ir.transform.impl.CodeAnalytics;
+import org.mapleir.stdlib.ir.transform.ssa.SSALivenessAnalyser;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Type;
 
@@ -38,6 +40,8 @@ public class BoissinotDestructor {
 	private final ControlFlowGraph cfg;
 	private final CodeBody code;
 	private final Map<BasicBlock, HeaderStatement> headers;
+	private final Map<Local, BasicBlock> defs;
+	private final NullPermeableHashMap<Local, Set<BasicBlock>> uses;
 	
 	private InterferenceResolver resolver;
 	
@@ -45,18 +49,66 @@ public class BoissinotDestructor {
 		this.cfg = cfg;
 		this.code = code;
 		headers = new HashMap<>();
+		defs = new HashMap<>();
+		uses = new NullPermeableHashMap<>(new SetCreator<>());
 		
 		init();
+		
+		
+
+		resolver = new InterferenceResolver();
+		
+		SSALivenessAnalyser live = new SSALivenessAnalyser(cfg);
+		for(BasicBlock b : cfg.vertices()) {
+			Set<Local> vs = live.in(b);
+			for(Local v : vs) {
+				boolean l2 = resolver.live_in(b, v);
+				
+				if(!l2) {
+					System.err.println(b.getId());
+					System.err.println(" lin: " + vs);
+					System.err.println("apparently not live: " + v + " in " + b.getId());
+					throw new RuntimeException();
+				}
+			}
+		}
+		
+		
 		insert_copies();
-		resolver = new InterferenceResolver(cfg);
 	}
 	
 	void init() {
-		for(Statement s : code) {
-			if(s instanceof BlockHeaderStatement) {
-				BlockHeaderStatement h = (BlockHeaderStatement) s;
-				BasicBlock b = h.getBlock();
+		BasicBlock b = null;
+		for(Statement stmt : code) {
+			if(stmt instanceof BlockHeaderStatement) {
+				BlockHeaderStatement h = (BlockHeaderStatement) stmt;
+				b = h.getBlock();
 				headers.put(b, h);
+			} else {
+				if(stmt instanceof CopyVarStatement) {
+					CopyVarStatement copy = (CopyVarStatement) stmt;
+					Local l = copy.getVariable().getLocal();
+					defs.put(l, b);
+					
+					Expression e = copy.getExpression();
+					if(e instanceof PhiExpression) {
+						PhiExpression phi = (PhiExpression) e;
+						for(Entry<HeaderStatement, Expression> en : phi.getLocals().entrySet()) {
+							BasicBlock p = ((BlockHeaderStatement) en.getKey()).getBlock();
+							Local ul = ((VarExpression) en.getValue()).getLocal();
+							uses.getNonNull(ul).add(p);
+						}
+					}
+				}
+				
+				for(Statement s : Statement.enumerate(stmt)) {
+					if(s instanceof VarExpression) {
+						VarExpression v = (VarExpression) s;
+						Local l = v.getLocal();
+						
+						uses.getNonNull(l).add(b);
+					}
+				}
 			}
 		}
 	}
@@ -88,6 +140,7 @@ public class BoissinotDestructor {
 				}
 			}
 			
+			// resolve
 			if(dstCopy.pairs.size() > 0) {
 				insert_end(b, dstCopy);
 			}
@@ -110,7 +163,15 @@ public class BoissinotDestructor {
 		}
 	}
 	
-	void insert_end(BasicBlock b, Statement s) {
+	void record_pcopy(BasicBlock b, ParallelCopyVarStatement copy) {
+		for(CopyPair p : copy.pairs) {
+			defs.put(p.targ, b);
+		}
+	}
+	
+	void insert_end(BasicBlock b, ParallelCopyVarStatement copy) {
+		record_pcopy(b, copy);
+		
 		List<Statement> stmts = b.getStatements();
 
 		if(stmts.isEmpty()) {
@@ -118,38 +179,36 @@ public class BoissinotDestructor {
 			if(i == -1) {
 				throw new IllegalStateException(b.getId());
 			}
-			code.add(i + 1, s);
-			stmts.add(s);
+			code.add(i + 1, copy);
+			stmts.add(copy);
 		} else {
 			Statement last = stmts.get(stmts.size() - 1);
 			int index = code.indexOf(last);
 			if(!last.canChangeFlow()) {
 				index += 1;
-				stmts.add(s);
+				stmts.add(copy);
 			} else {
 				// index += 1;
 				//  ^ do this above so that s goes to the end
 				//    but here it needs to go before the end/jump.
 				// add before the jump
-				stmts.add(stmts.indexOf(last) - 1, s);
+				stmts.add(stmts.indexOf(last) - 1, copy);
 			}
-			code.add(index, s);
+			code.add(index, copy);
 		}
 	}
 			
-	static class InterferenceResolver {
+	class InterferenceResolver {
 
 		final NullPermeableHashMap<BasicBlock, Set<BasicBlock>> rv;
 		final NullPermeableHashMap<BasicBlock, Set<BasicBlock>> tq;
 		final NullPermeableHashMap<BasicBlock, Set<BasicBlock>> sdoms;
 		
-		final ControlFlowGraph cfg;
 		ControlFlowGraph red_cfg;
 		ExtendedDfs cfg_dfs;
 		ExtendedDfs reduced_dfs;
 		
-		public InterferenceResolver(ControlFlowGraph cfg) {
-			this.cfg = cfg;
+		public InterferenceResolver() {
 			rv = new NullPermeableHashMap<>(new SetCreator<>());
 			tq = new NullPermeableHashMap<>(new SetCreator<>());
 			sdoms = new NullPermeableHashMap<>(new SetCreator<>());
@@ -158,9 +217,59 @@ public class BoissinotDestructor {
 			compute_strict_doms();
 		}
 		
+		boolean live_check()  {
+			// 1: A variable a is live-in at a node q if there
+			//      exists a path from q to a node u where a is 
+			//      used and that path does not contain def (a).
+			
+			// 2: A variable a is live-out at a node q if it is
+			//      live-in at a successor of q.
+			
+			// The CFG node def (a) where a is defined will be
+			//  abbreviated by d. 
+			// Furthermore, the variable a is used at a node u.
+			
+			// The basic idea of the algorithm is simple. It is the 
+			// straightforward implementation of Definition 2:
+			//    For each use u we test if u is reachable from the query
+			//    block q without passing the definition d.
+			
+			// Our algorithm is thus related to problems such as computing 
+			//  the transitive closure or finding a (shortest) path between 
+			//  two nodes in a graph. However, the paths relevant for liveness 
+			//  are further constrained:
+			//    they must not contain the definition of the variable.
+			
+			// Simple Paths: The first observation considers paths that do not
+			//  contain back edges. If such a path starts at some node q strictly
+			//  dominated by d and ends at u, all nodes on the path are strictly
+			//  dominated by d. Especially, the path cannot contain d. Hence, the
+			//  existence of a back-edge-free path from q to u directly proves a
+			//  being live-in at q.
+			throw new UnsupportedOperationException();
+		}
+		
+		boolean live_in(BasicBlock b, Local l) {
+			Set<BasicBlock> tqa = new HashSet<>(tq.get(b));
+			System.out.println(" tqa1: " + tqa);
+			tqa.retainAll(sdoms.get(defs.get(l)));
+			System.out.println(" tqa2: " + tqa);
+			
+			for(BasicBlock t : tqa) {
+				Set<BasicBlock> rt = rv.get(t);
+				rt.retainAll(uses.get(l));
+				if(!rt.isEmpty()) {
+					return true;
+				}
+			}
+			
+			return false;
+		}
+		
 		void compute_strict_doms() {
 			TarjanDominanceComputor<BasicBlock> domc = new TarjanDominanceComputor<>(cfg);
-			
+
+			NullPermeableHashMap<BasicBlock, Set<BasicBlock>> sdoms = new NullPermeableHashMap<>(new SetCreator<>());
 			// i think this is how you do it..
 			for(BasicBlock b : cfg_dfs.pre) {
 				BasicBlock idom = domc.idom(b);
@@ -168,6 +277,16 @@ public class BoissinotDestructor {
 					sdoms.getNonNull(b).add(idom);
 					sdoms.getNonNull(b).addAll(sdoms.getNonNull(idom));
 				}
+			}
+			
+			for(Entry<BasicBlock, Set<BasicBlock>> e : sdoms.entrySet()) {
+				for(BasicBlock b : e.getValue()) {
+					this.sdoms.getNonNull(b).add(e.getKey());
+				}
+			}
+			
+			for(BasicBlock b : cfg.vertices()) {
+				System.out.println(b.getId() + " sdoms " + GraphUtils.toBlockArray(this.sdoms.getNonNull(b), false));
 			}
 		}
 		
@@ -356,40 +475,6 @@ public class BoissinotDestructor {
 			colours.put(b, BLACK);
 		}
 	}
-	
-	boolean live_check()  {
-		// 1: A variable a is live-in at a node q if there
-		//      exists a path from q to a node u where a is 
-		//      used and that path does not contain def (a).
-		
-		// 2: A variable a is live-out at a node q if it is
-		//      live-in at a successor of q.
-		
-		// The CFG node def (a) where a is defined will be
-		//  abbreviated by d. 
-		// Furthermore, the variable a is used at a node u.
-		
-		// The basic idea of the algorithm is simple. It is the 
-		// straightforward implementation of Definition 2:
-		//    For each use u we test if u is reachable from the query
-		//    block q without passing the definition d.
-		
-		// Our algorithm is thus related to problems such as computing 
-		//  the transitive closure or finding a (shortest) path between 
-		//  two nodes in a graph. However, the paths relevant for liveness 
-		//  are further constrained:
-		//    they must not contain the definition of the variable.
-		
-		// Simple Paths: The first observation considers paths that do not
-		//  contain back edges. If such a path starts at some node q strictly
-		//  dominated by d and ends at u, all nodes on the path are strictly
-		//  dominated by d. Especially, the path cannot contain d. Hence, the
-		//  existence of a back-edge-free path from q to u directly proves a
-		//  being live-in at q.
-		return false;
-	}
-	
-	
 	
 	class PhiRes {
 		final Local target;
