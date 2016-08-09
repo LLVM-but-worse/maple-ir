@@ -13,6 +13,13 @@ import org.mapleir.stdlib.ir.stat.Statement;
 
 public class StatementGraph extends FlowGraph<Statement, FlowEdge<Statement>>  {
 	
+	public StatementGraph() {
+	}
+	
+	public StatementGraph(StatementGraph g) {
+		super(g);
+	}
+	
 	@Override
 	public void removeVertex(Statement v) {
 		super.removeVertex(v);
@@ -166,5 +173,9 @@ public class StatementGraph extends FlowGraph<Statement, FlowEdge<Statement>>  {
 	@Override
 	public FlowEdge<Statement> invert(FlowEdge<Statement> edge) {
 		return edge.clone(edge.dst, edge.src);
+	}
+	@Override
+	public StatementGraph copy() {
+		return new StatementGraph(this);
 	}
 }
