@@ -9,12 +9,17 @@ import java.util.Set;
 
 public abstract class FastDirectedGraph<N extends FastGraphVertex, E extends FastGraphEdge<N>> implements FastGraph<N, E>{
 
-	protected final Map<N, Set<E>> map;
-	protected final Map<N, Set<E>> reverseMap;
+	private final Map<N, Set<E>> map;
+	private final Map<N, Set<E>> reverseMap;
 	
 	public FastDirectedGraph() {
 		map = createMap();
 		reverseMap = createMap();
+	}
+	
+	public FastDirectedGraph(FastDirectedGraph<N, E> g) {
+		map = createMap(g.map);
+		reverseMap = createMap(g.reverseMap);
 	}
 	
 	@Override
@@ -25,11 +30,11 @@ public abstract class FastDirectedGraph<N extends FastGraphVertex, E extends Fas
 	@Override
 	public void addVertex(N v) {
 		if(!map.containsKey(v)) {
-			map.put(v, new HashSet<>());
+			map.put(v, createSet());
 		}
 		
 		if(!reverseMap.containsKey(v)) {
-			reverseMap.put(v, new HashSet<>());
+			reverseMap.put(v, createSet());
 		}
 	}
 
@@ -94,13 +99,13 @@ public abstract class FastDirectedGraph<N extends FastGraphVertex, E extends Fas
 	@Override
 	public void addEdge(N v, E e) {
 		if(!map.containsKey(v)) {
-			map.put(v, new HashSet<>());
+			map.put(v, createSet());
 		}
 		map.get(v).add(e);
 		
 		N dst = /*getDestination(v, e)*/ e.dst;
 		if(!reverseMap.containsKey(dst)) {
-			reverseMap.put(dst, new HashSet<>());
+			reverseMap.put(dst, createSet());
 		}
 		
 		reverseMap.get(dst).add(e);

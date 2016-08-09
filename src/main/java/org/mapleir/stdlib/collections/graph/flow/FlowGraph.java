@@ -19,6 +19,14 @@ public abstract class FlowGraph<N extends FastGraphVertex, E extends FlowEdge<N>
 		vertexIds = new HashMap<>();
 	}
 	
+	public FlowGraph(FlowGraph<N, E> g) {
+		super(g);
+		
+		ranges = new ArrayList<>(g.ranges);
+		entries = new HashSet<>(g.entries);
+		vertexIds = new HashMap<>(g.vertexIds);
+	}
+	
 	public N getBlock(String id) {
 		return vertexIds.get(id);
 	}

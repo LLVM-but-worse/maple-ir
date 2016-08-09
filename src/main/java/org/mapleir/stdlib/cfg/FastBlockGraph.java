@@ -19,6 +19,11 @@ public class FastBlockGraph extends FlowGraph<BasicBlock, FlowEdge<BasicBlock>> 
 		blockLabels = new HashMap<>();
 	}
 	
+	public FastBlockGraph(FastBlockGraph g) {
+		super(g);
+		blockLabels = new HashMap<>(g.blockLabels);
+	}
+	
 	public BasicBlock getBlock(LabelNode label) {
 		return blockLabels.get(label);
 	}
@@ -155,5 +160,10 @@ public class FastBlockGraph extends FlowGraph<BasicBlock, FlowEdge<BasicBlock>> 
 	@Override
 	public FlowEdge<BasicBlock> invert(FlowEdge<BasicBlock> edge) {
 		return edge.clone(edge.dst, edge.src);
+	}
+
+	@Override
+	public FastBlockGraph copy() {
+		return new FastBlockGraph(this);
 	}
 }

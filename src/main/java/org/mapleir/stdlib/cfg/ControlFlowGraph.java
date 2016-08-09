@@ -11,6 +11,11 @@ public class ControlFlowGraph extends FastBlockGraph {
 		this.method = method;
 	}
 	
+	public ControlFlowGraph(ControlFlowGraph cfg) {
+		super(cfg);
+		method = cfg.method;
+	}
+	
 	public MethodNode getMethod() {
 		return method;
 	}
@@ -18,5 +23,10 @@ public class ControlFlowGraph extends FastBlockGraph {
 	@Override
 	public String toString() {
 		return GraphUtils.toString(this, vertices());
+	}
+	
+	@Override
+	public ControlFlowGraph copy() {
+		return new ControlFlowGraph(this);
 	}
 }
