@@ -5,6 +5,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import org.mapleir.stdlib.collections.bitset.GenericBitSet;
 import org.mapleir.stdlib.collections.graph.util.GraphUtils;
 import org.objectweb.asm.tree.MethodNode;
 
@@ -27,6 +28,7 @@ public class ControlFlowGraph extends FastBlockGraph {
 	
 	public ControlFlowGraph copy() {
 		ControlFlowGraph cfg = new ControlFlowGraph(method);
+		cfg.indexMap = indexMap;
 		copy(map, cfg.map);
 		copy(reverseMap, cfg.reverseMap);
 		cfg.blockLabels.putAll(blockLabels);
@@ -34,6 +36,11 @@ public class ControlFlowGraph extends FastBlockGraph {
 		cfg.vertexIds.putAll(vertexIds);
 		cfg.entries.addAll(entries);
 		return cfg;
+	}
+
+	// factory
+	public Set<BasicBlock> createBitSet() {
+		return new GenericBitSet<>(indexer);
 	}
 	
 	private static <K, V> void copy(Map<K, Set<V>> src, Map<K, Set<V>> dst) {
