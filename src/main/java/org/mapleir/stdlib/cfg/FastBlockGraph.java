@@ -7,6 +7,7 @@ import java.util.Set;
 
 import org.mapleir.stdlib.cfg.edge.FlowEdge;
 import org.mapleir.stdlib.cfg.edge.TryCatchEdge;
+import org.mapleir.stdlib.collections.bitset.BitSetIndexer;
 import org.mapleir.stdlib.collections.graph.flow.ExceptionRange;
 import org.mapleir.stdlib.collections.graph.flow.FlowGraph;
 import org.objectweb.asm.tree.LabelNode;
@@ -14,9 +15,28 @@ import org.objectweb.asm.tree.LabelNode;
 public class FastBlockGraph extends FlowGraph<BasicBlock, FlowEdge<BasicBlock>> {
 
 	protected final Map<LabelNode, BasicBlock> blockLabels;
+	protected Map<Integer, BasicBlock> indexMap;
+	protected BitSetIndexer<BasicBlock> indexer;
 	
 	public FastBlockGraph() {
 		blockLabels = new HashMap<>();
+		indexMap = new HashMap<>();
+		indexer = new BitSetIndexer<BasicBlock>() {
+			@Override
+			public int getIndex(BasicBlock basicBlock) {
+				return basicBlock.getNumericId();
+			}
+			
+			@Override
+			public BasicBlock get(int index) {
+				return indexMap.get(index);
+			}
+			
+			@Override
+			public boolean isIndexed(Object o) {
+				return vertices().contains(o);
+			}
+		};
 	}
 	
 	public FastBlockGraph(FastBlockGraph g) {
@@ -28,10 +48,15 @@ public class FastBlockGraph extends FlowGraph<BasicBlock, FlowEdge<BasicBlock>> 
 		return blockLabels.get(label);
 	}
 	
+	public BasicBlock getBlock(int index) {
+		return indexMap.get(index);
+	}
+	
 	@Override
 	public void clear() {
 		super.clear();
 		blockLabels.clear();
+		indexMap.clear();
 	}
 	
 	@Override
@@ -39,6 +64,7 @@ public class FastBlockGraph extends FlowGraph<BasicBlock, FlowEdge<BasicBlock>> 
 		super.addVertex(v);
 		
 		blockLabels.put(v.getLabel(), v);
+		indexMap.put(v.getNumericId(), v);
 	}
 	
 	@Override
@@ -46,6 +72,7 @@ public class FastBlockGraph extends FlowGraph<BasicBlock, FlowEdge<BasicBlock>> 
 		super.removeVertex(v);
 		
 		blockLabels.remove(v.getLabel());
+		indexMap.remove(v.getNumericId());
 		
 		if(v.getId().equals("A")) {
 			new Exception().printStackTrace();
@@ -56,6 +83,7 @@ public class FastBlockGraph extends FlowGraph<BasicBlock, FlowEdge<BasicBlock>> 
 	@Override
 	public void addEdge(BasicBlock v, FlowEdge<BasicBlock> e) {
 		blockLabels.put(v.getLabel(), v);
+		indexMap.put(v.getNumericId(), v);
 		
 		super.addEdge(v, e);
 	}
