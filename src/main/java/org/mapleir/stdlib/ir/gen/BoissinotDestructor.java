@@ -1,7 +1,13 @@
 package org.mapleir.stdlib.ir.gen;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import org.mapleir.stdlib.cfg.BasicBlock;
 import org.mapleir.stdlib.cfg.ControlFlowGraph;
@@ -13,9 +19,6 @@ import org.mapleir.stdlib.collections.ListCreator;
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.SetCreator;
 import org.mapleir.stdlib.collections.ValueCreator;
-import org.mapleir.stdlib.collections.graph.dot.BasicDotConfiguration;
-import org.mapleir.stdlib.collections.graph.dot.DotConfiguration.GraphType;
-import org.mapleir.stdlib.collections.graph.dot.DotWriter;
 import org.mapleir.stdlib.collections.graph.flow.TarjanDominanceComputor;
 import org.mapleir.stdlib.ir.CodeBody;
 import org.mapleir.stdlib.ir.expr.Expression;
@@ -36,6 +39,8 @@ public class BoissinotDestructor {
 	private final CodeBody code;
 	private final Map<BasicBlock, HeaderStatement> headers;
 	
+	private InterferenceResolver resolver;
+	
 	public BoissinotDestructor(ControlFlowGraph cfg, CodeBody code) {
 		this.cfg = cfg;
 		this.code = code;
@@ -43,7 +48,7 @@ public class BoissinotDestructor {
 		
 		init();
 		insert_copies();
-		compute_value_interference();
+		resolver = new InterferenceResolver(cfg);
 	}
 	
 	void init() {
@@ -131,189 +136,167 @@ public class BoissinotDestructor {
 			code.add(index, s);
 		}
 	}
-	
-	void compute_value_interference() {
-		TarjanDominanceComputor<BasicBlock> domc = new TarjanDominanceComputor<>(cfg);
+			
+	static class InterferenceResolver {
+
+		final NullPermeableHashMap<BasicBlock, Set<BasicBlock>> rv;
+		final NullPermeableHashMap<BasicBlock, Set<BasicBlock>> tq;
 		
-		FastBlockGraph domTree = new FastBlockGraph();
-		for(Entry<BasicBlock, Set<BasicBlock>> e : domc.getTree().entrySet()) {
-			BasicBlock b = e.getKey();
-			domTree.addVertex(b);
-			for(BasicBlock l : e.getValue()) {
-				domTree.addEdge(b, new ImmediateEdge<>(b, l));
-			}
+		final ControlFlowGraph cfg;
+		ControlFlowGraph red_cfg;
+		ExtendedDfs cfg_dfs;
+		ExtendedDfs reduced_dfs;
+		Map<BasicBlock, Set<BasicBlock>> sdoms;
+		
+		public InterferenceResolver(ControlFlowGraph cfg) {
+			this.cfg = cfg;
+			rv = new NullPermeableHashMap<>(new SetCreator<>());
+			tq = new NullPermeableHashMap<>(new SetCreator<>());
+			
+			compute_reduced_reachability();
+			compute_value_interference();
 		}
 		
-		for(BasicBlock b : domTree.vertices()) {
-			if(domTree.getReverseEdges(b).size() == 0) {
-				domTree.getEntries().add(b);
-			}
-		}
-		
-		BasicDotConfiguration<FastBlockGraph, BasicBlock, FlowEdge<BasicBlock>> config = new BasicDotConfiguration<>(GraphType.DIRECTED);
-		DotWriter<FastBlockGraph, BasicBlock, FlowEdge<BasicBlock>> w = new DotWriter<>(config, domTree);
-		w.setName("domtree").export();
-		
-		LinkedList<BasicBlock> wl = new LinkedList<>();
-		wl.addAll(domTree.getEntries());
-		List<BasicBlock> reversePostOrder = new ArrayList<>();
-				
-		while(!wl.isEmpty()) {
-			BasicBlock b = wl.pop();
-			if(!reversePostOrder.contains(b)) {
-				reversePostOrder.add(b);
-				for(FlowEdge<BasicBlock> sE : domTree.getEdges(b)) {
-					wl.add(sE.dst);
+		void compute_value_interference() {
+			TarjanDominanceComputor<BasicBlock> domc = new TarjanDominanceComputor<>(cfg);
+			
+			for(Entry<BasicBlock, Set<BasicBlock>> e : domc.getTree().entrySet()) {
+				BasicBlock b = e.getKey();
+				Set<BasicBlock> sdom = new HashSet<>();
+				for(BasicBlock l : e.getValue()) {
+					sdom.add(l);
 				}
 			}
-		}
-		
-		System.out.println(reversePostOrder);
-		
-		precompute();
-		
-	}
-		
-	void precompute() {
-		compute_reduced_reachability();
-		computeTv();
-	}
-	
-	Set<FlowEdge<BasicBlock>> back;
-	final NullPermeableHashMap<BasicBlock, Set<BasicBlock>> rv = new NullPermeableHashMap<>(new SetCreator<>());
-	final Map<BasicBlock, Set<BasicBlock>> tq = new HashMap<>();
-	List<BasicBlock> preorder;
-	
-	ControlFlowGraph reduce(ControlFlowGraph cfg, Set<FlowEdge<BasicBlock>> back) {
-		ControlFlowGraph reducedCfg = cfg.copy();
-		for (FlowEdge<BasicBlock> e : back) {
-			reducedCfg.removeEdge(e.src, e);
-		}
-		return reducedCfg;
-	}
-	
-	void compute_reduced_reachability() {
-		// This gives rise to the reduced graph 'eG' of G 
-		//  which contains everything from G but the back 
-		//  edges. If there is a path from q to u in the 
-		//  reduced graph we say that u is reduced reachable 
-		//  from q. To be able to efficiently check for reduced 
-		//  reachability we precompute the transitive closure
-		//  of this relation. For each node v we store in Rv 
-		//  all nodes reduced reachable from v.
-		
-		// r(v) = {w where there is a path from v to w in eG}
-		
-		if(cfg.getEntries().size() != 1) {
-			throw new IllegalStateException(cfg.getEntries().toString());
-		}
-		
-		BasicBlock entry = cfg.getEntries().iterator().next();
-		
-		ExtendedDfs cfg_dfs = new ExtendedDfs(cfg, entry, ExtendedDfs.EDGES);
-		back = cfg_dfs.edges.get(ExtendedDfs.BACK);
-		
-		ControlFlowGraph reduced = reduce(cfg, back);
-		ExtendedDfs reduced_dfs = new ExtendedDfs(reduced, entry, ExtendedDfs.POST | ExtendedDfs.PRE);
-		preorder = reduced_dfs.pre;
-		
-		for (BasicBlock b : reduced_dfs.post) {
-			rv.getNonNull(b).add(b);
-			for (FlowEdge<BasicBlock> e : cfg.getReverseEdges(b)) {
-				rv.getNonNull(e.src).addAll(rv.get(b));
+			
+			
+			for(BasicBlock b : cfg.vertices()) {
+				System.out.println(b.getId() + " sdom " + domc.semiDoms(b));
 			}
 		}
 		
-		for(BasicBlock b : cfg.vertices()) {
-			System.out.println(b.getId() + " = " + rv.get(b));
-		}
-		
-		// Paths Containing Back Edges: Of course, for the 
-		//  completeness of our algorithm we must also handle 
-		//  back edges.
-		
-		// Our goal is to answer a liveness query by testing 
-		//  for the reduced reachability of uses from back edge 
-		//  targets. Hence, a second part of our precomputation 
-		//  constructs for each node q a set Tq that contains all 
-		//  back edge targets relevant for this query. For this 
-		//  precomputation to make sense, these Tq must be independent 
-		//  of variables. Thus, they must contain all relevant 
-		//  back edge targets for any variable.
-		
-		// The first question is, given a specific query (q, a), 
-		//  how do we decide which back edge targets of Tq to 
-		//  consider? Apparently, this choice depends on the 
-		//  variable or more precisely on its dominance subtree.
-		
-		// FastBlockGraph dfs_tree = make_dfs_tree(dfs);
-	
-		// tq0 = {q}
-		for(BasicBlock b : cfg.vertices()) {
-			Set<BasicBlock> set = new HashSet<>();
-			set.add(b);
-			tq.put(b, set);
-		}
-	}
-	
-	final Map<BasicBlock, Set<BasicBlock>> tupCache = new HashMap<>();
-	final NullPermeableHashMap<BasicBlock, Set<BasicBlock>> tv = new NullPermeableHashMap<>(new SetCreator<>());
-	
-	void computeTv() {
-		for (BasicBlock b : cfg.vertices())
-			tupCache.put(b, tup(b, back));
-		for (BasicBlock v : preorder) {
-			tv.getNonNull(v).add(v);
-			for (BasicBlock w : tupCache.get(v))
-				tv.get(v).addAll(tv.get(w));
-		}
-		
-		System.out.println("preorder: " + preorder);
-		System.out.println("tv: ");
-		for (BasicBlock v : preorder)
-			System.out.println(v.getId() + " = " + tv.get(v));
-	}
-	
-	// Tup(t) = set of unreachable backedge targets from reachable sources
-	Set<BasicBlock> tup(BasicBlock t, Set<FlowEdge<BasicBlock>> back) {
-		Set<BasicBlock> rt = rv.get(t);
-		
-		// t' in {V - r(t)}
-		Set<BasicBlock> set = new HashSet<>(cfg.vertices());
-		set.removeAll(rt);
-		
-		// all s' where (s', t') is a backedge and s'
-		//  is in rt.
-		//  because we have O(1) reverse edge lookup,
-		//  can find the preds of each t' that is a
-		//  backedge.
-		
-		// set of s'
-		Set<BasicBlock> res = new HashSet<>();
-		
-		for(BasicBlock tdash : set) {
-			for(FlowEdge<BasicBlock> pred : cfg.getReverseEdges(tdash)) {
-				BasicBlock src = pred.src;
-				// s' = src, t' = dst
-				if(back.contains(pred) && rt.contains(src)) {
-					res.add(pred.dst); // backedge TARGETS
+		void compute_reduced_reachability() {
+			// This gives rise to the reduced graph 'eG' of G 
+			//  which contains everything from G but the back 
+			//  edges. If there is a path from q to u in the 
+			//  reduced graph we say that u is reduced reachable 
+			//  from q. To be able to efficiently check for reduced 
+			//  reachability we precompute the transitive closure
+			//  of this relation. For each node v we store in Rv 
+			//  all nodes reduced reachable from v.
+			
+			// r(v) = {w where there is a path from v to w in eG}
+			
+			if(cfg.getEntries().size() != 1) {
+				throw new IllegalStateException(cfg.getEntries().toString());
+			}
+			
+			BasicBlock entry = cfg.getEntries().iterator().next();
+			
+			cfg_dfs = new ExtendedDfs(cfg, entry, ExtendedDfs.EDGES);
+			Set<FlowEdge<BasicBlock>> back = cfg_dfs.edges.get(ExtendedDfs.BACK);
+			
+			red_cfg = reduce(cfg, back);
+			reduced_dfs = new ExtendedDfs(red_cfg, entry, ExtendedDfs.POST | ExtendedDfs.PRE);
+			
+			// rv calcs.
+			for (BasicBlock b : reduced_dfs.post) {
+				rv.getNonNull(b).add(b);
+				for (FlowEdge<BasicBlock> e : cfg.getReverseEdges(b)) {
+					rv.getNonNull(e.src).addAll(rv.get(b));
 				}
 			}
+			
+			for(BasicBlock b : cfg.vertices()) {
+				System.out.println(b.getId() + " = " + rv.get(b));
+			}
+			
+			// Paths Containing Back Edges: Of course, for the 
+			//  completeness of our algorithm we must also handle 
+			//  back edges.
+			
+			// Our goal is to answer a liveness query by testing 
+			//  for the reduced reachability of uses from back edge 
+			//  targets. Hence, a second part of our precomputation 
+			//  constructs for each node q a set Tq that contains all 
+			//  back edge targets relevant for this query. For this 
+			//  precomputation to make sense, these Tq must be independent 
+			//  of variables. Thus, they must contain all relevant 
+			//  back edge targets for any variable.
+			
+			// The first question is, given a specific query (q, a), 
+			//  how do we decide which back edge targets of Tq to 
+			//  consider? Apparently, this choice depends on the 
+			//  variable or more precisely on its dominance subtree.
+			
+			// FastBlockGraph dfs_tree = make_dfs_tree(dfs);
+			
+			// tq calcs.
+			Map<BasicBlock, Set<BasicBlock>> tups = new HashMap<>();
+			
+			for (BasicBlock b : cfg.vertices()) {
+				tups.put(b, tup(b, back));
+			}
+			for (BasicBlock v : reduced_dfs.pre) {
+				tq.getNonNull(v).add(v);
+				for (BasicBlock w : tups.get(v))
+					tq.get(v).addAll(tq.get(w));
+			}
+			System.out.println("preorder: " + reduced_dfs.pre);
+			System.out.println("tq: ");
+			for (BasicBlock v : reduced_dfs.pre) {
+				System.out.println(v.getId() + " = " + tq.get(v));
+			}
 		}
 		
-		return res;
-	}
-	
-	FastBlockGraph make_dfs_tree(ExtendedDfs dfs) {
-		FastBlockGraph g = new FastBlockGraph();
-		// map of node -> parent
-		for(Entry<BasicBlock, BasicBlock> e : dfs.parents.entrySet()) {
-			BasicBlock src = e.getValue();
-			BasicBlock dst = e.getKey();
-			FlowEdge<BasicBlock> edge = new ImmediateEdge<>(src, dst);
-			g.addEdge(src, edge);
+		// Tup(t) = set of unreachable backedge targets from reachable sources
+		Set<BasicBlock> tup(BasicBlock t, Set<FlowEdge<BasicBlock>> back) {
+			Set<BasicBlock> rt = rv.get(t);
+			
+			// t' in {V - r(t)}
+			Set<BasicBlock> set = new HashSet<>(cfg.vertices());
+			set.removeAll(rt);
+			
+			// all s' where (s', t') is a backedge and s'
+			//  is in rt.
+			//  because we have O(1) reverse edge lookup,
+			//  can find the preds of each t' that is a
+			//  backedge.
+			
+			// set of s'
+			Set<BasicBlock> res = new HashSet<>();
+			
+			for(BasicBlock tdash : set) {
+				for(FlowEdge<BasicBlock> pred : cfg.getReverseEdges(tdash)) {
+					BasicBlock src = pred.src;
+					// s' = src, t' = dst
+					if(back.contains(pred) && rt.contains(src)) {
+						res.add(pred.dst); // backedge TARGETS
+					}
+				}
+			}
+			
+			return res;
 		}
-		return g;
+		
+		ControlFlowGraph reduce(ControlFlowGraph cfg, Set<FlowEdge<BasicBlock>> back) {
+			ControlFlowGraph reducedCfg = cfg.copy();
+			for (FlowEdge<BasicBlock> e : back) {
+				reducedCfg.removeEdge(e.src, e);
+			}
+			return reducedCfg;
+		}
+		
+		FastBlockGraph make_dfs_tree(ExtendedDfs dfs) {
+			FastBlockGraph g = new FastBlockGraph();
+			// map of node -> parent
+			for(Entry<BasicBlock, BasicBlock> e : dfs.parents.entrySet()) {
+				BasicBlock src = e.getValue();
+				BasicBlock dst = e.getKey();
+				FlowEdge<BasicBlock> edge = new ImmediateEdge<>(src, dst);
+				g.addEdge(src, edge);
+			}
+			return g;
+		}
 	}
 	
 	static class ExtendedDfs {
