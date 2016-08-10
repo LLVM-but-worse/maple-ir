@@ -18,6 +18,15 @@ public class GenericBitSet<N> implements Set<N> {
 		this.indexer = indexer;
 	}
 	
+	public GenericBitSet(GenericBitSet<N> other) {
+		indexer = other.indexer;
+		bitset = (BitSet) other.bitset.clone();
+	}
+	
+	public GenericBitSet<N> copy() {
+		return new GenericBitSet<>(this);
+	}
+	
 	@Override
 	public boolean add(N n) {
 		boolean ret = !contains(n);
@@ -56,6 +65,12 @@ public class GenericBitSet<N> implements Set<N> {
 		return !bitset.equals(temp);
 	}
 	
+	public GenericBitSet<N> union(GenericBitSet<N> n) {
+		GenericBitSet<N> copy = copy();
+		copy.addAll(n);
+		return copy;
+	}
+	
 	@Override
 	public boolean addAll(Collection<? extends N> c) {
 		boolean ret = false;
@@ -68,6 +83,12 @@ public class GenericBitSet<N> implements Set<N> {
 		BitSet temp = (BitSet) n.bitset.clone();
 		temp.and(n.bitset);
 		return !bitset.equals(temp);
+	}
+	
+	public GenericBitSet<N> intersect(GenericBitSet<N> n) {
+		GenericBitSet<N> copy = copy();
+		copy.retainAll(n);
+		return copy;
 	}
 	
 	@Override
@@ -87,6 +108,12 @@ public class GenericBitSet<N> implements Set<N> {
 		BitSet temp = (BitSet) n.bitset.clone();
 		temp.andNot(n.bitset);
 		return !bitset.equals(temp);
+	}
+	
+	public GenericBitSet<N> relativeComplement(GenericBitSet<N> n) {
+		GenericBitSet<N> copy = copy();
+		copy.removeAll(n);
+		return copy;
 	}
 	
 	@Override
