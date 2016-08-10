@@ -19,6 +19,11 @@ import org.mapleir.stdlib.collections.ListCreator;
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.SetCreator;
 import org.mapleir.stdlib.collections.ValueCreator;
+import org.mapleir.stdlib.collections.graph.dot.BasicDotConfiguration;
+import org.mapleir.stdlib.collections.graph.dot.DotConfiguration;
+import org.mapleir.stdlib.collections.graph.dot.DotWriter;
+import org.mapleir.stdlib.collections.graph.dot.impl.ControlFlowGraphDecorator;
+import org.mapleir.stdlib.collections.graph.dot.impl.LivenessDecorator;
 import org.mapleir.stdlib.collections.graph.flow.TarjanDominanceComputor;
 import org.mapleir.stdlib.collections.graph.util.GraphUtils;
 import org.mapleir.stdlib.ir.CodeBody;
@@ -30,12 +35,16 @@ import org.mapleir.stdlib.ir.header.HeaderStatement;
 import org.mapleir.stdlib.ir.locals.Local;
 import org.mapleir.stdlib.ir.stat.CopyVarStatement;
 import org.mapleir.stdlib.ir.stat.Statement;
+import org.mapleir.stdlib.ir.transform.Liveness;
 import org.mapleir.stdlib.ir.transform.impl.CodeAnalytics;
 import org.mapleir.stdlib.ir.transform.ssa.SSALivenessAnalyser;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Type;
 
-public class BoissinotDestructor {
+import static org.mapleir.stdlib.collections.graph.dot.impl.ControlFlowGraphDecorator.OPT_DEEP;
+import static org.mapleir.stdlib.collections.graph.dot.impl.ControlFlowGraphDecorator.OPT_STMTS;
+
+public class BoissinotDestructor implements Liveness<BasicBlock> {
 
 	private final ControlFlowGraph cfg;
 	private final CodeBody code;
@@ -44,6 +53,9 @@ public class BoissinotDestructor {
 	private final NullPermeableHashMap<Local, Set<BasicBlock>> uses;
 	
 	private InterferenceResolver resolver;
+	
+	// delete me
+	private final Set<Local> localsTest = new HashSet<>();
 	
 	public BoissinotDestructor(ControlFlowGraph cfg, CodeBody code) {
 		this.cfg = cfg;
@@ -59,22 +71,38 @@ public class BoissinotDestructor {
 		resolver = new InterferenceResolver();
 		
 		SSALivenessAnalyser live = new SSALivenessAnalyser(cfg);
-		for(BasicBlock b : cfg.vertices()) {
-			Set<Local> vs = live.in(b);
-			for(Local v : vs) {
-				boolean l2 = resolver.live_in(b, v);
-				
-				if(!l2) {
-					System.err.println(b.getId());
-					System.err.println(" lin: " + vs);
-					System.err.println("apparently not live: " + v + " in " + b.getId());
-					throw new RuntimeException();
-				}
-			}
-		}
+		for(BasicBlock b : cfg.vertices())
+			for (Statement stmt : b.getStatements())
+				for (Local l : stmt.getUsedLocals())
+					localsTest.add(l);
 		
+		BasicDotConfiguration<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> config = new BasicDotConfiguration<>(DotConfiguration.GraphType.DIRECTED);
+		DotWriter<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> writer = new DotWriter<>(config, cfg);
+		writer.add(new ControlFlowGraphDecorator().setFlags(OPT_DEEP | OPT_STMTS))
+				.add("liveness", new LivenessDecorator<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>>().setLiveness(this))
+				.setName("liveness-baguette")
+				.export();
+		writer.removeAll()
+				.add(new ControlFlowGraphDecorator().setFlags(OPT_DEEP | OPT_STMTS))
+				.add(new LivenessDecorator<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>>().setLiveness(live))
+				.setName("liveness-bibl")
+				.export();
 		
 		insert_copies();
+	}
+	
+	@Override
+	public Set<Local> in(BasicBlock b) {
+		Set<Local> live = new HashSet<>();
+		for (Local l : localsTest)
+			if (resolver.live_in(b, l))
+				live.add(l);
+		return live;
+	}
+	
+	@Override
+	public Set<Local> out(BasicBlock b) {
+		return new HashSet<>();
 	}
 	
 	void init() {
@@ -101,14 +129,8 @@ public class BoissinotDestructor {
 					}
 				}
 				
-				for(Statement s : Statement.enumerate(stmt)) {
-					if(s instanceof VarExpression) {
-						VarExpression v = (VarExpression) s;
-						Local l = v.getLocal();
-						
-						uses.getNonNull(l).add(b);
-					}
-				}
+				for (Local l : stmt.getUsedLocals())
+					uses.getNonNull(l).add(b);
 			}
 		}
 	}
@@ -250,19 +272,25 @@ public class BoissinotDestructor {
 		}
 		
 		boolean live_in(BasicBlock b, Local l) {
+			System.out.println("LiveInCheck a=" + l + ", q=" +  b);
+			System.out.println("  def=" + defs.get(l) + "; sdoms = " + sdoms.get(defs.get(l)));
+			System.out.println("  use=" + uses.get(l));
 			Set<BasicBlock> tqa = new HashSet<>(tq.get(b));
-			System.out.println(" tqa1: " + tqa);
+			System.out.println("   tqa1: " + tqa);
 			tqa.retainAll(sdoms.get(defs.get(l)));
-			System.out.println(" tqa2: " + tqa);
+			System.out.println("   tqa2: " + tqa);
 			
 			for(BasicBlock t : tqa) {
-				Set<BasicBlock> rt = rv.get(t);
+				Set<BasicBlock> rt = new HashSet<>(rv.get(t));
+				System.out.println("    t=" + t + " ; reachable=" + rt);
 				rt.retainAll(uses.get(l));
 				if(!rt.isEmpty()) {
+					System.out.println("=> result: true\n");
 					return true;
 				}
 			}
 			
+			System.out.println("=> result: false\n");
 			return false;
 		}
 		
@@ -314,17 +342,22 @@ public class BoissinotDestructor {
 			red_cfg = reduce(cfg, back);
 			reduced_dfs = new ExtendedDfs(red_cfg, entry, ExtendedDfs.POST | ExtendedDfs.PRE);
 			
+			BasicDotConfiguration<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> config = new BasicDotConfiguration<>(DotConfiguration.GraphType.DIRECTED);
+			DotWriter<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> writer = new DotWriter<>(config, red_cfg);
+			writer.add(new ControlFlowGraphDecorator().setFlags(OPT_DEEP | OPT_STMTS))
+					.setName("reducedCfg")
+					.export();
+			
 			// rv calcs.
 			for (BasicBlock b : reduced_dfs.post) {
 				rv.getNonNull(b).add(b);
-				for (FlowEdge<BasicBlock> e : cfg.getReverseEdges(b)) {
+				for (FlowEdge<BasicBlock> e : red_cfg.getReverseEdges(b))
 					rv.getNonNull(e.src).addAll(rv.get(b));
-				}
 			}
 			
-			for(BasicBlock b : cfg.vertices()) {
+			System.out.println("rv:");
+			for(BasicBlock b : cfg.vertices())
 				System.out.println(b.getId() + " = " + rv.get(b));
-			}
 			
 			// Paths Containing Back Edges: Of course, for the 
 			//  completeness of our algorithm we must also handle 
@@ -349,9 +382,8 @@ public class BoissinotDestructor {
 			// tq calcs.
 			Map<BasicBlock, Set<BasicBlock>> tups = new HashMap<>();
 			
-			for (BasicBlock b : cfg.vertices()) {
+			for (BasicBlock b : cfg.vertices())
 				tups.put(b, tup(b, back));
-			}
 			for (BasicBlock v : reduced_dfs.pre) {
 				tq.getNonNull(v).add(v);
 				for (BasicBlock w : tups.get(v))
@@ -359,9 +391,8 @@ public class BoissinotDestructor {
 			}
 			System.out.println("preorder: " + reduced_dfs.pre);
 			System.out.println("tq: ");
-			for (BasicBlock v : reduced_dfs.pre) {
+			for (BasicBlock v : reduced_dfs.pre)
 				System.out.println(v.getId() + " = " + tq.get(v));
-			}
 		}
 		
 		// Tup(t) = set of unreachable backedge targets from reachable sources
