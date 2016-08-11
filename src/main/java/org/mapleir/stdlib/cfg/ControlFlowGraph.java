@@ -1,8 +1,5 @@
 package org.mapleir.stdlib.cfg;
 
-import java.util.Set;
-
-import org.mapleir.stdlib.collections.bitset.GenericBitSet;
 import org.mapleir.stdlib.collections.graph.util.GraphUtils;
 import org.objectweb.asm.tree.MethodNode;
 
@@ -31,9 +28,5 @@ public class ControlFlowGraph extends FastBlockGraph {
 	@Override
 	public ControlFlowGraph copy() {
 		return new ControlFlowGraph(this);
-	}
-	
-	public Set<BasicBlock> createBitSet() {
-		return new GenericBitSet<>(indexer);
 	}
 }
