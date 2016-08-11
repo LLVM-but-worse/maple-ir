@@ -61,6 +61,7 @@ public class BoissinotDestructor implements Liveness<BasicBlock> {
 		
 		init();
 		insert_copies();
+		verify();
 		
 		BasicDotConfiguration<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> config = new BasicDotConfiguration<>(DotConfiguration.GraphType.DIRECTED);
 		DotWriter<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> writer = new DotWriter<>(config, cfg);
@@ -76,29 +77,7 @@ public class BoissinotDestructor implements Liveness<BasicBlock> {
 				for (Local l : stmt.getUsedLocals())
 					localsTest.add(l);
 		
-		for(BasicBlock b : cfg.vertices()) {
-			Set<Local> l1 = live.in(b);
-//			Set<Local> l2 = in(b);
-			
-			for(Local l : l1) {
-				boolean b1 = resolver.live_in(b, l);
-				if(!b1) {
-					System.err.println(b.getId() + " -> " + l);
-					throw new RuntimeException();
-				}
-			}
-			
-			Set<Local> l2 = new HashSet<>(localsTest);
-			l2.removeAll(l1);
-			
-			for(Local l : l2) {
-				boolean b1 = resolver.live_in(b, l);
-				if(b1) {
-					System.err.println(b.getId() + " -> !" + l);
-					throw new RuntimeException();
-				}
-			}
-		}
+
 		
 		writer.removeAll().add(new ControlFlowGraphDecorator().setFlags(OPT_DEEP | OPT_STMTS))
 				.add("liveness", new LivenessDecorator<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>>().setLiveness(this))
@@ -109,10 +88,107 @@ public class BoissinotDestructor implements Liveness<BasicBlock> {
 				.add(new LivenessDecorator<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>>().setLiveness(live))
 				.setName("liveness-bibl")
 				.export();
+		
+//		for(BasicBlock b : cfg.vertices()) {
+//			Set<Local> l1 = live.in(b);
+////			Set<Local> l2 = in(b);
+//			
+//			for(Local l : l1) {
+//				boolean b1 = resolver.live_in(b, l);
+//				if(!b1) {
+//					System.err.println(b.getId() + " -> " + l);
+//					throw new RuntimeException();
+//				}
+//			}
+//			
+//			Set<Local> l2 = new HashSet<>(localsTest);
+//			l2.removeAll(l1);
+//			
+//			for(Local l : l2) {
+//				boolean b1 = resolver.live_in(b, l);
+//				if(b1) {
+//					System.err.println(b.getId() + " -> !" + l);
+//					throw new RuntimeException();
+//				}
+//			}
+//		}
 	}
 	
 	void verify() {
+		System.out.println(code);
 		
+		Map<Local, BasicBlock> defs = new HashMap<>();
+		NullPermeableHashMap<Local, Set<BasicBlock>> uses = new NullPermeableHashMap<>(new SetCreator<>());
+		
+		for (BasicBlock b : cfg.vertices()) {
+			for (Statement stmt : b.getStatements()) {
+				if(stmt instanceof ParallelCopyVarStatement) {
+					ParallelCopyVarStatement pcopy = (ParallelCopyVarStatement) stmt;
+					for(CopyPair p : pcopy.pairs) {
+						defs.put(p.targ, b);
+						uses.getNonNull(p.source).add(b);
+					}
+				} else {
+					boolean _phi = false;
+					if (stmt instanceof CopyVarStatement) {
+						CopyVarStatement copy = (CopyVarStatement) stmt;
+						Local l = copy.getVariable().getLocal();
+						defs.put(l, b);
+
+						Expression e = copy.getExpression();
+						if (e instanceof PhiExpression) {
+							_phi = true;
+							PhiExpression phi = (PhiExpression) e;
+							for (Entry<HeaderStatement, Expression> en : phi.getLocals().entrySet()) {
+								BasicBlock p = ((BlockHeaderStatement) en.getKey()).getBlock();
+								Local ul = ((VarExpression) en.getValue()).getLocal();
+								uses.getNonNull(ul).add(p);
+							}
+
+							phis.add(l);
+						}
+					}
+
+					if (!_phi) {
+						for (Statement s : Statement.enumerate(stmt)) {
+							if (s instanceof VarExpression) {
+								Local l = ((VarExpression) s).getLocal();
+								uses.getNonNull(l).add(b);
+							}
+						}
+					}
+				}
+			}
+		}
+		
+		Set<Local> set = new HashSet<>();
+		set.addAll(defs.keySet());
+		set.addAll(this.defs.keySet());
+		
+		for(Local l : set) {
+			BasicBlock b1 = defs.get(l);
+			BasicBlock b2 = this.defs.get(l);
+			
+			if(b1 != b2) {
+				System.err.println(b1.getId() + ", " + b2.getId() + ", " + l);
+				throw new RuntimeException();
+			}
+		}
+		
+		set.clear();
+		set.addAll(uses.keySet());
+		set.addAll(this.uses.keySet());
+		
+		for(Local l : set) {
+			Set<BasicBlock> s1 = uses.getNonNull(l);
+			Set<BasicBlock> s2 = this.uses.getNonNull(l);
+			if(!s1.equals(s2)) {
+				System.err.println(GraphUtils.toBlockArray(s1, false));
+				System.err.println(GraphUtils.toBlockArray(s2, false));
+				System.err.println(l);
+				throw new RuntimeException();
+			}
+		}
 	}
 	
 	@Override
@@ -190,9 +266,6 @@ public class BoissinotDestructor implements Liveness<BasicBlock> {
 					Local src = code.getLocals().getLatestVersion(dst);
 					dstCopy.pairs.add(new CopyPair(dst, src));
 					copy.getVariable().setLocal(src);
-					
-					// replace old dst def
-					defs.put(src, defs.remove(dst));
 				} else {
 					// phis are only at the start.
 					break;
@@ -214,9 +287,16 @@ public class BoissinotDestructor implements Liveness<BasicBlock> {
 					Local dst = code.getLocals().makeLatestVersion(r.target);
 					copy.pairs.add(new CopyPair(dst, src));
 					
-					r.phi.setLocal(r.src, new VarExpression(dst, r.type));
+					// we consider phi args to be used in the pred
+					// instead of the block where the phi is, so
+					// we need to update the defuse maps here.
+					
+					// r.l or src is the current arg for the phi.
+					uses.getNonNull(src).remove(p);
+					uses.getNonNull(dst).add(p);
+					r.phi.setLocal(r.pred, new VarExpression(dst, r.type));
 				}
-				
+
 				insert_end(p, copy);
 			}
 		}
@@ -596,14 +676,14 @@ public class BoissinotDestructor implements Liveness<BasicBlock> {
 	class PhiRes {
 		final Local target;
 		final PhiExpression phi;
-		final HeaderStatement src;
+		final HeaderStatement pred;
 		final Local l;
 		final Type type;
 		
 		PhiRes(Local target, PhiExpression phi, HeaderStatement src, Local l, Type type) {
 			this.target = target;
 			this.phi = phi;
-			this.src = src;
+			pred = src;
 			this.l = l;
 			this.type = type;
 		}
@@ -616,6 +696,11 @@ public class BoissinotDestructor implements Liveness<BasicBlock> {
 		CopyPair(Local dst, Local src) {
 			targ = dst;
 			source = src;
+		}
+		
+		@Override
+		public String toString() {
+			return targ + " =P= " + source;
 		}
 	}
 	
