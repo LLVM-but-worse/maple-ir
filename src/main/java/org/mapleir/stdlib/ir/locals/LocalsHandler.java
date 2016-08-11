@@ -37,7 +37,7 @@ public class LocalsHandler {
 	}
 	
 	// factory
-	Set<Local> createBitSet() {
+	GenericBitSet<Local> createBitSet() {
 		return new GenericBitSet<>(indexer);
 	}
 	

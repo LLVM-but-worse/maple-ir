@@ -44,9 +44,9 @@ public class GenericBitSet<N> implements Set<N> {
 	}
 	
 	public boolean containsAll(GenericBitSet<N> set) {
-		BitSet temp = (BitSet) set.bitset.clone();
+		BitSet temp = (BitSet) bitset.clone(); // if contains all, set.bitset will be a subset of our bitset
 		temp.and(set.bitset);
-		return temp.equals(set.bitset);
+		return temp.equals(bitset);
 	}
 	
 	@Override
@@ -57,12 +57,10 @@ public class GenericBitSet<N> implements Set<N> {
 		return true;
 	}
 	
-	public boolean addAll(GenericBitSet<N> n) {
+	public void addAll(GenericBitSet<N> n) {
 		if (indexer != n.indexer)
 			throw new IllegalArgumentException("Fast addAll operands must share the same BitSetIndexer");
-		BitSet temp = (BitSet) n.bitset.clone();
-		temp.or(n.bitset);
-		return !bitset.equals(temp);
+		bitset.or(n.bitset);
 	}
 	
 	public GenericBitSet<N> union(GenericBitSet<N> n) {
@@ -75,14 +73,12 @@ public class GenericBitSet<N> implements Set<N> {
 	public boolean addAll(Collection<? extends N> c) {
 		boolean ret = false;
 		for (N o : c)
-			ret = ret || add(o);
+			ret = add(o) || ret;
 		return ret;
 	}
 	
-	public boolean retainAll(GenericBitSet<N> n) {
-		BitSet temp = (BitSet) n.bitset.clone();
-		temp.and(n.bitset);
-		return !bitset.equals(temp);
+	public void retainAll(GenericBitSet<N> n) {
+		bitset.and(n.bitset);
 	}
 	
 	public GenericBitSet<N> intersect(GenericBitSet<N> n) {
@@ -104,10 +100,8 @@ public class GenericBitSet<N> implements Set<N> {
 		return ret;
 	}
 	
-	public boolean removeAll(GenericBitSet<N> n) {
-		BitSet temp = (BitSet) n.bitset.clone();
-		temp.andNot(n.bitset);
-		return !bitset.equals(temp);
+	public void removeAll(GenericBitSet<N> n) {
+		bitset.andNot(n.bitset);
 	}
 	
 	public GenericBitSet<N> relativeComplement(GenericBitSet<N> n) {
@@ -120,7 +114,7 @@ public class GenericBitSet<N> implements Set<N> {
 	public boolean removeAll(Collection<?> c) {
 		boolean ret = false;
 		for (Object o : c)
-			ret = ret || remove(o);
+			ret = remove(o) || ret;
 		return ret;
 	}
 	
@@ -147,18 +141,36 @@ public class GenericBitSet<N> implements Set<N> {
 	}
 	
 	@Override
+	public String toString() {
+		StringBuilder sb = new StringBuilder("[ ");
+		for (N n : this)
+			sb.append(n).append(" ");
+		return sb.append("]").toString();
+	}
+	
+	@Override
+	public boolean equals(Object o) {
+		if (!(o instanceof GenericBitSet))
+			return false;
+		GenericBitSet gbs = (GenericBitSet) o;
+		if (indexer != gbs.indexer)
+			return false;
+		return bitset.equals(gbs.bitset);
+	}
+	
+	@Override
 	public Iterator<N> iterator() {
 		return new Iterator<N> () {
 			int index = 0;
 			
 			@Override
 			public boolean hasNext() {
-				return bitset.nextSetBit(index) != -1;
+				return bitset.nextSetBit(index + 1) != -1;
 			}
 			
 			@Override
 			public N next() {
-				return indexer.get(index = bitset.nextSetBit(index));
+				return indexer.get(index = bitset.nextSetBit(index + 1));
 			}
 			
 			@Override

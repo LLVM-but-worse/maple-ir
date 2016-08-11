@@ -8,6 +8,7 @@ import java.util.Set;
 import org.mapleir.stdlib.cfg.edge.FlowEdge;
 import org.mapleir.stdlib.cfg.edge.TryCatchEdge;
 import org.mapleir.stdlib.collections.bitset.BitSetIndexer;
+import org.mapleir.stdlib.collections.bitset.GenericBitSet;
 import org.mapleir.stdlib.collections.graph.flow.ExceptionRange;
 import org.mapleir.stdlib.collections.graph.flow.FlowGraph;
 import org.objectweb.asm.tree.LabelNode;
@@ -195,5 +196,11 @@ public class FastBlockGraph extends FlowGraph<BasicBlock, FlowEdge<BasicBlock>> 
 	@Override
 	public FastBlockGraph copy() {
 		return new FastBlockGraph(this);
+	}
+	
+	public GenericBitSet<BasicBlock> createBitSet() {
+		GenericBitSet<BasicBlock> set = new GenericBitSet<>(indexer);
+		set.addAll(vertices());
+		return set;
 	}
 }
