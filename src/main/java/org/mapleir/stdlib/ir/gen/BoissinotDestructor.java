@@ -1,5 +1,7 @@
 package org.mapleir.stdlib.ir.gen;
 
+import static org.mapleir.stdlib.collections.graph.dot.impl.ControlFlowGraphDecorator.*;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -41,9 +43,6 @@ import org.mapleir.stdlib.ir.transform.ssa.SSALivenessAnalyser;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Type;
 
-import static org.mapleir.stdlib.collections.graph.dot.impl.ControlFlowGraphDecorator.OPT_DEEP;
-import static org.mapleir.stdlib.collections.graph.dot.impl.ControlFlowGraphDecorator.OPT_STMTS;
-
 public class BoissinotDestructor implements Liveness<BasicBlock> {
 
 	private final ControlFlowGraph cfg;
@@ -51,6 +50,7 @@ public class BoissinotDestructor implements Liveness<BasicBlock> {
 	private final Map<BasicBlock, HeaderStatement> headers;
 	private final Map<Local, BasicBlock> defs;
 	private final NullPermeableHashMap<Local, Set<BasicBlock>> uses;
+	private final Set<Local> phis;
 	
 	private InterferenceResolver resolver;
 	
@@ -63,10 +63,9 @@ public class BoissinotDestructor implements Liveness<BasicBlock> {
 		headers = new HashMap<>();
 		defs = new HashMap<>();
 		uses = new NullPermeableHashMap<>(new SetCreator<>());
+		phis = new HashSet<>();
 		
 		init();
-		
-		
 
 		resolver = new InterferenceResolver();
 		
@@ -75,6 +74,30 @@ public class BoissinotDestructor implements Liveness<BasicBlock> {
 			for (Statement stmt : b.getStatements())
 				for (Local l : stmt.getUsedLocals())
 					localsTest.add(l);
+		
+		for(BasicBlock b : cfg.vertices()) {
+			Set<Local> l1 = live.in(b);
+//			Set<Local> l2 = in(b);
+			
+			for(Local l : l1) {
+				boolean b1 = resolver.live_in(b, l);
+				if(!b1) {
+					System.err.println(b.getId() + " -> " + l);
+					throw new RuntimeException();
+				}
+			}
+			
+			Set<Local> l2 = new HashSet<>(localsTest);
+			l2.removeAll(l1);
+			
+			for(Local l : l2) {
+				boolean b1 = resolver.live_in(b, l);
+				if(b1) {
+					System.err.println(b.getId() + " -> !" + l);
+					throw new RuntimeException();
+				}
+			}
+		}
 		
 		BasicDotConfiguration<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> config = new BasicDotConfiguration<>(DotConfiguration.GraphType.DIRECTED);
 		DotWriter<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> writer = new DotWriter<>(config, cfg);
@@ -88,7 +111,7 @@ public class BoissinotDestructor implements Liveness<BasicBlock> {
 				.setName("liveness-bibl")
 				.export();
 		
-		insert_copies();
+//		insert_copies();
 	}
 	
 	@Override
@@ -113,6 +136,7 @@ public class BoissinotDestructor implements Liveness<BasicBlock> {
 				b = h.getBlock();
 				headers.put(b, h);
 			} else {
+				boolean _phi = false;
 				if(stmt instanceof CopyVarStatement) {
 					CopyVarStatement copy = (CopyVarStatement) stmt;
 					Local l = copy.getVariable().getLocal();
@@ -120,17 +144,26 @@ public class BoissinotDestructor implements Liveness<BasicBlock> {
 					
 					Expression e = copy.getExpression();
 					if(e instanceof PhiExpression) {
+						_phi = true;
 						PhiExpression phi = (PhiExpression) e;
 						for(Entry<HeaderStatement, Expression> en : phi.getLocals().entrySet()) {
 							BasicBlock p = ((BlockHeaderStatement) en.getKey()).getBlock();
 							Local ul = ((VarExpression) en.getValue()).getLocal();
 							uses.getNonNull(ul).add(p);
 						}
+						
+						phis.add(l);
 					}
 				}
 				
-				for (Local l : stmt.getUsedLocals())
-					uses.getNonNull(l).add(b);
+				if(!_phi) {
+					for(Statement s : Statement.enumerate(stmt)) {
+						if(s instanceof VarExpression) {
+							Local l = ((VarExpression) s).getLocal();
+							uses.getNonNull(l).add(b);
+						}
+					}
+				}
 			}
 		}
 	}
@@ -272,17 +305,21 @@ public class BoissinotDestructor implements Liveness<BasicBlock> {
 		}
 		
 		boolean live_in(BasicBlock b, Local l) {
-			System.out.println("LiveInCheck a=" + l + ", q=" +  b);
-			System.out.println("  def=" + defs.get(l) + "; sdoms = " + sdoms.get(defs.get(l)));
-			System.out.println("  use=" + uses.get(l));
+			if(phis.contains(l) && defs.get(l) == b) {
+				return true;
+			}
+			
+			System.out.println("LiveInCheck a=" + l + ", q=" +  b.getId());
+			System.out.println("  def=" + defs.get(l).getId() + "; sdoms = " + GraphUtils.toBlockArray(sdoms.get(defs.get(l)), false));
+			System.out.println("  use=" + GraphUtils.toBlockArray(uses.get(l), false));
 			Set<BasicBlock> tqa = new HashSet<>(tq.get(b));
-			System.out.println("   tqa1: " + tqa);
+			System.out.println("   tqa1: " + GraphUtils.toBlockArray(tqa, false));
 			tqa.retainAll(sdoms.get(defs.get(l)));
-			System.out.println("   tqa2: " + tqa);
+			System.out.println("   tqa2: " + GraphUtils.toBlockArray(tqa, false));
 			
 			for(BasicBlock t : tqa) {
 				Set<BasicBlock> rt = new HashSet<>(rv.get(t));
-				System.out.println("    t=" + t + " ; reachable=" + rt);
+				System.out.println("    t=" + t + " ; reachable=" + GraphUtils.toBlockArray(rt, false));
 				rt.retainAll(uses.get(l));
 				if(!rt.isEmpty()) {
 					System.out.println("=> result: true\n");
