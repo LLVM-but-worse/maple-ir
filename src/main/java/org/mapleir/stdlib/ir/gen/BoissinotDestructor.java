@@ -175,6 +175,7 @@ public class BoissinotDestructor implements Liveness<BasicBlock> {
 			BasicBlock b2 = this.defs.get(l);
 			
 			if(b1 != b2) {
+				System.err.println("Defs:");
 				System.err.println(b1 + ", " + b2 + ", " + l);
 				throw new RuntimeException();
 			}
@@ -188,6 +189,7 @@ public class BoissinotDestructor implements Liveness<BasicBlock> {
 			Set<BasicBlock> s1 = uses.getNonNull(l);
 			Set<BasicBlock> s2 = this.uses.getNonNull(l);
 			if(!s1.equals(s2)) {
+				System.err.println("Uses:");
 				System.err.println(GraphUtils.toBlockArray(s1, false));
 				System.err.println(GraphUtils.toBlockArray(s2, false));
 				System.err.println(l);
@@ -292,6 +294,12 @@ public class BoissinotDestructor implements Liveness<BasicBlock> {
 			Local z0 = code.getLocals().makeLatestVersion(x0);
 			dst_copy.pairs.add(new CopyPair(x0, z0)); // x0 = z0
 			copy.getVariable().setLocal(z0); // z0 = phi(...)
+			
+			// both defined and used in this block.
+			defs.put(x0, b);
+			defs.put(z0, b);
+			uses.getNonNull(x0).add(b);
+			uses.getNonNull(z0).add(b);
 		}
 		
 		// resolve
@@ -314,11 +322,20 @@ public class BoissinotDestructor implements Liveness<BasicBlock> {
 				copy.pairs.add(new CopyPair(zi, xi));
 				
 				// we consider phi args to be used in the pred
-				// instead of the block where the phi is, so
-				// we need to update the defuse maps here.
+				//  instead of the block where the phi is, so
+				//  we need to update the def/use maps here.
 				
-				uses.getNonNull(xi).remove(p);
+				// zi is defined in the pred.
+				defs.put(zi, p);
+				// xi is used in the zi def.
 				uses.getNonNull(zi).add(p);
+				// xi is replaced with zi in the phi block,
+				//  but for this implementation, we consider
+				//  the phi source uses to be in the pre.
+				//  n.b. that zi, which should be used in the
+				//       phi pred is already added above.
+				uses.getNonNull(xi).remove(p);
+				
 				r.phi.setLocal(r.pred, new VarExpression(zi, r.type));
 			}
 
