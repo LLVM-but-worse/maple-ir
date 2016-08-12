@@ -304,7 +304,7 @@ public class BoissinotDestructor implements Liveness<BasicBlock> {
 		
 		// resolve
 		if(dst_copy.pairs.size() > 0) {
-			insert(b, dst_copy);
+			insert_start(b, dst_copy);
 		}
 		
 		for(Entry<BasicBlock, List<PhiRes>> e : wl.entrySet()) {
@@ -339,7 +339,7 @@ public class BoissinotDestructor implements Liveness<BasicBlock> {
 				r.phi.setLocal(r.pred, new VarExpression(zi, r.type));
 			}
 
-			insert(p, copy);
+			insert_end(p, copy);
 		}
 	}
 	
@@ -355,18 +355,39 @@ public class BoissinotDestructor implements Liveness<BasicBlock> {
 		}
 	}
 	
-	void insert(BasicBlock b, ParallelCopyVarStatement copy) {
+	void insert_empty(BasicBlock b, List<Statement> stmts, ParallelCopyVarStatement copy) {
+		int i = code.indexOf(headers.get(b));
+		if(i == -1) {
+			throw new IllegalStateException(b.getId());
+		}
+		code.add(i + 1, copy);
+		stmts.add(copy);
+	}
+	
+	void insert_start(BasicBlock b, ParallelCopyVarStatement copy) {
+		record_pcopy(b, copy);
+
+		List<Statement> stmts = b.getStatements();		
+		if(stmts.isEmpty()) {
+			insert_empty(b, stmts, copy);
+		} else {
+			int i = 0;
+			Statement stmt = stmts.get(0);
+			while(PhiExpression.phi(stmt) || stmt instanceof ParallelCopyVarStatement) {
+				stmt = stmts.get(++i);
+			}
+			
+			stmts.add(stmts.indexOf(stmt), copy);
+			code.add(code.indexOf(stmt), copy);
+		}
+	}
+	
+	void insert_end(BasicBlock b, ParallelCopyVarStatement copy) {
 		record_pcopy(b, copy);
 		
 		List<Statement> stmts = b.getStatements();
-
 		if(stmts.isEmpty()) {
-			int i = code.indexOf(headers.get(b));
-			if(i == -1) {
-				throw new IllegalStateException(b.getId());
-			}
-			code.add(i + 1, copy);
-			stmts.add(copy);
+			insert_empty(b, stmts, copy);
 		} else {
 			Statement last = stmts.get(stmts.size() - 1);
 			int index = code.indexOf(last);
@@ -383,7 +404,7 @@ public class BoissinotDestructor implements Liveness<BasicBlock> {
 			code.add(index, copy);
 		}
 	}
-			
+	
 	class InterferenceResolver {
 
 		final NullPermeableHashMap<BasicBlock, Set<BasicBlock>> rv;
