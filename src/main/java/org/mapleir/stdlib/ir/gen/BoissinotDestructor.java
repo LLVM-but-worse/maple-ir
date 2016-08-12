@@ -116,7 +116,12 @@ public class BoissinotDestructor implements Liveness<BasicBlock> {
 	
 	void verify() {
 		System.out.println(code);
-		
+		StringBuilder sb = new StringBuilder();
+		for(BasicBlock b : cfg.vertices()) {
+			GraphUtils.printBlock(cfg, sb, b, 0, true, true);
+			sb.append("\n");
+		}
+		System.out.println(sb.toString());
 		Map<Local, BasicBlock> defs = new HashMap<>();
 		NullPermeableHashMap<Local, Set<BasicBlock>> uses = new NullPermeableHashMap<>(new SetCreator<>());
 		
@@ -170,7 +175,7 @@ public class BoissinotDestructor implements Liveness<BasicBlock> {
 			BasicBlock b2 = this.defs.get(l);
 			
 			if(b1 != b2) {
-				System.err.println(b1.getId() + ", " + b2.getId() + ", " + l);
+				System.err.println(b1 + ", " + b2 + ", " + l);
 				throw new RuntimeException();
 			}
 		}
@@ -247,69 +252,93 @@ public class BoissinotDestructor implements Liveness<BasicBlock> {
 
 	void insert_copies() {
 		for(BasicBlock b : cfg.vertices()) {
-			NullPermeableHashMap<BasicBlock, List<PhiRes>> wl = new NullPermeableHashMap<>(new ListCreator<>());
-			ParallelCopyVarStatement dstCopy = new ParallelCopyVarStatement();
-			
-			for(Statement stmt : b.getStatements()) {
-				if(PhiExpression.phi(stmt)) {
-					CopyVarStatement copy = (CopyVarStatement) stmt;
-					PhiExpression phi = (PhiExpression) copy.getExpression();
-					
-					for(Entry<HeaderStatement, Expression> e : phi.getLocals().entrySet()) {
-						BlockHeaderStatement h = (BlockHeaderStatement) e.getKey();
-						VarExpression v = (VarExpression) e.getValue();
-						PhiRes r = new PhiRes(copy.getVariable().getLocal(), phi, h, v.getLocal(), v.getType());
-						wl.getNonNull(h.getBlock()).add(r);
-					}
-					
-					Local dst = copy.getVariable().getLocal();
-					Local src = code.getLocals().getLatestVersion(dst);
-					dstCopy.pairs.add(new CopyPair(dst, src));
-					copy.getVariable().setLocal(src);
-				} else {
-					// phis are only at the start.
-					break;
-				}
+			insert_copies(b);
+		}
+	}
+	
+	void insert_copies(BasicBlock b) {
+		NullPermeableHashMap<BasicBlock, List<PhiRes>> wl = new NullPermeableHashMap<>(new ListCreator<>());
+		ParallelCopyVarStatement dst_copy = new ParallelCopyVarStatement();
+		
+		// given a phi: L0: x0 = phi(L1:x1, L2:x2)
+		//  insert the copies:
+		//   L0: x0 = x3 (at the end of L0)
+		//   L1: x4 = x1
+		//   L2: x5 = x2
+		//  and change the phi to:
+		//   x3 = phi(L1:x4, L2:x5)
+		
+		for(Statement stmt : b.getStatements()) {
+			if(!PhiExpression.phi(stmt)) {
+				break;
 			}
 			
-			// resolve
-			if(dstCopy.pairs.size() > 0) {
-				insert_end(b, dstCopy);
+			CopyVarStatement copy = (CopyVarStatement) stmt;
+			PhiExpression phi = (PhiExpression) copy.getExpression();
+			
+			// for every xi arg of the phi from pred Li, add it to the worklist
+			// so that we can parallelise the copy when we insert it.
+			for(Entry<HeaderStatement, Expression> e : phi.getLocals().entrySet()) {
+				BlockHeaderStatement h = (BlockHeaderStatement) e.getKey();
+				VarExpression v = (VarExpression) e.getValue();
+				PhiRes r = new PhiRes(copy.getVariable().getLocal(), phi, h, v.getLocal(), v.getType());
+				wl.getNonNull(h.getBlock()).add(r);
 			}
 			
-			for(Entry<BasicBlock, List<PhiRes>> e : wl.entrySet()) {
-				BasicBlock p = e.getKey();
+			// for each x0, where x0 is a phi copy target, create a new
+			// variable z0 for a copy z0 = x0 and replace the phi
+			// copy target to z0.
+			Local x0 = copy.getVariable().getLocal();
+			Local z0 = code.getLocals().makeLatestVersion(x0);
+			dst_copy.pairs.add(new CopyPair(x0, z0)); // x0 = z0
+			copy.getVariable().setLocal(z0); // z0 = phi(...)
+		}
+		
+		// resolve
+		if(dst_copy.pairs.size() > 0) {
+			insert(b, dst_copy);
+		}
+		
+		for(Entry<BasicBlock, List<PhiRes>> e : wl.entrySet()) {
+			BasicBlock p = e.getKey();
+			
+			ParallelCopyVarStatement copy = new ParallelCopyVarStatement();
+			
+			for(PhiRes r : e.getValue()) {
+				// for each xi source in a phi, create a new variable zi,
+				// and insert the copy zi = xi in the pred Li. then replace
+				// the phi arg from Li with zi.
 				
-				ParallelCopyVarStatement copy = new ParallelCopyVarStatement();
+				Local xi = r.l;
+				Local zi = code.getLocals().makeLatestVersion(xi);
+				copy.pairs.add(new CopyPair(zi, xi));
 				
-				for(PhiRes r : e.getValue()) {
-					Local src = r.l;
-					Local dst = code.getLocals().makeLatestVersion(r.target);
-					copy.pairs.add(new CopyPair(dst, src));
-					
-					// we consider phi args to be used in the pred
-					// instead of the block where the phi is, so
-					// we need to update the defuse maps here.
-					
-					// r.l or src is the current arg for the phi.
-					uses.getNonNull(src).remove(p);
-					uses.getNonNull(dst).add(p);
-					r.phi.setLocal(r.pred, new VarExpression(dst, r.type));
-				}
+				// we consider phi args to be used in the pred
+				// instead of the block where the phi is, so
+				// we need to update the defuse maps here.
+				
+				uses.getNonNull(xi).remove(p);
+				uses.getNonNull(zi).add(p);
+				r.phi.setLocal(r.pred, new VarExpression(zi, r.type));
+			}
 
-				insert_end(p, copy);
-			}
+			insert(p, copy);
 		}
 	}
 	
 	void record_pcopy(BasicBlock b, ParallelCopyVarStatement copy) {
+		System.out.println("INSERT: " + copy);
+		
 		for(CopyPair p : copy.pairs) {
 			defs.put(p.targ, b);
 			uses.getNonNull(p.source).add(b);
+			
+			localsTest.add(p.targ);
+			localsTest.add(p.source);
 		}
 	}
 	
-	void insert_end(BasicBlock b, ParallelCopyVarStatement copy) {
+	void insert(BasicBlock b, ParallelCopyVarStatement copy) {
 		record_pcopy(b, copy);
 		
 		List<Statement> stmts = b.getStatements();
@@ -332,7 +361,7 @@ public class BoissinotDestructor implements Liveness<BasicBlock> {
 				//  ^ do this above so that s goes to the end
 				//    but here it needs to go before the end/jump.
 				// add before the jump
-				stmts.add(stmts.indexOf(last) - 1, copy);
+				stmts.add(stmts.indexOf(last), copy);
 			}
 			code.add(index, copy);
 		}
@@ -585,29 +614,32 @@ public class BoissinotDestructor implements Liveness<BasicBlock> {
 		}
 		
 		boolean live_in(BasicBlock b, Local l) {
+			if(phis.contains(l)) {
+				System.out.println("phi: " + l + ", " + b.getId() + ", " + defs.get(l).getId());
+			}
 			if(phis.contains(l) && defs.get(l) == b) {
 				return true;
 			}
 			
-			System.out.println("LiveInCheck a=" + l + ", q=" +  b.getId());
-			System.out.println("  def=" + defs.get(l).getId() + "; sdoms = " + GraphUtils.toBlockArray(sdoms.get(defs.get(l)), false));
-			System.out.println("  use=" + GraphUtils.toBlockArray(uses.get(l), false));
+//			System.out.println("LiveInCheck a=" + l + ", q=" +  b.getId());
+//			System.out.println("  def=" + defs.get(l).getId() + "; sdoms = " + GraphUtils.toBlockArray(sdoms.get(defs.get(l)), false));
+//			System.out.println("  use=" + GraphUtils.toBlockArray(uses.get(l), false));
 			Set<BasicBlock> tqa = new HashSet<>(tq.get(b));
-			System.out.println("   tqa1: " + GraphUtils.toBlockArray(tqa, false));
+//			System.out.println("   tqa1: " + GraphUtils.toBlockArray(tqa, false));
 			tqa.retainAll(sdoms.get(defs.get(l)));
-			System.out.println("   tqa2: " + GraphUtils.toBlockArray(tqa, false));
+//			System.out.println("   tqa2: " + GraphUtils.toBlockArray(tqa, false));
 			
 			for(BasicBlock t : tqa) {
 				Set<BasicBlock> rt = new HashSet<>(rv.get(t));
-				System.out.println("    t=" + t + " ; reachable=" + GraphUtils.toBlockArray(rt, false));
+//				System.out.println("    t=" + t + " ; reachable=" + GraphUtils.toBlockArray(rt, false));
 				rt.retainAll(uses.get(l));
 				if(!rt.isEmpty()) {
-					System.out.println("=> result: true\n");
+//					System.out.println("=> result: true\n");
 					return true;
 				}
 			}
 			
-			System.out.println("=> result: false\n");
+//			System.out.println("=> result: false\n");
 			return false;
 		}
 	}
