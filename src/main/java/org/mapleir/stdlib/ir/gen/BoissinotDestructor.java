@@ -89,6 +89,9 @@ public class BoissinotDestructor implements Liveness<BasicBlock> {
 				.setName("liveness-bibl")
 				.export();
 		
+		coalesce();
+		
+		
 //		for(BasicBlock b : cfg.vertices()) {
 //			Set<Local> l1 = live.in(b);
 ////			Set<Local> l2 = in(b);
@@ -371,9 +374,10 @@ public class BoissinotDestructor implements Liveness<BasicBlock> {
 		if(stmts.isEmpty()) {
 			insert_empty(b, stmts, copy);
 		} else {
+			// insert after phi.
 			int i = 0;
 			Statement stmt = stmts.get(0);
-			while(PhiExpression.phi(stmt) || stmt instanceof ParallelCopyVarStatement) {
+			while(PhiExpression.phi(stmt)) {
 				stmt = stmts.get(++i);
 			}
 			
@@ -402,6 +406,68 @@ public class BoissinotDestructor implements Liveness<BasicBlock> {
 				stmts.add(stmts.indexOf(last), copy);
 			}
 			code.add(index, copy);
+		}
+	}
+	
+	void coalesce() {
+		// since we are now in csaa, all phi locals
+		//  can we coalesced into the same var.
+		
+		Map<Local, Local> remap = new HashMap<>();
+//		Set<Set<Local>> pccs = new HashSet<>();
+		for(BasicBlock b : cfg.vertices()) {
+			Iterator<Statement> it = b.getStatements().iterator();
+			while(it.hasNext()) {
+				Statement stmt = it.next();
+				if(stmt instanceof CopyVarStatement) {
+					CopyVarStatement copy = (CopyVarStatement) stmt;
+					Expression e = copy.getExpression();
+					if(e instanceof PhiExpression) {
+//						Set<Local> pcc = new HashSet<>();
+//						pcc.add(copy.getVariable().getLocal());
+						Local l1 = copy.getVariable().getLocal();
+						Local newL = code.getLocals().makeLatestVersion(l1);
+						remap.put(l1, newL);
+						
+						PhiExpression phi = (PhiExpression) e;
+						
+						for(Expression ex : phi.getLocals().values()) {
+							VarExpression v = (VarExpression) ex;
+							Local l = v.getLocal();
+							remap.put(l, newL);
+//							pcc.add(l);
+						}
+						
+//						pccs.add(pcc);
+						
+						code.remove(copy);
+						it.remove();
+					}
+				}
+			}
+		}
+		
+		for(Statement stmt : code) {
+			if(stmt instanceof ParallelCopyVarStatement) {
+				ParallelCopyVarStatement copy = (ParallelCopyVarStatement) stmt;
+				for(CopyPair p : copy.pairs) {
+					p.source = remap.getOrDefault(p.source, p.source);
+					p.targ = remap.getOrDefault(p.targ, p.targ);
+				}
+			} else {
+				if(stmt instanceof CopyVarStatement) {
+					CopyVarStatement copy = (CopyVarStatement) stmt;
+					VarExpression v = copy.getVariable();
+					v.setLocal(remap.getOrDefault(v.getLocal(), v.getLocal()));
+				}
+				
+				for(Statement s : Statement.enumerate(stmt)) {
+					if(s instanceof VarExpression) {
+						VarExpression v = (VarExpression) s;
+						v.setLocal(remap.getOrDefault(v.getLocal(), v.getLocal()));
+					}
+				}
+			}
 		}
 	}
 	
@@ -462,6 +528,11 @@ public class BoissinotDestructor implements Liveness<BasicBlock> {
 							values.put(b, values.get(a));
 						} else {
 							values.put(b, b);
+						}
+					} else if(stmt instanceof ParallelCopyVarStatement) {
+						ParallelCopyVarStatement copy = (ParallelCopyVarStatement) stmt;
+						for(CopyPair p : copy.pairs) {
+							values.put(p.targ, values.get(p.source));
 						}
 					}
 				}

@@ -108,7 +108,7 @@ public class AnalyticsTest {
 		while(it.hasNext()) {
 			MethodNode m = it.next();
 
-			if(!m.toString().equals("org/mapleir/AnalyticsTest.loopTest()V")) {
+			if(!m.toString().equals("org/mapleir/AnalyticsTest.test111()V")) {
 				continue;
 			}
 			System.out.println("Processing " + m + "\n");
