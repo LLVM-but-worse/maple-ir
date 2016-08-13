@@ -10,6 +10,7 @@ import java.util.Set;
 
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
+import org.mapleir.ir.code.ExpressionStack;
 import org.mapleir.ir.code.expr.*;
 import org.mapleir.ir.code.expr.ArithmeticExpression.Operator;
 import org.mapleir.ir.code.expr.ComparisonExpression.ValueComparisonType;

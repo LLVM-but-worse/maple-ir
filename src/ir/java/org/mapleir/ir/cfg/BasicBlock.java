@@ -7,13 +7,13 @@ import java.util.List;
 import java.util.Set;
 import java.util.function.Predicate;
 
+import org.mapleir.ir.code.ExpressionStack;
 import org.mapleir.ir.code.stmt.Statement;
 import org.mapleir.stdlib.cfg.edge.FlowEdge;
 import org.mapleir.stdlib.cfg.edge.ImmediateEdge;
 import org.mapleir.stdlib.cfg.edge.TryCatchEdge;
 import org.mapleir.stdlib.collections.graph.FastGraphVertex;
 import org.mapleir.stdlib.collections.graph.flow.ExceptionRange;
-import org.mapleir.stdlib.ir.gen.ExpressionStack;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.tree.LabelNode;
 
