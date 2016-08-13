@@ -1,6 +1,6 @@
 package org.mapleir.stdlib;
 
-import org.mapleir.stdlib.cfg.ControlFlowGraph;
+import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.stdlib.collections.NodeTable;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;

@@ -2,7 +2,7 @@ package org.mapleir.stdlib.ir.transform;
 
 import java.util.Set;
 
-import org.mapleir.stdlib.ir.locals.Local;
+import org.mapleir.ir.locals.Local;
 
 public interface Liveness<N> {
 

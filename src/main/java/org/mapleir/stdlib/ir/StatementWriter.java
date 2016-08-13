@@ -5,14 +5,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.mapleir.stdlib.cfg.BasicBlock;
-import org.mapleir.stdlib.cfg.ControlFlowGraph;
+import org.mapleir.ir.cfg.BasicBlock;
+import org.mapleir.ir.cfg.ControlFlowGraph;
+import org.mapleir.ir.code.stmt.Statement;
 import org.mapleir.stdlib.cfg.edge.DummyEdge;
 import org.mapleir.stdlib.cfg.util.LabelHelper;
 import org.mapleir.stdlib.collections.graph.flow.ExceptionRange;
 import org.mapleir.stdlib.ir.header.BlockHeaderStatement;
 import org.mapleir.stdlib.ir.header.HeaderStatement;
-import org.mapleir.stdlib.ir.stat.Statement;
 import org.mapleir.stdlib.ir.transform.impl.CodeAnalytics;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.tree.LabelNode;

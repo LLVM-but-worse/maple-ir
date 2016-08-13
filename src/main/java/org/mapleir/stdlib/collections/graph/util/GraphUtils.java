@@ -1,11 +1,13 @@
 package org.mapleir.stdlib.collections.graph.util;
 
 import java.util.*;
-import java.util.Map.Entry;
 import java.util.function.Predicate;
 
-import org.mapleir.stdlib.cfg.BasicBlock;
-import org.mapleir.stdlib.cfg.ControlFlowGraph;
+import org.mapleir.ir.analysis.StatementGraph;
+import org.mapleir.ir.cfg.BasicBlock;
+import org.mapleir.ir.cfg.ControlFlowGraph;
+import org.mapleir.ir.code.expr.PhiExpression;
+import org.mapleir.ir.code.stmt.Statement;
 import org.mapleir.stdlib.cfg.edge.DefaultSwitchEdge;
 import org.mapleir.stdlib.cfg.edge.FlowEdge;
 import org.mapleir.stdlib.cfg.edge.JumpEdge;
@@ -15,10 +17,7 @@ import org.mapleir.stdlib.cfg.util.LabelHelper;
 import org.mapleir.stdlib.cfg.util.TabbedStringWriter;
 import org.mapleir.stdlib.collections.graph.flow.ExceptionRange;
 import org.mapleir.stdlib.ir.CodeBody;
-import org.mapleir.stdlib.ir.StatementGraph;
-import org.mapleir.stdlib.ir.expr.PhiExpression;
 import org.mapleir.stdlib.ir.header.HeaderStatement;
-import org.mapleir.stdlib.ir.stat.Statement;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.*;
 import org.objectweb.asm.util.Printer;
@@ -669,28 +668,5 @@ public class GraphUtils {
 		// remove the edge from pred -> dst
 		cfg.removeEdge(pred, e);
 		// mergeTrys(cfg, order, pred, b);
-	}
-	
-	public static void naturaliseGraph(ControlFlowGraph cfg, List<BasicBlock> order) {
-		// copy edge sets
-		Map<BasicBlock, Set<FlowEdge<BasicBlock>>> edges = new HashMap<>();
-		for(BasicBlock b : order) {
-			edges.put(b, cfg.getEdges(b));
-		}
-		// clean graph
-		cfg.clear();
-		// rename and add blocks
-		int label = 1;
-		for(BasicBlock b : order) {
-			b.setId(label++);
-			cfg.addVertex(b);
-		}
-		
-		for(Entry<BasicBlock, Set<FlowEdge<BasicBlock>>> e : edges.entrySet()) {
-			BasicBlock b = e.getKey();
-			for(FlowEdge<BasicBlock> fe : e.getValue()) {
-				cfg.addEdge(b, fe);
-			}
-		}
 	}
 }

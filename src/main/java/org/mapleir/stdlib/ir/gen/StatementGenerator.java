@@ -1,25 +1,33 @@
 package org.mapleir.stdlib.ir.gen;
 
-import org.mapleir.stdlib.cfg.BasicBlock;
-import org.mapleir.stdlib.cfg.ControlFlowGraph;
-import org.mapleir.stdlib.cfg.util.TypeUtils;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+
+import org.mapleir.ir.cfg.BasicBlock;
+import org.mapleir.ir.cfg.ControlFlowGraph;
+import org.mapleir.ir.code.expr.*;
+import org.mapleir.ir.code.expr.ArithmeticExpression.Operator;
+import org.mapleir.ir.code.expr.ComparisonExpression.ValueComparisonType;
+import org.mapleir.ir.code.stmt.*;
+import org.mapleir.ir.code.stmt.ConditionalJumpStatement.ComparisonType;
+import org.mapleir.ir.code.stmt.MonitorStatement.MonitorMode;
+import org.mapleir.ir.code.stmt.copy.CopyVarStatement;
 import org.mapleir.stdlib.cfg.util.TypeUtils.ArrayType;
 import org.mapleir.stdlib.ir.CodeBody;
-import org.mapleir.stdlib.ir.expr.*;
-import org.mapleir.stdlib.ir.expr.ArithmeticExpression.Operator;
-import org.mapleir.stdlib.ir.expr.ComparisonExpression.ValueComparisonType;
 import org.mapleir.stdlib.ir.header.BlockHeaderStatement;
 import org.mapleir.stdlib.ir.header.HeaderStatement;
-import org.mapleir.stdlib.ir.stat.*;
-import org.mapleir.stdlib.ir.stat.ConditionalJumpStatement.ComparisonType;
-import org.mapleir.stdlib.ir.stat.MonitorStatement.MonitorMode;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
-import org.objectweb.asm.tree.*;
+import org.objectweb.asm.tree.AbstractInsnNode;
+import org.objectweb.asm.tree.LabelNode;
+import org.objectweb.asm.tree.MethodNode;
+import org.objectweb.asm.tree.TryCatchBlockNode;
 import org.objectweb.asm.util.Printer;
-
-import java.util.*;
-import java.util.Map.Entry;
 
 public class StatementGenerator implements Opcodes {
 
@@ -254,337 +262,7 @@ public class StatementGenerator implements Opcodes {
 		currentStack = stack;
 		stackSaved = false;
 
-		for (AbstractInsnNode ain : b.getInsns()) {
-			int opcode = ain.opcode();
-			if(opcode != -1) {
-//				  System.out.println("Executing " + Printer.OPCODES[ain.opcode()]);
-//				  System.out.println(" Prestack : " + stack);
-			}
-			switch (opcode) {
-				case -1: {
-					if (ain instanceof LabelNode)
-						throw new IllegalStateException("Block should not contain label.");
-					break;
-				}
-				case BIPUSH:
-				case SIPUSH:
-					_const(((IntInsnNode) ain).operand);
-					break;
-				case ACONST_NULL:
-					_const(null);
-					break;
-				case ICONST_M1:
-				case ICONST_0:
-				case ICONST_1:
-				case ICONST_2:
-				case ICONST_3:
-				case ICONST_4:
-				case ICONST_5:
-					_const((int) (opcode - ICONST_M1) - 1);
-					break;
-				case LCONST_0:
-				case LCONST_1:
-					_const((long) (opcode - LCONST_0));
-					break;
-				case FCONST_0:
-				case FCONST_1:
-				case FCONST_2:
-					_const((float) (opcode - FCONST_0));
-					break;
-				case DCONST_0:
-				case DCONST_1:
-					_const((long) (opcode - DCONST_0));
-					break;
-				case LDC:
-					_const(((LdcInsnNode) ain).cst);
-					break;
-				case LCMP:
-				case FCMPL:
-				case FCMPG:
-				case DCMPL:
-				case DCMPG: {
-					_compare(ValueComparisonType.resolve(opcode));
-					break;
-				}
-				case NEWARRAY: {
-					_new_array(
-						new Expression[] { stack.pop() }, 
-						TypeUtils.getPrimitiveArrayType(((IntInsnNode) ain).operand)
-					);
-					break;
-				}
-				case ANEWARRAY: {
-					_new_array(
-						new Expression[] { stack.pop() }, 
-						Type.getType("[L" + ((TypeInsnNode) ain).desc + ";")
-					);
-					break;
-				}
-				case MULTIANEWARRAY: {
-					MultiANewArrayInsnNode in = (MultiANewArrayInsnNode) ain;
-					Expression[] bounds = new Expression[in.dims];
-					for (int i = in.dims - 1; i >= 0; i--) {
-						bounds[i] = stack.pop();
-					}
-					_new_array(bounds, Type.getType(in.desc));
-					break;
-				}
-
-				case RETURN:
-					_return(Type.VOID_TYPE);
-					break;
-				case ATHROW:
-					_throw();
-					break;
-					
-				case MONITORENTER:
-					_monitor(MonitorMode.ENTER);
-					break;
-				case MONITOREXIT:
-					_monitor(MonitorMode.EXIT);
-					break;
-					
-				case IRETURN:
-				case LRETURN:
-				case FRETURN:
-				case DRETURN:
-				case ARETURN:
-					_return(Type.getReturnType(m.desc));
-					break;
-				case IADD:
-				case LADD:
-				case FADD:
-				case DADD:
-				case ISUB:
-				case LSUB:
-				case FSUB:
-				case DSUB:
-				case IMUL:
-				case LMUL:
-				case FMUL:
-				case DMUL:
-				case IDIV:
-				case LDIV:
-				case FDIV:
-				case DDIV:
-				case IREM:
-				case LREM:
-				case FREM:
-				case DREM:
-				
-				case ISHL:
-				case LSHL:
-				case ISHR:
-				case LSHR:
-				case IUSHR:
-				case LUSHR:
-				
-				case IAND:
-				case LAND:
-					
-				case IOR:
-				case LOR:
-					
-				case IXOR:
-				case LXOR:
-					_arithmetic(Operator.resolve(opcode));
-					break;
-				
-				case INEG:
-				case DNEG:
-					_neg();
-					break;
-					
-				case ARRAYLENGTH:
-					_arraylength();
-					break;
-					
-				case IALOAD:
-				case LALOAD:
-				case FALOAD:
-				case DALOAD:
-				case AALOAD:
-				case BALOAD:
-				case CALOAD:
-				case SALOAD:
-					_load_array(ArrayType.resolve(opcode));
-					break;
-					
-				case IASTORE:
-				case LASTORE:
-				case FASTORE:
-				case DASTORE:
-				case AASTORE:
-				case BASTORE:
-				case CASTORE:
-				case SASTORE:
-					_store_array(ArrayType.resolve(opcode));
-					break;
-					
-				case POP:
-					_pop(1);
-					break;
-				case POP2:
-					_pop(2);
-					break;
-					
-				case DUP:
-					_dup();
-					break;
-				case DUP_X1:
-					_dup_x1();
-					break;
-				case DUP_X2:
-					_dup_x2();
-					break;
-
-				case DUP2:
-					_dup2();
-					break;
-				case DUP2_X1:
-					_dup2_x1();
-					break;
-				case DUP2_X2:
-					_dup2_x2();
-					break;
-					
-				case SWAP:
-					_swap();
-					break;
-					
-				case I2L:
-				case I2F:
-				case I2D:
-				case L2I:
-				case L2F:
-				case L2D:
-				case F2I:
-				case F2L:
-				case F2D:
-				case D2I:
-				case D2L:
-				case D2F:
-				case I2B:
-				case I2C:
-				case I2S:
-					_cast(TypeUtils.getCastType(opcode));
-					break;
-				case CHECKCAST:
-					_cast(Type.getType("L" + ((TypeInsnNode)ain).desc + ";"));
-					break;
-				case INSTANCEOF:
-					_instanceof(Type.getType("L" + ((TypeInsnNode)ain).desc + ";"));
-					break;
-				case NEW:
-					_new(Type.getType("L" + ((TypeInsnNode)ain).desc + ";"));
-					break;
-					
-				case INVOKEDYNAMIC:
-					throw new UnsupportedOperationException("INVOKEDYNAMIC");
-				case INVOKEVIRTUAL:
-				case INVOKESTATIC:
-				case INVOKESPECIAL:
-				case INVOKEINTERFACE:
-					MethodInsnNode min = (MethodInsnNode) ain;
-					_call(opcode, min.owner, min.name, min.desc);
-					break;
-					
-				case ILOAD:
-				case LLOAD:
-				case FLOAD:
-				case DLOAD:
-				case ALOAD:
-					_load(((VarInsnNode) ain).var, TypeUtils.getLoadType(opcode));
-					break;
-					
-				case ISTORE:
-				case LSTORE:
-				case FSTORE:
-				case DSTORE:
-				case ASTORE:
-					_store(((VarInsnNode) ain).var, TypeUtils.getStoreType(opcode));
-					break;
-					
-				case IINC:
-					IincInsnNode iinc = (IincInsnNode) ain;
-					_inc(iinc.var, iinc.incr);
-					break;
-					
-				case PUTFIELD:
-				case PUTSTATIC: {
-					FieldInsnNode fin = (FieldInsnNode) ain;
-					_store_field(opcode, fin.owner, fin.name, fin.desc);
-					break;
-				}
-				case GETFIELD:
-				case GETSTATIC:
-					FieldInsnNode fin = (FieldInsnNode) ain;
-					_load_field(opcode, fin.owner, fin.name, fin.desc);
-					break;
-					
-				case TABLESWITCH: {
-					TableSwitchInsnNode tsin = (TableSwitchInsnNode) ain;
-					LinkedHashMap<Integer, BasicBlock> targets = new LinkedHashMap<>();
-					for(int i=tsin.min; i <= tsin.max; i++) {
-						BasicBlock targ = graph.getBlock(tsin.labels.get(i - tsin.min));
-						targets.put(i, targ);
-					}
-					_switch(targets, graph.getBlock(tsin.dflt));
-					break;
-				}
-				
-				case LOOKUPSWITCH: {
-					LookupSwitchInsnNode lsin = (LookupSwitchInsnNode) ain;
-					LinkedHashMap<Integer, BasicBlock> targets = new LinkedHashMap<>();
-					for(int i=0; i < lsin.keys.size(); i++) {
-						int key = lsin.keys.get(i);
-						BasicBlock targ = graph.getBlock(lsin.labels.get(i));
-						targets.put(key, targ);
-					}
-					_switch(targets, graph.getBlock(lsin.dflt));
-					break;
-				}
-				
-				case GOTO:
-					_jump_uncond(graph.getBlock(((JumpInsnNode) ain).label));
-					break;
-				case IFNULL:
-				case IFNONNULL:
-					_jump_null(graph.getBlock(((JumpInsnNode) ain).label), opcode == IFNONNULL);
-					break;
-					
-				case IF_ICMPEQ:
-				case IF_ICMPNE:
-				case IF_ICMPLT:
-				case IF_ICMPGE:
-				case IF_ICMPGT:
-				case IF_ICMPLE:
-				case IF_ACMPEQ:
-				case IF_ACMPNE:
-					_jump_compare(graph.getBlock(((JumpInsnNode) ain).label), ComparisonType.getType(opcode));
-					break;
-					
-				case IFEQ:
-				case IFNE:
-				case IFLT:
-				case IFGE:
-				case IFGT:
-				case IFLE:
-					_jump_cmp0(graph.getBlock(((JumpInsnNode) ain).label), ComparisonType.getType(opcode));
-					break;
-			}
-			
-//			if(Statement.ID_COUNTER < 60) {
-//				 System.out.println(" Poststack: " + stack);
-//				 System.out.println();
-//			}
-			
-			 /*System.out.println(" Block stmts: ");
-			 for(Statement stmt : b.getStatements()) {
-				 System.out.println("   " + stmt);
-			 }
-			 System.out.println();*/
-		}
+		for (AbstractInsnNode ain : b.getInsns()) {}
 
 		return stack;
 	}
@@ -592,7 +270,6 @@ public class StatementGenerator implements Opcodes {
 	// var[index] = expr
 	Type assign_stack(int index, Expression expr) {
 		Type type = expr.getType();
-		// VarExpression var = new VarExpression(index, type, true);
 		VarExpression var = _var_expr(index, type, true);
 		CopyVarStatement stmt = new CopyVarStatement(var, expr);
 		addStmt(stmt);
@@ -600,8 +277,6 @@ public class StatementGenerator implements Opcodes {
 	}
 	
 	Expression load_stack(int index, Type type) {
-//		return root.getLocals().get(index, true);
-		// return new VarExpression(index, type, true);
 		return _var_expr(index, type, true);
 	}
 	
@@ -649,7 +324,6 @@ public class StatementGenerator implements Opcodes {
 		
 		Expression expr = new CaughtExceptionExpression(tc.type);
 		Type type = expr.getType();
-		// VarExpression var = new VarExpression(index, type, true);
 		VarExpression var = _var_expr(0, type, true);
 		CopyVarStatement stmt = new CopyVarStatement(var, expr);
 		handler.getStatements().add(stmt);
@@ -1142,8 +816,6 @@ public class StatementGenerator implements Opcodes {
 	
 	void _store(int index, Type type) {
 		Expression expr = pop();
-//		VarExpression var = new VarExpression(index, type, false);
-//		VarExpression var = root.getLocals().get(index);
 		VarExpression var = _var_expr(index, type, false);
 		addStmt(new CopyVarStatement(var, expr));
 	}
@@ -1152,14 +824,6 @@ public class StatementGenerator implements Opcodes {
 		VarExpression e = _var_expr(index, type, false);
 		assign_stack(currentStack.height(), e);
 		push(e);
-//		System.out.printf("   Visiting load var%d, height=%d.%n", index, currentStack.height());
-//		VarExpression e1 = createVarExpression(index, type, false);
-//		assign_stack(currentStack.height(), e1);
-//		push(load_stack(index, type));
-//		System.out.printf("   After pushing loadexpr, height=%d.%n", currentStack.height());
-//		
-//		System.out.printf("   After assign_stack, height=%d.%n", currentStack.height());
-//		System.out.println("    Added stmt: " + getLastStatement(currentBlock));
 	}
 
 	void _inc(int index, int amt) {

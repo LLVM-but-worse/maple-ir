@@ -1,11 +1,11 @@
 package org.mapleir.stdlib.ir;
 
+import org.mapleir.ir.code.expr.*;
+import org.mapleir.ir.code.stmt.ConditionalJumpStatement;
+import org.mapleir.ir.code.stmt.Statement;
+import org.mapleir.ir.code.stmt.copy.CopyVarStatement;
+import org.mapleir.ir.locals.Local;
 import org.mapleir.stdlib.cfg.util.TypeUtils;
-import org.mapleir.stdlib.ir.expr.*;
-import org.mapleir.stdlib.ir.locals.Local;
-import org.mapleir.stdlib.ir.stat.ConditionalJumpStatement;
-import org.mapleir.stdlib.ir.stat.CopyVarStatement;
-import org.mapleir.stdlib.ir.stat.Statement;
 import org.mapleir.stdlib.ir.transform.ssa.SSALocalAccess;
 import org.objectweb.asm.Type;
 
