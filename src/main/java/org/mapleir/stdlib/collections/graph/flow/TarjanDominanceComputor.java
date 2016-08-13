@@ -45,6 +45,10 @@ public class TarjanDominanceComputor<N extends FastGraphVertex> {
 		computeIteratedFrontiers();
 	}
 	
+	public Map<N, Set<N>> getTree() {
+		return domChildren;
+	}
+	
 	public Set<N> children(N n) {
 		return domChildren.getNonNull(n);
 	}
@@ -169,12 +173,9 @@ public class TarjanDominanceComputor<N extends FastGraphVertex> {
 	}
 	
 	private void computeDominators() {
-		int size = semiIndices.size() - 1;
-		
 		// ignore entry
-		
 		// i>0 to i > 2
-		for(int i=size; i > 0; i--) {
+		for(int i=semiIndices.size()-1; i > 0; i--) {
 			N n = preOrder.get(i);
 			N p = parents.get(n);
 			
@@ -203,7 +204,7 @@ public class TarjanDominanceComputor<N extends FastGraphVertex> {
 			semiDoms.get(p).clear();
 		}
 		
-		for(int i=1; i <= size; i++) {
+		for(int i=1; i < semiIndices.size(); i++) {
 			N n = preOrder.get(i);
 			if(idoms.get(n) != preOrder.get(semiIndices.get(n))) {
 				idoms.put(n, idoms.get(idoms.get(n)));

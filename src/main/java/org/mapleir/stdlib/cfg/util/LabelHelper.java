@@ -7,7 +7,6 @@ import org.mapleir.stdlib.cfg.BasicBlock;
  * @created 24 May 2015
  */
 public class LabelHelper {
-
 	public static String createBlockName(int n) {
 		char[] buf = new char[(int) Math.floor(Math.log(25 * (n + 1)) / Math.log(26))];
 		for (int i = buf.length - 1; i >= 0; i--) {
