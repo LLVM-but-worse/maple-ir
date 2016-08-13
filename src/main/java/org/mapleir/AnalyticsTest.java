@@ -29,6 +29,7 @@ import org.mapleir.stdlib.collections.graph.util.GraphUtils;
 import org.mapleir.stdlib.ir.CodeBody;
 import org.mapleir.stdlib.ir.StatementGraph;
 import org.mapleir.stdlib.ir.StatementWriter;
+import org.mapleir.stdlib.ir.gen.BoissinotDestructor;
 import org.mapleir.stdlib.ir.gen.SSADestructor;
 import org.mapleir.stdlib.ir.gen.SSAGenerator;
 import org.mapleir.stdlib.ir.gen.SreedharDestructor;
@@ -62,6 +63,17 @@ public class AnalyticsTest {
 		
 		System.out.println(x);
 		System.out.println(y);
+	}
+	
+	void loopTest() {
+		int x = 1;
+		do {
+			if (x > 5)
+				x--;
+			else
+				x++;
+		} while(!p());
+		System.out.println(x);
 	}
 	
 	boolean p() {
@@ -184,7 +196,8 @@ public class AnalyticsTest {
 //				System.out.println();
 //			}
 			
-			SreedharDestructor dest = new SreedharDestructor(code, cfg);
+//			SreedharDestructor dest = new SreedharDestructor(code, cfg);
+			BoissinotDestructor dest = new BoissinotDestructor(cfg, code);
 			
 			System.out.println("Norm SSA:");
 			System.out.println(code);
@@ -195,7 +208,24 @@ public class AnalyticsTest {
 				.export();
 			System.out.println();
 			System.out.println();
+			
+//			sgraph = StatementGraphBuilder.create(cfg);
+//			LivenessAnalyser liveness = new LivenessAnalyser(sgraph);
+//			DefinitionAnalyser definitions = new DefinitionAnalyser(sgraph);
+//			CodeAnalytics analytics = new CodeAnalytics(code, cfg, sgraph, liveness, definitions);
+//			StatementWriter writer = new StatementWriter(code, cfg);
+//			MethodNode m2 = new MethodNode(m.owner, m.access, m.name, m.desc, m.signature, m.exceptions.toArray(new String[0]));
+//			writer.dump(m2, analytics);
+//			cn.methods.add(m2);
+//			cn.methods.remove(m);
 		}
+		
+//		ClassWriter clazz = new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
+//		cn.accept(clazz);
+//		byte[] saved = clazz.toByteArray();
+//		FileOutputStream out = new FileOutputStream(new File("out/testclass.class"));
+//		out.write(saved, 0, saved.length);
+//		out.close();
 	}
 	
 	public static void main2(String[] args) throws IOException {

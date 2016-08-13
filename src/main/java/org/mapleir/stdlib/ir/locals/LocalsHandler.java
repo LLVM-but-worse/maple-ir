@@ -13,6 +13,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.mapleir.stdlib.cfg.util.TypeUtils;
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.SetCreator;
+import org.mapleir.stdlib.collections.bitset.BitSetIndexer;
+import org.mapleir.stdlib.collections.bitset.GenericBitSet;
+import org.mapleir.stdlib.collections.bitset.IncrementalBitSetIndexer;
 import org.mapleir.stdlib.ir.CodeBody;
 import org.mapleir.stdlib.ir.expr.VarExpression;
 import org.mapleir.stdlib.ir.stat.CopyVarStatement;
@@ -24,11 +27,18 @@ public class LocalsHandler {
 	private final AtomicInteger base;
 	private final Map<String, Local> cache;
 	private final Map<BasicLocal, VersionedLocal> latest;
+	private final BitSetIndexer<Local> indexer;
 	
 	public LocalsHandler(int base) {
 		this.base = new AtomicInteger(base);
 		cache = new HashMap<>();
 		latest = new HashMap<>();
+		indexer = new IncrementalBitSetIndexer<>();
+	}
+	
+	// factory
+	GenericBitSet<Local> createBitSet() {
+		return new GenericBitSet<>(indexer);
 	}
 	
 	public BasicLocal asSimpleLocal(Local l) {
