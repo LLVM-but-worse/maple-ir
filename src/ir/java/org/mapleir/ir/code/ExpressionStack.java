@@ -1,4 +1,4 @@
-package org.mapleir.stdlib.ir.gen;
+package org.mapleir.ir.code;
 
 import org.mapleir.ir.code.expr.Expression;
 
