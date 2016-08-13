@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Set;
 
-import org.mapleir.stdlib.cfg.util.LabelHelper;
+import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.stdlib.collections.graph.FastGraphVertex;
 import org.objectweb.asm.tree.TryCatchBlockNode;
 
@@ -98,7 +98,7 @@ public class ExceptionRange<N extends FastGraphVertex> {
 			N prev = lit.next();
 			if(lit.hasNext()) {
 				N b = lit.next();
-				if(LabelHelper.numeric(prev.getId()) >= LabelHelper.numeric(b.getId())) {
+				if(BasicBlock.numeric(prev.getId()) >= BasicBlock.numeric(b.getId())) {
 					return false;
 				}
 			}
@@ -133,9 +133,9 @@ public class ExceptionRange<N extends FastGraphVertex> {
 	}
 
 	public static <N extends FastGraphVertex> String rangetoString(List<N> set) {
-		int last = LabelHelper.numeric(set.get(0).getId()) - 1;
+		int last = BasicBlock.numeric(set.get(0).getId()) - 1;
 		for(int i=0; i < set.size(); i++) {
-			int num = LabelHelper.numeric(set.get(i).getId());
+			int num = BasicBlock.numeric(set.get(i).getId());
 			if((last + 1) == num) {
 				last++;
 				continue;
@@ -144,6 +144,6 @@ public class ExceptionRange<N extends FastGraphVertex> {
 			}
 		}
 		
-		return String.format("[#%s...#%s]", set.get(0).getId(), LabelHelper.createBlockName(last));
+		return String.format("[#%s...#%s]", set.get(0).getId(), BasicBlock.createBlockName(last));
 	}
 }

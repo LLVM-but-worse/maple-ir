@@ -62,7 +62,7 @@ public class ControlFlowGraphDecorator implements DotPropertyDecorator<ControlFl
 	
 	@Override
 	public boolean isNodePrintable(ControlFlowGraph g, BasicBlock n) {
-		return !n.isDummy();
+		return n.getLabelNode() != null;
 	}
 	
 	@Override
