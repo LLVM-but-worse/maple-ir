@@ -1,6 +1,6 @@
 package org.mapleir.stdlib.ir.gen;
 
-import org.mapleir.stdlib.ir.expr.Expression;
+import org.mapleir.ir.code.expr.Expression;
 
 public class ExpressionStack {
 

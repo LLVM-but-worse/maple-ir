@@ -3,17 +3,17 @@ package org.mapleir.stdlib.ir.transform.ssa;
 import java.util.Arrays;
 import java.util.HashSet;
 
+import org.mapleir.ir.analysis.StatementGraph;
+import org.mapleir.ir.code.expr.Expression;
+import org.mapleir.ir.code.expr.InitialisedObjectExpression;
+import org.mapleir.ir.code.expr.InvocationExpression;
+import org.mapleir.ir.code.expr.UninitialisedObjectExpression;
+import org.mapleir.ir.code.expr.VarExpression;
+import org.mapleir.ir.code.stmt.PopStatement;
+import org.mapleir.ir.code.stmt.Statement;
+import org.mapleir.ir.code.stmt.copy.CopyVarStatement;
+import org.mapleir.ir.locals.VersionedLocal;
 import org.mapleir.stdlib.ir.CodeBody;
-import org.mapleir.stdlib.ir.StatementGraph;
-import org.mapleir.stdlib.ir.expr.Expression;
-import org.mapleir.stdlib.ir.expr.InitialisedObjectExpression;
-import org.mapleir.stdlib.ir.expr.InvocationExpression;
-import org.mapleir.stdlib.ir.expr.UninitialisedObjectExpression;
-import org.mapleir.stdlib.ir.expr.VarExpression;
-import org.mapleir.stdlib.ir.locals.VersionedLocal;
-import org.mapleir.stdlib.ir.stat.CopyVarStatement;
-import org.mapleir.stdlib.ir.stat.PopStatement;
-import org.mapleir.stdlib.ir.stat.Statement;
 import org.mapleir.stdlib.ir.transform.SSATransformer;
 import org.objectweb.asm.Opcodes;
 

@@ -7,18 +7,18 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
 
-import org.mapleir.stdlib.cfg.BasicBlock;
-import org.mapleir.stdlib.cfg.ControlFlowGraph;
+import org.mapleir.ir.cfg.BasicBlock;
+import org.mapleir.ir.cfg.ControlFlowGraph;
+import org.mapleir.ir.code.expr.Expression;
+import org.mapleir.ir.code.expr.PhiExpression;
+import org.mapleir.ir.code.expr.VarExpression;
+import org.mapleir.ir.code.stmt.Statement;
+import org.mapleir.ir.code.stmt.copy.CopyVarStatement;
+import org.mapleir.ir.locals.Local;
 import org.mapleir.stdlib.cfg.edge.FlowEdge;
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
-import org.mapleir.stdlib.ir.expr.Expression;
-import org.mapleir.stdlib.ir.expr.PhiExpression;
-import org.mapleir.stdlib.ir.expr.VarExpression;
 import org.mapleir.stdlib.ir.header.BlockHeaderStatement;
 import org.mapleir.stdlib.ir.header.HeaderStatement;
-import org.mapleir.stdlib.ir.locals.Local;
-import org.mapleir.stdlib.ir.stat.CopyVarStatement;
-import org.mapleir.stdlib.ir.stat.Statement;
 import org.mapleir.stdlib.ir.transform.Liveness;
 
 public class SSABlockLivenessAnalyser implements Liveness<BasicBlock> {

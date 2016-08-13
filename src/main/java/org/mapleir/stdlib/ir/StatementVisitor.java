@@ -1,6 +1,6 @@
 package org.mapleir.stdlib.ir;
 
-import org.mapleir.stdlib.ir.stat.Statement;
+import org.mapleir.ir.code.stmt.Statement;
 
 public abstract class StatementVisitor {
 

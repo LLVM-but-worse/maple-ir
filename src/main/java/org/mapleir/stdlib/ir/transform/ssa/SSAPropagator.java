@@ -11,23 +11,23 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.mapleir.ir.analysis.StatementGraph;
+import org.mapleir.ir.code.expr.*;
+import org.mapleir.ir.code.stmt.ArrayStoreStatement;
+import org.mapleir.ir.code.stmt.DummyExitStatement;
+import org.mapleir.ir.code.stmt.FieldStoreStatement;
+import org.mapleir.ir.code.stmt.MonitorStatement;
+import org.mapleir.ir.code.stmt.PopStatement;
+import org.mapleir.ir.code.stmt.Statement;
+import org.mapleir.ir.code.stmt.copy.CopyVarStatement;
+import org.mapleir.ir.locals.Local;
+import org.mapleir.ir.locals.VersionedLocal;
 import org.mapleir.stdlib.cfg.edge.DummyEdge;
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.SetCreator;
 import org.mapleir.stdlib.ir.CodeBody;
-import org.mapleir.stdlib.ir.StatementGraph;
 import org.mapleir.stdlib.ir.StatementVisitor;
-import org.mapleir.stdlib.ir.expr.*;
 import org.mapleir.stdlib.ir.header.HeaderStatement;
-import org.mapleir.stdlib.ir.locals.Local;
-import org.mapleir.stdlib.ir.locals.VersionedLocal;
-import org.mapleir.stdlib.ir.stat.ArrayStoreStatement;
-import org.mapleir.stdlib.ir.stat.CopyVarStatement;
-import org.mapleir.stdlib.ir.stat.DummyExitStatement;
-import org.mapleir.stdlib.ir.stat.FieldStoreStatement;
-import org.mapleir.stdlib.ir.stat.MonitorStatement;
-import org.mapleir.stdlib.ir.stat.PopStatement;
-import org.mapleir.stdlib.ir.stat.Statement;
 import org.mapleir.stdlib.ir.transform.SSATransformer;
 
 public class SSAPropagator extends SSATransformer {

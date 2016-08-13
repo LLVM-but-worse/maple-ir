@@ -4,16 +4,16 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.mapleir.ir.code.expr.Expression;
+import org.mapleir.ir.code.expr.PhiExpression;
+import org.mapleir.ir.code.expr.VarExpression;
+import org.mapleir.ir.code.stmt.Statement;
+import org.mapleir.ir.code.stmt.copy.CopyVarStatement;
+import org.mapleir.ir.locals.VersionedLocal;
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.ValueCreator;
 import org.mapleir.stdlib.ir.CodeBody;
 import org.mapleir.stdlib.ir.StatementVisitor;
-import org.mapleir.stdlib.ir.expr.Expression;
-import org.mapleir.stdlib.ir.expr.PhiExpression;
-import org.mapleir.stdlib.ir.expr.VarExpression;
-import org.mapleir.stdlib.ir.locals.VersionedLocal;
-import org.mapleir.stdlib.ir.stat.CopyVarStatement;
-import org.mapleir.stdlib.ir.stat.Statement;
 
 public class SSALocalAccess {
 

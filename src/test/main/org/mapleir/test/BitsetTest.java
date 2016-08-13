@@ -1,8 +1,8 @@
 package org.mapleir.test;
 
 import org.junit.Test;
-import org.mapleir.stdlib.cfg.BasicBlock;
-import org.mapleir.stdlib.cfg.FastBlockGraph;
+import org.mapleir.ir.cfg.BasicBlock;
+import org.mapleir.ir.cfg.FastBlockGraph;
 import org.mapleir.stdlib.cfg.edge.ImmediateEdge;
 import org.mapleir.stdlib.collections.bitset.GenericBitSet;
 
