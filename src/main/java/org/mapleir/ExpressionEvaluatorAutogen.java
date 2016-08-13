@@ -2,13 +2,13 @@ package org.mapleir;
 
 import org.objectweb.asm.Type;
 
-import static org.mapleir.stdlib.ir.expr.ArithmeticExpression.Operator.*;
-import static org.mapleir.stdlib.ir.stat.ConditionalJumpStatement.ComparisonType.LE;
+import static org.mapleir.ir.code.expr.ArithmeticExpression.Operator.*;
+import static org.mapleir.ir.code.stmt.ConditionalJumpStatement.ComparisonType.LE;
 import static org.objectweb.asm.Type.*;
 
-import org.mapleir.stdlib.ir.expr.ArithmeticExpression.Operator;
-import org.mapleir.stdlib.ir.stat.ConditionalJumpStatement;
-import org.mapleir.stdlib.ir.stat.ConditionalJumpStatement.ComparisonType;
+import org.mapleir.ir.code.expr.ArithmeticExpression.Operator;
+import org.mapleir.ir.code.stmt.ConditionalJumpStatement;
+import org.mapleir.ir.code.stmt.ConditionalJumpStatement.ComparisonType;
 
 /**
  * Java used "have no useful dynamic casting"! It's super effective! ecx's blood pressure rose!

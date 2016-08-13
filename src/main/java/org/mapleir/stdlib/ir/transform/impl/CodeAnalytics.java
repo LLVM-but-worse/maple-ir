@@ -1,8 +1,8 @@
 package org.mapleir.stdlib.ir.transform.impl;
 
-import org.mapleir.stdlib.cfg.ControlFlowGraph;
+import org.mapleir.ir.analysis.StatementGraph;
+import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.stdlib.ir.CodeBody;
-import org.mapleir.stdlib.ir.StatementGraph;
 
 public class CodeAnalytics {
 

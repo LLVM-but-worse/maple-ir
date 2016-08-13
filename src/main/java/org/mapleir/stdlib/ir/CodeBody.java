@@ -6,10 +6,10 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
 
+import org.mapleir.ir.code.stmt.Statement;
+import org.mapleir.ir.locals.LocalsHandler;
 import org.mapleir.stdlib.cfg.util.TabbedStringWriter;
 import org.mapleir.stdlib.ir.header.StatementHeaderStatement;
-import org.mapleir.stdlib.ir.locals.LocalsHandler;
-import org.mapleir.stdlib.ir.stat.Statement;
 
 public class CodeBody implements List<Statement> {
 

@@ -13,24 +13,12 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.mapleir.ir.code.expr.*;
+import org.mapleir.ir.code.stmt.ConditionalJumpStatement;
+import org.mapleir.ir.code.stmt.Statement;
+import org.mapleir.ir.locals.Local;
 import org.mapleir.stdlib.cfg.util.TypeUtils;
 import org.mapleir.stdlib.ir.StatementVisitor;
-import org.mapleir.stdlib.ir.expr.ArithmeticExpression;
-import org.mapleir.stdlib.ir.expr.ArrayLengthExpression;
-import org.mapleir.stdlib.ir.expr.ArrayLoadExpression;
-import org.mapleir.stdlib.ir.expr.ComparisonExpression;
-import org.mapleir.stdlib.ir.expr.ConstantExpression;
-import org.mapleir.stdlib.ir.expr.Expression;
-import org.mapleir.stdlib.ir.expr.FieldLoadExpression;
-import org.mapleir.stdlib.ir.expr.InitialisedObjectExpression;
-import org.mapleir.stdlib.ir.expr.InvocationExpression;
-import org.mapleir.stdlib.ir.expr.NegationExpression;
-import org.mapleir.stdlib.ir.expr.PhiExpression;
-import org.mapleir.stdlib.ir.expr.UninitialisedObjectExpression;
-import org.mapleir.stdlib.ir.expr.VarExpression;
-import org.mapleir.stdlib.ir.locals.Local;
-import org.mapleir.stdlib.ir.stat.ConditionalJumpStatement;
-import org.mapleir.stdlib.ir.stat.Statement;
 import org.objectweb.asm.Type;
 
 import sun.reflect.generics.reflectiveObjects.NotImplementedException;
