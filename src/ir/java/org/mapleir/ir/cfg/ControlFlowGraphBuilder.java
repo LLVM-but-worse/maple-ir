@@ -1320,9 +1320,11 @@ public class ControlFlowGraphBuilder {
 		class MergePair {
 			final BasicBlock src;
 			final BasicBlock dst;
-			MergePair(BasicBlock src, BasicBlock dst)  {
+			final List<ExceptionRange<BasicBlock>> ranges;
+			MergePair(BasicBlock src, BasicBlock dst, List<ExceptionRange<BasicBlock>> ranges)  {
 				this.src = src;
 				this.dst = dst;
+				this.ranges = ranges;
 			}
 		}
 		
@@ -1338,7 +1340,15 @@ public class ControlFlowGraphBuilder {
 			if(inSuccs.size() != 1 || graph.getReverseEdges(b).size() != 1) {
 				continue;
 			}
-			merges.add(new MergePair(in, b));
+			
+			List<ExceptionRange<BasicBlock>> range1 = in.getProtectingRanges();
+			List<ExceptionRange<BasicBlock>> range2 = in.getProtectingRanges();
+			
+			if(!range1.equals(range2)) {
+				continue;
+			}
+			
+			merges.add(new MergePair(in, b, range1));
 			
 			remap.put(in, in);
 			remap.put(b, b);
@@ -1358,12 +1368,15 @@ public class ControlFlowGraphBuilder {
 				edst = remap.get(edst);
 				graph.addEdge(src, e.clone(src, edst));
 			}
-			
 			graph.removeVertex(dst);
 			
-			System.out.printf("Merged %s into %s.%n", dst.getId(), src.getId());
-			
 			remap.put(dst, src);
+			
+			for(ExceptionRange<BasicBlock> r : p.ranges) {
+				r.removeVertex(dst);
+			}
+			
+			System.out.printf("Merged %s into %s.%n", dst.getId(), src.getId());
 		}
 		
 		return merges.size();
