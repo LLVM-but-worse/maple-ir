@@ -7,6 +7,7 @@ import java.util.*;
 import java.util.Map.Entry;
 
 import org.mapleir.ir.analysis.StatementGraphBuilder;
+import org.mapleir.ir.code.ExpressionStack;
 import org.mapleir.ir.code.Opcode;
 import org.mapleir.ir.code.expr.*;
 import org.mapleir.ir.code.expr.ArithmeticExpression.Operator;
@@ -30,7 +31,6 @@ import org.mapleir.stdlib.collections.graph.flow.ExceptionRange;
 import org.mapleir.stdlib.collections.graph.flow.FlowGraph;
 import org.mapleir.stdlib.collections.graph.flow.TarjanDominanceComputor;
 import org.mapleir.stdlib.collections.graph.util.GraphUtils;
-import org.mapleir.stdlib.ir.gen.ExpressionStack;
 import org.mapleir.stdlib.ir.transform.impl.LivenessAnalyser;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
