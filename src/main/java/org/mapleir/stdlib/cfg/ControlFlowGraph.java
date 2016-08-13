@@ -7,7 +7,7 @@ public class ControlFlowGraph extends FastBlockGraph {
 	
 	private final MethodNode method;
 	
-	ControlFlowGraph(MethodNode method) {
+	public ControlFlowGraph(MethodNode method) {
 		this.method = method;
 	}
 	
