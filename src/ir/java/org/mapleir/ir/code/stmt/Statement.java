@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
+import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.code.Opcode;
 import org.mapleir.stdlib.cfg.util.TabbedStringWriter;
 import org.mapleir.stdlib.collections.graph.FastGraphVertex;
@@ -18,6 +19,7 @@ public abstract class Statement implements FastGraphVertex, Opcode, Iterable<Sta
 	
 	private final int opcode;
 	private List<Statement> parents;
+	private BasicBlock block;
 	private Statement[] children;
 	private int ptr;
 
@@ -26,6 +28,43 @@ public abstract class Statement implements FastGraphVertex, Opcode, Iterable<Sta
 		parents = new ArrayList<>();
 		children = new Statement[8];
 		ptr = 0;
+	}
+	
+	public BasicBlock getBlock() {
+		return block;
+	}
+	
+	protected void setBlock0(BasicBlock block) {
+		this.block = block;
+		
+		for(Statement s : children) {
+			if(s != null) {
+				s.setBlock0(block);
+			}
+		}
+	}
+	
+	public void setTransferBlock(BasicBlock block){
+		this.block = null;
+		setBlock(block);
+	}
+	
+	public void setBlock(BasicBlock block) {
+		if(parents.size() > 0) {
+			throw new UnsupportedOperationException(this + ", b:"  + (block != null ? block.getId() : "null") + ", " + parents);
+		}
+		
+		if(this.block != null) {
+			if(block != null) {
+				if(this.block != block) {
+					throw new UnsupportedOperationException(this.block.getId() + ", " + block.getId());
+				}
+			} else {
+				setBlock0(null);
+			}
+		} else {
+			setBlock0(block);
+		}
 	}
 	
 	public int getOpcode() {
