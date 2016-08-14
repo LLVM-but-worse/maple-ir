@@ -1358,10 +1358,7 @@ public class ControlFlowGraphBuilder {
 			BasicBlock src = remap.get(p.src);
 			BasicBlock dst = p.dst;
 			
-			for(Statement s : dst) {
-				src.add(s);
-			}
-			dst.clear();
+			dst.transfer(src);
 			
 			for(FlowEdge<BasicBlock> e : graph.getEdges(dst)) {
 				BasicBlock edst = e.dst;
