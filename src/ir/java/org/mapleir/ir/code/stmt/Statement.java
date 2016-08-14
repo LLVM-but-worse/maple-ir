@@ -18,14 +18,13 @@ public abstract class Statement implements FastGraphVertex, Opcode, Iterable<Sta
 	private final long id = ID_COUNTER++;
 	
 	private final int opcode;
-	private List<Statement> parents;
+	private Statement parent;
 	private BasicBlock block;
 	private Statement[] children;
 	private int ptr;
 
 	public Statement(int opcode) {
 		this.opcode = opcode;
-		parents = new ArrayList<>();
 		children = new Statement[8];
 		ptr = 0;
 	}
@@ -34,37 +33,36 @@ public abstract class Statement implements FastGraphVertex, Opcode, Iterable<Sta
 		return block;
 	}
 	
-	protected void setBlock0(BasicBlock block) {
-		this.block = block;
-		
+	protected void setBlock00(BasicBlock block) {
 		for(Statement s : children) {
 			if(s != null) {
-				s.setBlock0(block);
+				s.setBlock00(block);
 			}
 		}
 	}
 	
-	public void setTransferBlock(BasicBlock block){
-		this.block = null;
-		setBlock(block);
+	protected void setBlock0(BasicBlock block) {
+		BasicBlock old = this.block;
+		
+		this.block = block;
+		setBlock00(block);
+		
+		
+		if(old != null) {
+			if(block != null) {
+				block.getGraph().transfered(old, block, this);
+			} else {
+				old.getGraph().removed(old, this);
+			}
+		} else {
+			if(block != null) {
+				block.getGraph().added(block, this);
+			}
+		}
 	}
 	
 	public void setBlock(BasicBlock block) {
-		if(parents.size() > 0) {
-			throw new UnsupportedOperationException(this + ", b:"  + (block != null ? block.getId() : "null") + ", " + parents);
-		}
-		
-		if(this.block != null) {
-			if(block != null) {
-				if(this.block != block) {
-					throw new UnsupportedOperationException(this.block.getId() + ", " + block.getId());
-				}
-			} else {
-				setBlock0(null);
-			}
-		} else {
-			setBlock0(block);
-		}
+		setBlock0(block);
 	}
 	
 	public int getOpcode() {
@@ -108,12 +106,18 @@ public abstract class Statement implements FastGraphVertex, Opcode, Iterable<Sta
 		children[index] = s;
 		
 		if(prev != null) {
-			prev.parents.remove(this);
+			prev.parent = null;
 		}
 		if(s != null) {
-			if(!s.parents.contains(this)) {
-				s.parents.add(this);
+			if(s.parent != null) {
+				throw new IllegalStateException(s + " already belongs to " + s.parent + " (new:" + this + ")");
+			} else {
+				s.parent = this;
 			}
+		}
+		
+		if(block != null) {
+			block.getGraph().updated(block, this, index, prev, s);
 		}
 		
 		return prev;
@@ -222,10 +226,6 @@ public abstract class Statement implements FastGraphVertex, Opcode, Iterable<Sta
 		}
 		return -1;
 	}
-
-	public List<Statement> getParents() {
-		return parents;
-	}
 	
 	public List<Statement> getChildren() {
 		List<Statement> list = new ArrayList<>();
@@ -245,6 +245,10 @@ public abstract class Statement implements FastGraphVertex, Opcode, Iterable<Sta
 
 	public int getChildPointer() {
 		return ptr;
+	}
+	
+	public Statement getParent() {
+		return parent;
 	}
 	
 	public boolean changesIndentation() {
