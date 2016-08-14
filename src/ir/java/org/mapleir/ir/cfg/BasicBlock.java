@@ -36,18 +36,21 @@ public class BasicBlock implements FastGraphVertex, Comparable<BasicBlock>, Iter
 	
 	public void add(Statement stmt) {
 		statements.add(stmt);
+		stmt.setBlock(this);
 	}
 
 	public void add(int index, Statement stmt) {
 		statements.add(index, stmt);
+		stmt.setBlock(this);
 	}
 	
 	public void remove(Statement stmt) {
 		statements.remove(stmt);
+		stmt.setBlock(null);
 	}
 	
 	public void remove(int index) {
-		statements.remove(index);
+		statements.remove(index).setBlock(null);
 	}
 	
 	public boolean contains(Statement stmt) {
@@ -71,7 +74,22 @@ public class BasicBlock implements FastGraphVertex, Comparable<BasicBlock>, Iter
 	}
 	
 	public void clear() {
-		statements.clear();
+		Iterator<Statement> it = statements.iterator();
+		while(it.hasNext()) {
+			Statement s = it.next();
+			s.setBlock(null);
+			it.remove();
+		}
+	}
+	
+	public void transfer(BasicBlock to) {
+		Iterator<Statement> it = statements.iterator();
+		while(it.hasNext()) {
+			Statement s = it.next();
+			to.statements.add(s);
+			s.setTransferBlock(to);
+			it.remove();
+		}
 	}
 	
 	public ExpressionStack getInputStack() {
