@@ -8,7 +8,7 @@ import java.util.Set;
 
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.code.stmt.Statement;
-import org.mapleir.ir.code.stmt.copy.CopyVarStatement;
+import org.mapleir.ir.code.stmt.copy.CopyPhiStatement;
 import org.mapleir.stdlib.cfg.util.TabbedStringWriter;
 import org.mapleir.stdlib.ir.transform.impl.CodeAnalytics;
 import org.objectweb.asm.MethodVisitor;
@@ -16,35 +16,36 @@ import org.objectweb.asm.Type;
 
 public class PhiExpression extends Expression {
 
-	private final Map<BasicBlock, Expression> locals;
+	private final Map<BasicBlock, Expression> arguments;
 	private Type type;
 	
-	public PhiExpression(Map<BasicBlock, Expression> locals) {
+	public PhiExpression(Map<BasicBlock, Expression> arguments) {
 		super(PHI);
-		this.locals = locals;
+		this.arguments = arguments;
 	}
 	
-	public int getParameterCount() {
-		return locals.size();
+	public int getArgumentCount() {
+		return arguments.size();
 	}
 	
-	public Set<BasicBlock> headers() {
-		return new HashSet<>(locals.keySet());
+	public Set<BasicBlock> getSources() {
+		return new HashSet<>(arguments.keySet());
 	}
 	
-	public Map<BasicBlock, Expression> getLocals() {
-		return locals;
+	public Map<BasicBlock, Expression> getArguments() {
+		return arguments;
 	}
 	
-	public Expression getLocal(BasicBlock header) {
-		return locals.get(header);
+	public Expression getArgument(BasicBlock b) {
+		return arguments.get(b);
 	}
 	
-	public void setLocal(BasicBlock header, Expression e) {
-		if(locals.containsKey(header)) {
-			locals.put(header, e);
+	public void setArgument(BasicBlock b, Expression e) {
+		if(arguments.containsKey(b)) {
+			Expression old = arguments.put(b, e);
+			getBlock().getGraph().updated(getBlock(), (CopyPhiStatement) getParent(), b, old, e);
 		} else {
-			throw new IllegalStateException("phi has a fixed size of " + locals.size() + ": " + header + ", " + e);
+			throw new IllegalStateException("phi has a fixed size of " + arguments.size() + ": " + b + ", " + e);
 		}
 	}
 	
@@ -56,7 +57,7 @@ public class PhiExpression extends Expression {
 	@Override
 	public Expression copy() {
 		Map<BasicBlock, Expression> map = new HashMap<>();
-		for(Entry<BasicBlock, Expression> e : locals.entrySet()) {
+		for(Entry<BasicBlock, Expression> e : arguments.entrySet()) {
 			map.put(e.getKey(), e.getValue());
 		}
 		return new PhiExpression(map);
@@ -73,7 +74,7 @@ public class PhiExpression extends Expression {
 
 	@Override
 	public void toString(TabbedStringWriter printer) {
-		printer.print("\u0278" + locals);
+		printer.print("\u0278" + arguments);
 	}
 
 	@Override
@@ -102,16 +103,16 @@ public class PhiExpression extends Expression {
 			PhiExpression phi = (PhiExpression) s;
 			
 			Set<BasicBlock> sources = new HashSet<>();
-			sources.addAll(locals.keySet());
-			sources.addAll(phi.locals.keySet());
+			sources.addAll(arguments.keySet());
+			sources.addAll(phi.arguments.keySet());
 			
-			if(sources.size() != locals.size()) {
+			if(sources.size() != arguments.size()) {
 				return false;
 			}
 			
-			for(BasicBlock header : sources) {
-				Expression e1 = locals.get(header);
-				Expression e2 = phi.locals.get(header);
+			for(BasicBlock b : sources) {
+				Expression e1 = arguments.get(b);
+				Expression e2 = phi.arguments.get(b);
 				if(e1 == null || e2 == null) {
 					return false;
 				}
@@ -123,9 +124,5 @@ public class PhiExpression extends Expression {
 			return true;
 		}
 		return false;
-	}
-	
-	public static boolean phi(Statement stmt) {
-		return stmt instanceof CopyVarStatement && ((CopyVarStatement) stmt).getExpression() instanceof PhiExpression;
 	}
 }
