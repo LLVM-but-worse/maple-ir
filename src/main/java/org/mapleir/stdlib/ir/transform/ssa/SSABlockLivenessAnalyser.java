@@ -102,7 +102,7 @@ public class SSABlockLivenessAnalyser implements Liveness<BasicBlock> {
 				if (rhs instanceof PhiExpression) {
 					phiDef.get(b).add(defLocal);
 					PhiExpression phi = (PhiExpression) rhs;
-					for (Map.Entry<HeaderStatement, Expression> e : phi.getLocals().entrySet()) {
+					for (Map.Entry<HeaderStatement, Expression> e : phi.getArguments().entrySet()) {
 						if (!(e.getKey() instanceof BlockHeaderStatement))
 							throw new IllegalArgumentException("Illegal phi expression source header: " + e.getClass().getSimpleName());
 						BasicBlock exprSource = ((BlockHeaderStatement) e.getKey()).getBlock();

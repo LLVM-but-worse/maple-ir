@@ -52,7 +52,7 @@ public class SSALocalAccess {
 							useCount.getNonNull(l).incrementAndGet();
 						} else if(stmt instanceof PhiExpression) {
 							PhiExpression phi = (PhiExpression) stmt;
-							for(Expression e : phi.getLocals().values()) {
+							for(Expression e : phi.getArguments().values()) {
 								if(e instanceof VarExpression)  {
 									useCount.getNonNull((VersionedLocal) ((VarExpression) e).getLocal()).incrementAndGet();
 								} else {

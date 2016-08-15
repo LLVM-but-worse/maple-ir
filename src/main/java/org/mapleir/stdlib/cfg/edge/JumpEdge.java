@@ -7,8 +7,8 @@ public abstract class JumpEdge<N extends FastGraphVertex> extends FlowEdge<N> {
 	
 	public final int opcode;
 	
-	public JumpEdge(N src, N dst, int opcode) {
-		super(src, dst);
+	public JumpEdge(int type, N src, N dst, int opcode) {
+		super(type, src, dst);
 		this.opcode = opcode;
 	}
 	

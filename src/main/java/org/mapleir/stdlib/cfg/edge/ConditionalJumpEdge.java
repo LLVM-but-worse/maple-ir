@@ -5,7 +5,7 @@ import org.mapleir.stdlib.collections.graph.FastGraphVertex;
 public class ConditionalJumpEdge<N extends FastGraphVertex> extends JumpEdge<N> {
 	
 	public ConditionalJumpEdge(N src, N dst, int opcode) {
-		super(src, dst, opcode);
+		super(COND, src, dst, opcode);
 	}
 	
 	@Override
@@ -20,6 +20,6 @@ public class ConditionalJumpEdge<N extends FastGraphVertex> extends JumpEdge<N> 
 	
 	@Override
 	public ConditionalJumpEdge<N> clone(N src, N dst) {
-		return new ConditionalJumpEdge<N>(src, dst, opcode);
+		return new ConditionalJumpEdge<>(src, dst, opcode);
 	}
 }
