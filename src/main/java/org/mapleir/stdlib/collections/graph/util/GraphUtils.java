@@ -16,7 +16,7 @@ import org.mapleir.stdlib.cfg.util.ControlFlowGraphDeobfuscator.SuperNode;
 import org.mapleir.stdlib.cfg.util.LabelHelper;
 import org.mapleir.stdlib.cfg.util.TabbedStringWriter;
 import org.mapleir.stdlib.collections.graph.flow.ExceptionRange;
-import org.mapleir.stdlib.ir.CodeBody;
+import org.mapleir.ir.code.CodeBody;
 import org.mapleir.stdlib.ir.header.HeaderStatement;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.*;

@@ -22,10 +22,10 @@ import org.mapleir.stdlib.cfg.util.TypeUtils;
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.SetCreator;
 import org.mapleir.stdlib.collections.graph.util.GraphUtils;
-import org.mapleir.stdlib.ir.CodeBody;
+import org.mapleir.ir.code.CodeBody;
 import org.mapleir.stdlib.ir.header.BlockHeaderStatement;
 import org.mapleir.stdlib.ir.header.HeaderStatement;
-import org.mapleir.stdlib.ir.transform.ssa.SSALocalAccess;
+import org.mapleir.ir.transform.ssa.SSALocalAccess;
 import org.objectweb.asm.Type;
 
 public class SSADestructor {

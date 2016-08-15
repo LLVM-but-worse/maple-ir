@@ -9,7 +9,7 @@ import org.mapleir.ir.code.Opcode;
 import org.mapleir.stdlib.cfg.util.TabbedStringWriter;
 import org.mapleir.stdlib.collections.graph.FastGraphVertex;
 import org.mapleir.stdlib.ir.StatementVisitor;
-import org.mapleir.stdlib.ir.transform.impl.CodeAnalytics;
+import org.mapleir.ir.analysis.dataflow.impl.CodeAnalytics;
 import org.objectweb.asm.MethodVisitor;
 
 public abstract class Statement implements FastGraphVertex, Opcode, Iterable<Statement> {

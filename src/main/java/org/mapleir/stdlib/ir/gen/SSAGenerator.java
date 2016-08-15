@@ -19,11 +19,11 @@ import org.mapleir.stdlib.cfg.util.TypeUtils;
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.SetCreator;
 import org.mapleir.stdlib.collections.graph.flow.TarjanDominanceComputor;
-import org.mapleir.stdlib.ir.CodeBody;
+import org.mapleir.ir.code.CodeBody;
 import org.mapleir.stdlib.ir.StatementVisitor;
 import org.mapleir.stdlib.ir.header.BlockHeaderStatement;
 import org.mapleir.stdlib.ir.header.HeaderStatement;
-import org.mapleir.stdlib.ir.transform.impl.LivenessAnalyser;
+import org.mapleir.ir.analysis.dataflow.impl.LivenessAnalyser;
 import org.objectweb.asm.Type;
 
 public class SSAGenerator {

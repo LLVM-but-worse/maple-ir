@@ -3,16 +3,14 @@ package org.mapleir.stdlib.ir;
 import org.mapleir.ir.code.expr.*;
 import org.mapleir.ir.code.stmt.ConditionalJumpStatement;
 import org.mapleir.ir.code.stmt.Statement;
-import org.mapleir.ir.code.stmt.copy.CopyVarStatement;
 import org.mapleir.ir.locals.Local;
 import org.mapleir.stdlib.cfg.util.TypeUtils;
-import org.mapleir.stdlib.ir.transform.ssa.SSALocalAccess;
+import org.mapleir.ir.transform.ssa.SSALocalAccess;
 import org.objectweb.asm.Type;
 
 import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 

@@ -9,7 +9,7 @@ import java.util.Set;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.code.stmt.Statement;
 import org.mapleir.stdlib.cfg.util.TabbedStringWriter;
-import org.mapleir.stdlib.ir.transform.impl.CodeAnalytics;
+import org.mapleir.ir.analysis.dataflow.impl.CodeAnalytics;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Type;
 
