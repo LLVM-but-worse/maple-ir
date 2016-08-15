@@ -19,7 +19,7 @@ import org.mapleir.ir.code.stmt.ConditionalJumpStatement.ComparisonType;
 import org.mapleir.ir.code.stmt.MonitorStatement.MonitorMode;
 import org.mapleir.ir.code.stmt.copy.CopyVarStatement;
 import org.mapleir.stdlib.cfg.util.TypeUtils.ArrayType;
-import org.mapleir.ir.code.CodeBody;
+import org.mapleir.stdlib.ir.CodeBody;
 import org.mapleir.stdlib.ir.header.BlockHeaderStatement;
 import org.mapleir.stdlib.ir.header.HeaderStatement;
 import org.objectweb.asm.Opcodes;

@@ -7,7 +7,7 @@ import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.code.expr.Expression;
 import org.mapleir.stdlib.cfg.util.TabbedStringWriter;
 import org.mapleir.stdlib.cfg.util.TypeUtils;
-import org.mapleir.ir.analysis.dataflow.impl.CodeAnalytics;
+import org.mapleir.stdlib.ir.transform.impl.CodeAnalytics;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Type;
