@@ -1187,7 +1187,7 @@ public class ControlFlowGraphBuilder {
 	}
 	
 	void save_stack() {
-		if (!currentBlock.isEmpty() && currentBlock.getAt(currentBlock.size() - 1).canChangeFlow()) {
+		if (!currentBlock.isEmpty() && currentBlock.get(currentBlock.size() - 1).canChangeFlow()) {
 			throw new IllegalStateException("Flow instruction already added to block; cannot save stack");
 		}
 			
