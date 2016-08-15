@@ -19,7 +19,7 @@ import org.mapleir.stdlib.collections.SetCreator;
 import org.mapleir.stdlib.collections.bitset.BitSetIndexer;
 import org.mapleir.stdlib.collections.bitset.GenericBitSet;
 import org.mapleir.stdlib.collections.bitset.IncrementalBitSetIndexer;
-import org.mapleir.stdlib.ir.CodeBody;
+import org.mapleir.ir.code.CodeBody;
 import org.objectweb.asm.Type;
 
 public class LocalsHandler {
