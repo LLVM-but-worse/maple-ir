@@ -1,14 +1,8 @@
 package org.mapleir.stdlib.ir.transform.ssa;
 
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Queue;
-import java.util.Set;
-
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
+import org.mapleir.ir.code.Opcode;
 import org.mapleir.ir.code.expr.Expression;
 import org.mapleir.ir.code.expr.PhiExpression;
 import org.mapleir.ir.code.expr.VarExpression;
@@ -17,9 +11,14 @@ import org.mapleir.ir.code.stmt.copy.CopyVarStatement;
 import org.mapleir.ir.locals.Local;
 import org.mapleir.stdlib.cfg.edge.FlowEdge;
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
-import org.mapleir.stdlib.ir.header.BlockHeaderStatement;
-import org.mapleir.stdlib.ir.header.HeaderStatement;
 import org.mapleir.stdlib.ir.transform.Liveness;
+
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.ListIterator;
+import java.util.Map;
+import java.util.Queue;
+import java.util.Set;
 
 public class SSABlockLivenessAnalyser implements Liveness<BasicBlock> {
 	private final NullPermeableHashMap<BasicBlock, Set<Local>> use;
@@ -91,9 +90,9 @@ public class SSABlockLivenessAnalyser implements Liveness<BasicBlock> {
 		// we have to iterate in reverse order because a definition will kill a use in the current block
 		// this is so that uses do not escape a block if its def is in the same block. this is basically
 		// simulating a statement graph analysis
-		List<Statement> stmts = b.getStatements();
-		for (int i = stmts.size() - 1; i >= 0; i--) {
-			Statement stmt = stmts.get(i);
+		ListIterator<Statement> it = b.listIterator(b.size());
+		while (it.hasPrevious()) {
+			Statement stmt = it.previous();
 			if (stmt instanceof CopyVarStatement) {
 				CopyVarStatement cvs = (CopyVarStatement) stmt;
 				VarExpression var = cvs.getVariable();
@@ -102,12 +101,13 @@ public class SSABlockLivenessAnalyser implements Liveness<BasicBlock> {
 				if (rhs instanceof PhiExpression) {
 					phiDef.get(b).add(defLocal);
 					PhiExpression phi = (PhiExpression) rhs;
-					for (Map.Entry<HeaderStatement, Expression> e : phi.getArguments().entrySet()) {
-						if (!(e.getKey() instanceof BlockHeaderStatement))
-							throw new IllegalArgumentException("Illegal phi expression source header: " + e.getClass().getSimpleName());
-						BasicBlock exprSource = ((BlockHeaderStatement) e.getKey()).getBlock();
+					for (Map.Entry<BasicBlock, Expression> e : phi.getArguments().entrySet()) {
+						BasicBlock exprSource = e.getKey();
 						Expression phiExpr = e.getValue();
-						phiUse.get(b).getNonNull(exprSource).addAll(phiExpr.getUsedLocals());
+						Set<Local> useSet = phiUse.get(b).getNonNull(exprSource);
+						for (Statement child : phiExpr)
+							if (child.getOpcode() == Opcode.LOCAL_LOAD)
+								useSet.add(((VarExpression) child).getLocal());
 					}
 					continue; // do this to avoid adding used locals of phi copies
 				}
@@ -115,7 +115,9 @@ public class SSABlockLivenessAnalyser implements Liveness<BasicBlock> {
 				def.get(b).add(defLocal);
 				use.get(b).remove(defLocal);
 			}
-			use.get(b).addAll(stmt.getUsedLocals());
+			for (Statement child : stmt)
+				if (child.getOpcode() == Opcode.LOCAL_LOAD)
+					use.get(b).add(((VarExpression) child).getLocal());
 		}
 	}
 	
