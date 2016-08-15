@@ -2,7 +2,7 @@ package org.mapleir.ir.code.stmt;
 
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.stdlib.cfg.util.TabbedStringWriter;
-import org.mapleir.ir.analysis.dataflow.impl.CodeAnalytics;
+import org.mapleir.stdlib.ir.transform.impl.CodeAnalytics;
 import org.objectweb.asm.MethodVisitor;
 
 import com.sun.xml.internal.ws.org.objectweb.asm.Opcodes;

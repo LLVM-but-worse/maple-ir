@@ -1,4 +1,4 @@
-package org.mapleir.ir.transform.ssa;
+package org.mapleir.stdlib.ir.transform.ssa;
 
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -19,7 +19,7 @@ import org.mapleir.stdlib.cfg.edge.FlowEdge;
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
 import org.mapleir.stdlib.ir.header.BlockHeaderStatement;
 import org.mapleir.stdlib.ir.header.HeaderStatement;
-import org.mapleir.ir.transform.Liveness;
+import org.mapleir.stdlib.ir.transform.Liveness;
 
 public class SSABlockLivenessAnalyser implements Liveness<BasicBlock> {
 	private final NullPermeableHashMap<BasicBlock, Set<Local>> use;

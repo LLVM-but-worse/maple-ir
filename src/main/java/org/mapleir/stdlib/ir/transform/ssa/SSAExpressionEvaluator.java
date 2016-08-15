@@ -1,24 +1,29 @@
-package org.mapleir.stdlib.ir;
+package org.mapleir.stdlib.ir.transform.ssa;
+
+import static org.objectweb.asm.Type.BOOLEAN_TYPE;
+import static org.objectweb.asm.Type.BYTE_TYPE;
+import static org.objectweb.asm.Type.CHAR_TYPE;
+import static org.objectweb.asm.Type.DOUBLE_TYPE;
+import static org.objectweb.asm.Type.FLOAT_TYPE;
+import static org.objectweb.asm.Type.INT_TYPE;
+import static org.objectweb.asm.Type.LONG_TYPE;
+import static org.objectweb.asm.Type.SHORT_TYPE;
+
+import java.util.HashSet;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.mapleir.ir.code.expr.*;
 import org.mapleir.ir.code.stmt.ConditionalJumpStatement;
 import org.mapleir.ir.code.stmt.Statement;
-import org.mapleir.ir.code.stmt.copy.CopyVarStatement;
 import org.mapleir.ir.locals.Local;
 import org.mapleir.stdlib.cfg.util.TypeUtils;
-import org.mapleir.stdlib.ir.transform.ssa.SSALocalAccess;
+import org.mapleir.stdlib.ir.StatementVisitor;
 import org.objectweb.asm.Type;
 
 import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
-
-import static org.objectweb.asm.Type.*;
-
-public class ExpressionEvaluator {
+public class SSAExpressionEvaluator {
 	public static Expression evaluate(Expression in, SSALocalAccess vars) {
 		if (in instanceof VarExpression && vars.defs.containsKey(((VarExpression) in).getLocal()))
 			in = vars.defs.get(((VarExpression) in).getLocal()).getExpression();

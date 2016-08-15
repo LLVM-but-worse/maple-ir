@@ -7,14 +7,13 @@ import java.util.Set;
 
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
-import org.mapleir.ir.code.CodeBody;
 import org.mapleir.ir.code.stmt.Statement;
 import org.mapleir.stdlib.cfg.edge.DummyEdge;
 import org.mapleir.stdlib.cfg.util.LabelHelper;
 import org.mapleir.stdlib.collections.graph.flow.ExceptionRange;
 import org.mapleir.stdlib.ir.header.BlockHeaderStatement;
 import org.mapleir.stdlib.ir.header.HeaderStatement;
-import org.mapleir.ir.analysis.dataflow.impl.CodeAnalytics;
+import org.mapleir.stdlib.ir.transform.impl.CodeAnalytics;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.tree.LabelNode;
 import org.objectweb.asm.tree.MethodNode;
