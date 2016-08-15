@@ -30,7 +30,8 @@ import org.mapleir.stdlib.collections.graph.flow.ExceptionRange;
 import org.mapleir.stdlib.collections.graph.flow.FlowGraph;
 import org.mapleir.stdlib.collections.graph.flow.TarjanDominanceComputor;
 import org.mapleir.stdlib.collections.graph.util.GraphUtils;
-import org.mapleir.stdlib.ir.transform.impl.LivenessAnalyser;
+import org.mapleir.stdlib.ir.transform.Liveness;
+import org.mapleir.stdlib.ir.transform.ssa.SSABlockLivenessAnalyser;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.*;
@@ -76,7 +77,7 @@ public class ControlFlowGraphBuilder {
 	private final Map<Local, Stack<Integer>> stacks;
 	private final Map<VersionedLocal, AbstractCopyStatement> defs;
 	private TarjanDominanceComputor<BasicBlock> doms;
-	private LivenessAnalyser liveness;
+	private Liveness<BasicBlock> liveness;
 	
 	private ControlFlowGraphBuilder(MethodNode method) {
 		this.method = method;
@@ -1170,8 +1171,16 @@ public class ControlFlowGraphBuilder {
 		addStmt(new UnconditionalJumpStatement(target));
 	}
 	
+	Expression _pop(Expression e) {
+		if(e.getParent() != null) {
+			return e.copy();
+		} else {
+			return e;
+		}
+	}
+	
 	Expression pop() {
-		return currentStack.pop();
+		return _pop(currentStack.pop());
 	}
 	
 	Expression peek() {
@@ -1538,17 +1547,8 @@ public class ControlFlowGraphBuilder {
 		for(BasicBlock x : doms.iteratedFrontier(b)) {
 			if(insertion.get(x) < i) {
 				if(x.size() > 0 && graph.getReverseEdges(x).size() > 1) {
-					Statement first = null;
-					for(Statement stmt : x) {
-						if(stmt.getOpcode() == Opcode.PHI_STORE) {
-							continue;
-						} else {
-							first = stmt;
-							break;
-						}
-					}
 					// pruned SSA
-					if(liveness.in(first).get(l)) {
+					if(liveness.in(x).contains(l)) {
 						Map<BasicBlock, Expression> vls = new HashMap<>();
 						int subscript = 0;
 						for(FlowEdge<BasicBlock> fe : graph.getReverseEdges(x)) {
@@ -1741,7 +1741,10 @@ public class ControlFlowGraphBuilder {
 	}
 
 	void ssa() {
-		liveness = new LivenessAnalyser(StatementGraphBuilder.create(graph));
+		// technically this shouldn't be an ssa analyser.
+		SSABlockLivenessAnalyser liveness = new SSABlockLivenessAnalyser(graph);
+		liveness.compute();
+		this.liveness = liveness;
 		
 		BasicBlock exit = new BasicBlock(graph, graph.size() * 2, null);
 		for(BasicBlock b : graph.vertices()) {
@@ -1769,6 +1772,11 @@ public class ControlFlowGraphBuilder {
 	
 	public static ControlFlowGraph build(MethodNode method) {
 		ControlFlowGraphBuilder builder = new ControlFlowGraphBuilder(method);
-		return builder.build().reduce().graph;	
+		try {
+			return builder.build().reduce().graph;
+		} catch(RuntimeException e) {
+			System.err.println(builder.graph);
+			throw e;
+		}
 	}
 }
