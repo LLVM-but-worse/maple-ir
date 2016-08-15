@@ -4,6 +4,7 @@ import java.util.HashSet;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import org.mapleir.ir.analysis.dataflow.BackwardsFlowAnalyser;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.code.expr.Expression;
 import org.mapleir.ir.code.expr.PhiExpression;
@@ -18,7 +19,6 @@ import org.mapleir.stdlib.collections.ValueCreator;
 import org.mapleir.stdlib.collections.graph.flow.FlowGraph;
 import org.mapleir.stdlib.ir.header.BlockHeaderStatement;
 import org.mapleir.stdlib.ir.header.HeaderStatement;
-import org.mapleir.stdlib.ir.transform.BackwardsFlowAnalyser;
 import org.mapleir.stdlib.ir.transform.Liveness;
 
 public class SSALivenessAnalyser extends BackwardsFlowAnalyser<BasicBlock, FlowEdge<BasicBlock>, Set<Local>> implements Liveness<BasicBlock> {
@@ -57,7 +57,7 @@ public class SSALivenessAnalyser extends BackwardsFlowAnalyser<BasicBlock, FlowE
 						if(expr instanceof PhiExpression) {
 							phiDef.getNonNull(b).add(l);
 							NullPermeableHashMap<BasicBlock, Set<Local>> map = phiUse.getNonNull(b);
-							for(Entry<HeaderStatement, Expression> e : ((PhiExpression) expr).getLocals().entrySet()) {
+							for(Entry<HeaderStatement, Expression> e : ((PhiExpression) expr).getArguments().entrySet()) {
 								for(Statement s1 : Statement.enumerate(e.getValue())) {
 									if(s1 instanceof VarExpression) {
 										VarExpression v = (VarExpression) s1;

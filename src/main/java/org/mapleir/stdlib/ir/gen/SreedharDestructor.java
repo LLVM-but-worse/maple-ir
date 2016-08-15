@@ -277,7 +277,7 @@ public class SreedharDestructor {
 		res.add(map_initial_pcc(l0, dv, true));
 		
 		PhiExpression phi = (PhiExpression) copy.getExpression();
-		for(Entry<HeaderStatement, Expression> en : phi.getLocals().entrySet()) {
+		for(Entry<HeaderStatement, Expression> en : phi.getArguments().entrySet()) {
 			Expression e = en.getValue();
 			if(!(e instanceof VarExpression)) {
 				throw new UnsupportedOperationException("Cannot perform Sreedhar 3 on propagated phi resources: " + e);
@@ -469,7 +469,7 @@ public class SreedharDestructor {
 			insert_end(li, copy);
 			
 			HeaderStatement header = headers.get(li);
-			Map<HeaderStatement, Expression> cont = phi.getLocals();
+			Map<HeaderStatement, Expression> cont = phi.getArguments();
 			cont.put(header, new VarExpression(newL, type));
 		}
 		

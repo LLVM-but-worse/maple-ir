@@ -5,7 +5,7 @@ import org.mapleir.stdlib.collections.graph.FastGraphVertex;
 public class UnconditionalJumpEdge<N extends FastGraphVertex> extends JumpEdge<N> {
 	
 	public UnconditionalJumpEdge(N src, N dst, int opcode) {
-		super(src, dst, opcode);
+		super(UNCOND, src, dst, opcode);
 	}
 
 	@Override
@@ -20,6 +20,6 @@ public class UnconditionalJumpEdge<N extends FastGraphVertex> extends JumpEdge<N
 	
 	@Override
 	public UnconditionalJumpEdge<N> clone(N src, N dst) {
-		return new UnconditionalJumpEdge<N>(src, dst, opcode);
+		return new UnconditionalJumpEdge<>(src, dst, opcode);
 	}
 }

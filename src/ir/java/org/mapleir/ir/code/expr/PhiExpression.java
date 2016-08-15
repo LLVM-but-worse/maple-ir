@@ -8,7 +8,6 @@ import java.util.Set;
 
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.code.stmt.Statement;
-import org.mapleir.ir.code.stmt.copy.CopyPhiStatement;
 import org.mapleir.stdlib.cfg.util.TabbedStringWriter;
 import org.mapleir.stdlib.ir.transform.impl.CodeAnalytics;
 import org.objectweb.asm.MethodVisitor;
@@ -42,8 +41,7 @@ public class PhiExpression extends Expression {
 	
 	public void setArgument(BasicBlock b, Expression e) {
 		if(arguments.containsKey(b)) {
-			Expression old = arguments.put(b, e);
-			getBlock().getGraph().updated(getBlock(), (CopyPhiStatement) getParent(), b, old, e);
+			arguments.put(b, e);
 		} else {
 			throw new IllegalStateException("phi has a fixed size of " + arguments.size() + ": " + b + ", " + e);
 		}

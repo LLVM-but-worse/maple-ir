@@ -5,6 +5,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.mapleir.ir.analysis.dataflow.BackwardsFlowAnalyser;
 import org.mapleir.ir.code.expr.VarExpression;
 import org.mapleir.ir.code.stmt.Statement;
 import org.mapleir.ir.code.stmt.copy.CopyVarStatement;
@@ -12,7 +13,6 @@ import org.mapleir.ir.locals.Local;
 import org.mapleir.stdlib.cfg.edge.FlowEdge;
 import org.mapleir.stdlib.collections.graph.flow.FlowGraph;
 import org.mapleir.stdlib.ir.StatementVisitor;
-import org.mapleir.stdlib.ir.transform.BackwardsFlowAnalyser;
 
 import java.util.Set;
 

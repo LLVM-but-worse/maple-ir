@@ -5,7 +5,7 @@ import org.mapleir.stdlib.collections.graph.FastGraphVertex;
 public class ImmediateEdge<N extends FastGraphVertex> extends FlowEdge<N> {
 	
 	public ImmediateEdge(N src, N dst) {
-		super(src, dst);
+		super(IMMEDIATE, src, dst);
 	}
 
 	@Override
@@ -25,6 +25,6 @@ public class ImmediateEdge<N extends FastGraphVertex> extends FlowEdge<N> {
 	
 	@Override
 	public ImmediateEdge<N> clone(N src, N dst) {
-		return new ImmediateEdge<N>(src, dst);
+		return new ImmediateEdge<>(src, dst);
 	}
 }

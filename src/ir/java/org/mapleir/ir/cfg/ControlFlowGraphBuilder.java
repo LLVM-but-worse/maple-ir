@@ -6,7 +6,6 @@ import static org.objectweb.asm.tree.AbstractInsnNode.*;
 import java.util.*;
 import java.util.Map.Entry;
 
-import org.mapleir.ir.analysis.StatementGraphBuilder;
 import org.mapleir.ir.code.ExpressionStack;
 import org.mapleir.ir.code.Opcode;
 import org.mapleir.ir.code.expr.*;
@@ -1629,7 +1628,8 @@ public class ControlFlowGraphBuilder {
 	
 	void renameNonPhis(BasicBlock b) {
 		for(Statement stmt : b) {
-			if(stmt.getOpcode() == Opcode.LOCAL_STORE) {
+			int opcode = stmt.getOpcode();
+			if(opcode == Opcode.LOCAL_STORE) {
 				CopyVarStatement copy = (CopyVarStatement) stmt;
 				VarExpression var = copy.getVariable();
 				Local lhs = var.getLocal();
@@ -1638,11 +1638,13 @@ public class ControlFlowGraphBuilder {
 				defs.put(vl, copy);
 			}
 			
-			for(Statement s : stmt) {
-				if(s.getOpcode() == Opcode.LOCAL_LOAD) {
-					VarExpression var = (VarExpression) s;
-					Local l = var.getLocal();
-					var.setLocal(_top(s, l.getIndex(), l.isStack()));
+			if(opcode != Opcode.PHI_STORE) {
+				for(Statement s : stmt) {
+					if(s.getOpcode() == Opcode.LOCAL_LOAD) {
+						VarExpression var = (VarExpression) s;
+						Local l = var.getLocal();
+						var.setLocal(_top(s, l.getIndex(), l.isStack()));
+					}
 				}
 			}
 		}
@@ -1653,7 +1655,7 @@ public class ControlFlowGraphBuilder {
 			if(stmt.getOpcode() == Opcode.PHI_STORE) {
 				CopyPhiStatement copy = (CopyPhiStatement) stmt;
 				PhiExpression phi = copy.getExpression();
-				Expression e = phi.getLocal(b);
+				Expression e = phi.getArgument(b);
 				if(e.getOpcode() == Opcode.LOCAL_LOAD) {
 					Local l = (VersionedLocal) ((VarExpression) e).getLocal();
 					l = _top(stmt, l.getIndex(), l.isStack());
@@ -1672,7 +1674,7 @@ public class ControlFlowGraphBuilder {
 							}
 						}
 						VarExpression var = new VarExpression(l, varDef.getType());
-						phi.setLocal(b, var);
+						phi.setArgument(b, var);
 					} catch (IllegalStateException eg) {
 						System.err.println(graph);
 						System.err.println(succ.getId() + ": " + phi.getId() + ". " + phi);

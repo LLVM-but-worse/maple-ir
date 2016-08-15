@@ -20,7 +20,6 @@ import org.mapleir.stdlib.cfg.util.TabbedStringWriter;
 import org.mapleir.stdlib.collections.ListCreator;
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.SetCreator;
-import org.mapleir.stdlib.collections.ValueCreator;
 import org.mapleir.stdlib.collections.graph.dot.BasicDotConfiguration;
 import org.mapleir.stdlib.collections.graph.dot.DotConfiguration;
 import org.mapleir.stdlib.collections.graph.dot.DotWriter;
@@ -29,6 +28,7 @@ import org.mapleir.stdlib.collections.graph.dot.impl.LivenessDecorator;
 import org.mapleir.stdlib.collections.graph.flow.TarjanDominanceComputor;
 import org.mapleir.stdlib.collections.graph.util.GraphUtils;
 import org.mapleir.stdlib.ir.CodeBody;
+import org.mapleir.stdlib.ir.gen.BoissinotDestructor.ExtendedDfs;
 import org.mapleir.stdlib.ir.header.BlockHeaderStatement;
 import org.mapleir.stdlib.ir.header.HeaderStatement;
 import org.mapleir.stdlib.ir.transform.Liveness;
@@ -147,7 +147,7 @@ public class BoissinotDestructor implements Liveness<BasicBlock> {
 						if (e instanceof PhiExpression) {
 							_phi = true;
 							PhiExpression phi = (PhiExpression) e;
-							for (Entry<HeaderStatement, Expression> en : phi.getLocals().entrySet()) {
+							for (Entry<HeaderStatement, Expression> en : phi.getArguments().entrySet()) {
 								BasicBlock p = ((BlockHeaderStatement) en.getKey()).getBlock();
 								Local ul = ((VarExpression) en.getValue()).getLocal();
 								uses.getNonNull(ul).add(p);
@@ -233,7 +233,7 @@ public class BoissinotDestructor implements Liveness<BasicBlock> {
 					if(e instanceof PhiExpression) {
 						_phi = true;
 						PhiExpression phi = (PhiExpression) e;
-						for(Entry<HeaderStatement, Expression> en : phi.getLocals().entrySet()) {
+						for(Entry<HeaderStatement, Expression> en : phi.getArguments().entrySet()) {
 							BasicBlock p = ((BlockHeaderStatement) en.getKey()).getBlock();
 							Local ul = ((VarExpression) en.getValue()).getLocal();
 							uses.getNonNull(ul).add(p);
@@ -283,7 +283,7 @@ public class BoissinotDestructor implements Liveness<BasicBlock> {
 			
 			// for every xi arg of the phi from pred Li, add it to the worklist
 			// so that we can parallelise the copy when we insert it.
-			for(Entry<HeaderStatement, Expression> e : phi.getLocals().entrySet()) {
+			for(Entry<HeaderStatement, Expression> e : phi.getArguments().entrySet()) {
 				BlockHeaderStatement h = (BlockHeaderStatement) e.getKey();
 				VarExpression v = (VarExpression) e.getValue();
 				PhiRes r = new PhiRes(copy.getVariable().getLocal(), phi, h, v.getLocal(), v.getType());
@@ -339,7 +339,7 @@ public class BoissinotDestructor implements Liveness<BasicBlock> {
 				//       phi pred is already added above.
 				uses.getNonNull(xi).remove(p);
 				
-				r.phi.setLocal(r.pred, new VarExpression(zi, r.type));
+				r.phi.setArgument(r.pred, new VarExpression(zi, r.type));
 			}
 
 			insert_end(p, copy);
@@ -431,7 +431,7 @@ public class BoissinotDestructor implements Liveness<BasicBlock> {
 						
 						PhiExpression phi = (PhiExpression) e;
 						
-						for(Expression ex : phi.getLocals().values()) {
+						for(Expression ex : phi.getArguments().values()) {
 							VarExpression v = (VarExpression) ex;
 							Local l = v.getLocal();
 							remap.put(l, newL);
@@ -750,67 +750,6 @@ public class BoissinotDestructor implements Liveness<BasicBlock> {
 			
 //			System.out.println("=> result: false\n");
 			return false;
-		}
-	}
-	
-	static class ExtendedDfs {
-		static final int WHITE = 0, GREY = 1, BLACK = 2;
-		static final int TREE = WHITE, BACK = GREY, FOR_CROSS = BLACK;
-		static final int EDGES = 0x1, PARENTS = 0x2, PRE = 0x4, POST = 0x8;
-		
-		final int opt;
-		final FastBlockGraph graph;
-		final NullPermeableHashMap<BasicBlock, Integer> colours;
-		final Map<Integer, Set<FlowEdge<BasicBlock>>> edges;
-		final Map<BasicBlock, BasicBlock> parents;
-		final List<BasicBlock> pre;
-		final List<BasicBlock> post;
-		
-		ExtendedDfs(FastBlockGraph graph, BasicBlock entry, int opt) {
-			this.opt = opt;
-			this.graph = graph;
-			colours = new NullPermeableHashMap<>(new ValueCreator<Integer>() {
-				@Override
-				public Integer create() {
-					return Integer.valueOf(0);
-				}
-			});
-			
-			parents = opt(PARENTS) ? new HashMap<>() : null;
-			pre = opt(PRE) ? new ArrayList<>() : null;
-			post = opt(POST) ? new ArrayList<>() : null;
-			
-			if(opt(EDGES)) {
-				edges = new HashMap<>();
-				edges.put(TREE, new HashSet<>());
-				edges.put(BACK, new HashSet<>());
-				edges.put(FOR_CROSS, new HashSet<>());
-			} else {
-				edges = null;
-			}
-			
-			dfs(entry);
-		}
-		
-		boolean opt(int i) {
-			return (opt & i) != 0;
-		}
-
-		void dfs(BasicBlock b) {
-			if(opt(PRE)) pre.add(b);
-			colours.put(b, GREY);
-			
-			for(FlowEdge<BasicBlock> sE : graph.getEdges(b))  {
-				BasicBlock s = sE.dst;
-				if(opt(EDGES)) edges.get(colours.getNonNull(s)).add(sE);
-				if(colours.getNonNull(s).intValue() == WHITE) {
-					if(opt(PARENTS)) parents.put(s, b);
-					dfs(s);
-				}
-			}
-			
-			if(opt(POST)) post.add(b);
-			colours.put(b, BLACK);
 		}
 	}
 	

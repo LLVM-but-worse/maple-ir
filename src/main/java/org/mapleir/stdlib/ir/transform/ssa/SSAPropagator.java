@@ -462,8 +462,8 @@ public class SSAPropagator extends SSATransformer {
 		
 		// Attempt to inline each value of the vars in the phi statement with their respective definitions
 		private Statement visitPhi(PhiExpression phi) {
-			for(HeaderStatement header : phi.headers()) {
-				Expression e = phi.getLocal(header);
+			for(HeaderStatement header : phi.getSources()) {
+				Expression e = phi.getArgument(header);
 				if(e instanceof VarExpression) {
 					CopyVarStatement def = localAccess.defs.get(((VarExpression) e).getLocal());
 					if(def.getExpression() instanceof VarExpression) {
@@ -472,7 +472,7 @@ public class SSAPropagator extends SSATransformer {
 						if(l.isStack() == def.getVariable().getLocal().isStack()) {
 							Statement e1 = findSubstitution(phi, def, (VarExpression) e);
 							if(e1 != null && e1 != e) {
-								phi.setLocal(header, (Expression) e1);
+								phi.setArgument(header, (Expression) e1);
 								change = true;
 							}
 						}
