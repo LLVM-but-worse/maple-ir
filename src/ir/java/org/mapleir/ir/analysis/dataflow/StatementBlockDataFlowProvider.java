@@ -20,7 +20,7 @@ public class StatementBlockDataFlowProvider implements DataFlowProvider<Statemen
 	}
 	
 	Statement first(FlowEdge<BasicBlock> e) {
-		return e.dst.getAt(0);
+		return e.dst.get(0);
 	}
 
 	@Override
@@ -29,7 +29,7 @@ public class StatementBlockDataFlowProvider implements DataFlowProvider<Statemen
 		BasicBlock b = n.getBlock();
 		int idx = b.indexOf(n);
 		if(idx != (b.size() - 1)) {
-			Statement s = b.getAt(idx + 1);
+			Statement s = b.get(idx + 1);
 			set.add(new ImmediateEdge<>(n, s));
 			
 			for(FlowEdge<BasicBlock> e : cfg.getEdges(b)) {

@@ -1,9 +1,11 @@
 package org.mapleir.ir.cfg;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Set;
 import java.util.function.Predicate;
 
@@ -17,7 +19,7 @@ import org.mapleir.stdlib.collections.graph.flow.ExceptionRange;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.tree.LabelNode;
 
-public class BasicBlock implements FastGraphVertex, Comparable<BasicBlock>, Iterable<Statement> {
+public class BasicBlock implements FastGraphVertex, Comparable<BasicBlock>, List<Statement> {
 
 	private int id;
 	private final ControlFlowGraph cfg;
@@ -38,45 +40,112 @@ public class BasicBlock implements FastGraphVertex, Comparable<BasicBlock>, Iter
 		return cfg;
 	}
 	
-	public void add(Statement stmt) {
-		statements.add(stmt);
+	@Override
+	public boolean add(Statement stmt) {
+		boolean ret = statements.add(stmt);
 		stmt.setBlock(this);
+		return ret;
 	}
 
+	@Override
 	public void add(int index, Statement stmt) {
 		statements.add(index, stmt);
 		stmt.setBlock(this);
 	}
 	
-	public void remove(Statement stmt) {
-		statements.remove(stmt);
+	@Override
+	public boolean remove(Object o) {
+		boolean ret = statements.remove(o);
+		if (o instanceof Statement)
+			((Statement) o).setBlock(null);
+		return ret;
+	}
+	
+	@Override
+	public boolean containsAll(Collection<?> c) {
+		return statements.containsAll(c);
+	}
+	
+	@Override
+	public boolean addAll(Collection<? extends Statement> c) {
+		for (Statement stmt : c)
+			add(stmt);
+		return c.size() != 0;
+	}
+	
+	@Override
+	public boolean addAll(int index, Collection<? extends Statement> c) {
+		for (Statement stmt : c)
+			add(index++, stmt);
+		return c.size() != 0;
+	}
+	
+	@Override
+	public boolean removeAll(Collection<?> c) {
+		boolean ret = false;
+		for (Object o : c)
+			ret = remove(o) || ret;
+		return ret;
+	}
+	
+	@Override
+	public boolean retainAll(Collection<?> c) {
+		boolean ret = false;
+		Iterator<Statement> it = iterator();
+		while (it.hasNext()) {
+			Statement stmt = it.next();
+			if (!c.contains(stmt)) {
+				it.remove();
+				stmt.setBlock(null);
+				ret = true;
+			}
+		}
+		return ret;
+	}
+	
+	@Override
+	public Statement remove(int index) {
+		Statement stmt = statements.remove(index);
 		stmt.setBlock(null);
+		return stmt;
 	}
 	
-	public void remove(int index) {
-		statements.remove(index).setBlock(null);
+	@Override
+	public boolean contains(Object o) {
+		return statements.contains(o);
 	}
 	
-	public boolean contains(Statement stmt) {
-		return statements.remove(stmt);
-	}
-	
+	@Override
 	public boolean isEmpty() {
 		return statements.isEmpty();
 	}
 	
-	public int indexOf(Statement stmt) {
-		return statements.indexOf(stmt);
+	@Override
+	public int indexOf(Object o) {
+		return statements.indexOf(o);
 	}
 	
-	public Statement getAt(int index) {
+	@Override
+	public int lastIndexOf(Object o) {
+		return statements.lastIndexOf(o);
+	}
+	
+	@Override
+	public Statement get(int index) {
 		return statements.get(index);
 	}
 	
+	@Override
+	public Statement set(int index, Statement stmt) {
+		return statements.set(index, stmt);
+	}
+	
+	@Override
 	public int size() {
 		return statements.size();
 	}
 	
+	@Override
 	public void clear() {
 		Iterator<Statement> it = statements.iterator();
 		while(it.hasNext()) {
@@ -84,6 +153,36 @@ public class BasicBlock implements FastGraphVertex, Comparable<BasicBlock>, Iter
 			s.setBlock(null);
 			it.remove();
 		}
+	}
+	
+	@Override
+	public Iterator<Statement> iterator() {
+		return statements.iterator();
+	}
+		
+	@Override
+	public ListIterator<Statement> listIterator() {
+		return statements.listIterator();
+	}
+	
+	@Override
+	public ListIterator<Statement> listIterator(int index) {
+		return statements.listIterator(index);
+	}
+	
+	@Override
+	public Object[] toArray() {
+		throw new UnsupportedOperationException();
+	}
+	
+	@Override
+	public <T> T[] toArray(T[] a) {
+		throw new UnsupportedOperationException();
+	}
+	
+	@Override
+	public List<Statement> subList(int fromIndex, int toIndex) {
+		throw new UnsupportedOperationException();
 	}
 	
 	public void transfer(BasicBlock to) {
@@ -265,11 +364,6 @@ public class BasicBlock implements FastGraphVertex, Comparable<BasicBlock>, Iter
 	@Override
 	public int hashCode() {
 		return id;
-	}
-
-	@Override
-	public Iterator<Statement> iterator() {
-		return statements.iterator();
 	}
 	
 	public static int numeric(String label) {
