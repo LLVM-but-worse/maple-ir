@@ -221,7 +221,7 @@ public class SSAGenerator {
 					CopyVarStatement cvs = ((CopyVarStatement) s);
 					if(cvs.getExpression() instanceof PhiExpression) {
 						PhiExpression phi = (PhiExpression) cvs.getExpression();
-						Expression e = phi.getLocal(header);
+						Expression e = phi.getArgument(header);
 						if(e instanceof VarExpression) {
 							Local l = (VersionedLocal) ((VarExpression) e).getLocal();
 							l = _top(s, l.getIndex(), l.isStack());
@@ -240,7 +240,7 @@ public class SSAGenerator {
 									}
 								}
 								VarExpression var = new VarExpression(l, varDef.getType());
-								phi.setLocal(header, var);
+								phi.setArgument(header, var);
 							} catch (IllegalStateException eg) {
 								System.err.println(body);
 								System.err.println(succ.getId() + ": " + phi.getId() + ". " + phi);

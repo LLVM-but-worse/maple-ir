@@ -8,8 +8,13 @@ public class TryCatchEdge<N extends FastGraphVertex> extends FlowEdge<N> {
 	public final ExceptionRange<N> erange;
 	private int hashcode;
 	
+	public TryCatchEdge(N src, N dst) {
+		super(TRYCATCH, src, dst);
+		this.erange = null;
+	}
+	
 	public TryCatchEdge(N src, ExceptionRange<N> erange) {
-		super(src, erange.getHandler());
+		super(TRYCATCH, src, erange.getHandler());
 		this.erange = erange;
 		recalcHashcode();
 	}
@@ -36,7 +41,7 @@ public class TryCatchEdge<N extends FastGraphVertex> extends FlowEdge<N> {
 
 	@Override
 	public TryCatchEdge<N> clone(N src, N dst) {
-		return new TryCatchEdge<N>(src, erange);
+		return new TryCatchEdge<>(src, erange);
 	}
 
 	@Override

@@ -5,7 +5,7 @@ import org.mapleir.stdlib.collections.graph.FastGraphVertex;
 public class DummyEdge<N extends FastGraphVertex> extends FlowEdge<N>{
 
 	public DummyEdge(N src, N dst) {
-		super(src, dst);
+		super(DUMMY, src, dst);
 	}
 
 	@Override

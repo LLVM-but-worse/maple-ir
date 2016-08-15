@@ -33,36 +33,14 @@ public abstract class Statement implements FastGraphVertex, Opcode, Iterable<Sta
 		return block;
 	}
 	
-	protected void setBlock00(BasicBlock block) {
+	public void setBlock(BasicBlock block) {
+		this.block = block;
+		
 		for(Statement s : children) {
 			if(s != null) {
-				s.setBlock00(block);
+				s.setBlock(block);
 			}
 		}
-	}
-	
-	protected void setBlock0(BasicBlock block) {
-		BasicBlock old = this.block;
-		
-		this.block = block;
-		setBlock00(block);
-		
-		
-		if(old != null) {
-			if(block != null) {
-				block.getGraph().transfered(old, block, this);
-			} else {
-				old.getGraph().removed(old, this);
-			}
-		} else {
-			if(block != null) {
-				block.getGraph().added(block, this);
-			}
-		}
-	}
-	
-	public void setBlock(BasicBlock block) {
-		setBlock0(block);
 	}
 	
 	public int getOpcode() {
@@ -114,10 +92,6 @@ public abstract class Statement implements FastGraphVertex, Opcode, Iterable<Sta
 			} else {
 				s.parent = this;
 			}
-		}
-		
-		if(block != null) {
-			block.getGraph().updated(block, this, index, prev, s);
 		}
 		
 		return prev;

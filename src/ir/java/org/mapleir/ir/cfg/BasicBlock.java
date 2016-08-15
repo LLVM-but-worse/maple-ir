@@ -34,6 +34,10 @@ public class BasicBlock implements FastGraphVertex, Comparable<BasicBlock>, Iter
 		statements = new ArrayList<>();
 	}
 	
+	public ControlFlowGraph getGraph() {
+		return cfg;
+	}
+	
 	public void add(Statement stmt) {
 		statements.add(stmt);
 		stmt.setBlock(this);
@@ -87,7 +91,7 @@ public class BasicBlock implements FastGraphVertex, Comparable<BasicBlock>, Iter
 		while(it.hasNext()) {
 			Statement s = it.next();
 			to.statements.add(s);
-			s.setTransferBlock(to);
+			s.setBlock(to);
 			it.remove();
 		}
 	}

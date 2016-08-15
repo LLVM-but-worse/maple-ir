@@ -66,7 +66,7 @@ public class SSADestructor {
 	}
 
 	void unroll(PhiExpression phi, Local l) {
-		for(Entry<HeaderStatement, Expression> e : phi.getLocals().entrySet()) {
+		for(Entry<HeaderStatement, Expression> e : phi.getArguments().entrySet()) {
 			Expression expr = e.getValue();
 //			if(expr instanceof VarExpression) {
 //				Local l2 = ((VarExpression) expr).getLocal();

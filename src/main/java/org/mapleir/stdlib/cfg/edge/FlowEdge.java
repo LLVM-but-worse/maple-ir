@@ -3,10 +3,17 @@ package org.mapleir.stdlib.cfg.edge;
 import org.mapleir.stdlib.collections.graph.FastGraphEdge;
 import org.mapleir.stdlib.collections.graph.FastGraphVertex;
 
-public abstract class FlowEdge<N extends FastGraphVertex> extends FastGraphEdge<N> {
-		
-	public FlowEdge(N src, N dst) {
+public abstract class FlowEdge<N extends FastGraphVertex> extends FastGraphEdge<N> implements FlowEdges {
+	
+	private final int type;
+	
+	public FlowEdge(int type, N src, N dst) {
 		super(src, dst);
+		this.type = type;
+	}
+	
+	public int getType() {
+		return type;
 	}
 	
 	public abstract String toGraphString();

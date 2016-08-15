@@ -9,7 +9,7 @@ public class SwitchEdge<N extends FastGraphVertex> extends FlowEdge<N> {
 	public final int value;
 	
 	public SwitchEdge(N src, N dst, AbstractInsnNode insn, int value) {
-		super(src, dst);
+		super(SWITCH, src, dst);
 		this.insn = insn;
 		this.value = value;
 	}
@@ -20,7 +20,7 @@ public class SwitchEdge<N extends FastGraphVertex> extends FlowEdge<N> {
 	}
 	
 	@Override
-	public String toString() {		
+	public String toString() {
 		return String.format("Switch[%d] #%s -> #%s", value, src.getId(), dst.getId());
 	}
 
@@ -31,6 +31,6 @@ public class SwitchEdge<N extends FastGraphVertex> extends FlowEdge<N> {
 
 	@Override
 	public SwitchEdge<N> clone(N src, N dst) {
-		return new SwitchEdge<N>(src, dst, insn, value);
+		return new SwitchEdge<>(src, dst, insn, value);
 	}
 }
