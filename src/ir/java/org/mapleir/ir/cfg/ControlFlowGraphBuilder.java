@@ -30,7 +30,7 @@ import org.mapleir.stdlib.collections.graph.flow.ExceptionRange;
 import org.mapleir.stdlib.collections.graph.flow.FlowGraph;
 import org.mapleir.stdlib.collections.graph.flow.TarjanDominanceComputor;
 import org.mapleir.stdlib.collections.graph.util.GraphUtils;
-import org.mapleir.ir.analysis.dataflow.impl.LivenessAnalyser;
+import org.mapleir.stdlib.ir.transform.impl.LivenessAnalyser;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.*;
