@@ -85,14 +85,14 @@ public class CodeBody implements List<Statement> {
 	public boolean addAll(Collection<? extends Statement> c) {
 		boolean result = false;
 		for (Statement s : c)
-			result = result || add(s);
+			result = add(s) || result;
 		return result;
 	}
 
 	@Override
 	public boolean addAll(int index, Collection<? extends Statement> c) {
 		for (Statement s : c)
-			add(index, s);
+			add(index++, s);
 		return c.size() != 0;
 	}
 
@@ -100,7 +100,7 @@ public class CodeBody implements List<Statement> {
 	public boolean removeAll(Collection<?> c) {
 		boolean result = false;
 		for (Object o : c)
-			result = result || remove(o);
+			result = remove(o) || result;
 		return result;
 	}
 
@@ -109,7 +109,7 @@ public class CodeBody implements List<Statement> {
 		boolean result = false;
 		for (Object o : c)
 			if (!contains(o))
-				result = result || remove(o);
+				result = remove(o) || result;
 		return result;
 	}
 
