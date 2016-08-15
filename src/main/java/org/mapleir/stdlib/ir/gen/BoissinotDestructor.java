@@ -27,13 +27,13 @@ import org.mapleir.stdlib.collections.graph.dot.impl.ControlFlowGraphDecorator;
 import org.mapleir.stdlib.collections.graph.dot.impl.LivenessDecorator;
 import org.mapleir.stdlib.collections.graph.flow.TarjanDominanceComputor;
 import org.mapleir.stdlib.collections.graph.util.GraphUtils;
-import org.mapleir.stdlib.ir.CodeBody;
+import org.mapleir.ir.code.CodeBody;
 import org.mapleir.stdlib.ir.gen.BoissinotDestructor.ExtendedDfs;
 import org.mapleir.stdlib.ir.header.BlockHeaderStatement;
 import org.mapleir.stdlib.ir.header.HeaderStatement;
-import org.mapleir.stdlib.ir.transform.Liveness;
-import org.mapleir.stdlib.ir.transform.impl.CodeAnalytics;
-import org.mapleir.stdlib.ir.transform.ssa.SSALivenessAnalyser;
+import org.mapleir.ir.transform.Liveness;
+import org.mapleir.ir.analysis.dataflow.impl.CodeAnalytics;
+import org.mapleir.ir.transform.ssa.SSALivenessAnalyser;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Type;
 

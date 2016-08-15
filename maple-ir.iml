@@ -8,6 +8,7 @@
       <sourceFolder url="file://$MODULE_DIR$/src/topdank/java" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/main/java" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/test/main" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/src/ir/java" isTestSource="false" />
       <excludeFolder url="file://$MODULE_DIR$/cfg testing" />
       <excludeFolder url="file://$MODULE_DIR$/dot" />
       <excludeFolder url="file://$MODULE_DIR$/out" />

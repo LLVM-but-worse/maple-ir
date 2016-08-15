@@ -1,4 +1,4 @@
-package org.mapleir.stdlib.ir.transform.ssa;
+package org.mapleir.ir.transform.ssa;
 
 import java.util.HashSet;
 import java.util.Map.Entry;
@@ -19,7 +19,7 @@ import org.mapleir.stdlib.collections.ValueCreator;
 import org.mapleir.stdlib.collections.graph.flow.FlowGraph;
 import org.mapleir.stdlib.ir.header.BlockHeaderStatement;
 import org.mapleir.stdlib.ir.header.HeaderStatement;
-import org.mapleir.stdlib.ir.transform.Liveness;
+import org.mapleir.ir.transform.Liveness;
 
 public class SSALivenessAnalyser extends BackwardsFlowAnalyser<BasicBlock, FlowEdge<BasicBlock>, Set<Local>> implements Liveness<BasicBlock> {
 
