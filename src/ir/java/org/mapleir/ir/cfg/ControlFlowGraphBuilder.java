@@ -1398,7 +1398,7 @@ public class ControlFlowGraphBuilder {
 				r.removeVertex(dst);
 			}
 			
-			System.out.printf("Merged %s into %s.%n", dst.getId(), src.getId());
+//			System.out.printf("Merged %s into %s.%n", dst.getId(), src.getId());
 		}
 		
 		// we need to update the assigns map if we change the cfg.
@@ -1512,7 +1512,7 @@ public class ControlFlowGraphBuilder {
 				if(bfs.contains(n)) {
 					continue;
 				} else if(!cand.contains(n)) {
-					System.out.println(n.getId() + " jumps out of component: " + cand);
+//					System.out.println(n.getId() + " jumps out of component: " + cand);
 					continue;
 				}
 				
