@@ -5,9 +5,11 @@ import static org.mapleir.ir.dot.ControlFlowGraphDecorator.*;
 import java.util.*;
 import java.util.Map.Entry;
 
+import org.mapleir.ir.analysis.ExtendedDfs;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.cfg.FastBlockGraph;
+import org.mapleir.ir.code.Opcode;
 import org.mapleir.ir.code.expr.Expression;
 import org.mapleir.ir.code.expr.PhiExpression;
 import org.mapleir.ir.code.expr.VarExpression;
@@ -28,9 +30,6 @@ import org.mapleir.stdlib.collections.graph.dot.DotWriter;
 import org.mapleir.stdlib.collections.graph.flow.TarjanDominanceComputor;
 import org.mapleir.stdlib.collections.graph.util.GraphUtils;
 import org.mapleir.stdlib.ir.CodeBody;
-import org.mapleir.stdlib.ir.gen.BoissinotDestructor.ExtendedDfs;
-import org.mapleir.stdlib.ir.header.BlockHeaderStatement;
-import org.mapleir.stdlib.ir.header.HeaderStatement;
 import org.mapleir.stdlib.ir.transform.Liveness;
 import org.mapleir.stdlib.ir.transform.impl.CodeAnalytics;
 import org.mapleir.stdlib.ir.transform.ssa.SSALivenessAnalyser;
@@ -40,8 +39,6 @@ import org.objectweb.asm.Type;
 public class BoissinotDestructor implements Liveness<BasicBlock> {
 
 	private final ControlFlowGraph cfg;
-	private final CodeBody code;
-	private final Map<BasicBlock, HeaderStatement> headers;
 	private final Map<Local, BasicBlock> defs;
 	private final NullPermeableHashMap<Local, Set<BasicBlock>> uses;
 	private final Set<Local> phis;
@@ -53,8 +50,6 @@ public class BoissinotDestructor implements Liveness<BasicBlock> {
 	
 	public BoissinotDestructor(ControlFlowGraph cfg, CodeBody code) {
 		this.cfg = cfg;
-		this.code = code;
-		headers = new HashMap<>();
 		defs = new HashMap<>();
 		uses = new NullPermeableHashMap<>(new SetCreator<>());
 		phis = new HashSet<>();
@@ -72,13 +67,14 @@ public class BoissinotDestructor implements Liveness<BasicBlock> {
 		resolver = new InterferenceResolver();
 		
 		SSALivenessAnalyser live = new SSALivenessAnalyser(cfg);
-		for(BasicBlock b : cfg.vertices())
-			for (Statement stmt : b.getStatements())
-				for (Local l : stmt.getUsedLocals())
-					localsTest.add(l);
-		
+		for (BasicBlock b : cfg.vertices()) {
+			for (Statement stmt : b) {
+				if(stmt.getOpcode() == Opcode.LOCAL_LOAD) {
+					localsTest.add(((VarExpression) stmt).getLocal());
+				}
+			}
+		}
 
-		
 		writer.removeAll().add(new ControlFlowGraphDecorator().setFlags(OPT_DEEP | OPT_STMTS))
 				.add("liveness", new LivenessDecorator<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>>().setLiveness(this))
 				.setName("liveness-baguette")
@@ -118,7 +114,6 @@ public class BoissinotDestructor implements Liveness<BasicBlock> {
 	}
 	
 	void verify() {
-		System.out.println(code);
 		StringBuilder sb = new StringBuilder();
 		for(BasicBlock b : cfg.vertices()) {
 			GraphUtils.printBlock(cfg, sb, b, 0, true, true);
@@ -129,7 +124,7 @@ public class BoissinotDestructor implements Liveness<BasicBlock> {
 		NullPermeableHashMap<Local, Set<BasicBlock>> uses = new NullPermeableHashMap<>(new SetCreator<>());
 		
 		for (BasicBlock b : cfg.vertices()) {
-			for (Statement stmt : b.getStatements()) {
+			for (Statement stmt : b) {
 				if(stmt instanceof ParallelCopyVarStatement) {
 					ParallelCopyVarStatement pcopy = (ParallelCopyVarStatement) stmt;
 					for(CopyPair p : pcopy.pairs) {
@@ -147,10 +142,9 @@ public class BoissinotDestructor implements Liveness<BasicBlock> {
 						if (e instanceof PhiExpression) {
 							_phi = true;
 							PhiExpression phi = (PhiExpression) e;
-							for (Entry<HeaderStatement, Expression> en : phi.getArguments().entrySet()) {
-								BasicBlock p = ((BlockHeaderStatement) en.getKey()).getBlock();
+							for (Entry<BasicBlock, Expression> en : phi.getArguments().entrySet()) {
 								Local ul = ((VarExpression) en.getValue()).getLocal();
-								uses.getNonNull(ul).add(p);
+								uses.getNonNull(ul).add(en.getKey());
 							}
 
 							phis.add(l);
@@ -158,7 +152,7 @@ public class BoissinotDestructor implements Liveness<BasicBlock> {
 					}
 
 					if (!_phi) {
-						for (Statement s : Statement.enumerate(stmt)) {
+						for (Statement s : stmt) {
 							if (s instanceof VarExpression) {
 								Local l = ((VarExpression) s).getLocal();
 								uses.getNonNull(l).add(b);
@@ -216,13 +210,8 @@ public class BoissinotDestructor implements Liveness<BasicBlock> {
 	}
 	
 	void init() {
-		BasicBlock b = null;
-		for(Statement stmt : code) {
-			if(stmt instanceof BlockHeaderStatement) {
-				BlockHeaderStatement h = (BlockHeaderStatement) stmt;
-				b = h.getBlock();
-				headers.put(b, h);
-			} else {
+		for(BasicBlock b : cfg.vertices()) {
+			for(Statement stmt : b)  {
 				boolean _phi = false;
 				if(stmt instanceof CopyVarStatement) {
 					CopyVarStatement copy = (CopyVarStatement) stmt;
@@ -233,10 +222,9 @@ public class BoissinotDestructor implements Liveness<BasicBlock> {
 					if(e instanceof PhiExpression) {
 						_phi = true;
 						PhiExpression phi = (PhiExpression) e;
-						for(Entry<HeaderStatement, Expression> en : phi.getArguments().entrySet()) {
-							BasicBlock p = ((BlockHeaderStatement) en.getKey()).getBlock();
+						for(Entry<BasicBlock, Expression> en : phi.getArguments().entrySet()) {
 							Local ul = ((VarExpression) en.getValue()).getLocal();
-							uses.getNonNull(ul).add(p);
+							uses.getNonNull(ul).add(en.getKey());
 						}
 						
 						phis.add(l);
@@ -244,13 +232,14 @@ public class BoissinotDestructor implements Liveness<BasicBlock> {
 				}
 				
 				if(!_phi) {
-					for(Statement s : Statement.enumerate(stmt)) {
+					for(Statement s : stmt) {
 						if(s instanceof VarExpression) {
 							Local l = ((VarExpression) s).getLocal();
 							uses.getNonNull(l).add(b);
 						}
 					}
 				}
+			
 			}
 		}
 	}
@@ -273,8 +262,8 @@ public class BoissinotDestructor implements Liveness<BasicBlock> {
 		//  and change the phi to:
 		//   x3 = phi(L1:x4, L2:x5)
 		
-		for(Statement stmt : b.getStatements()) {
-			if(!PhiExpression.phi(stmt)) {
+		for(Statement stmt : b) {
+			if(stmt.getOpcode() != Opcode.PHI_STORE) {
 				break;
 			}
 			
@@ -283,18 +272,18 @@ public class BoissinotDestructor implements Liveness<BasicBlock> {
 			
 			// for every xi arg of the phi from pred Li, add it to the worklist
 			// so that we can parallelise the copy when we insert it.
-			for(Entry<HeaderStatement, Expression> e : phi.getArguments().entrySet()) {
-				BlockHeaderStatement h = (BlockHeaderStatement) e.getKey();
+			for(Entry<BasicBlock, Expression> e : phi.getArguments().entrySet()) {
+				BasicBlock h = e.getKey();
 				VarExpression v = (VarExpression) e.getValue();
 				PhiRes r = new PhiRes(copy.getVariable().getLocal(), phi, h, v.getLocal(), v.getType());
-				wl.getNonNull(h.getBlock()).add(r);
+				wl.getNonNull(h).add(r);
 			}
 			
 			// for each x0, where x0 is a phi copy target, create a new
 			// variable z0 for a copy z0 = x0 and replace the phi
 			// copy target to z0.
 			Local x0 = copy.getVariable().getLocal();
-			Local z0 = code.getLocals().makeLatestVersion(x0);
+			Local z0 = cfg.getLocals().makeLatestVersion(x0);
 			dst_copy.pairs.add(new CopyPair(x0, z0)); // x0 = z0
 			copy.getVariable().setLocal(z0); // z0 = phi(...)
 			
@@ -321,7 +310,7 @@ public class BoissinotDestructor implements Liveness<BasicBlock> {
 				// the phi arg from Li with zi.
 				
 				Local xi = r.l;
-				Local zi = code.getLocals().makeLatestVersion(xi);
+				Local zi = cfg.getLocals().makeLatestVersion(xi);
 				copy.pairs.add(new CopyPair(zi, xi));
 				
 				// we consider phi args to be used in the pred
@@ -359,53 +348,42 @@ public class BoissinotDestructor implements Liveness<BasicBlock> {
 	}
 	
 	void insert_empty(BasicBlock b, List<Statement> stmts, ParallelCopyVarStatement copy) {
-		int i = code.indexOf(headers.get(b));
-		if(i == -1) {
-			throw new IllegalStateException(b.getId());
-		}
-		code.add(i + 1, copy);
 		stmts.add(copy);
 	}
 	
 	void insert_start(BasicBlock b, ParallelCopyVarStatement copy) {
 		record_pcopy(b, copy);
 
-		List<Statement> stmts = b.getStatements();		
-		if(stmts.isEmpty()) {
-			insert_empty(b, stmts, copy);
+		if(b.isEmpty()) {
+			insert_empty(b, b, copy);
 		} else {
 			// insert after phi.
 			int i = 0;
-			Statement stmt = stmts.get(0);
-			while(PhiExpression.phi(stmt)) {
-				stmt = stmts.get(++i);
+			Statement stmt = b.get(0);
+			while(stmt.getOpcode() == Opcode.PHI_STORE) {
+				stmt = b.get(++i);
 			}
 			
-			stmts.add(stmts.indexOf(stmt), copy);
-			code.add(code.indexOf(stmt), copy);
+			b.add(b.indexOf(stmt), copy);
 		}
 	}
 	
 	void insert_end(BasicBlock b, ParallelCopyVarStatement copy) {
 		record_pcopy(b, copy);
 		
-		List<Statement> stmts = b.getStatements();
-		if(stmts.isEmpty()) {
-			insert_empty(b, stmts, copy);
+		if(b.isEmpty()) {
+			insert_empty(b, b, copy);
 		} else {
-			Statement last = stmts.get(stmts.size() - 1);
-			int index = code.indexOf(last);
+			Statement last = b.get(b.size() - 1);
 			if(!last.canChangeFlow()) {
-				index += 1;
-				stmts.add(copy);
+				b.add(copy);
 			} else {
 				// index += 1;
 				//  ^ do this above so that s goes to the end
 				//    but here it needs to go before the end/jump.
 				// add before the jump
-				stmts.add(stmts.indexOf(last), copy);
+				b.add(b.indexOf(last), copy);
 			}
-			code.add(index, copy);
 		}
 	}
 	
@@ -416,7 +394,7 @@ public class BoissinotDestructor implements Liveness<BasicBlock> {
 		Map<Local, Local> remap = new HashMap<>();
 //		Set<Set<Local>> pccs = new HashSet<>();
 		for(BasicBlock b : cfg.vertices()) {
-			Iterator<Statement> it = b.getStatements().iterator();
+			Iterator<Statement> it = b.iterator();
 			while(it.hasNext()) {
 				Statement stmt = it.next();
 				if(stmt instanceof CopyVarStatement) {
@@ -426,7 +404,7 @@ public class BoissinotDestructor implements Liveness<BasicBlock> {
 //						Set<Local> pcc = new HashSet<>();
 //						pcc.add(copy.getVariable().getLocal());
 						Local l1 = copy.getVariable().getLocal();
-						Local newL = code.getLocals().makeLatestVersion(l1);
+						Local newL = cfg.getLocals().makeLatestVersion(l1);
 						remap.put(l1, newL);
 						
 						PhiExpression phi = (PhiExpression) e;
@@ -440,31 +418,32 @@ public class BoissinotDestructor implements Liveness<BasicBlock> {
 						
 //						pccs.add(pcc);
 						
-						code.remove(copy);
 						it.remove();
 					}
 				}
 			}
 		}
 		
-		for(Statement stmt : code) {
-			if(stmt instanceof ParallelCopyVarStatement) {
-				ParallelCopyVarStatement copy = (ParallelCopyVarStatement) stmt;
-				for(CopyPair p : copy.pairs) {
-					p.source = remap.getOrDefault(p.source, p.source);
-					p.targ = remap.getOrDefault(p.targ, p.targ);
-				}
-			} else {
-				if(stmt instanceof CopyVarStatement) {
-					CopyVarStatement copy = (CopyVarStatement) stmt;
-					VarExpression v = copy.getVariable();
-					v.setLocal(remap.getOrDefault(v.getLocal(), v.getLocal()));
-				}
-				
-				for(Statement s : Statement.enumerate(stmt)) {
-					if(s instanceof VarExpression) {
-						VarExpression v = (VarExpression) s;
+		for(BasicBlock b : cfg.vertices()) {
+			for(Statement stmt : b) {
+				if(stmt instanceof ParallelCopyVarStatement) {
+					ParallelCopyVarStatement copy = (ParallelCopyVarStatement) stmt;
+					for(CopyPair p : copy.pairs) {
+						p.source = remap.getOrDefault(p.source, p.source);
+						p.targ = remap.getOrDefault(p.targ, p.targ);
+					}
+				} else {
+					if(stmt instanceof CopyVarStatement) {
+						CopyVarStatement copy = (CopyVarStatement) stmt;
+						VarExpression v = copy.getVariable();
 						v.setLocal(remap.getOrDefault(v.getLocal(), v.getLocal()));
+					}
+					
+					for(Statement s : stmt) {
+						if(s instanceof VarExpression) {
+							VarExpression v = (VarExpression) s;
+							v.setLocal(remap.getOrDefault(v.getLocal(), v.getLocal()));
+						}
 					}
 				}
 			}
@@ -514,10 +493,9 @@ public class BoissinotDestructor implements Liveness<BasicBlock> {
 			dom_dfs = new ExtendedDfs(dom_tree, entry, ExtendedDfs.POST);
 			
 			// topo
-			Collections.reverse(dom_dfs.post);
-			for(BasicBlock bl : dom_dfs.post) {
-				List<Statement> stmts = bl.getStatements();
-				for(Statement stmt : stmts) {
+			Collections.reverse(dom_dfs.getPostOrder());
+			for(BasicBlock bl : dom_dfs.getPostOrder()) {
+				for(Statement stmt : bl) {
 					if(stmt instanceof CopyVarStatement) {
 						CopyVarStatement copy = (CopyVarStatement) stmt;
 						Expression e = copy.getExpression();
@@ -544,7 +522,7 @@ public class BoissinotDestructor implements Liveness<BasicBlock> {
 
 			NullPermeableHashMap<BasicBlock, Set<BasicBlock>> sdoms = new NullPermeableHashMap<>(new SetCreator<>());
 			// i think this is how you do it..
-			for(BasicBlock b : cfg_dfs.pre) {
+			for(BasicBlock b : cfg_dfs.getPreOrder()) {
 				BasicBlock idom = domc.idom(b);
 				if(idom != null) {
 					sdoms.getNonNull(b).add(idom);
@@ -582,7 +560,7 @@ public class BoissinotDestructor implements Liveness<BasicBlock> {
 			entry = cfg.getEntries().iterator().next();
 			
 			cfg_dfs = new ExtendedDfs(cfg, entry, ExtendedDfs.EDGES | ExtendedDfs.PRE /* for sdoms*/ );
-			Set<FlowEdge<BasicBlock>> back = cfg_dfs.edges.get(ExtendedDfs.BACK);
+			Set<FlowEdge<BasicBlock>> back = cfg_dfs.getEdges(ExtendedDfs.BACK);
 			
 			red_cfg = reduce(cfg, back);
 			reduced_dfs = new ExtendedDfs(red_cfg, entry, ExtendedDfs.POST | ExtendedDfs.PRE);
@@ -594,7 +572,7 @@ public class BoissinotDestructor implements Liveness<BasicBlock> {
 					.export();
 			
 			// rv calcs.
-			for (BasicBlock b : reduced_dfs.post) {
+			for (BasicBlock b : reduced_dfs.getPostOrder()) {
 				rv.getNonNull(b).add(b);
 				for (FlowEdge<BasicBlock> e : red_cfg.getReverseEdges(b))
 					rv.getNonNull(e.src).addAll(rv.get(b));
@@ -629,14 +607,14 @@ public class BoissinotDestructor implements Liveness<BasicBlock> {
 			
 			for (BasicBlock b : cfg.vertices())
 				tups.put(b, tup(b, back));
-			for (BasicBlock v : reduced_dfs.pre) {
+			for (BasicBlock v : reduced_dfs.getPreOrder()) {
 				tq.getNonNull(v).add(v);
 				for (BasicBlock w : tups.get(v))
 					tq.get(v).addAll(tq.get(w));
 			}
-			System.out.println("preorder: " + reduced_dfs.pre);
+			System.out.println("preorder: " + reduced_dfs.getPreOrder());
 			System.out.println("tq: ");
-			for (BasicBlock v : reduced_dfs.pre)
+			for (BasicBlock v : reduced_dfs.getPreOrder())
 				System.out.println(v.getId() + " = " + tq.get(v));
 		}
 		
@@ -681,7 +659,7 @@ public class BoissinotDestructor implements Liveness<BasicBlock> {
 		FastBlockGraph make_dfs_tree(ExtendedDfs dfs) {
 			FastBlockGraph g = new FastBlockGraph();
 			// map of node -> parent
-			for(Entry<BasicBlock, BasicBlock> e : dfs.parents.entrySet()) {
+			for(Entry<BasicBlock, BasicBlock> e : dfs.getParents().entrySet()) {
 				BasicBlock src = e.getValue();
 				BasicBlock dst = e.getKey();
 				FlowEdge<BasicBlock> edge = new ImmediateEdge<>(src, dst);
@@ -756,11 +734,11 @@ public class BoissinotDestructor implements Liveness<BasicBlock> {
 	class PhiRes {
 		final Local target;
 		final PhiExpression phi;
-		final HeaderStatement pred;
+		final BasicBlock pred;
 		final Local l;
 		final Type type;
 		
-		PhiRes(Local target, PhiExpression phi, HeaderStatement src, Local l, Type type) {
+		PhiRes(Local target, PhiExpression phi, BasicBlock src, Local l, Type type) {
 			this.target = target;
 			this.phi = phi;
 			pred = src;
@@ -789,10 +767,12 @@ public class BoissinotDestructor implements Liveness<BasicBlock> {
 		final List<CopyPair> pairs;
 		
 		ParallelCopyVarStatement() {
+			super(-1);
 			pairs = new ArrayList<>();
 		}
 		
 		ParallelCopyVarStatement(List<CopyPair> pairs) {
+			super(-1);
 			this.pairs = pairs;
 		}
 		
