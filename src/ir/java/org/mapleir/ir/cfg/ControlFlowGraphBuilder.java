@@ -1661,14 +1661,6 @@ public class ControlFlowGraphBuilder {
 	void renameNonPhis(BasicBlock b) {
 		for(Statement stmt : b) {
 			int opcode = stmt.getOpcode();
-			if(opcode == Opcode.LOCAL_STORE) {
-				CopyVarStatement copy = (CopyVarStatement) stmt;
-				VarExpression var = copy.getVariable();
-				Local lhs = var.getLocal();
-				VersionedLocal vl = _gen_name(lhs.getIndex(), lhs.isStack());
-				var.setLocal(vl);
-				defs.put(vl, copy);
-			}
 			
 			if(opcode != Opcode.PHI_STORE) {
 				for(Statement s : stmt) {
@@ -1678,6 +1670,15 @@ public class ControlFlowGraphBuilder {
 						var.setLocal(_top(s, l.getIndex(), l.isStack()));
 					}
 				}
+			}
+			
+			if(opcode == Opcode.LOCAL_STORE) {
+				CopyVarStatement copy = (CopyVarStatement) stmt;
+				VarExpression var = copy.getVariable();
+				Local lhs = var.getLocal();
+				VersionedLocal vl = _gen_name(lhs.getIndex(), lhs.isStack());
+				var.setLocal(vl);
+				defs.put(vl, copy);
 			}
 		}
 	}
@@ -2386,6 +2387,8 @@ public class ControlFlowGraphBuilder {
 		while(mergeImmediates() > 0);
 //		findComponents();
 		naturaliseGraph(new ArrayList<>(graph.vertices()));
+
+		System.out.println(graph);
 		
 		exit = new BasicBlock(graph, graph.size() * 2, null);
 		for(BasicBlock b : graph.vertices()) {
@@ -2397,8 +2400,10 @@ public class ControlFlowGraphBuilder {
 			process.put(b, 0);
 		}
 		
-		ssa();
 		
+		ssa();
+
+		System.out.println(graph);
 		
 		localAccess = new SSALocalAccess(graph);
 		while(opt() > 0);
