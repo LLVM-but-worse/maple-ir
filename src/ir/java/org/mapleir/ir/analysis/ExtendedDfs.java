@@ -58,6 +58,10 @@ public class ExtendedDfs {
 		return colours.get(b);
 	}
 	
+	public Map<BasicBlock, BasicBlock> getParents() {
+		return parents;
+	}
+	
 	public BasicBlock getParent(BasicBlock b) {
 		return parents.get(b);
 	}
