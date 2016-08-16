@@ -1227,36 +1227,25 @@ public class ControlFlowGraphBuilder {
 		if (!currentBlock.isEmpty() && currentBlock.get(currentBlock.size() - 1).canChangeFlow()) {
 			throw new IllegalStateException("Flow instruction already added to block; cannot save stack");
 		}
-
-		ExpressionStack tmp = new ExpressionStack(currentStack.size());
-		while(currentStack.size() > 0) {
-			tmp.push(currentStack.pop());
-		}
 		
-		System.out.println("   Befor: " + currentStack);
-		int height = tmp.height();
-		System.out.println("   Height: " + height);
-		while(height > 0) {
-			int index = height - 1;
-			Expression expr = tmp.pop();
+		System.out.println("\n   Befor: " + currentStack);
+		ExpressionStack tmp = new ExpressionStack(currentStack.size());
+		for (int i = currentStack.size() - 1; i >= 0; i--) {
+			int index = currentStack.size() - i - 1;
+			Expression expr = currentStack.peek(i);
 			Expression old = expr;
 			System.out.println("   Pop1: " + expr + "(" + expr.getType() + ")");
-			if(expr.getParent() != null) {
+			if(expr.getParent() != null)
 				expr = expr.copy();
-			}
 			System.out.println("   Pop2: " + expr + "(" + expr.getType() + ")" + " (" + (old == expr) +  ")");
 			Type type = assign_stack(index, expr);
 			System.out.println("   RETt: " + type);
 			Expression e1 = load_stack(index, type);
 			System.out.println("   Push: " + e1 +" (" + e1.getType() +")");
-			currentStack.push(e1);
-
-			System.out.println("   Cur: " + currentStack);
-			
-			height -= type.getSize();
+			tmp.push(e1);
 		}
-		
-		System.out.println("   After: " + currentStack);
+		currentStack = tmp;
+		System.out.println("   After: " + currentStack + "\n");
 		
 		saved = true;
 	}
