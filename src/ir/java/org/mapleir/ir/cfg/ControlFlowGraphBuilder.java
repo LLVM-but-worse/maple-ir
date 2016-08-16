@@ -2399,7 +2399,6 @@ public class ControlFlowGraphBuilder {
 		
 		ssa();
 		
-		System.out.println(graph);
 		
 		localAccess = new SSALocalAccess(graph);
 		while(opt() > 0);
