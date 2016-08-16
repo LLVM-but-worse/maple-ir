@@ -300,7 +300,10 @@ public class ControlFlowGraphBuilder {
 		// TODO: check if it should have an immediate.
 		BasicBlock im = block.getImmediate();
 		if (im != null && !queue.contains(im)) {
+			System.out.println("Updating " + block.getId() + " -> " + im.getId());
+			System.out.println("  Pre: " + currentStack);
 			update_target_stack(block, im, currentStack);
+			System.out.println("  Pos: " + currentStack);
 		}
 	}
 	
@@ -324,6 +327,10 @@ public class ControlFlowGraphBuilder {
 	
 	void process(BasicBlock b, AbstractInsnNode ain) {
 		int opcode = ain.opcode();
+		
+		System.out.println("Executing " + Printer.OPCODES[opcode]);
+		System.out.println(" PreStack: " + currentStack);
+		
 		switch (opcode) {
 			case -1: {
 				if (ain instanceof LabelNode)
@@ -637,6 +644,9 @@ public class ControlFlowGraphBuilder {
 				_jump_cmp0(resolveTarget(((JumpInsnNode) ain).label), ComparisonType.getType(opcode));
 				break;
 		}
+		
+
+		System.out.println(" PosStack: " + currentStack);
 	}
 	
 	void _nop() {
@@ -1209,6 +1219,7 @@ public class ControlFlowGraphBuilder {
 	}
 	
 	void addStmt(Statement stmt) {
+		System.out.println("    ADD: " + stmt);
 		currentBlock.add(stmt);
 	}
 	
@@ -1216,19 +1227,36 @@ public class ControlFlowGraphBuilder {
 		if (!currentBlock.isEmpty() && currentBlock.get(currentBlock.size() - 1).canChangeFlow()) {
 			throw new IllegalStateException("Flow instruction already added to block; cannot save stack");
 		}
-			
-		int height = currentStack.height();
+
+		ExpressionStack tmp = new ExpressionStack(currentStack.size());
+		while(currentStack.size() > 0) {
+			tmp.push(currentStack.pop());
+		}
+		
+		System.out.println("   Befor: " + currentStack);
+		int height = tmp.height();
+		System.out.println("   Height: " + height);
 		while(height > 0) {
 			int index = height - 1;
-			Expression expr = currentStack.pop();
+			Expression expr = tmp.pop();
+			Expression old = expr;
+			System.out.println("   Pop1: " + expr + "(" + expr.getType() + ")");
 			if(expr.getParent() != null) {
 				expr = expr.copy();
 			}
+			System.out.println("   Pop2: " + expr + "(" + expr.getType() + ")" + " (" + (old == expr) +  ")");
 			Type type = assign_stack(index, expr);
-			push(load_stack(index, type));
+			System.out.println("   RETt: " + type);
+			Expression e1 = load_stack(index, type);
+			System.out.println("   Push: " + e1 +" (" + e1.getType() +")");
+			currentStack.push(e1);
+
+			System.out.println("   Cur: " + currentStack);
 			
 			height -= type.getSize();
 		}
+		
+		System.out.println("   After: " + currentStack);
 		
 		saved = true;
 	}
