@@ -744,7 +744,7 @@ public class ControlFlowGraphBuilder {
 		Type var3Type = assign_stack(baseHeight + 1, var0); // var3 = var0
 
 		Type var0Type = assign_stack(baseHeight - 2, var1); // var0 = var1(initial)
-		Type var2Type = assign_stack(baseHeight + 0, var1); // var2 = var1(initial)
+		Type var2Type = assign_stack(baseHeight + 0, var1.copy()); // var2 = var1(initial)
 		Type var1Type = assign_stack(baseHeight - 1, load_stack(baseHeight + 1, var3Type)); // var1 = var3 = var0(initial)
 
 		push(load_stack(baseHeight - 2, var0Type)); // push var0
@@ -792,7 +792,7 @@ public class ControlFlowGraphBuilder {
 			Type var5Type = assign_stack(baseHeight + 2, var1); // var5 = var1(initial)
 
 			Type var0Type = assign_stack(baseHeight - 3, var2); // var0 = var2(initial)
-			Type var3Type = assign_stack(baseHeight + 0, var2); // var3 = var2(initial)
+			Type var3Type = assign_stack(baseHeight + 0, var2.copy()); // var3 = var2(initial)
 			Type var1Type = assign_stack(baseHeight - 2, load_stack(baseHeight + 1, var4Type)); // var1 = var4 = var0(initial)
 			Type var2Type = assign_stack(baseHeight - 1, load_stack(baseHeight + 2, var5Type)); // var2 = var5 = var1(initial)
 
@@ -1221,6 +1221,9 @@ public class ControlFlowGraphBuilder {
 		while(height > 0) {
 			int index = height - 1;
 			Expression expr = currentStack.pop();
+			if(expr.getParent() != null) {
+				expr = expr.copy();
+			}
 			Type type = assign_stack(index, expr);
 			push(load_stack(index, type));
 			
@@ -1387,7 +1390,7 @@ public class ControlFlowGraphBuilder {
 			
 			for(FlowEdge<BasicBlock> e : graph.getEdges(dst)) {
 				BasicBlock edst = e.dst;
-				edst = remap.get(edst);
+				edst = remap.getOrDefault(edst, edst);
 				graph.addEdge(src, e.clone(src, edst));
 			}
 			graph.removeVertex(dst);
@@ -2213,6 +2216,13 @@ public class ControlFlowGraphBuilder {
 			path.remove(def);
 			path.add(use);
 			
+			if(def.toString().equals("lvar2_2 = lvar2_2 + 1;")) {
+				System.out.println("REACHES: " + def + " to " + use);
+				for(Statement s : path)  {
+					System.out.println("  " + s);
+				}
+			}
+			
 			boolean canPropagate = true;
 			
 			for(Statement stmt : path) {
@@ -2374,7 +2384,8 @@ public class ControlFlowGraphBuilder {
 	
 	ControlFlowGraphBuilder reduce() {
 		while(mergeImmediates() > 0);
-		findComponents();
+//		findComponents();
+		naturaliseGraph(new ArrayList<>(graph.vertices()));
 		
 		exit = new BasicBlock(graph, graph.size() * 2, null);
 		for(BasicBlock b : graph.vertices()) {
@@ -2387,6 +2398,9 @@ public class ControlFlowGraphBuilder {
 		}
 		
 		ssa();
+		
+		System.out.println(graph);
+		
 		localAccess = new SSALocalAccess(graph);
 		while(opt() > 0);
 		
