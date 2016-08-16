@@ -15,6 +15,10 @@ public class ExpressionStack {
 		stack = new Expression[len];
 		size = 0;
 	}
+	
+	public int size() {
+		return size;
+	}
 
 	public Expression pop() {
 		return stack[--size];
