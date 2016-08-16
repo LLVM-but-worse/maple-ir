@@ -1,6 +1,6 @@
 package org.mapleir;
 
-import static org.mapleir.stdlib.collections.graph.dot.impl.ControlFlowGraphDecorator.*;
+import static org.mapleir.ir.dot.ControlFlowGraphDecorator.*;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -19,14 +19,14 @@ import org.mapleir.ir.analysis.StatementGraphBuilder;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.cfg.ControlFlowGraphBuilder;
+import org.mapleir.ir.dot.ControlFlowGraphDecorator;
+import org.mapleir.ir.dot.LivenessDecorator;
 import org.mapleir.stdlib.cfg.edge.FlowEdge;
 import org.mapleir.stdlib.cfg.util.ControlFlowGraphDeobfuscator;
 import org.mapleir.stdlib.collections.NodeTable;
 import org.mapleir.stdlib.collections.graph.dot.BasicDotConfiguration;
 import org.mapleir.stdlib.collections.graph.dot.DotConfiguration.GraphType;
 import org.mapleir.stdlib.collections.graph.dot.DotWriter;
-import org.mapleir.stdlib.collections.graph.dot.impl.ControlFlowGraphDecorator;
-import org.mapleir.stdlib.collections.graph.dot.impl.LivenessDecorator;
 import org.mapleir.stdlib.collections.graph.util.GraphUtils;
 import org.mapleir.stdlib.ir.CodeBody;
 import org.mapleir.stdlib.ir.StatementWriter;

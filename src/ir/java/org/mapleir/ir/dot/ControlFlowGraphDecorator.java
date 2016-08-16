@@ -1,19 +1,23 @@
-package org.mapleir.stdlib.collections.graph.dot.impl;
+package org.mapleir.ir.dot;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
+import org.mapleir.ir.code.stmt.Statement;
 import org.mapleir.stdlib.cfg.edge.FlowEdge;
 import org.mapleir.stdlib.cfg.edge.TryCatchEdge;
+import org.mapleir.stdlib.cfg.util.TabbedStringWriter;
 import org.mapleir.stdlib.collections.graph.dot.DotPropertyDecorator;
-import org.mapleir.stdlib.collections.graph.util.GraphUtils;
 
 public class ControlFlowGraphDecorator implements DotPropertyDecorator<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> {
+	
 	public static final int OPT_DEEP = 0x01;
 	public static final int OPT_HIDE_HANDLER_EDGES = 0x02;
+	@Deprecated
 	public static final int OPT_STMTS = 0x04;
 	public static final int OPT_SIMPLE_EDGES = 0x08;
 	
@@ -48,12 +52,25 @@ public class ControlFlowGraphDecorator implements DotPropertyDecorator<ControlFl
 		if((flags & OPT_DEEP) != 0) {
 			sb.append("\\l");
 			StringBuilder sb2 = new StringBuilder();
-			GraphUtils.printBlock(g, sb2, n, 0, false, (flags & OPT_STMTS) != 0);
+			outputBlock(n, sb2);
 			sb.append(sb2.toString().replace("\n", "\\l"));
 		}
 		nprops.put("label", sb.toString());
 	}
 	
+	private void outputBlock(BasicBlock n, StringBuilder sb2) {
+		Iterator<Statement> it = n.iterator();
+		TabbedStringWriter sw = new TabbedStringWriter();
+		// int insn = 0;
+		while(it.hasNext()) {
+			Statement stmt = it.next();
+			sw.print(stmt.getId() + ". ");
+			stmt.toString(sw);
+			sw.print("\n");
+		}
+		sb2.append(sw.toString());
+	}
+
 	@Override
 	public void decorateEdgeProperties(ControlFlowGraph g, BasicBlock n, FlowEdge<BasicBlock> e, Map<String, Object> eprops) {
 		if((flags & OPT_DEEP) != 0)

@@ -40,6 +40,9 @@ public class ControlFlowGraph extends FastBlockGraph {
 			
 			
 			Iterator<Statement> it = b.iterator();
+			if(!it.hasNext()) {
+				sw.untab();
+			}
 			while(it.hasNext()) {
 				Statement stmt = it.next();
 				sw.print(insn++ + ". ");

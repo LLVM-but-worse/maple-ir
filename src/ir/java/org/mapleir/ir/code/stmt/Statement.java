@@ -36,6 +36,11 @@ public abstract class Statement implements FastGraphVertex, Opcode, Iterable<Sta
 	public void setBlock(BasicBlock block) {
 		this.block = block;
 		
+		// i.e. removed, so invalidate this statement.
+		if(block == null) {
+			parent = null;
+		}
+		
 		for(Statement s : children) {
 			if(s != null) {
 				s.setBlock(block);
@@ -223,6 +228,15 @@ public abstract class Statement implements FastGraphVertex, Opcode, Iterable<Sta
 	
 	public Statement getParent() {
 		return parent;
+	}
+	
+	public Statement getRootParent() {
+		Statement p = parent;
+		if(p == null) {
+			return this;
+		} else {
+			return p.getRootParent();
+		}
 	}
 	
 	public boolean changesIndentation() {

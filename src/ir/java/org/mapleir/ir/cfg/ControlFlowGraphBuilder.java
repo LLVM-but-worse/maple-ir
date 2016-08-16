@@ -5,6 +5,8 @@ import static org.objectweb.asm.tree.AbstractInsnNode.*;
 
 import java.util.*;
 import java.util.Map.Entry;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.mapleir.ir.code.ExpressionStack;
 import org.mapleir.ir.code.Opcode;
@@ -30,8 +32,10 @@ import org.mapleir.stdlib.collections.graph.flow.ExceptionRange;
 import org.mapleir.stdlib.collections.graph.flow.FlowGraph;
 import org.mapleir.stdlib.collections.graph.flow.TarjanDominanceComputor;
 import org.mapleir.stdlib.collections.graph.util.GraphUtils;
+import org.mapleir.stdlib.ir.StatementVisitor;
 import org.mapleir.stdlib.ir.transform.Liveness;
 import org.mapleir.stdlib.ir.transform.ssa.SSABlockLivenessAnalyser;
+import org.mapleir.stdlib.ir.transform.ssa.SSALocalAccess;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.*;
@@ -56,6 +60,14 @@ public class ControlFlowGraphBuilder {
 	private static final int[] DUP_X2_64_HEIGHTS = new int[]{1, 2};
 	private static final int[] DUP_X2_32_HEIGHTS = new int[]{1, 1, 1};
 	
+	private static final Set<Class<? extends Statement>> UNCOPYABLE = new HashSet<>();
+	
+	static {
+		UNCOPYABLE.add(InvocationExpression.class);
+		UNCOPYABLE.add(UninitialisedObjectExpression.class);
+		UNCOPYABLE.add(InitialisedObjectExpression.class);
+	}
+	
 	private final MethodNode method;
 	private final ControlFlowGraph graph;
 	private final BitSet finished;
@@ -68,6 +80,8 @@ public class ControlFlowGraphBuilder {
 	private ExpressionStack currentStack;
 	private boolean saved;
 	
+	private BasicBlock exit;
+	
 	// ssa
 	private final Map<BasicBlock, Integer> insertion;
 	private final Map<BasicBlock, Integer> process;
@@ -78,6 +92,8 @@ public class ControlFlowGraphBuilder {
 	private final Map<VersionedLocal, AbstractCopyStatement> defs;
 	private TarjanDominanceComputor<BasicBlock> doms;
 	private Liveness<BasicBlock> liveness;
+	
+	private SSALocalAccess localAccess;
 	
 	private ControlFlowGraphBuilder(MethodNode method) {
 		this.method = method;
@@ -281,6 +297,7 @@ public class ControlFlowGraphBuilder {
 			}
 		}
 		
+		// TODO: check if it should have an immediate.
 		BasicBlock im = block.getImmediate();
 		if (im != null && !queue.contains(im)) {
 			update_target_stack(block, im, currentStack);
@@ -1384,6 +1401,19 @@ public class ControlFlowGraphBuilder {
 			System.out.printf("Merged %s into %s.%n", dst.getId(), src.getId());
 		}
 		
+		// we need to update the assigns map if we change the cfg.
+		for(Entry<Local, Set<BasicBlock>> e : assigns.entrySet()) {
+			Set<BasicBlock> set = e.getValue();
+			Set<BasicBlock> copy = new HashSet<>(set);
+			for(BasicBlock b : copy) {
+				BasicBlock r = remap.getOrDefault(b, b);
+				if(r != b) {
+					set.remove(b);
+					set.add(r);
+				}
+			}
+		}
+		
 		return merges.size();
 	}
 	
@@ -1540,15 +1570,18 @@ public class ControlFlowGraphBuilder {
 	}
 	
 	void insertPhis(BasicBlock b, Local l, int i, LinkedList<BasicBlock> queue) {
-		if(b.getLabelNode() == null) {
+		if(b == exit) {
 			return; // exit
 		}
+		
+		System.out.println("Process: " + l + ", " + b.getId() + ", " + doms.iteratedFrontier(b));
 		
 		for(BasicBlock x : doms.iteratedFrontier(b)) {
 			if(insertion.get(x) < i) {
 				if(x.size() > 0 && graph.getReverseEdges(x).size() > 1) {
 					// pruned SSA
 					if(liveness.in(x).contains(l)) {
+						System.out.println("LIVE: " + l + " into " + b.getId());
 						Map<BasicBlock, Expression> vls = new HashMap<>();
 						int subscript = 0;
 						for(FlowEdge<BasicBlock> fe : graph.getReverseEdges(x)) {
@@ -1558,6 +1591,8 @@ public class ControlFlowGraphBuilder {
 						CopyPhiStatement assign = new CopyPhiStatement(new VarExpression(l, null), phi);
 						
 						x.add(0, assign);
+					} else {
+						System.out.println("DEAD: " + l + " into " + b.getId());
 					}
 				}
 				
@@ -1580,7 +1615,6 @@ public class ControlFlowGraphBuilder {
 				process.put(b, i);
 				queue.add(b);
 			}
-			
 			while(!queue.isEmpty()) {
 				insertPhis(queue.poll(), l, i, queue);
 			}
@@ -1746,7 +1780,621 @@ public class ControlFlowGraphBuilder {
 		liveness.compute();
 		this.liveness = liveness;
 		
-		BasicBlock exit = new BasicBlock(graph, graph.size() * 2, null);
+		doms = new TarjanDominanceComputor<>(graph);
+		insertPhis();
+		rename();
+	}
+	
+	class FeedbackStatementVisitor extends StatementVisitor {
+		
+		private boolean change = false;
+		
+		public FeedbackStatementVisitor(Statement root) {
+			super(root);
+		}
+		
+		private Iterable<Statement> enumerate(Statement stmt) {
+			Set<Statement> set = new HashSet<>();
+			for(Statement s : stmt) {
+				set.add(s);
+			}
+			set.add(stmt);
+			return set;
+		}
+
+		private Set<Statement> findReachable(Statement from, Statement to) {
+			Set<Statement> res = new HashSet<>();
+			BasicBlock f = from.getBlock();
+			BasicBlock t = to.getBlock();
+			
+			int end = f == t ? f.indexOf(to) : f.size();
+			for(int i=f.indexOf(from); i < end; i++) {
+				res.add(f.get(i));
+			}
+			
+			if(f != t) {
+				for(BasicBlock r : graph.wanderAllTrails(f, t)) {
+					res.addAll(r);
+				}
+			}
+			
+			return res;
+		}
+		
+		private Set<Statement> findReachable(Statement stmt) {
+			Set<Statement> res = new HashSet<>();
+			BasicBlock b = stmt.getBlock();
+			for(int i=b.indexOf(stmt); i < b.size(); i++) {
+				res.add(b.get(i));
+			}
+			
+			for(BasicBlock r : graph.wanderAllTrails(b, exit)) {
+				res.addAll(r);
+			}
+			
+			return res;
+		}
+		
+		private boolean cleanEquivalentPhis() {
+			boolean change = false;
+			
+			for(BasicBlock b : graph.vertices()) {
+				List<CopyPhiStatement> phis = new ArrayList<>();
+				for(Statement stmt : b) {
+					if(stmt.getOpcode() == Opcode.PHI_STORE) {
+						phis.add((CopyPhiStatement) stmt);
+					} else {
+						break;
+					}
+				}
+				
+				if(phis.size() > 1) {
+					NullPermeableHashMap<CopyPhiStatement, Set<CopyPhiStatement>> equiv = new NullPermeableHashMap<>(new SetCreator<>());
+					for(CopyPhiStatement cps : phis) {
+						if(equiv.values().contains(cps)) {
+							continue;
+						}
+						PhiExpression phi = cps.getExpression();
+						for(CopyPhiStatement cps2 : phis) {
+							if(cps != cps2) {
+								if(equiv.keySet().contains(cps2)) {
+									continue;
+								}
+								PhiExpression phi2 = cps2.getExpression();
+								if(phi.equivalent(phi2)) {
+									equiv.getNonNull(cps).add(cps2);
+								}
+							}
+						}
+					}
+
+					for(Entry<CopyPhiStatement, Set<CopyPhiStatement>> e : equiv.entrySet()) {
+						// key should be earliest
+						// remove vals from code and replace use of val vars with key var
+						CopyPhiStatement keepPhi = e.getKey();
+						VersionedLocal phiLocal = (VersionedLocal) keepPhi.getVariable().getLocal();
+						Set<VersionedLocal> toReplace = new HashSet<>();
+						for(CopyPhiStatement def : e.getValue()) {
+							VersionedLocal local = (VersionedLocal) def.getVariable().getLocal();
+							toReplace.add(local);
+							killed(def);
+							b.remove(def);
+						}
+						
+						// replace uses
+						for(Statement reachable : findReachable(keepPhi)) {
+							for(Statement s : reachable) {
+								if(s instanceof VarExpression) {
+									VarExpression var = (VarExpression) s;
+									VersionedLocal l = (VersionedLocal) var.getLocal();
+									if(toReplace.contains(l)) {
+										reuseLocal(phiLocal);
+										unuseLocal(l);
+										var.setLocal(phiLocal);
+									}
+								}
+							}
+						}
+						
+						for(CopyPhiStatement def : e.getValue()) {
+							Local local = def.getVariable().getLocal();
+							localAccess.useCount.remove(local);
+							localAccess.defs.remove(local);
+						}
+						change = true;
+					}
+				}
+			}
+			return change;
+		}
+		
+		private boolean cleanDead() {
+			boolean changed = false;
+			Iterator<Entry<VersionedLocal, AtomicInteger>> it = localAccess.useCount.entrySet().iterator();
+			while(it.hasNext()) {
+				Entry<VersionedLocal, AtomicInteger> e = it.next();
+				if(e.getValue().get() == 0)  {
+					AbstractCopyStatement def = localAccess.defs.get(e.getKey());
+					if(!def.isSynthetic()) {
+						if(!fineBladeDefinition(def, it)) {
+							System.out.println("Dead: ___ " + def);
+							killed(def);
+							changed = true;
+						}
+					}
+				}
+			}
+			return changed;
+		}
+		
+		private void killed(Statement stmt) {
+			for(Statement s : enumerate(stmt)) {
+				if(s.getOpcode() == Opcode.LOCAL_LOAD) {
+					unuseLocal(((VarExpression) s).getLocal());
+				}
+			}
+		}
+		
+		private void copied(Statement stmt) {
+			for(Statement s : enumerate(stmt)) {
+				if(s.getOpcode() == Opcode.LOCAL_LOAD) {
+					reuseLocal(((VarExpression) s).getLocal());
+				}
+			}
+		}
+		
+		private boolean fineBladeDefinition(AbstractCopyStatement def, Iterator<?> it) {
+			it.remove();
+			Expression rhs = def.getExpression();
+			BasicBlock b = def.getBlock();
+			if(isUncopyable(rhs)) {
+				PopStatement pop = new PopStatement(rhs);
+				b.set(b.indexOf(def), pop);
+				return true;
+			} else {
+				// easy remove
+				b.remove(def);
+				Local local = def.getVariable().getLocal();
+				localAccess.useCount.remove(local);
+				return false;
+			}
+		}
+		
+		private void scalpelDefinition(AbstractCopyStatement def) {
+			def.getBlock().remove(def);
+			Local local = def.getVariable().getLocal();
+			localAccess.useCount.remove(local);
+			localAccess.defs.remove(local);
+		}
+		
+		private int uses(Local l) {
+			if(localAccess.useCount.containsKey(l)) {
+				return localAccess.useCount.get(l).get();
+			} else {
+				throw new IllegalStateException("Local " + l + " not in useCount map. Def: " + localAccess.defs.get(l));
+			}
+		}
+
+		private void _xuselocal(Local l, boolean re) {
+			if(localAccess.useCount.containsKey(l)) {
+				if(re) {
+					localAccess.useCount.get(l).incrementAndGet();
+				} else {
+					localAccess.useCount.get(l).decrementAndGet();
+				}
+			} else {
+				throw new IllegalStateException("Local " + l + " not in useCount map. Def: " + localAccess.defs.get(l));
+			}
+		}
+		
+		private void unuseLocal(Local l) {
+			_xuselocal(l, false);
+		}
+		
+		private void reuseLocal(Local l) {
+			_xuselocal(l, true);
+		}
+		
+		private Statement handleConstant(AbstractCopyStatement def, VarExpression use, ConstantExpression rhs) {
+			System.out.println("(C)Propagate: " + def + " to " + use.getRootParent());
+			// x = 7;
+			// use(x)
+			//         goes to
+			// x = 7
+			// use(7)
+			
+			// localCount -= 1;
+			unuseLocal(use.getLocal());
+			return rhs.copy();
+		}
+
+		private Statement handleVar(AbstractCopyStatement def, VarExpression use, VarExpression rhs) {
+			Local x = use.getLocal();
+			Local y = rhs.getLocal();
+			if(x == y) {
+				return null;
+			}
+			
+			System.out.println("(V)Propagate: " + def + " to " + use.getRootParent());
+			
+			// x = y
+			// use(x)
+			//         goes to
+			// x = y
+			// use(y)
+			
+			// rhsCount += 1;
+			// useCount -= 1;
+			reuseLocal(y);
+			unuseLocal(x);
+			return rhs.copy();
+		}
+
+		private Statement handleComplex(AbstractCopyStatement def, VarExpression use) {
+			if(!canTransferToUse(root, use, def)) {
+				return null;
+			}
+
+			
+			// this can be propagated
+			Expression propagatee = def.getExpression();
+			if(isUncopyable(propagatee)) {
+				// say we have
+				// 
+				// void test() {
+				//    x = func();
+				//    use(x);
+				//    use(x);
+				// }
+				//
+				// int func() {
+				//    print("blowing up reactor core " + (++core));
+				//    return core;
+				// }
+				// 
+				// if we lazily propagated the rhs (func()) into both uses
+				// it would blow up two reactor cores instead of the one
+				// that it currently is set to destroy. this is why uncop-
+				// yable statements (in reality these are expressions) ne-
+				// ed to have only  one definition for them to be propaga-
+				// table. at the moment the only possible expressions that
+				// have these side effects are invoke type ones.
+				if(uses(use.getLocal()) == 1) {
+					// since there is only 1 use of this expression, we
+					// will copy the propagatee/rhs to the use and then
+					// remove the definition. this means that the only
+					// change to uses is the variable that was being
+					// propagated. i.e.
+					
+					// svar0_1 = lvar0_0.invoke(lvar1_0, lvar3_0.m)
+					// use(svar0_1)
+					//  will become
+					// use(lvar0_0.invoke(lvar1_0, lvar3_0.m))
+					
+					// here the only thing we need to change is
+					// the useCount of svar0_1 to 0. (1 - 1)
+					unuseLocal(use.getLocal());
+					scalpelDefinition(def);
+					return propagatee;
+				}
+			} else {
+				// these statements here can be copied as many times
+				// as required without causing multiple catastrophic
+				// reactor meltdowns.
+				if(propagatee instanceof ArrayLoadExpression) {
+					// TODO: CSE instead of this cheap assumption.
+					if(uses(use.getLocal()) == 1) {
+						unuseLocal(use.getLocal());
+						scalpelDefinition(def);
+						return propagatee;
+					}
+				} else {
+					// x = ((y * 2) + (9 / lvar0_0.g))
+					// use(x)
+					//       goes to
+					// x = ((y * 2) + (9 / lvar0_0.g))
+					// use(((y * 2) + (9 / lvar0_0.g)))
+					Local local = use.getLocal();
+					unuseLocal(local);
+					copied(propagatee);
+					if(uses(local) == 0) {
+						// if we just killed the local
+						killed(def);
+						scalpelDefinition(def);
+					}
+					return propagatee;
+				}
+			}
+			return null;
+		}
+		
+		private Statement findSubstitution(Statement root, AbstractCopyStatement def, VarExpression use) {
+			// n.b. if this is called improperly (i.e. unpropagatable def),
+			//      then the code may be dirtied/ruined.
+			Local local = use.getLocal();
+			if(!local.isStack()) {
+				if(root.getOpcode() == Opcode.LOCAL_STORE || root.getOpcode() == Opcode.PHI_STORE) {
+					AbstractCopyStatement cp = (AbstractCopyStatement) root;
+					if(cp.getVariable().getLocal().isStack()) {
+						return use;
+					}
+				}
+			}
+			Expression rhs = def.getExpression();
+			if(rhs instanceof ConstantExpression) {
+				return handleConstant(def, use, (ConstantExpression) rhs);
+			} else if(rhs instanceof VarExpression) {
+				return handleVar(def, use, (VarExpression) rhs);
+			} else if (!(rhs instanceof CaughtExceptionExpression || rhs instanceof PhiExpression)) {
+				return handleComplex(def, use);
+			}
+			return use;
+		}
+
+		private Statement visitVar(VarExpression var) {
+			AbstractCopyStatement def = localAccess.defs.get(var.getLocal());
+			return findSubstitution(root, def, var);
+		}
+		
+		private Statement visitPhi(PhiExpression phi) {
+			for(BasicBlock s : phi.getSources()) {
+				Expression e = phi.getArgument(s);
+				if(e.getOpcode() == Opcode.LOCAL_LOAD) {
+					AbstractCopyStatement def = localAccess.defs.get(((VarExpression) e).getLocal());
+					if(def.getExpression().getOpcode() == Opcode.LOCAL_LOAD) {
+						VarExpression v = (VarExpression) def.getExpression();
+						Local l = v.getLocal();
+						if(l.isStack() == def.getVariable().getLocal().isStack()) {
+							Statement e1 = findSubstitution(phi, def, (VarExpression) e);
+							if(e1 != null && e1 != e) {
+								phi.setArgument(s, (Expression) e1);
+								change = true;
+							}
+						}
+					}
+				}
+			}
+			return phi;
+		}
+
+		@Override
+		public Statement visit(Statement stmt) {
+			if(stmt.getOpcode() == Opcode.LOCAL_LOAD) {
+				return choose(visitVar((VarExpression) stmt), stmt);
+			} else if(stmt.getOpcode() == Opcode.PHI) {
+				return choose(visitPhi((PhiExpression) stmt), stmt);
+			}
+			return stmt;
+		}
+		
+		private Statement choose(Statement e, Statement def) {
+			if(e != null) {
+				return e;
+			} else {
+				return def;
+			}
+		}
+		
+		private boolean isUncopyable(Statement stmt) {
+			for(Statement s : enumerate(stmt)) {
+				if(UNCOPYABLE.contains(s.getClass())) {
+					return true;
+				}
+			}
+			return false;
+		}
+		
+		private boolean canTransferToUse(Statement use, Statement tail, AbstractCopyStatement def) {
+			Local local = def.getVariable().getLocal();
+			Expression rhs = def.getExpression();
+
+			Set<String> fieldsUsed = new HashSet<>();
+			AtomicBoolean invoke = new AtomicBoolean();
+			AtomicBoolean array = new AtomicBoolean();
+			
+			{
+				if(rhs instanceof FieldLoadExpression) {
+					fieldsUsed.add(((FieldLoadExpression) rhs).getName() + "." + ((FieldLoadExpression) rhs).getDesc());
+				} else if(rhs instanceof InvocationExpression || rhs instanceof InitialisedObjectExpression) {
+					invoke.set(true);
+				} else if(rhs instanceof ArrayLoadExpression) {
+					array.set(true);
+				} else if(rhs instanceof ConstantExpression) {
+					return true;
+				}
+			}
+			
+			new StatementVisitor(rhs) {
+				@Override
+				public Statement visit(Statement stmt) {
+					if(stmt instanceof FieldLoadExpression) {
+						fieldsUsed.add(((FieldLoadExpression) stmt).getName() + "." + ((FieldLoadExpression) stmt).getDesc());
+					} else if(stmt instanceof InvocationExpression || stmt instanceof InitialisedObjectExpression) {
+						invoke.set(true);
+					} else if(stmt instanceof ArrayLoadExpression) {
+						array.set(true);
+					}
+					return stmt;
+				}
+			}.visit();
+			
+			Set<Statement> path = findReachable(def, use);
+			path.remove(def);
+			path.add(use);
+			
+			System.out.println("CurrentBlock: " + def.getBlock().getId());
+			for(Statement stmt : def.getBlock()) {
+				System.out.println(" " + stmt.getId() + ". " + stmt);
+			}
+			System.out.println("REACHES: " + def + " to " + use);
+			for(Statement s : path) {
+				System.out.println("  " + s);
+			}
+			
+			boolean canPropagate = true;
+			
+			for(Statement stmt : path) {
+				if(stmt != use) {
+					if(stmt instanceof FieldStoreStatement) {
+						if(invoke.get()) {
+							canPropagate = false;
+							break;
+						} else if(fieldsUsed.size() > 0) {
+							FieldStoreStatement store = (FieldStoreStatement) stmt;
+							String key = store.getName() + "." + store.getDesc();
+							if(fieldsUsed.contains(key)) {
+								canPropagate = false;
+								break;
+							}
+						}
+					} else if(stmt instanceof ArrayStoreStatement) {
+						if(invoke.get() || array.get()) {
+							canPropagate = false;
+							break;
+						}
+					} else if(stmt instanceof MonitorStatement) {
+						if(invoke.get()) {
+							canPropagate = false;
+							break;
+						}
+					} else if(stmt instanceof InitialisedObjectExpression || stmt instanceof InvocationExpression) {
+						if(invoke.get() || fieldsUsed.size() > 0 || array.get()) {
+							canPropagate = false;
+							break;
+						}
+					}
+				}
+				
+				if(!canPropagate) {
+					return false;
+				}
+				
+				AtomicBoolean canPropagate2 = new AtomicBoolean(canPropagate);
+				if(invoke.get() || array.get() || !fieldsUsed.isEmpty()) {
+					new StatementVisitor(stmt) {
+						@Override
+						public Statement visit(Statement s) {
+							if(root == use && (s instanceof VarExpression && ((VarExpression) s).getLocal() == local)) {
+								_break();
+							} else {
+								if((s instanceof InvocationExpression || s instanceof InitialisedObjectExpression) || (invoke.get() && (s instanceof FieldStoreStatement || s instanceof ArrayStoreStatement))) {
+									canPropagate2.set(false);
+									_break();
+								}
+							}
+							return s;
+						}
+					}.visit();
+					canPropagate = canPropagate2.get();
+					
+					if(!canPropagate) {
+						return false;
+					}
+				}
+			}
+			
+			if(canPropagate) {
+				return true;
+			} else {
+				return false;
+			}
+		}
+		
+		public boolean changed() {
+			return change;
+		}
+		
+		// Selects a statement to be processed.
+		@Override
+		public void reset(Statement stmt) {
+			super.reset(stmt);
+			change = false;
+		}
+		
+		@Override
+		protected void visited(Statement stmt, Statement node, int addr, Statement vis) {
+			if(vis != node) {
+				stmt.overwrite(vis, addr);
+				change = true;
+			}
+			verify();
+		}
+		
+		private void verify() {
+			SSALocalAccess fresh = new SSALocalAccess(graph);
+			
+			Set<VersionedLocal> keySet = new HashSet<>(fresh.useCount.keySet());
+			keySet.addAll(localAccess.useCount.keySet());
+			List<VersionedLocal> sortedKeys = new ArrayList<>(keySet);
+			Collections.sort(sortedKeys);
+			
+			String message = null;
+			for(VersionedLocal e : sortedKeys) {
+				AtomicInteger i1 = fresh.useCount.get(e);
+				AtomicInteger i2 = localAccess.useCount.get(e);
+				if(i1 == null) {
+					message = "Real no contain: " + e + ", other: " + i2.get();
+				} else if(i2 == null) {
+					message = "Current no contain: " + e + ", other: " + i1.get();
+				} else if(i1.get() != i2.get()) {
+					message = "Mismatch: " + e + " " + i1.get() + ":" + i2.get();
+				}
+			}
+			
+			if(message != null) {
+				throw new RuntimeException(message + "\n" + graph.toString());
+			}
+		}
+	}
+	
+	boolean attemptPop(PopStatement pop) {
+		Expression expr = pop.getExpression();
+		if(expr instanceof VarExpression) {
+			VarExpression var = (VarExpression) expr;
+			localAccess.useCount.get(var.getLocal()).decrementAndGet();
+			pop.getBlock().remove(pop);
+			return true;
+		} else if(expr instanceof ConstantExpression) {
+			pop.getBlock().remove(pop);
+			return true;
+		}
+		return false;
+	}
+	
+	boolean attempt(Statement stmt, FeedbackStatementVisitor visitor) {
+		if(stmt instanceof PopStatement) {
+			boolean at = attemptPop((PopStatement)stmt);
+			if(at) {
+				return true;
+			}
+		}
+
+		visitor.reset(stmt);
+		visitor.visit();
+		return visitor.changed();
+	}
+	
+	int opt() {
+		FeedbackStatementVisitor visitor = new FeedbackStatementVisitor(null);
+		AtomicInteger changes = new AtomicInteger();
+		for(BasicBlock b : graph.vertices()) {
+			for(Statement stmt : new ArrayList<>(b)) {
+				if(!b.contains(stmt)) {
+					continue;
+				}
+				if(attempt(stmt, visitor)) changes.incrementAndGet();
+				if(visitor.cleanDead()) changes.incrementAndGet();
+				if(visitor.cleanEquivalentPhis()) changes.incrementAndGet();
+			}
+		}
+		return changes.get();
+	}
+	
+	ControlFlowGraphBuilder reduce() {
+		while(mergeImmediates() > 0);
+		findComponents();
+		
+		exit = new BasicBlock(graph, graph.size() * 2, null);
 		for(BasicBlock b : graph.vertices()) {
 			if(graph.getEdges(b).size() == 0) {
 				graph.addEdge(b, new DummyEdge<>(b, exit));
@@ -1756,17 +2404,22 @@ public class ControlFlowGraphBuilder {
 			process.put(b, 0);
 		}
 		
-		doms = new TarjanDominanceComputor<>(graph);
-		insertPhis();
-		rename();
+		System.out.println("PRE1:");
+		System.out.println(graph);
+		System.out.println();
+		
+		ssa();
+		
+		localAccess = new SSALocalAccess(graph);
+		
+		System.out.println("PRE:");
+		System.out.println(graph);
+		System.out.println();
+		
+		while(opt() > 0);
 		
 		graph.removeVertex(exit);
-	}
-	
-	ControlFlowGraphBuilder reduce() {
-		while(mergeImmediates() > 0);
-		findComponents();
-		ssa();
+		
 		return this;
 	}
 	

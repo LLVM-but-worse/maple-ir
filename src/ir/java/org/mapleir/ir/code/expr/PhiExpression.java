@@ -2,6 +2,7 @@ package org.mapleir.ir.code.expr;
 
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -72,7 +73,20 @@ public class PhiExpression extends Expression {
 
 	@Override
 	public void toString(TabbedStringWriter printer) {
-		printer.print("\u0278" + arguments);
+		printer.print("\u0278{");
+		Iterator<Entry<BasicBlock, Expression>> it = arguments.entrySet().iterator();
+		while(it.hasNext()) {
+			Entry<BasicBlock, Expression> e = it.next();
+			
+			printer.print(e.getKey().getId());
+			printer.print(":");
+			e.getValue().toString(printer);
+			
+			if(it.hasNext()) {
+				printer.print(", ");
+			}
+		}
+		printer.print("}");
 	}
 
 	@Override

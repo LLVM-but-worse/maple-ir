@@ -172,12 +172,12 @@ public class BasicBlock implements FastGraphVertex, Comparable<BasicBlock>, List
 	
 	@Override
 	public Object[] toArray() {
-		throw new UnsupportedOperationException();
+		return statements.toArray();
 	}
 	
 	@Override
 	public <T> T[] toArray(T[] a) {
-		throw new UnsupportedOperationException();
+		return statements.toArray(a);
 	}
 	
 	@Override
