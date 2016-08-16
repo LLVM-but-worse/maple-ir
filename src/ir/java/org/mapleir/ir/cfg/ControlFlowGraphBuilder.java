@@ -1573,15 +1573,12 @@ public class ControlFlowGraphBuilder {
 		if(b == exit) {
 			return; // exit
 		}
-		
-		System.out.println("Process: " + l + ", " + b.getId() + ", " + doms.iteratedFrontier(b));
-		
+				
 		for(BasicBlock x : doms.iteratedFrontier(b)) {
 			if(insertion.get(x) < i) {
 				if(x.size() > 0 && graph.getReverseEdges(x).size() > 1) {
 					// pruned SSA
 					if(liveness.in(x).contains(l)) {
-						System.out.println("LIVE: " + l + " into " + b.getId());
 						Map<BasicBlock, Expression> vls = new HashMap<>();
 						int subscript = 0;
 						for(FlowEdge<BasicBlock> fe : graph.getReverseEdges(x)) {
@@ -1591,8 +1588,6 @@ public class ControlFlowGraphBuilder {
 						CopyPhiStatement assign = new CopyPhiStatement(new VarExpression(l, null), phi);
 						
 						x.add(0, assign);
-					} else {
-						System.out.println("DEAD: " + l + " into " + b.getId());
 					}
 				}
 				
@@ -1917,7 +1912,6 @@ public class ControlFlowGraphBuilder {
 					AbstractCopyStatement def = localAccess.defs.get(e.getKey());
 					if(!def.isSynthetic()) {
 						if(!fineBladeDefinition(def, it)) {
-							System.out.println("Dead: ___ " + def);
 							killed(def);
 							changed = true;
 						}
@@ -1996,7 +1990,6 @@ public class ControlFlowGraphBuilder {
 		}
 		
 		private Statement handleConstant(AbstractCopyStatement def, VarExpression use, ConstantExpression rhs) {
-			System.out.println("(C)Propagate: " + def + " to " + use.getRootParent());
 			// x = 7;
 			// use(x)
 			//         goes to
@@ -2014,9 +2007,7 @@ public class ControlFlowGraphBuilder {
 			if(x == y) {
 				return null;
 			}
-			
-			System.out.println("(V)Propagate: " + def + " to " + use.getRootParent());
-			
+						
 			// x = y
 			// use(x)
 			//         goes to
@@ -2222,15 +2213,6 @@ public class ControlFlowGraphBuilder {
 			path.remove(def);
 			path.add(use);
 			
-			System.out.println("CurrentBlock: " + def.getBlock().getId());
-			for(Statement stmt : def.getBlock()) {
-				System.out.println(" " + stmt.getId() + ". " + stmt);
-			}
-			System.out.println("REACHES: " + def + " to " + use);
-			for(Statement s : path) {
-				System.out.println("  " + s);
-			}
-			
 			boolean canPropagate = true;
 			
 			for(Statement stmt : path) {
@@ -2404,18 +2386,8 @@ public class ControlFlowGraphBuilder {
 			process.put(b, 0);
 		}
 		
-		System.out.println("PRE1:");
-		System.out.println(graph);
-		System.out.println();
-		
 		ssa();
-		
 		localAccess = new SSALocalAccess(graph);
-		
-		System.out.println("PRE:");
-		System.out.println(graph);
-		System.out.println();
-		
 		while(opt() > 0);
 		
 		graph.removeVertex(exit);
