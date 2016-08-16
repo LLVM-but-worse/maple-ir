@@ -18,6 +18,11 @@ public class Test {
 		ClassNode cn = new ClassNode();
 		cr.accept(cn, 0);
 		
+//		InputStream i = new FileInputStream(new File("res/a.class"));
+//		ClassReader cr = new ClassReader(i);
+//		ClassNode cn = new ClassNode();
+//		cr.accept(cn, 0);
+		
 		Iterator<MethodNode> it = new ArrayList<>(cn.methods).listIterator();
 		while(it.hasNext()) {
 			MethodNode m = it.next();
@@ -27,17 +32,13 @@ public class Test {
 			}
 			
 			System.out.println("Processing " + m + "\n");
-			
 			long now = System.nanoTime();
-			
-			for(int i=0; i < 100; i++) {
+			for(int i1=0; i1 < 5009; i1++) {
 				ControlFlowGraph cfg = ControlFlowGraphBuilder.build(m);
 			}
-			
 			long el = System.nanoTime() - now;
-			el /= 100;
 			
-			System.out.println("el: " + (el / 1000) + "ms");
+			System.out.println("el: " + ((double)el/1000000) + "ms");
 			
 //			SSABlockLivenessAnalyser live = new SSABlockLivenessAnalyser(cfg);
 //			live.compute();
