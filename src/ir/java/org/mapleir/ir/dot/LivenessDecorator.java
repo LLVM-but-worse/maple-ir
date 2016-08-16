@@ -1,4 +1,4 @@
-package org.mapleir.stdlib.collections.graph.dot.impl;
+package org.mapleir.ir.dot;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -6,6 +6,7 @@ import java.util.List;
 import org.mapleir.stdlib.collections.graph.FastGraph;
 import org.mapleir.stdlib.collections.graph.FastGraphEdge;
 import org.mapleir.stdlib.collections.graph.FastGraphVertex;
+import org.mapleir.stdlib.collections.graph.dot.impl.CommentDecorator;
 import org.mapleir.stdlib.ir.transform.Liveness;
 
 public class LivenessDecorator<G extends FastGraph<N, E>, N extends FastGraphVertex, E extends FastGraphEdge<N>> extends CommentDecorator<G, N, E> {

@@ -4,23 +4,25 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.mapleir.ir.cfg.BasicBlock;
+import org.mapleir.ir.cfg.ControlFlowGraph;
+import org.mapleir.ir.code.Opcode;
 import org.mapleir.ir.code.expr.Expression;
 import org.mapleir.ir.code.expr.PhiExpression;
 import org.mapleir.ir.code.expr.VarExpression;
 import org.mapleir.ir.code.stmt.Statement;
-import org.mapleir.ir.code.stmt.copy.CopyVarStatement;
+import org.mapleir.ir.code.stmt.copy.AbstractCopyStatement;
 import org.mapleir.ir.locals.VersionedLocal;
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.ValueCreator;
-import org.mapleir.stdlib.ir.CodeBody;
 import org.mapleir.stdlib.ir.StatementVisitor;
 
 public class SSALocalAccess {
 
-	public final Map<VersionedLocal, CopyVarStatement> defs;
+	public final Map<VersionedLocal, AbstractCopyStatement> defs;
 	public final NullPermeableHashMap<VersionedLocal, AtomicInteger> useCount;
 	
-	public SSALocalAccess(CodeBody code) {
+	public SSALocalAccess(ControlFlowGraph cfg) {
 		defs = new HashMap<>();
 		useCount = new NullPermeableHashMap<>(new ValueCreator<AtomicInteger>() {
 			@Override
@@ -29,49 +31,52 @@ public class SSALocalAccess {
 			}
 		});
 		
-		for(Statement s : code) {
-			boolean synth = false;
-			
-			if(s instanceof CopyVarStatement) {
-				CopyVarStatement d = (CopyVarStatement) s;
-				VersionedLocal local = (VersionedLocal) d.getVariable().getLocal();
-				defs.put(local, d);
-				// sometimes locals can be dead even without any transforms.
-				// since they have no uses, they are never found by the below
-				// visitor, so we touch the local in map here to mark it.
-				useCount.getNonNull(local); 
-				synth = d.isSynthetic();
-			}
-			
-			if(!synth) {
-				new StatementVisitor(s) {
-					@Override
-					public Statement visit(Statement stmt) {
-						if(stmt instanceof VarExpression) {
-							VersionedLocal l = (VersionedLocal) ((VarExpression) stmt).getLocal();
-							useCount.getNonNull(l).incrementAndGet();
-						} else if(stmt instanceof PhiExpression) {
-							PhiExpression phi = (PhiExpression) stmt;
-							for(Expression e : phi.getArguments().values()) {
-								if(e instanceof VarExpression)  {
-									useCount.getNonNull((VersionedLocal) ((VarExpression) e).getLocal()).incrementAndGet();
-								} else {
-									new StatementVisitor(e) {
-										@Override
-										public Statement visit(Statement stmt2) {
-											if(stmt2 instanceof VarExpression) {
-												VersionedLocal l = (VersionedLocal) ((VarExpression) stmt2).getLocal();
-												useCount.getNonNull(l).incrementAndGet();
+		for(BasicBlock b : cfg.vertices()) {
+			for(Statement s : b) {
+				boolean synth = false;
+				
+				int op = s.getOpcode();
+				if(op == Opcode.LOCAL_STORE || op == Opcode.PHI_STORE) {
+					AbstractCopyStatement d = (AbstractCopyStatement) s;
+					VersionedLocal local = (VersionedLocal) d.getVariable().getLocal();
+					defs.put(local, d);
+					// sometimes locals can be dead even without any transforms.
+					// since they have no uses, they are never found by the below
+					// visitor, so we touch the local in map here to mark it.
+					useCount.getNonNull(local); 
+					synth = d.isSynthetic();
+				}
+				
+				if(!synth) {
+					new StatementVisitor(s) {
+						@Override
+						public Statement visit(Statement stmt) {
+							if(stmt instanceof VarExpression) {
+								VersionedLocal l = (VersionedLocal) ((VarExpression) stmt).getLocal();
+								useCount.getNonNull(l).incrementAndGet();
+							} else if(stmt instanceof PhiExpression) {
+								PhiExpression phi = (PhiExpression) stmt;
+								for(Expression e : phi.getArguments().values()) {
+									if(e instanceof VarExpression)  {
+										useCount.getNonNull((VersionedLocal) ((VarExpression) e).getLocal()).incrementAndGet();
+									} else {
+										new StatementVisitor(e) {
+											@Override
+											public Statement visit(Statement stmt2) {
+												if(stmt2 instanceof VarExpression) {
+													VersionedLocal l = (VersionedLocal) ((VarExpression) stmt2).getLocal();
+													useCount.getNonNull(l).incrementAndGet();
+												}
+												return stmt2;
 											}
-											return stmt2;
-										}
-									}.visit();
+										}.visit();
+									}
 								}
 							}
+							return stmt;
 						}
-						return stmt;
-					}
-				}.visit();
+					}.visit();
+				}
 			}
 		}
 	}

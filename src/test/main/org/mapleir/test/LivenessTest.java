@@ -5,13 +5,13 @@ import org.mapleir.ir.analysis.StatementGraphBuilder;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.cfg.ControlFlowGraphBuilder;
+import org.mapleir.ir.dot.ControlFlowGraphDecorator;
+import org.mapleir.ir.dot.LivenessDecorator;
 import org.mapleir.stdlib.cfg.edge.FlowEdge;
 import org.mapleir.stdlib.cfg.util.ControlFlowGraphDeobfuscator;
 import org.mapleir.stdlib.collections.graph.dot.BasicDotConfiguration;
 import org.mapleir.stdlib.collections.graph.dot.DotConfiguration;
 import org.mapleir.stdlib.collections.graph.dot.DotWriter;
-import org.mapleir.stdlib.collections.graph.dot.impl.ControlFlowGraphDecorator;
-import org.mapleir.stdlib.collections.graph.dot.impl.LivenessDecorator;
 import org.mapleir.stdlib.collections.graph.util.GraphUtils;
 import org.mapleir.stdlib.ir.CodeBody;
 import org.mapleir.stdlib.ir.gen.BoissinotDestructor;
@@ -28,12 +28,10 @@ import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
 
+import static org.mapleir.ir.dot.ControlFlowGraphDecorator.*;
+
 import java.util.ArrayList;
 import java.util.List;
-
-import static org.mapleir.stdlib.collections.graph.dot.impl.ControlFlowGraphDecorator.OPT_DEEP;
-import static org.mapleir.stdlib.collections.graph.dot.impl.ControlFlowGraphDecorator.OPT_SIMPLE_EDGES;
-import static org.mapleir.stdlib.collections.graph.dot.impl.ControlFlowGraphDecorator.OPT_STMTS;
 
 @SuppressWarnings({"Duplicates", "ConstantConditions", "unused"})
 public class LivenessTest implements Opcodes {

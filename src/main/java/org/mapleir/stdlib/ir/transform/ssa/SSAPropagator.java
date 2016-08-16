@@ -32,14 +32,6 @@ import org.mapleir.stdlib.ir.transform.SSATransformer;
 
 public class SSAPropagator extends SSATransformer {
 	
-	private static final Set<Class<? extends Statement>> UNCOPYABLE = new HashSet<>();
-	
-	static {
-		UNCOPYABLE.add(InvocationExpression.class);
-		UNCOPYABLE.add(UninitialisedObjectExpression.class);
-		UNCOPYABLE.add(InitialisedObjectExpression.class);
-	}
-	
 	private final StatementGraph graph;
 	private final Collection<? extends HeaderStatement> headers;
 	private final DummyExitStatement exit;
