@@ -1840,13 +1840,26 @@ public class ControlFlowGraphBuilder {
 			super(root);
 		}
 		
-		private Iterable<Statement> enumerate(Statement stmt) {
+		private Set<Statement> _enumerate(Statement stmt) {
 			Set<Statement> set = new HashSet<>();
-			for(Statement s : stmt) {
-				set.add(s);
-			}
 			set.add(stmt);
+			
+			if(stmt.getOpcode() == Opcode.PHI_STORE) {
+				CopyPhiStatement phi = (CopyPhiStatement) stmt;
+				for(Expression e : phi.getExpression().getArguments().values()) {
+					set.addAll(_enumerate(e));
+				}
+			} else {
+				for(Statement s : stmt) {
+					set.addAll(_enumerate(s));
+				}
+			}
+			
 			return set;
+		}
+		
+		private Iterable<Statement> enumerate(Statement stmt) {
+			return _enumerate(stmt);
 		}
 
 		private Set<Statement> findReachable(Statement from, Statement to) {
@@ -1894,9 +1907,7 @@ public class ControlFlowGraphBuilder {
 						break;
 					}
 				}
-				
-				System.out.println("phis: " + phis);
-				
+								
 				if(phis.size() > 1) {
 					NullPermeableHashMap<CopyPhiStatement, Set<CopyPhiStatement>> equiv = new NullPermeableHashMap<>(new SetCreator<>());
 					for(CopyPhiStatement cps : phis) {
@@ -1917,13 +1928,37 @@ public class ControlFlowGraphBuilder {
 						}
 					}
 
-					for(Entry<CopyPhiStatement, Set<CopyPhiStatement>> e : equiv.entrySet()) {
+					for(Entry<CopyPhiStatement, Set<CopyPhiStatement>> e : equiv.entrySet()) {						
 						// key should be earliest
 						// remove vals from code and replace use of val vars with key var
-						CopyPhiStatement keepPhi = e.getKey();
+						
+						// choose which phi to keep.
+						// favour lvars.
+						
+						Set<CopyPhiStatement> all = new HashSet<>();
+						all.add(e.getKey());
+						all.addAll(e.getValue());
+						
+						CopyPhiStatement keepPhi = null;
+						
+						for(CopyPhiStatement cps : all) {
+							if(!cps.getVariable().getLocal().isStack()) {
+								keepPhi = cps;
+								break;
+							}
+						}
+						
+						if(keepPhi == null) {
+							keepPhi = e.getKey();
+						}
+						
+						Set<CopyPhiStatement> useless = new HashSet<>(all);
+						useless.remove(keepPhi);
+						
 						VersionedLocal phiLocal = (VersionedLocal) keepPhi.getVariable().getLocal();
+						
 						Set<VersionedLocal> toReplace = new HashSet<>();
-						for(CopyPhiStatement def : e.getValue()) {
+						for(CopyPhiStatement def : useless) {
 							VersionedLocal local = (VersionedLocal) def.getVariable().getLocal();
 							toReplace.add(local);
 							killed(def);
@@ -1945,7 +1980,7 @@ public class ControlFlowGraphBuilder {
 							}
 						}
 						
-						for(CopyPhiStatement def : e.getValue()) {
+						for(CopyPhiStatement def : useless) {
 							Local local = def.getVariable().getLocal();
 							localAccess.useCount.remove(local);
 							localAccess.defs.remove(local);
@@ -2184,17 +2219,36 @@ public class ControlFlowGraphBuilder {
 		private Statement visitPhi(PhiExpression phi) {
 			for(BasicBlock s : phi.getSources()) {
 				Expression e = phi.getArgument(s);
+				
 				if(e.getOpcode() == Opcode.LOCAL_LOAD) {
-					AbstractCopyStatement def = localAccess.defs.get(((VarExpression) e).getLocal());
-					if(def.getExpression().getOpcode() == Opcode.LOCAL_LOAD) {
-						VarExpression v = (VarExpression) def.getExpression();
+					VarExpression use = (VarExpression) e;
+					
+					AbstractCopyStatement def = localAccess.defs.get((use).getLocal());
+					Expression rhs = def.getExpression();
+					int opcode = rhs.getOpcode();
+
+					VarExpression cand = null;
+					
+					if(opcode == Opcode.LOCAL_LOAD) {
+						VarExpression v = (VarExpression) rhs;
 						Local l = v.getLocal();
-						if(l.isStack() == def.getVariable().getLocal().isStack()) {
-							Statement e1 = findSubstitution(phi, def, (VarExpression) e);
-							if(e1 != null && e1 != e) {
-								phi.setArgument(s, (Expression) e1);
-								change = true;
-							}
+						Local deflhs = def.getVariable().getLocal();
+						// we only want to propagate if;
+						//  l.isStack() == deflhs.isStack();
+						// or:
+						//  use.isStack() && !defrhs.isStack();
+						if((l.isStack() == deflhs.isStack()) || (!l.isStack() && deflhs.isStack())) {
+							cand = (VarExpression) e;
+						}
+					} else if(opcode == Opcode.CONST_LOAD) {
+						cand = (VarExpression) e;
+					}
+					
+					if(cand != null) {
+						Statement sub = findSubstitution(phi, def, (VarExpression) e);
+						if(sub != null && sub != e) {
+							phi.setArgument(s, (Expression) sub);
+							change = true;
 						}
 					}
 				}
@@ -2417,20 +2471,103 @@ public class ControlFlowGraphBuilder {
 		return visitor.changed();
 	}
 	
+	int aggregate_initialisers() {
+		int changes = 0;
+		
+		for(BasicBlock b : graph.vertices()) {
+			for(Statement stmt : new ArrayList<>(b)) {
+				if (stmt instanceof PopStatement) {
+					PopStatement pop = (PopStatement) stmt;
+					Expression expr = pop.getExpression();
+					if (expr instanceof InvocationExpression) {
+						InvocationExpression invoke = (InvocationExpression) expr;
+						if (invoke.getOpcode() == Opcodes.INVOKESPECIAL && invoke.getName().equals("<init>")) {
+							Expression inst = invoke.getInstanceExpression();
+							if (inst instanceof VarExpression) {
+								VarExpression var = (VarExpression) inst;
+								VersionedLocal local = (VersionedLocal) var.getLocal();
+
+								AbstractCopyStatement def = localAccess.defs.get(local);
+
+								Expression rhs = def.getExpression();
+								if (rhs instanceof UninitialisedObjectExpression) {
+									// replace pop(x.<init>()) with x := new Klass();
+									// remove x := new Klass;
+									
+									// here we are assuming that the new object
+									// can't be used until it is initialised.
+									UninitialisedObjectExpression obj = (UninitialisedObjectExpression) rhs;
+									Expression[] args = invoke.getParameterArguments();
+									Expression[] newArgs = Arrays.copyOf(args, args.length);
+									InitialisedObjectExpression newExpr = new InitialisedObjectExpression(obj.getType(), invoke.getOwner(), invoke.getDesc(), newArgs);
+									// remove the old def
+									// add a copy statement before the pop (x = newExpr)
+									// remove the pop statement
+									
+									b.remove(def);
+									
+									CopyVarStatement newCvs = new CopyVarStatement(var, newExpr);
+									localAccess.defs.put(local, newCvs);
+									localAccess.useCount.get(local).decrementAndGet();
+									
+									int index = b.indexOf(pop);
+									b.add(index, newCvs);
+									b.remove(pop);
+									
+									changes++;
+								}
+							} else if(inst instanceof UninitialisedObjectExpression) {
+								// replace pop(new Klass.<init>(args)) with pop(new Klass(args))
+								UninitialisedObjectExpression obj = (UninitialisedObjectExpression) inst;
+								Expression[] args = invoke.getParameterArguments();
+								Expression[] newArgs = Arrays.copyOf(args, args.length);
+								InitialisedObjectExpression newExpr = new InitialisedObjectExpression(obj.getType(), invoke.getOwner(), invoke.getDesc(), newArgs);
+								// replace pop contents
+								// no changes to defs or uses
+								
+								pop.setExpression(newExpr);
+								
+								changes++;
+							} else {
+								System.err.println(b);
+								System.err.println("Stmt: " + stmt.getId() + ". " + stmt);
+								System.err.println("Inst: " + inst);
+								throw new RuntimeException("interesting1 " + inst.getClass());
+							}
+						}
+					}
+				}
+			}
+		}
+		
+		return changes;
+	}
+	
 	int opt() {
+		// TODO: optimise
+		
 		FeedbackStatementVisitor visitor = new FeedbackStatementVisitor(null);
-		AtomicInteger changes = new AtomicInteger();
+		int changes = 0;
 		for(BasicBlock b : graph.vertices()) {
 			for(Statement stmt : new ArrayList<>(b)) {
 				if(!b.contains(stmt)) {
 					continue;
 				}
-				if(attempt(stmt, visitor)) changes.incrementAndGet();
-				if(visitor.cleanDead()) changes.incrementAndGet();
-				if(visitor.cleanEquivalentPhis()) changes.incrementAndGet();
+				if(attempt(stmt, visitor)) {
+					changes++;
+				}
+				if(visitor.cleanDead()) {
+					changes++;
+				}
+				if(visitor.cleanEquivalentPhis()) {
+					changes++;
+				}
 			}
 		}
-		return changes.get();
+		
+		changes += aggregate_initialisers();
+		
+		return changes;
 	}
 	
 	ControlFlowGraphBuilder reduce() {
