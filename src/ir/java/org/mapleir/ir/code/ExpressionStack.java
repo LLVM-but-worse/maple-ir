@@ -1,5 +1,7 @@
 package org.mapleir.ir.code;
 
+import java.util.Arrays;
+
 import org.mapleir.ir.code.expr.Expression;
 
 // top(0) -> bottom(size() - 1)
@@ -103,7 +105,7 @@ public class ExpressionStack {
 
 	@Override
 	public String toString() {
-		System.out.println("s: " + this);
+		System.out.println("s: " + Arrays.toString(stack));
 		StringBuilder sb = new StringBuilder();
 		sb.append("top->btm[");
 		for (int i = size() - 1; i >= 0; i--) {
