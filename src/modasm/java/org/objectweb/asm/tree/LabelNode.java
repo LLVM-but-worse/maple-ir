@@ -78,6 +78,6 @@ public class LabelNode extends AbstractInsnNode {
     
     @Override
 	public String toString() {
-    	return "[Label]";
+    	return "[Label " + hashCode() + "]";
     }
 }
