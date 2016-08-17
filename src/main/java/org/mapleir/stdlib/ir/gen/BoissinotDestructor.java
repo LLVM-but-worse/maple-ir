@@ -747,14 +747,15 @@ public class BoissinotDestructor implements Liveness<BasicBlock> {
 	static class ParallelCopyVarStatement extends Statement {
 		
 		final List<CopyPair> pairs;
+		public static final int PARALLEL_COPY = 0x1902;
 		
 		ParallelCopyVarStatement() {
-			super(-1);
+			super(PARALLEL_COPY);
 			pairs = new ArrayList<>();
 		}
 		
 		ParallelCopyVarStatement(List<CopyPair> pairs) {
-			super(-1);
+			super(PARALLEL_COPY);
 			this.pairs = pairs;
 		}
 		
