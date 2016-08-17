@@ -146,7 +146,7 @@ public class ControlFlowGraphBuilder {
 	
 	void entry(LabelNode firstLabel) {
 		BasicBlock entry = makeBlock(firstLabel);
-		entry.setInputStack(new ExpressionStack(1024 * 8));
+		entry.setInputStack(new ExpressionStack(16));
 		defineInputs(method, entry);
 		graph.getEntries().add(entry);
 		queue(firstLabel);
@@ -159,7 +159,7 @@ public class ControlFlowGraphBuilder {
 			return;
 		}
 		
-		ExpressionStack stack = new ExpressionStack(1024 * 8);
+		ExpressionStack stack = new ExpressionStack(16);
 		handler.setInputStack(stack);
 		
 		Expression expr = new CaughtExceptionExpression(tc.type);
