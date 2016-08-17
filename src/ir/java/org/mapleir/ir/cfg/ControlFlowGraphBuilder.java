@@ -1241,25 +1241,28 @@ public class ControlFlowGraphBuilder {
 		}
 		
 		System.out.println("\n   Befor: " + currentStack);
-		ExpressionStack tmp = new ExpressionStack(currentStack.size());
-		for (int i = currentStack.size() - 1; i >= 0; i--) {
-			int index = currentStack.size() - i - 1;
-			Expression expr = currentStack.peek(i);
-			Expression old = expr;
-			System.out.println("   Pop1: " + expr + "(" + expr.getType() + ")");
-			if(expr.getParent() != null)
-				expr = expr.copy();
-			System.out.println("   Pop2: " + expr + "(" + expr.getType() + ")" + " (" + (old == expr) +  ")");
-			Type type = assign_stack(index, expr);
-			System.out.println("   RETt: " + type);
-			Expression e1 = load_stack(index, type);
-			System.out.println("   Push: " + e1 +" (" + e1.getType() +")");
-			tmp.push(e1);
-		}
+		System.out.println("     With size: " + currentStack.size());
+		System.out.println("     With height: " + currentStack.height());
 		
-		System.out.println("cur: " + currentStack);
-		System.out.println("tmp: " + tmp);
-		currentStack.copyInto(tmp);
+		int height = currentStack.height();
+		while(height > 0) {
+			int index = height - 1;
+			Expression expr = currentStack.pop();
+			
+			if(expr.getParent() != null) {
+				expr = expr.copy();
+			}
+			
+			System.out.println("    Pop: " + expr + ":" + expr.getType());
+			System.out.println("    Idx: " + index);
+			Type type = assign_stack(index, expr);
+			Expression e = load_stack(index, type);
+			System.out.println("    Push " + e + ":" + e.getType());
+			System.out.println("    tlen: " + type.getSize());
+			push(e);
+			
+			height -= type.getSize();
+		}
 		
 		System.out.println("   After: " + currentStack + "\n");
 		
