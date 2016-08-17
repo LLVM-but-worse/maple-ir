@@ -82,6 +82,7 @@ public class ExpressionStack {
 		for(int i=size-1; i >= 0; i--) {
 			stack[i] = null;
 		}
+		size = 0;
 	}
 	
 	public boolean isEmpty() {
@@ -110,11 +111,11 @@ public class ExpressionStack {
 		StringBuilder sb = new StringBuilder();
 		sb.append("top->btm[");
 		for (int i = size() - 1; i >= 0; i--) {
-			Expression n = peek(i);
+			Expression n = stack[i];
 			if (n != null) {
 				sb.append(n);
 				sb.append(":").append(n.getType());
-				if(i != 0 && peek(i - 1) != null) {
+				if(i != 0 && stack[i-1] != null) {
 					sb.append(", ");
 				}
 			}
