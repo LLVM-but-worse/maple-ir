@@ -53,9 +53,10 @@ public class ExpressionStack {
 	}
 	
 	public void copyInto(ExpressionStack other) {
-		Expression[] news = new Expression[size];
-		System.arraycopy(stack, 0, news, 0, size);
+		Expression[] news = new Expression[capacity()];
+		System.arraycopy(stack, 0, news, 0, capacity());
 		other.stack = news;
+		other.size = size;
 	}
 	
 	public ExpressionStack copy() {
