@@ -1244,10 +1244,17 @@ public class ControlFlowGraphBuilder {
 		System.out.println("     With size: " + currentStack.size());
 		System.out.println("     With height: " + currentStack.height());
 		
-		int height = currentStack.height();
-		while(height > 0) {
-			int index = height - 1;
-			Expression expr = currentStack.pop();
+		ExpressionStack copy = currentStack.copy();
+		int len = currentStack.size();
+		currentStack.clear();
+		
+		int height = 0;
+		for(int i=len-1; i >= 0; i--) {
+			// peek(0) = top
+			// peek(len-1) = btm
+
+			int index = height;
+			Expression expr = copy.peek(i);
 			
 			if(expr.getParent() != null) {
 				expr = expr.copy();
@@ -1259,9 +1266,10 @@ public class ControlFlowGraphBuilder {
 			Expression e = load_stack(index, type);
 			System.out.println("    Push " + e + ":" + e.getType());
 			System.out.println("    tlen: " + type.getSize());
-			push(e);
+
+			currentStack.push(e);
 			
-			height -= type.getSize();
+			height += type.getSize();
 		}
 		
 		System.out.println("   After: " + currentStack + "\n");
@@ -1886,6 +1894,8 @@ public class ControlFlowGraphBuilder {
 						break;
 					}
 				}
+				
+				System.out.println("phis: " + phis);
 				
 				if(phis.size() > 1) {
 					NullPermeableHashMap<CopyPhiStatement, Set<CopyPhiStatement>> equiv = new NullPermeableHashMap<>(new SetCreator<>());
