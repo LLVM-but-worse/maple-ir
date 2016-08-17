@@ -118,12 +118,18 @@ public class ControlFlowGraphBuilder {
 		defs = new HashMap<>();
 	}
 	
+	void queue(LabelNode label) {
+		if(!queue.contains(label)) {
+			queue.addLast(label);
+		}
+	}
+	
 	void init() {
 		entry(checkLabel());
 		
 		for(TryCatchBlockNode tc : method.tryCatchBlocks) {
-			queue.addLast(tc.start);
-			queue.addLast(tc.end);
+			queue(tc.start);
+			queue(tc.end);
 			handler(tc);
 		}
 	}
@@ -143,7 +149,7 @@ public class ControlFlowGraphBuilder {
 		entry.setInputStack(new ExpressionStack(1024 * 8));
 		defineInputs(method, entry);
 		graph.getEntries().add(entry);
-		queue.add(firstLabel);
+		queue(firstLabel);
 	}
 	
 	void handler(TryCatchBlockNode tc) {
@@ -164,7 +170,7 @@ public class ControlFlowGraphBuilder {
 		
 		stack.push(load_stack(0, type));
 		
-		queue.add(label);
+		queue(label);
 		updatedStacks.add(handler);
 	}
 	
@@ -196,7 +202,7 @@ public class ControlFlowGraphBuilder {
 	
 	BasicBlock makeBlock(LabelNode label) {
 		BasicBlock b = new BasicBlock(graph, ++count, label);
-		queue.add(label);
+		queue(label);
 		graph.addVertex(b);
 		return b;
 	}
@@ -1157,6 +1163,12 @@ public class ControlFlowGraphBuilder {
 	
 	// var[index] = expr
 	Type assign_stack(int index, Expression expr) {
+		if(expr.getOpcode() == Opcode.LOCAL_LOAD) {
+			VarExpression v = (VarExpression) expr;
+			if(v.getIndex() == index && v.getLocal().isStack()) {
+				return expr.getType();
+			}
+		}
 		Type type = expr.getType();
 		VarExpression var = _var_expr(index, type, true);
 		CopyVarStatement stmt = copy(var, expr);
@@ -1244,7 +1256,11 @@ public class ControlFlowGraphBuilder {
 			System.out.println("   Push: " + e1 +" (" + e1.getType() +")");
 			tmp.push(e1);
 		}
-		currentStack = tmp;
+		
+		System.out.println("cur: " + currentStack);
+		System.out.println("tmp: " + tmp);
+		currentStack.copyInto(tmp);
+		
 		System.out.println("   After: " + currentStack + "\n");
 		
 		saved = true;
@@ -1288,7 +1304,7 @@ public class ControlFlowGraphBuilder {
 			target.setInputStack(stack.copy());
 			updatedStacks.add(target);
 
-			queue.addLast(target.getLabelNode());
+			queue(target.getLabelNode());
 		} else if (!can_succeed(target.getInputStack(), stack)) {
 			// if the targets input stack is finalised and
 			// the new stack cannot merge into it, then there
@@ -1335,8 +1351,12 @@ public class ControlFlowGraphBuilder {
 	}
 	
 	void processQueue() {
+		System.out.println("Q: " + queue);
 		while(!queue.isEmpty()) {
 			LabelNode label = queue.removeFirst();
+			System.out.println("PROCESSING: " + resolveTarget(label));
+			System.out.println();
+			System.out.println();
 			process(label);
 		}
 		
@@ -2435,6 +2455,16 @@ public class ControlFlowGraphBuilder {
 		try {
 			return builder.build().reduce().graph;
 		} catch(RuntimeException e) {
+//			List<BasicBlock> blocks = new ArrayList<>(builder.graph.vertices());
+//			Collections.sort(blocks, new Comparator<BasicBlock>() {
+//				@Override
+//				public int compare(BasicBlock o1, BasicBlock o2) {
+//					int i1 = builder.insns.indexOf(o1.getLabelNode());
+//					int i2 = builder.insns.indexOf(o2.getLabelNode());
+//					return Integer.compare(i1, i2);
+//				}
+//			});
+//			builder.naturaliseGraph(blocks);
 			System.err.println(builder.graph);
 			throw e;
 		}
