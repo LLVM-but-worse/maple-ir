@@ -86,20 +86,12 @@ public class GraphUtils {
 	}
 	
 	public static String toBlockArray(Collection<BasicBlock> col) {
-		return toBlockArray(col, true);
-	}
-	
-	public static String toBlockArray(Collection<BasicBlock> col, boolean b1) {
 		StringBuilder sb = new StringBuilder();
 		sb.append("[");
 		Iterator<BasicBlock> it = col.iterator();
 		while(it.hasNext()) {
 			BasicBlock b = it.next();
 			sb.append(b.getId());
-			
-			if(b1) {
-				sb.append(" ").append(b.getLabel().getLabel().hashCode());
-			}
 			
 			if(it.hasNext()) {
 				sb.append(", ");
