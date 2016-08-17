@@ -306,10 +306,10 @@ public class ControlFlowGraphBuilder {
 		// TODO: check if it should have an immediate.
 		BasicBlock im = block.getImmediate();
 		if (im != null && !queue.contains(im)) {
-			System.out.println("Updating " + block.getId() + " -> " + im.getId());
-			System.out.println("  Pre: " + currentStack);
+			// System.out.println("Updating " + block.getId() + " -> " + im.getId());
+			// System.out.println("  Pre: " + currentStack);
 			update_target_stack(block, im, currentStack);
-			System.out.println("  Pos: " + currentStack);
+			// System.out.println("  Pos: " + currentStack);
 		}
 	}
 	
@@ -334,8 +334,8 @@ public class ControlFlowGraphBuilder {
 	void process(BasicBlock b, AbstractInsnNode ain) {
 		int opcode = ain.opcode();
 		
-		System.out.println("Executing " + Printer.OPCODES[opcode]);
-		System.out.println(" PreStack: " + currentStack);
+		// System.out.println("Executing " + Printer.OPCODES[opcode]);
+		// System.out.println(" PreStack: " + currentStack);
 		
 		switch (opcode) {
 			case -1: {
@@ -652,7 +652,7 @@ public class ControlFlowGraphBuilder {
 		}
 		
 
-		System.out.println(" PosStack: " + currentStack);
+		// System.out.println(" PosStack: " + currentStack);
 	}
 	
 	void _nop() {
@@ -1231,7 +1231,7 @@ public class ControlFlowGraphBuilder {
 	}
 	
 	void addStmt(Statement stmt) {
-		System.out.println("    ADD: " + stmt);
+		// System.out.println("    ADD: " + stmt);
 		currentBlock.add(stmt);
 	}
 	
@@ -1240,9 +1240,9 @@ public class ControlFlowGraphBuilder {
 			throw new IllegalStateException("Flow instruction already added to block; cannot save stack");
 		}
 		
-		System.out.println("\n   Befor: " + currentStack);
-		System.out.println("     With size: " + currentStack.size());
-		System.out.println("     With height: " + currentStack.height());
+		// System.out.println("\n   Befor: " + currentStack);
+		// System.out.println("     With size: " + currentStack.size());
+		// System.out.println("     With height: " + currentStack.height());
 		
 		ExpressionStack copy = currentStack.copy();
 		int len = currentStack.size();
@@ -1260,19 +1260,19 @@ public class ControlFlowGraphBuilder {
 				expr = expr.copy();
 			}
 			
-			System.out.println("    Pop: " + expr + ":" + expr.getType());
-			System.out.println("    Idx: " + index);
+			// System.out.println("    Pop: " + expr + ":" + expr.getType());
+			// System.out.println("    Idx: " + index);
 			Type type = assign_stack(index, expr);
 			Expression e = load_stack(index, type);
-			System.out.println("    Push " + e + ":" + e.getType());
-			System.out.println("    tlen: " + type.getSize());
+			// System.out.println("    Push " + e + ":" + e.getType());
+			// System.out.println("    tlen: " + type.getSize());
 
 			currentStack.push(e);
 			
 			height += type.getSize();
 		}
 		
-		System.out.println("   After: " + currentStack + "\n");
+		//System.out.println("   After: " + currentStack + "\n");
 		
 		saved = true;
 	}
@@ -2589,8 +2589,6 @@ public class ControlFlowGraphBuilder {
 		
 		
 		ssa();
-
-		System.out.println(graph);
 		
 		localAccess = new SSALocalAccess(graph);
 		while(opt() > 0);

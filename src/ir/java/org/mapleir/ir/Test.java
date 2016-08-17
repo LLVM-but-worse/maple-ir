@@ -7,6 +7,7 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Iterator;
 
+import org.mapleir.ir.cfg.BoissinotDestructor;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.cfg.ControlFlowGraphBuilder;
 import org.objectweb.asm.ClassReader;
@@ -36,19 +37,8 @@ public class Test {
 			System.out.println("Processing " + m + "\n");
 			ControlFlowGraph cfg = ControlFlowGraphBuilder.build(m);
 			System.out.println(cfg);
-			
-//			SSABlockLivenessAnalyser live = new SSABlockLivenessAnalyser(cfg);
-//			live.compute();
-//			
-//			BasicDotConfiguration<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> config =
-//					new BasicDotConfiguration<>(GraphType.DIRECTED);
-//			
-//			DotWriter<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> writer = 
-//					new DotWriter<>(config, cfg)
-//					.add(new ControlFlowGraphDecorator().setFlags(ControlFlowGraphDecorator.OPT_DEEP))
-//					.add(new LivenessDecorator<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>>().setLiveness(live))
-//					.setName("live-new");
-//			writer.export();
+
+			BoissinotDestructor destructor = new BoissinotDestructor(cfg);
 		}
 	}
 }
