@@ -1362,12 +1362,8 @@ public class ControlFlowGraphBuilder {
 	}
 	
 	void processQueue() {
-		System.out.println("Q: " + queue);
 		while(!queue.isEmpty()) {
 			LabelNode label = queue.removeFirst();
-			System.out.println("PROCESSING: " + resolveTarget(label));
-			System.out.println();
-			System.out.println();
 			process(label);
 		}
 		
