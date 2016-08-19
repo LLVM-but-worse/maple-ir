@@ -104,6 +104,19 @@ public class TarjanSCC <N extends FastGraphVertex> {
 		
 		return bfs;
 	}
+	
+
+	
+	/* static final Map<Class<?>, Integer> WEIGHTS = new HashMap<>();
+	
+	{
+		WEIGHTS.put(ImmediateEdge.class, 10);
+		WEIGHTS.put(ConditionalJumpEdge.class, 9);
+		WEIGHTS.put(UnconditionalJumpEdge.class, 8);
+		WEIGHTS.put(DefaultSwitchEdge.class, 7);
+		WEIGHTS.put(SwitchEdge.class, 6);
+		WEIGHTS.put(TryCatchEdge.class, 5);
+	}  */
 
 	/* List<FlowEdge<N>> weigh(Set<FlowEdge<N>> edges) {
 		List<FlowEdge<N>> list = new ArrayList<>(edges);
