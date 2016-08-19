@@ -7,7 +7,7 @@ import java.util.Iterator;
 import org.mapleir.AnalyticsTest;
 import org.mapleir.ir.cfg.BoissinotDestructor;
 import org.mapleir.ir.cfg.ControlFlowGraph;
-import org.mapleir.ir.cfg.ControlFlowGraphBuilder;
+import org.mapleir.ir.cfg.builder.ControlFlowGraphBuilder;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
