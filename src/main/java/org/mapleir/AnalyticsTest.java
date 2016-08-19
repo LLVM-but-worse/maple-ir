@@ -19,7 +19,7 @@ import org.mapleir.ir.analysis.StatementGraphBuilder;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.BoissinotDestructor;
 import org.mapleir.ir.cfg.ControlFlowGraph;
-import org.mapleir.ir.cfg.ControlFlowGraphBuilder;
+import org.mapleir.ir.cfg.builder.ControlFlowGraphBuilder;
 import org.mapleir.ir.dot.ControlFlowGraphDecorator;
 import org.mapleir.ir.dot.LivenessDecorator;
 import org.mapleir.stdlib.cfg.edge.FlowEdge;
