@@ -202,7 +202,7 @@ public class DominanceLivenessAnalyser {
 				
 				
 				Set<BasicBlock> rtt = new HashSet<>(rv.getNonNull(t));
-				System.out.printf(" u:%s, rt:%s%n", GraphUtils.toBlockArray(u), GraphUtils.toBlockArray(rtt));
+				System.out.printf(" t:%s, u:%s, rt:%s%n", t.getId(), GraphUtils.toBlockArray(u), GraphUtils.toBlockArray(rtt));
 				rtt.retainAll(u);
 				if(!rtt.isEmpty()) {
 					System.out.println();
