@@ -26,14 +26,16 @@ public class SSADefUseMap implements Opcode {
 	public final NullPermeableHashMap<Local, Set<BasicBlock>> uses;
 	public final Set<Local> phis;
 	
-	public SSADefUseMap(ControlFlowGraph cfg) {
+	public SSADefUseMap(ControlFlowGraph cfg, boolean compute) {
 		this.cfg = cfg;
 		defs = new HashMap<>();
 		uses = new NullPermeableHashMap<>(new SetCreator<>());
 		phis = new HashSet<>();
 		
-		build(cfg);
-		verify();
+		if(compute) {
+			build(cfg);
+			verify();
+		}
 	}
 	
 	private void build(ControlFlowGraph cfg) {
@@ -119,6 +121,7 @@ public class SSADefUseMap implements Opcode {
 			BasicBlock b2 = this.defs.get(l);
 			
 			if(b1 != b2) {
+				System.err.println(cfg);
 				System.err.println("Defs:");
 				System.err.println(b1 + ", " + b2 + ", " + l);
 				throw new RuntimeException();
@@ -133,9 +136,10 @@ public class SSADefUseMap implements Opcode {
 			Set<BasicBlock> s1 = uses.getNonNull(l);
 			Set<BasicBlock> s2 = this.uses.getNonNull(l);
 			if(!s1.equals(s2)) {
+				System.err.println(cfg);
 				System.err.println("Uses:");
-				System.err.println(GraphUtils.toBlockArray(s1, false));
-				System.err.println(GraphUtils.toBlockArray(s2, false));
+				System.err.println(GraphUtils.toBlockArray(s1));
+				System.err.println(GraphUtils.toBlockArray(s2));
 				System.err.println(l);
 				throw new RuntimeException();
 			}

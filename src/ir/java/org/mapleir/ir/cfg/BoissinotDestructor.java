@@ -5,7 +5,9 @@ import static org.mapleir.ir.dot.ControlFlowGraphDecorator.OPT_DEEP;
 import java.util.*;
 import java.util.Map.Entry;
 
+import org.mapleir.ir.analysis.DominanceLivenessAnalyser;
 import org.mapleir.ir.analysis.ExtendedDfs;
+import org.mapleir.ir.analysis.SSADefUseMap;
 import org.mapleir.ir.code.Opcode;
 import org.mapleir.ir.code.expr.Expression;
 import org.mapleir.ir.code.expr.PhiExpression;
@@ -26,7 +28,6 @@ import org.mapleir.stdlib.collections.SetCreator;
 import org.mapleir.stdlib.collections.graph.dot.BasicDotConfiguration;
 import org.mapleir.stdlib.collections.graph.dot.DotConfiguration;
 import org.mapleir.stdlib.collections.graph.dot.DotWriter;
-import org.mapleir.stdlib.collections.graph.flow.TarjanDominanceComputor;
 import org.mapleir.stdlib.collections.graph.util.GraphUtils;
 import org.mapleir.stdlib.ir.transform.Liveness;
 import org.mapleir.stdlib.ir.transform.impl.CodeAnalytics;
@@ -37,20 +38,19 @@ import org.objectweb.asm.Type;
 public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 
 	private final ControlFlowGraph cfg;
-	private final Map<Local, BasicBlock> defs;
-	private final NullPermeableHashMap<Local, Set<BasicBlock>> uses;
-	private final Set<Local> phis;
 	
-	private InterferenceResolver resolver;
+	private SSADefUseMap defuse;
+	private DominanceLivenessAnalyser resolver;
+	private Map<Local, Local> values;
 	
 	// delete me
 	private final Set<Local> localsTest = new HashSet<>();
 	
 	public BoissinotDestructor(ControlFlowGraph cfg) {
 		this.cfg = cfg;
-		defs = new HashMap<>();
-		uses = new NullPermeableHashMap<>(new SetCreator<>());
-		phis = new HashSet<>();
+		
+		defuse = new SSADefUseMap(cfg, false);
+		values = new HashMap<>();
 		
 		init();
 		insert_copies();
@@ -59,10 +59,8 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 		BasicDotConfiguration<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> config = new BasicDotConfiguration<>(DotConfiguration.GraphType.DIRECTED);
 		DotWriter<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> writer = new DotWriter<>(config, cfg);
 		writer.removeAll().add(new ControlFlowGraphDecorator().setFlags(OPT_DEEP))
-		.setName("after-insert")
-		.export();
-		
-		resolver = new InterferenceResolver();
+			.setName("after-insert")
+			.export();
 		
 		SSABlockLivenessAnalyser live = new SSABlockLivenessAnalyser(cfg);
 		for (BasicBlock b : cfg.vertices()) {
@@ -72,6 +70,15 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 				}
 			}
 		}
+		
+		System.out.println("defs:");
+		for(Entry<Local, BasicBlock> e : defuse.defs.entrySet()) {
+			System.out.println(e.getKey() + " in " + e.getValue().getId());
+		}
+		
+		System.out.println("PHIS: " + defuse.phis);
+		
+		resolver = new DominanceLivenessAnalyser(cfg, defuse);
 
 		writer.removeAll().add(new ControlFlowGraphDecorator().setFlags(OPT_DEEP))
 				.add("liveness", new LivenessDecorator<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>>().setLiveness(this))
@@ -85,6 +92,7 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 		
 		coalesce();
 		
+		compute_value_interference();
 		
 //		for(BasicBlock b : cfg.vertices()) {
 //			Set<Local> l1 = live.in(b);
@@ -111,6 +119,49 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 //		}
 	}
 	
+	void compute_value_interference() {
+		FastBlockGraph dom_tree = new FastBlockGraph();
+		for(Entry<BasicBlock, Set<BasicBlock>> e : resolver.domc.getTree().entrySet()) {
+			BasicBlock b = e.getKey();
+			dom_tree.addVertex(b);
+			for(BasicBlock c : e.getValue()) {
+				dom_tree.addEdge(b, new ImmediateEdge<>(b, c));
+			}
+		}
+		
+		BasicDotConfiguration<FastBlockGraph, BasicBlock, FlowEdge<BasicBlock>> config = new BasicDotConfiguration<>(DotConfiguration.GraphType.DIRECTED);
+		DotWriter<FastBlockGraph, BasicBlock, FlowEdge<BasicBlock>> writer = new DotWriter<>(config, dom_tree);
+		writer.removeAll()
+		.setName("domtree")
+		.export();
+		
+		ExtendedDfs dom_dfs = new ExtendedDfs(dom_tree, cfg.getEntries().iterator().next(), ExtendedDfs.POST);
+		
+		// topo
+		Collections.reverse(dom_dfs.getPostOrder());
+		for(BasicBlock bl : dom_dfs.getPostOrder()) {
+			for(Statement stmt : bl) {
+				if(stmt instanceof CopyVarStatement) {
+					CopyVarStatement copy = (CopyVarStatement) stmt;
+					Expression e = copy.getExpression();
+					Local b = copy.getVariable().getLocal();
+					
+					if(e instanceof VarExpression) {
+						Local a = ((VarExpression) e).getLocal();
+						values.put(b, values.get(a));
+					} else {
+						values.put(b, b);
+					}
+				} else if(stmt instanceof ParallelCopyVarStatement) {
+					ParallelCopyVarStatement copy = (ParallelCopyVarStatement) stmt;
+					for(CopyPair p : copy.pairs) {
+						values.put(p.targ, values.get(p.source));
+					}
+				}
+			}
+		}
+	}
+	
 	void verify() {
 		Map<Local, BasicBlock> defs = new HashMap<>();
 		NullPermeableHashMap<Local, Set<BasicBlock>> uses = new NullPermeableHashMap<>(new SetCreator<>());
@@ -120,6 +171,7 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 				if(stmt instanceof ParallelCopyVarStatement) {
 					ParallelCopyVarStatement pcopy = (ParallelCopyVarStatement) stmt;
 					for(CopyPair p : pcopy.pairs) {
+						System.out.println("def " + p.targ + " = " + p.source + "  in " + b.getId());
 						defs.put(p.targ, b);
 						uses.getNonNull(p.source).add(b);
 					}
@@ -138,8 +190,6 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 								Local ul = ((VarExpression) en.getValue()).getLocal();
 								uses.getNonNull(ul).add(en.getKey());
 							}
-
-							phis.add(l);
 						}
 					}
 
@@ -157,11 +207,11 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 		
 		Set<Local> set = new HashSet<>();
 		set.addAll(defs.keySet());
-		set.addAll(this.defs.keySet());
+		set.addAll(defuse.defs.keySet());
 		
 		for(Local l : set) {
 			BasicBlock b1 = defs.get(l);
-			BasicBlock b2 = this.defs.get(l);
+			BasicBlock b2 = defuse.defs.get(l);
 			
 			if(b1 != b2) {
 				System.err.println(cfg);
@@ -173,11 +223,11 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 		
 		set.clear();
 		set.addAll(uses.keySet());
-		set.addAll(this.uses.keySet());
+		set.addAll(defuse.uses.keySet());
 		
 		for(Local l : set) {
 			Set<BasicBlock> s1 = uses.getNonNull(l);
-			Set<BasicBlock> s2 = this.uses.getNonNull(l);
+			Set<BasicBlock> s2 = defuse.uses.getNonNull(l);
 			if(!s1.equals(s2)) {
 				System.err.println(cfg);
 				System.err.println("Uses:");
@@ -193,14 +243,18 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 	public Set<Local> in(BasicBlock b) {
 		Set<Local> live = new HashSet<>();
 		for (Local l : localsTest)
-			if (resolver.live_in(b, l))
+			if (resolver.isLiveIn(b, l))
 				live.add(l);
 		return live;
 	}
 	
 	@Override
 	public Set<Local> out(BasicBlock b) {
-		return new HashSet<>();
+		Set<Local> live = new HashSet<>();
+		for (Local l : localsTest)
+			if (resolver.isLiveOut(b, l))
+				live.add(l);
+		return live;
 	}
 	
 	private Local separatePhiDef(CopyPhiStatement copy, BasicBlock pred) {
@@ -214,8 +268,8 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 		phi.setArgument(pred, new VarExpression(ul, expr.getType()));
 		
 		// we consider phi args to be used in the pred.
-		defs.put(ul, pred);
-		uses.getNonNull(ul).add(pred);
+		defuse.defs.put(ul, pred);
+		defuse.uses.getNonNull(ul).add(pred);
 		
 		return ul;
 	}
@@ -229,7 +283,7 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 				if(isPhi || opcode == Opcode.LOCAL_STORE) {
 					AbstractCopyStatement copy = (AbstractCopyStatement) stmt;
 					Local l = copy.getVariable().getLocal();
-					defs.put(l, b);
+					defuse.defs.put(l, b);
 				}
 				
 				if(isPhi) {
@@ -248,15 +302,15 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 							ul = v.getLocal();
 						}
 						
-						uses.getNonNull(ul).add(p);
+						defuse.uses.getNonNull(ul).add(p);
 					}
 					
-					phis.add(copy.getVariable().getLocal());
+					defuse.phis.add(copy.getVariable().getLocal());
 				} else {
 					for(Statement s : stmt) {
 						if(s.getOpcode() == Opcode.LOCAL_LOAD) {
 							Local l = ((VarExpression) s).getLocal();
-							uses.getNonNull(l).add(b);
+							defuse.uses.getNonNull(l).add(b);
 						}
 					}
 				}
@@ -308,10 +362,13 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 			copy.getVariable().setLocal(z0); // z0 = phi(...)
 			
 			// both defined and used in this block.
-			defs.put(x0, b);
-			defs.put(z0, b);
-			uses.getNonNull(x0).add(b);
-			uses.getNonNull(z0).add(b);
+			defuse.defs.put(x0, b);
+			defuse.defs.put(z0, b);
+			defuse.uses.getNonNull(x0).add(b);
+			defuse.uses.getNonNull(z0).add(b);
+			
+			defuse.phis.remove(x0);
+			defuse.phis.add(z0);
 		}
 		
 		// resolve
@@ -339,15 +396,15 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 				//  we need to update the def/use maps here.
 				
 				// zi is defined in the pred.
-				defs.put(zi, p);
+				defuse.defs.put(zi, p);
 				// xi is used in the zi def.
-				uses.getNonNull(zi).add(p);
+				defuse.uses.getNonNull(zi).add(p);
 				// xi is replaced with zi in the phi block,
 				//  but for this implementation, we consider
 				//  the phi source uses to be in the pre.
 				//  n.b. that zi, which should be used in the
 				//       phi pred is already added above.
-				uses.getNonNull(xi).remove(p);
+				defuse.uses.getNonNull(xi).remove(p);
 				
 				r.phi.setArgument(r.pred, new VarExpression(zi, r.type));
 			}
@@ -361,8 +418,8 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 		System.out.println("INSERT: " + copy);
 		
 		for(CopyPair p : copy.pairs) {
-			defs.put(p.targ, b);
-			uses.getNonNull(p.source).add(b);
+			defuse.defs.put(p.targ, b);
+			defuse.uses.getNonNull(p.source).add(b);
 			
 			localsTest.add(p.targ);
 			localsTest.add(p.source);
@@ -467,287 +524,6 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 					}
 				}
 			}
-		}
-	}
-	
-	class InterferenceResolver {
-
-		final NullPermeableHashMap<BasicBlock, Set<BasicBlock>> rv;
-		final NullPermeableHashMap<BasicBlock, Set<BasicBlock>> tq;
-		final NullPermeableHashMap<BasicBlock, Set<BasicBlock>> sdoms;
-		final Map<Local, Local> values;
-		
-		BasicBlock entry;
-		ControlFlowGraph red_cfg;
-		ExtendedDfs cfg_dfs;
-		ExtendedDfs reduced_dfs;
-		ExtendedDfs dom_dfs;
-		TarjanDominanceComputor<BasicBlock> domc;
-		
-		public InterferenceResolver() {
-			rv = new NullPermeableHashMap<>(new SetCreator<>());
-			tq = new NullPermeableHashMap<>(new SetCreator<>());
-			sdoms = new NullPermeableHashMap<>(new SetCreator<>());
-			values = new HashMap<>();
-			
-			compute_reduced_reachability();
-			compute_strict_doms();
-			compute_value_interference();
-		}
-		
-		void compute_value_interference() {
-			FastBlockGraph dom_tree = new FastBlockGraph();
-			for(Entry<BasicBlock, Set<BasicBlock>> e : domc.getTree().entrySet()) {
-				BasicBlock b = e.getKey();
-				for(BasicBlock c : e.getValue()) {
-					dom_tree.addEdge(b, new ImmediateEdge<>(b, c));
-				}
-			}
-			
-			BasicDotConfiguration<FastBlockGraph, BasicBlock, FlowEdge<BasicBlock>> config = new BasicDotConfiguration<>(DotConfiguration.GraphType.DIRECTED);
-			DotWriter<FastBlockGraph, BasicBlock, FlowEdge<BasicBlock>> writer = new DotWriter<>(config, dom_tree);
-			writer.removeAll()
-			.setName("domtree")
-			.export();
-			
-			dom_dfs = new ExtendedDfs(dom_tree, entry, ExtendedDfs.POST);
-			
-			// topo
-			Collections.reverse(dom_dfs.getPostOrder());
-			for(BasicBlock bl : dom_dfs.getPostOrder()) {
-				for(Statement stmt : bl) {
-					if(stmt instanceof CopyVarStatement) {
-						CopyVarStatement copy = (CopyVarStatement) stmt;
-						Expression e = copy.getExpression();
-						Local b = copy.getVariable().getLocal();
-						
-						if(e instanceof VarExpression) {
-							Local a = ((VarExpression) e).getLocal();
-							values.put(b, values.get(a));
-						} else {
-							values.put(b, b);
-						}
-					} else if(stmt instanceof ParallelCopyVarStatement) {
-						ParallelCopyVarStatement copy = (ParallelCopyVarStatement) stmt;
-						for(CopyPair p : copy.pairs) {
-							values.put(p.targ, values.get(p.source));
-						}
-					}
-				}
-			}
-		}
-		
-		void compute_strict_doms() {
-			domc = new TarjanDominanceComputor<>(cfg);
-
-			NullPermeableHashMap<BasicBlock, Set<BasicBlock>> sdoms = new NullPermeableHashMap<>(new SetCreator<>());
-			// i think this is how you do it..
-			for(BasicBlock b : cfg_dfs.getPreOrder()) {
-				BasicBlock idom = domc.idom(b);
-				if(idom != null) {
-					sdoms.getNonNull(b).add(idom);
-					sdoms.getNonNull(b).addAll(sdoms.getNonNull(idom));
-				}
-			}
-			
-			for(Entry<BasicBlock, Set<BasicBlock>> e : sdoms.entrySet()) {
-				for(BasicBlock b : e.getValue()) {
-					this.sdoms.getNonNull(b).add(e.getKey());
-				}
-			}
-			
-			for(BasicBlock b : cfg.vertices()) {
-				System.out.println(b.getId() + " sdoms " + GraphUtils.toBlockArray(this.sdoms.getNonNull(b)));
-			}
-		}
-		
-		void compute_reduced_reachability() {
-			// This gives rise to the reduced graph 'eG' of G 
-			//  which contains everything from G but the back 
-			//  edges. If there is a path from q to u in the 
-			//  reduced graph we say that u is reduced reachable 
-			//  from q. To be able to efficiently check for reduced 
-			//  reachability we precompute the transitive closure
-			//  of this relation. For each node v we store in Rv 
-			//  all nodes reduced reachable from v.
-			
-			// r(v) = {w where there is a path from v to w in eG}
-			
-			if(cfg.getEntries().size() != 1) {
-				throw new IllegalStateException(cfg.getEntries().toString());
-			}
-			
-			entry = cfg.getEntries().iterator().next();
-			
-			cfg_dfs = new ExtendedDfs(cfg, entry, ExtendedDfs.EDGES | ExtendedDfs.PRE /* for sdoms*/ );
-			Set<FlowEdge<BasicBlock>> back = cfg_dfs.getEdges(ExtendedDfs.BACK);
-			
-			red_cfg = reduce(cfg, back);
-			reduced_dfs = new ExtendedDfs(red_cfg, entry, ExtendedDfs.POST | ExtendedDfs.PRE);
-			
-			BasicDotConfiguration<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> config = new BasicDotConfiguration<>(DotConfiguration.GraphType.DIRECTED);
-			DotWriter<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> writer = new DotWriter<>(config, red_cfg);
-			writer.add(new ControlFlowGraphDecorator().setFlags(OPT_DEEP))
-					.setName("reducedCfg")
-					.export();
-			
-			// rv calcs.
-			for (BasicBlock b : reduced_dfs.getPostOrder()) {
-				rv.getNonNull(b).add(b);
-				for (FlowEdge<BasicBlock> e : red_cfg.getReverseEdges(b))
-					rv.getNonNull(e.src).addAll(rv.get(b));
-			}
-			
-			System.out.println("rv:");
-			for(BasicBlock b : cfg.vertices())
-				System.out.println(b.getId() + " = " + rv.get(b));
-			
-			// Paths Containing Back Edges: Of course, for the 
-			//  completeness of our algorithm we must also handle 
-			//  back edges.
-			
-			// Our goal is to answer a liveness query by testing 
-			//  for the reduced reachability of uses from back edge 
-			//  targets. Hence, a second part of our precomputation 
-			//  constructs for each node q a set Tq that contains all 
-			//  back edge targets relevant for this query. For this 
-			//  precomputation to make sense, these Tq must be independent 
-			//  of variables. Thus, they must contain all relevant 
-			//  back edge targets for any variable.
-			
-			// The first question is, given a specific query (q, a), 
-			//  how do we decide which back edge targets of Tq to 
-			//  consider? Apparently, this choice depends on the 
-			//  variable or more precisely on its dominance subtree.
-			
-			// FastBlockGraph dfs_tree = make_dfs_tree(dfs);
-			
-			// tq calcs.
-			Map<BasicBlock, Set<BasicBlock>> tups = new HashMap<>();
-			
-			for (BasicBlock b : cfg.vertices())
-				tups.put(b, tup(b, back));
-			for (BasicBlock v : reduced_dfs.getPreOrder()) {
-				tq.getNonNull(v).add(v);
-				for (BasicBlock w : tups.get(v))
-					tq.get(v).addAll(tq.get(w));
-			}
-			System.out.println("preorder: " + reduced_dfs.getPreOrder());
-			System.out.println("tq: ");
-			for (BasicBlock v : reduced_dfs.getPreOrder())
-				System.out.println(v.getId() + " = " + tq.get(v));
-		}
-		
-		// Tup(t) = set of unreachable backedge targets from reachable sources
-		Set<BasicBlock> tup(BasicBlock t, Set<FlowEdge<BasicBlock>> back) {
-			Set<BasicBlock> rt = rv.get(t);
-			
-			// t' in {V - r(t)}
-			Set<BasicBlock> set = new HashSet<>(cfg.vertices());
-			set.removeAll(rt);
-			
-			// all s' where (s', t') is a backedge and s'
-			//  is in rt.
-			//  because we have O(1) reverse edge lookup,
-			//  can find the preds of each t' that is a
-			//  backedge.
-			
-			// set of s'
-			Set<BasicBlock> res = new HashSet<>();
-			
-			for(BasicBlock tdash : set) {
-				for(FlowEdge<BasicBlock> pred : cfg.getReverseEdges(tdash)) {
-					BasicBlock src = pred.src;
-					// s' = src, t' = dst
-					if(back.contains(pred) && rt.contains(src)) {
-						res.add(pred.dst); // backedge TARGETS
-					}
-				}
-			}
-			
-			return res;
-		}
-		
-		ControlFlowGraph reduce(ControlFlowGraph cfg, Set<FlowEdge<BasicBlock>> back) {
-			ControlFlowGraph reducedCfg = cfg.copy();
-			for (FlowEdge<BasicBlock> e : back) {
-				reducedCfg.removeEdge(e.src, e);
-			}
-			return reducedCfg;
-		}
-		
-		FastBlockGraph make_dfs_tree(ExtendedDfs dfs) {
-			FastBlockGraph g = new FastBlockGraph();
-			// map of node -> parent
-			for(Entry<BasicBlock, BasicBlock> e : dfs.getParents().entrySet()) {
-				BasicBlock src = e.getValue();
-				BasicBlock dst = e.getKey();
-				FlowEdge<BasicBlock> edge = new ImmediateEdge<>(src, dst);
-				g.addEdge(src, edge);
-			}
-			return g;
-		}
-		
-		boolean live_check()  {
-			// 1: A variable a is live-in at a node q if there
-			//      exists a path from q to a node u where a is 
-			//      used and that path does not contain def (a).
-			
-			// 2: A variable a is live-out at a node q if it is
-			//      live-in at a successor of q.
-			
-			// The CFG node def (a) where a is defined will be
-			//  abbreviated by d. 
-			// Furthermore, the variable a is used at a node u.
-			
-			// The basic idea of the algorithm is simple. It is the 
-			// straightforward implementation of Definition 2:
-			//    For each use u we test if u is reachable from the query
-			//    block q without passing the definition d.
-			
-			// Our algorithm is thus related to problems such as computing 
-			//  the transitive closure or finding a (shortest) path between 
-			//  two nodes in a graph. However, the paths relevant for liveness 
-			//  are further constrained:
-			//    they must not contain the definition of the variable.
-			
-			// Simple Paths: The first observation considers paths that do not
-			//  contain back edges. If such a path starts at some node q strictly
-			//  dominated by d and ends at u, all nodes on the path are strictly
-			//  dominated by d. Especially, the path cannot contain d. Hence, the
-			//  existence of a back-edge-free path from q to u directly proves a
-			//  being live-in at q.
-			throw new UnsupportedOperationException();
-		}
-		
-		boolean live_in(BasicBlock b, Local l) {
-			if(phis.contains(l)) {
-				System.out.println("phi: " + l + ", " + b.getId() + ", " + defs.get(l).getId());
-			}
-			if(phis.contains(l) && defs.get(l) == b) {
-				return true;
-			}
-			
-//			System.out.println("LiveInCheck a=" + l + ", q=" +  b.getId());
-//			System.out.println("  def=" + defs.get(l).getId() + "; sdoms = " + GraphUtils.toBlockArray(sdoms.get(defs.get(l)), false));
-//			System.out.println("  use=" + GraphUtils.toBlockArray(uses.get(l), false));
-			Set<BasicBlock> tqa = new HashSet<>(tq.get(b));
-//			System.out.println("   tqa1: " + GraphUtils.toBlockArray(tqa, false));
-			tqa.retainAll(sdoms.get(defs.get(l)));
-//			System.out.println("   tqa2: " + GraphUtils.toBlockArray(tqa, false));
-			
-			for(BasicBlock t : tqa) {
-				Set<BasicBlock> rt = new HashSet<>(rv.get(t));
-//				System.out.println("    t=" + t + " ; reachable=" + GraphUtils.toBlockArray(rt, false));
-				rt.retainAll(uses.get(l));
-				if(!rt.isEmpty()) {
-//					System.out.println("=> result: true\n");
-					return true;
-				}
-			}
-			
-//			System.out.println("=> result: false\n");
-			return false;
 		}
 	}
 	
