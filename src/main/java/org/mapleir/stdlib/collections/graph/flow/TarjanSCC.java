@@ -18,7 +18,7 @@ public class TarjanSCC <N extends FastGraphVertex> {
 	final List<List<N>> comps;
 	int cur;
 	
-	TarjanSCC(FlowGraph<N, FlowEdge<N>> graph) {
+	public TarjanSCC(FlowGraph<N, FlowEdge<N>> graph) {
 		this.graph = graph;
 		
 		index = new HashMap<>();
@@ -27,35 +27,25 @@ public class TarjanSCC <N extends FastGraphVertex> {
 		comps = new ArrayList<>();
 	}
 	
+	public int low(N n) {
+		if(low.containsKey(n)) {
+			return low.get(n);
+		} else {
+			return -1;
+		}
+	}
+	
+	public int index(N n) {
+		if(index.containsKey(n)) {
+			return index.get(n);
+		} else {
+			return -1;
+		}
+	}
+	
 	public List<List<N>> getComponents() {
 		return comps;
 	}
-
-	/* List<FlowEdge<N>> weigh(Set<FlowEdge<N>> edges) {
-		List<FlowEdge<N>> list = new ArrayList<>(edges);
-		Collections.sort(list, new Comparator<FlowEdge<N>>() {
-			@Override
-			public int compare(FlowEdge<N> o1, FlowEdge<N> o2) {
-				Class<?> c1 = o1.getClass();
-				Class<?> c2 = o2.getClass();
-				
-				if(!WEIGHTS.containsKey(c1)) {
-					throw new IllegalStateException(c1.toString());
-				} else if(!WEIGHTS.containsKey(c2)) {
-					throw new IllegalStateException(c2.toString());
-				}
-				
-				int p1 = WEIGHTS.get(c1);
-				int p2 = WEIGHTS.get(c2);
-				
-				// p2, p1 because higher weights are
-				// more favoured.
-				return Integer.compare(p2, p1);
-			}
-		});
-		System.out.println("list: " + list);
-		return list;
-	} */
 	
 	public void search(N n) {
 		index.put(n, cur);
@@ -114,4 +104,30 @@ public class TarjanSCC <N extends FastGraphVertex> {
 		
 		return bfs;
 	}
+
+	/* List<FlowEdge<N>> weigh(Set<FlowEdge<N>> edges) {
+		List<FlowEdge<N>> list = new ArrayList<>(edges);
+		Collections.sort(list, new Comparator<FlowEdge<N>>() {
+			@Override
+			public int compare(FlowEdge<N> o1, FlowEdge<N> o2) {
+				Class<?> c1 = o1.getClass();
+				Class<?> c2 = o2.getClass();
+				
+				if(!WEIGHTS.containsKey(c1)) {
+					throw new IllegalStateException(c1.toString());
+				} else if(!WEIGHTS.containsKey(c2)) {
+					throw new IllegalStateException(c2.toString());
+				}
+				
+				int p1 = WEIGHTS.get(c1);
+				int p2 = WEIGHTS.get(c2);
+				
+				// p2, p1 because higher weights are
+				// more favoured.
+				return Integer.compare(p2, p1);
+			}
+		});
+		System.out.println("list: " + list);
+		return list;
+	} */
 }
