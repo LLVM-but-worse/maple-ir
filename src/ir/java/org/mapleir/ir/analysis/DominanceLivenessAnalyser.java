@@ -58,6 +58,8 @@ public class DominanceLivenessAnalyser {
 		domc = new TarjanDominanceComputor<>(cfg);
 		
 		computeStrictDominators();
+		
+		System.out.println("Backedge Targets: " + GraphUtils.toBlockArray(btargs));
 	}
 	
 	private void computeStrictDominators() {
@@ -140,7 +142,7 @@ public class DominanceLivenessAnalyser {
 		for (FlowEdge<BasicBlock> e : back) {
 			reducedCfg.removeEdge(e.src, e);
 			
-			btargs.add(e.src);
+			btargs.add(e.dst);
 		}
 		return reducedCfg;
 	}
@@ -172,33 +174,43 @@ public class DominanceLivenessAnalyser {
 		return false;
 	}
 	
-	public boolean isLiveOut(BasicBlock b, Local l) {
-		BasicBlock defBlock = defuse.defs.get(l);
+	public boolean isLiveOut(BasicBlock q, Local a) {
+		BasicBlock defBlock = defuse.defs.get(a);
 
-		Set<BasicBlock> uses = defuse.uses.get(l);
-		if(defBlock == b) {
+		Set<BasicBlock> uses = defuse.uses.get(a);
+		if(defBlock == q) {
 			uses.remove(defBlock);
 			return !uses.isEmpty();
 		}
 		
-		boolean targ = !btargs.contains(b);
+		boolean targ = !btargs.contains(q);
 		
 		Set<BasicBlock> sdomdef = sdoms.getNonNull(defBlock);
-		if(sdomdef.contains(b)) {
-			Set<BasicBlock> tqa = new HashSet<>(tq.get(b));
-			tqa.addAll(sdomdef);
+		if(sdomdef.contains(q)) {
+			Set<BasicBlock> tqa = new HashSet<>(tq.get(q));
+			tqa.retainAll(sdomdef);
+			
+			System.out.printf("sdoms: %s, tqa: %s%n", GraphUtils.toBlockArray(sdomdef), GraphUtils.toBlockArray(tqa));
+			System.out.printf("b: %s(%b), l: %s, db: %s%n", q.getId(), targ, a, defBlock.getId());
+			
 			
 			for(BasicBlock t : tqa) {
 				Set<BasicBlock> u = new HashSet<>(uses);
-				if(t == b && targ) {
-					u.remove(b);
+				if(t == q && targ) {
+					u.remove(q);
 				}
 				
-				Set<BasicBlock> rtt = rv.getNonNull(t);
-				if(rtt.containsAll(u)) {
+				
+				Set<BasicBlock> rtt = new HashSet<>(rv.getNonNull(t));
+				System.out.printf(" u:%s, rt:%s%n", GraphUtils.toBlockArray(u), GraphUtils.toBlockArray(rtt));
+				rtt.retainAll(u);
+				if(!rtt.isEmpty()) {
+					System.out.println();
 					return true;
 				}
 			}
+			
+			System.out.println();
 		}
 		
 		return false;
