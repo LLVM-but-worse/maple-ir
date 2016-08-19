@@ -13,6 +13,7 @@ import org.mapleir.stdlib.cfg.edge.FlowEdge;
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.SetCreator;
 import org.mapleir.stdlib.collections.graph.flow.TarjanDominanceComputor;
+import org.mapleir.stdlib.collections.graph.util.GraphUtils;
 
 public class DominanceLivenessAnalyser {
 
@@ -20,14 +21,15 @@ public class DominanceLivenessAnalyser {
 	private final NullPermeableHashMap<BasicBlock, Set<BasicBlock>> tq;
 	private final NullPermeableHashMap<BasicBlock, Set<BasicBlock>> sdoms;
 	
-	private final ControlFlowGraph cfg;
-	private final SSADefUseMap defuse;
-	private final BasicBlock entry;
-	private final ControlFlowGraph red_cfg;
-	private final ExtendedDfs cfg_dfs;
-	private final Set<FlowEdge<BasicBlock>> back;
-	private final ExtendedDfs reduced_dfs;
-	private final TarjanDominanceComputor<BasicBlock> domc;
+	public final ControlFlowGraph cfg;
+	public final SSADefUseMap defuse;
+	public final BasicBlock entry;
+	public final ControlFlowGraph red_cfg;
+	public final ExtendedDfs cfg_dfs;
+	public final Set<FlowEdge<BasicBlock>> back;
+	public final Set<BasicBlock> btargs;
+	public final ExtendedDfs reduced_dfs;
+	public final TarjanDominanceComputor<BasicBlock> domc;
 	
 	public DominanceLivenessAnalyser(ControlFlowGraph cfg, SSADefUseMap defuse) {
 		this.cfg = cfg;
@@ -45,6 +47,7 @@ public class DominanceLivenessAnalyser {
 		
 		cfg_dfs = new ExtendedDfs(cfg, entry, ExtendedDfs.EDGES | ExtendedDfs.PRE /* for sdoms*/ );
 		back = cfg_dfs.getEdges(ExtendedDfs.BACK);
+		btargs = new HashSet<>();
 		
 		red_cfg = reduce(cfg, back);
 		reduced_dfs = new ExtendedDfs(red_cfg, entry, ExtendedDfs.POST | ExtendedDfs.PRE);
@@ -65,6 +68,8 @@ public class DominanceLivenessAnalyser {
 			if(idom != null) {
 				sdoms.getNonNull(b).add(idom);
 				sdoms.getNonNull(b).addAll(sdoms.getNonNull(idom));
+				System.out.println(b.getId() + " idom " + idom.getId());
+				// System.out.println("  sdominators: " + sdoms.getNonNull(b));
 			}
 		}
 		
@@ -72,6 +77,10 @@ public class DominanceLivenessAnalyser {
 			for(BasicBlock b : e.getValue()) {
 				this.sdoms.getNonNull(b).add(e.getKey());
 			}
+		}
+		
+		for(Entry<BasicBlock, Set<BasicBlock>> e : this.sdoms.entrySet()) {
+			System.out.println(e.getKey() + " sdom " + GraphUtils.toBlockArray(e.getValue()));
 		}
 	}
 
@@ -130,25 +139,65 @@ public class DominanceLivenessAnalyser {
 		ControlFlowGraph reducedCfg = cfg.copy();
 		for (FlowEdge<BasicBlock> e : back) {
 			reducedCfg.removeEdge(e.src, e);
+			
+			btargs.add(e.src);
 		}
 		return reducedCfg;
 	}
 	
-	boolean live_in(BasicBlock b, Local l) {
+	public boolean isLiveIn(BasicBlock b, Local l) {
 		BasicBlock defBlock = defuse.defs.get(l);
+		
+		// System.out.println("l: " + l);
+		// System.out.println("b: " + b.getId());
+		// System.out.println("d: " + defBlock.getId());
+		// System.out.println("p: " + defuse.phis.contains(l));
+		// System.out.println();
 		
 		if(defuse.phis.contains(l) && defBlock == b) {
 			return true;
 		}
 		
 		Set<BasicBlock> tqa = new HashSet<>(tq.get(b));
-		tqa.retainAll(sdoms.get(defBlock));
+		tqa.retainAll(sdoms.getNonNull(defBlock));
 		
 		for(BasicBlock t : tqa) {
 			Set<BasicBlock> rt = new HashSet<>(rv.get(t));
 			rt.retainAll(defuse.uses.get(l));
 			if(!rt.isEmpty()) {
 				return true;
+			}
+		}
+		
+		return false;
+	}
+	
+	public boolean isLiveOut(BasicBlock b, Local l) {
+		BasicBlock defBlock = defuse.defs.get(l);
+
+		Set<BasicBlock> uses = defuse.uses.get(l);
+		if(defBlock == b) {
+			uses.remove(defBlock);
+			return !uses.isEmpty();
+		}
+		
+		boolean targ = !btargs.contains(b);
+		
+		Set<BasicBlock> sdomdef = sdoms.getNonNull(defBlock);
+		if(sdomdef.contains(b)) {
+			Set<BasicBlock> tqa = new HashSet<>(tq.get(b));
+			tqa.addAll(sdomdef);
+			
+			for(BasicBlock t : tqa) {
+				Set<BasicBlock> u = new HashSet<>(uses);
+				if(t == b && targ) {
+					u.remove(b);
+				}
+				
+				Set<BasicBlock> rtt = rv.getNonNull(t);
+				if(rtt.containsAll(u)) {
+					return true;
+				}
 			}
 		}
 		
