@@ -3,7 +3,7 @@ package org.mapleir.stdlib.collections.graph.util;
 import java.util.*;
 import java.util.function.Predicate;
 
-import org.mapleir.ir.analysis.StatementGraph;
+//import org.mapleir.ir.analysis.StatementGraph;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.expr.PhiExpression;
@@ -12,18 +12,18 @@ import org.mapleir.stdlib.cfg.edge.DefaultSwitchEdge;
 import org.mapleir.stdlib.cfg.edge.FlowEdge;
 import org.mapleir.stdlib.cfg.edge.JumpEdge;
 import org.mapleir.stdlib.cfg.edge.SwitchEdge;
-import org.mapleir.stdlib.cfg.util.ControlFlowGraphDeobfuscator.SuperNode;
-import org.mapleir.stdlib.cfg.util.LabelHelper;
+//import org.mapleir.stdlib.cfg.util.ControlFlowGraphDeobfuscator.SuperNode;
 import org.mapleir.stdlib.cfg.util.TabbedStringWriter;
 import org.mapleir.stdlib.collections.graph.flow.ExceptionRange;
 import org.mapleir.stdlib.ir.CodeBody;
-import org.mapleir.stdlib.ir.header.HeaderStatement;
+//import org.mapleir.stdlib.ir.header.HeaderStatement;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.*;
 import org.objectweb.asm.util.Printer;
 
 public class GraphUtils {
 
+	/*
 	public static final String[] HIGHLIGHT_COLOURS = new String[] {
 			"aliceblue", "antiquewhite", "aquamarine", "brown1", "cadetblue1",
 			"chocolate1", "cornflowerblue", "cyan", "darkgoldenrod1",
@@ -84,7 +84,8 @@ public class GraphUtils {
 				return false;
 		}
 	}
-	
+
+	*/
 	public static String toBlockArray(Collection<BasicBlock> col) {
 		StringBuilder sb = new StringBuilder();
 		sb.append("[");
@@ -100,6 +101,7 @@ public class GraphUtils {
 		sb.append("]");
 		return sb.toString();
 	}
+	/*
 	
 	public static String toSuperNodeArray(Collection<SuperNode> col) {
 		StringBuilder sb = new StringBuilder();
@@ -173,6 +175,7 @@ public class GraphUtils {
 		}
 		return list;
 	}
+	*/
 
 	public static List<BasicBlock> range(List<BasicBlock> gblocks, int start, int end) {
 		if(start > end) {
@@ -180,8 +183,8 @@ public class GraphUtils {
 		}
 		BasicBlock startBlock = null, endBlock = null;
 		int startIndex = 0, endIndex = 0;
-		String startName = LabelHelper.createBlockName(start);
-		String endName = LabelHelper.createBlockName(end);
+		String startName = BasicBlock.createBlockName(start);
+		String endName = BasicBlock.createBlockName(end);
 		int blockIndex = 0;
 		for(BasicBlock b : gblocks) {
 			if(b.getId().equals(startName)) {
@@ -209,7 +212,7 @@ public class GraphUtils {
 		for(int i=startIndex; i <= endIndex; i++) {
 			BasicBlock block = gblocks.get(i);
 			if(block == null) {
-				throw new IllegalArgumentException("block " + LabelHelper.createBlockName(i) + "not in range");
+				throw new IllegalArgumentException("block " + BasicBlock.createBlockName(i) + "not in range");
 			}
 			blocks.add(block);
 		}
@@ -217,6 +220,7 @@ public class GraphUtils {
 		return blocks;
 	}
 
+	/*
 	public static List<FlowEdge<BasicBlock>> findCommonEdges(ControlFlowGraph cfg, BasicBlock src, BasicBlock dst) {
 		List<FlowEdge<BasicBlock>> edges = new ArrayList<>();
 		for(FlowEdge<BasicBlock> e : cfg.getEdges(src)) {
@@ -661,4 +665,5 @@ public class GraphUtils {
 		cfg.removeEdge(pred, e);
 		// mergeTrys(cfg, order, pred, b);
 	}
+	*/
 }
