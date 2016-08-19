@@ -78,6 +78,10 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 		
 		System.out.println("PHIS: " + defuse.phis);
 		
+		localsTest.addAll(defuse.phis);
+		localsTest.addAll(defuse.uses.keySet());
+		localsTest.addAll(defuse.defs.keySet());
+		
 		resolver = new DominanceLivenessAnalyser(cfg, defuse);
 
 		writer.removeAll().add(new ControlFlowGraphDecorator().setFlags(OPT_DEEP))
@@ -469,58 +473,49 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 		//  can we coalesced into the same var.
 		
 		Map<Local, Local> remap = new HashMap<>();
-//		Set<Set<Local>> pccs = new HashSet<>();
 		for(BasicBlock b : cfg.vertices()) {
 			Iterator<Statement> it = b.iterator();
 			while(it.hasNext()) {
 				Statement stmt = it.next();
-				if(stmt instanceof CopyVarStatement) {
-					CopyVarStatement copy = (CopyVarStatement) stmt;
-					Expression e = copy.getExpression();
-					if(e instanceof PhiExpression) {
-//						Set<Local> pcc = new HashSet<>();
-//						pcc.add(copy.getVariable().getLocal());
-						Local l1 = copy.getVariable().getLocal();
-						Local newL = cfg.getLocals().makeLatestVersion(l1);
-						remap.put(l1, newL);
-						
-						PhiExpression phi = (PhiExpression) e;
-						
-						for(Expression ex : phi.getArguments().values()) {
-							VarExpression v = (VarExpression) ex;
-							Local l = v.getLocal();
-							remap.put(l, newL);
-//							pcc.add(l);
-						}
-						
-//						pccs.add(pcc);
-						
-						it.remove();
+				if(stmt.getOpcode() == Opcode.PHI_STORE) {
+					CopyPhiStatement copy = (CopyPhiStatement) stmt;
+					PhiExpression phi = copy.getExpression();
+					
+					Local l1 = copy.getVariable().getLocal();
+					Local newL = cfg.getLocals().makeLatestVersion(l1);
+					remap.put(l1, newL);
+					
+					for(Expression ex : phi.getArguments().values()) {
+						VarExpression v = (VarExpression) ex;
+						Local l = v.getLocal();
+						remap.put(l, newL);
 					}
+					
+					it.remove();
 				}
 			}
 		}
 		
 		for(BasicBlock b : cfg.vertices()) {
 			for(Statement stmt : b) {
-				if(stmt instanceof ParallelCopyVarStatement) {
+				int opcode = stmt.getOpcode();
+				
+				if(opcode == -1) {
 					ParallelCopyVarStatement copy = (ParallelCopyVarStatement) stmt;
 					for(CopyPair p : copy.pairs) {
 						p.source = remap.getOrDefault(p.source, p.source);
 						p.targ = remap.getOrDefault(p.targ, p.targ);
 					}
-				} else {
-					if(stmt instanceof CopyVarStatement) {
-						CopyVarStatement copy = (CopyVarStatement) stmt;
-						VarExpression v = copy.getVariable();
+				} else if(opcode == Opcode.LOCAL_STORE || opcode == Opcode.PHI_STORE) {
+					AbstractCopyStatement copy = (AbstractCopyStatement) stmt;
+					VarExpression v = copy.getVariable();
+					v.setLocal(remap.getOrDefault(v.getLocal(), v.getLocal()));
+				}
+				
+				for(Statement s : stmt) {
+					if(s.getOpcode() == Opcode.LOCAL_LOAD) {
+						VarExpression v = (VarExpression) s;
 						v.setLocal(remap.getOrDefault(v.getLocal(), v.getLocal()));
-					}
-					
-					for(Statement s : stmt) {
-						if(s instanceof VarExpression) {
-							VarExpression v = (VarExpression) s;
-							v.setLocal(remap.getOrDefault(v.getLocal(), v.getLocal()));
-						}
 					}
 				}
 			}
