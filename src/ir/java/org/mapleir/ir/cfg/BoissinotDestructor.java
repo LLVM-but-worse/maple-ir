@@ -123,7 +123,7 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 //		}
 	}
 	
-	HashMap<Local, Integer> preDfsDomOrder;
+	HashMap<BasicBlock, Integer> preDfsDomOrder;
 	HashMap<Local, Set<Local>> localDomTree;
 	
 	void compute_value_interference() {
@@ -142,16 +142,21 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 		.setName("domtree")
 		.export();
 		
-		ExtendedDfs dom_dfs = new ExtendedDfs(dom_tree, cfg.getEntries().iterator().next(), ExtendedDfs.POST);
+		ExtendedDfs dom_dfs = new ExtendedDfs(dom_tree, cfg.getEntries().iterator().next(), ExtendedDfs.POST | ExtendedDfs.PRE);
 		
+		localDomTree = new HashMap<>();
 		// topo
-		Collections.reverse(dom_dfs.getPostOrder()); // TODO: maybe create a postorder stack as well as a list so we can just pop to iterate backwards
-		for(BasicBlock bl : dom_dfs.getPostOrder()) {
+		for(int i = dom_dfs.getPostOrder().size() - 1; i >= 0; i--) {
+			BasicBlock bl = dom_dfs.getPostOrder().get(i);
 			for(Statement stmt : bl) {
 				if(stmt instanceof CopyVarStatement) {
 					CopyVarStatement copy = (CopyVarStatement) stmt;
 					Expression e = copy.getExpression();
 					Local b = copy.getVariable().getLocal();
+					// TODO: this is O(N^2), wtf. if we could quickly check if a block is ancestor of another block in dom tree, then this is unnecessary because we have defuse
+					for (Local visitedLocal : localDomTree.keySet())
+						localDomTree.get(visitedLocal).add(b);
+					localDomTree.put(b, new HashSet<>());
 					
 					if(e instanceof VarExpression) {
 						Local a = ((VarExpression) e).getLocal();
@@ -162,35 +167,21 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 				} else if(stmt instanceof ParallelCopyVarStatement) {
 					ParallelCopyVarStatement copy = (ParallelCopyVarStatement) stmt;
 					for(CopyPair p : copy.pairs) {
-						values.put(p.targ, values.get(p.source));
-					}
-				}
-			}
-		}
-		
-		preDfsDomOrder = new HashMap<>();
-		localDomTree = new HashMap<>();
-		int index = 0;
-		for (BasicBlock bl : dom_dfs.getPreOrder()) {
-			for(Statement stmt : bl) {
-				if (stmt instanceof CopyVarStatement) {
-					Local l = ((CopyVarStatement) stmt).getVariable().getLocal();
-					for (Local visitedLocal : preDfsDomOrder.keySet()) // TODO: this is O(N^2)....???? wtf???
-						localDomTree.get(visitedLocal).add(l);
-					preDfsDomOrder.put(l, index++);
-					localDomTree.put(l, new HashSet<>());
-				} else if(stmt instanceof ParallelCopyVarStatement) {
-					ParallelCopyVarStatement copy = (ParallelCopyVarStatement) stmt;
-					for (CopyPair p : copy.pairs) {
 						Local l = p.targ;
-						for (Local visitedLocal : preDfsDomOrder.keySet()) // ditto
+						values.put(l, values.get(p.source));
+						for (Local visitedLocal : localDomTree.keySet()) // ditto
 							localDomTree.get(visitedLocal).add(l);
-						preDfsDomOrder.put(l, index++);
 						localDomTree.put(l, new HashSet<>());
 					}
 				}
 			}
 		}
+		
+		// it might be possible to put this code into the reverse postorder but the paper specified preorder
+		preDfsDomOrder = new HashMap<>();
+		int index = 0;
+		for (BasicBlock bl : dom_dfs.getPreOrder())
+			preDfsDomOrder.put(bl, index++);
 	}
 	
 	boolean checkIntersect(List<Local> red, List<Local> blue) {
@@ -199,7 +190,7 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 		int ib = 0;
 		while (ir < red.size() || ib < blue.size()) {
 			Local current;
-			if (ir == red.size() || (ir < red.size() && ib < blue.size() && preDfsDomOrder.get(blue.get(ib)) < preDfsDomOrder.get(red.get(ir))))
+			if (ir == red.size() || (ir < red.size() && ib < blue.size() && preDfsDomOrder.get(defuse.defs.get(blue.get(ib))) < preDfsDomOrder.get(defuse.defs.get(red.get(ir)))))
 				current = blue.get(ib++);
 			else
 				current = red.get(ir++);
@@ -223,6 +214,7 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 	
 	boolean interference(Local a, Local b) {
 		// how the f--k do you compute equal intersecting ancestor?????
+		return false;
 	}
 	
 	void verify() {
