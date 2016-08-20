@@ -123,6 +123,32 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 //		}
 	}
 	
+	boolean intersect(Local cur, BasicBlock parent) {
+		return false;
+	}
+	
+	public boolean intersect(List<Local> list) {
+		LinkedList<BasicBlock> dom = new LinkedList<>();
+		int i = 0;
+		
+		while(i < list.size()) {
+			Local cur = list.get(i++);
+			BasicBlock defblock = defuse.defs.get(cur);
+			BasicBlock other = dom.peek();
+			
+			while(!(other != null && resolver.doms(other, defblock))) {
+				dom.pop();
+				other = dom.peek();
+			}
+			
+			BasicBlock parent = other;
+			if(parent != null && intersect(cur, parent)) {
+				return true;
+			}
+			dom.push(defblock);
+		}
+	}
+
 	void compute_value_interference() {
 		FastBlockGraph dom_tree = new FastBlockGraph();
 		for(Entry<BasicBlock, Set<BasicBlock>> e : resolver.domc.getTree().entrySet()) {

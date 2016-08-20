@@ -62,6 +62,14 @@ public class DominanceLivenessAnalyser {
 		System.out.println("Backedge Targets: " + GraphUtils.toBlockArray(btargs));
 	}
 	
+	public boolean sdoms(BasicBlock x, BasicBlock y) {
+		return sdoms.getNonNull(x).contains(y);
+	}
+	
+	public boolean doms(BasicBlock x, BasicBlock y) {
+		return x == y || sdoms.getNonNull(x).contains(y);
+	}
+
 	private void computeStrictDominators() {
 		NullPermeableHashMap<BasicBlock, Set<BasicBlock>> sdoms = new NullPermeableHashMap<>(new SetCreator<>());
 		// i think this is how you do it..
