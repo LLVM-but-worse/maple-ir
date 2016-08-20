@@ -142,7 +142,7 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 		ExtendedDfs dom_dfs = new ExtendedDfs(dom_tree, cfg.getEntries().iterator().next(), ExtendedDfs.POST);
 		
 		// topo
-		Collections.reverse(dom_dfs.getPostOrder());
+		Collections.reverse(dom_dfs.getPostOrder()); // TODO: maybe create a postorder stack as well as a list so we can just pop to iterate backwards
 		for(BasicBlock bl : dom_dfs.getPostOrder()) {
 			for(Statement stmt : bl) {
 				if(stmt instanceof CopyVarStatement) {
@@ -468,6 +468,7 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 		}
 	}
 	
+	// coalesce all a'_i
 	void coalesce() {
 		// since we are now in csaa, all phi locals
 		//  can we coalesced into the same var.
