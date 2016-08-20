@@ -55,21 +55,21 @@ public class ExpressionEvaluator {
 		return result;
 	}
 
-	private static final Set<Class<? extends Statement>> NOT_CONSTANT = new HashSet<>();
+	private static final Set<Class<? extends Statement>> EVALUATABLE = new HashSet<>();
 	static {
-		NOT_CONSTANT.add(VarExpression.class);
-		NOT_CONSTANT.add(FieldLoadExpression.class);
-		NOT_CONSTANT.add(PhiExpression.class);
-		NOT_CONSTANT.add(InvocationExpression.class);
-		NOT_CONSTANT.add(UninitialisedObjectExpression.class);
-		NOT_CONSTANT.add(InitialisedObjectExpression.class);
+		EVALUATABLE.add(ArithmeticExpression.class);
+		EVALUATABLE.add(CastExpression.class);
+		EVALUATABLE.add(ComparisonExpression.class);
+		EVALUATABLE.add(ConstantExpression.class);
+		EVALUATABLE.add(NegationExpression.class);
+		EVALUATABLE.add(VarExpression.class);
 	}
 	
 	public static boolean isConstant(Expression expr) {
 		if (expr instanceof PhiExpression)
 			return false;
-		for (Statement stmt : Statement.enumerate(expr)) {
-			if (NOT_CONSTANT.contains(stmt.getClass()))
+		for (Statement stmt : expr) {
+			if (!EVALUATABLE.contains(stmt.getClass()))
 				return false;
 			else if (stmt instanceof Expression && TypeUtils.isPrimitive(((Expression) stmt).getType()))
 				return false;
@@ -84,10 +84,6 @@ public class ExpressionEvaluator {
 		// subcalls are safe because the entire expr is constant
 		if (expr instanceof ArithmeticExpression)
 			return evaluateArithmetic((ArithmeticExpression) expr);
-		if (expr instanceof ArrayLengthExpression)
-			return evaluateArrayLength((ArrayLengthExpression) expr);
-		if (expr instanceof ArrayLoadExpression)
-			return evaluateArrayLoad((ArrayLoadExpression) expr);
 		if (expr instanceof ComparisonExpression)
 			return evaluateComparison((ComparisonExpression) expr);
 		if (expr instanceof NegationExpression)
@@ -1081,24 +1077,6 @@ public class ExpressionEvaluator {
 		if (result == null)
 			throw new IllegalArgumentException("Result was null; invalid operand type and operator combination!");
 		return new ConstantExpression(result);
-	}
-
-	private static ConstantExpression evaluateArrayLength(ArrayLengthExpression alex) {
-		ConstantExpression expr = evaluateConstant(alex.getExpression());
-		if (expr.getType().getSort() != Type.ARRAY)
-			throw new IllegalArgumentException("Array expression of non-array type");
-		return new ConstantExpression(((Object[]) expr.getConstant()).length);
-	}
-
-	private static ConstantExpression evaluateArrayLoad(ArrayLoadExpression michael) {
-		ConstantExpression array = evaluateConstant(michael.getArrayExpression());
-		ConstantExpression index = evaluateConstant(michael.getIndexExpression());
-		if (array.getType().getSort() != Type.ARRAY)
-			throw new IllegalArgumentException("Array expression of non-array type");
-		if (index.getType() != INT_TYPE) {
-			throw new IllegalArgumentException("Array index expression of non-int type");
-		}
-		return new ConstantExpression(((Object[]) array.getConstant())[(int) index.getConstant()]);
 	}
 
 	private static ConstantExpression evaluateComparison(ComparisonExpression cmp) {

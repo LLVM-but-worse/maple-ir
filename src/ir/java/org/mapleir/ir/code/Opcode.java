@@ -2,42 +2,45 @@ package org.mapleir.ir.code;
 
 public interface Opcode {
 
-	int CLASS_STORE =  0x0;
-	int LOCAL_STORE =  0x1;
-	int ARRAY_STORE =  0x2;
-	int FIELD_STORE =  0x3;
-	int PHI_STORE   =  0x4;
+	int CLASS_STORE    = 0x100;
+	int LOCAL_STORE    = 0x101;
+	int ARRAY_STORE    = 0x102;
+	int FIELD_STORE    = 0x103;
+	int PHI_STORE      = 0x104;
 	
-	int CLASS_LOAD  = 0x10;
-	int LOCAL_LOAD  = 0x11;
-	int ARRAY_LOAD  = 0x12;
-	int FIELD_LOAD  = 0x13;
-	int CONST_LOAD  = 0x14;
+	int CLASS_LOAD     = 0x200;
+	int LOCAL_LOAD     = 0x201;
+	int ARRAY_LOAD     = 0x202;
+	int FIELD_LOAD     = 0x203;
+	int CONST_LOAD     = 0x204;
 	
-	int INVOKE      = 0x21;
-	int POP         = 0x22;
-	int RETURN      = 0x23;
+	int INVOKE         = 0x301;
+	int POP            = 0x302;
+	int RETURN         = 0x303;
 	
-	int ARITHMETIC  = 0x31;
-	int NEGATE      = 0x32;
+	int ARITHMETIC     = 0x401;
+	int NEGATE         = 0x402;
 	
-	int CLASS_JUMP  = 0x40;
-	int COND_JUMP   = 0x41;
-	int UNCOND_JUMP = 0x42;
-	int SWITCH_JUMP = 0x43;
+	int CLASS_JUMP     = 0x500;
+	int COND_JUMP      = 0x501;
+	int UNCOND_JUMP    = 0x502;
+	int SWITCH_JUMP    = 0x503;
 	
-	int CLASS_OBJ   = 0x50;
-	int UNINIT_OBJ  = 0x51;
-	int INIT_OBJ    = 0x52;
-	int NEW_ARRAY   = 0x53;
+	int CLASS_OBJ      = 0x600;
+	int UNINIT_OBJ     = 0x601;
+	int INIT_OBJ       = 0x602;
+	int NEW_ARRAY      = 0x603;
 	
-	int ARRAY_LEN   = 0x61;
-	int CAST        = 0x62;
-	int INSTANCEOF  = 0x63;
-	int COMPARE     = 0x64;
-	int CATCH       = 0x65;
-	int THROW       = 0x66;
-	int MONITOR     = 0x67;
+	int ARRAY_LEN      = 0x701;
+	int CAST           = 0x702;
+	int INSTANCEOF     = 0x703;
+	int COMPARE        = 0x704;
+	int CATCH          = 0x705;
+	int THROW          = 0x706;
+	int MONITOR        = 0x707;
 
-	int PHI         = 0x91;
+	int CLASS_PARALLEL = 0x900;
+	int PHI            = 0x901;
+	
+	int CLASS_RESERVED = 0x1000; // reserved for inner classes
 }

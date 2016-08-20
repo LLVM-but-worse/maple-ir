@@ -122,74 +122,90 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 //			}
 //		}
 	}
-	
-	boolean intersect(Local cur, BasicBlock parent) {
-		return false;
-	}
-	
-	public boolean intersect(List<Local> list) {
-		LinkedList<BasicBlock> dom = new LinkedList<>();
-		int i = 0;
-		
-		while(i < list.size()) {
-			Local cur = list.get(i++);
-			BasicBlock defblock = defuse.defs.get(cur);
-			BasicBlock other = dom.peek();
-			
-			while(!(other != null && resolver.doms(other, defblock))) {
-				dom.pop();
-				other = dom.peek();
-			}
-			
-			BasicBlock parent = other;
-			if(parent != null && intersect(cur, parent)) {
-				return true;
-			}
-			dom.push(defblock);
-		}
-	}
+
+	HashMap<BasicBlock, Integer> preDfsDomOrder;
 
 	void compute_value_interference() {
 		FastBlockGraph dom_tree = new FastBlockGraph();
-		for(Entry<BasicBlock, Set<BasicBlock>> e : resolver.domc.getTree().entrySet()) {
+		for (Entry<BasicBlock, Set<BasicBlock>> e : resolver.domc.getTree().entrySet()) {
 			BasicBlock b = e.getKey();
 			dom_tree.addVertex(b);
-			for(BasicBlock c : e.getValue()) {
+			for (BasicBlock c : e.getValue()) {
 				dom_tree.addEdge(b, new ImmediateEdge<>(b, c));
 			}
 		}
-		
+
 		BasicDotConfiguration<FastBlockGraph, BasicBlock, FlowEdge<BasicBlock>> config = new BasicDotConfiguration<>(DotConfiguration.GraphType.DIRECTED);
 		DotWriter<FastBlockGraph, BasicBlock, FlowEdge<BasicBlock>> writer = new DotWriter<>(config, dom_tree);
-		writer.removeAll()
-		.setName("domtree")
-		.export();
-		
-		ExtendedDfs dom_dfs = new ExtendedDfs(dom_tree, cfg.getEntries().iterator().next(), ExtendedDfs.POST);
-		
+		writer.removeAll().setName("domtree").export();
+
+		ExtendedDfs dom_dfs = new ExtendedDfs(dom_tree, cfg.getEntries().iterator().next(), ExtendedDfs.POST | ExtendedDfs.PRE);
+
 		// topo
-		Collections.reverse(dom_dfs.getPostOrder());
-		for(BasicBlock bl : dom_dfs.getPostOrder()) {
-			for(Statement stmt : bl) {
-				if(stmt instanceof CopyVarStatement) {
+		for (int i = dom_dfs.getPostOrder().size() - 1; i >= 0; i--) {
+			BasicBlock bl = dom_dfs.getPostOrder().get(i);
+			for (Statement stmt : bl) {
+				if (stmt instanceof CopyVarStatement) {
 					CopyVarStatement copy = (CopyVarStatement) stmt;
 					Expression e = copy.getExpression();
 					Local b = copy.getVariable().getLocal();
-					
-					if(e instanceof VarExpression) {
+
+					if (e instanceof VarExpression) {
 						Local a = ((VarExpression) e).getLocal();
 						values.put(b, values.get(a));
 					} else {
 						values.put(b, b);
 					}
-				} else if(stmt instanceof ParallelCopyVarStatement) {
+				} else if (stmt instanceof ParallelCopyVarStatement) {
 					ParallelCopyVarStatement copy = (ParallelCopyVarStatement) stmt;
-					for(CopyPair p : copy.pairs) {
-						values.put(p.targ, values.get(p.source));
+					for (CopyPair p : copy.pairs) {
+						Local l = p.targ;
+						values.put(l, values.get(p.source));
 					}
 				}
 			}
 		}
+
+		// it might be possible to put this code into the reverse postorder but the paper specified preorder
+		preDfsDomOrder = new HashMap<>();
+		int index = 0;
+		for (BasicBlock bl : dom_dfs.getPreOrder())
+			preDfsDomOrder.put(bl, index++);
+	}
+	
+	boolean doms(Local x, Local y) {
+		BasicBlock bx = defuse.defs.get(x);
+		BasicBlock by = defuse.defs.get(y);
+		return resolver.doms(bx, by);
+	}
+
+	boolean checkIntersect(List<Local> red, List<Local> blue) {
+		Stack<Local> dom = new Stack<>();
+		int ir = 0;
+		int ib = 0;
+		while (ir < red.size() || ib < blue.size()) {
+			Local current;
+			if (ir == red.size() || (ir < red.size() && ib < blue.size() && preDfsDomOrder.get(defuse.defs.get(blue.get(ib))) < preDfsDomOrder.get(defuse.defs.get(red.get(ir)))))
+				current = blue.get(ib++);
+			else
+				current = red.get(ir++);
+
+			Local other = dom.isEmpty() ? null : dom.peek();
+			while (other != null && !doms(other, current)) {
+				dom.pop();
+				other = dom.isEmpty() ? null : dom.peek();
+			}
+			Local parent = other;
+			if (parent != null && interference(current, parent))
+				return true;
+			dom.push(current);
+		}
+		return false;
+	}
+
+	boolean interference(Local a, Local b) {
+		// how the f--k do you compute equal intersecting ancestor?????
+		return false;
 	}
 	
 	void verify() {
