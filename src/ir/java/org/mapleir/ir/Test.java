@@ -68,7 +68,7 @@ public class Test {
 //				continue;
 //			}
 			
-			if(!m.toString().equals("org/mapleir/ir/Test.test111()V")) {
+			if(!m.toString().equals("org/mapleir/ir/Test.loopTest()V")) {
 				continue;
 			}
 			

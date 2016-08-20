@@ -59,7 +59,6 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 		writer.removeAll().add(new ControlFlowGraphDecorator().setFlags(OPT_DEEP))
 			.setName("pre-destruct")
 			.export();
-		System.out.println("test: " + cfg.getLocals().get(2, 1, false) + " " + defuse.uses.get(cfg.getLocals().get(2, 1, false)));
 
 		insert_copies();
 		verify();
@@ -108,6 +107,18 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 				.add(new ControlFlowGraphDecorator().setFlags(OPT_DEEP))
 				.setName("after-sequentialize")
 				.export();
+
+		System.out.println("SEQ TEST START");
+		ParallelCopyVarStatement pcvs = new ParallelCopyVarStatement();
+		pcvs.pairs.add(new CopyPair(cfg.getLocals().get(1), cfg.getLocals().get(2), null));
+		pcvs.pairs.add(new CopyPair(cfg.getLocals().get(2), cfg.getLocals().get(1), null));
+		pcvs.pairs.add(new CopyPair(cfg.getLocals().get(3), cfg.getLocals().get(2), null));
+		pcvs.pairs.add(new CopyPair(cfg.getLocals().get(4), cfg.getLocals().get(3), null));
+		pcvs.pairs.add(new CopyPair(cfg.getLocals().get(5), cfg.getLocals().get(1), null));
+		List<CopyVarStatement> seqd = sequentialize(pcvs);
+		System.out.println("seq test: " + pcvs);
+		for (CopyVarStatement cvs : seqd)
+			System.out.println("  " + cvs);
 
 		compute_value_interference();
 		
@@ -169,12 +180,15 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 		Stack<Local> ready = new Stack<>();
 		Stack<Local> to_do = new Stack<>();
 		Map<Local, Local> loc = new HashMap<>();
+		Map<Local, Local> values = new HashMap<>();
 		Map<Local, Local> pred = new HashMap<>();
 		Map<Local, Type> types = new HashMap<>();
 
 		for (CopyPair pair : pcvs.pairs) { // initialization
 			loc.put(pair.targ, null);
 			loc.put(pair.source, null);
+			values.put(pair.targ, pair.targ);
+			values.put(pair.source, pair.source);
 			types.put(pair.targ, pair.type);
 			types.put(pair.source, pair.type);
 		}
@@ -195,16 +209,19 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 		List<CopyVarStatement> result = new ArrayList<>();
 		Local n = null;
 		while (!to_do.isEmpty()) {
+			System.out.println("todo: " + to_do);
+			System.out.println("ready: " + ready);
 			while (!ready.isEmpty()) {
 				Local b = ready.pop(); // pick a free location
 				Local a = pred.get(b); // available in c
 				Local c = loc.get(a);
-				if (!types.containsKey(b) || !types.containsKey(c))
-					throw new IllegalStateException("this shouldn't happen");
+				if ((!types.containsKey(b) && b != n) || (!types.containsKey(c) && c != n))
+					throw new IllegalStateException("this shouldn't happen " + b + " " + c);
 
-				VarExpression varB = new VarExpression(b, types.get(b)); // generate the copy
+				VarExpression varB = new VarExpression(b, types.get(b)); // generate the copy b = c
 				VarExpression varC = new VarExpression(c, types.get(c));
 				result.add(new CopyVarStatement(varB, varC));
+				values.put(b, values.get(c));
 				System.out.println("  normal copy " + result.get(result.size() - 1));
 
 				loc.put(a, b);
@@ -216,17 +233,18 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 			}
 
 			Local b = to_do.pop();
-			if (b.toString().equals(loc.get(pred.get(b)).toString())) {
-				System.out.println("  spill");
+			if (!values.get(b).toString().equals(values.get(loc.get(pred.get(b))).toString())) {
+				System.out.println("  spill " + b + " (" + b + " vs " + loc.get(pred.get(b)).toString() + ")" + " (" + values.get(b) + " vs " + values.get(loc.get(pred.get(b))) + ")");
 				if (n == null) {
 					n = cfg.getLocals().makeLatestVersion(pcvs.pairs.get(0).targ);
 					pred.put(n, null);
 				}
 				if (!types.containsKey(b))
 					throw new IllegalStateException("this shouldn't happen");
-				VarExpression varN = new VarExpression(n, types.get(b));
+				VarExpression varN = new VarExpression(n, types.get(b)); // generate copy n = b
 				VarExpression varB = new VarExpression(b, types.get(b));
 				result.add(new CopyVarStatement(varN, varB));
+				values.put(n, values.get(b));
 				loc.put(b, n);
 				ready.push(b);
 			}
