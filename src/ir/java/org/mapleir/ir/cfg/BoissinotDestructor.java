@@ -88,14 +88,16 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 				.add("liveness", new LivenessDecorator<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>>().setLiveness(this))
 				.setName("liveness-baguette")
 				.export();
-		writer.removeAll()
-				.add(new ControlFlowGraphDecorator().setFlags(OPT_DEEP))
-				.add(new LivenessDecorator<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>>().setLiveness(live))
-				.setName("liveness-bibl")
-				.export();
 		
 		coalesce();
-		
+
+		writer.removeAll()
+				.add(new ControlFlowGraphDecorator().setFlags(OPT_DEEP))
+				.setName("after-coalesce1")
+				.export();
+
+		sequentialize();
+
 		compute_value_interference();
 		
 //		for(BasicBlock b : cfg.vertices()) {
@@ -123,7 +125,91 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 //		}
 	}
 
+	void sequentialize() {
+		for (BasicBlock b : cfg.vertices())
+			sequentialize(b);
+	}
+
+	void sequentialize(BasicBlock b) {
+		List<ParallelCopyVarStatement> p = new ArrayList<>();
+		for (Statement stmt : b)
+			if (stmt instanceof ParallelCopyVarStatement)
+				p.add((ParallelCopyVarStatement) stmt);
+		if (p.isEmpty())
+			return;
+		for (ParallelCopyVarStatement pcvs : p) {
+			List<CopyVarStatement> sequentialized = sequentialize(pcvs);
+			// todo: replace code stmts with this
+		}
+	}
+
+	List<CopyVarStatement> sequentialize(ParallelCopyVarStatement pcvs) {
+		Local n = cfg.getLocals().makeLatestVersion(pcvs.pairs.get(0).targ);
+		Stack<Local> ready = new Stack<>();
+		Stack<Local> to_do = new Stack<>();
+		Map<Local, Local> loc = new HashMap<>();
+		Map<Local, Local> pred = new HashMap<>();
+		Map<Local, Type> types = new HashMap<>();
+		pred.put(n, null);
+
+		for (CopyPair pair : pcvs.pairs) { // initialization
+			loc.put(pair.targ, null);
+			loc.put(pair.source, null);
+			types.put(pair.targ, pair.type);
+			types.put(pair.source, pair.type);
+		}
+
+		for (CopyPair pair : pcvs.pairs) {
+			loc.put(pair.source, pair.source); // needed and not copied yet
+			pred.put(pair.targ, pair.source); // unique predecessor
+			to_do.push(pair.targ); // copy into b to be done
+		}
+
+		for (CopyPair pair : pcvs.pairs) {
+			if (!loc.containsKey(pair.targ))
+				throw new IllegalStateException("this shouldn't happen");
+			if (loc.get(pair.targ) == null) // b is not used and can be overwritten
+				ready.push(pair.targ);
+		}
+
+		List<CopyVarStatement> result = new ArrayList<>();
+		while (!to_do.isEmpty()) {
+			while (!ready.isEmpty()) {
+				Local b = ready.pop(); // pick a free location
+				Local a = pred.get(b); // available in c
+				Local c = loc.get(a);
+				if (!types.containsKey(b) || !types.containsKey(c))
+					throw new IllegalStateException("this shouldn't happen");
+
+				VarExpression varB = new VarExpression(b, types.get(b)); // generate the copy
+				VarExpression varC = new VarExpression(c, types.get(c));
+				result.add(new CopyVarStatement(varB, varC));
+
+				loc.put(a, b);
+				if (a.toString().equals(c.toString()) && pred.get(a) != null) {
+					if (!pred.containsKey(a))
+						throw new IllegalStateException("this shouldn't happen");
+					ready.push(a); // just copied, can be overwritten
+				}
+			}
+
+			Local b = to_do.pop();
+			if (b.toString().equals(loc.get(pred.get(b)).toString())) {
+				if (!types.containsKey(b))
+					throw new IllegalStateException("this shouldn't happen");
+				VarExpression varN = new VarExpression(n, types.get(b));
+				VarExpression varB = new VarExpression(b, types.get(b));
+				result.add(new CopyVarStatement(varN, varB));
+				loc.put(b, n);
+				ready.push(b);
+			}
+		}
+
+		return result;
+	}
+
 	HashMap<BasicBlock, Integer> preDfsDomOrder;
+	HashMap<Local, Local> equalAncIn;
 
 	void compute_value_interference() {
 		FastBlockGraph dom_tree = new FastBlockGraph();
@@ -152,19 +238,26 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 
 					if (e instanceof VarExpression) {
 						Local a = ((VarExpression) e).getLocal();
+						System.out.println("  value " + b + " " + values.get(a));
 						values.put(b, values.get(a));
 					} else {
+						System.out.println("  value " + b + " auto");
 						values.put(b, b);
 					}
 				} else if (stmt instanceof ParallelCopyVarStatement) {
 					ParallelCopyVarStatement copy = (ParallelCopyVarStatement) stmt;
 					for (CopyPair p : copy.pairs) {
 						Local l = p.targ;
+						System.out.println("  value " + l + " " + values.get(p.source) + " parallel");
 						values.put(l, values.get(p.source));
 					}
 				}
 			}
 		}
+		System.out.println("values:");
+		for (Entry<Local, Local> e : values.entrySet())
+			System.out.println(e.getKey() + " = " + e.getValue());
+		System.out.println();
 
 		// it might be possible to put this code into the reverse postorder but the paper specified preorder
 		preDfsDomOrder = new HashMap<>();
@@ -178,6 +271,12 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 		BasicBlock by = defuse.defs.get(y);
 		return resolver.doms(bx, by);
 	}
+	
+	boolean checkPreDomOrder(Local x, Local y) {
+		BasicBlock bx = defuse.defs.get(x);
+		BasicBlock by = defuse.defs.get(y);
+		return preDfsDomOrder.get(bx) < preDfsDomOrder.get(by);
+	}
 
 	boolean checkIntersect(List<Local> red, List<Local> blue) {
 		Stack<Local> dom = new Stack<>();
@@ -185,7 +284,7 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 		int ib = 0;
 		while (ir < red.size() || ib < blue.size()) {
 			Local current;
-			if (ir == red.size() || (ir < red.size() && ib < blue.size() && preDfsDomOrder.get(defuse.defs.get(blue.get(ib))) < preDfsDomOrder.get(defuse.defs.get(red.get(ir)))))
+			if (ir == red.size() || (ir < red.size() && ib < blue.size() && checkPreDomOrder(blue.get(ib), red.get(ir))))
 				current = blue.get(ib++);
 			else
 				current = red.get(ir++);
@@ -405,7 +504,7 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 			// copy target to z0.
 			Local x0 = copy.getVariable().getLocal();
 			Local z0 = cfg.getLocals().makeLatestVersion(x0);
-			dst_copy.pairs.add(new CopyPair(x0, z0)); // x0 = z0
+			dst_copy.pairs.add(new CopyPair(x0, z0, copy.getVariable().getType())); // x0 = z0
 			copy.getVariable().setLocal(z0); // z0 = phi(...)
 			
 			// both defined and used in this block.
@@ -436,7 +535,7 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 				
 				Local xi = r.l;
 				Local zi = cfg.getLocals().makeLatestVersion(xi);
-				copy.pairs.add(new CopyPair(zi, xi));
+				copy.pairs.add(new CopyPair(zi, xi, r.type));
 				
 				// we consider phi args to be used in the pred
 				//  instead of the block where the phi is, so
@@ -584,10 +683,12 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 	static class CopyPair {
 		Local targ;
 		Local source;
+		Type type;
 		
-		CopyPair(Local dst, Local src) {
+		CopyPair(Local dst, Local src, Type type) {
 			targ = dst;
 			source = src;
+			this.type = type;
 		}
 		
 		@Override
