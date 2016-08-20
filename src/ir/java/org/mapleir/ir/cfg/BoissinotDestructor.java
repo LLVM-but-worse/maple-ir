@@ -53,11 +53,17 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 		values = new HashMap<>();
 		
 		init();
+
+		BasicDotConfiguration<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> config = new BasicDotConfiguration<>(DotConfiguration.GraphType.DIRECTED);
+		DotWriter<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> writer = new DotWriter<>(config, cfg);
+		writer.removeAll().add(new ControlFlowGraphDecorator().setFlags(OPT_DEEP))
+			.setName("pre-destruct")
+			.export();
+		System.out.println("test: " + cfg.getLocals().get(2, 1, false) + " " + defuse.uses.get(cfg.getLocals().get(2, 1, false)));
+
 		insert_copies();
 		verify();
 		
-		BasicDotConfiguration<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> config = new BasicDotConfiguration<>(DotConfiguration.GraphType.DIRECTED);
-		DotWriter<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> writer = new DotWriter<>(config, cfg);
 		writer.removeAll().add(new ControlFlowGraphDecorator().setFlags(OPT_DEEP))
 			.setName("after-insert")
 			.export();
@@ -98,6 +104,11 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 
 		sequentialize();
 
+		writer.removeAll()
+				.add(new ControlFlowGraphDecorator().setFlags(OPT_DEEP))
+				.setName("after-sequentialize")
+				.export();
+
 		compute_value_interference();
 		
 //		for(BasicBlock b : cfg.vertices()) {
@@ -131,26 +142,35 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 	}
 
 	void sequentialize(BasicBlock b) {
-		List<ParallelCopyVarStatement> p = new ArrayList<>();
-		for (Statement stmt : b)
+		LinkedHashMap<ParallelCopyVarStatement, Integer> p = new LinkedHashMap<>();
+		for (int i = 0; i < b.size(); i++) {
+			Statement stmt = b.get(i);
 			if (stmt instanceof ParallelCopyVarStatement)
-				p.add((ParallelCopyVarStatement) stmt);
+				p.put((ParallelCopyVarStatement) stmt, i);
+		}
 		if (p.isEmpty())
 			return;
-		for (ParallelCopyVarStatement pcvs : p) {
+		int indexOffset = 0;
+		for (Entry<ParallelCopyVarStatement, Integer> e : p.entrySet()) {
+			ParallelCopyVarStatement pcvs = e.getKey();
+			int index = e.getValue() + indexOffset;
+			System.out.println("SEQUENTIALIZE: " + pcvs);
 			List<CopyVarStatement> sequentialized = sequentialize(pcvs);
-			// todo: replace code stmts with this
+			b.remove(pcvs);
+			for (CopyVarStatement cvs : sequentialized) { // warning: O(N^2) operation
+				b.add(index + indexOffset++, cvs);
+				System.out.println("  " + cvs);
+			}
+			indexOffset--;
 		}
 	}
 
 	List<CopyVarStatement> sequentialize(ParallelCopyVarStatement pcvs) {
-		Local n = cfg.getLocals().makeLatestVersion(pcvs.pairs.get(0).targ);
 		Stack<Local> ready = new Stack<>();
 		Stack<Local> to_do = new Stack<>();
 		Map<Local, Local> loc = new HashMap<>();
 		Map<Local, Local> pred = new HashMap<>();
 		Map<Local, Type> types = new HashMap<>();
-		pred.put(n, null);
 
 		for (CopyPair pair : pcvs.pairs) { // initialization
 			loc.put(pair.targ, null);
@@ -173,6 +193,7 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 		}
 
 		List<CopyVarStatement> result = new ArrayList<>();
+		Local n = null;
 		while (!to_do.isEmpty()) {
 			while (!ready.isEmpty()) {
 				Local b = ready.pop(); // pick a free location
@@ -184,6 +205,7 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 				VarExpression varB = new VarExpression(b, types.get(b)); // generate the copy
 				VarExpression varC = new VarExpression(c, types.get(c));
 				result.add(new CopyVarStatement(varB, varC));
+				System.out.println("  normal copy " + result.get(result.size() - 1));
 
 				loc.put(a, b);
 				if (a.toString().equals(c.toString()) && pred.get(a) != null) {
@@ -195,6 +217,11 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 
 			Local b = to_do.pop();
 			if (b.toString().equals(loc.get(pred.get(b)).toString())) {
+				System.out.println("  spill");
+				if (n == null) {
+					n = cfg.getLocals().makeLatestVersion(pcvs.pairs.get(0).targ);
+					pred.put(n, null);
+				}
 				if (!types.containsKey(b))
 					throw new IllegalStateException("this shouldn't happen");
 				VarExpression varN = new VarExpression(n, types.get(b));
@@ -434,7 +461,7 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 				
 				if(isPhi) {
 					CopyPhiStatement copy = (CopyPhiStatement) stmt;
-					PhiExpression phi = (PhiExpression) copy.getExpression();
+					PhiExpression phi = copy.getExpression();
 					
 					for(Entry<BasicBlock, Expression> en : phi.getArguments().entrySet()) {
 						BasicBlock p = en.getKey();
@@ -488,7 +515,7 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 			}
 			
 			CopyPhiStatement copy = (CopyPhiStatement) stmt;
-			PhiExpression phi = (PhiExpression) copy.getExpression();
+			PhiExpression phi = copy.getExpression();
 			
 			// for every xi arg of the phi from pred Li, add it to the worklist
 			// so that we can parallelise the copy when we insert it.
@@ -500,7 +527,7 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 			}
 			
 			// for each x0, where x0 is a phi copy target, create a new
-			// variable z0 for a copy z0 = x0 and replace the phi
+			// variable z0 for a copy x0 = z0 and replace the phi
 			// copy target to z0.
 			Local x0 = copy.getVariable().getLocal();
 			Local z0 = cfg.getLocals().makeLatestVersion(x0);
@@ -510,7 +537,6 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 			// both defined and used in this block.
 			defuse.defs.put(x0, b);
 			defuse.defs.put(z0, b);
-			defuse.uses.getNonNull(x0).add(b);
 			defuse.uses.getNonNull(z0).add(b);
 			
 			defuse.phis.remove(x0);
@@ -584,12 +610,11 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 		} else {
 			// insert after phi.
 			int i = 0;
-			Statement stmt = b.get(0);
-			while(stmt.getOpcode() == Opcode.PHI_STORE) {
-				stmt = b.get(++i);
-			}
-			
-			b.add(b.indexOf(stmt), copy);
+			Statement stmt;
+			do
+				stmt = b.get(i++);
+			while(stmt.getOpcode() == Opcode.PHI_STORE && i < b.size());
+			b.add(i, copy);
 		}
 	}
 	
