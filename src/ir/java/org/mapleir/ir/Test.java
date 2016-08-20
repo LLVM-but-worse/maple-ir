@@ -5,12 +5,20 @@ import java.util.ArrayList;
 import java.util.Iterator;
 
 import org.mapleir.AnalyticsTest;
+import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.BoissinotDestructor;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.cfg.builder.ControlFlowGraphBuilder;
+import org.mapleir.ir.dot.ControlFlowGraphDecorator;
+import org.mapleir.stdlib.cfg.edge.FlowEdge;
+import org.mapleir.stdlib.collections.graph.dot.BasicDotConfiguration;
+import org.mapleir.stdlib.collections.graph.dot.DotConfiguration;
+import org.mapleir.stdlib.collections.graph.dot.DotWriter;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
+
+import static org.mapleir.ir.dot.ControlFlowGraphDecorator.OPT_DEEP;
 
 public class Test {
 
@@ -23,6 +31,19 @@ public class Test {
 				x++;
 		} while(!p());
 		System.out.println(x);
+	}
+
+	void test111() {
+		int x = 1;
+		int y = 2;
+		do {
+			int z = x;
+			x = y;
+			y = z;
+		} while(!p());
+
+		System.out.println(x);
+		System.out.println(y);
 	}
 	
 	boolean p() {
@@ -47,7 +68,7 @@ public class Test {
 //				continue;
 //			}
 			
-			if(!m.toString().equals("org/mapleir/ir/Test.loopTest()V")) {
+			if(!m.toString().equals("org/mapleir/ir/Test.test111()V")) {
 				continue;
 			}
 			
