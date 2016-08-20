@@ -123,6 +123,9 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 //		}
 	}
 	
+	HashMap<Local, Integer> preDfsDomOrder;
+	HashMap<Local, Set<Local>> localDomTree;
+	
 	void compute_value_interference() {
 		FastBlockGraph dom_tree = new FastBlockGraph();
 		for(Entry<BasicBlock, Set<BasicBlock>> e : resolver.domc.getTree().entrySet()) {
@@ -164,6 +167,62 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 				}
 			}
 		}
+		
+		preDfsDomOrder = new HashMap<>();
+		localDomTree = new HashMap<>();
+		int index = 0;
+		for (BasicBlock bl : dom_dfs.getPreOrder()) {
+			for(Statement stmt : bl) {
+				if (stmt instanceof CopyVarStatement) {
+					Local l = ((CopyVarStatement) stmt).getVariable().getLocal();
+					for (Local visitedLocal : preDfsDomOrder.keySet()) // TODO: this is O(N^2)....???? wtf???
+						localDomTree.get(visitedLocal).add(l);
+					preDfsDomOrder.put(l, index++);
+					localDomTree.put(l, new HashSet<>());
+				} else if(stmt instanceof ParallelCopyVarStatement) {
+					ParallelCopyVarStatement copy = (ParallelCopyVarStatement) stmt;
+					for (CopyPair p : copy.pairs) {
+						Local l = p.targ;
+						for (Local visitedLocal : preDfsDomOrder.keySet()) // ditto
+							localDomTree.get(visitedLocal).add(l);
+						preDfsDomOrder.put(l, index++);
+						localDomTree.put(l, new HashSet<>());
+					}
+				}
+			}
+		}
+	}
+	
+	boolean checkIntersect(List<Local> red, List<Local> blue) {
+		Stack<Local> dom = new Stack<>();
+		int ir = 0;
+		int ib = 0;
+		while (ir < red.size() || ib < blue.size()) {
+			Local current;
+			if (ir == red.size() || (ir < red.size() && ib < blue.size() && preDfsDomOrder.get(blue.get(ib)) < preDfsDomOrder.get(red.get(ir))))
+				current = blue.get(ib++);
+			else
+				current = red.get(ir++);
+			
+			Local other = dom.isEmpty() ? null : dom.peek();
+			while (other != null && !dominate(other, current)) {
+				dom.pop();
+				other = dom.isEmpty() ? null : dom.peek();
+			}
+			Local parent = other;
+			if (parent != null && interference(current, parent))
+				return true;
+			dom.push(current);
+		}
+		return false;
+	}
+	
+	boolean dominate(Local a, Local b) { // return true if other is an ancestor of current
+		return localDomTree.get(a).contains(b);
+	}
+	
+	boolean interference(Local a, Local b) {
+		// how the f--k do you compute equal intersecting ancestor?????
 	}
 	
 	void verify() {
