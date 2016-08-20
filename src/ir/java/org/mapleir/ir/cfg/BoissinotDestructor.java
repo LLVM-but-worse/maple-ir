@@ -122,61 +122,50 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 //			}
 //		}
 	}
-	
+
 	HashMap<BasicBlock, Integer> preDfsDomOrder;
-	HashMap<Local, Set<Local>> localDomTree;
-	
+
 	void compute_value_interference() {
 		FastBlockGraph dom_tree = new FastBlockGraph();
-		for(Entry<BasicBlock, Set<BasicBlock>> e : resolver.domc.getTree().entrySet()) {
+		for (Entry<BasicBlock, Set<BasicBlock>> e : resolver.domc.getTree().entrySet()) {
 			BasicBlock b = e.getKey();
 			dom_tree.addVertex(b);
-			for(BasicBlock c : e.getValue()) {
+			for (BasicBlock c : e.getValue()) {
 				dom_tree.addEdge(b, new ImmediateEdge<>(b, c));
 			}
 		}
-		
+
 		BasicDotConfiguration<FastBlockGraph, BasicBlock, FlowEdge<BasicBlock>> config = new BasicDotConfiguration<>(DotConfiguration.GraphType.DIRECTED);
 		DotWriter<FastBlockGraph, BasicBlock, FlowEdge<BasicBlock>> writer = new DotWriter<>(config, dom_tree);
-		writer.removeAll()
-		.setName("domtree")
-		.export();
-		
+		writer.removeAll().setName("domtree").export();
+
 		ExtendedDfs dom_dfs = new ExtendedDfs(dom_tree, cfg.getEntries().iterator().next(), ExtendedDfs.POST | ExtendedDfs.PRE);
-		
-		localDomTree = new HashMap<>();
+
 		// topo
-		for(int i = dom_dfs.getPostOrder().size() - 1; i >= 0; i--) {
+		for (int i = dom_dfs.getPostOrder().size() - 1; i >= 0; i--) {
 			BasicBlock bl = dom_dfs.getPostOrder().get(i);
-			for(Statement stmt : bl) {
-				if(stmt instanceof CopyVarStatement) {
+			for (Statement stmt : bl) {
+				if (stmt instanceof CopyVarStatement) {
 					CopyVarStatement copy = (CopyVarStatement) stmt;
 					Expression e = copy.getExpression();
 					Local b = copy.getVariable().getLocal();
-					// TODO: this is O(N^2), wtf. if we could quickly check if a block is ancestor of another block in dom tree, then this is unnecessary because we have defuse
-					for (Local visitedLocal : localDomTree.keySet())
-						localDomTree.get(visitedLocal).add(b);
-					localDomTree.put(b, new HashSet<>());
-					
-					if(e instanceof VarExpression) {
+
+					if (e instanceof VarExpression) {
 						Local a = ((VarExpression) e).getLocal();
 						values.put(b, values.get(a));
 					} else {
 						values.put(b, b);
 					}
-				} else if(stmt instanceof ParallelCopyVarStatement) {
+				} else if (stmt instanceof ParallelCopyVarStatement) {
 					ParallelCopyVarStatement copy = (ParallelCopyVarStatement) stmt;
-					for(CopyPair p : copy.pairs) {
+					for (CopyPair p : copy.pairs) {
 						Local l = p.targ;
 						values.put(l, values.get(p.source));
-						for (Local visitedLocal : localDomTree.keySet()) // ditto
-							localDomTree.get(visitedLocal).add(l);
-						localDomTree.put(l, new HashSet<>());
 					}
 				}
 			}
 		}
-		
+
 		// it might be possible to put this code into the reverse postorder but the paper specified preorder
 		preDfsDomOrder = new HashMap<>();
 		int index = 0;
@@ -184,6 +173,12 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 			preDfsDomOrder.put(bl, index++);
 	}
 	
+	boolean doms(Local x, Local y) {
+		BasicBlock bx = defuse.defs.get(x);
+		BasicBlock by = defuse.defs.get(y);
+		return resolver.doms(bx, by);
+	}
+
 	boolean checkIntersect(List<Local> red, List<Local> blue) {
 		Stack<Local> dom = new Stack<>();
 		int ir = 0;
@@ -199,7 +194,7 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 				Local other;
 				do
 					other = dom.pop();
-				while (!dom.isEmpty() && !dominate(other, current));
+				while (!dom.isEmpty() && !doms(other, current));
 				Local parent = other;
 				if (parent != null && interference(current, parent))
 					return true;
@@ -207,10 +202,6 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 			dom.push(current);
 		}
 		return false;
-	}
-	
-	boolean dominate(Local a, Local b) { // return true if other is an ancestor of current
-		return localDomTree.get(a).contains(b);
 	}
 	
 	boolean interference(Local a, Local b) {
@@ -520,7 +511,6 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 		}
 	}
 	
-	// coalesce all a'_i
 	void coalesce() {
 		// since we are now in csaa, all phi locals
 		//  can we coalesced into the same var.
@@ -609,15 +599,14 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 	static class ParallelCopyVarStatement extends Statement {
 		
 		final List<CopyPair> pairs;
-		public static final int PARALLEL_COPY = 0x1902;
 		
 		ParallelCopyVarStatement() {
-			super(PARALLEL_COPY);
+			super(-1);
 			pairs = new ArrayList<>();
 		}
 		
 		ParallelCopyVarStatement(List<CopyPair> pairs) {
-			super(PARALLEL_COPY);
+			super(-1);
 			this.pairs = pairs;
 		}
 		
