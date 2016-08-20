@@ -14,8 +14,23 @@ import org.objectweb.asm.tree.MethodNode;
 
 public class Test {
 
+	void loopTest() {
+		int x = 1;
+		do {
+			if (x > 5)
+				x--;
+			else
+				x++;
+		} while(!p());
+		System.out.println(x);
+	}
+	
+	boolean p() {
+		return true;
+	}
+	
 	public static void main(String[] args) throws IOException {
-		ClassReader cr = new ClassReader(AnalyticsTest.class.getCanonicalName());
+		ClassReader cr = new ClassReader(Test.class.getCanonicalName());
 		ClassNode cn = new ClassNode();
 		cr.accept(cn, 0);
 		
@@ -32,7 +47,7 @@ public class Test {
 //				continue;
 //			}
 			
-			if(!m.toString().equals("org/mapleir/AnalyticsTest.loopTest()V")) {
+			if(!m.toString().equals("org/mapleir/ir/Test.loopTest()V")) {
 				continue;
 			}
 			
