@@ -195,14 +195,15 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 			else
 				current = red.get(ir++);
 			
-			Local other = dom.isEmpty() ? null : dom.peek();
-			while (other != null && !dominate(other, current)) {
-				dom.pop();
-				other = dom.isEmpty() ? null : dom.peek();
+			if (!dom.isEmpty()) {
+				Local other;
+				do
+					other = dom.pop();
+				while (!dom.isEmpty() && !dominate(other, current));
+				Local parent = other;
+				if (parent != null && interference(current, parent))
+					return true;
 			}
-			Local parent = other;
-			if (parent != null && interference(current, parent))
-				return true;
 			dom.push(current);
 		}
 		return false;
