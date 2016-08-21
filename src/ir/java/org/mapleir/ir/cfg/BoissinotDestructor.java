@@ -94,14 +94,14 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 				.setName("after-insert")
 				.export();
 
-		// 2. Aggressively coalesce while in CSSA
+		// 2. Build value interference
 		compute_value_interference();
 
-		// 3. Leave CSSA through coalescing
+		// 3. Aggressively coalesce while in CSSA to leave SSA
 		coalesce();
 		writer.removeAll()
 				.add(new ControlFlowGraphDecorator().setFlags(OPT_DEEP))
-				.setName("after-leave-cssa")
+				.setName("after-coalesce")
 				.export();
 
 		// 4. Sequentialize parallel copies
@@ -451,6 +451,11 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 						System.out.println("  value " + b + " auto");
 						values.put(b, b);
 					}
+				} else if (stmt instanceof CopyPhiStatement) {
+					CopyPhiStatement copy = (CopyPhiStatement) stmt;
+					Local b = copy.getVariable().getLocal();
+					System.out.println("  value " + b + " phi auto");
+					values.put(b, b);
 				} else if (stmt instanceof ParallelCopyVarStatement) {
 					ParallelCopyVarStatement copy = (ParallelCopyVarStatement) stmt;
 					for (CopyPair p : copy.pairs) {
@@ -515,34 +520,71 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 		return false;
 	}
 
-	void coalesce() {
-		// since we are now in csaa, all phi locals
-		//  can we coalesced into the same var.
+	// all the locals in a set will be mapped to that set. there is only 1 instance of the set.
+	// whenever a local is added ot the set the mapping is added and the opposite is true for when a local is removed
+	Map<Local, LinkedHashSet<Local>> congruenceClasses;
 
-		Map<Local, Local> remap = new HashMap<>();
+	void createCongruenceClass(Local l) {
+		LinkedHashSet<Local> conClass = new LinkedHashSet<>();
+		conClass.add(l);
+		congruenceClasses.put(l, conClass);
+	}
+
+	void coalesce(Local a, Local b) {
+		LinkedHashSet<Local> conClass;
+		if (congruenceClasses.containsKey(a)) {
+			conClass = congruenceClasses.get(a);
+			conClass.add(b);
+			congruenceClasses.put(b, conClass);
+		} else if (congruenceClasses.containsKey(b)) {
+			conClass = congruenceClasses.get(b);
+			conClass.add(a);
+			congruenceClasses.put(a, conClass);
+		} else {
+			conClass = new LinkedHashSet<>();
+		}
+	}
+
+	void coalesce() {
+		congruenceClasses = new HashMap<>();
+
 		for(BasicBlock b : cfg.vertices()) {
 			Iterator<Statement> it = b.iterator();
 			while(it.hasNext()) {
 				Statement stmt = it.next();
 				if(stmt.getOpcode() == Opcode.PHI_STORE) {
+					// since we are now in csaa, phi locals never interfere and are in the same congruence class.
 					CopyPhiStatement copy = (CopyPhiStatement) stmt;
 					PhiExpression phi = copy.getExpression();
 
 					Local l1 = copy.getVariable().getLocal();
-					Local newL = cfg.getLocals().makeLatestVersion(l1);
-					remap.put(l1, newL);
+					LinkedHashSet<Local> coalesceGroup;
+					if (congruenceClasses.containsKey(l1))
+						coalesceGroup = congruenceClasses.get(l1);
+					else {
+						coalesceGroup = new LinkedHashSet<>();
+						coalesceGroup.add(l1);
+						congruenceClasses.put(l1, coalesceGroup);
+					}
 
 					for(Expression ex : phi.getArguments().values()) {
 						VarExpression v = (VarExpression) ex;
 						Local l = v.getLocal();
-						remap.put(l, newL);
+						coalesceGroup.add(l);
+						congruenceClasses.put(l, coalesceGroup);
 					}
 
-					it.remove();
+					it.remove(); // we can simply drop all the phis without further consideration
+				} else if (stmt.getOpcode() == -1) {
+					ParallelCopyVarStatement copy = (ParallelCopyVarStatement) stmt;
+					// for each copy we need to check the interference between the vars
+				} else if (stmt.getOpcode() == Opcode.LOCAL_STORE) {
+					CopyVarStatement copy = (CopyVarStatement) stmt;
 				}
 			}
 		}
 
+		Map<Local, Local> remap = new HashMap<>();
 		for(BasicBlock b : cfg.vertices()) {
 			for(Statement stmt : b) {
 				int opcode = stmt.getOpcode();
