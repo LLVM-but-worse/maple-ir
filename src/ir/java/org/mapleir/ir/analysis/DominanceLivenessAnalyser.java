@@ -59,7 +59,7 @@ public class DominanceLivenessAnalyser {
 		
 		computeStrictDominators();
 		
-		System.out.println("Backedge Targets: " + GraphUtils.toBlockArray(btargs));
+//		System.out.println("Backedge Targets: " + GraphUtils.toBlockArray(btargs));
 	}
 	
 	public boolean sdoms(BasicBlock x, BasicBlock y) {
@@ -78,7 +78,7 @@ public class DominanceLivenessAnalyser {
 			if(idom != null) {
 				sdoms.getNonNull(b).add(idom);
 				sdoms.getNonNull(b).addAll(sdoms.getNonNull(idom));
-				System.out.println(b.getId() + " idom " + idom.getId());
+//				System.out.println(b.getId() + " idom " + idom.getId());
 				// System.out.println("  sdominators: " + sdoms.getNonNull(b));
 			}
 		}
@@ -89,9 +89,9 @@ public class DominanceLivenessAnalyser {
 			}
 		}
 		
-		for(Entry<BasicBlock, Set<BasicBlock>> e : this.sdoms.entrySet()) {
-			System.out.println(e.getKey() + " sdom " + GraphUtils.toBlockArray(e.getValue()));
-		}
+//		for(Entry<BasicBlock, Set<BasicBlock>> e : this.sdoms.entrySet()) {
+//			System.out.println(e.getKey() + " sdom " + GraphUtils.toBlockArray(e.getValue()));
+//		}
 	}
 
 	private void computeReducedReachability() {
@@ -198,8 +198,8 @@ public class DominanceLivenessAnalyser {
 			Set<BasicBlock> tqa = new HashSet<>(tq.get(q));
 			tqa.retainAll(sdomdef);
 			
-			System.out.printf("sdoms: %s, tqa: %s%n", GraphUtils.toBlockArray(sdomdef), GraphUtils.toBlockArray(tqa));
-			System.out.printf("b: %s(%b), l: %s, db: %s%n", q.getId(), targ, a, defBlock.getId());
+//			System.out.printf("sdoms: %s, tqa: %s%n", GraphUtils.toBlockArray(sdomdef), GraphUtils.toBlockArray(tqa));
+//			System.out.printf("b: %s(%b), l: %s, db: %s%n", q.getId(), targ, a, defBlock.getId());
 			
 			
 			for(BasicBlock t : tqa) {
@@ -210,15 +210,15 @@ public class DominanceLivenessAnalyser {
 				
 				
 				Set<BasicBlock> rtt = new HashSet<>(rv.getNonNull(t));
-				System.out.printf(" t:%s, u:%s, rt:%s%n", t.getId(), GraphUtils.toBlockArray(u), GraphUtils.toBlockArray(rtt));
+//				System.out.printf(" t:%s, u:%s, rt:%s%n", t.getId(), GraphUtils.toBlockArray(u), GraphUtils.toBlockArray(rtt));
 				rtt.retainAll(u);
 				if(!rtt.isEmpty()) {
-					System.out.println();
+//					System.out.println();
 					return true;
 				}
 			}
 			
-			System.out.println();
+//			System.out.println();
 		}
 		
 		return false;
