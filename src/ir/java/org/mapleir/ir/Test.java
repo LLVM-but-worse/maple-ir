@@ -68,7 +68,7 @@ public class Test {
 //				continue;
 //			}
 			
-			if(!m.toString().equals("org/mapleir/ir/Test.loopTest()V")) {
+			if(!m.toString().equals("org/mapleir/ir/Test.test111()V")) {
 				continue;
 			}
 			
@@ -80,11 +80,17 @@ public class Test {
 			} catch(RuntimeException e) {
 				throw new RuntimeException("\n" + cfg.toString(), e);
 			}
+
+			BasicDotConfiguration<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> config = new BasicDotConfiguration<>(DotConfiguration.GraphType.DIRECTED);
+			DotWriter<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> writer = new DotWriter<>(config, cfg);
+			writer.removeAll().add(new ControlFlowGraphDecorator().setFlags(OPT_DEEP))
+				.setName("destructed")
+				.export();
 			
-			System.out.println();
-			System.out.println();
-			System.out.println();
-			System.out.println(cfg);
+//			System.out.println();
+//			System.out.println();
+//			System.out.println();
+//			System.out.println(cfg);
 		}
 	}
 }
