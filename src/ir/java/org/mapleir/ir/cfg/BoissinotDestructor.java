@@ -423,7 +423,6 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 		}
 	}
 
-	ExtendedDfs dom_dfs;
 	HashMap<BasicBlock, Integer> preDfsDomOrder;
 	HashMap<Local, Local> equalAncIn;
 
@@ -441,7 +440,7 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 		DotWriter<FastBlockGraph, BasicBlock, FlowEdge<BasicBlock>> writer = new DotWriter<>(config, dom_tree);
 		writer.removeAll().setName("domtree").export();
 
-		dom_dfs = new ExtendedDfs(dom_tree, cfg.getEntries().iterator().next(), ExtendedDfs.POST | ExtendedDfs.PRE);
+		ExtendedDfs dom_dfs = new ExtendedDfs(dom_tree, cfg.getEntries().iterator().next(), ExtendedDfs.POST | ExtendedDfs.PRE);
 
 		// topo
 		for (int i = dom_dfs.getPostOrder().size() - 1; i >= 0; i--) {
@@ -496,9 +495,6 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 	boolean checkPreDomOrder(Local x, Local y) {
 		BasicBlock bx = defuse.defs.get(x);
 		BasicBlock by = defuse.defs.get(y);
-		if (by == null) {
-			System.out.println("trap");
-		}
 		return preDfsDomOrder.get(bx) < preDfsDomOrder.get(by);
 	}
 
@@ -600,16 +596,31 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 		throw new IllegalStateException("this shouldn't happen");
 	}
 
-	boolean checkIntersect(List<Local> red, List<Local> blue) {
+	class CongruenceClass extends TreeSet<Local> {
+		CongruenceClass() {
+			super(new Comparator<Local>() {
+				@Override
+				public int compare(Local o1, Local o2) {
+					return preDfsDomOrder.get(defuse.defs.get(o1)).compareTo(preDfsDomOrder.get(defuse.defs.get(o2)));
+				}
+			});
+		}
+	}
+
+	boolean checkIntersect(CongruenceClass red, CongruenceClass blue) {
 		Stack<Local> dom = new Stack<>();
-		int ir = 0;
-		int ib = 0;
-		while (ir < red.size() || ib < blue.size()) {
+		Local ir = red.first(), ib = blue.first();
+		Local lr = red.last(), lb = blue.last();
+		boolean redHasNext = true, blueHasNext = true;
+		while (redHasNext || blueHasNext) {
 			Local current;
-			if (ir == red.size() || (ir < red.size() && ib < blue.size() && checkPreDomOrder(blue.get(ib), red.get(ir))))
-				current = blue.get(ib++);
-			else
-				current = red.get(ir++);
+			if (!redHasNext || (redHasNext && blueHasNext && checkPreDomOrder(ir, ib))) {
+				current = ib; // current = blue[ib++]
+				blueHasNext = (ib = blue.higher(ib)) != lb;
+			} else {
+				current = ir; // current = red[ir++)
+				redHasNext = (ir = red.higher(ir)) != lr;
+			}
 
 			if (!dom.isEmpty()) {
 				Local other;
@@ -622,6 +633,7 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 			}
 			dom.push(current);
 		}
+
 		return false;
 	}
 
@@ -634,12 +646,12 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 	// all the locals in a set will be mapped to that set. there is only 1 instance of the set.
 	// whenever a local is added ot the set the mapping is added and the opposite is true for when a local is removed
 	// locals within the classes should be kept unique
-	Map<Local, List<Local>> congruenceClasses;
+	Map<Local, CongruenceClass> congruenceClasses;
 
-	List<Local> getCongruenceClass(Local l) {
+	CongruenceClass getCongruenceClass(Local l) {
 		if (congruenceClasses.containsKey(l))
 			return congruenceClasses.get(l);
-		List<Local> conClass = new ArrayList<>();
+		CongruenceClass conClass = new CongruenceClass();
 		conClass.add(l);
 		congruenceClasses.put(l, conClass);
 		return conClass;
@@ -648,8 +660,8 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 	// process the copy a = b
 	// returns whether the a and b can be coalesced
 	boolean tryCoalesceCopy(Local a, Local b) {
-		List<Local> conClassA = getCongruenceClass(a);
-		List<Local> conClassB = getCongruenceClass(b);
+		CongruenceClass conClassA = getCongruenceClass(a);
+		CongruenceClass conClassB = getCongruenceClass(b);
 
 		System.out.print("  check intersect: " + conClassA + " vs " + conClassB + ": ");
 		if (checkIntersect(conClassA, conClassB)) {
@@ -699,7 +711,6 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 
 	private void coalescePhis() {
 		// use defuse.phis TODO
-		Map<Local, Local> remap = new HashMap<>();
 		for (Entry<Local, PhiExpression> e : defuse.phis.entrySet()) {
 			Local l1 = e.getKey();
 			BasicBlock b = defuse.defs.get(l1);
@@ -741,9 +752,6 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 			}
 		}
 		defuse.phis.clear();
-
-		applyRemapping(remap);
-		remap.clear();
 	}
 
 	private void coalesceCopies() {
@@ -751,7 +759,7 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 		congruenceClasses = new HashMap<>();
 		// now for each copy check if lhs and rhs congruence classes do not interfere.
 		// if they do not interfere merge the conClasses and those two vars can be coalesced. delete the copy.
-		for(BasicBlock b : dom_dfs.getPreOrder()) {
+		for(BasicBlock b : cfg.vertices()) {
 			Iterator<Statement> it = b.iterator();
 			while (it.hasNext()) {
 				Statement stmt = it.next();
@@ -761,7 +769,7 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 						Local lhs = copy.getVariable().getLocal();
 						Local rhs = ((VarExpression) copy.getExpression()).getLocal();
 						if (tryCoalesceCopy(lhs, rhs)) {
-							Local remapLocal = congruenceClasses.get(lhs).get(0);
+							Local remapLocal = congruenceClasses.get(lhs).first();
 							remap.put(lhs, remapLocal);
 							remap.put(rhs, remapLocal);
 							it.remove();
@@ -776,7 +784,7 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 					for (Iterator<CopyPair> pairIter = copy.pairs.iterator(); pairIter.hasNext();) {
 						CopyPair pair = pairIter.next();
 						if (tryCoalesceCopy(pair.targ, pair.source)) {
-							Local remapLocal = congruenceClasses.get(pair.targ).get(0);
+							Local remapLocal = congruenceClasses.get(pair.targ).first();
 							remap.put(pair.targ, remapLocal);
 							remap.put(pair.source, remapLocal);
 							pairIter.remove();
