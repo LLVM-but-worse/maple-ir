@@ -597,7 +597,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 			case IF_ICMPLE:
 			case IF_ACMPEQ:
 			case IF_ACMPNE:
-				_jump_compare(resolveTarget(((JumpInsnNode) ain).label), ComparisonType.getType(opcode));
+				_jump_cmp(resolveTarget(((JumpInsnNode) ain).label), ComparisonType.getType(opcode));
 				break;
 				
 			case IFEQ:
@@ -1144,7 +1144,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		addStmt(new ConditionalJumpStatement(left, right, target, type));
 	}
 	
-	void _jump_compare(BasicBlock target, ComparisonType type) {
+	void _jump_cmp(BasicBlock target, ComparisonType type) {
 		Expression right = pop();
 		Expression left = pop();
 		_jump_compare(target, type, left, right);
