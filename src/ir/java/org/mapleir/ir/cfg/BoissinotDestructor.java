@@ -490,6 +490,104 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 		return preDfsDomOrder.get(bx) < preDfsDomOrder.get(by);
 	}
 
+	boolean intersect(Local a, Local b) {
+		BasicBlock defA = defuse.defs.get(a);
+		BasicBlock defB = defuse.defs.get(b);
+		if (defA == defB) {
+			boolean aLive = resolver.isLiveOut(defA, a);
+			boolean bLive = resolver.isLiveOut(defA, b);
+			if (aLive && bLive) // they definitely interfere
+				return true;
+
+			// ambiguous case. we need to check whether a and b are live at the same time in any point until we see both defs
+			int defsSeen = 0;
+			for (int i = defA.size() - 1; i >= 0; i--) {
+				Statement stmt = defA.get(i);
+				if (stmt instanceof CopyVarStatement) {
+					Local copyLocal = ((CopyVarStatement) stmt).getVariable().getLocal();
+					if (copyLocal.toString().equals(a.toString())) {
+						if (++defsSeen == 2)
+							return false;
+					} else if (copyLocal.toString().equals(b.toString())) {
+						if (++defsSeen == 2)
+							return false;
+					}
+				} else if (stmt instanceof ParallelCopyVarStatement) {
+					for (CopyPair pair : ((ParallelCopyVarStatement) stmt).pairs) {
+						if (pair.targ.toString().equals(a.toString())) {
+							if (++defsSeen == 2)
+								return false;
+						} else if (pair.targ.toString().equals(b.toString())) {
+							if (++defsSeen == 2)
+								return false;
+						}
+					}
+					for (CopyPair pair : ((ParallelCopyVarStatement) stmt).pairs) {
+						if (pair.source.toString().equals(a.toString()))
+							aLive = true;
+						else if (pair.source.toString().equals(b.toString()))
+							bLive = true;
+						if (aLive && bLive)
+							return true;
+					}
+				} else if (stmt instanceof CopyPhiStatement) {
+					throw new IllegalArgumentException("phi in block still?");
+				} else {
+					for (Statement child : stmt) {
+						if (child.getOpcode() == Opcode.LOCAL_LOAD) {
+							Local l = ((VarExpression) child).getLocal();
+							if (l.toString().equals(a.toString()))
+								aLive = true;
+							else if (l.toString().equals(b.toString()))
+								bLive = true;
+							if (aLive && bLive)
+								return true;
+						}
+					}
+				}
+			}
+			return false;
+		} else {
+			if (resolver.sdoms(defA, defB)) {
+				BasicBlock temp = defA;
+				defA = defB;
+				defB = temp;
+			}
+			if (resolver.sdoms(defB, defA)) {
+				if (resolver.isLiveOut(defA, b)) // if it's liveOut it definitely intersects
+					return true;
+				if (!resolver.isLiveIn(defA, b)) // defA != defB, so it must be liveIn in order to intersect.
+					return false;
+			} else {
+				return false;
+			}
+		}
+
+		// ambiguous case. we need to check if use(dom) occurs after def(def), in that case it interferes. otherwise no
+		for (int i = defA.size() - 1; i >= 0; i--) {
+			Statement stmt = defA.get(i);
+			if (stmt instanceof CopyVarStatement) {
+				if (((CopyVarStatement) stmt).getVariable().getLocal().toString().equals(a.toString()))
+					return false;
+			} else if (stmt instanceof ParallelCopyVarStatement) {
+				for (CopyPair pair : ((ParallelCopyVarStatement) stmt).pairs)
+					if (pair.targ.toString().equals(a.toString()))
+						return false;
+				for (CopyPair pair : ((ParallelCopyVarStatement) stmt).pairs)
+					if (pair.source.toString().equals(b.toString()))
+						return true;
+			} else if (stmt instanceof CopyPhiStatement) {
+				throw new IllegalArgumentException("phi in block still?");
+			} else {
+				for (Statement child : stmt)
+					if (child.getOpcode() == Opcode.LOCAL_LOAD)
+						if (((VarExpression) child).getLocal().toString().equals(b.toString()))
+							return true;
+			}
+		}
+		throw new IllegalStateException("this shouldn't happen");
+	}
+
 	boolean checkIntersect(List<Local> red, List<Local> blue) {
 		Stack<Local> dom = new Stack<>();
 		int ir = 0;
@@ -548,6 +646,8 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 	void coalesce() {
 		congruenceClasses = new HashMap<>();
 
+		// coalesce all the phi locals together
+		Map<Local, Local> remap = new HashMap<>();
 		for(BasicBlock b : cfg.vertices()) {
 			Iterator<Statement> it = b.iterator();
 			while(it.hasNext()) {
@@ -558,33 +658,44 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 					PhiExpression phi = copy.getExpression();
 
 					Local l1 = copy.getVariable().getLocal();
-					LinkedHashSet<Local> coalesceGroup;
+					Local newL = cfg.getLocals().makeLatestVersion(l1);
+					LinkedHashSet<Local> conClass;
 					if (congruenceClasses.containsKey(l1))
-						coalesceGroup = congruenceClasses.get(l1);
-					else {
-						coalesceGroup = new LinkedHashSet<>();
-						coalesceGroup.add(l1);
-						congruenceClasses.put(l1, coalesceGroup);
-					}
+						throw new IllegalStateException("this should never happen");
+//						coalesceGroup = congruenceClasses.get(l1);
+					conClass = new LinkedHashSet<>();
+					conClass.add(l1);
+					congruenceClasses.put(l1, conClass);
+					remap.put(l1, newL);
 
 					for(Expression ex : phi.getArguments().values()) {
 						VarExpression v = (VarExpression) ex;
 						Local l = v.getLocal();
-						coalesceGroup.add(l);
-						congruenceClasses.put(l, coalesceGroup);
+						conClass.add(l);
+						congruenceClasses.put(l, conClass);
+						remap.put(l, newL);
 					}
 
 					it.remove(); // we can simply drop all the phis without further consideration
-				} else if (stmt.getOpcode() == -1) {
+				}
+			}
+		}
+
+		// now for each copy check if lhs and rhs congruence classes do not interfere.
+		// if they do not interfere merge the conClasses and those two vars can be coalesced. delete the copy.
+		for(BasicBlock b : cfg.vertices()) {
+			Iterator<Statement> it = b.iterator();
+			while (it.hasNext()) {
+				Statement stmt = it.next();
+				if (stmt.getOpcode() == -1) {
 					ParallelCopyVarStatement copy = (ParallelCopyVarStatement) stmt;
-					// for each copy we need to check the interference between the vars
+					// we need to do it for each one. if all of the copies are removed then remove the pcvs
 				} else if (stmt.getOpcode() == Opcode.LOCAL_STORE) {
 					CopyVarStatement copy = (CopyVarStatement) stmt;
 				}
 			}
 		}
 
-		Map<Local, Local> remap = new HashMap<>();
 		for(BasicBlock b : cfg.vertices()) {
 			for(Statement stmt : b) {
 				int opcode = stmt.getOpcode();
@@ -626,16 +737,24 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 		if (p.isEmpty())
 			return;
 		int indexOffset = 0;
+		Local spill = cfg.getLocals().makeLatestVersion(p.entrySet().iterator().next().getKey().pairs.get(0).targ);
 		for (Entry<ParallelCopyVarStatement, Integer> e : p.entrySet()) {
 			ParallelCopyVarStatement pcvs = e.getKey();
 			int index = e.getValue() + indexOffset;
-			Local spill = cfg.getLocals().makeLatestVersion(pcvs.pairs.get(0).targ);
-			List<CopyVarStatement> sequentialized = sequentialize(pcvs, spill);
-			b.remove(pcvs);
-			// warning: O(N^2) operation
-			for (CopyVarStatement cvs : sequentialized) // warning: O(N^2) operation
-				b.add(index + indexOffset++, cvs);
-			indexOffset--;
+			if (pcvs.pairs.size() == 0)
+				throw new IllegalArgumentException("pcvs is empty");
+			else if (pcvs.pairs.size() == 1) { // constant sequentialize for trivial parallel copies
+				CopyPair pair = pcvs.pairs.get(0);
+				CopyVarStatement newCopy = new CopyVarStatement(new VarExpression(pair.targ, pair.type), new VarExpression(pair.source, pair.type));
+				b.set(index, newCopy);
+			} else {
+				List<CopyVarStatement> sequentialized = sequentialize(pcvs, spill);
+				b.remove(pcvs);
+				// warning: O(N^2) operation
+				for (CopyVarStatement cvs : sequentialized) // warning: O(N^2) operation
+					b.add(index + indexOffset++, cvs);
+				indexOffset--;
+			}
 		}
 	}
 
