@@ -57,7 +57,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 	private final LinkedList<LabelNode> queue;
 	private int count = 0;
 	
-	private Set<BasicBlock> updatedStacks;
+	private BitSet stacks;
 	private BasicBlock currentBlock;
 	private ExpressionStack currentStack;
 	private boolean saved;
@@ -72,8 +72,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		 * the creation mechanism later. */
 		finished = new BitSet();
 		queue = new LinkedList<>();
-		
-		updatedStacks = new HashSet<>();
+		stacks = new BitSet();
 		
 		insns = builder.method.instructions;
 	}
@@ -140,7 +139,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		stack.push(load_stack(0, type));
 		
 		queue(label);
-		updatedStacks.add(handler);
+		stacks.set(handler.getNumericId());
 	}
 	
 	void defineInputs(MethodNode m, BasicBlock b) {
@@ -177,7 +176,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 	
 	void preprocess(BasicBlock block) {
 		ExpressionStack stack = block.getInputStack().copy();
-		updatedStacks.add(block);
+		stacks.set(block.getNumericId());
 		
 		currentBlock = block;
 		currentStack = stack;
@@ -1261,7 +1260,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 	}
 	
 	void update_target_stack(BasicBlock b, BasicBlock target, ExpressionStack stack) {
-		if(updatedStacks.contains(b) && !saved) {
+		if(stacks.get(b.getNumericId()) && !saved) {
 			save_stack();
 		}
 		// called just before a jump to a successor block may
@@ -1269,11 +1268,11 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		// happen before the jump are expected to have already
 		// popped the left and right arguments from the stack before
 		// checking the merge state.
-		if (!updatedStacks.contains(target)) {
+		if (!stacks.get(target.getNumericId())) {
 			// unfinalised block found.
 			// System.out.println("Setting target stack of " + target.getId() + " to " + stack);
 			target.setInputStack(stack.copy());
-			updatedStacks.add(target);
+			stacks.set(target.getNumericId());
 
 			queue(target.getLabelNode());
 		} else if (!can_succeed(target.getInputStack(), stack)) {
