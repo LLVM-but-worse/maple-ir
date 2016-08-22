@@ -164,7 +164,7 @@ public class DominanceLivenessAnalyser {
 		// System.out.println("p: " + defuse.phis.contains(l));
 		// System.out.println();
 		
-		if(defuse.phis.contains(l) && defBlock == b) {
+		if(defuse.phis.containsKey(l) && defBlock == b) {
 			return true;
 		}
 		

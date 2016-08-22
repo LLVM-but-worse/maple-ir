@@ -82,11 +82,7 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 
 		resolver = new DominanceLivenessAnalyser(cfg, defuse); // this part belongs in 2
 
-		for (BasicBlock b : cfg.vertices())
-			for (Statement stmt : b)
-				if (stmt.getOpcode() == Opcode.LOCAL_LOAD)
-					localsTest.add(((VarExpression) stmt).getLocal());
-		localsTest.addAll(defuse.phis);
+		localsTest.addAll(defuse.phis.keySet());
 		localsTest.addAll(defuse.uses.keySet());
 		localsTest.addAll(defuse.defs.keySet());
 		writer.removeAll().add(new ControlFlowGraphDecorator().setFlags(OPT_DEEP))
@@ -98,7 +94,19 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 		compute_value_interference();
 
 		// 3. Aggressively coalesce while in CSSA to leave SSA
-		coalesce();
+		// 3a. Coalesce phi locals to leave CSSA (!!!)
+		coalescePhis();
+		localsTest.clear();
+		localsTest.addAll(defuse.uses.keySet());
+		localsTest.addAll(defuse.defs.keySet());
+		writer.removeAll()
+				.add(new ControlFlowGraphDecorator().setFlags(OPT_DEEP))
+				.add("liveness", new LivenessDecorator<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>>().setLiveness(this))
+				.setName("after-coalesce-phis")
+				.export();
+
+		// 3b. Coalesce the rest of the copies
+		coalesceCopies();
 		writer.removeAll()
 				.add(new ControlFlowGraphDecorator().setFlags(OPT_DEEP))
 				.setName("after-coalesce")
@@ -164,7 +172,7 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 						defuse.uses.getNonNull(ul).add(p);
 					}
 
-					defuse.phis.add(copy.getVariable().getLocal());
+					defuse.phis.put(copy.getVariable().getLocal(), copy.getExpression());
 				} else {
 					for(Statement s : stmt) {
 						if(s.getOpcode() == Opcode.LOCAL_LOAD) {
@@ -243,7 +251,7 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 			defuse.uses.getNonNull(z0).add(b);
 
 			defuse.phis.remove(x0);
-			defuse.phis.add(z0);
+			defuse.phis.put(z0, phi);
 		}
 
 		// resolve
@@ -415,6 +423,7 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 		}
 	}
 
+	ExtendedDfs dom_dfs;
 	HashMap<BasicBlock, Integer> preDfsDomOrder;
 	HashMap<Local, Local> equalAncIn;
 
@@ -432,7 +441,7 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 		DotWriter<FastBlockGraph, BasicBlock, FlowEdge<BasicBlock>> writer = new DotWriter<>(config, dom_tree);
 		writer.removeAll().setName("domtree").export();
 
-		ExtendedDfs dom_dfs = new ExtendedDfs(dom_tree, cfg.getEntries().iterator().next(), ExtendedDfs.POST | ExtendedDfs.PRE);
+		dom_dfs = new ExtendedDfs(dom_tree, cfg.getEntries().iterator().next(), ExtendedDfs.POST | ExtendedDfs.PRE);
 
 		// topo
 		for (int i = dom_dfs.getPostOrder().size() - 1; i >= 0; i--) {
@@ -487,6 +496,9 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 	boolean checkPreDomOrder(Local x, Local y) {
 		BasicBlock bx = defuse.defs.get(x);
 		BasicBlock by = defuse.defs.get(y);
+		if (by == null) {
+			System.out.println("trap");
+		}
 		return preDfsDomOrder.get(bx) < preDfsDomOrder.get(by);
 	}
 
@@ -614,88 +626,46 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 	}
 
 	boolean interference(Local a, Local b) {
+		intersect(a, b); // fuck it; ignore values for now.
 		// how the f--k do you compute equal intersecting ancestor?????
 		return false;
 	}
 
 	// all the locals in a set will be mapped to that set. there is only 1 instance of the set.
 	// whenever a local is added ot the set the mapping is added and the opposite is true for when a local is removed
-	Map<Local, LinkedHashSet<Local>> congruenceClasses;
+	// locals within the classes should be kept unique
+	Map<Local, List<Local>> congruenceClasses;
 
-	void createCongruenceClass(Local l) {
-		LinkedHashSet<Local> conClass = new LinkedHashSet<>();
+	List<Local> getCongruenceClass(Local l) {
+		if (congruenceClasses.containsKey(l))
+			return congruenceClasses.get(l);
+		List<Local> conClass = new ArrayList<>();
 		conClass.add(l);
 		congruenceClasses.put(l, conClass);
+		return conClass;
 	}
 
-	void coalesce(Local a, Local b) {
-		LinkedHashSet<Local> conClass;
-		if (congruenceClasses.containsKey(a)) {
-			conClass = congruenceClasses.get(a);
-			conClass.add(b);
-			congruenceClasses.put(b, conClass);
-		} else if (congruenceClasses.containsKey(b)) {
-			conClass = congruenceClasses.get(b);
-			conClass.add(a);
-			congruenceClasses.put(a, conClass);
-		} else {
-			conClass = new LinkedHashSet<>();
+	// process the copy a = b
+	// returns whether the a and b can be coalesced
+	boolean tryCoalesceCopy(Local a, Local b) {
+		List<Local> conClassA = getCongruenceClass(a);
+		List<Local> conClassB = getCongruenceClass(b);
+
+		System.out.print("  check intersect: " + conClassA + " vs " + conClassB + ": ");
+		if (checkIntersect(conClassA, conClassB)) {
+			System.out.println("true");
+			return false;
 		}
+		System.out.println("false");
+		// merge congruence classes
+		conClassA.addAll(conClassB);
+		for (Local l : conClassB)
+			congruenceClasses.put(l, conClassA);
+		return true;
 	}
 
-	void coalesce() {
-		congruenceClasses = new HashMap<>();
-
-		// coalesce all the phi locals together
-		Map<Local, Local> remap = new HashMap<>();
-		for(BasicBlock b : cfg.vertices()) {
-			Iterator<Statement> it = b.iterator();
-			while(it.hasNext()) {
-				Statement stmt = it.next();
-				if(stmt.getOpcode() == Opcode.PHI_STORE) {
-					// since we are now in csaa, phi locals never interfere and are in the same congruence class.
-					CopyPhiStatement copy = (CopyPhiStatement) stmt;
-					PhiExpression phi = copy.getExpression();
-
-					Local l1 = copy.getVariable().getLocal();
-					Local newL = cfg.getLocals().makeLatestVersion(l1);
-					LinkedHashSet<Local> conClass;
-					if (congruenceClasses.containsKey(l1))
-						throw new IllegalStateException("this should never happen");
-//						coalesceGroup = congruenceClasses.get(l1);
-					conClass = new LinkedHashSet<>();
-					conClass.add(l1);
-					congruenceClasses.put(l1, conClass);
-					remap.put(l1, newL);
-
-					for(Expression ex : phi.getArguments().values()) {
-						VarExpression v = (VarExpression) ex;
-						Local l = v.getLocal();
-						conClass.add(l);
-						congruenceClasses.put(l, conClass);
-						remap.put(l, newL);
-					}
-
-					it.remove(); // we can simply drop all the phis without further consideration
-				}
-			}
-		}
-
-		// now for each copy check if lhs and rhs congruence classes do not interfere.
-		// if they do not interfere merge the conClasses and those two vars can be coalesced. delete the copy.
-		for(BasicBlock b : cfg.vertices()) {
-			Iterator<Statement> it = b.iterator();
-			while (it.hasNext()) {
-				Statement stmt = it.next();
-				if (stmt.getOpcode() == -1) {
-					ParallelCopyVarStatement copy = (ParallelCopyVarStatement) stmt;
-					// we need to do it for each one. if all of the copies are removed then remove the pcvs
-				} else if (stmt.getOpcode() == Opcode.LOCAL_STORE) {
-					CopyVarStatement copy = (CopyVarStatement) stmt;
-				}
-			}
-		}
-
+	void applyRemapping(Map<Local, Local> remap) {
+		// defuse can be used here to speed things up. TODO
 		for(BasicBlock b : cfg.vertices()) {
 			for(Statement stmt : b) {
 				int opcode = stmt.getOpcode();
@@ -720,6 +690,108 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 				}
 			}
 		}
+
+		for (Entry<Local, Local> e : remap.entrySet()) {
+			defuse.defs.remove(e.getKey());
+			defuse.uses.remove(e.getKey());
+		}
+	}
+
+	private void coalescePhis() {
+		// use defuse.phis TODO
+		Map<Local, Local> remap = new HashMap<>();
+		for (Entry<Local, PhiExpression> e : defuse.phis.entrySet()) {
+			Local l1 = e.getKey();
+			BasicBlock b = defuse.defs.get(l1);
+			// since we are now in csaa, phi locals never interfere and are in the same congruence class.
+			// therefore we can coalesce them all together and drop phis. with this, we leave cssa.
+			PhiExpression phi = e.getValue();
+
+			Local newL = cfg.getLocals().makeLatestVersion(l1);
+			remap.put(l1, newL);
+			values.put(newL, newL); // collapsed phi vars have 'blank' value
+			// we have to update values map too for all the defs
+			defuse.defs.put(newL, b); // TODO: move this processing for defuse
+			Set<BasicBlock> newUses = new HashSet<>();
+			newUses.add(b);
+			newUses.addAll(defuse.uses.get(l1));
+			defuse.uses.put(newL, newUses);
+
+			System.out.println("  " + newL + " phi auto");
+			System.out.println("phi def remap: " + l1 + " " + newL);
+
+			for(Expression ex : phi.getArguments().values()) {
+				VarExpression v = (VarExpression) ex;
+				Local l = v.getLocal();
+				remap.put(l, newL);
+				newUses.addAll(defuse.uses.get(l));
+				// we have to update values map too for all the defs
+				// PROBLEM IS NOW WE HAVE MULTIPLE DEFS OF THE SAME VAR BUT WE CAN'T MATCH THAT IN DEFUSE.DEFS
+				// NOW THE DOMINANCE LIVENESS DOESNT WORK (IT DEPENDS ON SSA)
+				// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+				System.out.println("phi use remap: " + l + " " + newL);
+			}
+
+			// we can simply drop all the phis without further consideration
+			for (Iterator<Statement> it = b.iterator(); it.hasNext();) {
+				if (it.next().getOpcode() == Opcode.PHI_STORE)
+					it.remove();
+				else
+					break;
+			}
+		}
+		defuse.phis.clear();
+
+		applyRemapping(remap);
+		remap.clear();
+	}
+
+	private void coalesceCopies() {
+		Map<Local, Local> remap = new HashMap<>();
+		congruenceClasses = new HashMap<>();
+		// now for each copy check if lhs and rhs congruence classes do not interfere.
+		// if they do not interfere merge the conClasses and those two vars can be coalesced. delete the copy.
+		for(BasicBlock b : dom_dfs.getPreOrder()) {
+			Iterator<Statement> it = b.iterator();
+			while (it.hasNext()) {
+				Statement stmt = it.next();
+				if (stmt.getOpcode() == Opcode.LOCAL_STORE) {
+					CopyVarStatement copy = (CopyVarStatement) stmt;
+					if (copy.getExpression().getOpcode() == Opcode.LOCAL_STORE) {
+						Local lhs = copy.getVariable().getLocal();
+						Local rhs = ((VarExpression) copy.getExpression()).getLocal();
+						if (tryCoalesceCopy(lhs, rhs)) {
+							Local remapLocal = congruenceClasses.get(lhs).get(0);
+							remap.put(lhs, remapLocal);
+							remap.put(rhs, remapLocal);
+							it.remove();
+							System.out.println("coalesce " + lhs + " = " + rhs);
+							System.out.println("  remap to " + remapLocal);
+						}
+					}
+				} else if (stmt.getOpcode() == -1) {
+					// we need to do it for each one. if all of the copies are removed then remove the pcvs
+					ParallelCopyVarStatement copy = (ParallelCopyVarStatement) stmt;
+					System.out.println("p coalesce " + copy);
+					for (Iterator<CopyPair> pairIter = copy.pairs.iterator(); pairIter.hasNext();) {
+						CopyPair pair = pairIter.next();
+						if (tryCoalesceCopy(pair.targ, pair.source)) {
+							Local remapLocal = congruenceClasses.get(pair.targ).get(0);
+							remap.put(pair.targ, remapLocal);
+							remap.put(pair.source, remapLocal);
+							pairIter.remove();
+							System.out.println("  psub coalesce " + pair.targ + " = " + pair.source);
+							System.out.println("    remap to " + remapLocal);
+						}
+					}
+					if (copy.pairs.isEmpty()) {
+						it.remove();
+						System.out.println("  >total coalesce");
+					}
+				}
+			}
+		}
+		applyRemapping(remap);
 	}
 
 	void sequentialize() {

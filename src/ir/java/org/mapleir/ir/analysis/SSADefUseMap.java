@@ -24,13 +24,13 @@ public class SSADefUseMap implements Opcode {
 	private final ControlFlowGraph cfg;
 	public final Map<Local, BasicBlock> defs;
 	public final NullPermeableHashMap<Local, Set<BasicBlock>> uses;
-	public final Set<Local> phis;
+	public final HashMap<Local, PhiExpression> phis;
 	
 	public SSADefUseMap(ControlFlowGraph cfg, boolean compute) {
 		this.cfg = cfg;
 		defs = new HashMap<>();
 		uses = new NullPermeableHashMap<>(new SetCreator<>());
-		phis = new HashSet<>();
+		phis = new HashMap<>();
 		
 		if(compute) {
 			build(cfg);
@@ -62,7 +62,7 @@ public class SSADefUseMap implements Opcode {
 					Local ul = ((VarExpression) en.getValue()).getLocal();
 					uses.getNonNull(ul).add(en.getKey());
 				}
-				phis.add(l);
+				phis.put(l, phi);
 			}
 		}
 		
@@ -97,7 +97,7 @@ public class SSADefUseMap implements Opcode {
 							Local ul = ((VarExpression) en.getValue()).getLocal();
 							uses.getNonNull(ul).add(en.getKey());
 						}
-						phis.add(l);
+						phis.put(l, phi);
 					}
 				}
 				
