@@ -22,7 +22,7 @@ public class NaturalisationPass1 extends ControlFlowGraphBuilder.BuilderPass {
 
 	@Override
 	public void run() {
-		
+		mergeImmediates();
 	}
 	
 	int mergeImmediates() {
