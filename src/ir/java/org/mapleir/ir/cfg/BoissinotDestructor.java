@@ -326,6 +326,11 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 			do
 				stmt = b.get(i++);
 			while(stmt.getOpcode() == Opcode.PHI_STORE && i < b.size());
+			
+			if(stmt.canChangeFlow()) {
+				i--;
+			}
+			
 			b.add(i, copy);
 		}
 	}
@@ -981,12 +986,12 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 
 		@Override
 		public boolean canChangeFlow() {
-			throw new UnsupportedOperationException();
+			return false;
 		}
 
 		@Override
 		public boolean canChangeLogic() {
-			throw new UnsupportedOperationException();
+			return false;
 		}
 
 		@Override
