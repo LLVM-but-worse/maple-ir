@@ -9,6 +9,7 @@ public class OptimisationPass extends ControlFlowGraphBuilder.BuilderPass {
 		super(builder);
 	}
 
+	// TODO: optimise
 	private Optimiser[] findOptimisers(SSALocalAccess a) {
 		return new Optimiser[] {
 			new Propagator(builder, a),
