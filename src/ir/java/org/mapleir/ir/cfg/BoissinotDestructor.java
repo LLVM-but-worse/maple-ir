@@ -77,6 +77,7 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 		// 1. Insert copies to enter CSSA.
 		init();
 		insert_copies();
+		createDuChains();
 		verify();
 
 		resolver = new DominanceLivenessAnalyser(cfg, defuse); // this part belongs in 2
@@ -158,21 +159,6 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 				}
 			}
 		}
-
-		defuse = new SSADefUseMap(cfg, true) {
-			@Override
-			protected void buildIndex(BasicBlock b, Statement stmt, int index) {
-				if (stmt instanceof ParallelCopyVarStatement) {
-					ParallelCopyVarStatement copy = (ParallelCopyVarStatement) stmt;
-					for (CopyPair pair : copy.pairs) {
-						defIndex.put(pair.targ, index);
-						lastUseIndex.getNonNull(pair.source).put(b, index);
-					}
-				} else {
-					super.buildIndex(b, stmt, index);
-				}
-			}
-		};
 	}
 
 	private Local separatePhiDef(CopyPhiStatement copy, BasicBlock pred) {
@@ -184,10 +170,6 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 		CopyVarStatement newCopy = new CopyVarStatement(new VarExpression(ul, expr.getType()), expr);
 		insert_end(pred, newCopy);
 		phi.setArgument(pred, new VarExpression(ul, expr.getType()));
-
-		// we consider phi args to be used in the pred.
-//		defuse.defs.put(ul, pred);
-//		defuse.uses.getNonNull(ul).add(pred);
 
 		return ul;
 	}
@@ -234,21 +216,11 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 			Local z0 = cfg.getLocals().makeLatestVersion(x0);
 			dst_copy.pairs.add(new CopyPair(x0, z0, copy.getVariable().getType())); // x0 = z0
 			copy.getVariable().setLocal(z0); // z0 = phi(...)
-
-			// both defined and used in this block.
-			defuse.defs.put(x0, b);
-			defuse.defs.put(z0, b);
-			defuse.uses.getNonNull(z0).add(b);
-
-			defuse.phis.remove(x0);
-			defuse.phis.put(z0, phi);
 		}
 
 		// resolve
-		if(dst_copy.pairs.size() > 0) {
+		if(dst_copy.pairs.size() > 0)
 			insert_start(b, dst_copy);
-//			record_pcopy(b, dst_copy);
-		}
 
 		for(Entry<BasicBlock, List<PhiRes>> e : wl.entrySet()) {
 			BasicBlock p = e.getKey();
@@ -268,17 +240,6 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 				//  instead of the block where the phi is, so
 				//  we need to update the def/use maps here.
 
-				// zi is defined in the pred.
-				defuse.defs.put(zi, p);
-				// xi is used in the zi def.
-				defuse.uses.getNonNull(zi).add(p);
-				// xi is replaced with zi in the phi block,
-				//  but for this implementation, we consider
-				//  the phi source uses to be in the pre.
-				//  n.b. that zi, which should be used in the
-				//       phi pred is already added above.
-				defuse.uses.getNonNull(xi).remove(p);
-
 				r.phi.setArgument(r.pred, new VarExpression(zi, r.type));
 			}
 
@@ -291,9 +252,6 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 		System.out.println("INSERT: " + copy + " from " + Thread.currentThread().getStackTrace()[2].toString());
 
 		for(CopyPair p : copy.pairs) {
-			defuse.defs.put(p.targ, b);
-			defuse.uses.getNonNull(p.source).add(b);
-
 			localsTest.add(p.targ);
 			localsTest.add(p.source);
 		}
@@ -310,7 +268,7 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 		} else {
 			// insert after phi.
 			int stop = b.size();
-			if (b.get(--stop).canChangeFlow())
+			if (b.get(stop - 1).canChangeFlow())
 				stop--;
 			int i = 0;
 			while (b.get(i++).getOpcode() == Opcode.PHI_STORE && i < stop);
@@ -334,6 +292,36 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 				b.add(b.indexOf(last), copy);
 			}
 		}
+	}
+
+	void createDuChains() {
+		defuse = new SSADefUseMap(cfg, true) {
+			@Override
+			protected void build(BasicBlock b, Statement stmt) {
+				if (stmt instanceof ParallelCopyVarStatement) {
+					ParallelCopyVarStatement copy = (ParallelCopyVarStatement) stmt;
+					for (CopyPair pair : copy.pairs) {
+						defs.put(pair.targ, b);
+						uses.getNonNull(pair.source).add(b);
+					}
+				} else {
+					super.build(b, stmt);
+				}
+			}
+
+			@Override
+			protected void buildIndex(BasicBlock b, Statement stmt, int index) {
+				if (stmt instanceof ParallelCopyVarStatement) {
+					ParallelCopyVarStatement copy = (ParallelCopyVarStatement) stmt;
+					for (CopyPair pair : copy.pairs) {
+						defIndex.put(pair.targ, index);
+						lastUseIndex.getNonNull(pair.source).put(b, index);
+					}
+				} else {
+					super.buildIndex(b, stmt, index);
+				}
+			}
+		};
 	}
 
 	void verify() {
