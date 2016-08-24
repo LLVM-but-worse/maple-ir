@@ -402,6 +402,7 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 	}
 
 	HashMap<Local, Integer> preDfsDomOrder;
+	ExtendedDfs dom_dfs;
 	HashMap<Local, Local> equalAncIn;
 
 	void compute_value_interference() {
@@ -419,34 +420,41 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 		DotWriter<FastBlockGraph, BasicBlock, FlowEdge<BasicBlock>> writer = new DotWriter<>(config, dom_tree);
 		writer.removeAll().setName("domtree").export();
 
-		ExtendedDfs dom_dfs = new ExtendedDfs(dom_tree, cfg.getEntries().iterator().next(), ExtendedDfs.POST | ExtendedDfs.PRE);
+		int domIndex = 0;
+		preDfsDomOrder = new HashMap<>();
 
 		// topo
+		dom_dfs = new ExtendedDfs(dom_tree, cfg.getEntries().iterator().next(), ExtendedDfs.POST | ExtendedDfs.PRE);
 		for (int i = dom_dfs.getPostOrder().size() - 1; i >= 0; i--) {
 			BasicBlock bl = dom_dfs.getPostOrder().get(i);
 			for (Statement stmt : bl) {
-				if (stmt instanceof CopyVarStatement) {
-					CopyVarStatement copy = (CopyVarStatement) stmt;
-					Expression e = copy.getExpression();
-					Local b = copy.getVariable().getLocal();
+				if (stmt instanceof AbstractCopyStatement) {
+					preDfsDomOrder.put(((AbstractCopyStatement) stmt).getVariable().getLocal(), domIndex++);
 
-					if (e instanceof VarExpression) {
-						Local a = ((VarExpression) e).getLocal();
-						System.out.println("  value " + b + " " + values.get(a));
-						values.put(b, values.get(a));
-					} else {
-						System.out.println("  value " + b + " auto");
+					if (stmt instanceof CopyVarStatement) {
+						CopyVarStatement copy = (CopyVarStatement) stmt;
+						Expression e = copy.getExpression();
+						Local b = copy.getVariable().getLocal();
+
+						if (e instanceof VarExpression) {
+							Local a = ((VarExpression) e).getLocal();
+							System.out.println("  value " + b + " " + values.get(a));
+							values.put(b, values.get(a));
+						} else {
+							System.out.println("  value " + b + " auto");
+							values.put(b, b);
+						}
+					} else if (stmt instanceof CopyPhiStatement) {
+						CopyPhiStatement copy = (CopyPhiStatement) stmt;
+						Local b = copy.getVariable().getLocal();
+						System.out.println("  value " + b + " phi auto");
 						values.put(b, b);
 					}
-				} else if (stmt instanceof CopyPhiStatement) {
-					CopyPhiStatement copy = (CopyPhiStatement) stmt;
-					Local b = copy.getVariable().getLocal();
-					System.out.println("  value " + b + " phi auto");
-					values.put(b, b);
 				} else if (stmt instanceof ParallelCopyVarStatement) {
 					ParallelCopyVarStatement copy = (ParallelCopyVarStatement) stmt;
 					for (CopyPair p : copy.pairs) {
 						Local l = p.targ;
+						preDfsDomOrder.put(l, domIndex++);
 						System.out.println("  value " + l + " " + values.get(p.source) + " parallel");
 						values.put(l, values.get(p.source));
 					}
@@ -458,19 +466,6 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 			System.out.println("  " + e.getKey() + " = " + e.getValue());
 		System.out.println();
 
-		// it might be possible to put this code into the reverse postorder but the paper specified preorder
-		preDfsDomOrder = new HashMap<>();
-		int index = 0;
-		for (BasicBlock bl : dom_dfs.getPreOrder()) {
-			for (Statement stmt : bl) {
-				if (stmt instanceof AbstractCopyStatement) {
-					preDfsDomOrder.put(((AbstractCopyStatement) stmt).getVariable().getLocal(), index++);
-				} else if (stmt.getOpcode() == -1) {
-					for (CopyPair pair : ((ParallelCopyVarStatement) stmt).pairs)
-						preDfsDomOrder.put(pair.targ, index++);
-				}
-			}
-		}
 		System.out.println();
 		for (Entry<Local, Integer> e : preDfsDomOrder.entrySet())
 			System.out.println(e.getKey() + " " + e.getValue());
@@ -673,7 +668,7 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 	private void coalesceCopies() {
 		// now for each copy check if lhs and rhs congruence classes do not interfere.
 		// if they do not interfere merge the conClasses and those two vars can be coalesced. delete the copy.
-		for(BasicBlock b : cfg.vertices()) {
+		for(BasicBlock b : dom_dfs.getPreOrder()) {
 
 			Iterator<Statement> it = b.iterator();
 			while (it.hasNext()) {
