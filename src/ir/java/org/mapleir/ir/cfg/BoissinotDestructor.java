@@ -27,6 +27,7 @@ import org.mapleir.stdlib.cfg.util.TabbedStringWriter;
 import org.mapleir.stdlib.collections.ListCreator;
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.SetCreator;
+import org.mapleir.stdlib.collections.ValueCreator;
 import org.mapleir.stdlib.collections.graph.dot.BasicDotConfiguration;
 import org.mapleir.stdlib.collections.graph.dot.DotConfiguration;
 import org.mapleir.stdlib.collections.graph.dot.DotWriter;
@@ -66,8 +67,6 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 
 	public BoissinotDestructor(ControlFlowGraph cfg) {
 		this.cfg = cfg;
-		defuse = new SSADefUseMap(cfg, false);
-		values = new HashMap<>();
 
 		BasicDotConfiguration<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> config = new BasicDotConfiguration<>(DotConfiguration.GraphType.DIRECTED);
 		DotWriter<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> writer = new DotWriter<>(config, cfg);
@@ -78,6 +77,7 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 		// 1. Insert copies to enter CSSA.
 		init();
 		insert_copies();
+		createDuChains();
 		verify();
 
 		resolver = new DominanceLivenessAnalyser(cfg, defuse); // this part belongs in 2
@@ -92,6 +92,7 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 
 		// 2. Build value interference
 		compute_value_interference();
+		defuse.buildIndices();
 
 		// 3. Aggressively coalesce while in CSSA to leave SSA
 		// 3a. Coalesce phi locals to leave CSSA (!!!)
@@ -136,6 +137,10 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 		pcvs.pairs.add(new CopyPair(c, b, null));
 		pcvs.pairs.add(new CopyPair(d, c, null));
 		pcvs.pairs.add(new CopyPair(e, a, null));
+		for (Statement stmt : pcvs) {
+			if (stmt.getOpcode() == Opcode.LOCAL_LOAD)
+				System.out.println(((VarExpression) stmt).getLocal());
+		}
 		List<CopyVarStatement> seqd = sequentialize(pcvs, spill);
 		System.out.println("seq test: " + pcvs);
 		for (CopyVarStatement cvs : seqd)
@@ -143,44 +148,14 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 	}
 
 	private void init() {
+		// save non-var phi args to vars
 		for(BasicBlock b : cfg.vertices()) {
 			for(Statement stmt : b)  {
-				int opcode = stmt.getOpcode();
-				boolean isPhi = opcode == PHI_STORE;
-
-				if(isPhi || opcode == Opcode.LOCAL_STORE) {
-					AbstractCopyStatement copy = (AbstractCopyStatement) stmt;
-					Local l = copy.getVariable().getLocal();
-					defuse.defs.put(l, b);
-				}
-
-				if(isPhi) {
+				if(stmt instanceof CopyPhiStatement) {
 					CopyPhiStatement copy = (CopyPhiStatement) stmt;
-					PhiExpression phi = copy.getExpression();
-
-					for(Entry<BasicBlock, Expression> en : phi.getArguments().entrySet()) {
-						BasicBlock p = en.getKey();
-						Expression expr = en.getValue();
-						Local ul = null;
-
-						if(expr.getOpcode() != Opcode.LOCAL_LOAD) {
-							ul = separatePhiDef(copy, p);
-						} else {
-							VarExpression v = (VarExpression) expr;
-							ul = v.getLocal();
-						}
-
-						defuse.uses.getNonNull(ul).add(p);
-					}
-
-					defuse.phis.put(copy.getVariable().getLocal(), copy.getExpression());
-				} else {
-					for(Statement s : stmt) {
-						if(s.getOpcode() == Opcode.LOCAL_LOAD) {
-							Local l = ((VarExpression) s).getLocal();
-							defuse.uses.getNonNull(l).add(b);
-						}
-					}
+					for (Entry<BasicBlock, Expression> en : copy.getExpression().getArguments().entrySet())
+						if (en.getValue().getOpcode() != Opcode.LOCAL_LOAD)
+							separatePhiDef(copy, en.getKey());
 				}
 			}
 		}
@@ -195,10 +170,6 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 		CopyVarStatement newCopy = new CopyVarStatement(new VarExpression(ul, expr.getType()), expr);
 		insert_end(pred, newCopy);
 		phi.setArgument(pred, new VarExpression(ul, expr.getType()));
-
-		// we consider phi args to be used in the pred.
-		defuse.defs.put(ul, pred);
-		defuse.uses.getNonNull(ul).add(pred);
 
 		return ul;
 	}
@@ -245,21 +216,11 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 			Local z0 = cfg.getLocals().makeLatestVersion(x0);
 			dst_copy.pairs.add(new CopyPair(x0, z0, copy.getVariable().getType())); // x0 = z0
 			copy.getVariable().setLocal(z0); // z0 = phi(...)
-
-			// both defined and used in this block.
-			defuse.defs.put(x0, b);
-			defuse.defs.put(z0, b);
-			defuse.uses.getNonNull(z0).add(b);
-
-			defuse.phis.remove(x0);
-			defuse.phis.put(z0, phi);
 		}
 
 		// resolve
-		if(dst_copy.pairs.size() > 0) {
+		if(dst_copy.pairs.size() > 0)
 			insert_start(b, dst_copy);
-			record_pcopy(b, dst_copy);
-		}
 
 		for(Entry<BasicBlock, List<PhiRes>> e : wl.entrySet()) {
 			BasicBlock p = e.getKey();
@@ -279,17 +240,6 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 				//  instead of the block where the phi is, so
 				//  we need to update the def/use maps here.
 
-				// zi is defined in the pred.
-				defuse.defs.put(zi, p);
-				// xi is used in the zi def.
-				defuse.uses.getNonNull(zi).add(p);
-				// xi is replaced with zi in the phi block,
-				//  but for this implementation, we consider
-				//  the phi source uses to be in the pre.
-				//  n.b. that zi, which should be used in the
-				//       phi pred is already added above.
-				defuse.uses.getNonNull(xi).remove(p);
-
 				r.phi.setArgument(r.pred, new VarExpression(zi, r.type));
 			}
 
@@ -299,12 +249,9 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 	}
 
 	void record_pcopy(BasicBlock b, ParallelCopyVarStatement copy) {
-		System.out.println("INSERT: " + copy);
+		System.out.println("INSERT: " + copy + " from " + Thread.currentThread().getStackTrace()[2].toString());
 
 		for(CopyPair p : copy.pairs) {
-			defuse.defs.put(p.targ, b);
-			defuse.uses.getNonNull(p.source).add(b);
-
 			localsTest.add(p.targ);
 			localsTest.add(p.source);
 		}
@@ -315,24 +262,19 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 	}
 
 	void insert_start(BasicBlock b, ParallelCopyVarStatement copy) {
-		record_pcopy(b, copy);
 
 		if(b.isEmpty()) {
 			insert_empty(b, b, copy);
 		} else {
 			// insert after phi.
+			int stop = b.size();
+			if (b.get(stop - 1).canChangeFlow())
+				stop--;
 			int i = 0;
-			Statement stmt;
-			do
-				stmt = b.get(i++);
-			while(stmt.getOpcode() == Opcode.PHI_STORE && i < b.size());
-			
-			if(stmt.canChangeFlow()) {
-				i--;
-			}
-			
+			while (b.get(i++).getOpcode() == Opcode.PHI_STORE && i < stop);
 			b.add(i, copy);
 		}
+		record_pcopy(b, copy);
 	}
 
 	void insert_end(BasicBlock b, Statement copy) {
@@ -350,6 +292,36 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 				b.add(b.indexOf(last), copy);
 			}
 		}
+	}
+
+	void createDuChains() {
+		defuse = new SSADefUseMap(cfg, true) {
+			@Override
+			protected void build(BasicBlock b, Statement stmt) {
+				if (stmt instanceof ParallelCopyVarStatement) {
+					ParallelCopyVarStatement copy = (ParallelCopyVarStatement) stmt;
+					for (CopyPair pair : copy.pairs) {
+						defs.put(pair.targ, b);
+						uses.getNonNull(pair.source).add(b);
+					}
+				} else {
+					super.build(b, stmt);
+				}
+			}
+
+			@Override
+			protected void buildIndex(BasicBlock b, Statement stmt, int index) {
+				if (stmt instanceof ParallelCopyVarStatement) {
+					ParallelCopyVarStatement copy = (ParallelCopyVarStatement) stmt;
+					for (CopyPair pair : copy.pairs) {
+						defIndex.put(pair.targ, index);
+						lastUseIndex.getNonNull(pair.source).put(b, index);
+					}
+				} else {
+					super.buildIndex(b, stmt, index);
+				}
+			}
+		};
 	}
 
 	void verify() {
@@ -433,6 +405,7 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 	HashMap<Local, Local> equalAncIn;
 
 	void compute_value_interference() {
+		values = new HashMap<>();
 		FastBlockGraph dom_tree = new FastBlockGraph();
 		for (Entry<BasicBlock, Set<BasicBlock>> e : resolver.domc.getTree().entrySet()) {
 			BasicBlock b = e.getKey();
@@ -518,52 +491,26 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 	boolean intersect(Local a, Local b) {
 		if (a.toString().equals(b.toString()))
 			throw new IllegalArgumentException("me too thanks");
-		if (a.toString().equals("lvar2_3") && b.toString().equals("lvar1_3"))
-			System.err.println("trap");
 		if (checkPreDomOrder(a, b)) {
-			Local temp = a;
-			a = b;
-			b = temp;
+			throw new IllegalArgumentException("b should dom a");
+//			Local temp = a;
+//			a = b;
+//			b = temp;
 		}
 		BasicBlock defA = defuse.defs.get(a);
-		if (checkPreDomOrder(b, a)) {
+		if (checkPreDomOrder(b, a)) { // dom = b ; def = a
 			if (resolver.isLiveOut(defA, b)) // if it's liveOut it definitely intersects
 				return true;
 			if (!resolver.isLiveIn(defA, b) && defA != defuse.defs.get(b)) // defA == defB or liveIn to intersect
 				return false;
+			// ambiguous case. we need to check if use(dom) occurs after def(def), in that case it interferes. otherwise no
+			int domUseIndex = defuse.lastUseIndex.get(b).get(defA);
+			int defDefIndex = defuse.defIndex.get(a);
+			return domUseIndex > defDefIndex;
 		} else {
-			return false;
+			throw new IllegalArgumentException("this shouldn't happen???");
+//			return false;
 		}
-
-		// ambiguous case. we need to check if use(dom) occurs after def(def), in that case it interferes. otherwise no
-		boolean domLive = false;
-		for (int i = defA.size() - 1; i >= 0; i--) {
-			Statement stmt = defA.get(i);
-			if (stmt instanceof AbstractCopyStatement) {
-				if (((AbstractCopyStatement) stmt).getVariable().getLocal().toString().equals(a.toString()))
-					return domLive;
-			} else if (stmt instanceof ParallelCopyVarStatement) {
-				for (CopyPair pair : ((ParallelCopyVarStatement) stmt).pairs)
-					if (pair.targ.toString().equals(a.toString()))
-						return domLive;
-				for (CopyPair pair : ((ParallelCopyVarStatement) stmt).pairs) {
-					if (pair.source.toString().equals(b.toString())) {
-						domLive = true;
-						break;
-					}
-				}
-			} else {
-				for (Statement child : stmt) {
-					if (child.getOpcode() == Opcode.LOCAL_LOAD) {
-						if (((VarExpression) child).getLocal().toString().equals(b.toString())) {
-							domLive = true;
-							break;
-						}
-					}
-				}
-			}
-		}
-		throw new IllegalStateException("this shouldn't happen " + a + " " + b);
 	}
 
 	class CongruenceClass extends TreeSet<Local> {
@@ -583,17 +530,17 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 		Stack<Local> dom = new Stack<>();
 		Local ir = red.first(), ib = blue.first();
 		Local lr = red.last(), lb = blue.last();
-		boolean redHasNext = ir != lr, blueHasNext = ib != lb;
+		boolean redHasNext = true, blueHasNext = true;
 		while (redHasNext || blueHasNext) {
 			Local current;
 			if (!blueHasNext || (redHasNext && blueHasNext && checkPreDomOrder(ir, ib))) {
 				current = ir; // current = red[ir++)
 //				System.out.println("  red next = " + current);
-				redHasNext = (ir = red.higher(ir)) != lr;
+				redHasNext = ir != lr && (ir = red.higher(ir)) != lr;
 			} else {
 				current = ib; // current = blue[ib++]
 //				System.out.println("  blue next = " + current);
-				blueHasNext = (ib = blue.higher(ib)) != lb;
+				blueHasNext = ib != lb && (ib = blue.higher(ib)) != lb;
 			}
 
 			if (!dom.isEmpty()) {
@@ -637,12 +584,12 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 		CongruenceClass conClassA = getCongruenceClass(a);
 		CongruenceClass conClassB = getCongruenceClass(b);
 
-		System.out.print("  check intersect: " + conClassA + " vs " + conClassB + ": ");
+		System.out.println("  check intersect: " + conClassA + " vs " + conClassB + ": ");
 		if (checkIntersect(conClassA, conClassB)) {
-			System.out.println("true");
+			System.out.println("  check=> true");
 			return false;
 		}
-		System.out.println("false");
+		System.out.println("  check=> false");
 		// merge congruence classes
 		conClassA.addAll(conClassB);
 		for (Local l : conClassB)
@@ -710,22 +657,20 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 				congruenceClasses.put(l, phiConClass);
 //				remap.put(l, l1);
 			}
+			System.out.println("phi conclass: " + phiConClass);
 
 			// we can simply drop all the phis without further consideration
-//			for (Iterator<Statement> it = b.iterator(); it.hasNext();) {
-//				if (it.next().getOpcode() == Opcode.PHI_STORE)
-//					it.remove();
-//				else
-//					break;
-//			}
+			for (Iterator<Statement> it = b.iterator(); it.hasNext();) {
+				if (it.next().getOpcode() == Opcode.PHI_STORE)
+					it.remove();
+				else
+					break;
+			}
 		}
 		defuse.phis.clear();
 	}
 
 	private void coalesceCopies() {
-		HashMap<CopyPair, ParallelCopyVarStatement> toRemovePairs = new HashMap<>(); // TODO: delete me
-		List<Statement> toRemove = new ArrayList<>();
-
 		// now for each copy check if lhs and rhs congruence classes do not interfere.
 		// if they do not interfere merge the conClasses and those two vars can be coalesced. delete the copy.
 		for(BasicBlock b : cfg.vertices()) {
@@ -742,8 +687,7 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 //							Local remapLocal = congruenceClasses.get(lhs).first();
 //							remap.put(lhs, remapLocal);
 //							remap.put(rhs, remapLocal);
-//							it.remove();
-							toRemove.add(stmt);
+							it.remove();
 							System.out.println("coalesce " + lhs + " = " + rhs);
 //							System.out.println("  remap to " + remapLocal);
 						}
@@ -758,8 +702,7 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 //							Local remapLocal = congruenceClasses.get(pair.targ).first();
 //							remap.put(pair.targ, remapLocal);
 //							remap.put(pair.source, remapLocal);
-//							pairIter.remove();
-							toRemovePairs.put(pair, copy);
+							pairIter.remove();
 							System.out.println("  psub coalesce " + pair.targ + " = " + pair.source);
 //							System.out.println("    remap to " + remapLocal);
 						}
@@ -774,23 +717,6 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 		// ok NOW we remap to avoid that double remap issue
 		for (Entry<Local, CongruenceClass> e : congruenceClasses.entrySet())
 			remap.put(e.getKey(), e.getValue().first());
-
-		// this is so dumb lmao
-		for (Statement stmt : toRemove)
-			stmt.getBlock().remove(stmt);
-		for (Entry<CopyPair, ParallelCopyVarStatement> e : toRemovePairs.entrySet()) { // this is even dumber
-			e.getValue().pairs.remove(e.getKey());
-			if (e.getValue().pairs.isEmpty())
-				e.getValue().getBlock().remove(e.getValue());
-		}
-		for (BasicBlock b : cfg.vertices()) { // at this point ive given up on life
-			for (Iterator<Statement> it = b.iterator(); it.hasNext();) {
-				if (it.next().getOpcode() == Opcode.PHI_STORE)
-					it.remove();
-				else
-					break;
-			}
-		}
 	}
 
 	void sequentialize() {

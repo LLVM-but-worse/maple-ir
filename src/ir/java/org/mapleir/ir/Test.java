@@ -58,6 +58,18 @@ public class Test {
 		System.out.println(x);
 		System.out.println(y);
 	}
+
+	void test112() {
+		int x = 1, y = 2;
+		do {
+			int w = x;
+			x = y;
+			if (p())
+				y = w;
+		} while(!p());
+
+		System.out.println(x + y);
+	}
 	
 	boolean p() {
 		return true;
