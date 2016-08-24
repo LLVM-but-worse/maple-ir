@@ -151,4 +151,38 @@ public class SSADefUseMap implements Opcode {
 			}
 		}
 	}
+
+	public void buildIndices() {
+		lastUseIndex = new NullPermeableHashMap<>(new ValueCreator<HashMap<BasicBlock, Integer>>() {
+			@Override
+			public HashMap<BasicBlock, Integer> create() {
+				return new HashMap<>();
+			}
+		});
+		defIndex = new HashMap<>();
+
+		for (BasicBlock b : cfg.vertices()) {
+			for (int i = 0; i < b.size(); i++) {
+				buildIndex(b, b.get(i), i);
+			}
+		}
+	}
+
+	protected void buildIndex(BasicBlock b, Statement stmt, int index) {
+		if (stmt instanceof AbstractCopyStatement) {
+			AbstractCopyStatement copy = (AbstractCopyStatement) stmt;
+			defIndex.put(copy.getVariable().getLocal(), index);
+			if (copy instanceof CopyPhiStatement) {
+				CopyPhiStatement copyPhi = (CopyPhiStatement) copy;
+				PhiExpression phi = copyPhi.getExpression();
+				for (Entry<BasicBlock, Expression> en : phi.getArguments().entrySet()) {
+					Local ul = ((VarExpression) en.getValue()).getLocal();
+					lastUseIndex.getNonNull(ul).put(b, index);
+				}
+			}
+		}
+		for (Statement child : stmt)
+			if (child.getOpcode() == Opcode.LOCAL_LOAD)
+				lastUseIndex.getNonNull(((VarExpression) child).getLocal()).put(b, index);
+	}
 }

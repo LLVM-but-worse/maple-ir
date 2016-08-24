@@ -91,7 +91,7 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 
 		// 2. Build value interference
 		compute_value_interference();
-		buildIndices();
+		defuse.buildIndices();
 
 		// 3. Aggressively coalesce while in CSSA to leave SSA
 		// 3a. Coalesce phi locals to leave CSSA (!!!)
@@ -136,6 +136,10 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 		pcvs.pairs.add(new CopyPair(c, b, null));
 		pcvs.pairs.add(new CopyPair(d, c, null));
 		pcvs.pairs.add(new CopyPair(e, a, null));
+		for (Statement stmt : pcvs) {
+			if (stmt.getOpcode() == Opcode.LOCAL_LOAD)
+				System.out.println(((VarExpression) stmt).getLocal());
+		}
 		List<CopyVarStatement> seqd = sequentialize(pcvs, spill);
 		System.out.println("seq test: " + pcvs);
 		for (CopyVarStatement cvs : seqd)
@@ -154,7 +158,21 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 				}
 			}
 		}
-		defuse = new SSADefUseMap(cfg, true);
+
+		defuse = new SSADefUseMap(cfg, true) {
+			@Override
+			protected void buildIndex(BasicBlock b, Statement stmt, int index) {
+				if (stmt instanceof ParallelCopyVarStatement) {
+					ParallelCopyVarStatement copy = (ParallelCopyVarStatement) stmt;
+					for (CopyPair pair : copy.pairs) {
+						defIndex.put(pair.targ, index);
+						lastUseIndex.getNonNull(pair.source).put(b, index);
+					}
+				} else {
+					super.buildIndex(b, stmt, index);
+				}
+			}
+		};
 	}
 
 	private Local separatePhiDef(CopyPhiStatement copy, BasicBlock pred) {
@@ -291,8 +309,8 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 			insert_empty(b, b, copy);
 		} else {
 			// insert after phi.
-			int stop = b.size() - 1;
-			if (b.get(stop).canChangeFlow())
+			int stop = b.size();
+			if (b.get(--stop).canChangeFlow())
 				stop--;
 			int i = 0;
 			while (b.get(i++).getOpcode() == Opcode.PHI_STORE && i < stop);
@@ -470,44 +488,6 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 			System.out.println(e.getKey() + " " + e.getValue());
 		System.out.println();
 		System.out.println();
-	}
-
-	// screw encapsulation right guys???
-	private void buildIndices() {
-		defuse.lastUseIndex = new NullPermeableHashMap<>(new ValueCreator<HashMap<BasicBlock, Integer>>() {
-			@Override
-			public HashMap<BasicBlock, Integer> create() {
-				return new HashMap<>();
-			}
-		});
-		defuse.defIndex = new HashMap<>();
-
-		for (BasicBlock b : cfg.vertices()) {
-			for (int i = 0; i < b.size(); i++) {
-				Statement stmt = b.get(i);
-				if (stmt instanceof AbstractCopyStatement) {
-					AbstractCopyStatement copy = (AbstractCopyStatement) stmt;
-					defuse.defIndex.put(copy.getVariable().getLocal(), i);
-					if (copy instanceof CopyPhiStatement) {
-						CopyPhiStatement copyPhi = (CopyPhiStatement) copy;
-						PhiExpression phi = copyPhi.getExpression();
-						for (Entry<BasicBlock, Expression> en : phi.getArguments().entrySet()) {
-							Local ul = ((VarExpression) en.getValue()).getLocal();
-							defuse.lastUseIndex.getNonNull(ul).put(b, i);
-						}
-					}
-				} else if (stmt instanceof ParallelCopyVarStatement) { // the reason why we have to put the method here
-					ParallelCopyVarStatement copy = (ParallelCopyVarStatement) stmt;
-					for (CopyPair pair : copy.pairs) {
-						defuse.defIndex.put(pair.targ, i);
-						defuse.lastUseIndex.getNonNull(pair.source).put(b, i);
-					}
-				}
-				for (Statement child : stmt)
-					if (child.getOpcode() == Opcode.LOCAL_LOAD)
-						defuse.lastUseIndex.getNonNull(((VarExpression) child).getLocal()).put(b, i);
-			}
-		}
 	}
 
 	boolean doms(Local x, Local y) {
