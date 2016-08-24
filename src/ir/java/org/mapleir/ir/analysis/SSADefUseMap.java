@@ -14,9 +14,11 @@ import org.mapleir.ir.code.expr.PhiExpression;
 import org.mapleir.ir.code.expr.VarExpression;
 import org.mapleir.ir.code.stmt.Statement;
 import org.mapleir.ir.code.stmt.copy.AbstractCopyStatement;
+import org.mapleir.ir.code.stmt.copy.CopyPhiStatement;
 import org.mapleir.ir.locals.Local;
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.SetCreator;
+import org.mapleir.stdlib.collections.ValueCreator;
 import org.mapleir.stdlib.collections.graph.util.GraphUtils;
 
 public class SSADefUseMap implements Opcode {
@@ -25,19 +27,22 @@ public class SSADefUseMap implements Opcode {
 	public final Map<Local, BasicBlock> defs;
 	public final NullPermeableHashMap<Local, Set<BasicBlock>> uses;
 	public final HashMap<Local, PhiExpression> phis;
-	
+
+	public NullPermeableHashMap<Local, HashMap<BasicBlock, Integer>> lastUseIndex;
+	public HashMap<Local, Integer> defIndex;
+
 	public SSADefUseMap(ControlFlowGraph cfg, boolean compute) {
 		this.cfg = cfg;
 		defs = new HashMap<>();
 		uses = new NullPermeableHashMap<>(new SetCreator<>());
 		phis = new HashMap<>();
-		
+
 		if(compute) {
 			build(cfg);
 			verify();
 		}
 	}
-	
+
 	private void build(ControlFlowGraph cfg) {
 		for(BasicBlock b : cfg.vertices()) {
 			for(Statement stmt : b) {
@@ -45,12 +50,12 @@ public class SSADefUseMap implements Opcode {
 			}
 		}
 	}
-	
+
 	private void build(BasicBlock b, Statement stmt) {
 		int opcode = stmt.getOpcode();
 		boolean isPhi = opcode == PHI_STORE;
 		boolean isCopy = isPhi || opcode == LOCAL_STORE;
-		
+
 		if(isCopy) {
 			AbstractCopyStatement copy = (AbstractCopyStatement) stmt;
 			Local l = copy.getVariable().getLocal();
@@ -65,7 +70,7 @@ public class SSADefUseMap implements Opcode {
 				phis.put(l, phi);
 			}
 		}
-		
+
 		if(!isPhi) {
 			for(Statement s : stmt) {
 				if(s.getOpcode() == LOCAL_LOAD) {
@@ -79,13 +84,13 @@ public class SSADefUseMap implements Opcode {
 	public void verify() {
 		Map<Local, BasicBlock> defs = new HashMap<>();
 		NullPermeableHashMap<Local, Set<BasicBlock>> uses = new NullPermeableHashMap<>(new SetCreator<>());
-		
+
 		for(BasicBlock b : cfg.vertices()) {
 			for(Statement stmt : b) {
 				int opcode = stmt.getOpcode();
 				boolean isPhi = opcode == PHI_STORE;
 				boolean isCopy = isPhi || opcode == LOCAL_STORE;
-				
+
 				if(isCopy) {
 					AbstractCopyStatement copy = (AbstractCopyStatement) stmt;
 					Local l = copy.getVariable().getLocal();
@@ -100,7 +105,7 @@ public class SSADefUseMap implements Opcode {
 						phis.put(l, phi);
 					}
 				}
-				
+
 				if(!isPhi) {
 					for(Statement s : stmt) {
 						if(s.getOpcode() == LOCAL_LOAD) {
