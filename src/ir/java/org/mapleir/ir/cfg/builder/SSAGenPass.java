@@ -61,16 +61,17 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		if(b == builder.exit) {
 			return; // exit
 		}
-				
+
+		Local newl = builder.graph.getLocals().get(l.getIndex(), 0, l.isStack());
+		
 		for(BasicBlock x : doms.iteratedFrontier(b)) {
 			if(insertion.get(x) < i) {
 				if(x.size() > 0 && builder.graph.getReverseEdges(x).size() > 1) {
 					// pruned SSA
 					if(liveness.in(x).contains(l)) {
 						Map<BasicBlock, Expression> vls = new HashMap<>();
-						int subscript = 0;
 						for(FlowEdge<BasicBlock> fe : builder.graph.getReverseEdges(x)) {
-							vls.put(fe.src, new VarExpression(builder.graph.getLocals().get(l.getIndex(), subscript++, l.isStack()), null));
+							vls.put(fe.src, new VarExpression(newl, null));
 						}
 						PhiExpression phi = new PhiExpression(vls);
 						CopyPhiStatement assign = new CopyPhiStatement(new VarExpression(l, null), phi);
