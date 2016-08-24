@@ -1,10 +1,11 @@
 package org.mapleir.ir;
 
+import static org.mapleir.ir.dot.ControlFlowGraphDecorator.OPT_DEEP;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 
-import org.mapleir.AnalyticsTest;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.BoissinotDestructor;
 import org.mapleir.ir.cfg.ControlFlowGraph;
@@ -17,8 +18,6 @@ import org.mapleir.stdlib.collections.graph.dot.DotWriter;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
-
-import static org.mapleir.ir.dot.ControlFlowGraphDecorator.OPT_DEEP;
 
 public class Test {
 
@@ -41,6 +40,20 @@ public class Test {
 			x = y;
 			y = z;
 		} while(!p());
+
+		System.out.println(x);
+		System.out.println(y);
+	}
+
+	void test112() {
+		int x = 1;
+		int y = 2;
+		
+		while(!p()) {
+			int z = x;
+			x = y;
+			y = z;
+		}
 
 		System.out.println(x);
 		System.out.println(y);
@@ -68,13 +81,15 @@ public class Test {
 //				continue;
 //			}
 			
-			if(!m.toString().equals("org/mapleir/ir/Test.test111()V")) {
+			if(!m.toString().equals("org/mapleir/ir/Test.test112()V")) {
 				continue;
 			}
 			
 			System.out.println("Processing " + m + "\n");
 			ControlFlowGraph cfg = ControlFlowGraphBuilder.build(m);
 
+			System.out.println(cfg);
+			
 			try {
 				BoissinotDestructor destructor = new BoissinotDestructor(cfg);
 			} catch(RuntimeException e) {
@@ -90,7 +105,7 @@ public class Test {
 //			System.out.println();
 //			System.out.println();
 //			System.out.println();
-//			System.out.println(cfg);
+			System.out.println(cfg);
 		}
 	}
 }
