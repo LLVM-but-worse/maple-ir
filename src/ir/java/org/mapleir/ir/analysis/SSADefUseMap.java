@@ -107,7 +107,8 @@ public class SSADefUseMap implements Opcode {
 				PhiExpression phi = copyPhi.getExpression();
 				for (Entry<BasicBlock, Expression> en : phi.getArguments().entrySet()) {
 					Local ul = ((VarExpression) en.getValue()).getLocal();
-					lastUseIndex.getNonNull(ul).put(b, index);
+					lastUseIndex.getNonNull(ul).put(en.getKey(), en.getKey().size());
+					lastUseIndex.getNonNull(ul).put(b, -1);
 				}
 			}
 		}
