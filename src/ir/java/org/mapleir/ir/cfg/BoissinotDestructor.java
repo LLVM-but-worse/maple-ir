@@ -530,17 +530,17 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 		Stack<Local> dom = new Stack<>();
 		Local ir = red.first(), ib = blue.first();
 		Local lr = red.last(), lb = blue.last();
-		boolean redHasNext = ir != lr, blueHasNext = ib != lb;
+		boolean redHasNext = true, blueHasNext = true;
 		while (redHasNext || blueHasNext) {
 			Local current;
 			if (!blueHasNext || (redHasNext && blueHasNext && checkPreDomOrder(ir, ib))) {
 				current = ir; // current = red[ir++)
 //				System.out.println("  red next = " + current);
-				redHasNext = (ir = red.higher(ir)) != lr;
+				redHasNext = ir != lr && (ir = red.higher(ir)) != lr;
 			} else {
 				current = ib; // current = blue[ib++]
 //				System.out.println("  blue next = " + current);
-				blueHasNext = (ib = blue.higher(ib)) != lb;
+				blueHasNext = ib != lb && (ib = blue.higher(ib)) != lb;
 			}
 
 			if (!dom.isEmpty()) {
