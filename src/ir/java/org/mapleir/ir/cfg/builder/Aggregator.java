@@ -50,6 +50,7 @@ public class Aggregator extends OptimisationPass.Optimiser {
 								// can't be used until it is initialised.
 								UninitialisedObjectExpression obj = (UninitialisedObjectExpression) rhs;
 								Expression[] args = invoke.getParameterArguments();
+								invoke.unlink();
 								Expression[] newArgs = Arrays.copyOf(args, args.length);
 								InitialisedObjectExpression newExpr = new InitialisedObjectExpression(obj.getType(), invoke.getOwner(), invoke.getDesc(), newArgs);
 								// remove the old def
@@ -71,7 +72,10 @@ public class Aggregator extends OptimisationPass.Optimiser {
 						} else if(inst instanceof UninitialisedObjectExpression) {
 							// replace pop(new Klass.<init>(args)) with pop(new Klass(args))
 							UninitialisedObjectExpression obj = (UninitialisedObjectExpression) inst;
+							
 							Expression[] args = invoke.getParameterArguments();
+							invoke.unlink();
+							
 							Expression[] newArgs = Arrays.copyOf(args, args.length);
 							InitialisedObjectExpression newExpr = new InitialisedObjectExpression(obj.getType(), invoke.getOwner(), invoke.getDesc(), newArgs);
 							// replace pop contents
