@@ -139,6 +139,17 @@ public abstract class Statement implements FastGraphVertex, Opcode, Iterable<Sta
 			}
 		}
 	}
+	
+	public void unlink() {
+		block = null;
+		parent = null;
+		
+		for(Statement c : children) {
+			if(c != null) {
+				c.unlink();
+			}
+		}
+	}
 
 	public void delete() {
 		delete(ptr);
