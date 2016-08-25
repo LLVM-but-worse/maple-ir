@@ -83,7 +83,20 @@ public class ControlFlowGraphBuilder {
 		ControlFlowGraphBuilder builder = new ControlFlowGraphBuilder(method);
 		try {
 			for(BuilderPass p : builder.resolvePasses()) {
+				
+				System.out.println();
+				System.out.println("BEFORE: " + p.getClass());
+				System.out.println(builder.graph);
+				System.out.println();
+				System.out.println();
+				
 				p.run();
+				
+				System.out.println();
+				System.out.println("AFTER:");
+				System.out.println(builder.graph);
+				System.out.println();
+				System.out.println();
 			}
 			return builder.graph;
 		} catch(RuntimeException e) {
