@@ -70,6 +70,40 @@ public class Test {
 		System.out.println(x);
 		System.out.println(y);
 	}
+
+	void test114() {
+		Object o = null;
+		
+		while(!p()) {
+			o = new Object();
+		}
+
+		System.out.println(o);
+	}
+
+	void test115() {
+		Object o = null;
+		
+		do {
+			o = new Object();
+		} while(!p());
+
+		System.out.println(o);
+	}
+
+	void test116() {
+		Object o1 = new String("x");
+		Object o2 = new String("d");
+		
+		do {
+			Object o3 = o2;
+			o2 = o1;
+			o1 = o3;
+		} while(!p());
+
+		System.out.println(o1);
+		System.out.println(o2);
+	}
 	
 	boolean p() {
 		return true;
@@ -93,7 +127,7 @@ public class Test {
 //				continue;
 //			}
 			
-			if(!m.toString().equals("org/mapleir/ir/Test.test113()V")) {
+			if(!m.toString().equals("org/mapleir/ir/Test.test111()V")) {
 				continue;
 			}
 			
