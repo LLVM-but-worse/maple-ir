@@ -49,7 +49,7 @@ public class Test {
 		int x = 1, y = 2;
 		do {
 			int w = x;
-			x = y;
+			x = y; // y = p() ? x : y
 			if (p())
 				y = w;
 		} while(!p());
