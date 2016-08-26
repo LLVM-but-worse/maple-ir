@@ -549,8 +549,8 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 	}
 
 	class LocalInfo {
-		Local l;
-		CongruenceClass conClass;
+		final Local l;
+		final CongruenceClass conClass;
 
 		LocalInfo(Local local, CongruenceClass congruenceClass) {
 			l = local;
@@ -565,35 +565,39 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 
 	private final static boolean VALUE_INTERFERENCE = true;
 	boolean interference(LocalInfo a, LocalInfo b) {
+		Local al = a.l;
+		Local bl = b.l;
+		
 		if (VALUE_INTERFERENCE) {
-			Local al = a.l;
-			if (intersect(al, b.l)) {
-				if (values.get(al).toString().equals(values.get(b.l).toString())) {
-					fuckers.getNonNull(al).add(b);
-					System.out.println("      " + al + " is fucked by " + b);
-					return false;
+			fuckers.getNonNull(al).add(b);
+			
+			if (values.get(al) != values.get(bl)) {
+				System.out.println("      " + al + " is fucked by " + b);
+				if (intersect(al, bl)) {
+					System.out.println("      " + al + " " + bl + " intersection");
+					return true;
 				}
-				System.out.println("      " + al + " " + b.l + " intersection");
-				return true;
+				return false;
 			}
+			
 
 			if (fuckers.getNonNull(al).isEmpty()) {
-				System.out.println("      " + al + " " + b.l + " no problem");
+				System.out.println("      " + al + " " + bl + " no problem");
 				return false;
 			}
 //
 			for (LocalInfo c : fuckers.get(al)) {
 				if (c.conClass != a.conClass) {
-					if (intersect(a.l, c.l)) {
-						System.out.println("      " + al + " " + b.l + " fuck problem");
+					if (intersect(al, c.l)) {
+						System.out.println("      " + al + " " + bl + " fuck problem");
 						return true;
 					}
 				}
 			}
-			System.out.println("      " + al + " " + b.l + " fucker no problem");
+			System.out.println("      " + al + " " + bl + " fucker no problem");
 			return false;
 		} else {
-			return intersect(a.l, b.l);
+			return intersect(al, bl);
 		}
 	}
 
@@ -620,6 +624,7 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 				do
 					other = dom.pop();
 				while (!dom.isEmpty() && !doms(other.l, current.l));
+				
 				LocalInfo parent = other;
 				if (parent != null) {
 					System.out.println("    check " + current + " vs " + parent + ":");
@@ -656,7 +661,7 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 		CongruenceClass conClassA = getCongruenceClass(a);
 		CongruenceClass conClassB = getCongruenceClass(b);
 
-		System.out.println("  check intersect: " + a + " \u2208 " + conClassA + " vs " + b + " \u2208 " + conClassB + ": ");
+		System.out.println("  Intersection   : " + a + " \u2208 " + conClassA + " vs " + b + " \u2208 " + conClassB + ": ");
 		if (checkIntersect(conClassA, conClassB)) {
 			System.out.println("  => true");
 			return false;
