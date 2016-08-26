@@ -491,7 +491,16 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 	boolean doms(Local x, Local y) {
 		BasicBlock bx = defuse.defs.get(x);
 		BasicBlock by = defuse.defs.get(y);
-		return resolver.doms(bx, by);
+		
+		if(resolver.sdoms(bx, by)) {
+			return true;
+		} else if(bx == by) {
+			int i1 = defuse.defIndex.get(x);
+			int i2 = defuse.defIndex.get(y);
+			return i1 > i2;
+		} else {
+			return false;
+		}
 	}
 
 	boolean checkPreDomOrder(Local x, Local y) {
@@ -499,10 +508,10 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 	}
 
 	boolean intersect(Local a, Local b) {
-		if (a.toString().equals(b.toString())) {
+		if (a == b) {
 			for (Entry<Local, CongruenceClass> e : congruenceClasses.entrySet())
 				System.err.println(e.getKey() + " in " + e.getValue());
-			throw new IllegalArgumentException("me too thanks");
+			throw new IllegalArgumentException("me too thanks: " + a);
 		}
 		if (checkPreDomOrder(a, b)) {
 			throw new IllegalArgumentException("b should dom a");
@@ -544,8 +553,8 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 		CongruenceClass conClass;
 
 		LocalInfo(Local local, CongruenceClass congruenceClass) {
-			this.l = local;
-			this.conClass = congruenceClass;
+			l = local;
+			conClass = congruenceClass;
 		}
 
 		@Override
