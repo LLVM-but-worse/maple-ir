@@ -70,7 +70,7 @@ public class Test {
 		System.out.println(x);
 		System.out.println(y);
 	}
-
+	
 	void test114() {
 		Object o = null;
 		
@@ -104,9 +104,28 @@ public class Test {
 		System.out.println(o1);
 		System.out.println(o2);
 	}
+
+	void test117() { // i dedicate this test case to my friend revan114
+		int lmao = v();
+		int x = lmao;
+		int y = lmao;
+
+		while(!p()) {
+			int z = x;
+			x = y;
+			y = z;
+		}
+
+		System.out.println(x);
+		System.out.println(y);
+	}
 	
 	boolean p() {
 		return true;
+	}
+
+	int v() {
+		return 114;
 	}
 	
 	public static void main(String[] args) throws IOException {
@@ -127,7 +146,7 @@ public class Test {
 //				continue;
 //			}
 			
-			if(!m.toString().equals("org/mapleir/ir/Test.test111()V")) {
+			if(!m.toString().equals("org/mapleir/ir/Test.test117()V")) {
 				continue;
 			}
 			
