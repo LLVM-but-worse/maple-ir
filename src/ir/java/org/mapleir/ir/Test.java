@@ -50,7 +50,7 @@ public class Test {
 		do {
 			int w = x;
 			x = y; // y = p() ? x : y
-			if (p())
+			if (q())
 				y = w;
 		} while(!p());
 
@@ -123,6 +123,10 @@ public class Test {
 	boolean p() {
 		return true;
 	}
+	
+	boolean q() {
+		return true;
+	}
 
 	int v() {
 		return 114;
@@ -146,7 +150,7 @@ public class Test {
 //				continue;
 //			}
 			
-			if(!m.toString().equals("org/mapleir/ir/Test.test117()V")) {
+			if(!m.toString().equals("org/mapleir/ir/Test.test112()V")) {
 				continue;
 			}
 			
