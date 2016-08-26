@@ -27,7 +27,6 @@ import org.mapleir.stdlib.cfg.util.TabbedStringWriter;
 import org.mapleir.stdlib.collections.ListCreator;
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.SetCreator;
-import org.mapleir.stdlib.collections.ValueCreator;
 import org.mapleir.stdlib.collections.graph.dot.BasicDotConfiguration;
 import org.mapleir.stdlib.collections.graph.dot.DotConfiguration;
 import org.mapleir.stdlib.collections.graph.dot.DotWriter;
@@ -267,11 +266,8 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 			insert_empty(b, b, copy);
 		} else {
 			// insert after phi.
-			int stop = b.size();
-			if (b.get(stop - 1).canChangeFlow())
-				stop--;
-			int i = 0;
-			while (b.get(i++).getOpcode() == Opcode.PHI_STORE && i < stop);
+			int i;
+			for (i = 0; b.get(i).getOpcode() == Opcode.PHI_STORE && i < b.size(); i++);
 			b.add(i, copy);
 		}
 		record_pcopy(b, copy);
@@ -403,7 +399,7 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 
 	HashMap<Local, Integer> preDfsDomOrder;
 	ExtendedDfs dom_dfs;
-	HashMap<Local, Local> equalAncIn;
+	NullPermeableHashMap<Local, Set<LocalInfo>> fuckers;
 
 	void compute_value_interference() {
 		values = new HashMap<>();
@@ -447,8 +443,20 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 					} else if (stmt instanceof CopyPhiStatement) {
 						CopyPhiStatement copy = (CopyPhiStatement) stmt;
 						Local b = copy.getVariable().getLocal();
-						System.out.println("  value " + b + " phi auto");
+						PhiExpression phi = copy.getExpression();
+
+						// value of phi def is first decided arg or undecided
 						values.put(b, b);
+//						for (Expression arg : phi.getArguments().values()) {
+//							Local phiLocal = ((VarExpression) arg).getLocal();
+//							Local phiValue = values.get(phiLocal);
+//							if (!phiValue.toString().equals(phiLocal.toString())) {
+//								values.put(b, phiValue);
+//								break;
+//							}
+//						}
+
+						System.out.println("  value " + b + " " + values.get(b) + " phi");
 					}
 				} else if (stmt instanceof ParallelCopyVarStatement) {
 					ParallelCopyVarStatement copy = (ParallelCopyVarStatement) stmt;
@@ -521,32 +529,51 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 		}
 	}
 
+	class LocalInfo {
+		Local l;
+		CongruenceClass conClass;
+
+		LocalInfo(Local local, CongruenceClass congruenceClass) {
+			this.l = local;
+			this.conClass = congruenceClass;
+		}
+
+		@Override
+		public String toString() {
+			return l.toString() + " \u2208 " + conClass;
+		}
+	}
+
 	boolean checkIntersect(CongruenceClass red, CongruenceClass blue) {
-		Stack<Local> dom = new Stack<>();
+		Stack<LocalInfo> dom = new Stack<>();
+		fuckers = new NullPermeableHashMap<>(new SetCreator<>());
 		Local ir = red.first(), ib = blue.first();
 		Local lr = red.last(), lb = blue.last();
 		boolean redHasNext = true, blueHasNext = true;
 		while (redHasNext || blueHasNext) {
-			Local current;
+			LocalInfo current;
 			if (!blueHasNext || (redHasNext && blueHasNext && checkPreDomOrder(ir, ib))) {
-				current = ir; // current = red[ir++)
+				current = new LocalInfo(ir, red); // current = red[ir++)
 //				System.out.println("  red next = " + current);
 				redHasNext = ir != lr && (ir = red.higher(ir)) != lr;
 			} else {
-				current = ib; // current = blue[ib++]
+				current = new LocalInfo(ib, blue); // current = blue[ib++]
 //				System.out.println("  blue next = " + current);
 				blueHasNext = ib != lb && (ib = blue.higher(ib)) != lb;
 			}
 
 			if (!dom.isEmpty()) {
-				Local other;
+				LocalInfo other;
 				do
 					other = dom.pop();
-				while (!dom.isEmpty() && !doms(other, current));
-				Local parent = other;
-				System.out.println("    check " + current + " vs " + parent + ": " + interference(current, parent));
-				if (parent != null && interference(current, parent))
+				while (!dom.isEmpty() && !doms(other.l, current.l));
+				LocalInfo parent = other;
+				if (parent != null && interference(current, parent)) {
+					System.out.println("    check " + current + " vs " + parent + ": true");
 					return true;
+				}
+				else
+					System.out.println("    check " + current + " vs " + parent + ": false");
 			}
 			dom.push(current);
 		}
@@ -554,9 +581,33 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 		return false;
 	}
 
-	boolean interference(Local a, Local b) {
-		// how the f--k do you compute equal intersecting ancestor?????
-		return intersect(a, b);// fuck it; ignore values for now.
+	boolean interference(LocalInfo a, LocalInfo b) {
+		Local al = a.l;
+		if (intersect(al, b.l)) {
+			if (values.get(al).toString().equals(values.get(b.l).toString())) {
+				fuckers.getNonNull(al).add(b);
+				System.out.println("      " + al + " is fucked by " + b);
+				return false;
+			}
+			System.out.println("      " + al + " " + b.l + " intersection");
+			return true;
+		}
+
+		if (fuckers.getNonNull(al).isEmpty()) {
+			System.out.println("      " + al + " " + b.l + " no problem");
+			return false;
+		}
+
+		for (LocalInfo c : fuckers.get(al)) {
+			if (c.conClass != a.conClass) {
+				if (intersect(a.l, c.l)) {
+					System.out.println("      " + al + " " + b.l + " fuck problem");
+					return true;
+				}
+			}
+		}
+		System.out.println("      " + al + " " + b.l + " fucker no problem");
+		return false;
 	}
 
 	// all the locals in a set will be mapped to that set. there is only 1 instance of the set.
