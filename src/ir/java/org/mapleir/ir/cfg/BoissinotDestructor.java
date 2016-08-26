@@ -569,19 +569,17 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 		Local bl = b.l;
 		
 		if (VALUE_INTERFERENCE) {
-			if (intersect(al, bl)) {
-				if (values.get(al) == values.get(bl)) {
+			if (values.get(al) == values.get(bl)) {
+				if (intersect(al, bl)) {
 					fuckers.getNonNull(al).add(b);
 					System.out.println("      " + al + " is fucked by " + b);
-					return false;
-				} else {
-					System.out.println("      " + al + " " + bl + " intersection");
-					return true;
 				}
-			}
-			
-
-			if (fuckers.getNonNull(al).isEmpty()) {
+				System.out.println("      value skip");
+				return false;
+			} else if (intersect(al, bl)) {
+				System.out.println("      " + al + " " + bl + " intersection");
+				return true;
+			} else if (fuckers.getNonNull(al).isEmpty()) {
 				System.out.println("      " + al + " " + bl + " no problem");
 				return false;
 			}
