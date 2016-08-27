@@ -119,6 +119,19 @@ public class Test {
 		System.out.println(x);
 		System.out.println(y);
 	}
+
+	void test118() {
+		int x = 1;
+		int y = 2;
+
+		if (q())
+			y = x;
+		if (p())
+			x = y;
+
+		System.out.println(x);
+		System.out.println(y);
+	}
 	
 	boolean p() {
 		return true;
@@ -150,7 +163,7 @@ public class Test {
 //				continue;
 //			}
 			
-			if(!m.toString().equals("org/mapleir/ir/Test.test117()V")) {
+			if(!m.toString().equals("org/mapleir/ir/Test.test118()V")) {
 				continue;
 			}
 			
