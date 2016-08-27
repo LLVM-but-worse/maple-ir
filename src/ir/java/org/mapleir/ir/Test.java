@@ -150,15 +150,17 @@ public class Test {
 //				continue;
 //			}
 			
-			if(!m.toString().equals("org/mapleir/ir/Test.test117()V")) {
+			if(!m.toString().equals("org/mapleir/ir/Test.test111()V")) {
 				continue;
 			}
 			
 			System.out.println("Processing " + m + "\n");
 			ControlFlowGraph cfg = ControlFlowGraphBuilder.build(m);
 
+			System.out.println("Pre-destruct");
 			System.out.println(cfg);
-			
+			System.out.println();
+
 			try {
 				BoissinotDestructor destructor = new BoissinotDestructor(cfg);
 			} catch(RuntimeException e) {
