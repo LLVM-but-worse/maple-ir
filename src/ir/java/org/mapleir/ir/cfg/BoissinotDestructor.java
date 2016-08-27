@@ -418,7 +418,8 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 
 	HashMap<Local, Integer> preDfsDomOrder;
 	ExtendedDfs dom_dfs;
-	HashMap<Local, LocalInfo> fucker;
+	HashMap<Local, Local> fucker;
+	HashMap<Local, Local> fucker2;
 
 	void compute_value_interference() {
 		values = new HashMap<>();
@@ -583,38 +584,28 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 		}
 	}
 
-	private final static boolean VALUE_INTERFERENCE = false;
-	boolean interference(LocalInfo a, LocalInfo b) {
-		Local al = a.l;
-		Local bl = b.l;
-		
+	private final static boolean VALUE_INTERFERENCE = true;
+	boolean interference(Local a, Local b, boolean sameConClass) {
 		if (VALUE_INTERFERENCE) {
-			if (intersect(al, bl)) {
-				if (values.get(al) == values.get(bl)) {
-					fucker.put(al, b);
-					System.out.println("      " + al + " is fucked by " + b);
-					return false;
-				} else {
-					System.out.println("      " + al + " " + bl + " intersection");
-					return true;
-				}
-			} else if (!fucker.containsKey(al)) {
-				System.out.println("      " + al + " " + bl + " no problem");
-				return false;
-			} else { // we need to check chain
-				LocalInfo c = b;
-				while (fucker.containsKey(c.l)) {
-					c = fucker.get(c.l);
-					if (c.conClass != a.conClass && intersect(al, c.l)) {
-						System.out.println("      " + al + " " + bl + " fuck problem");
-						return true;
-					}
-				}
-				System.out.println("      " + al + " " + bl + " fucker no problem");
+			fucker2.put(a, null);
+			if (sameConClass)
+				b = fucker2.get(b);
+
+			if (values.get(a) != values.get(b)) {
+				Local tmp = b;
+				while (tmp != null && !intersect(a, tmp))
+					tmp = fucker.get(tmp);
+				return tmp != null;
+			} else {
+				System.out.println("      fucker in action");
+				Local tmp = b;
+				while (tmp != null && !intersect(a, tmp))
+					tmp = fucker.get(tmp);
+				fucker2.put(a, tmp);
 				return false;
 			}
 		} else {
-			return intersect(al, bl);
+			return intersect(a, b);
 		}
 	}
 
@@ -642,11 +633,27 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 				do
 					other = dom.pop();
 				while (!dom.isEmpty() && !doms(other.l, current.l));
-				
+
 				LocalInfo parent = other;
 				if (parent != null) {
 					System.out.println("    check " + current + " vs " + parent + ":");
-					if (interference(current, parent)) {
+					for (Local l : current.conClass) {
+						for (Local l2 : current.conClass) {
+							if (!checkPreDomOrder(l, l2))
+								break;
+							if (values.get(l) == values.get(l2) && intersect(l, l2))
+								fucker.put(l, l2);
+						}
+					}
+					for (Local l : parent.conClass) {
+						for (Local l2 : parent.conClass) {
+							if (!checkPreDomOrder(l, l2))
+								break;
+							if (values.get(l) == values.get(l2) && intersect(l, l2))
+								fucker.put(l, l2);
+						}
+					}
+					if (interference(current.l, parent.l, current.conClass == parent.conClass)) {
 						System.out.println("      => true");
 						return true;
 					}
@@ -686,34 +693,46 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 		System.out.println("  => false");
 
 		// merge congruence classes
+		merge(conClassA, conClassB);
+		return true;
+	}
+
+	void merge(CongruenceClass conClassA, CongruenceClass conClassB) {
 		System.out.println("    pre-merge: " + conClassA);
 		conClassA.addAll(conClassB);
 		for (Local l : conClassB)
 			congruenceClasses.put(l, conClassA);
 		System.out.println("    post-merge: " + conClassA);
-		return true;
 	}
 
 	void applyRemapping(Map<Local, Local> remap) {
 		// defuse can be used here to speed things up. TODO
 		for(BasicBlock b : cfg.vertices()) {
-			for(Statement stmt : b) {
+			for (Iterator<Statement> it = b.iterator(); it.hasNext(); ) {
+				Statement stmt = it.next();
 				int opcode = stmt.getOpcode();
 
-				if(opcode == -1) {
+				if (opcode == -1) {
 					ParallelCopyVarStatement copy = (ParallelCopyVarStatement) stmt;
-					for(CopyPair p : copy.pairs) {
+					for (Iterator<CopyPair> it2 = copy.pairs.iterator(); it2.hasNext(); ) {
+						CopyPair p = it2.next();
 						p.source = remap.getOrDefault(p.source, p.source);
 						p.targ = remap.getOrDefault(p.targ, p.targ);
+						if (p.source == p.targ)
+							it2.remove();
 					}
-				} else if(opcode == Opcode.LOCAL_STORE || opcode == Opcode.PHI_STORE) {
+					if (copy.pairs.isEmpty())
+						it.remove();
+				} else if (opcode == Opcode.LOCAL_STORE || opcode == Opcode.PHI_STORE) {
 					AbstractCopyStatement copy = (AbstractCopyStatement) stmt;
 					VarExpression v = copy.getVariable();
 					v.setLocal(remap.getOrDefault(v.getLocal(), v.getLocal()));
+					if (copy.getExpression() instanceof VarExpression && ((VarExpression) copy.getExpression()).getLocal() == v.getLocal())
+						it.remove();
 				}
 
-				for(Statement s : stmt) {
-					if(s.getOpcode() == Opcode.LOCAL_LOAD) {
+				for (Statement s : stmt) {
+					if (s.getOpcode() == Opcode.LOCAL_LOAD) {
 						VarExpression v = (VarExpression) s;
 						v.setLocal(remap.getOrDefault(v.getLocal(), v.getLocal()));
 					}
@@ -770,8 +789,10 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 
 	private void coalesceCopies() {
 		fucker = new HashMap<>();
+		fucker2 = new HashMap<>();
 		// now for each copy check if lhs and rhs congruence classes do not interfere.
 		// if they do not interfere merge the conClasses and those two vars can be coalesced. delete the copy.
+		Local prevCopy = null;
 		for (BasicBlock b : dom_dfs.getPreOrder()) {
 			Iterator<Statement> it = b.iterator();
 			while (it.hasNext()) {
@@ -780,16 +801,22 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 					CopyVarStatement copy = (CopyVarStatement) stmt;
 					if (copy.getExpression().getOpcode() == Opcode.LOCAL_STORE) {
 						Local lhs = copy.getVariable().getLocal();
-						Local rhs = ((VarExpression) copy.getExpression()).getLocal();
-						if (tryCoalesceCopy(lhs, rhs)) {
+						if (prevCopy != null && values.get(prevCopy) == values.get(lhs) && intersect(lhs, prevCopy)) {
+							merge(getCongruenceClass(lhs), getCongruenceClass(prevCopy));
+							System.out.println("  => shared copy coalesce " + lhs + " + " + prevCopy);
+						} else {
+							Local rhs = ((VarExpression) copy.getExpression()).getLocal();
+							if (tryCoalesceCopy(lhs, rhs)) {
 //							Local remapLocal = congruenceClasses.get(lhs).first();
 //							remap.put(lhs, remapLocal);
 //							remap.put(rhs, remapLocal);
-							it.remove();
-							System.out.println("  => coalesce " + lhs + " = " + rhs);
+								it.remove();
+								System.out.println("  => coalesce " + lhs + " = " + rhs);
 //							System.out.println("  remap to " + remapLocal);
+							}
 						}
 						System.out.println();
+						prevCopy = lhs;
 					}
 				} else if (stmt.getOpcode() == -1) {
 					// we need to do it for each one. if all of the copies are removed then remove the pcvs
@@ -798,7 +825,10 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 					for (Iterator<CopyPair> pairIter = copy.pairs.iterator(); pairIter.hasNext(); ) {
 						System.out.println();
 						CopyPair pair = pairIter.next();
-						if (tryCoalesceCopy(pair.targ, pair.source)) {
+						if (prevCopy != null && values.get(prevCopy) == values.get(pair.targ) && intersect(pair.targ, prevCopy)) {
+							merge(getCongruenceClass(pair.targ), getCongruenceClass(prevCopy));
+							System.out.println("  => psub shared copy coalesce " + pair.targ + " + " + prevCopy);
+						} else if (tryCoalesceCopy(pair.targ, pair.source)) {
 //							Local remapLocal = congruenceClasses.get(pair.targ).first();
 //							remap.put(pair.targ, remapLocal);
 //							remap.put(pair.source, remapLocal);
@@ -806,6 +836,7 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 							System.out.println("  => psub coalesce " + pair.targ + " = " + pair.source);
 //							System.out.println("    remap to " + remapLocal);
 						}
+						prevCopy = pair.targ; // this wont work for parallel copies of pair count >2
 					}
 					if (copy.pairs.isEmpty()) {
 						it.remove();
