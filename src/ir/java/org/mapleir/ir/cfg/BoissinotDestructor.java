@@ -243,16 +243,18 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 				r.phi.setArgument(r.pred, new VarExpression(zi, r.type));
 			}
 
-			// replace uses of xi with zi in dominated successors to faciltate coalescing
-			for (BasicBlock succ : resolver.sdoms.getNonNull(p)) {
-				for (Statement stmt : succ) {
-					for (Statement child : stmt) {
-						if (child.getOpcode() == Opcode.LOCAL_LOAD) {
-							VarExpression var = ((VarExpression) child);
-							Local local = var.getLocal();
-							for (CopyPair pair : copy.pairs) {
-								if (local == pair.source)
-									var.setLocal(pair.targ);
+			if (FACILITATE_COALESCE) {
+				// replace uses of xi with zi in dominated successors to faciltate coalescing
+				for (BasicBlock succ : resolver.sdoms.getNonNull(p)) {
+					for (Statement stmt : succ) {
+						for (Statement child : stmt) {
+							if (child.getOpcode() == Opcode.LOCAL_LOAD) {
+								VarExpression var = ((VarExpression) child);
+								Local local = var.getLocal();
+								for (CopyPair pair : copy.pairs) {
+									if (local == pair.source)
+										var.setLocal(pair.targ);
+								}
 							}
 						}
 					}
@@ -263,6 +265,8 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 			record_pcopy(p, copy);
 		}
 	}
+
+	private static final boolean FACILITATE_COALESCE = false;
 
 	void record_pcopy(BasicBlock b, ParallelCopyVarStatement copy) {
 		System.out.println("INSERT: " + copy + " from " + Thread.currentThread().getStackTrace()[2].toString());
@@ -418,8 +422,8 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 
 	HashMap<Local, Integer> preDfsDomOrder;
 	ExtendedDfs dom_dfs;
-	HashMap<Local, Local> fucker;
-	HashMap<Local, Local> fucker2;
+	HashMap<Local, Local> equalAncIn;
+	HashMap<Local, Local> equalAncOut;
 
 	void compute_value_interference() {
 		values = new HashMap<>();
@@ -587,15 +591,15 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 	private final static boolean VALUE_INTERFERENCE = true;
 	boolean interference(Local a, Local b, boolean sameConClass) {
 		if (VALUE_INTERFERENCE) {
-			fucker2.put(a, null);
+			equalAncOut.put(a, null);
 			if (sameConClass)
-				b = fucker2.get(b);
+				b = equalAncOut.get(b);
 
 			if (values.get(a) != values.get(b)) {
 				Local tmp = b;
 				while (tmp != null && !intersect(a, tmp)) {
 					System.out.println("      traverse " + tmp);
-					tmp = fucker.get(tmp);
+					tmp = equalAncIn.get(tmp);
 				}
 				System.out.println("      different values " + tmp);
 				return tmp != null;
@@ -603,8 +607,8 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 				System.out.println("      fucker in action");
 				Local tmp = b;
 				while (tmp != null && !intersect(a, tmp))
-					tmp = fucker.get(tmp);
-				fucker2.put(a, tmp);
+					tmp = equalAncIn.get(tmp);
+				equalAncOut.put(a, tmp);
 				return false;
 			}
 		} else {
@@ -612,7 +616,25 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 		}
 	}
 
-	boolean checkIntersect(CongruenceClass red, CongruenceClass blue) {
+	boolean checkInterfereSingle(CongruenceClass red, CongruenceClass blue) {
+		Local a = red.first();
+		Local b = blue.first();
+		if (checkPreDomOrder(a, b)) { // we want a > b in dom order (b is parent)
+			Local c = a;
+			a = b;
+			b = c;
+		}
+		if (intersect(a, b) && values.get(a) != values.get(b)) {
+			return true;
+		} else {
+			equalAncIn.put(a, b);
+			red.add(b);
+			congruenceClasses.put(b, red);
+			return false;
+		}
+	}
+
+	boolean checkInterfere(CongruenceClass red, CongruenceClass blue) {
 		Stack<LocalInfo> dom = new Stack<>();
 		Local ir = red.first(), ib = blue.first();
 		Local lr = red.last(), lb = blue.last();
@@ -640,22 +662,6 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 				LocalInfo parent = other;
 				if (parent != null) {
 					System.out.println("    check " + current + " vs " + parent + ":");
-					for (Local l : current.conClass) {
-						for (Local l2 : current.conClass) {
-							if (!checkPreDomOrder(l, l2))
-								break;
-							if (values.get(l) == values.get(l2) && intersect(l, l2))
-								fucker.put(l, l2);
-						}
-					}
-					for (Local l : parent.conClass) {
-						for (Local l2 : parent.conClass) {
-							if (!checkPreDomOrder(l, l2))
-								break;
-							if (values.get(l) == values.get(l2) && intersect(l, l2))
-								fucker.put(l, l2);
-						}
-					}
 					if (interference(current.l, parent.l, current.conClass == parent.conClass)) {
 						System.out.println("      => true");
 						return true;
@@ -688,8 +694,11 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 		CongruenceClass conClassA = getCongruenceClass(a);
 		CongruenceClass conClassB = getCongruenceClass(b);
 
-		System.out.println("  Intersection: " + a + " \u2208 " + conClassA + " vs " + b + " \u2208 " + conClassB + ": ");
-		if (checkIntersect(conClassA, conClassB)) {
+		System.out.println("  Check intersection: " + a + " \u2208 " + conClassA + " vs " + b + " \u2208 " + conClassB + ": ");
+		if (conClassA.size() == 1 && conClassB.size() == 1)
+			return checkInterfereSingle(conClassA, conClassB);
+
+		if (checkInterfere(conClassA, conClassB)) {
 			System.out.println("  => true");
 			return false;
 		}
@@ -706,6 +715,15 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 		for (Local l : conClassB)
 			congruenceClasses.put(l, conClassA);
 		System.out.println("    post-merge: " + conClassA);
+
+		for (Local l : conClassA) {
+			Local in = equalAncIn.get(l);
+			Local out = equalAncOut.get(l);
+			if (in != null && out != null)
+				equalAncIn.put(l, checkPreDomOrder(in, out) ? in : out);
+			else
+				equalAncIn.put(l, in != null ? in : out != null ? out : null);
+		}
 	}
 
 	void applyRemapping(Map<Local, Local> remap) {
@@ -791,11 +809,10 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 	}
 
 	private void coalesceCopies() {
-		fucker = new HashMap<>();
-		fucker2 = new HashMap<>();
+		equalAncIn = new HashMap<>();
+		equalAncOut = new HashMap<>();
 		// now for each copy check if lhs and rhs congruence classes do not interfere.
 		// if they do not interfere merge the conClasses and those two vars can be coalesced. delete the copy.
-		Local prevCopy = null;
 		for (BasicBlock b : dom_dfs.getPreOrder()) {
 			Iterator<Statement> it = b.iterator();
 			while (it.hasNext()) {
@@ -804,22 +821,16 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 					CopyVarStatement copy = (CopyVarStatement) stmt;
 					if (copy.getExpression().getOpcode() == Opcode.LOCAL_STORE) {
 						Local lhs = copy.getVariable().getLocal();
-//						if (prevCopy != null && values.get(prevCopy) == values.get(lhs) && intersect(lhs, prevCopy)) {
-//							merge(getCongruenceClass(lhs), getCongruenceClass(prevCopy));
-//							System.out.println("  => shared copy coalesce " + lhs + " + " + prevCopy);
-//						} else {
-							Local rhs = ((VarExpression) copy.getExpression()).getLocal();
-							if (tryCoalesceCopy(lhs, rhs)) {
+						Local rhs = ((VarExpression) copy.getExpression()).getLocal();
+						if (tryCoalesceCopy(lhs, rhs)) {
 //							Local remapLocal = congruenceClasses.get(lhs).first();
 //							remap.put(lhs, remapLocal);
 //							remap.put(rhs, remapLocal);
-								it.remove();
-								System.out.println("  => coalesce " + lhs + " = " + rhs);
+							it.remove();
+							System.out.println("  => coalesce " + lhs + " = " + rhs);
 //							System.out.println("  remap to " + remapLocal);
-							}
-//						}
+						}
 						System.out.println();
-//						prevCopy = lhs;
 					}
 				} else if (stmt.getOpcode() == -1) {
 					// we need to do it for each one. if all of the copies are removed then remove the pcvs
@@ -828,10 +839,7 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 					for (Iterator<CopyPair> pairIter = copy.pairs.iterator(); pairIter.hasNext(); ) {
 						System.out.println();
 						CopyPair pair = pairIter.next();
-						/*if (prevCopy != null && values.get(prevCopy) == values.get(pair.targ) && intersect(pair.targ, prevCopy)) {
-							merge(getCongruenceClass(pair.targ), getCongruenceClass(prevCopy));
-							System.out.println("  => psub shared copy coalesce " + pair.targ + " + " + prevCopy);
-						} else */if (tryCoalesceCopy(pair.targ, pair.source)) {
+						if (tryCoalesceCopy(pair.targ, pair.source)) {
 //							Local remapLocal = congruenceClasses.get(pair.targ).first();
 //							remap.put(pair.targ, remapLocal);
 //							remap.put(pair.source, remapLocal);
@@ -839,7 +847,6 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 							System.out.println("  => psub coalesce " + pair.targ + " = " + pair.source);
 //							System.out.println("    remap to " + remapLocal);
 						}
-//						prevCopy = pair.targ; // this wont work for parallel copies of pair count >2
 					}
 					if (copy.pairs.isEmpty()) {
 						it.remove();
