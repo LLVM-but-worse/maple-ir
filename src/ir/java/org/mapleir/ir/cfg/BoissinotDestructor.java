@@ -178,6 +178,9 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 		for(BasicBlock b : cfg.vertices()) {
 			insert_copies(b);
 		}
+		System.out.println("After insert:");
+		System.out.println(cfg);
+		System.out.println();
 	}
 
 	void insert_copies(BasicBlock b) {
@@ -501,7 +504,7 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 			}
 		}
 
-		System.out.println("values:");
+		System.out.println("\nvalues:");
 		for (Entry<Local, Local> e : values.entrySet())
 			System.out.println("  " + e.getKey() + " = " + e.getValue());
 		System.out.println();
@@ -624,6 +627,8 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 			a = b;
 			b = c;
 		}
+		if (!VALUE_INTERFERENCE)
+			return intersect(a, b);
 		if (intersect(a, b) && values.get(a) != values.get(b)) {
 			return true;
 		} else {
