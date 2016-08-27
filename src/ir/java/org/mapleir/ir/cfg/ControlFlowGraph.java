@@ -34,7 +34,7 @@ public class ControlFlowGraph extends FastBlockGraph {
 		int insn = 0;
 		
 		for(BasicBlock b : vertices()) {
-			sw.print("===#Block " + b.getId() + "(size=" + (b.size()) + ", ident=" + (b.getLabelNode() != null ? b.getLabelNode().hashCode() : "null") + ")===");
+			sw.print("===#Block " + b.getId() + "(size=" + (b.size()) + ")===");
 			sw.tab();
 			sw.print("\n");
 			

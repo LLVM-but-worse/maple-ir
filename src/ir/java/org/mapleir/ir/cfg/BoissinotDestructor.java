@@ -288,7 +288,7 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 		}
 	}
 
-	private static final boolean FACILITATE_COALESCE = false;
+	private static final boolean FACILITATE_COALESCE = true;
 
 	void record_pcopy(BasicBlock b, ParallelCopyVarStatement copy) {
 		System.out.println("INSERT: " + copy + " from " + Thread.currentThread().getStackTrace()[2].toString());
@@ -595,41 +595,27 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 		}
 	}
 
-	class LocalInfo {
-		final Local l;
-		final CongruenceClass conClass;
-
-		LocalInfo(Local local, CongruenceClass congruenceClass) {
-			l = local;
-			conClass = congruenceClass;
-		}
-
-		@Override
-		public String toString() {
-			return l.toString() + " \u2208 " + conClass;
-		}
-	}
-
 	private final static boolean VALUE_INTERFERENCE = true;
 	boolean interference(Local a, Local b, boolean sameConClass) {
 		if (VALUE_INTERFERENCE) {
+//			System.out.println("      anc-in: " + equalAncIn);
+//			System.out.println("      anc-out: " + equalAncOut);
 			equalAncOut.put(a, null);
-			if (sameConClass)
+			if (sameConClass) {
 				b = equalAncOut.get(b);
+				System.out.println("      actually " + a + " vs " + b);
+			}
 
+			Local tmp = b;
+			while (tmp != null && !intersect(a, tmp)) {
+				System.out.println("      traverse " + tmp);
+				tmp = equalAncIn.get(tmp);
+			}
 			if (values.get(a) != values.get(b)) {
-				Local tmp = b;
-				while (tmp != null && !intersect(a, tmp)) {
-					System.out.println("      traverse " + tmp);
-					tmp = equalAncIn.get(tmp);
-				}
 				System.out.println("      different values " + tmp);
 				return tmp != null;
 			} else {
-				System.out.println("      fucker in action");
-				Local tmp = b;
-				while (tmp != null && !intersect(a, tmp))
-					tmp = equalAncIn.get(tmp);
+				System.out.println("      same values " + tmp);
 				equalAncOut.put(a, tmp);
 				return false;
 			}
@@ -659,41 +645,62 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 	}
 
 	boolean checkInterfere(CongruenceClass red, CongruenceClass blue) {
+		class LocalInfo {
+			final Local l;
+			final CongruenceClass conClass;
+
+			LocalInfo(Local local, CongruenceClass congruenceClass) {
+				l = local;
+				conClass = congruenceClass;
+			}
+
+			@Override
+			public String toString() {
+				return l.toString() + " \u2208 " + conClass;
+			}
+		}
+
 		Stack<LocalInfo> dom = new Stack<>();
+		int nr = 0, nb = 0;
 		Local ir = red.first(), ib = blue.first();
-		Local lr = red.last(), lb = blue.last();
+		Local lr = red.last(), lb = blue.last(); // end sentinels
 		boolean redHasNext = true, blueHasNext = true;
-		while (redHasNext || blueHasNext) {
+		equalAncOut.put(ir, null); // these have no parents so we have to manually init them
+		equalAncOut.put(ib, null);
+		do {
 			LocalInfo current;
 			if (!blueHasNext || (redHasNext && blueHasNext && checkPreDomOrder(ir, ib))) {
-				current = new LocalInfo(ir, red); // current = red[ir++)
+				current = new LocalInfo(ir, red); // current = red[ir++]
+				nr++;
 				if (redHasNext = ir != lr)
 					ir = red.higher(ir);
 //				System.out.println("    Red next, current=" + current + ", hasNext=" + redHasNext);
 			} else {
 				current = new LocalInfo(ib, blue); // current = blue[ib++]
+				nb++;
 				if (blueHasNext = ib != lb)
 					ib = blue.higher(ib);
 //				System.out.println("    Blue next, current=" + current + ", hasNext=" + blueHasNext);
 			}
 
 			if (!dom.isEmpty()) {
-				LocalInfo other;
-				do
-					other = dom.pop();
-				while (!dom.isEmpty() && !doms(other.l, current.l));
+				LocalInfo parent;
+				do {
+					parent = dom.pop();
+					if (parent.conClass == red)
+						nr--;
+					else if (parent.conClass == blue)
+						nb--;
+				} while (!dom.isEmpty() && !doms(parent.l, current.l));
 
-				LocalInfo parent = other;
-				if (parent != null) {
-					System.out.println("    check " + current + " vs " + parent + ":");
-					if (interference(current.l, parent.l, current.conClass == parent.conClass)) {
-						System.out.println("      => true");
-						return true;
-					}
+				System.out.println("    check " + current + " vs " + parent + ":");
+				if (interference(current.l, parent.l, current.conClass == parent.conClass)) {
+					System.out.println("      => true");
+					return true;
 				}
 			}
 			dom.push(current);
-		}
+		} while ((redHasNext && nr > 0) || (blueHasNext && nb > 0));
 
 		return false;
 	}
