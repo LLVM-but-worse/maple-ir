@@ -593,8 +593,11 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 
 			if (values.get(a) != values.get(b)) {
 				Local tmp = b;
-				while (tmp != null && !intersect(a, tmp))
+				while (tmp != null && !intersect(a, tmp)) {
+					System.out.println("      traverse " + tmp);
 					tmp = fucker.get(tmp);
+				}
+				System.out.println("      different values " + tmp);
 				return tmp != null;
 			} else {
 				System.out.println("      fucker in action");
@@ -801,10 +804,10 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 					CopyVarStatement copy = (CopyVarStatement) stmt;
 					if (copy.getExpression().getOpcode() == Opcode.LOCAL_STORE) {
 						Local lhs = copy.getVariable().getLocal();
-						if (prevCopy != null && values.get(prevCopy) == values.get(lhs) && intersect(lhs, prevCopy)) {
-							merge(getCongruenceClass(lhs), getCongruenceClass(prevCopy));
-							System.out.println("  => shared copy coalesce " + lhs + " + " + prevCopy);
-						} else {
+//						if (prevCopy != null && values.get(prevCopy) == values.get(lhs) && intersect(lhs, prevCopy)) {
+//							merge(getCongruenceClass(lhs), getCongruenceClass(prevCopy));
+//							System.out.println("  => shared copy coalesce " + lhs + " + " + prevCopy);
+//						} else {
 							Local rhs = ((VarExpression) copy.getExpression()).getLocal();
 							if (tryCoalesceCopy(lhs, rhs)) {
 //							Local remapLocal = congruenceClasses.get(lhs).first();
@@ -814,9 +817,9 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 								System.out.println("  => coalesce " + lhs + " = " + rhs);
 //							System.out.println("  remap to " + remapLocal);
 							}
-						}
+//						}
 						System.out.println();
-						prevCopy = lhs;
+//						prevCopy = lhs;
 					}
 				} else if (stmt.getOpcode() == -1) {
 					// we need to do it for each one. if all of the copies are removed then remove the pcvs
@@ -825,10 +828,10 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 					for (Iterator<CopyPair> pairIter = copy.pairs.iterator(); pairIter.hasNext(); ) {
 						System.out.println();
 						CopyPair pair = pairIter.next();
-						if (prevCopy != null && values.get(prevCopy) == values.get(pair.targ) && intersect(pair.targ, prevCopy)) {
+						/*if (prevCopy != null && values.get(prevCopy) == values.get(pair.targ) && intersect(pair.targ, prevCopy)) {
 							merge(getCongruenceClass(pair.targ), getCongruenceClass(prevCopy));
 							System.out.println("  => psub shared copy coalesce " + pair.targ + " + " + prevCopy);
-						} else if (tryCoalesceCopy(pair.targ, pair.source)) {
+						} else */if (tryCoalesceCopy(pair.targ, pair.source)) {
 //							Local remapLocal = congruenceClasses.get(pair.targ).first();
 //							remap.put(pair.targ, remapLocal);
 //							remap.put(pair.source, remapLocal);
@@ -836,7 +839,7 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 							System.out.println("  => psub coalesce " + pair.targ + " = " + pair.source);
 //							System.out.println("    remap to " + remapLocal);
 						}
-						prevCopy = pair.targ; // this wont work for parallel copies of pair count >2
+//						prevCopy = pair.targ; // this wont work for parallel copies of pair count >2
 					}
 					if (copy.pairs.isEmpty()) {
 						it.remove();
