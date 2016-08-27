@@ -609,11 +609,15 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 			if (!blueHasNext || (redHasNext && blueHasNext && checkPreDomOrder(ir, ib))) {
 				current = new LocalInfo(ir, red); // current = red[ir++)
 //				System.out.println("  red next = " + current);
-				redHasNext = ir != lr && (ir = red.higher(ir)) != lr;
+				if (redHasNext = ir != lr)
+					ir = red.higher(ir);
+				System.out.println("    Red next, current=" + current + ", hasNext=" + redHasNext);
 			} else {
 				current = new LocalInfo(ib, blue); // current = blue[ib++]
 //				System.out.println("  blue next = " + current);
-				blueHasNext = ib != lb && (ib = blue.higher(ib)) != lb;
+				if (blueHasNext = ib != lb)
+					ib = blue.higher(ib);
+				System.out.println("    Blue next, current=" + current + ", hasNext=" + blueHasNext);
 			}
 
 			if (!dom.isEmpty()) {
@@ -629,7 +633,6 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 						System.out.println("      => true");
 						return true;
 					}
-					System.out.println("      => false");
 				}
 			}
 			dom.push(current);
