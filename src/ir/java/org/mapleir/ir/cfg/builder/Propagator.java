@@ -1,12 +1,7 @@
 package org.mapleir.ir.cfg.builder;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -110,9 +105,10 @@ public class Propagator extends OptimisationPass.Optimiser {
 		
 		private boolean cleanEquivalentPhis() {
 			boolean change = false;
-			
+						
 			for(BasicBlock b : builder.graph.vertices()) {
 				List<CopyPhiStatement> phis = new ArrayList<>();
+				
 				for(Statement stmt : b) {
 					if(stmt.getOpcode() == Opcode.PHI_STORE) {
 						phis.add((CopyPhiStatement) stmt);
@@ -120,7 +116,7 @@ public class Propagator extends OptimisationPass.Optimiser {
 						break;
 					}
 				}
-								
+						
 				if(phis.size() > 1) {
 					NullPermeableHashMap<CopyPhiStatement, Set<CopyPhiStatement>> equiv = new NullPermeableHashMap<>(new SetCreator<>());
 					for(CopyPhiStatement cps : phis) {
@@ -141,7 +137,7 @@ public class Propagator extends OptimisationPass.Optimiser {
 						}
 					}
 
-					for(Entry<CopyPhiStatement, Set<CopyPhiStatement>> e : equiv.entrySet()) {						
+					for(Entry<CopyPhiStatement, Set<CopyPhiStatement>> e : equiv.entrySet()) {					
 						// key should be earliest
 						// remove vals from code and replace use of val vars with key var
 						
@@ -199,10 +195,44 @@ public class Propagator extends OptimisationPass.Optimiser {
 							localAccess.defs.remove(local);
 						}
 						change = true;
+						
+						phis.removeAll(useless);
 					}
+				}
+				
+				if(phis.size() > 1) {
+					interweavingPhis(b, phis);
 				}
 			}
 			return change;
+		}
+		
+		private void interweavingPhis(BasicBlock bb, List<CopyPhiStatement> phis) {
+			Map<Local, NullPermeableHashMap<BasicBlock, Set<Expression>>> reducedPcc = new HashMap<>();
+			Map<Local, CopyPhiStatement> pdefs = new HashMap<>();
+			
+			for(CopyPhiStatement p : phis) {
+				PhiExpression phi = p.getExpression();
+				NullPermeableHashMap<BasicBlock, Set<Expression>> map = new NullPermeableHashMap<>(new SetCreator<>());
+				
+				for(Entry<BasicBlock, Expression> e : phi.getArguments().entrySet()) {
+					Expression expr = e.getValue();
+					if(expr.getOpcode() == Opcode.LOCAL_LOAD) {
+						VarExpression v = (VarExpression) expr;
+						// we don't want to store phi 
+						AbstractCopyStatement def = localAccess.defs.get(v.getLocal());
+						if(def.getOpcode() == Opcode.PHI_STORE) {
+							continue;
+						}
+					}
+					
+					map.getNonNull(e.getKey()).add(expr);
+				}
+
+				Local l = p.getVariable().getLocal();
+				reducedPcc.put(l, map);
+				pdefs.put(l, p);
+			}
 		}
 		
 		private boolean cleanDead() {
