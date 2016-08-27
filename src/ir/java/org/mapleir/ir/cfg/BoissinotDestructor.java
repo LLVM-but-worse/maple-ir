@@ -22,7 +22,6 @@ import org.mapleir.ir.dot.LivenessDecorator;
 import org.mapleir.ir.locals.BasicLocal;
 import org.mapleir.ir.locals.Local;
 import org.mapleir.stdlib.cfg.edge.FlowEdge;
-import org.mapleir.stdlib.cfg.edge.ImmediateEdge;
 import org.mapleir.stdlib.cfg.util.TabbedStringWriter;
 import org.mapleir.stdlib.collections.ListCreator;
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
@@ -450,13 +449,7 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 	void compute_value_interference() {
 		values = new HashMap<>();
 		FastBlockGraph dom_tree = new FastBlockGraph();
-		for (Entry<BasicBlock, Set<BasicBlock>> e : resolver.domc.getTree().entrySet()) {
-			BasicBlock b = e.getKey();
-			dom_tree.addVertex(b);
-			for (BasicBlock c : e.getValue()) {
-				dom_tree.addEdge(b, new ImmediateEdge<>(b, c));
-			}
-		}
+		resolver.domc.makeTree(dom_tree);
 
 		BasicDotConfiguration<FastBlockGraph, BasicBlock, FlowEdge<BasicBlock>> config = new BasicDotConfiguration<>(DotConfiguration.GraphType.DIRECTED);
 		DotWriter<FastBlockGraph, BasicBlock, FlowEdge<BasicBlock>> writer = new DotWriter<>(config, dom_tree);
