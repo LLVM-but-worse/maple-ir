@@ -1,11 +1,14 @@
 package org.mapleir.stdlib.collections.graph.flow;
 
 import java.util.*;
+import java.util.Map.Entry;
 
 import org.mapleir.stdlib.cfg.edge.FlowEdge;
+import org.mapleir.stdlib.cfg.edge.ImmediateEdge;
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.SetCreator;
 import org.mapleir.stdlib.collections.graph.FastDirectedGraph;
+import org.mapleir.stdlib.collections.graph.FastGraph;
 import org.mapleir.stdlib.collections.graph.FastGraphEdge;
 import org.mapleir.stdlib.collections.graph.FastGraphVertex;
 
@@ -43,6 +46,16 @@ public class TarjanDominanceComputor<N extends FastGraphVertex> {
 		touchTree();
 		computeFrontiers();
 		computeIteratedFrontiers();
+	}
+	
+	public void makeTree(FastGraph<N, FlowEdge<N>> dom_tree) {
+		for (Entry<N, Set<N>> e : getTree().entrySet()) {
+			N b = e.getKey();
+			dom_tree.addVertex(b);
+			for (N c : e.getValue()) {
+				dom_tree.addEdge(b, new ImmediateEdge<>(b, c));
+			}
+		}
 	}
 	
 	public Map<N, Set<N>> getTree() {
