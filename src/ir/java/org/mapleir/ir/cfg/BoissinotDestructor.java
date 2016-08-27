@@ -79,8 +79,6 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 		createDuChains();
 		verify();
 
-		resolver = new DominanceLivenessAnalyser(cfg, defuse); // this part belongs in 2
-
 		localsTest.addAll(defuse.phis.keySet());
 		localsTest.addAll(defuse.uses.keySet());
 		localsTest.addAll(defuse.defs.keySet());
@@ -158,6 +156,9 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 				}
 			}
 		}
+
+		// create dominance
+		resolver = new DominanceLivenessAnalyser(cfg, null);
 	}
 
 	private Local separatePhiDef(CopyPhiStatement copy, BasicBlock pred) {
@@ -242,9 +243,8 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 				r.phi.setArgument(r.pred, new VarExpression(zi, r.type));
 			}
 
-			// replace uses of xi with zi in other successors to faciltate coalescing
-			for (FlowEdge<BasicBlock> edge : cfg.getEdges(p)) {
-				BasicBlock succ = edge.dst;
+			// replace uses of xi with zi in dominated successors to faciltate coalescing
+			for (BasicBlock succ : resolver.sdoms.getNonNull(p)) {
 				for (Statement stmt : succ) {
 					for (Statement child : stmt) {
 						if (child.getOpcode() == Opcode.LOCAL_LOAD) {
@@ -335,6 +335,8 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 				}
 			}
 		};
+
+		resolver.setDefuse(defuse);
 	}
 
 	void verify() {
