@@ -242,6 +242,23 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 				r.phi.setArgument(r.pred, new VarExpression(zi, r.type));
 			}
 
+			// replace uses of xi with zi in other successors to faciltate coalescing
+			for (FlowEdge<BasicBlock> edge : cfg.getEdges(p)) {
+				BasicBlock succ = edge.dst;
+				for (Statement stmt : succ) {
+					for (Statement child : stmt) {
+						if (child.getOpcode() == Opcode.LOCAL_LOAD) {
+							VarExpression var = ((VarExpression) child);
+							Local local = var.getLocal();
+							for (CopyPair pair : copy.pairs) {
+								if (local == pair.source)
+									var.setLocal(pair.targ);
+							}
+						}
+					}
+				}
+			}
+
 			insert_end(p, copy);
 			record_pcopy(p, copy);
 		}
@@ -541,7 +558,7 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 			super(new Comparator<Local>() {
 				@Override
 				public int compare(Local o1, Local o2) {
-					if (o1.toString().equals(o2.toString()))
+					if (o1 == o2)
 						return 0;
 					return checkPreDomOrder(o1, o2)? -1 : 1;
 				}
@@ -608,16 +625,14 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 			LocalInfo current;
 			if (!blueHasNext || (redHasNext && blueHasNext && checkPreDomOrder(ir, ib))) {
 				current = new LocalInfo(ir, red); // current = red[ir++)
-//				System.out.println("  red next = " + current);
 				if (redHasNext = ir != lr)
 					ir = red.higher(ir);
-				System.out.println("    Red next, current=" + current + ", hasNext=" + redHasNext);
+//				System.out.println("    Red next, current=" + current + ", hasNext=" + redHasNext);
 			} else {
 				current = new LocalInfo(ib, blue); // current = blue[ib++]
-//				System.out.println("  blue next = " + current);
 				if (blueHasNext = ib != lb)
 					ib = blue.higher(ib);
-				System.out.println("    Blue next, current=" + current + ", hasNext=" + blueHasNext);
+//				System.out.println("    Blue next, current=" + current + ", hasNext=" + blueHasNext);
 			}
 
 			if (!dom.isEmpty()) {
@@ -800,6 +815,10 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 			}
 		}
 
+		System.out.println("Final congruence classes:");
+		for (Entry<Local, CongruenceClass> e : congruenceClasses.entrySet())
+			System.out.println(e.getKey() + " => " + e.getValue());
+		System.out.println();
 		// ok NOW we remap to avoid that double remap issue
 		for (Entry<Local, CongruenceClass> e : congruenceClasses.entrySet())
 			remap.put(e.getKey(), e.getValue().first());
@@ -887,7 +906,7 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 				values.put(b, values.get(c));
 
 				loc.put(a, b);
-				if (a.toString().equals(c.toString()) && pred.get(a) != null) {
+				if (a == c && pred.get(a) != null) {
 					if (!pred.containsKey(a))
 						throw new IllegalStateException("this shouldn't happen");
 					ready.push(a); // just copied, can be overwritten
@@ -895,7 +914,7 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 			}
 
 			Local b = to_do.pop();
-			if (!values.get(b).toString().equals(values.get(loc.get(pred.get(b))).toString())) {
+			if (values.get(b) != values.get(loc.get(pred.get(b)))) {
 				System.out.println("  spill " + b + " (" + b + " vs " + loc.get(pred.get(b)).toString() + ")" + " (" + values.get(b) + " vs " + values.get(loc.get(pred.get(b))) + ")");
 				if (!types.containsKey(b))
 					throw new IllegalStateException("this shouldn't happen");
