@@ -38,6 +38,15 @@ import org.objectweb.asm.Type;
 
 public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 
+	void print(String p) {
+		System.out.println();
+		System.out.println("AFTER " + p.toUpperCase() + ":");
+		System.out.println(cfg);
+		System.out.println();
+		System.out.println();
+	}
+
+
 	private final ControlFlowGraph cfg;
 
 	private SSADefUseMap defuse;
@@ -73,9 +82,11 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 				.setName("pre-destruct")
 				.export();
 
+		print("initial");
 		// 1. Insert copies to enter CSSA.
 		init();
 		insert_copies();
+		print("insert");
 		createDuChains();
 		verify();
 
@@ -91,9 +102,14 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 		compute_value_interference();
 		defuse.buildIndices();
 
+		print("interference");
+
 		// 3. Aggressively coalesce while in CSSA to leave SSA
 		// 3a. Coalesce phi locals to leave CSSA (!!!)
 		coalescePhis();
+
+		print("co-phis");
+
 		localsTest.clear();
 		localsTest.addAll(defuse.uses.keySet());
 		localsTest.addAll(defuse.defs.keySet());
@@ -105,7 +121,9 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 
 		// 3b. Coalesce the rest of the copies
 		coalesceCopies();
+		print("co-copies");
 		applyRemapping(remap);
+		print("remap");
 		writer.removeAll()
 				.add(new ControlFlowGraphDecorator().setFlags(OPT_DEEP))
 				.setName("after-coalesce")
@@ -113,6 +131,7 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 
 		// 4. Sequentialize parallel copies
 		sequentialize();
+		print("sequen");
 		writer.removeAll()
 				.add(new ControlFlowGraphDecorator().setFlags(OPT_DEEP))
 				.setName("after-sequentialize")

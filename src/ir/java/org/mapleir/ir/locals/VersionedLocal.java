@@ -29,4 +29,12 @@ public class VersionedLocal extends Local {
 	public String toString() {
 		return super.toString() + "_" + subscript;
 	}
+
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = super.hashCode();
+		result = prime * result + subscript;
+		return result;
+	}
 }
