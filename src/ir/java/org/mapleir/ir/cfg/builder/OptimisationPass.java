@@ -27,6 +27,10 @@ public class OptimisationPass extends ControlFlowGraphBuilder.BuilderPass {
 		do {
 			changes = 0;
 			
+			for(Optimiser o : opt) {
+				changes += o.run();
+			}
+			
 			for(BasicBlock b : builder.graph.vertices()) {
 				for(Optimiser o : opt) {
 					changes += o.run(b);
@@ -42,6 +46,10 @@ public class OptimisationPass extends ControlFlowGraphBuilder.BuilderPass {
 		public Optimiser(ControlFlowGraphBuilder builder, SSALocalAccess localAccess) {
 			this.builder = builder;
 			this.localAccess = localAccess;
+		}
+		
+		public int run() {
+			return 0;
 		}
 		
 		public abstract int run(BasicBlock b);
