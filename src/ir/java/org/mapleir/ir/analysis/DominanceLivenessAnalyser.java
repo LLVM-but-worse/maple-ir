@@ -13,16 +13,15 @@ import org.mapleir.stdlib.cfg.edge.FlowEdge;
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.SetCreator;
 import org.mapleir.stdlib.collections.graph.flow.TarjanDominanceComputor;
-import org.mapleir.stdlib.collections.graph.util.GraphUtils;
 
 public class DominanceLivenessAnalyser {
 
 	private final NullPermeableHashMap<BasicBlock, Set<BasicBlock>> rv;
 	private final NullPermeableHashMap<BasicBlock, Set<BasicBlock>> tq;
-	private final NullPermeableHashMap<BasicBlock, Set<BasicBlock>> sdoms;
+	public final NullPermeableHashMap<BasicBlock, Set<BasicBlock>> sdoms;
 	
 	public final ControlFlowGraph cfg;
-	public final SSADefUseMap defuse;
+	private SSADefUseMap defuse;
 	public final BasicBlock entry;
 	public final ControlFlowGraph red_cfg;
 	public final ExtendedDfs cfg_dfs;
@@ -61,7 +60,11 @@ public class DominanceLivenessAnalyser {
 		
 //		System.out.println("Backedge Targets: " + GraphUtils.toBlockArray(btargs));
 	}
-	
+
+	public void setDefuse(SSADefUseMap defuse) {
+		this.defuse = defuse;
+	}
+
 	public boolean sdoms(BasicBlock x, BasicBlock y) {
 		return sdoms.getNonNull(x).contains(y);
 	}
