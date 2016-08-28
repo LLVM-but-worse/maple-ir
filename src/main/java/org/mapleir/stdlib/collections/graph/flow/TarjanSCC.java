@@ -101,11 +101,8 @@ public class TarjanSCC <N extends FastGraphVertex> {
 			}
 		}
 		
-		
 		return bfs;
 	}
-	
-
 	
 	/* static final Map<Class<?>, Integer> WEIGHTS = new HashMap<>();
 	
