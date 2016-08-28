@@ -242,7 +242,9 @@ public class Propagator extends OptimisationPass.Optimiser {
 				Entry<VersionedLocal, AtomicInteger> e = it.next();
 				if(e.getValue().get() == 0)  {
 					AbstractCopyStatement def = localAccess.defs.get(e.getKey());
-					if(!def.isSynthetic()) {
+					Expression rhs = def.getExpression();
+					int op = rhs.getOpcode();
+					if(!def.isSynthetic() && op != Opcode.CATCH) {
 						if(!fineBladeDefinition(def, it)) {
 							killed(def);
 							changed = true;
@@ -444,11 +446,12 @@ public class Propagator extends OptimisationPass.Optimiser {
 				}
 			}
 			Expression rhs = def.getExpression();
-			if(rhs instanceof ConstantExpression) {
+			int opcode = rhs.getOpcode();
+			if(opcode == Opcode.CONST_LOAD) {
 				return handleConstant(def, use, (ConstantExpression) rhs);
-			} else if(rhs instanceof VarExpression) {
+			} else if(opcode == Opcode.LOCAL_LOAD) {
 				return handleVar(def, use, (VarExpression) rhs);
-			} else if (!(rhs instanceof CaughtExceptionExpression || rhs instanceof PhiExpression)) {
+			} else if(opcode != Opcode.CATCH && opcode != Opcode.PHI) {
 				return handleComplex(def, use);
 			}
 			return use;
@@ -563,13 +566,6 @@ public class Propagator extends OptimisationPass.Optimiser {
 			Set<Statement> path = findReachable(def, use);
 			path.remove(def);
 			path.add(use);
-			
-			if(def.toString().equals("lvar2_2 = lvar2_2 + 1;")) {
-				System.out.println("REACHES: " + def + " to " + use);
-				for(Statement s : path)  {
-					System.out.println("  " + s);
-				}
-			}
 			
 			boolean canPropagate = true;
 			
