@@ -143,6 +143,71 @@ public class Test {
 		System.out.println(y);
 	}
 	
+	void test119() {
+		try  {
+			System.out.println("print");
+		} catch(RuntimeException e) {
+			
+		}
+	}
+	
+	void test120() {
+		try  {
+			System.out.println("print");
+		} catch(RuntimeException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	void test121() {
+		int x;
+		
+		try  {
+			System.gc();
+			x = 5;
+		} catch(RuntimeException e) {
+			x = 10;
+		}
+		
+		System.out.println(x);
+	}
+	
+	void test122() {
+		int x = 5;
+		int y = 10;
+		
+		try {
+			int z = x;
+			x = y;
+			y = z;
+		} catch(RuntimeException e) {
+			int z = y;
+			y = x;
+			x = z;
+		}
+		
+		System.out.println(x);
+		System.out.println(y);
+	}
+	
+	void test123() {
+		int x = 5;
+		int y = 10;
+		
+		try {
+			int z = x;
+			x = y;
+			y = z;
+		} finally {
+			int z = y;
+			y = x;
+			x = z;
+		}
+		
+		System.out.println(x);
+		System.out.println(y);
+	}
+	
 	boolean p() {
 		return true;
 	}
@@ -225,16 +290,22 @@ public class Test {
 //				continue;
 //			}
 			
-			if(!m.toString().equals("org/mapleir/ir/Test.test111()V")) {
+//			if(!m.toString().equals("org/mapleir/ir/Test.test111()V")) {
+//				continue;
+//			}
+			
+			if(!m.toString().startsWith("org/mapleir/ir/Test.test121")) {
 				continue;
 			}
+
 			
 			System.out.println("Processing " + m + "\n");
 			ControlFlowGraph cfg = ControlFlowGraphBuilder.build(m);
-
-//			System.out.println("Pre-destruct");
-//			System.out.println(cfg);
-//			System.out.println();
+			
+			System.out.println();
+			System.out.println();
+			System.out.println();
+			System.out.println(cfg);
 
 			try {
 				BoissinotDestructor destructor = new BoissinotDestructor(cfg);
