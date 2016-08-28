@@ -225,16 +225,16 @@ public class Test {
 //				continue;
 //			}
 			
-			if(!m.toString().equals("org/mapleir/ir/Test.test118()V")) {
+			if(!m.toString().equals("org/mapleir/ir/Test.test111()V")) {
 				continue;
 			}
 			
 			System.out.println("Processing " + m + "\n");
 			ControlFlowGraph cfg = ControlFlowGraphBuilder.build(m);
 
-			System.out.println("Pre-destruct");
-			System.out.println(cfg);
-			System.out.println();
+//			System.out.println("Pre-destruct");
+//			System.out.println(cfg);
+//			System.out.println();
 
 			try {
 				BoissinotDestructor destructor = new BoissinotDestructor(cfg);
@@ -243,17 +243,17 @@ public class Test {
 			}
 			
 			cfg.getLocals().realloc(cfg);
+			
+			System.out.println();
+			System.out.println();
+			System.out.println();
+			System.out.println(cfg);
 
 			BasicDotConfiguration<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> config = new BasicDotConfiguration<>(DotConfiguration.GraphType.DIRECTED);
 			DotWriter<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> writer = new DotWriter<>(config, cfg);
 			writer.removeAll().add(new ControlFlowGraphDecorator().setFlags(OPT_DEEP))
 				.setName("destructed")
 				.export();
-			
-//			System.out.println();
-//			System.out.println();
-//			System.out.println();
-			System.out.println(cfg);
 			
 			MethodNode m2 = new MethodNode(m.owner, m.access, m.name, m.desc, m.signature, m.exceptions.toArray(new String[0]));
 			dump(cfg, m2);
