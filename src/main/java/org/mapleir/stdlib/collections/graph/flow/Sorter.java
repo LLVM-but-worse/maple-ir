@@ -18,4 +18,13 @@ public interface Sorter<N extends FastGraphVertex> {
 	}
 	
 	Iterator<N> iterator(FlowGraph<N, ?> graph);
+	
+	default Iterable<N> iterable(FlowGraph<N, ?> graph) {
+		return new Iterable<N>() {
+			@Override
+			public Iterator<N> iterator() {
+				return Sorter.this.iterator(graph);
+			}
+		};
+	}
 }

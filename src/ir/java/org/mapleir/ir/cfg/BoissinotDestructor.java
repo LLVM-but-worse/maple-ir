@@ -99,7 +99,12 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 
 		// 2. Build value interference
 		compute_value_interference();
-		defuse.buildIndices();
+		defuse.buildIndices(dom_dfs.getPreOrder());
+		System.out.println();
+		for (Entry<Local, Integer> e : defuse.defIndex.entrySet())
+			System.out.println(e.getKey() + " " + e.getValue());
+		System.out.println();
+		System.out.println();
 
 		print("interference");
 
@@ -443,7 +448,6 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 		}
 	}
 
-	HashMap<Local, Integer> preDfsDomOrder;
 	ExtendedDfs dom_dfs;
 	HashMap<Local, Local> equalAncIn;
 	HashMap<Local, Local> equalAncOut;
@@ -452,7 +456,8 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 		values = new HashMap<>();
 		FastBlockGraph dom_tree = new FastBlockGraph();
 		resolver.domc.makeTree(dom_tree);
-
+		dom_tree.getEntries().addAll(cfg.getEntries());
+		
 		BasicDotConfiguration<FastBlockGraph, BasicBlock, FlowEdge<BasicBlock>> config = new BasicDotConfiguration<>(DotConfiguration.GraphType.DIRECTED);
 		DotWriter<FastBlockGraph, BasicBlock, FlowEdge<BasicBlock>> writer = new DotWriter<>(config, dom_tree);
 		writer.removeAll().setName("domtree").export();
@@ -504,49 +509,16 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 			}
 		}
 
-		// it might be possible to put this code into the reverse postorder but the paper specified preorder
-		preDfsDomOrder = new HashMap<>();
-		int domIndex = 0;
-		for (BasicBlock bl : dom_dfs.getPreOrder()) {
-			for (Statement stmt : bl) {
-				if (stmt instanceof AbstractCopyStatement) {
-					preDfsDomOrder.put(((AbstractCopyStatement) stmt).getVariable().getLocal(), domIndex++);
-				} else if (stmt.getOpcode() == -1) {
-					for (CopyPair pair : ((ParallelCopyVarStatement) stmt).pairs)
-						preDfsDomOrder.put(pair.targ, domIndex++);
-				}
-			}
-		}
-
 		System.out.println("\nvalues:");
 		for (Entry<Local, Local> e : values.entrySet())
 			System.out.println("  " + e.getKey() + " = " + e.getValue());
 		System.out.println();
-
-		System.out.println();
-		for (Entry<Local, Integer> e : preDfsDomOrder.entrySet())
-			System.out.println(e.getKey() + " " + e.getValue());
-		System.out.println();
-		System.out.println();
-	}
-
-	boolean doms(Local x, Local y) {
-		BasicBlock bx = defuse.defs.get(x);
-		BasicBlock by = defuse.defs.get(y);
-		
-		if(resolver.sdoms(bx, by)) {
-			return true;
-		} else if(bx == by) {
-			int i1 = preDfsDomOrder.get(x);
-			int i2 = preDfsDomOrder.get(y);
-			return i1 < i2;
-		} else {
-			return false;
-		}
 	}
 
 	boolean checkPreDomOrder(Local x, Local y) {
-		return doms(x, y);
+		int i1 = defuse.defIndex.get(x);
+		int i2 = defuse.defIndex.get(y);
+		return i1 < i2;
 	}
 
 	boolean intersect(Local a, Local b) {
@@ -688,7 +660,7 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 						nr--;
 					else if (parent.conClass == blue)
 						nb--;
-				} while (!dom.isEmpty() && !doms(parent.l, current.l));
+				} while (!dom.isEmpty() && !checkPreDomOrder(parent.l, current.l));
 
 				System.out.println("    check " + current + " vs " + parent + ":");
 				if (interference(current.l, parent.l, current.conClass == parent.conClass)) {

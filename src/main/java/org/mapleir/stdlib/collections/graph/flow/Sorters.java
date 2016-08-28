@@ -10,7 +10,8 @@ public final class Sorters {
 	private static final Map<String, Sorter<?>> impls = new HashMap<>();
 	
 	static {
-		impls.put("dfs", new DepthFirstSorterImpl<FastGraphVertex>());
+		impls.put("dfs", new DepthFirstSorterImpl<>());
+		impls.put("bfs", new BreadthFirstSorterImpl<>());
 	}
 	
 	@SuppressWarnings("unchecked")
