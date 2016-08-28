@@ -163,7 +163,7 @@ public class Test {
 //				continue;
 //			}
 			
-			if(!m.toString().equals("org/mapleir/ir/Test.test118()V")) {
+			if(!m.toString().equals("org/mapleir/ir/Test.test112()V")) {
 				continue;
 			}
 			

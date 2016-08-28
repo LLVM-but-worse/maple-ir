@@ -2,6 +2,7 @@
 <project version="4">
   <component name="CompilerConfiguration">
     <option name="DEFAULT_COMPILER" value="Eclipse" />
+    <option name="BUILD_PROCESS_HEAP_SIZE" value="4096" />
     <resourceExtensions />
     <wildcardResourcePatterns>
       <entry name="!?*.java" />

@@ -92,13 +92,13 @@ public class SSADefUseMap implements Opcode {
 		defIndex = new HashMap<>();
 
 		for (BasicBlock b : cfg.vertices()) {
-			for (int i = 0; i < b.size(); i++) {
-				buildIndex(b, b.get(i), i);
-			}
+			int index = 0;
+			for (Statement stmt : b)
+				index = buildIndex(b, stmt, index);
 		}
 	}
 
-	protected void buildIndex(BasicBlock b, Statement stmt, int index) {
+	protected int buildIndex(BasicBlock b, Statement stmt, int index) {
 		if (stmt instanceof AbstractCopyStatement) {
 			AbstractCopyStatement copy = (AbstractCopyStatement) stmt;
 			defIndex.put(copy.getVariable().getLocal(), index);
@@ -115,5 +115,6 @@ public class SSADefUseMap implements Opcode {
 		for (Statement child : stmt)
 			if (child.getOpcode() == Opcode.LOCAL_LOAD)
 				lastUseIndex.getNonNull(((VarExpression) child).getLocal()).put(b, index);
+		return ++index;
 	}
 }
