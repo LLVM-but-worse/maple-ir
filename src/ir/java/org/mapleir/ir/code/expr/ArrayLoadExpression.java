@@ -1,10 +1,10 @@
 package org.mapleir.ir.code.expr;
 
+import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.stmt.Statement;
 import org.mapleir.stdlib.cfg.util.TabbedStringWriter;
 import org.mapleir.stdlib.cfg.util.TypeUtils;
 import org.mapleir.stdlib.cfg.util.TypeUtils.ArrayType;
-import org.mapleir.stdlib.ir.transform.impl.CodeAnalytics;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Type;
 
@@ -88,9 +88,9 @@ public class ArrayLoadExpression extends Expression {
 	}
 
 	@Override
-	public void toCode(MethodVisitor visitor, CodeAnalytics analytics) {
-		array.toCode(visitor, analytics);
-		index.toCode(visitor, analytics);
+	public void toCode(MethodVisitor visitor, ControlFlowGraph cfg) {
+		array.toCode(visitor, cfg);
+		index.toCode(visitor, cfg);
 		int[] iCast = TypeUtils.getPrimitiveCastOpcodes(index.getType(), Type.INT_TYPE);
 		for (int i = 0; i < iCast.length; i++) {
 			visitor.visitInsn(iCast[i]);

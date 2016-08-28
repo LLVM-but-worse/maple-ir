@@ -1,9 +1,9 @@
 package org.mapleir.ir.code.expr;
 
+import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.stmt.Statement;
 import org.mapleir.stdlib.cfg.util.TabbedStringWriter;
 import org.mapleir.stdlib.cfg.util.TypeUtils;
-import org.mapleir.stdlib.ir.transform.impl.CodeAnalytics;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Type;
 
@@ -65,8 +65,8 @@ public class NegationExpression extends Expression {
 	}
 
 	@Override
-	public void toCode(MethodVisitor visitor, CodeAnalytics analytics) {
-		expression.toCode(visitor, analytics);
+	public void toCode(MethodVisitor visitor, ControlFlowGraph cfg) {
+		expression.toCode(visitor, cfg);
 		int[] cast = TypeUtils.getPrimitiveCastOpcodes(expression.getType(), getType());
 		for (int i = 0; i < cast.length; i++)
 			visitor.visitInsn(cast[i]);

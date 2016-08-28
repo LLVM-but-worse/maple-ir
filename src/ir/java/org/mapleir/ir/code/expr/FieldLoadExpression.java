@@ -1,8 +1,8 @@
 package org.mapleir.ir.code.expr;
 
+import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.stmt.Statement;
 import org.mapleir.stdlib.cfg.util.TabbedStringWriter;
-import org.mapleir.stdlib.ir.transform.impl.CodeAnalytics;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
@@ -92,9 +92,9 @@ public class FieldLoadExpression extends Expression {
 	}
 
 	@Override
-	public void toCode(MethodVisitor visitor, CodeAnalytics analytics) {
+	public void toCode(MethodVisitor visitor, ControlFlowGraph cfg) {
 		if (instanceExpression != null) {
-			instanceExpression.toCode(visitor, analytics);
+			instanceExpression.toCode(visitor, cfg);
 		}
 		visitor.visitFieldInsn(instanceExpression != null ? Opcodes.GETFIELD : Opcodes.GETSTATIC, owner, name, desc);		
 	}

@@ -1,11 +1,11 @@
 package org.mapleir.ir.code.expr;
 
+import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.stmt.Statement;
 import org.mapleir.ir.code.stmt.copy.CopyVarStatement;
 import org.mapleir.ir.locals.Local;
 import org.mapleir.stdlib.cfg.util.TabbedStringWriter;
 import org.mapleir.stdlib.cfg.util.TypeUtils;
-import org.mapleir.stdlib.ir.transform.impl.CodeAnalytics;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Type;
 
@@ -57,7 +57,7 @@ public class VarExpression extends Expression {
 	}
 
 	@Override
-	public void toCode(MethodVisitor visitor, CodeAnalytics analytics) {
+	public void toCode(MethodVisitor visitor, ControlFlowGraph cfg) {
 		if(local.isStoredInLocal()) {
 			visitor.visitVarInsn(TypeUtils.getVariableLoadOpcode(getType()), local.getCodeIndex());	
 		}

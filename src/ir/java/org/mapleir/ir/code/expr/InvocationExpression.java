@@ -1,9 +1,9 @@
 package org.mapleir.ir.code.expr;
 
+import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.stmt.Statement;
 import org.mapleir.stdlib.cfg.util.TabbedStringWriter;
 import org.mapleir.stdlib.cfg.util.TypeUtils;
-import org.mapleir.stdlib.ir.transform.impl.CodeAnalytics;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
@@ -164,7 +164,7 @@ public class InvocationExpression extends Expression {
 	}
 
 	@Override
-	public void toCode(MethodVisitor visitor, CodeAnalytics analytics) {
+	public void toCode(MethodVisitor visitor, ControlFlowGraph cfg) {
 		Type[] argTypes = Type.getArgumentTypes(desc);
 		if (opcode != Opcodes.INVOKESTATIC) {
 			Type[] bck = argTypes;
@@ -174,7 +174,7 @@ public class InvocationExpression extends Expression {
 		}
 		
 		for (int i = 0; i < argumentExpressions.length; i++) {
-			argumentExpressions[i].toCode(visitor, analytics);
+			argumentExpressions[i].toCode(visitor, cfg);
 			if (TypeUtils.isPrimitive(argumentExpressions[i].getType())) {
 				int[] cast = TypeUtils.getPrimitiveCastOpcodes(argumentExpressions[i].getType(), argTypes[i]);
 				for (int a = 0; a < cast.length; a++) {
