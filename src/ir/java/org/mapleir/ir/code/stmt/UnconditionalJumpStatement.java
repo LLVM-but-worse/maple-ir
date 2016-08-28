@@ -1,8 +1,8 @@
 package org.mapleir.ir.code.stmt;
 
 import org.mapleir.ir.cfg.BasicBlock;
+import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.stdlib.cfg.util.TabbedStringWriter;
-import org.mapleir.stdlib.ir.transform.impl.CodeAnalytics;
 import org.objectweb.asm.MethodVisitor;
 
 import com.sun.xml.internal.ws.org.objectweb.asm.Opcodes;
@@ -30,7 +30,7 @@ public class UnconditionalJumpStatement extends Statement {
 	}
 
 	@Override
-	public void toCode(MethodVisitor visitor, CodeAnalytics analytics) {
+	public void toCode(MethodVisitor visitor, ControlFlowGraph cfg) {
 		visitor.visitJumpInsn(Opcodes.GOTO, target.getLabel());		
 	}
 

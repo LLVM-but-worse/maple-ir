@@ -1,10 +1,10 @@
 package org.mapleir.ir.code.stmt;
 
+import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.expr.Expression;
 import org.mapleir.ir.code.expr.Expression.Precedence;
 import org.mapleir.stdlib.cfg.util.TabbedStringWriter;
 import org.mapleir.stdlib.cfg.util.TypeUtils;
-import org.mapleir.stdlib.ir.transform.impl.CodeAnalytics;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
@@ -112,10 +112,10 @@ public class FieldStoreStatement extends Statement {
 	}
 
 	@Override
-	public void toCode(MethodVisitor visitor, CodeAnalytics analytics) {
+	public void toCode(MethodVisitor visitor, ControlFlowGraph cfg) {
 		if (instanceExpression != null)
-			instanceExpression.toCode(visitor, analytics);
-		valueExpression.toCode(visitor, analytics);
+			instanceExpression.toCode(visitor, cfg);
+		valueExpression.toCode(visitor, cfg);
 		if (TypeUtils.isPrimitive(Type.getType(desc))) {
 			int[] cast = TypeUtils.getPrimitiveCastOpcodes(valueExpression.getType(), Type.getType(desc));
 			for (int i = 0; i < cast.length; i++)

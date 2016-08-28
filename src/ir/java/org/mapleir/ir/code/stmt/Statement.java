@@ -5,11 +5,11 @@ import java.util.Iterator;
 import java.util.List;
 
 import org.mapleir.ir.cfg.BasicBlock;
+import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.Opcode;
 import org.mapleir.stdlib.cfg.util.TabbedStringWriter;
 import org.mapleir.stdlib.collections.graph.FastGraphVertex;
 import org.mapleir.stdlib.ir.StatementVisitor;
-import org.mapleir.stdlib.ir.transform.impl.CodeAnalytics;
 import org.objectweb.asm.MethodVisitor;
 
 public abstract class Statement implements FastGraphVertex, Opcode, Iterable<Statement> {
@@ -258,7 +258,7 @@ public abstract class Statement implements FastGraphVertex, Opcode, Iterable<Sta
 	
 	public abstract void toString(TabbedStringWriter printer);
 	
-	public abstract void toCode(MethodVisitor visitor, CodeAnalytics analytics);
+	public abstract void toCode(MethodVisitor visitor, ControlFlowGraph cfg);
 	
 	public abstract boolean canChangeFlow();
 	

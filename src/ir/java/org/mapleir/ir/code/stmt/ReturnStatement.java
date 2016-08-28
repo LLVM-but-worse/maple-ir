@@ -1,9 +1,9 @@
 package org.mapleir.ir.code.stmt;
 
+import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.expr.Expression;
 import org.mapleir.stdlib.cfg.util.TabbedStringWriter;
 import org.mapleir.stdlib.cfg.util.TypeUtils;
-import org.mapleir.stdlib.ir.transform.impl.CodeAnalytics;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
@@ -57,9 +57,9 @@ public class ReturnStatement extends Statement {
 	}
 
 	@Override
-	public void toCode(MethodVisitor visitor, CodeAnalytics analytics) {
+	public void toCode(MethodVisitor visitor, ControlFlowGraph cfg) {
 		if (type != Type.VOID_TYPE) {
-			expression.toCode(visitor, analytics);
+			expression.toCode(visitor, cfg);
 			if (TypeUtils.isPrimitive(type)) {
 				int[] cast = TypeUtils.getPrimitiveCastOpcodes(expression.getType(), type); // widen
 				for (int i = 0; i < cast.length; i++)

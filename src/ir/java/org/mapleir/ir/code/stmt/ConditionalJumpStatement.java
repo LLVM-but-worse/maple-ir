@@ -1,11 +1,11 @@
 package org.mapleir.ir.code.stmt;
 
 import org.mapleir.ir.cfg.BasicBlock;
+import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.expr.ConstantExpression;
 import org.mapleir.ir.code.expr.Expression;
 import org.mapleir.stdlib.cfg.util.TabbedStringWriter;
 import org.mapleir.stdlib.cfg.util.TypeUtils;
-import org.mapleir.stdlib.ir.transform.impl.CodeAnalytics;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
@@ -124,7 +124,7 @@ public class ConditionalJumpStatement extends Statement {
 	}
 
 	@Override
-	public void toCode(MethodVisitor visitor, CodeAnalytics analytics) {
+	public void toCode(MethodVisitor visitor, ControlFlowGraph cfg) {
 		Type opType = TypeUtils.resolveBinOpType(left.getType(), right.getType());
 
 		if (TypeUtils.isObjectRef(opType)) {
@@ -133,18 +133,18 @@ public class ConditionalJumpStatement extends Statement {
 				throw new IllegalArgumentException(type.toString());
 			}
 
-			left.toCode(visitor, analytics);
+			left.toCode(visitor, cfg);
 			if (isNull) {
 				visitor.visitJumpInsn(type == ComparisonType.EQ ? Opcodes.IFNULL : Opcodes.IFNONNULL, trueSuccessor.getLabel());
 			} else {
-				right.toCode(visitor, analytics);
+				right.toCode(visitor, cfg);
 				visitor.visitJumpInsn(type == ComparisonType.EQ ? Opcodes.IF_ACMPEQ : Opcodes.IF_ACMPNE, trueSuccessor.getLabel());
 			}
 		} else if (opType == Type.INT_TYPE) {
 			boolean canShorten = right instanceof ConstantExpression && ((ConstantExpression) right).getConstant() instanceof Number
 					&& ((Number) ((ConstantExpression) right).getConstant()).intValue() == 0;
 
-			left.toCode(visitor, analytics);
+			left.toCode(visitor, cfg);
 			int[] cast = TypeUtils.getPrimitiveCastOpcodes(left.getType(), opType);
 			for (int i = 0; i < cast.length; i++) {
 				visitor.visitInsn(cast[i]);
@@ -152,7 +152,7 @@ public class ConditionalJumpStatement extends Statement {
 			if (canShorten) {
 				visitor.visitJumpInsn(Opcodes.IFEQ + type.ordinal(), trueSuccessor.getLabel());
 			} else {
-				right.toCode(visitor, analytics);
+				right.toCode(visitor, cfg);
 				cast = TypeUtils.getPrimitiveCastOpcodes(right.getType(), opType);
 				for (int i = 0; i < cast.length; i++) {
 					visitor.visitInsn(cast[i]);
@@ -160,12 +160,12 @@ public class ConditionalJumpStatement extends Statement {
 				visitor.visitJumpInsn(Opcodes.IF_ICMPEQ + type.ordinal(), trueSuccessor.getLabel());
 			}
 		} else if (opType == Type.LONG_TYPE) {
-			left.toCode(visitor, analytics);
+			left.toCode(visitor, cfg);
 			int[] cast = TypeUtils.getPrimitiveCastOpcodes(left.getType(), opType);
 			for (int i = 0; i < cast.length; i++) {
 				visitor.visitInsn(cast[i]);
 			}
-			right.toCode(visitor, analytics);
+			right.toCode(visitor, cfg);
 			cast = TypeUtils.getPrimitiveCastOpcodes(right.getType(), opType);
 			for (int i = 0; i < cast.length; i++) {
 				visitor.visitInsn(cast[i]);
@@ -173,12 +173,12 @@ public class ConditionalJumpStatement extends Statement {
 			visitor.visitInsn(Opcodes.LCMP);
 			visitor.visitJumpInsn(Opcodes.IFEQ + type.ordinal(), trueSuccessor.getLabel());
 		} else if (opType == Type.FLOAT_TYPE) {
-			left.toCode(visitor, analytics);
+			left.toCode(visitor, cfg);
 			int[] cast = TypeUtils.getPrimitiveCastOpcodes(left.getType(), opType);
 			for (int i = 0; i < cast.length; i++) {
 				visitor.visitInsn(cast[i]);
 			}
-			right.toCode(visitor, analytics);
+			right.toCode(visitor, cfg);
 			cast = TypeUtils.getPrimitiveCastOpcodes(right.getType(), opType);
 			for (int i = 0; i < cast.length; i++) {
 				visitor.visitInsn(cast[i]);
@@ -186,12 +186,12 @@ public class ConditionalJumpStatement extends Statement {
 			visitor.visitInsn((type == ComparisonType.LT || type == ComparisonType.LE) ? Opcodes.FCMPL : Opcodes.FCMPG);
 			visitor.visitJumpInsn(Opcodes.IFEQ + type.ordinal(), trueSuccessor.getLabel());
 		} else if (opType == Type.DOUBLE_TYPE) {
-			left.toCode(visitor, analytics);
+			left.toCode(visitor, cfg);
 			int[] cast = TypeUtils.getPrimitiveCastOpcodes(left.getType(), opType);
 			for (int i = 0; i < cast.length; i++) {
 				visitor.visitInsn(cast[i]);
 			}
-			right.toCode(visitor, analytics);
+			right.toCode(visitor, cfg);
 			cast = TypeUtils.getPrimitiveCastOpcodes(right.getType(), opType);
 			for (int i = 0; i < cast.length; i++) {
 				visitor.visitInsn(cast[i]);

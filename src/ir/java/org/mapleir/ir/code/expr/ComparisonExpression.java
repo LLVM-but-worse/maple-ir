@@ -2,9 +2,9 @@ package org.mapleir.ir.code.expr;
 
 import static org.objectweb.asm.Opcodes.*;
 
+import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.stmt.Statement;
 import org.mapleir.stdlib.cfg.util.TabbedStringWriter;
-import org.mapleir.stdlib.ir.transform.impl.CodeAnalytics;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
@@ -99,9 +99,9 @@ public class ComparisonExpression extends Expression {
 	}
 
 	@Override
-	public void toCode(MethodVisitor visitor, CodeAnalytics analytics) {
-		left.toCode(visitor, analytics);
-		right.toCode(visitor, analytics);
+	public void toCode(MethodVisitor visitor, ControlFlowGraph cfg) {
+		left.toCode(visitor, cfg);
+		right.toCode(visitor, cfg);
 
 		if (left.getType() == Type.LONG_TYPE || right.getType() == Type.LONG_TYPE) {
 			visitor.visitInsn(Opcodes.LCMP);
