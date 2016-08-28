@@ -90,12 +90,16 @@ public abstract class FlowGraph<N extends FastGraphVertex, E extends FlowEdge<N>
 		vertexIds.remove(v.getId());
 		super.removeVertex(v);
 	}
-
-	public Set<N> wanderAllTrails(N from, N to) {
-		return wanderAllTrails(from, to, false);
+	
+	public Set<N> wanderAllTrails(N from, N to, boolean forward) {
+		return wanderAllTrails(from, to, forward, true);
 	}
 
-	public Set<N> wanderAllTrails(N from, N to, boolean followExceptions) {
+	public Set<N> wanderAllTrails(N from, N to) {
+		return wanderAllTrails(from, to, true, false);
+	}
+
+	public Set<N> wanderAllTrails(N from, N to, boolean forward, boolean followExceptions) {
 		Set<N> visited = new HashSet<>();
 		LinkedList<N> stack = new LinkedList<>();
 		stack.add(from);
@@ -103,13 +107,14 @@ public abstract class FlowGraph<N extends FastGraphVertex, E extends FlowEdge<N>
 		while(!stack.isEmpty()) {
 			N s = stack.pop();
 			
-			for(FlowEdge<N> e : getEdges(s)) {
+			Set<E> edges = forward ? getEdges(s) : getReverseEdges(s);
+			for(FlowEdge<N> e : edges) {
 				if(e instanceof TryCatchEdge && !followExceptions)
 					continue;
-				N succ = e.dst;
-				if(succ != to && !visited.contains(succ)) {
-					stack.add(succ);
-					visited.add(succ);
+				N next = forward ? e.dst : e.src;
+				if(next != to && !visited.contains(next)) {
+					stack.add(next);
+					visited.add(next);
 				}
 			}
 		}
