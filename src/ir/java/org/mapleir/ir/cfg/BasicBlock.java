@@ -196,6 +196,15 @@ public class BasicBlock implements FastGraphVertex, Comparable<BasicBlock>, List
 		}
 	}
 	
+	public void transfer(BasicBlock to, int from) {
+		int idx = to.size();
+		for(int i=from; i < statements.size(); i++) {
+			Statement s = statements.remove(i);
+			to.add(idx++, s);
+			s.setBlock(to);
+		}
+	}
+	
 	public ExpressionStack getInputStack() {
 		return inputStack;
 	}
