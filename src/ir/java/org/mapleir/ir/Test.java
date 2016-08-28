@@ -177,13 +177,17 @@ public class Test {
 		int y = 10;
 		
 		try {
-			int z = x;
-			x = y;
-			y = z;
+			int z = x; // 5
+			x = y; // 10
+			y = z; // 5
+			// x = 10;
+			// y = 5;
 		} catch(RuntimeException e) {
-			int z = y;
-			y = x;
-			x = z;
+			int z = y; // 10
+			y = x; // 5
+			x = z; // 10
+			// x = 10;
+			// y = 5;
 		}
 		
 		System.out.println(x);
@@ -237,6 +241,7 @@ public class Test {
 		}
 
 		for(ExceptionRange<BasicBlock> er : cfg.getRanges()) {
+			System.out.println("RANGE: " + er);
 			String type = null;
 			Set<String> typeSet = er.getTypes();
 			if(typeSet.size() == 0 || typeSet.size() > 1) {
@@ -285,7 +290,7 @@ public class Test {
 		Iterator<MethodNode> it = new ArrayList<>(cn.methods).listIterator();
 		while(it.hasNext()) {
 			MethodNode m = it.next();
-
+//
 //			if(!m.toString().equals("a/a/f/a.<init>()V")) {
 //				continue;
 //			}
@@ -294,18 +299,13 @@ public class Test {
 //				continue;
 //			}
 			
-			if(!m.toString().startsWith("org/mapleir/ir/Test.test121")) {
+			if(!m.toString().startsWith("org/mapleir/ir/Test.test122")) {
 				continue;
 			}
 
 			
 			System.out.println("Processing " + m + "\n");
 			ControlFlowGraph cfg = ControlFlowGraphBuilder.build(m);
-			
-			System.out.println();
-			System.out.println();
-			System.out.println();
-			System.out.println(cfg);
 
 			try {
 				BoissinotDestructor destructor = new BoissinotDestructor(cfg);
@@ -314,11 +314,6 @@ public class Test {
 			}
 			
 			cfg.getLocals().realloc(cfg);
-			
-			System.out.println();
-			System.out.println();
-			System.out.println();
-			System.out.println(cfg);
 
 			BasicDotConfiguration<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> config = new BasicDotConfiguration<>(DotConfiguration.GraphType.DIRECTED);
 			DotWriter<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> writer = new DotWriter<>(config, cfg);

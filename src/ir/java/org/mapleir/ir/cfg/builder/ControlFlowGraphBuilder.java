@@ -91,11 +91,11 @@ public class ControlFlowGraphBuilder {
 				
 				p.run();
 				
-//				System.out.println();
-//				System.out.println("AFTER:");
-//				System.out.println(builder.graph);
-//				System.out.println();
-//				System.out.println();
+				System.out.println();
+				System.out.println("AFTER " + p.getClass().getSimpleName() + ":");
+				System.out.println(builder.graph);
+				System.out.println();
+				System.out.println();
 			}
 			return builder.graph;
 		} catch(RuntimeException e) {
