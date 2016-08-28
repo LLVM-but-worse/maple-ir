@@ -19,9 +19,11 @@ import org.mapleir.stdlib.cfg.edge.FlowEdge;
 import org.mapleir.stdlib.cfg.util.TypeUtils;
 import org.mapleir.stdlib.collections.graph.flow.ExceptionRange;
 import org.mapleir.stdlib.collections.graph.flow.TarjanDominanceComputor;
+import org.mapleir.stdlib.collections.graph.util.GraphUtils;
 import org.mapleir.stdlib.ir.transform.Liveness;
 import org.mapleir.stdlib.ir.transform.ssa.SSABlockLivenessAnalyser;
 import org.objectweb.asm.Type;
+import org.objectweb.asm.tree.LabelNode;
 
 public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 
@@ -29,8 +31,10 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 	private final Map<Local, Stack<Integer>> stacks;
 	private final Map<BasicBlock, Integer> insertion;
 	private final Map<BasicBlock, Integer> process;
+	private final Set<BasicBlock> handlers;
 	private TarjanDominanceComputor<BasicBlock> doms;
 	private Liveness<BasicBlock> liveness;
+	private int splitCount;
 	
 	public SSAGenPass(ControlFlowGraphBuilder builder) {
 		super(builder);
@@ -40,6 +44,13 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		
 		insertion = new HashMap<>();
 		process = new HashMap<>();
+		
+		handlers = new HashSet<>();
+	}
+	
+	private void splitBlock(BasicBlock b, int after) {
+		BasicBlock nb = new BasicBlock(b.getGraph(), splitCount++, new LabelNode());
+		b.transfer(nb, after);
 	}
 	
 	private void insertPhis() {
@@ -57,24 +68,12 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 			}
 		}
 		
-		for(ExceptionRange<BasicBlock> r : builder.graph.getRanges()) {
-			BasicBlock h = r.getHandler();
-			Set<Local> in = liveness.in(h);
-			
-			Set<FlowEdge<BasicBlock>> preds = builder.graph.getReverseEdges(h);
-			if(in.size() > 0 && preds.size() > 1) {
-				for(Local l : in) {
-					Local newl = builder.graph.getLocals().get(l.getIndex(), 0, l.isStack());
-					Map<BasicBlock, Expression> vls = new HashMap<>();
-					for(FlowEdge<BasicBlock> fe : preds) {
-						vls.put(fe.src, new VarExpression(newl, null));
-					}
-					PhiExpression phi = new PhiExpression(vls);
-					CopyPhiStatement assign = new CopyPhiStatement(new VarExpression(l, null), phi);
-					System.out.println("INSERT " + assign);
-					h.add(0, assign);
-				}
-			}
+		BasicBlock entry = builder.graph.getEntries().iterator().next();
+		
+		for(BasicBlock h : handlers) {
+			Set<BasicBlock> into = builder.graph.wanderAllTrails(h, entry, false, true);
+			System.out.println("For handler: " + h);
+			System.out.println("  INTO: " + GraphUtils.toBlockArray(into));
 		}
 	}
 	
@@ -84,8 +83,6 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		}
 
 		Local newl = builder.graph.getLocals().get(l.getIndex(), 0, l.isStack());
-		
-		System.out.println("block " + b.getId() +" df: " + doms.iteratedFrontier(b));
 		
 		for(BasicBlock x : doms.iteratedFrontier(b)) {
 			if(insertion.get(x) < i) {
@@ -269,7 +266,12 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 	private void connectExit() {
 		builder.naturaliseGraph(new ArrayList<>(builder.graph.vertices()));
 		
-		builder.exit = new BasicBlock(builder.graph, builder.graph.size() * 2, null);
+		builder.exit = new BasicBlock(builder.graph, Integer.MAX_VALUE -1, null) {
+			@Override
+			public String getId() {
+				return "fakeexit";
+			}
+		};
 		builder.graph.addVertex(builder.exit);
 		
 		for(BasicBlock b : builder.graph.vertices()) {
@@ -288,6 +290,11 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 	
 	@Override
 	public void run() {
+		for(ExceptionRange<BasicBlock> er : builder.graph.getRanges()) {
+			handlers.add(er.getHandler());
+		}
+		
+		splitCount = builder.graph.size() + 1;
 		connectExit();
 		
 		SSABlockLivenessAnalyser liveness = new SSABlockLivenessAnalyser(builder.graph);
@@ -297,7 +304,6 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		doms = new TarjanDominanceComputor<>(builder.graph);
 		insertPhis();
 		rename();
-
 		
 		disconnectExit();
 	}
