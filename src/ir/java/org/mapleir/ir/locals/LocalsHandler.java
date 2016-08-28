@@ -10,6 +10,9 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.mapleir.ir.cfg.BasicBlock;
+import org.mapleir.ir.cfg.ControlFlowGraph;
+import org.mapleir.ir.code.Opcode;
 import org.mapleir.ir.code.expr.VarExpression;
 import org.mapleir.ir.code.stmt.Statement;
 import org.mapleir.ir.code.stmt.copy.CopyVarStatement;
@@ -19,7 +22,6 @@ import org.mapleir.stdlib.collections.SetCreator;
 import org.mapleir.stdlib.collections.bitset.BitSetIndexer;
 import org.mapleir.stdlib.collections.bitset.GenericBitSet;
 import org.mapleir.stdlib.collections.bitset.IncrementalBitSetIndexer;
-import org.mapleir.stdlib.ir.CodeBody;
 import org.objectweb.asm.Type;
 
 public class LocalsHandler {
@@ -129,25 +131,31 @@ public class LocalsHandler {
 		}
 	} */
 	
-	public void realloc(CodeBody code) {
+	public void realloc(ControlFlowGraph cfg) {
 		NullPermeableHashMap<Local, Set<Type>> types = new NullPermeableHashMap<>(new SetCreator<>());
 		int min = 0;
 		Set<Local> safe = new HashSet<>();
-		for(Statement stmt : code) {
-			for(Statement s : Statement.enumerate(stmt)) {
-				if(s instanceof VarExpression) {
-					VarExpression var = (VarExpression) s;
-					Local local = var.getLocal();
-					types.getNonNull(local).add(var.getType());
-				} else if(s instanceof CopyVarStatement) {
-					CopyVarStatement cp = (CopyVarStatement) s;
+		for(BasicBlock b : cfg.vertices()) {
+			for(Statement stmt : b) {
+
+				if(stmt.getOpcode() == Opcode.LOCAL_STORE) {
+					CopyVarStatement cp = (CopyVarStatement) stmt;
 					VarExpression var = cp.getVariable();
 					Local local = var.getLocal();
 					if(!cp.isSynthetic()) {
 						types.getNonNull(local).add(var.getType());
 					} else {
-						min = Math.max(min, local.getIndex());
-						safe.add(local);
+//						min = Math.max(min, local.getIndex());
+//						safe.add(local);
+					}
+					types.getNonNull(local).add(var.getType());
+				}
+				
+				for(Statement s : stmt) {
+					if(s.getOpcode() == Opcode.LOCAL_LOAD) {
+						VarExpression var = (VarExpression) s;
+						Local local = var.getLocal();
+						types.getNonNull(local).add(var.getType());
 					}
 				}
 			}
@@ -189,7 +197,7 @@ public class LocalsHandler {
 		Collections.sort(wl);
 
 		Map<Local, Local> remap = new HashMap<>();
-		int idx = min + 1;
+		int idx = min;
 		for(Local l : wl) {
 			Type type = stypes.get(l);
 			Local newL = get(idx, false);
@@ -198,24 +206,29 @@ public class LocalsHandler {
 			}
 			idx += type.getSize();
 		}
-		remap(code, remap);
+		remap(cfg, remap);
 	}
 	
-	public static void remap(CodeBody body, Map<? extends Local, ? extends Local> remap) {
-		for(Statement stmt : body) {
-			for(Statement s : Statement.enumerate(stmt)) {
-				if(s instanceof VarExpression) {
-					VarExpression v = (VarExpression) s;
-					Local l = v.getLocal();
-					if(remap.containsKey(l)) {
-						v.setLocal(remap.get(l));
-					}
-				} else if(s instanceof CopyVarStatement) {
-					VarExpression v = ((CopyVarStatement) s).getVariable();
+	public static void remap(ControlFlowGraph cfg, Map<? extends Local, ? extends Local> remap) {
+		for(BasicBlock b : cfg.vertices()) {
+			for(Statement stmt : b) {
+
+				if(stmt.getOpcode() == Opcode.LOCAL_STORE) {
+					VarExpression v = ((CopyVarStatement) stmt).getVariable();
 					Local l = v.getLocal();
 					if(remap.containsKey(l)) {
 						Local l2 = remap.get(l);
 						v.setLocal(l2);
+					}
+				}
+				
+				for(Statement s : stmt) {
+					if(s.getOpcode() == Opcode.LOCAL_LOAD) {
+						VarExpression v = (VarExpression) s;
+						Local l = v.getLocal();
+						if(remap.containsKey(l)) {
+							v.setLocal(remap.get(l));
+						}
 					}
 				}
 			}
