@@ -247,6 +247,8 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		builder.naturaliseGraph(new ArrayList<>(builder.graph.vertices()));
 		
 		builder.exit = new BasicBlock(builder.graph, builder.graph.size() * 2, null);
+		builder.graph.addVertex(builder.exit);
+		
 		for(BasicBlock b : builder.graph.vertices()) {
 			if(builder.graph.getEdges(b).size() == 0) {
 				builder.graph.addEdge(b, new DummyEdge<>(b, builder.exit));
