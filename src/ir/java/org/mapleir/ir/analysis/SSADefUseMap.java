@@ -60,6 +60,7 @@ public class SSADefUseMap implements Opcode {
 			AbstractCopyStatement copy = (AbstractCopyStatement) stmt;
 			Local l = copy.getVariable().getLocal();
 			defs.put(l, b);
+			uses.getNonNull(l);
 
 			if(isPhi) {
 				PhiExpression phi = (PhiExpression) copy.getExpression();
