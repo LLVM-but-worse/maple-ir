@@ -348,16 +348,18 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 			}
 
 			@Override
-			protected void buildIndex(BasicBlock b, Statement stmt, int index) {
+			protected int buildIndex(BasicBlock b, Statement stmt, int index) {
 				if (stmt instanceof ParallelCopyVarStatement) {
 					ParallelCopyVarStatement copy = (ParallelCopyVarStatement) stmt;
 					for (CopyPair pair : copy.pairs) {
 						defIndex.put(pair.targ, index);
 						lastUseIndex.getNonNull(pair.source).put(b, index);
+						index++;
 					}
 				} else {
-					super.buildIndex(b, stmt, index);
+					index = super.buildIndex(b, stmt, index);
 				}
+				return index;
 			}
 		};
 
@@ -535,16 +537,16 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 		if(resolver.sdoms(bx, by)) {
 			return true;
 		} else if(bx == by) {
-			int i1 = defuse.defIndex.get(x);
-			int i2 = defuse.defIndex.get(y);
-			return i1 > i2;
+			int i1 = preDfsDomOrder.get(x);
+			int i2 = preDfsDomOrder.get(y);
+			return i1 < i2;
 		} else {
 			return false;
 		}
 	}
 
 	boolean checkPreDomOrder(Local x, Local y) {
-		return preDfsDomOrder.get(x) < preDfsDomOrder.get(y);
+		return doms(x, y);
 	}
 
 	boolean intersect(Local a, Local b) {
@@ -663,17 +665,19 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 		do {
 			LocalInfo current;
 			if (!blueHasNext || (redHasNext && blueHasNext && checkPreDomOrder(ir, ib))) {
+				System.out.println("ir= " + ir);
 				current = new LocalInfo(ir, red); // current = red[ir++]
 				nr++;
 				if (redHasNext = ir != lr)
 					ir = red.higher(ir);
-//				System.out.println("    Red next, current=" + current + ", hasNext=" + redHasNext);
+				System.out.println("    Red next, current=" + current + ", hasNext=" + redHasNext);
 			} else {
+				System.out.println("ib= " + ib);
 				current = new LocalInfo(ib, blue); // current = blue[ib++]
 				nb++;
 				if (blueHasNext = ib != lb)
 					ib = blue.higher(ib);
-//				System.out.println("    Blue next, current=" + current + ", hasNext=" + blueHasNext);
+				System.out.println("    Blue next, current=" + current + ", hasNext=" + blueHasNext);
 			}
 
 			if (!dom.isEmpty()) {
