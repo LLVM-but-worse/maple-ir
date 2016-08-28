@@ -23,7 +23,7 @@ public class BasicBlock implements FastGraphVertex, Comparable<BasicBlock>, List
 
 	private int id;
 	private final ControlFlowGraph cfg;
-	private final LabelNode label;
+	private LabelNode label;
 	private final List<Statement> statements;
 	private ExpressionStack inputStack;
 	private List<ExceptionRange<BasicBlock>> ranges;
@@ -351,6 +351,10 @@ public class BasicBlock implements FastGraphVertex, Comparable<BasicBlock>, List
 			n /= 26;
 		}
 		return new String(buf);
+	}
+
+	public void resetLabel() {
+		label = new LabelNode();
 	}
 
 	public Label getLabel() {
