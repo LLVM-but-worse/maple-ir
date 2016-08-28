@@ -1,11 +1,11 @@
 package org.mapleir.ir.code.stmt;
 
+import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.expr.Expression;
 import org.mapleir.ir.code.expr.Expression.Precedence;
 import org.mapleir.stdlib.cfg.util.TabbedStringWriter;
 import org.mapleir.stdlib.cfg.util.TypeUtils;
 import org.mapleir.stdlib.cfg.util.TypeUtils.ArrayType;
-import org.mapleir.stdlib.ir.transform.impl.CodeAnalytics;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Type;
 
@@ -88,13 +88,13 @@ public class ArrayStoreStatement extends Statement {
 	}
 
 	@Override
-	public void toCode(MethodVisitor visitor, CodeAnalytics analytics) {
-		arrayExpression.toCode(visitor, analytics);
-		indexExpression.toCode(visitor, analytics);
+	public void toCode(MethodVisitor visitor, ControlFlowGraph cfg) {
+		arrayExpression.toCode(visitor, cfg);
+		indexExpression.toCode(visitor, cfg);
 		int[] iCast = TypeUtils.getPrimitiveCastOpcodes(indexExpression.getType(), Type.INT_TYPE); // widen
 		for (int i = 0; i < iCast.length; i++)
 			visitor.visitInsn(iCast[i]);
-		valueExpression.toCode(visitor, analytics);
+		valueExpression.toCode(visitor, cfg);
 		if (TypeUtils.isPrimitive(type.getType())) {
 			int[] vCast = TypeUtils.getPrimitiveCastOpcodes(valueExpression.getType(), type.getType());
 			for (int i = 0; i < vCast.length; i++)

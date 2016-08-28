@@ -4,10 +4,10 @@ import java.util.*;
 import java.util.Map.Entry;
 
 import org.mapleir.ir.cfg.BasicBlock;
+import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.expr.Expression;
 import org.mapleir.stdlib.cfg.util.TabbedStringWriter;
 import org.mapleir.stdlib.cfg.util.TypeUtils;
-import org.mapleir.stdlib.ir.transform.impl.CodeAnalytics;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Type;
@@ -129,7 +129,7 @@ public class SwitchStatement extends Statement {
 	}
 
 	@Override
-	public void toCode(MethodVisitor visitor, CodeAnalytics analytics) {
+	public void toCode(MethodVisitor visitor, ControlFlowGraph cfg) {
 		if (needsSort()) {
 			sort();
 		}
@@ -142,7 +142,7 @@ public class SwitchStatement extends Statement {
 			labels[j++] = e.getValue().getLabel();
 		}
 
-		expression.toCode(visitor, analytics);
+		expression.toCode(visitor, cfg);
 		int[] cast = TypeUtils.getPrimitiveCastOpcodes(expression.getType(), Type.INT_TYPE); // widen
 		for (int i = 0; i < cast.length; i++) {
 			visitor.visitInsn(cast[i]);

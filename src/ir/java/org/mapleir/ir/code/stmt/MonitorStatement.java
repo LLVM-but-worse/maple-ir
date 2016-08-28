@@ -1,8 +1,8 @@
 package org.mapleir.ir.code.stmt;
 
+import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.expr.Expression;
 import org.mapleir.stdlib.cfg.util.TabbedStringWriter;
-import org.mapleir.stdlib.ir.transform.impl.CodeAnalytics;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
@@ -49,8 +49,8 @@ public class MonitorStatement extends Statement {
 	}
 
 	@Override
-	public void toCode(MethodVisitor visitor, CodeAnalytics analytics) {
-		expression.toCode(visitor, analytics);
+	public void toCode(MethodVisitor visitor, ControlFlowGraph cfg) {
+		expression.toCode(visitor, cfg);
 		visitor.visitInsn(mode == MonitorMode.ENTER ? Opcodes.MONITORENTER : Opcodes.MONITOREXIT);		
 	}
 

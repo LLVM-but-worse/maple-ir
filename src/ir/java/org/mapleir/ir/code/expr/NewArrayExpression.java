@@ -1,9 +1,9 @@
 package org.mapleir.ir.code.expr;
 
+import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.stmt.Statement;
 import org.mapleir.stdlib.cfg.util.TabbedStringWriter;
 import org.mapleir.stdlib.cfg.util.TypeUtils;
-import org.mapleir.stdlib.ir.transform.impl.CodeAnalytics;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Type;
 
@@ -92,9 +92,9 @@ public class NewArrayExpression extends Expression {
 	}
 
 	@Override
-	public void toCode(MethodVisitor visitor, CodeAnalytics analytics) {
+	public void toCode(MethodVisitor visitor, ControlFlowGraph cfg) {
 		for (int i = 0; i < bounds.length; i++) {
-			bounds[i].toCode(visitor, analytics);
+			bounds[i].toCode(visitor, cfg);
 			int[] cast = TypeUtils.getPrimitiveCastOpcodes(bounds[i].getType(), Type.INT_TYPE);
 			for (int a = 0; a < cast.length; a++)
 				visitor.visitInsn(cast[a]);

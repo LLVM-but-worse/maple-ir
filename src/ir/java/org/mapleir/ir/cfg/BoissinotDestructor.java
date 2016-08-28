@@ -31,7 +31,6 @@ import org.mapleir.stdlib.collections.graph.dot.DotConfiguration;
 import org.mapleir.stdlib.collections.graph.dot.DotWriter;
 import org.mapleir.stdlib.collections.graph.util.GraphUtils;
 import org.mapleir.stdlib.ir.transform.Liveness;
-import org.mapleir.stdlib.ir.transform.impl.CodeAnalytics;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Type;
 
@@ -732,7 +731,7 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 			for (Iterator<Statement> it = b.iterator(); it.hasNext(); ) {
 				Statement stmt = it.next();
 				int opcode = stmt.getOpcode();
-
+				
 				if (opcode == -1) {
 					ParallelCopyVarStatement copy = (ParallelCopyVarStatement) stmt;
 					for (Iterator<CopyPair> it2 = copy.pairs.iterator(); it2.hasNext(); ) {
@@ -748,7 +747,7 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 					AbstractCopyStatement copy = (AbstractCopyStatement) stmt;
 					VarExpression v = copy.getVariable();
 					v.setLocal(remap.getOrDefault(v.getLocal(), v.getLocal()));
-					if (copy.getExpression() instanceof VarExpression && ((VarExpression) copy.getExpression()).getLocal() == v.getLocal())
+					if (!copy.isSynthetic() && copy.getExpression().getOpcode() == Opcode.LOCAL_LOAD && ((VarExpression) copy.getExpression()).getLocal() == v.getLocal())
 						it.remove();
 				}
 
@@ -1054,7 +1053,7 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 		}
 
 		@Override
-		public void toCode(MethodVisitor visitor, CodeAnalytics analytics) {
+		public void toCode(MethodVisitor visitor, ControlFlowGraph cfg) {
 			throw new UnsupportedOperationException("Synthetic");
 		}
 
