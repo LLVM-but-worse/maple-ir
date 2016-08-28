@@ -17,6 +17,7 @@ import org.mapleir.ir.locals.VersionedLocal;
 import org.mapleir.stdlib.cfg.edge.DummyEdge;
 import org.mapleir.stdlib.cfg.edge.FlowEdge;
 import org.mapleir.stdlib.cfg.util.TypeUtils;
+import org.mapleir.stdlib.collections.graph.flow.ExceptionRange;
 import org.mapleir.stdlib.collections.graph.flow.TarjanDominanceComputor;
 import org.mapleir.stdlib.ir.transform.Liveness;
 import org.mapleir.stdlib.ir.transform.ssa.SSABlockLivenessAnalyser;
@@ -55,14 +56,36 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 				insertPhis(queue.poll(), l, i, queue);
 			}
 		}
+		
+		for(ExceptionRange<BasicBlock> r : builder.graph.getRanges()) {
+			BasicBlock h = r.getHandler();
+			Set<Local> in = liveness.in(h);
+			
+			Set<FlowEdge<BasicBlock>> preds = builder.graph.getReverseEdges(h);
+			if(in.size() > 0 && preds.size() > 1) {
+				for(Local l : in) {
+					Local newl = builder.graph.getLocals().get(l.getIndex(), 0, l.isStack());
+					Map<BasicBlock, Expression> vls = new HashMap<>();
+					for(FlowEdge<BasicBlock> fe : preds) {
+						vls.put(fe.src, new VarExpression(newl, null));
+					}
+					PhiExpression phi = new PhiExpression(vls);
+					CopyPhiStatement assign = new CopyPhiStatement(new VarExpression(l, null), phi);
+					System.out.println("INSERT " + assign);
+					h.add(0, assign);
+				}
+			}
+		}
 	}
 	
 	private void insertPhis(BasicBlock b, Local l, int i, LinkedList<BasicBlock> queue) {
-		if(b == builder.exit) {
+		if(b == null || b == builder.exit) {
 			return; // exit
 		}
 
 		Local newl = builder.graph.getLocals().get(l.getIndex(), 0, l.isStack());
+		
+		System.out.println("block " + b.getId() +" df: " + doms.iteratedFrontier(b));
 		
 		for(BasicBlock x : doms.iteratedFrontier(b)) {
 			if(insertion.get(x) < i) {

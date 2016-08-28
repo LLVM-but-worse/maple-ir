@@ -26,7 +26,7 @@ public class BasicBlock implements FastGraphVertex, Comparable<BasicBlock>, List
 	private LabelNode label;
 	private final List<Statement> statements;
 	private ExpressionStack inputStack;
-	private List<ExceptionRange<BasicBlock>> ranges;
+	// private Map<ExceptionRange<BasicBlock>, Integer> ranges;
 	
 	public BasicBlock(ControlFlowGraph cfg, int id, LabelNode label) {
 		this.cfg = cfg;
@@ -34,6 +34,7 @@ public class BasicBlock implements FastGraphVertex, Comparable<BasicBlock>, List
 		this.label = label;
 		
 		statements = new ArrayList<>();
+		// ranges = new HashMap<>();
 	}
 	
 	public ControlFlowGraph getGraph() {
@@ -217,9 +218,20 @@ public class BasicBlock implements FastGraphVertex, Comparable<BasicBlock>, List
 	}
 	
 	public List<ExceptionRange<BasicBlock>> getProtectingRanges() {
-		if(ranges != null) {
-			return ranges;
-		}
+		/* Iterator<Entry<ExceptionRange<BasicBlock>, Integer>> it = ranges.entrySet().iterator();
+		while(it.hasNext()) {
+			Entry<ExceptionRange<BasicBlock>, Integer> e = it.next();
+			ExceptionRange<BasicBlock> key = e.getKey();
+			if(!cfg.getRanges().contains(key) || !key.containsVertex(this)) {
+				it.remove();
+				continue;
+			}
+			int oldhc = e.getValue();
+			int newhc = key.hashCode();
+			if(oldhc != newhc) {
+				e.setValue(newhc);
+			}
+		} */
 		
 		List<ExceptionRange<BasicBlock>> ranges = new ArrayList<>();
 		for(ExceptionRange<BasicBlock> er : cfg.getRanges()) {
@@ -227,7 +239,7 @@ public class BasicBlock implements FastGraphVertex, Comparable<BasicBlock>, List
 				ranges.add(er);
 			}
 		}
-		return (this.ranges = ranges);
+		return ranges;
 	}
 	
 	public boolean isHandler() {
