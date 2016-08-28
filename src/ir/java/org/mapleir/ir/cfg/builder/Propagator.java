@@ -484,7 +484,7 @@ public class Propagator extends OptimisationPass.Optimiser {
 							cand = (VarExpression) e;
 						}
 					} else if(opcode == Opcode.CONST_LOAD) {
-						cand = (VarExpression) e;
+//						cand = (VarExpression) e;
 					}
 					
 					if(cand != null) {
