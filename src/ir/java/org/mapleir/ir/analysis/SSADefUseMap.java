@@ -1,7 +1,7 @@
 package org.mapleir.ir.analysis;
 
 import java.util.HashMap;
-import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -19,7 +19,6 @@ import org.mapleir.ir.locals.Local;
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.SetCreator;
 import org.mapleir.stdlib.collections.ValueCreator;
-import org.mapleir.stdlib.collections.graph.util.GraphUtils;
 
 public class SSADefUseMap implements Opcode {
 	
@@ -82,7 +81,7 @@ public class SSADefUseMap implements Opcode {
 		}
 	}
 
-	public void buildIndices() {
+	public void buildIndices(List<BasicBlock> preorder) {
 		lastUseIndex = new NullPermeableHashMap<>(new ValueCreator<HashMap<BasicBlock, Integer>>() {
 			@Override
 			public HashMap<BasicBlock, Integer> create() {
@@ -91,8 +90,8 @@ public class SSADefUseMap implements Opcode {
 		});
 		defIndex = new HashMap<>();
 
-		for (BasicBlock b : cfg.vertices()) {
-			int index = 0;
+		int index = 0;
+		for (BasicBlock b : preorder) {
 			for (Statement stmt : b)
 				index = buildIndex(b, stmt, index);
 		}
