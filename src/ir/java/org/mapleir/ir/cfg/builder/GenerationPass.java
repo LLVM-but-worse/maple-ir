@@ -96,8 +96,6 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		entry(checkLabel());
 		
 		for(TryCatchBlockNode tc : builder.method.tryCatchBlocks) {
-			queue(tc.start);
-			queue(tc.end);
 			handler(tc);
 		}
 	}
@@ -174,11 +172,11 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		}
 	}
 	
-	void preprocess(BasicBlock block) {
-		ExpressionStack stack = block.getInputStack().copy();
-		stacks.set(block.getNumericId());
+	void preprocess(BasicBlock b) {
+		ExpressionStack stack = b.getInputStack().copy();
+		stacks.set(b.getNumericId());
 		
-		currentBlock = block;
+		currentBlock = b;
 		currentStack = stack;
 		saved = false;
 	}
