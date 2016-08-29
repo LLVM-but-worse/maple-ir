@@ -1,8 +1,11 @@
 package org.mapleir.ir.cfg.builder;
 
 import java.util.*;
+import java.util.Map.Entry;
 
+import org.mapleir.ir.analysis.ExtendedDfs;
 import org.mapleir.ir.cfg.BasicBlock;
+import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.Opcode;
 import org.mapleir.ir.code.expr.Expression;
 import org.mapleir.ir.code.expr.PhiExpression;
@@ -16,10 +19,13 @@ import org.mapleir.ir.locals.LocalsHandler;
 import org.mapleir.ir.locals.VersionedLocal;
 import org.mapleir.stdlib.cfg.edge.DummyEdge;
 import org.mapleir.stdlib.cfg.edge.FlowEdge;
+import org.mapleir.stdlib.cfg.edge.FlowEdges;
+import org.mapleir.stdlib.cfg.edge.ImmediateEdge;
 import org.mapleir.stdlib.cfg.util.TypeUtils;
+import org.mapleir.stdlib.collections.NullPermeableHashMap;
+import org.mapleir.stdlib.collections.SetCreator;
 import org.mapleir.stdlib.collections.graph.flow.ExceptionRange;
 import org.mapleir.stdlib.collections.graph.flow.TarjanDominanceComputor;
-import org.mapleir.stdlib.collections.graph.util.GraphUtils;
 import org.mapleir.stdlib.ir.transform.Liveness;
 import org.mapleir.stdlib.ir.transform.ssa.SSABlockLivenessAnalyser;
 import org.objectweb.asm.Type;
@@ -29,13 +35,17 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 
 	private final Map<Local, Integer> counters;
 	private final Map<Local, Stack<Integer>> stacks;
+	// TODO: use arrays.
 	private final Map<BasicBlock, Integer> insertion;
 	private final Map<BasicBlock, Integer> process;
 	private final Set<BasicBlock> handlers;
+	private final NullPermeableHashMap<BasicBlock, Set<Local>> splits;
+	private final Map<BasicBlock, Integer> preorder;
+	
 	private TarjanDominanceComputor<BasicBlock> doms;
 	private Liveness<BasicBlock> liveness;
 	private int splitCount;
-
+	
 	public SSAGenPass(ControlFlowGraphBuilder builder) {
 		super(builder);
 
@@ -44,13 +54,73 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		
 		insertion = new HashMap<>();
 		process = new HashMap<>();
-
+		
 		handlers = new HashSet<>();
+		splits = new NullPermeableHashMap<>(new SetCreator<>());
+		preorder = new HashMap<>();
 	}
-
-	private void splitBlock(BasicBlock b, int after) {
-		BasicBlock nb = new BasicBlock(b.getGraph(), splitCount++, new LabelNode());
-		b.transfer(nb, after);
+	
+	private BasicBlock splitBlock(BasicBlock b, int to) {
+		/* eg. split the block as follows:
+		 * 
+		 *  NAME:
+		 *    stmt1
+		 *    stmt2
+		 *    stmt3
+		 *    stmt4
+		 *    stmt5
+		 *    jump L1, L2
+		 *   [jump edge to L1]
+		 *   [jump edge to L2]
+		 *   [exception edges]
+		 * 
+		 * split at 3, create a new block (incoming 
+		 * immediate), transfer instruction from 0
+		 * to index into new block, create immediate
+		 * edge to old block, clone exception edges,
+		 * redirect pred edges.
+		 * 
+		 *  NAME':
+		 *    stmt1
+		 *    stmt2
+		 *    stmt3
+		 *   [immediate to NAME]
+		 *  NAME:
+		 *    stmt4
+		 *    stmt5
+		 *    jump L1, L2
+		 *   [jump edge to L1]
+		 *   [jump edge to L2]
+		 *   [exception edges]
+		 */
+		// split block
+		ControlFlowGraph cfg = builder.graph;
+		BasicBlock n = new BasicBlock(cfg, splitCount++, new LabelNode());
+		b.transferUp(n, to);
+		// redo ranges
+		for(ExceptionRange<BasicBlock> er : cfg.getRanges()) {
+			er.addVertexBefore(b, n);
+		}
+		// redirect b preds into n and remove them.
+		Iterator<FlowEdge<BasicBlock>> it = cfg.getReverseEdges(b).iterator();
+		while(it.hasNext()) {
+			FlowEdge<BasicBlock> e = it.next();
+			BasicBlock p = e.src;
+			FlowEdge<BasicBlock> c = e.clone(p, n);
+			cfg.addEdge(p, c);
+			cfg.removeEdge(p, e);
+		}
+		// create immediate to n
+		cfg.addEdge(n, new ImmediateEdge<>(n, b));
+		// clone exception edges
+		for(FlowEdge<BasicBlock> e : cfg.getEdges(b)) {
+			if(e.getType() == FlowEdges.TRYCATCH) {
+				FlowEdge<BasicBlock> c = e.clone(n, b);
+				cfg.addEdge(n, c);
+			}
+		}
+		
+		return n;
 	}
 	
 	private void insertPhis() {
@@ -66,14 +136,6 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 			while(!queue.isEmpty()) {
 				insertPhis(queue.poll(), l, i, queue);
 			}
-		}
-
-		BasicBlock entry = builder.graph.getEntries().iterator().next();
-
-		for(BasicBlock h : handlers) {
-			Set<BasicBlock> into = builder.graph.wanderAllTrails(h, entry, false, true);
-			System.out.println("For handler: " + h);
-			System.out.println("  INTO: " + GraphUtils.toBlockArray(into));
 		}
 	}
 	
@@ -206,6 +268,13 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 				CopyPhiStatement copy = (CopyPhiStatement) stmt;
 				PhiExpression phi = copy.getExpression();
 				Expression e = phi.getArgument(b);
+				
+//				if(e == null) {
+//					Local l = copy.getVariable().getLocal();
+//					Local newl = builder.graph.getLocals().get(l.getIndex(), 0, l.isStack());
+//					phi.setArgument(b, e = new VarExpression(newl, null));
+//				}
+				
 				if(e.getOpcode() == Opcode.LOCAL_LOAD) {
 					Local l = (VersionedLocal) ((VarExpression) e).getLocal();
 					l = _top(stmt, l.getIndex(), l.isStack());
@@ -233,6 +302,8 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 				} else {
 					throw new UnsupportedOperationException(String.valueOf(e));
 				}
+			} else {
+				break;
 			}
 		}
 	}
@@ -278,95 +349,136 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 			if(builder.graph.getEdges(b).size() == 0) {
 				builder.graph.addEdge(b, new DummyEdge<>(b, builder.exit));
 			}
-			
-			insertion.put(b, 0);
-			process.put(b, 0);
 		}
 	}
 	
 	private void disconnectExit() {
 		builder.graph.removeVertex(builder.exit);
 	}
-
-	private AbstractCopyStatement findDefSimple(BasicLocal l, BasicBlock b) {
-		LocalsHandler locals = builder.graph.getLocals();
-		ListIterator<Statement> it = b.listIterator(b.size());
-		while (it.hasPrevious()) {
-			Statement stmt = it.previous();
-			if (stmt instanceof AbstractCopyStatement) {
-				AbstractCopyStatement copy = (AbstractCopyStatement) stmt;
-				if (locals.asSimpleLocal(copy.getVariable().getLocal()) == l)
-					return copy;
+	
+	private void splitRanges() {
+		// produce cleaner cfg
+		List<BasicBlock> order = new ArrayList<>(builder.graph.vertices());
+		
+		for(ExceptionRange<BasicBlock> er : builder.graph.getRanges()) {
+			BasicBlock h = er.getHandler();
+			
+			// debug czech
+			for(FlowEdge<BasicBlock> e : builder.graph.getReverseEdges(h)) {
+				if(e.getType() != FlowEdges.TRYCATCH) {
+					System.out.println(builder.graph);
+					throw new RuntimeException(h.getId() + " : " + e.toString());
+				}
 			}
-		}
-		return null;
-	}
-
-	private AbstractCopyStatement findDef(BasicLocal l, BasicBlock protectStart) {
-		while (true) {
-			Set<FlowEdge<BasicBlock>> preds = builder.graph.getReverseEdges(protectStart);
-			AbstractCopyStatement result = findDefSimple(l, protectStart);
-			if (preds.size() != 1 || result != null) // if there are 0 or 2+ incoming, there MUST be a phi def.
-				return result;
-			else
-				protectStart = preds.iterator().next().src;
-		}
-	}
-
-	// start and end inclusive
-	private BasicBlock makeBlock(int start, int end, boolean first, BasicBlock oldBlock) {
-		if (first)
-			return null; // special processing for first... TODO
-		BasicBlock newBlock = new BasicBlock(builder.graph, ++builder.count, null);
-		// TODO
-		return newBlock;
-	}
-
-	private void splitProtectedBlocks() {
-		LocalsHandler localsHandler = builder.graph.getLocals();
-		for (ExceptionRange<BasicBlock> r : builder.graph.getRanges()) {
-			// determine necessary phi args
-			Set<BasicLocal> liveOut = new HashSet<>();
-			for (Local l : liveness.in(r.getHandler()))
-				liveOut.add(localsHandler.asSimpleLocal(l));
-
-			// split
-			List<BasicBlock> oldNodes = r.get();
-			r.clearNodes();
-			for (BasicBlock b : oldNodes) {
-				int start = 0;
-				boolean first = true; // first block has to be the original block with the rest trimmed
-				// find split point
-				for (int i = 0; i < b.size(); i++) {
-					Statement stmt = b.get(i);
-					if (stmt instanceof AbstractCopyStatement) {
-						AbstractCopyStatement copy = (AbstractCopyStatement) stmt;
-						if (liveOut.contains(localsHandler.asSimpleLocal(copy.getVariable().getLocal()))) {
-							// create new block
-							r.addVertex(makeBlock(start, i, first, b));
-							start = i + 1;
-							first = false;
-						}
-					}
-
-					if (i == b.size() - 1) { // final block needs special processing to fix edges...
-
+			
+			Set<Local> ls = new  HashSet<>(liveness.in(h));
+			for(BasicBlock b : er.get()) {
+				splits.getNonNull(b).addAll(ls);
+				
+				boolean outside = false;
+				
+				for(FlowEdge<BasicBlock> e : builder.graph.getReverseEdges(b)) {
+					BasicBlock p = e.src;
+					if(!er.containsVertex(p)) {
+						outside = true;
 					}
 				}
-
-				// update assigns
+				
+				if(outside) {
+					BasicBlock n = splitBlock(b, 0);
+					order.add(order.indexOf(b), n);
+				}
 			}
+		}
+		
+		for(Entry<BasicBlock, Set<Local>> e : splits.entrySet()) {
+			
+			BasicBlock b = e.getKey();
+			Set<Local> ls = e.getValue();
+			
+			int i = 0;
+			for(Statement stmt : new ArrayList<>(b)) {
+				if(b.size() == i)
+					break;
+				if(stmt.getOpcode() == Opcode.LOCAL_STORE) {
+					CopyVarStatement copy = (CopyVarStatement) stmt;
+					VarExpression v = copy.getVariable();
+					if(ls.contains(v.getLocal())) {
+						BasicBlock n = splitBlock(b, i + 1);
+						i = 0;
+						order.add(order.indexOf(b), n);
+						continue;
+					}
+				}
+				i++;
+			}
+		}
+		
+		builder.naturaliseGraph(order);
 
-			// update handler's phi
+		ExtendedDfs dfs = new ExtendedDfs(builder.graph, builder.graph.getEntries().iterator().next(), ExtendedDfs.PRE);
+		int po = 0;
+		for(BasicBlock b : dfs.getPreOrder()) {
+			insertion.put(b, 0);
+			process.put(b, 0);
+			preorder.put(b, po++);
+		}
+	}
+	
+	private void cleanHandlerPhis() {
+		for(ExceptionRange<BasicBlock> er : builder.graph.getRanges()) {
+			BasicBlock h = er.getHandler();
+			
+			for(Statement stmt : h) {
+				if(stmt.getOpcode() != Opcode.PHI_STORE) {
+					break;
+				}
+				
+				CopyPhiStatement cps = (CopyPhiStatement) stmt;
+				PhiExpression phi = cps.getExpression();
+				
+				NullPermeableHashMap<Local, Set<BasicBlock>> conf = new NullPermeableHashMap<>(new SetCreator<>());
+				Set<Local> wl = new HashSet<>();
+				
+				for(Entry<BasicBlock, Expression> e : phi.getArguments().entrySet()) {
+					BasicBlock b = e.getKey();
+					Expression expr = e.getValue();
+					if(expr.getOpcode() == Opcode.LOCAL_LOAD) {
+						VarExpression v = (VarExpression) expr;
+						Local l = v.getLocal();
+						Set<BasicBlock> set = conf.getNonNull(l);
+						if(set.size() >= 1) {
+							wl.add(l);
+						}
+						set.add(b);
+					} else {
+						throw new UnsupportedOperationException(String.valueOf(expr));
+					}
+				}
+				
+				for(Local l : wl) {
+					// should be fairly small, size >= 2
+					Set<BasicBlock> cand = conf.get(l);
+					// FIXME: is this right? or do we need a dominance test.
+					List<BasicBlock> pre = new ArrayList<>(cand);
+					Collections.sort(pre, new Comparator<BasicBlock>() {
+						@Override
+						public int compare(BasicBlock o1, BasicBlock o2) {
+							return Integer.compare(preorder.get(o1), preorder.get(o2));
+						}
+					});
+					
+					for(int i=1; i < cand.size(); i++) {
+						BasicBlock b = pre.get(i);
+						phi.removeArgument(b);
+					}
+				}
+			}
 		}
 	}
 
 	@Override
 	public void run() {
-		for(ExceptionRange<BasicBlock> er : builder.graph.getRanges()) {
-			handlers.add(er.getHandler());
-		}
-
 		splitCount = builder.graph.size() + 1;
 		connectExit();
 		
@@ -374,12 +486,18 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		liveness.compute();
 		this.liveness = liveness;
 		
+		splitRanges();
+
+		// TODO: update instead of recomp?
+		liveness = new SSABlockLivenessAnalyser(builder.graph);
+		liveness.compute();
+		this.liveness = liveness;
+		
 		doms = new TarjanDominanceComputor<>(builder.graph);
 		insertPhis();
 		rename();
-		splitProtectedBlocks();
-
-
+		cleanHandlerPhis();
+		
 		disconnectExit();
 	}
 }

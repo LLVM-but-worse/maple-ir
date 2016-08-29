@@ -276,6 +276,7 @@ public class Propagator extends OptimisationPass.Optimiser {
 			Expression rhs = def.getExpression();
 			BasicBlock b = def.getBlock();
 			if(isUncopyable(rhs)) {
+				rhs.unlink();
 				PopStatement pop = new PopStatement(rhs);
 				b.set(b.indexOf(def), pop);
 				return true;
@@ -487,7 +488,7 @@ public class Propagator extends OptimisationPass.Optimiser {
 							cand = (VarExpression) e;
 						}
 					} else if(opcode == Opcode.CONST_LOAD) {
-						cand = (VarExpression) e;
+//						cand = (VarExpression) e;
 					}
 					
 					if(cand != null) {
