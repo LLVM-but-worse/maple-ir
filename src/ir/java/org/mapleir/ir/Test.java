@@ -211,13 +211,28 @@ public class Test {
 		System.out.println(x);
 		System.out.println(y);
 	}
-	
+
+	void test011() {
+		int x = v();
+		int y = u();
+
+		if (p())
+			System.out.println(x);
+		else
+			System.out.println(x + 5);
+		System.out.println(y);
+	}
+
 	boolean p() {
 		return true;
 	}
 	
 	boolean q() {
 		return true;
+	}
+
+	int u() {
+		return 114;
 	}
 
 	int v() {
@@ -290,7 +305,7 @@ public class Test {
 		Iterator<MethodNode> it = new ArrayList<>(cn.methods).listIterator();
 		while(it.hasNext()) {
 			MethodNode m = it.next();
-//
+
 //			if(!m.toString().equals("a/a/f/a.<init>()V")) {
 //				continue;
 //			}
@@ -299,6 +314,7 @@ public class Test {
 //				continue;
 //			}
 			
+			if(!m.toString().startsWith("org/mapleir/ir/Test.test011")) {
 			if(!m.toString().startsWith("org/mapleir/ir/Test.test122")) {
 				continue;
 			}
