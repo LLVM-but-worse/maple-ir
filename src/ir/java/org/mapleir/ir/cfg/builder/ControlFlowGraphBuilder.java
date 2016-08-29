@@ -24,6 +24,7 @@ public class ControlFlowGraphBuilder {
 	protected final Set<Local> locals;
 	protected final NullPermeableHashMap<Local, Set<BasicBlock>> assigns;
 	protected final Map<VersionedLocal, AbstractCopyStatement> defs;
+	protected int count = 0;
 	protected BasicBlock exit;
 	
 	private ControlFlowGraphBuilder(MethodNode method) {
