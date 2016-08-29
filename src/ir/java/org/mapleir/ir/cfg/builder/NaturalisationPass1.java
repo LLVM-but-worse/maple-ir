@@ -11,6 +11,7 @@ import java.util.Set;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.locals.Local;
 import org.mapleir.stdlib.cfg.edge.FlowEdge;
+import org.mapleir.stdlib.cfg.edge.FlowEdges;
 import org.mapleir.stdlib.cfg.edge.TryCatchEdge;
 import org.mapleir.stdlib.collections.graph.flow.ExceptionRange;
 
@@ -29,16 +30,15 @@ public class NaturalisationPass1 extends ControlFlowGraphBuilder.BuilderPass {
 		class MergePair {
 			final BasicBlock src;
 			final BasicBlock dst;
-			final List<ExceptionRange<BasicBlock>> ranges;
-			MergePair(BasicBlock src, BasicBlock dst, List<ExceptionRange<BasicBlock>> ranges)  {
+			MergePair(BasicBlock src, BasicBlock dst)  {
 				this.src = src;
 				this.dst = dst;
-				this.ranges = ranges;
 			}
 		}
 		
 		List<MergePair> merges = new ArrayList<>();
 		Map<BasicBlock, BasicBlock> remap = new HashMap<>();
+		Map<BasicBlock, List<ExceptionRange<BasicBlock>>> ranges = new HashMap<>();
 		
 		for(BasicBlock b : builder.graph.vertices()) {
 			BasicBlock in = b.getIncomingImmediate();
@@ -50,14 +50,17 @@ public class NaturalisationPass1 extends ControlFlowGraphBuilder.BuilderPass {
 				continue;
 			}
 			
-			List<ExceptionRange<BasicBlock>> range1 = in.getProtectingRanges();
+			List<ExceptionRange<BasicBlock>> range1 = b.getProtectingRanges();
 			List<ExceptionRange<BasicBlock>> range2 = in.getProtectingRanges();
 			
 			if(!range1.equals(range2)) {
 				continue;
 			}
 			
-			merges.add(new MergePair(in, b, range1));
+			ranges.put(b, range1);
+			ranges.put(in, range2);
+			
+			merges.add(new MergePair(in, b));
 			
 			remap.put(in, in);
 			remap.put(b, b);
@@ -70,15 +73,22 @@ public class NaturalisationPass1 extends ControlFlowGraphBuilder.BuilderPass {
 			dst.transfer(src);
 			
 			for(FlowEdge<BasicBlock> e : builder.graph.getEdges(dst)) {
-				BasicBlock edst = e.dst;
-				edst = remap.getOrDefault(edst, edst);
-				builder.graph.addEdge(src, e.clone(src, edst));
+				// since the ranges are the same, we don't need
+				// to clone these.
+				if(e.getType() != FlowEdges.TRYCATCH) {
+					BasicBlock edst = e.dst;
+					edst = remap.getOrDefault(edst, edst);
+					builder.graph.addEdge(src, e.clone(src, edst));
+				}
 			}
 			builder.graph.removeVertex(dst);
 			
 			remap.put(dst, src);
 			
-			for(ExceptionRange<BasicBlock> r : p.ranges) {
+			for(ExceptionRange<BasicBlock> r : ranges.get(src)) {
+				r.removeVertex(dst);
+			}
+			for(ExceptionRange<BasicBlock> r : ranges.get(dst)) {
 				r.removeVertex(dst);
 			}
 			

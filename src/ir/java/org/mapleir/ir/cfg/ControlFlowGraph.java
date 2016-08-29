@@ -6,6 +6,7 @@ import org.mapleir.ir.code.stmt.Statement;
 import org.mapleir.ir.locals.LocalsHandler;
 import org.mapleir.stdlib.cfg.edge.FlowEdge;
 import org.mapleir.stdlib.cfg.util.TabbedStringWriter;
+import org.mapleir.stdlib.collections.graph.flow.ExceptionRange;
 import org.objectweb.asm.tree.MethodNode;
 
 public class ControlFlowGraph extends FastBlockGraph {
@@ -31,6 +32,11 @@ public class ControlFlowGraph extends FastBlockGraph {
 	@Override
 	public String toString() {
 		TabbedStringWriter sw = new TabbedStringWriter();
+		
+		for(ExceptionRange<BasicBlock> r : getRanges()) {
+			sw.print(r.toString() + "\n");
+		}
+		
 		int insn = 0;
 		
 		for(BasicBlock b : vertices()) {
