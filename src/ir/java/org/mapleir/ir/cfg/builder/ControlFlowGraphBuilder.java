@@ -24,6 +24,7 @@ public class ControlFlowGraphBuilder {
 	protected final Set<Local> locals;
 	protected final NullPermeableHashMap<Local, Set<BasicBlock>> assigns;
 	protected final Map<VersionedLocal, AbstractCopyStatement> defs;
+	protected int count = 0;
 	protected BasicBlock exit;
 	
 	private ControlFlowGraphBuilder(MethodNode method) {
@@ -91,11 +92,11 @@ public class ControlFlowGraphBuilder {
 				
 				p.run();
 				
-//				System.out.println();
-//				System.out.println("AFTER:");
-//				System.out.println(builder.graph);
-//				System.out.println();
-//				System.out.println();
+				System.out.println();
+				System.out.println("AFTER: " + p.getClass());
+				System.out.println(builder.graph);
+				System.out.println();
+				System.out.println();
 			}
 			return builder.graph;
 		} catch(RuntimeException e) {

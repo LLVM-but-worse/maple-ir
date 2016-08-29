@@ -41,6 +41,7 @@ public interface Opcode {
 
 	int CLASS_PARALLEL = 0x900;
 	int PHI            = 0x901;
-	
+	int PHI_HANDLER    = 0x902;
+
 	int CLASS_RESERVED = 0x1000; // reserved for inner classes
 }
