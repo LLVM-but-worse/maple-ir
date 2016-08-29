@@ -38,7 +38,7 @@ public class Test {
 				x--;
 			else
 				x++;
-		} while(!p());
+		} while (!p());
 		System.out.println(x);
 	}
 
@@ -49,7 +49,7 @@ public class Test {
 			int z = x;
 			x = y;
 			y = z;
-		} while(!p());
+		} while (!p());
 
 		System.out.println(x);
 		System.out.println(y);
@@ -62,7 +62,7 @@ public class Test {
 			x = y; // y = p() ? x : y
 			if (q())
 				y = w;
-		} while(!p());
+		} while (!p());
 
 		System.out.println(x + y);
 	}
@@ -70,8 +70,8 @@ public class Test {
 	void test113() {
 		int x = 1;
 		int y = 2;
-		
-		while(!p()) {
+
+		while (!p()) {
 			int z = x;
 			x = y;
 			y = z;
@@ -80,11 +80,11 @@ public class Test {
 		System.out.println(x);
 		System.out.println(y);
 	}
-	
+
 	void test114() {
 		Object o = null;
-		
-		while(!p()) {
+
+		while (!p()) {
 			o = new Object();
 		}
 
@@ -93,10 +93,10 @@ public class Test {
 
 	void test115() {
 		Object o = null;
-		
+
 		do {
 			o = new Object();
-		} while(!p());
+		} while (!p());
 
 		System.out.println(o);
 	}
@@ -104,12 +104,12 @@ public class Test {
 	void test116() {
 		Object o1 = new String("x");
 		Object o2 = new String("d");
-		
+
 		do {
 			Object o3 = o2;
 			o2 = o1;
 			o1 = o3;
-		} while(!p());
+		} while (!p());
 
 		System.out.println(o1);
 		System.out.println(o2);
@@ -120,7 +120,7 @@ public class Test {
 		int x = lmao;
 		int y = lmao;
 
-		while(!p()) {
+		while (!p()) {
 			int z = x;
 			x = y;
 			y = z;
@@ -142,62 +142,73 @@ public class Test {
 		System.out.println(x);
 		System.out.println(y);
 	}
-	
+
 	void test119() {
-		try  {
+		try {
 			System.out.println("print");
-		} catch(RuntimeException e) {
-			
+		} catch (RuntimeException e) {
+
 		}
 	}
-	
+
 	void test120() {
-		try  {
+		try {
 			System.out.println("print");
-		} catch(RuntimeException e) {
+		} catch (RuntimeException e) {
 			e.printStackTrace();
 		}
 	}
-	
+
 	void test121() {
 		int x;
-		
-		try  {
+
+		try {
 			System.gc();
 			x = 5;
-		} catch(RuntimeException e) {
+		} catch (RuntimeException e) {
 			x = 10;
 		}
-		
+
 		System.out.println(x);
 	}
 	
+	void trap() {
+	}
+
 	void test122() {
 		int x = 5;
 		int y = 10;
-		
+
 		try {
+			trap();
 			int z = x; // 5
+			trap();
 			x = y; // 10
+			trap();
 			y = z; // 5
+			trap();
 			// x = 10;
 			// y = 5;
-		} catch(RuntimeException e) {
+		} catch (RuntimeException e) {
+			trap();
 			int z = y; // 10
+			trap();
 			y = x; // 5
+			trap();
 			x = z; // 10
+			trap();
 			// x = 10;
 			// y = 5;
 		}
-		
+
 		System.out.println(x);
 		System.out.println(y);
 	}
-	
+
 	void test123() {
 		int x = 5;
 		int y = 10;
-		
+
 		try {
 			int z = x;
 			x = y;
@@ -207,7 +218,7 @@ public class Test {
 			y = x;
 			x = z;
 		}
-		
+
 		System.out.println(x);
 		System.out.println(y);
 	}
@@ -226,7 +237,7 @@ public class Test {
 	boolean p() {
 		return true;
 	}
-	
+
 	boolean q() {
 		return true;
 	}
@@ -238,28 +249,28 @@ public class Test {
 	int v() {
 		return 114;
 	}
-	
+
 	public static void dump(ControlFlowGraph cfg, MethodNode m) {
 		m.visitCode();
 		m.instructions.clear();
 		m.tryCatchBlocks.clear();
-		
-		for(BasicBlock b : cfg.vertices()) {
+
+		for (BasicBlock b : cfg.vertices()) {
 			b.resetLabel();
 		}
-		
-		for(BasicBlock b : cfg.vertices()) {
+
+		for (BasicBlock b : cfg.vertices()) {
 			m.visitLabel(b.getLabel());
-			for(Statement stmt : b) {
+			for (Statement stmt : b) {
 				stmt.toCode(m, null);
 			}
 		}
 
-		for(ExceptionRange<BasicBlock> er : cfg.getRanges()) {
+		for (ExceptionRange<BasicBlock> er : cfg.getRanges()) {
 			System.out.println("RANGE: " + er);
 			String type = null;
 			Set<String> typeSet = er.getTypes();
-			if(typeSet.size() == 0 || typeSet.size() > 1) {
+			if (typeSet.size() == 0 || typeSet.size() > 1) {
 				// TODO: fix base exception
 				type = Throwable.class.getCanonicalName().replace(".", "/");
 			} else {
@@ -291,63 +302,62 @@ public class Test {
 		}
 		m.visitEnd();
 	}
-	
+
 	public static void main(String[] args) throws IOException {
 		ClassReader cr = new ClassReader(Test.class.getCanonicalName());
 		ClassNode cn = new ClassNode();
 		cr.accept(cn, 0);
-		
-//		InputStream i = new FileInputStream(new File("res/a.class"));
-//		ClassReader cr = new ClassReader(i);
-//		ClassNode cn = new ClassNode();
-//		cr.accept(cn, 0);
-		
+
+		// InputStream i = new FileInputStream(new File("res/a.class"));
+		// ClassReader cr = new ClassReader(i);
+		// ClassNode cn = new ClassNode();
+		// cr.accept(cn, 0);
+
 		Iterator<MethodNode> it = new ArrayList<>(cn.methods).listIterator();
-		while(it.hasNext()) {
+		while (it.hasNext()) {
 			MethodNode m = it.next();
 
-//			if(!m.toString().equals("a/a/f/a.<init>()V")) {
-//				continue;
-//			}
-			
-//			if(!m.toString().equals("org/mapleir/ir/Test.test111()V")) {
-//				continue;
-//			}
-			
-			if(!m.toString().startsWith("org/mapleir/ir/Test.test011")) {
-			if(!m.toString().startsWith("org/mapleir/ir/Test.test122")) {
-				continue;
+			// if(!m.toString().equals("a/a/f/a.<init>()V")) {
+			// continue;
+			// }
+
+			// if(!m.toString().equals("org/mapleir/ir/Test.test111()V")) {
+			// continue;
+			// }
+
+			if (!m.toString().startsWith("org/mapleir/ir/Test.test011")) {
+				if (!m.toString().startsWith("org/mapleir/ir/Test.test122")) {
+					continue;
+				}
+
+				System.out.println("Processing " + m + "\n");
+				ControlFlowGraph cfg = ControlFlowGraphBuilder.build(m);
+
+				try {
+					BoissinotDestructor destructor = new BoissinotDestructor(cfg);
+				} catch (RuntimeException e) {
+					throw new RuntimeException("\n" + cfg.toString(), e);
+				}
+
+				cfg.getLocals().realloc(cfg);
+
+				BasicDotConfiguration<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> config = new BasicDotConfiguration<>(DotConfiguration.GraphType.DIRECTED);
+				DotWriter<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> writer = new DotWriter<>(config, cfg);
+				writer.removeAll().add(new ControlFlowGraphDecorator().setFlags(OPT_DEEP)).setName("destructed").export();
+
+				MethodNode m2 = new MethodNode(m.owner, m.access, m.name, m.desc, m.signature, m.exceptions.toArray(new String[0]));
+				dump(cfg, m2);
+				cn.methods.add(m2);
+				cn.methods.remove(m);
 			}
 
-			
-			System.out.println("Processing " + m + "\n");
-			ControlFlowGraph cfg = ControlFlowGraphBuilder.build(m);
+			ClassWriter clazz = new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
+			cn.accept(clazz);
+			byte[] saved = clazz.toByteArray();
+			FileOutputStream out = new FileOutputStream(new File("out/testclass.class"));
+			out.write(saved, 0, saved.length);
+			out.close();
 
-			try {
-				BoissinotDestructor destructor = new BoissinotDestructor(cfg);
-			} catch(RuntimeException e) {
-				throw new RuntimeException("\n" + cfg.toString(), e);
-			}
-			
-			cfg.getLocals().realloc(cfg);
-
-			BasicDotConfiguration<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> config = new BasicDotConfiguration<>(DotConfiguration.GraphType.DIRECTED);
-			DotWriter<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> writer = new DotWriter<>(config, cfg);
-			writer.removeAll().add(new ControlFlowGraphDecorator().setFlags(OPT_DEEP))
-				.setName("destructed")
-				.export();
-			
-			MethodNode m2 = new MethodNode(m.owner, m.access, m.name, m.desc, m.signature, m.exceptions.toArray(new String[0]));
-			dump(cfg, m2);
-			cn.methods.add(m2);
-			cn.methods.remove(m);
 		}
-		
-		ClassWriter clazz = new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
-		cn.accept(clazz);
-		byte[] saved = clazz.toByteArray();
-		FileOutputStream out = new FileOutputStream(new File("out/testclass.class"));
-		out.write(saved, 0, saved.length);
-		out.close();
 	}
 }
