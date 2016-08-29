@@ -1,7 +1,5 @@
 package org.mapleir.ir.cfg;
 
-import static org.mapleir.ir.dot.ControlFlowGraphDecorator.OPT_DEEP;
-
 import java.util.*;
 import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -17,18 +15,12 @@ import org.mapleir.ir.code.stmt.Statement;
 import org.mapleir.ir.code.stmt.copy.AbstractCopyStatement;
 import org.mapleir.ir.code.stmt.copy.CopyPhiStatement;
 import org.mapleir.ir.code.stmt.copy.CopyVarStatement;
-import org.mapleir.ir.dot.ControlFlowGraphDecorator;
-import org.mapleir.ir.dot.LivenessDecorator;
 import org.mapleir.ir.locals.BasicLocal;
 import org.mapleir.ir.locals.Local;
-import org.mapleir.stdlib.cfg.edge.FlowEdge;
 import org.mapleir.stdlib.cfg.util.TabbedStringWriter;
 import org.mapleir.stdlib.collections.ListCreator;
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.SetCreator;
-import org.mapleir.stdlib.collections.graph.dot.BasicDotConfiguration;
-import org.mapleir.stdlib.collections.graph.dot.DotConfiguration;
-import org.mapleir.stdlib.collections.graph.dot.DotWriter;
 import org.mapleir.stdlib.collections.graph.util.GraphUtils;
 import org.mapleir.stdlib.ir.transform.Liveness;
 import org.objectweb.asm.MethodVisitor;
@@ -74,11 +66,11 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 	public BoissinotDestructor(ControlFlowGraph cfg) {
 		this.cfg = cfg;
 
-		BasicDotConfiguration<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> config = new BasicDotConfiguration<>(DotConfiguration.GraphType.DIRECTED);
-		DotWriter<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> writer = new DotWriter<>(config, cfg);
-		writer.removeAll().add(new ControlFlowGraphDecorator().setFlags(OPT_DEEP))
-				.setName("pre-destruct")
-				.export();
+//		BasicDotConfiguration<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> config = new BasicDotConfiguration<>(DotConfiguration.GraphType.DIRECTED);
+//		DotWriter<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> writer = new DotWriter<>(config, cfg);
+//		writer.removeAll().add(new ControlFlowGraphDecorator().setFlags(OPT_DEEP))
+//				.setName("pre-destruct")
+//				.export();
 
 		print("initial");
 		// 1. Insert copies to enter CSSA.
@@ -91,10 +83,10 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 		localsTest.addAll(defuse.phis.keySet());
 		localsTest.addAll(defuse.uses.keySet());
 		localsTest.addAll(defuse.defs.keySet());
-		writer.removeAll().add(new ControlFlowGraphDecorator().setFlags(OPT_DEEP))
-				.add("liveness", new LivenessDecorator<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>>().setLiveness(this))
-				.setName("after-insert")
-				.export();
+//		writer.removeAll().add(new ControlFlowGraphDecorator().setFlags(OPT_DEEP))
+//				.add("liveness", new LivenessDecorator<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>>().setLiveness(this))
+//				.setName("after-insert")
+//				.export();
 
 		// 2. Build value interference
 		compute_value_interference();
@@ -116,29 +108,29 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 		localsTest.clear();
 		localsTest.addAll(defuse.uses.keySet());
 		localsTest.addAll(defuse.defs.keySet());
-		writer.removeAll()
-				.add(new ControlFlowGraphDecorator().setFlags(OPT_DEEP))
-				.add("liveness", new LivenessDecorator<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>>().setLiveness(this))
-				.setName("after-coalesce-phis")
-				.export();
+//		writer.removeAll()
+//				.add(new ControlFlowGraphDecorator().setFlags(OPT_DEEP))
+//				.add("liveness", new LivenessDecorator<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>>().setLiveness(this))
+//				.setName("after-coalesce-phis")
+//				.export();
 
 		// 3b. Coalesce the rest of the copies
 		coalesceCopies();
 		print("co-copies");
 		applyRemapping(remap);
 		print("remap");
-		writer.removeAll()
-				.add(new ControlFlowGraphDecorator().setFlags(OPT_DEEP))
-				.setName("after-coalesce")
-				.export();
+//		writer.removeAll()
+//				.add(new ControlFlowGraphDecorator().setFlags(OPT_DEEP))
+//				.setName("after-coalesce")
+//				.export();
 
 		// 4. Sequentialize parallel copies
 		sequentialize();
 		print("sequen");
-		writer.removeAll()
-				.add(new ControlFlowGraphDecorator().setFlags(OPT_DEEP))
-				.setName("after-sequentialize")
-				.export();
+//		writer.removeAll()
+//				.add(new ControlFlowGraphDecorator().setFlags(OPT_DEEP))
+//				.setName("after-sequentialize")
+//				.export();
 	}
 
 	public static void testSequentialize() {
@@ -457,9 +449,9 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 		resolver.domc.makeTree(dom_tree);
 		dom_tree.getEntries().addAll(cfg.getEntries());
 		
-		BasicDotConfiguration<FastBlockGraph, BasicBlock, FlowEdge<BasicBlock>> config = new BasicDotConfiguration<>(DotConfiguration.GraphType.DIRECTED);
-		DotWriter<FastBlockGraph, BasicBlock, FlowEdge<BasicBlock>> writer = new DotWriter<>(config, dom_tree);
-		writer.removeAll().setName("domtree").export();
+//		BasicDotConfiguration<FastBlockGraph, BasicBlock, FlowEdge<BasicBlock>> config = new BasicDotConfiguration<>(DotConfiguration.GraphType.DIRECTED);
+//		DotWriter<FastBlockGraph, BasicBlock, FlowEdge<BasicBlock>> writer = new DotWriter<>(config, dom_tree);
+//		writer.removeAll().setName("domtree").export();
 
 		// topo
 		dom_dfs = new ExtendedDfs(dom_tree, cfg.getEntries().iterator().next(), ExtendedDfs.POST | ExtendedDfs.PRE);
