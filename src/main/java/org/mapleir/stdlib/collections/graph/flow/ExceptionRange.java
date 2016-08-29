@@ -53,6 +53,16 @@ public class ExceptionRange<N extends FastGraphVertex> {
 		invalidate();
 	}
 	
+	public void addVertexAfter(N b, N s) {
+		nodes.add(nodes.indexOf(b), s);
+		invalidate();
+	}
+	
+	public void addVertexBefore(N b, N s) {
+		nodes.add(nodes.indexOf(b), s);
+		invalidate();
+	}
+	
 	public void addVertices(Collection<N> col) {
 		nodes.addAll(col);
 		invalidate();

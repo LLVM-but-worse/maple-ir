@@ -2,6 +2,7 @@ package org.mapleir.stdlib.cfg.edge;
 
 import org.mapleir.stdlib.collections.graph.FastGraphVertex;
 import org.mapleir.stdlib.collections.graph.flow.ExceptionRange;
+import org.mapleir.stdlib.collections.graph.util.GraphUtils;
 
 public class TryCatchEdge<N extends FastGraphVertex> extends FlowEdge<N> {
 	
@@ -31,7 +32,7 @@ public class TryCatchEdge<N extends FastGraphVertex> extends FlowEdge<N> {
 
 	@Override
 	public String toString() {
-		return String.format("TryCatch range: %s -> handler: %s (%s)", src/*ExceptionRange.rangetoString(erange.get())*/, dst.getId(), erange.getTypes());
+		return String.format("TryCatch range: %s -> handler: %s (%s)", GraphUtils.toNodeArray(erange.get())/*ExceptionRange.rangetoString(erange.get())*/, dst.getId(), erange.getTypes());
 	}
 
 	@Override
