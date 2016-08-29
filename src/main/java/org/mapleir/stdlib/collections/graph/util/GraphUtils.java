@@ -1,25 +1,13 @@
 package org.mapleir.stdlib.collections.graph.util;
 
-import java.util.*;
-import java.util.function.Predicate;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.List;
 
 //import org.mapleir.ir.analysis.StatementGraph;
 import org.mapleir.ir.cfg.BasicBlock;
-import org.mapleir.ir.cfg.ControlFlowGraph;
-import org.mapleir.ir.code.expr.PhiExpression;
-import org.mapleir.ir.code.stmt.Statement;
-import org.mapleir.stdlib.cfg.edge.DefaultSwitchEdge;
-import org.mapleir.stdlib.cfg.edge.FlowEdge;
-import org.mapleir.stdlib.cfg.edge.JumpEdge;
-import org.mapleir.stdlib.cfg.edge.SwitchEdge;
-//import org.mapleir.stdlib.cfg.util.ControlFlowGraphDeobfuscator.SuperNode;
-import org.mapleir.stdlib.cfg.util.TabbedStringWriter;
-import org.mapleir.stdlib.collections.graph.flow.ExceptionRange;
-import org.mapleir.stdlib.ir.CodeBody;
-//import org.mapleir.stdlib.ir.header.HeaderStatement;
-import org.objectweb.asm.Opcodes;
-import org.objectweb.asm.tree.*;
-import org.objectweb.asm.util.Printer;
+import org.mapleir.stdlib.collections.graph.FastGraphVertex;
 
 public class GraphUtils {
 
@@ -86,6 +74,23 @@ public class GraphUtils {
 	}
 
 	*/
+
+	public static <N extends FastGraphVertex> String toNodeArray(Collection<N> col) {
+		StringBuilder sb = new StringBuilder();
+		sb.append("[");
+		Iterator<N> it = col.iterator();
+		while(it.hasNext()) {
+			N b = it.next();
+			sb.append(b.getId());
+			
+			if(it.hasNext()) {
+				sb.append(", ");
+			}
+		}
+		sb.append("]");
+		return sb.toString();
+	}
+	
 	public static String toBlockArray(Collection<BasicBlock> col) {
 		StringBuilder sb = new StringBuilder();
 		sb.append("[");
