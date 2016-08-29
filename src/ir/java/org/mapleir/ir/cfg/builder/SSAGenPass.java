@@ -35,7 +35,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 	private TarjanDominanceComputor<BasicBlock> doms;
 	private Liveness<BasicBlock> liveness;
 	private int splitCount;
-	
+
 	public SSAGenPass(ControlFlowGraphBuilder builder) {
 		super(builder);
 
@@ -44,10 +44,10 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		
 		insertion = new HashMap<>();
 		process = new HashMap<>();
-		
+
 		handlers = new HashSet<>();
 	}
-	
+
 	private void splitBlock(BasicBlock b, int after) {
 		BasicBlock nb = new BasicBlock(b.getGraph(), splitCount++, new LabelNode());
 		b.transfer(nb, after);
@@ -67,9 +67,9 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 				insertPhis(queue.poll(), l, i, queue);
 			}
 		}
-		
+
 		BasicBlock entry = builder.graph.getEntries().iterator().next();
-		
+
 		for(BasicBlock h : handlers) {
 			Set<BasicBlock> into = builder.graph.wanderAllTrails(h, entry, false, true);
 			System.out.println("For handler: " + h);
@@ -287,13 +287,86 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 	private void disconnectExit() {
 		builder.graph.removeVertex(builder.exit);
 	}
-	
+
+	private AbstractCopyStatement findDefSimple(BasicLocal l, BasicBlock b) {
+		LocalsHandler locals = builder.graph.getLocals();
+		ListIterator<Statement> it = b.listIterator(b.size());
+		while (it.hasPrevious()) {
+			Statement stmt = it.previous();
+			if (stmt instanceof AbstractCopyStatement) {
+				AbstractCopyStatement copy = (AbstractCopyStatement) stmt;
+				if (locals.asSimpleLocal(copy.getVariable().getLocal()) == l)
+					return copy;
+			}
+		}
+		return null;
+	}
+
+	private AbstractCopyStatement findDef(BasicLocal l, BasicBlock protectStart) {
+		while (true) {
+			Set<FlowEdge<BasicBlock>> preds = builder.graph.getReverseEdges(protectStart);
+			AbstractCopyStatement result = findDefSimple(l, protectStart);
+			if (preds.size() != 1 || result != null) // if there are 0 or 2+ incoming, there MUST be a phi def.
+				return result;
+			else
+				protectStart = preds.iterator().next().src;
+		}
+	}
+
+	// start and end inclusive
+	private BasicBlock makeBlock(int start, int end, boolean first, BasicBlock oldBlock) {
+		if (first)
+			return null; // special processing for first... TODO
+		BasicBlock newBlock = new BasicBlock(builder.graph, ++builder.count, null);
+		// TODO
+		return newBlock;
+	}
+
+	private void splitProtectedBlocks() {
+		LocalsHandler localsHandler = builder.graph.getLocals();
+		for (ExceptionRange<BasicBlock> r : builder.graph.getRanges()) {
+			// determine necessary phi args
+			Set<BasicLocal> liveOut = new HashSet<>();
+			for (Local l : liveness.in(r.getHandler()))
+				liveOut.add(localsHandler.asSimpleLocal(l));
+
+			// split
+			List<BasicBlock> oldNodes = r.get();
+			r.clearNodes();
+			for (BasicBlock b : oldNodes) {
+				int start = 0;
+				boolean first = true; // first block has to be the original block with the rest trimmed
+				// find split point
+				for (int i = 0; i < b.size(); i++) {
+					Statement stmt = b.get(i);
+					if (stmt instanceof AbstractCopyStatement) {
+						AbstractCopyStatement copy = (AbstractCopyStatement) stmt;
+						if (liveOut.contains(localsHandler.asSimpleLocal(copy.getVariable().getLocal()))) {
+							// create new block
+							r.addVertex(makeBlock(start, i, first, b));
+							start = i + 1;
+							first = false;
+						}
+					}
+
+					if (i == b.size() - 1) { // final block needs special processing to fix edges...
+
+					}
+				}
+
+				// update assigns
+			}
+
+			// update handler's phi
+		}
+	}
+
 	@Override
 	public void run() {
 		for(ExceptionRange<BasicBlock> er : builder.graph.getRanges()) {
 			handlers.add(er.getHandler());
 		}
-		
+
 		splitCount = builder.graph.size() + 1;
 		connectExit();
 		
@@ -304,7 +377,9 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		doms = new TarjanDominanceComputor<>(builder.graph);
 		insertPhis();
 		rename();
-		
+		splitProtectedBlocks();
+
+
 		disconnectExit();
 	}
 }

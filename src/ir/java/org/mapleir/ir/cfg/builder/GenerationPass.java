@@ -55,8 +55,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 	private final InsnList insns;
 	private final BitSet finished;
 	private final LinkedList<LabelNode> queue;
-	private int count = 0;
-	
+
 	private BitSet stacks;
 	private BasicBlock currentBlock;
 	private ExpressionStack currentStack;
@@ -78,7 +77,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 	}
 	
 	BasicBlock makeBlock(LabelNode label) {
-		BasicBlock b = new BasicBlock(builder.graph, ++count, label);
+		BasicBlock b = new BasicBlock(builder.graph, ++builder.count, label);
 		queue(label);
 		builder.graph.addVertex(b);
 		return b;
@@ -1340,7 +1339,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 
 	@Override
 	public void run() {
-		if(count == 0) { // no blocks created
+		if(builder.count == 0) { // no blocks created
 			init();
 			processQueue();
 		}

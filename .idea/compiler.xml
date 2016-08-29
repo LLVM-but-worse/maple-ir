@@ -3,6 +3,7 @@
   <component name="CompilerConfiguration">
     <option name="DEFAULT_COMPILER" value="Eclipse" />
     <option name="BUILD_PROCESS_HEAP_SIZE" value="4096" />
+    <option name="BUILD_PROCESS_ADDITIONAL_VM_OPTIONS" value="-XX:MaxPermSize=2048m" />
     <resourceExtensions />
     <wildcardResourcePatterns>
       <entry name="!?*.java" />
