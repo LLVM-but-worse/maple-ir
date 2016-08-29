@@ -207,6 +207,17 @@ public class Test {
 		System.out.println(x);
 		System.out.println(y);
 	}
+
+	void test011() {
+		int x = v();
+		int y = u();
+
+		if (p())
+			System.out.println(x);
+		else
+			System.out.println(x + 5);
+		System.out.println(y);
+	}
 	
 	boolean p() {
 		return true;
@@ -216,10 +227,14 @@ public class Test {
 		return true;
 	}
 
+	int u() {
+		return 114;
+	}
+
 	int v() {
 		return 114;
 	}
-	
+
 	public static void dump(ControlFlowGraph cfg, MethodNode m) {
 		m.visitCode();
 		m.instructions.clear();
@@ -294,7 +309,7 @@ public class Test {
 //				continue;
 //			}
 			
-			if(!m.toString().startsWith("org/mapleir/ir/Test.test121")) {
+			if(!m.toString().startsWith("org/mapleir/ir/Test.test011")) {
 				continue;
 			}
 

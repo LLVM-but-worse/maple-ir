@@ -76,7 +76,11 @@ public class ExceptionRange<N extends FastGraphVertex> {
 		types.remove(b);
 		invalidate();
 	}
-	
+
+	public void clearNodes() {
+		nodes.clear();
+	}
+
 	public void reset() {
 		nodes.clear();
 		types.clear();
