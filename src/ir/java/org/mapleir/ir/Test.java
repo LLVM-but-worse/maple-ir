@@ -181,24 +181,20 @@ public class Test {
 
 		try {
 			trap();
-			int z = x; // 5
+			int z = x;
 			trap();
-			x = y; // 10
+			x = y;
 			trap();
-			y = z; // 5
+			y = z;
 			trap();
-			// x = 10;
-			// y = 5;
 		} catch (RuntimeException e) {
 			trap();
-			int z = y; // 10
+			int z = y;
 			trap();
-			y = x; // 5
+			y = x;
 			trap();
-			x = z; // 10
+			x = z;
 			trap();
-			// x = 10;
-			// y = 5;
 		}
 
 		System.out.println(x);
@@ -217,6 +213,54 @@ public class Test {
 			int z = y;
 			y = x;
 			x = z;
+		}
+
+		System.out.println(x);
+		System.out.println(y);
+	}
+
+	void test124() {
+		int x = 5;
+		int y = 10;
+
+		try {
+			int z = x;
+			x = y;
+			trap();
+			y = z;
+		} finally {
+			int z = y;
+			y = x;
+			x = z;
+		}
+
+		System.out.println(x);
+		System.out.println(y);
+	}
+	
+	void trap(int x, int y) {
+	}
+
+	void test125() {
+		int x = 5;
+		int y = 10;
+
+		try {
+			trap(x, y);
+			int z = x;
+			trap(x, y);
+			x = y;
+			trap(x, y);
+			y = z;
+			trap(x, y);
+		} catch (RuntimeException e) {
+			trap(x, y);
+			int z = y;
+			trap(x, y);
+			y = x;
+			trap(x, y);
+			x = z;
+			trap(x, y);
 		}
 
 		System.out.println(x);
@@ -326,7 +370,7 @@ public class Test {
 			// }
 
 			if (!m.toString().startsWith("org/mapleir/ir/Test.test011")) {
-				if (!m.toString().startsWith("org/mapleir/ir/Test.test122")) {
+				if (!m.toString().startsWith("org/mapleir/ir/Test.test125")) {
 					continue;
 				}
 
@@ -340,6 +384,8 @@ public class Test {
 				}
 
 				cfg.getLocals().realloc(cfg);
+				
+				System.out.println(cfg);
 
 				BasicDotConfiguration<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> config = new BasicDotConfiguration<>(DotConfiguration.GraphType.DIRECTED);
 				DotWriter<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> writer = new DotWriter<>(config, cfg);
@@ -350,14 +396,15 @@ public class Test {
 				cn.methods.add(m2);
 				cn.methods.remove(m);
 			}
-
-			ClassWriter clazz = new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
-			cn.accept(clazz);
-			byte[] saved = clazz.toByteArray();
-			FileOutputStream out = new FileOutputStream(new File("out/testclass.class"));
-			out.write(saved, 0, saved.length);
-			out.close();
-
 		}
+		
+
+
+		ClassWriter clazz = new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
+		cn.accept(clazz);
+		byte[] saved = clazz.toByteArray();
+		FileOutputStream out = new FileOutputStream(new File("out/testclass.class"));
+		out.write(saved, 0, saved.length);
+		out.close();
 	}
 }
