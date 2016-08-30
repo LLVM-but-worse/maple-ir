@@ -110,11 +110,19 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 	}
 	
 	void entry(LabelNode firstLabel) {
-		BasicBlock entry = makeBlock(firstLabel);
+		LabelNode l = new LabelNode();
+		BasicBlock entry = new BasicBlock(builder.graph, ++builder.count, l);
+		builder.graph.addVertex(entry);
+		builder.graph.getEntries().add(entry);
 		entry.setInputStack(new ExpressionStack(16));
 		defineInputs(builder.method, entry);
-		builder.graph.getEntries().add(entry);
+		insns.insertBefore(firstLabel, l);
+		
+		BasicBlock b = makeBlock(firstLabel);
+		b.setInputStack(new ExpressionStack(16));
 		queue(firstLabel);
+		
+		builder.graph.addEdge(entry, new ImmediateEdge<>(entry, b));
 	}
 	
 	void handler(TryCatchBlockNode tc) {
