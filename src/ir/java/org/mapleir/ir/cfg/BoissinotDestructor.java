@@ -76,6 +76,11 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 		// 1. Insert copies to enter CSSA.
 		init();
 		insert_copies();
+		System.out.println();
+		System.out.println("AFTER INSERT:");
+		System.out.println(cfg);
+		System.out.println();
+		System.out.println();
 		print("insert");
 		createDuChains();
 		verify();
@@ -439,7 +444,7 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 		}
 	}
 
-	ExtendedDfs dom_dfs;
+	ExtendedDfs<BasicBlock> dom_dfs;
 	HashMap<Local, Local> equalAncIn;
 	HashMap<Local, Local> equalAncOut;
 
@@ -454,7 +459,7 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 //		writer.removeAll().setName("domtree").export();
 
 		// topo
-		dom_dfs = new ExtendedDfs(dom_tree, cfg.getEntries().iterator().next(), ExtendedDfs.POST | ExtendedDfs.PRE);
+		dom_dfs = new ExtendedDfs<>(dom_tree, cfg.getEntries().iterator().next(), ExtendedDfs.POST | ExtendedDfs.PRE);
 		List<BasicBlock> postorder = dom_dfs.getPostOrder();
 		for (int i = postorder.size() - 1; i >= 0; i--) {
 			BasicBlock bl = postorder.get(i);

@@ -416,7 +416,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		
 		builder.naturaliseGraph(order);
 
-		ExtendedDfs dfs = new ExtendedDfs(builder.graph, builder.graph.getEntries().iterator().next(), ExtendedDfs.PRE);
+		ExtendedDfs<BasicBlock> dfs = new ExtendedDfs<>(builder.graph, builder.graph.getEntries().iterator().next(), ExtendedDfs.PRE);
 		int po = 0;
 		for(BasicBlock b : dfs.getPreOrder()) {
 			insertion.put(b, 0);
