@@ -24,10 +24,10 @@ public class DominanceLivenessAnalyser {
 	private SSADefUseMap defuse;
 	public final BasicBlock entry;
 	public final ControlFlowGraph red_cfg;
-	public final ExtendedDfs cfg_dfs;
+	public final ExtendedDfs<BasicBlock> cfg_dfs;
 	public final Set<FlowEdge<BasicBlock>> back;
 	public final Set<BasicBlock> btargs;
-	public final ExtendedDfs reduced_dfs;
+	public final ExtendedDfs<BasicBlock> reduced_dfs;
 	public final TarjanDominanceComputor<BasicBlock> domc;
 	
 	public DominanceLivenessAnalyser(ControlFlowGraph cfg, SSADefUseMap defuse) {
@@ -44,12 +44,12 @@ public class DominanceLivenessAnalyser {
 		
 		entry = cfg.getEntries().iterator().next();
 		
-		cfg_dfs = new ExtendedDfs(cfg, entry, ExtendedDfs.EDGES | ExtendedDfs.PRE /* for sdoms*/ );
+		cfg_dfs = new ExtendedDfs<>(cfg, entry, ExtendedDfs.EDGES | ExtendedDfs.PRE /* for sdoms*/ );
 		back = cfg_dfs.getEdges(ExtendedDfs.BACK);
 		btargs = new HashSet<>();
 		
 		red_cfg = reduce(cfg, back);
-		reduced_dfs = new ExtendedDfs(red_cfg, entry, ExtendedDfs.POST | ExtendedDfs.PRE);
+		reduced_dfs = new ExtendedDfs<>(red_cfg, entry, ExtendedDfs.POST | ExtendedDfs.PRE);
 		
 		computeReducedReachability();
 		computeTargetReachability();
