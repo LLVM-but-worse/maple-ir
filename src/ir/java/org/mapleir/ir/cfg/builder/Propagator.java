@@ -201,7 +201,7 @@ public class Propagator extends OptimisationPass.Optimiser {
 				}
 				
 				if(phis.size() > 1) {
-					interweavingPhis(b, phis);
+//					interweavingPhis(b, phis);
 				}
 			}
 			return change;
@@ -272,6 +272,7 @@ public class Propagator extends OptimisationPass.Optimiser {
 		}
 		
 		private boolean fineBladeDefinition(AbstractCopyStatement def, Iterator<?> it) {
+			System.out.println("DEAD(2): " + def);
 			it.remove();
 			Expression rhs = def.getExpression();
 			BasicBlock b = def.getBlock();
@@ -287,6 +288,7 @@ public class Propagator extends OptimisationPass.Optimiser {
 				localAccess.useCount.remove(local);
 				return false;
 			}
+
 		}
 		
 		private void scalpelDefinition(AbstractCopyStatement def) {
@@ -294,6 +296,8 @@ public class Propagator extends OptimisationPass.Optimiser {
 			Local local = def.getVariable().getLocal();
 			localAccess.useCount.remove(local);
 			localAccess.defs.remove(local);
+			
+			System.out.println("DEAD(1): " + def);
 		}
 		
 		private int uses(Local l) {
