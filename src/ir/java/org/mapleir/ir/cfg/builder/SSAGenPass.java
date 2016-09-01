@@ -10,7 +10,10 @@ import org.mapleir.ir.code.Opcode;
 import org.mapleir.ir.code.expr.Expression;
 import org.mapleir.ir.code.expr.PhiExpression;
 import org.mapleir.ir.code.expr.VarExpression;
+import org.mapleir.ir.code.stmt.ConditionalJumpStatement;
 import org.mapleir.ir.code.stmt.Statement;
+import org.mapleir.ir.code.stmt.SwitchStatement;
+import org.mapleir.ir.code.stmt.UnconditionalJumpStatement;
 import org.mapleir.ir.code.stmt.copy.AbstractCopyStatement;
 import org.mapleir.ir.code.stmt.copy.CopyPhiStatement;
 import org.mapleir.ir.code.stmt.copy.CopyVarStatement;
@@ -38,7 +41,6 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 	// TODO: use arrays.
 	private final Map<BasicBlock, Integer> insertion;
 	private final Map<BasicBlock, Integer> process;
-	private final Set<BasicBlock> handlers;
 	private final NullPermeableHashMap<BasicBlock, Set<Local>> splits;
 	private final Map<BasicBlock, Integer> preorder;
 	
@@ -55,7 +57,6 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		insertion = new HashMap<>();
 		process = new HashMap<>();
 		
-		handlers = new HashSet<>();
 		splits = new NullPermeableHashMap<>(new SetCreator<>());
 		preorder = new HashMap<>();
 	}
@@ -79,6 +80,10 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		 * to index into new block, create immediate
 		 * edge to old block, clone exception edges,
 		 * redirect pred edges.
+		 * 
+		 * 1/9/16: we also need to modify the last
+		 *         statement of the pred blocks to
+		 *         point to NAME'.
 		 * 
 		 *  NAME':
 		 *    stmt1
@@ -110,7 +115,28 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 			cfg.addEdge(p, c);
 			it.remove();
 			cfg.getEdges(p).remove(e);
-//			cfg.removeEdge(p, e);
+			
+			if(p.size() > 0) {
+				Statement last = p.get(p.size() - 1);
+				int op = last.getOpcode();
+				if(op == Opcode.COND_JUMP) {
+					ConditionalJumpStatement j = (ConditionalJumpStatement) last;
+					assertTarget(last, j.getTrueSuccessor(), b);
+					j.setTrueSuccessor(n);
+				} else if(op == Opcode.UNCOND_JUMP) {
+					UnconditionalJumpStatement j = (UnconditionalJumpStatement) last;
+					assertTarget(j, j.getTarget(), b);
+					j.setTarget(n);
+				} else if(op == Opcode.SWITCH_JUMP) {
+					SwitchStatement s = (SwitchStatement) last;
+					for(Entry<Integer, BasicBlock> en : s.getTargets().entrySet()) {
+						BasicBlock t = en.getValue();
+						if(t == b) {
+							en.setValue(n);
+						}
+					}
+				}
+			}
 		}
 
 		// create immediate to n
@@ -124,6 +150,12 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		}
 		
 		return n;
+	}
+	
+	private void assertTarget(Statement s, BasicBlock t, BasicBlock b) {
+		if(t != b) {
+			throw new IllegalStateException(s + ", "+ t.getId() + " != " + b.getId());
+		}
 	}
 	
 	private void insertPhis() {
@@ -395,7 +427,6 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		}
 		
 		for(Entry<BasicBlock, Set<Local>> e : splits.entrySet()) {
-			
 			BasicBlock b = e.getKey();
 			Set<Local> ls = e.getValue();
 			
@@ -408,6 +439,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 					VarExpression v = copy.getVariable();
 					if(ls.contains(v.getLocal())) {
 						BasicBlock n = splitBlock(b, i + 1);
+						System.out.println("Split " + b.getId() + " into " + b.getId() + " and " + n.getId());
 						i = 0;
 						order.add(order.indexOf(b), n);
 						continue;
@@ -490,7 +522,6 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		this.liveness = liveness;
 		
 		splitRanges();
-
 		// TODO: update instead of recomp?
 		liveness = new SSABlockLivenessAnalyser(builder.graph);
 		liveness.compute();

@@ -19,6 +19,10 @@ public class UnconditionalJumpStatement extends Statement {
 	public BasicBlock getTarget() {
 		return target;
 	}
+	
+	public void setTarget(BasicBlock b) {
+		target = b;
+	}
 
 	@Override
 	public void onChildUpdated(int ptr) {
