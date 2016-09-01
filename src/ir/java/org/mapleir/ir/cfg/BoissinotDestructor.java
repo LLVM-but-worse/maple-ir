@@ -304,13 +304,12 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 	}
 
 	void insert_start(BasicBlock b, ParallelCopyVarStatement copy) {
-
 		if(b.isEmpty()) {
 			insert_empty(b, b, copy);
 		} else {
 			// insert after phi.
 			int i;
-			for (i = 0; b.get(i).getOpcode() == Opcode.PHI_STORE && i < b.size(); i++);
+			for (i = 0; i < b.size() && b.get(i).getOpcode() == Opcode.PHI_STORE; i++);
 			b.add(i, copy);
 		}
 		record_pcopy(b, copy);
