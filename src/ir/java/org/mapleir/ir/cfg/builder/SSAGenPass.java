@@ -151,7 +151,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		
 		for(BasicBlock x : doms.iteratedFrontier(b)) {
 			if(insertion.get(x) < i) {
-				if(x.size() > 0 && builder.graph.getReverseEdges(x).size() > 1) {
+				if(builder.graph.getReverseEdges(x).size() > 1) {
 					// pruned SSA
 					if(liveness.in(x).contains(l)) {
 						Map<BasicBlock, Expression> vls = new HashMap<>();
