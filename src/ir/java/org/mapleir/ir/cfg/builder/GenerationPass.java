@@ -625,9 +625,10 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 
 	void _const(Object o) {
 		Expression e = new ConstantExpression(o);
-		int index = currentStack.height();
-		Type type = assign_stack(index, e);
-		push(load_stack(index, type));
+		// int index = currentStack.height();
+		// Type type = assign_stack(index, e);
+		// push(load_stack(index, type));
+		push(e);
 	}
 
 	void _compare(ValueComparisonType ctype) {
