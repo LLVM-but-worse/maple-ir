@@ -108,8 +108,11 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 			BasicBlock p = e.src;
 			FlowEdge<BasicBlock> c = e.clone(p, n);
 			cfg.addEdge(p, c);
-			cfg.removeEdge(p, e);
+			it.remove();
+			cfg.getEdges(p).remove(e);
+//			cfg.removeEdge(p, e);
 		}
+
 		// create immediate to n
 		cfg.addEdge(n, new ImmediateEdge<>(n, b));
 		// clone exception edges

@@ -267,6 +267,29 @@ public class Test {
 		System.out.println(y);
 	}
 
+	void test128() {
+		int x = 5;
+		int y = 10;
+
+		do {
+			try {
+				trap(x, y);
+				y = 123;
+			} catch (RuntimeException e) {
+				trap(x, y);
+				int z = y;
+				trap(x, y);
+				y = x;
+				trap(x, y);
+				x = z;
+				trap(x, y);
+			}
+		} while(p());
+
+		System.out.println(x);
+		System.out.println(y);
+	}
+
 	void test011() {
 		int x = v();
 		int y = u();
@@ -370,12 +393,15 @@ public class Test {
 			// }
 
 			if (!m.toString().startsWith("org/mapleir/ir/Test.test011")) {
-				if (!m.toString().startsWith("org/mapleir/ir/Test.test125")) {
+				if (!m.toString().startsWith("org/mapleir/ir/Test.test128")) {
 					continue;
 				}
 
 				System.out.println("Processing " + m + "\n");
 				ControlFlowGraph cfg = ControlFlowGraphBuilder.build(m);
+				BasicDotConfiguration<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> config = new BasicDotConfiguration<>(DotConfiguration.GraphType.DIRECTED);
+				DotWriter<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> writer = new DotWriter<>(config, cfg);
+				writer.removeAll().add(new ControlFlowGraphDecorator().setFlags(OPT_DEEP)).setName("pre-destruct").export();
 
 				try {
 					BoissinotDestructor destructor = new BoissinotDestructor(cfg);
@@ -387,8 +413,6 @@ public class Test {
 				
 				System.out.println(cfg);
 
-				BasicDotConfiguration<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> config = new BasicDotConfiguration<>(DotConfiguration.GraphType.DIRECTED);
-				DotWriter<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> writer = new DotWriter<>(config, cfg);
 				writer.removeAll().add(new ControlFlowGraphDecorator().setFlags(OPT_DEEP)).setName("destructed").export();
 
 				MethodNode m2 = new MethodNode(m.owner, m.access, m.name, m.desc, m.signature, m.exceptions.toArray(new String[0]));
