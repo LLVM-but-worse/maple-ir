@@ -274,6 +274,8 @@ public class Test {
 		do {
 			try {
 				trap(x, y);
+				y = x;
+				trap(x, y);
 				y = 123;
 			} catch (RuntimeException e) {
 				trap(x, y);
@@ -399,10 +401,10 @@ public class Test {
 
 				System.out.println("Processing " + m + "\n");
 				ControlFlowGraph cfg = ControlFlowGraphBuilder.build(m);
+
 				BasicDotConfiguration<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> config = new BasicDotConfiguration<>(DotConfiguration.GraphType.DIRECTED);
 				DotWriter<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> writer = new DotWriter<>(config, cfg);
 				writer.removeAll().add(new ControlFlowGraphDecorator().setFlags(OPT_DEEP)).setName("pre-destruct").export();
-
 				try {
 					BoissinotDestructor destructor = new BoissinotDestructor(cfg);
 				} catch (RuntimeException e) {

@@ -15,16 +15,24 @@ import org.mapleir.ir.code.stmt.Statement;
 import org.mapleir.ir.code.stmt.copy.AbstractCopyStatement;
 import org.mapleir.ir.code.stmt.copy.CopyPhiStatement;
 import org.mapleir.ir.code.stmt.copy.CopyVarStatement;
+import org.mapleir.ir.dot.ControlFlowGraphDecorator;
+import org.mapleir.ir.dot.LivenessDecorator;
 import org.mapleir.ir.locals.BasicLocal;
 import org.mapleir.ir.locals.Local;
+import org.mapleir.stdlib.cfg.edge.FlowEdge;
 import org.mapleir.stdlib.cfg.util.TabbedStringWriter;
 import org.mapleir.stdlib.collections.ListCreator;
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.SetCreator;
+import org.mapleir.stdlib.collections.graph.dot.BasicDotConfiguration;
+import org.mapleir.stdlib.collections.graph.dot.DotConfiguration;
+import org.mapleir.stdlib.collections.graph.dot.DotWriter;
 import org.mapleir.stdlib.collections.graph.util.GraphUtils;
 import org.mapleir.stdlib.ir.transform.Liveness;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Type;
+
+import static org.mapleir.ir.dot.ControlFlowGraphDecorator.OPT_DEEP;
 
 public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 
@@ -66,8 +74,8 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 	public BoissinotDestructor(ControlFlowGraph cfg) {
 		this.cfg = cfg;
 
-//		BasicDotConfiguration<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> config = new BasicDotConfiguration<>(DotConfiguration.GraphType.DIRECTED);
-//		DotWriter<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> writer = new DotWriter<>(config, cfg);
+		BasicDotConfiguration<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> config = new BasicDotConfiguration<>(DotConfiguration.GraphType.DIRECTED);
+		DotWriter<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> writer = new DotWriter<>(config, cfg);
 //		writer.removeAll().add(new ControlFlowGraphDecorator().setFlags(OPT_DEEP))
 //				.setName("pre-destruct")
 //				.export();

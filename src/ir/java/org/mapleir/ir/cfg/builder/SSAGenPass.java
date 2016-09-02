@@ -24,6 +24,7 @@ import org.mapleir.stdlib.cfg.edge.DummyEdge;
 import org.mapleir.stdlib.cfg.edge.FlowEdge;
 import org.mapleir.stdlib.cfg.edge.FlowEdges;
 import org.mapleir.stdlib.cfg.edge.ImmediateEdge;
+import org.mapleir.stdlib.cfg.edge.TryCatchEdge;
 import org.mapleir.stdlib.cfg.util.TypeUtils;
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.SetCreator;
@@ -100,18 +101,18 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		 */
 		// split block
 		ControlFlowGraph cfg = builder.graph;
-		BasicBlock n = new BasicBlock(cfg, splitCount++, new LabelNode());
-		b.transferUp(n, to);
+		BasicBlock newBlock = new BasicBlock(cfg, splitCount++, new LabelNode());
+		b.transferUp(newBlock, to);
 		// redo ranges
 		for(ExceptionRange<BasicBlock> er : cfg.getRanges()) {
-			er.addVertexBefore(b, n);
+			er.addVertexBefore(b, newBlock);
 		}
-		// redirect b preds into n and remove them.
+		// redirect b preds into newBlock and remove them.
 		Iterator<FlowEdge<BasicBlock>> it = cfg.getReverseEdges(b).iterator();
 		while(it.hasNext()) {
 			FlowEdge<BasicBlock> e = it.next();
 			BasicBlock p = e.src;
-			FlowEdge<BasicBlock> c = e.clone(p, n);
+			FlowEdge<BasicBlock> c = e.clone(p, newBlock);
 			cfg.addEdge(p, c);
 			it.remove();
 			cfg.getEdges(p).remove(e);
@@ -122,34 +123,39 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 				if(op == Opcode.COND_JUMP) {
 					ConditionalJumpStatement j = (ConditionalJumpStatement) last;
 					assertTarget(last, j.getTrueSuccessor(), b);
-					j.setTrueSuccessor(n);
+					j.setTrueSuccessor(newBlock);
 				} else if(op == Opcode.UNCOND_JUMP) {
 					UnconditionalJumpStatement j = (UnconditionalJumpStatement) last;
 					assertTarget(j, j.getTarget(), b);
-					j.setTarget(n);
+					j.setTarget(newBlock);
 				} else if(op == Opcode.SWITCH_JUMP) {
 					SwitchStatement s = (SwitchStatement) last;
 					for(Entry<Integer, BasicBlock> en : s.getTargets().entrySet()) {
 						BasicBlock t = en.getValue();
 						if(t == b) {
-							en.setValue(n);
+							en.setValue(newBlock);
 						}
 					}
 				}
 			}
 		}
 
-		// create immediate to n
-		cfg.addEdge(n, new ImmediateEdge<>(n, b));
+		Set<Local> assignedLocals = new HashSet<>();
+		for (Statement stmt : newBlock)
+			if (stmt.getOpcode() == Opcode.LOCAL_STORE)
+				assignedLocals.add(((CopyVarStatement) stmt).getVariable().getLocal());
+
+		// create immediate to newBlock
+		cfg.addEdge(newBlock, new ImmediateEdge<>(newBlock, b));
 		// clone exception edges
 		for(FlowEdge<BasicBlock> e : cfg.getEdges(b)) {
 			if(e.getType() == FlowEdges.TRYCATCH) {
-				FlowEdge<BasicBlock> c = e.clone(n, b);
-				cfg.addEdge(n, c);
+				TryCatchEdge<BasicBlock> c = ((TryCatchEdge<BasicBlock>) e).clone(newBlock, null); // second param is discarded (?)
+				cfg.addEdge(newBlock, c);
 			}
 		}
 		
-		return n;
+		return newBlock;
 	}
 	
 	private void assertTarget(Statement s, BasicBlock t, BasicBlock b) {
@@ -190,6 +196,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 						for(FlowEdge<BasicBlock> fe : builder.graph.getReverseEdges(x)) {
 							vls.put(fe.src, new VarExpression(newl, null));
 						}
+						System.out.println("mkphi " + vls);
 						PhiExpression phi = new PhiExpression(vls);
 						CopyPhiStatement assign = new CopyPhiStatement(new VarExpression(l, null), phi);
 						
@@ -430,20 +437,22 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 			BasicBlock b = e.getKey();
 			Set<Local> ls = e.getValue();
 			
+			ArrayList<Statement> stmtsCopy = new ArrayList<>(b);
 			int i = 0;
-			for(Statement stmt : new ArrayList<>(b)) {
-				if(b.size() == i)
+			for (int i1 = 0; i1 < stmtsCopy.size(); i1++) {
+				Statement stmt = stmtsCopy.get(i1);
+				System.out.println("@" + i1 + "@" + i + " " + stmt);
+				if (b.size() == i)
 					break;
-				if(stmt.getOpcode() == Opcode.LOCAL_STORE) {
+				if (stmt.getOpcode() == Opcode.LOCAL_STORE) {
 					CopyVarStatement copy = (CopyVarStatement) stmt;
 					VarExpression v = copy.getVariable();
-					if(ls.contains(v.getLocal())) {
-						BasicBlock n = splitBlock(b, i + 1);
+					if (ls.contains(v.getLocal())) {
+						BasicBlock n = splitBlock(b, i);
 						System.out.println("Split " + b.getId() + " into " + b.getId() + " and " + n.getId());
-						i = 0;
 						order.add(order.indexOf(b), n);
-						continue;
 					}
+					i = 0;
 				}
 				i++;
 			}
@@ -530,7 +539,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		doms = new TarjanDominanceComputor<>(builder.graph);
 		insertPhis();
 		rename();
-		cleanHandlerPhis();
+//		cleanHandlerPhis(); // we cant do this because it messes up the destructor's coalescing.
 		
 		disconnectExit();
 	}
