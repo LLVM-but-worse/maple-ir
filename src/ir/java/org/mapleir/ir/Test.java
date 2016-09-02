@@ -292,6 +292,60 @@ public class Test {
 		System.out.println(y);
 	}
 
+	void test129() {
+		int x = 5;
+		int y = 10;
+
+		do {
+			try {
+				trap(x, y);
+				y = x;
+				trap(x, y);
+				y = 123;
+			} catch (RuntimeException e) {
+				while(!p()) {
+					trap(x, y);
+					int z = y;
+					trap(x, y);
+					y = x;
+					trap(x, y);
+					x = z;
+					trap(x, y);
+				}
+			}
+		} while(p());
+
+		System.out.println(x);
+		System.out.println(y);
+	}
+
+	void test130() {
+		int x = 5;
+		int y = 10;
+
+		do {
+			try {
+				trap(x, y);
+				y = x;
+				trap(x, y);
+				y = 123;
+			} catch (RuntimeException e) {
+				do {
+					trap(x, y);
+					int z = y;
+					trap(x, y);
+					y = x;
+					trap(x, y);
+					x = z;
+					trap(x, y);
+				} while(!p());
+			}
+		} while(p());
+
+		System.out.println(x);
+		System.out.println(y);
+	}
+
 	void test011() {
 		int x = v();
 		int y = u();
@@ -395,7 +449,7 @@ public class Test {
 			// }
 
 			if (!m.toString().startsWith("org/mapleir/ir/Test.test011")) {
-				if (!m.toString().startsWith("org/mapleir/ir/Test.test128")) {
+				if (!m.toString().startsWith("org/mapleir/ir/Test.test130")) {
 					continue;
 				}
 
