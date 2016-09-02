@@ -10,12 +10,18 @@ import java.util.Set;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.stmt.copy.AbstractCopyStatement;
+import org.mapleir.ir.dot.ControlFlowGraphDecorator;
 import org.mapleir.ir.locals.Local;
 import org.mapleir.ir.locals.VersionedLocal;
 import org.mapleir.stdlib.cfg.edge.FlowEdge;
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.SetCreator;
+import org.mapleir.stdlib.collections.graph.dot.BasicDotConfiguration;
+import org.mapleir.stdlib.collections.graph.dot.DotConfiguration;
+import org.mapleir.stdlib.collections.graph.dot.DotWriter;
 import org.objectweb.asm.tree.MethodNode;
+
+import static org.mapleir.ir.dot.ControlFlowGraphDecorator.OPT_DEEP;
 
 public class ControlFlowGraphBuilder {
 
@@ -97,6 +103,10 @@ public class ControlFlowGraphBuilder {
 				System.out.println(builder.graph);
 				System.out.println();
 				System.out.println();
+
+				BasicDotConfiguration<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> config = new BasicDotConfiguration<>(DotConfiguration.GraphType.DIRECTED);
+				DotWriter<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> writer = new DotWriter<>(config, builder.graph);
+				writer.removeAll().add(new ControlFlowGraphDecorator().setFlags(OPT_DEEP)).setName("post-" + p.getClass().getSimpleName()).export();
 			}
 			return builder.graph;
 		} catch(RuntimeException e) {
