@@ -1,9 +1,5 @@
 package org.mapleir.ir.cfg;
 
-import java.util.*;
-import java.util.Map.Entry;
-import java.util.concurrent.atomic.AtomicInteger;
-
 import org.mapleir.ir.analysis.DominanceLivenessAnalyser;
 import org.mapleir.ir.analysis.ExtendedDfs;
 import org.mapleir.ir.analysis.SSADefUseMap;
@@ -24,7 +20,6 @@ import org.mapleir.stdlib.cfg.util.TabbedStringWriter;
 import org.mapleir.stdlib.collections.ListCreator;
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.SetCreator;
-import org.mapleir.stdlib.collections.bitset.GenericBitSet;
 import org.mapleir.stdlib.collections.graph.dot.BasicDotConfiguration;
 import org.mapleir.stdlib.collections.graph.dot.DotConfiguration;
 import org.mapleir.stdlib.collections.graph.dot.DotWriter;
@@ -32,6 +27,20 @@ import org.mapleir.stdlib.collections.graph.util.GraphUtils;
 import org.mapleir.stdlib.ir.transform.Liveness;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Type;
+
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.Stack;
+import java.util.TreeSet;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.mapleir.ir.dot.ControlFlowGraphDecorator.OPT_DEEP;
 
@@ -344,7 +353,7 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 	}
 
 	void createDuChains() {
-		defuse = new SSADefUseMap(cfg, true) {
+		defuse = new SSADefUseMap(cfg) {
 			@Override
 			protected void build(BasicBlock b, Statement stmt) {
 				if (stmt instanceof ParallelCopyVarStatement) {
@@ -373,6 +382,7 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 				return index;
 			}
 		};
+		defuse.compute();
 
 		resolver.setDefuse(defuse);
 	}
