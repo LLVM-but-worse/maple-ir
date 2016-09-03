@@ -97,7 +97,11 @@ public class GraphUtils {
 		Iterator<BasicBlock> it = col.iterator();
 		while(it.hasNext()) {
 			BasicBlock b = it.next();
-			sb.append(b.getId());
+			if(b == null) {
+				sb.append("null");
+			} else {
+				sb.append(b.getId());
+			}
 			
 			if(it.hasNext()) {
 				sb.append(", ");
