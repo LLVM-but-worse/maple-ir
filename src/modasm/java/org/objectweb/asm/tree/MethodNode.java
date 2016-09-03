@@ -43,6 +43,10 @@ import java.util.List;
  * @author Eric Bruneton
  */
 public class MethodNode extends MethodVisitor implements FastGraphVertex {
+    // maple-ir start //
+    private static int ID_COUNTER = 1;
+   	private final int numericId = ID_COUNTER++;
+    // maple-ir end //
 
 	public ClassNode owner;
 	
@@ -973,4 +977,9 @@ public class MethodNode extends MethodVisitor implements FastGraphVertex {
 	public String getId() {
 		return toString();
 	}
+
+	@Override
+    public int getNumericId() {
+	    return numericId;
+    }
 }

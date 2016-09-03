@@ -6,7 +6,7 @@ import java.util.Map.Entry;
 import org.mapleir.stdlib.cfg.edge.FlowEdge;
 import org.mapleir.stdlib.cfg.edge.ImmediateEdge;
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
-import org.mapleir.stdlib.collections.SetCreator;
+import org.mapleir.stdlib.collections.bitset.GenericBitSet;
 import org.mapleir.stdlib.collections.graph.FastDirectedGraph;
 import org.mapleir.stdlib.collections.graph.FastGraph;
 import org.mapleir.stdlib.collections.graph.FastGraphEdge;
@@ -23,10 +23,10 @@ public class TarjanDominanceComputor<N extends FastGraphVertex> {
 	private final Map<N, N> propagationMap;
 	private final Map<N, N> ancestors;
 	private final Map<N, N> idoms;
-	private final NullPermeableHashMap<N, Set<N>> semiDoms;
-	private final NullPermeableHashMap<N, Set<N>> domChildren;
-	private final NullPermeableHashMap<N, Set<N>> frontiers;
-	private final NullPermeableHashMap<N, Set<N>> iteratedFrontiers;
+	private final NullPermeableHashMap<N, GenericBitSet<N>> semiDoms;
+	private final NullPermeableHashMap<N, GenericBitSet<N>> domChildren;
+	private final NullPermeableHashMap<N, GenericBitSet<N>> frontiers;
+	private final NullPermeableHashMap<N, GenericBitSet<N>> iteratedFrontiers;
 	
 	public TarjanDominanceComputor(FlowGraph<N, ?> graph) {
 		this.graph = graph;
@@ -36,10 +36,10 @@ public class TarjanDominanceComputor<N extends FastGraphVertex> {
 		propagationMap = new HashMap<>();
 		ancestors = new HashMap<>();
 		idoms = new HashMap<>();
-		semiDoms = new NullPermeableHashMap<>(new SetCreator<>());
-		domChildren = new NullPermeableHashMap<>(new SetCreator<>());
-		frontiers = new NullPermeableHashMap<>(new SetCreator<>());
-		iteratedFrontiers = new NullPermeableHashMap<>(new SetCreator<>());
+		semiDoms = new NullPermeableHashMap<>(graph);
+		domChildren = new NullPermeableHashMap<>(graph);
+		frontiers = new NullPermeableHashMap<>(graph);
+		iteratedFrontiers = new NullPermeableHashMap<>(graph);
 		
 		computePreOrder();
 		computeDominators();
@@ -49,7 +49,7 @@ public class TarjanDominanceComputor<N extends FastGraphVertex> {
 	}
 	
 	public void makeTree(FastGraph<N, FlowEdge<N>> dom_tree) {
-		for (Entry<N, Set<N>> e : getTree().entrySet()) {
+		for (Entry<N, GenericBitSet<N>> e : getTree().entrySet()) {
 			N b = e.getKey();
 			dom_tree.addVertex(b);
 			for (N c : e.getValue()) {
@@ -58,23 +58,23 @@ public class TarjanDominanceComputor<N extends FastGraphVertex> {
 		}
 	}
 	
-	public Map<N, Set<N>> getTree() {
+	public Map<N, GenericBitSet<N>> getTree() {
 		return domChildren;
 	}
 	
-	public Set<N> children(N n) {
+	public GenericBitSet<N> children(N n) {
 		return domChildren.getNonNull(n);
 	}
 	
-	public Set<N> semiDoms(N n) {
+	public GenericBitSet<N> semiDoms(N n) {
 		return semiDoms.getNonNull(n);
 	}
 	
-	public Set<N> frontier(N n) {
+	public GenericBitSet<N> frontier(N n) {
 		return frontiers.getNonNull(n);
 	}
 	
-	public Set<N> iteratedFrontier(N n) {
+	public GenericBitSet<N> iteratedFrontier(N n) {
 		return iteratedFrontiers.getNonNull(n);
 	}
 	
@@ -113,13 +113,13 @@ public class TarjanDominanceComputor<N extends FastGraphVertex> {
 	}
 	
 	private void computeIteratedFrontiers(N n) {
-		Set<N> res = new HashSet<>();
+		GenericBitSet<N> res = graph.createBitSet();
 		
-		Set<N> workingSet = new HashSet<>();
+		GenericBitSet<N> workingSet = graph.createBitSet();
 		workingSet.add(n);
 		
 		do {
-			Set<N> newWorkingSet = new HashSet<>();
+			GenericBitSet<N> newWorkingSet = graph.createBitSet();
 			Iterator<N> it = workingSet.iterator();
 			while(it.hasNext()) {
 				N n1 = it.next();
@@ -143,7 +143,7 @@ public class TarjanDominanceComputor<N extends FastGraphVertex> {
 		Iterator<N> it = topoSort();
 		while(it.hasNext()) {
 			N n = it.next();
-			Set<N> df = frontiers.getNonNull(n);
+			GenericBitSet<N> df = frontiers.getNonNull(n);
 			
 			// DF(local)
 			for(FlowEdge<N> e : graph.getEdges(n)) {

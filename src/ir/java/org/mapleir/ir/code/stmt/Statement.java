@@ -14,8 +14,8 @@ import org.objectweb.asm.MethodVisitor;
 
 public abstract class Statement implements FastGraphVertex, Opcode, Iterable<Statement> {
 	
-	public static int ID_COUNTER = 1;
-	private final long id = ID_COUNTER++;
+	private static int ID_COUNTER = 1;
+	private final int id = ID_COUNTER++;
 	
 	private final int opcode;
 	private Statement parent;
@@ -270,8 +270,9 @@ public abstract class Statement implements FastGraphVertex, Opcode, Iterable<Sta
 	public String toString() {
 		return print(this);
 	}
-	
-	public long _getId() {
+
+	@Override
+	public int getNumericId() {
 		return id;
 	}
 	
