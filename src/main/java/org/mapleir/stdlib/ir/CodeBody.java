@@ -9,7 +9,7 @@ import java.util.ListIterator;
 import org.mapleir.ir.code.stmt.Statement;
 import org.mapleir.ir.locals.LocalsHandler;
 import org.mapleir.stdlib.cfg.util.TabbedStringWriter;
-import org.mapleir.stdlib.ir.header.StatementHeaderStatement;
+//import org.mapleir.stdlib.ir.header.StatementHeaderStatement;
 
 public class CodeBody implements List<Statement> {
 
@@ -26,22 +26,22 @@ public class CodeBody implements List<Statement> {
 	}
 
 	public void toString(TabbedStringWriter printer) {
-		for (int addr = 0; addr < stmts.size(); addr++) {
-			Statement stmt = stmts.get(addr);
-			if(!(stmt instanceof StatementHeaderStatement)) {
-				printer.print(stmt.getId() + ". ");
-				stmt.toString(printer);
-			}
-
-			if (addr < stmts.size() - 1) {
-				Statement next = stmts.get(addr + 1);
-				if (next != null) {
-					if (!(stmt instanceof StatementHeaderStatement)) {
-						printer.print('\n', !next.changesIndentation());
-					}
-				}
-			}
-		}
+//		for (int addr = 0; addr < stmts.size(); addr++) {
+//			Statement stmt = stmts.get(addr);
+//			if(!(stmt instanceof StatementHeaderStatement)) {
+//				printer.print(stmt.getId() + ". ");
+//				stmt.toString(printer);
+//			}
+//
+//			if (addr < stmts.size() - 1) {
+//				Statement next = stmts.get(addr + 1);
+//				if (next != null) {
+//					if (!(stmt instanceof StatementHeaderStatement)) {
+//						printer.print('\n', !next.changesIndentation());
+//					}
+//				}
+//			}
+//		}
 	}
 
 	@Override
