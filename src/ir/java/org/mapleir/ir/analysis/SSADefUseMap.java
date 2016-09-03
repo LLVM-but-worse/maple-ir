@@ -1,10 +1,5 @@
 package org.mapleir.ir.analysis;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.Opcode;
@@ -19,6 +14,11 @@ import org.mapleir.stdlib.collections.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.ValueCreator;
 import org.mapleir.stdlib.collections.bitset.GenericBitSet;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+
 public class SSADefUseMap implements Opcode {
 	
 	private final ControlFlowGraph cfg;
@@ -29,17 +29,14 @@ public class SSADefUseMap implements Opcode {
 	public NullPermeableHashMap<Local, HashMap<BasicBlock, Integer>> lastUseIndex;
 	public HashMap<Local, Integer> defIndex;
 
-	public SSADefUseMap(ControlFlowGraph cfg, boolean compute) {
+	public SSADefUseMap(ControlFlowGraph cfg) {
 		this.cfg = cfg;
 		defs = new HashMap<>();
 		uses = new NullPermeableHashMap<>(cfg);
 		phis = new HashMap<>();
-
-		if(compute)
-			rebuild(cfg);
 	}
 
-	public void rebuild(ControlFlowGraph cfg) {
+	public void compute() {
 		defs.clear();
 		uses.clear();
 		phis.clear();
