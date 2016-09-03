@@ -467,7 +467,7 @@ public class Test {
 			// }
 
 			if (!m.toString().startsWith("org/mapleir/ir/Test.test011")) {
-				if (!m.toString().startsWith("org/mapleir/ir/Test.test131")) {
+				if (!m.toString().startsWith("org/mapleir/ir/Test.test130")) {
 					continue;
 				}
 

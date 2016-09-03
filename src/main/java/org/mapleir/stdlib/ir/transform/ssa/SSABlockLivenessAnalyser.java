@@ -9,38 +9,40 @@ import org.mapleir.ir.code.expr.VarExpression;
 import org.mapleir.ir.code.stmt.Statement;
 import org.mapleir.ir.code.stmt.copy.CopyVarStatement;
 import org.mapleir.ir.locals.Local;
+import org.mapleir.ir.locals.LocalsHandler;
 import org.mapleir.stdlib.cfg.edge.FlowEdge;
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
+import org.mapleir.stdlib.collections.bitset.GenericBitSet;
 import org.mapleir.stdlib.ir.transform.Liveness;
 
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Queue;
-import java.util.Set;
 
 public class SSABlockLivenessAnalyser implements Liveness<BasicBlock> {
-	private final NullPermeableHashMap<BasicBlock, Set<Local>> use;
-	private final NullPermeableHashMap<BasicBlock, Set<Local>> def;
-	private final NullPermeableHashMap<BasicBlock, NullPermeableHashMap<BasicBlock, Set<Local>>> phiUse;
-	private final NullPermeableHashMap<BasicBlock, Set<Local>> phiDef;
+	private final NullPermeableHashMap<BasicBlock, GenericBitSet<Local>> use;
+	private final NullPermeableHashMap<BasicBlock, GenericBitSet<Local>> def;
+	private final NullPermeableHashMap<BasicBlock, NullPermeableHashMap<BasicBlock, GenericBitSet<Local>>> phiUse;
+	private final NullPermeableHashMap<BasicBlock, GenericBitSet<Local>> phiDef;
 	
-	private final NullPermeableHashMap<BasicBlock, Set<Local>> out;
-	private final NullPermeableHashMap<BasicBlock, Set<Local>> in;
+	private final NullPermeableHashMap<BasicBlock, GenericBitSet<Local>> out;
+	private final NullPermeableHashMap<BasicBlock, GenericBitSet<Local>> in;
 	
 	private final Queue<BasicBlock> queue;
-	
+	private final LocalsHandler locals;
+
 	private final ControlFlowGraph cfg;
-	
+
 	public SSABlockLivenessAnalyser(ControlFlowGraph cfg) {
-		use = new NullPermeableHashMap<>(HashSet::new);
-		def = new NullPermeableHashMap<>(HashSet::new);
-		phiUse = new NullPermeableHashMap<>(() -> new NullPermeableHashMap<>(HashSet::new));
-		phiDef = new NullPermeableHashMap<>(HashSet::new);
+		locals = cfg.getLocals();
+		use = new NullPermeableHashMap<>(locals);
+		def = new NullPermeableHashMap<>(locals);
+		phiUse = new NullPermeableHashMap<>(() -> new NullPermeableHashMap<>(locals));
+		phiDef = new NullPermeableHashMap<>(locals);
 		
-		out = new NullPermeableHashMap<>(HashSet::new);
-		in = new NullPermeableHashMap<>(HashSet::new);
+		out = new NullPermeableHashMap<>(locals);
+		in = new NullPermeableHashMap<>(locals);
 		
 		queue = new LinkedList<>();
 		
@@ -104,7 +106,7 @@ public class SSABlockLivenessAnalyser implements Liveness<BasicBlock> {
 					for (Map.Entry<BasicBlock, Expression> e : phi.getArguments().entrySet()) {
 						BasicBlock exprSource = e.getKey();
 						Expression phiExpr = e.getValue();
-						Set<Local> useSet = phiUse.get(b).getNonNull(exprSource);
+						GenericBitSet<Local> useSet = phiUse.get(b).getNonNull(exprSource);
 						for (Statement child : phiExpr)
 							if (child.getOpcode() == Opcode.LOCAL_LOAD)
 								useSet.add(((VarExpression) child).getLocal());
@@ -122,13 +124,13 @@ public class SSABlockLivenessAnalyser implements Liveness<BasicBlock> {
 	}
 	
 	@Override
-	public Set<Local> in(BasicBlock b) {
-		return new HashSet<>(in.get(b));
+	public GenericBitSet<Local> in(BasicBlock b) {
+		return in.get(b).copy();
 	}
 	
 	@Override
-	public Set<Local> out(BasicBlock b) {
-		return new HashSet<>(out.get(b));
+	public GenericBitSet<Local> out(BasicBlock b) {
+		return out.get(b).copy();
 	}
 	
 	public void compute() {
@@ -139,9 +141,9 @@ public class SSABlockLivenessAnalyser implements Liveness<BasicBlock> {
 			BasicBlock b = queue.remove();
 //			System.out.println("\n\nProcessing " + b.getId());
 			
-			Set<Local> oldIn = new HashSet<>(in.get(b));
-			Set<Local> curIn = new HashSet<>(use.get(b));
-			Set<Local> curOut = new HashSet<>();
+			GenericBitSet<Local> oldIn = new GenericBitSet<>(in.get(b));
+			GenericBitSet<Local> curIn = new GenericBitSet<>(use.get(b));
+			GenericBitSet<Local> curOut = locals.createBitSet();
 			
 			// out[n] = U(s in succ[n])(in[s])
 			for (FlowEdge<BasicBlock> succEdge : cfg.getEdges(b))
@@ -164,7 +166,7 @@ public class SSABlockLivenessAnalyser implements Liveness<BasicBlock> {
 			oldIn.addAll(phiDef.get(b));
 			
 			// in[n] = use[n] U(out[n] - def[n])
-			HashSet<Local> toAdd = new HashSet<>(curOut);
+			GenericBitSet<Local> toAdd = curOut.copy();
 			toAdd.removeAll(def.get(b));
 			curIn.addAll(toAdd);
 			

@@ -14,7 +14,7 @@ public class IncrementalBitSetIndexer<N> implements BitSetIndexer<N> {
 		map = new NullPermeableHashMap<>(new ValueCreator<Integer>() {
 			@Override
 			public Integer create() {
-				return map.size();
+				return map.size() + 1;
 			}
 		});
 		reverseMap = new HashMap<>();
