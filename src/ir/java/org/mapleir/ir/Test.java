@@ -1,33 +1,26 @@
 package org.mapleir.ir;
 
-import static org.mapleir.ir.dot.ControlFlowGraphDecorator.OPT_DEEP;
+import org.mapleir.ir.cfg.BasicBlock;
+import org.mapleir.ir.cfg.BoissinotDestructor;
+import org.mapleir.ir.cfg.ControlFlowGraph;
+import org.mapleir.ir.cfg.builder.ControlFlowGraphBuilder;
+import org.mapleir.ir.dot.ControlFlowGraphDecorator;
+import org.mapleir.stdlib.cfg.edge.FlowEdge;
+import org.mapleir.stdlib.collections.graph.dot.BasicDotConfiguration;
+import org.mapleir.stdlib.collections.graph.dot.DotConfiguration;
+import org.mapleir.stdlib.collections.graph.dot.DotWriter;
+import org.objectweb.asm.ClassReader;
+import org.objectweb.asm.ClassWriter;
+import org.objectweb.asm.tree.ClassNode;
+import org.objectweb.asm.tree.MethodNode;
 
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.List;
-import java.util.Set;
 
-import org.mapleir.ir.cfg.BasicBlock;
-import org.mapleir.ir.cfg.BoissinotDestructor;
-import org.mapleir.ir.cfg.ControlFlowGraph;
-import org.mapleir.ir.cfg.builder.ControlFlowGraphBuilder;
-import org.mapleir.ir.code.stmt.Statement;
-import org.mapleir.ir.dot.ControlFlowGraphDecorator;
-import org.mapleir.stdlib.cfg.edge.DummyEdge;
-import org.mapleir.stdlib.cfg.edge.FlowEdge;
-import org.mapleir.stdlib.collections.graph.dot.BasicDotConfiguration;
-import org.mapleir.stdlib.collections.graph.dot.DotConfiguration;
-import org.mapleir.stdlib.collections.graph.dot.DotWriter;
-import org.mapleir.stdlib.collections.graph.flow.ExceptionRange;
-import org.objectweb.asm.ClassReader;
-import org.objectweb.asm.ClassWriter;
-import org.objectweb.asm.Label;
-import org.objectweb.asm.tree.ClassNode;
-import org.objectweb.asm.tree.LabelNode;
-import org.objectweb.asm.tree.MethodNode;
+import static org.mapleir.ir.dot.ControlFlowGraphDecorator.OPT_DEEP;
 
 public class Test {
 
@@ -346,6 +339,24 @@ public class Test {
 		System.out.println(y);
 	}
 
+	void test131() {
+		int x = 5;
+		int y = 10;
+
+		do {
+			if (q()) {
+				do {
+					int z = y;
+					y = x;
+					x = z;
+				} while (!q());
+			}
+		} while(p());
+
+		System.out.println(x);
+		System.out.println(y);
+	}
+
 	void test011() {
 		int x = v();
 		int y = u();
@@ -371,59 +382,6 @@ public class Test {
 
 	int v() {
 		return 114;
-	}
-
-	public static void dump(ControlFlowGraph cfg, MethodNode m) {
-		m.visitCode();
-		m.instructions.clear();
-		m.tryCatchBlocks.clear();
-
-		for (BasicBlock b : cfg.vertices()) {
-			b.resetLabel();
-		}
-
-		for (BasicBlock b : cfg.vertices()) {
-			m.visitLabel(b.getLabel());
-			for (Statement stmt : b) {
-				stmt.toCode(m, null);
-			}
-		}
-
-		for (ExceptionRange<BasicBlock> er : cfg.getRanges()) {
-			System.out.println("RANGE: " + er);
-			String type = null;
-			Set<String> typeSet = er.getTypes();
-			if (typeSet.size() == 0 || typeSet.size() > 1) {
-				// TODO: fix base exception
-				type = Throwable.class.getCanonicalName().replace(".", "/");
-			} else {
-				// size == 1
-				type = typeSet.iterator().next();
-			}
-			List<BasicBlock> range = er.get();
-			Label start = range.get(0).getLabel();
-			Label end = null;
-			BasicBlock endBlock = range.get(range.size() - 1);
-			BasicBlock im = endBlock.getImmediate();
-			if (im == null) {
-				BasicBlock nextBlock = cfg.getBlock(BasicBlock.createBlockName(BasicBlock.numeric(endBlock.getId()) + 1));
-				if (nextBlock != null) {
-					end = nextBlock.getLabel();
-				} else {
-					LabelNode label = new LabelNode();
-					m.visitLabel(label.getLabel());
-					BasicBlock newExit = new BasicBlock(cfg, endBlock.getNumericId() + 1, label);
-					cfg.addVertex(newExit);
-					cfg.addEdge(endBlock, new DummyEdge<>(endBlock, newExit));
-					end = label.getLabel();
-				}
-			} else {
-				end = im.getLabel();
-			}
-			Label handler = er.getHandler().getLabel();
-			m.visitTryCatchBlock(start, end, handler, type);
-		}
-		m.visitEnd();
 	}
 
 	public static void main(String[] args) throws IOException {
@@ -472,7 +430,7 @@ public class Test {
 				writer.removeAll().add(new ControlFlowGraphDecorator().setFlags(OPT_DEEP)).setName("destructed").export();
 
 				MethodNode m2 = new MethodNode(m.owner, m.access, m.name, m.desc, m.signature, m.exceptions.toArray(new String[0]));
-				dump(cfg, m2);
+				ControlFlowGraphDumper.dump(cfg, m2);
 				cn.methods.add(m2);
 				cn.methods.remove(m);
 			}

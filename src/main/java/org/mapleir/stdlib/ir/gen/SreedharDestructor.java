@@ -1,11 +1,5 @@
 package org.mapleir.stdlib.ir.gen;
 
-import static org.mapleir.ir.dot.ControlFlowGraphDecorator.*;
-
-import java.util.*;
-import java.util.Map.Entry;
-import java.util.concurrent.atomic.AtomicInteger;
-
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.expr.Expression;
@@ -31,35 +25,49 @@ import org.mapleir.stdlib.ir.header.HeaderStatement;
 import org.mapleir.stdlib.ir.transform.ssa.SSABlockLivenessAnalyser;
 import org.objectweb.asm.Type;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import static org.mapleir.ir.dot.ControlFlowGraphDecorator.OPT_DEEP;
+import static org.mapleir.ir.dot.ControlFlowGraphDecorator.OPT_STMTS;
+
 public class SreedharDestructor {
 
 	final CodeBody code;
 	final ControlFlowGraph cfg;
 	final Map<BasicBlock, BlockHeaderStatement> headers;
-	
+
 	SSABlockLivenessAnalyser liveness;
 	NullPermeableHashMap<Local, Set<Local>> interfere;
-	
+
 	// critical maps.
 	final Map<Local, Set<Local>> phiCongruenceClasses;
 	// utility maps.
 	final Map<Local, CopyVarStatement> phiDefs;
 	final NullPermeableHashMap<Local, Set<Statement>> vusages;
-	
+
 	public SreedharDestructor(CodeBody code, ControlFlowGraph cfg) {
 		this.code = code;
 		this.cfg = cfg;
-		
+
 		interfere = new NullPermeableHashMap<>(new SetCreator<>());
 		headers = new HashMap<>();
 		phiCongruenceClasses = new HashMap<>();
 		phiDefs = new HashMap<>();
 		vusages = new NullPermeableHashMap<>(new SetCreator<>());
-		
+
 		init();
 		updateInterference();
 		csaa_iii();
-		
+
 		{ // scope here to help me keep track of where all the debug crap is
 			System.out.println("after:");
 			System.out.println(code);
@@ -79,11 +87,11 @@ public class SreedharDestructor {
 //			DotWriter<InterferenceGraph, ColourableNode, InterferenceEdge> w2 = new DotWriter<>(config2, ig);
 //			w2.add(new InterferenceGraphDecorator()).setName("sreedhar-cssa-ig").export();
 		}
-		
+
 		nullify();
 		updateInterference();
 		coalesce();
-		
+
 		{ // scope here to help me keep track of where all the debug crap is
 			System.out.println("after:");
 			System.out.println(code);
@@ -94,10 +102,10 @@ public class SreedharDestructor {
 					.add("cfg", new ControlFlowGraphDecorator().setFlags(OPT_DEEP | OPT_STMTS))
 					.export();
 		}
-			
+
 		unssa();
 	}
-	
+
 	void verify() {
 		NullPermeableHashMap<Local, Set<Statement>> vusages = new NullPermeableHashMap<>(new SetCreator<>());
 		for(Statement stmt : code) {
@@ -110,7 +118,7 @@ public class SreedharDestructor {
 				vusages.getNonNull(((CopyVarStatement) stmt).getVariable().getLocal()).add(stmt);
 			}
 		}
-		
+
 		for(Entry<Local, Set<Statement>> e : vusages.entrySet()) {
 			Local l = e.getKey();
 			if(!this.vusages.containsKey(l)) {
@@ -124,9 +132,9 @@ public class SreedharDestructor {
 				throw new RuntimeException();
 			}
 		}
-		
+
 		updateInterference();
-		
+
 		for(BasicBlock b : cfg.vertices()) {
 			for(Statement stmt : b.getStatements()) {
 				if(stmt instanceof CopyVarStatement) {
@@ -137,10 +145,10 @@ public class SreedharDestructor {
 
 						for(int i=0; i < pcc.size(); i++) {
 							Local j = pcc.get(i);
-							
+
 							for(int k=i+1; k < pcc.size(); k++) {
 								Local m = pcc.get(k);
-								
+
 								if(interfere(j, m)) {
 									System.err.println(stmt);
 									System.err.println("j: " + j +", m: " + m);
@@ -153,7 +161,7 @@ public class SreedharDestructor {
 			}
 		}
 	}
-	
+
 	void replace_uses(Statement stmt, Local o, Local l) {
 		for(Statement s : Statement.enumerate_deep(stmt)) {
 			if(s instanceof VarExpression) {
@@ -171,7 +179,7 @@ public class SreedharDestructor {
 			}
 		}
 	}
-	
+
 	void _added(Statement stmt) {
 		for(Statement s : Statement.enumerate_deep(stmt)) {
 			if(s instanceof VarExpression) {
@@ -182,7 +190,7 @@ public class SreedharDestructor {
 			vusages.getNonNull(((CopyVarStatement) stmt).getVariable().getLocal()).add(stmt);
 		}
 	}
-	
+
 	void _removed(Statement stmt) {
 		for(Statement s : Statement.enumerate_deep(stmt)) {
 			if(s instanceof VarExpression) {
@@ -193,7 +201,7 @@ public class SreedharDestructor {
 			vusages.getNonNull(((CopyVarStatement) stmt).getVariable().getLocal()).remove(stmt);
 		}
 	}
-	
+
 	void init() {
 		for(Statement stmt : code) {
 			if(stmt instanceof BlockHeaderStatement) {
@@ -205,7 +213,7 @@ public class SreedharDestructor {
 			}
 		}
 	}
-	
+
 	void updateInterference() {
 		liveness = new SSABlockLivenessAnalyser(cfg);
 		GraphUtils.rewriteCfg(cfg, code);
@@ -214,11 +222,11 @@ public class SreedharDestructor {
 //		interfere = InterferenceGraphBuilder.buildMap(cfg, liveness);
 	}
 
-	
+
 	void csaa_iii() {
 		NullPermeableHashMap<Local, List<PhiResource>> resmap = new NullPermeableHashMap<>(new ListCreator<>());
 		NullPermeableHashMap<BasicBlock, Set<CopyVarStatement>> blockPhis = new NullPermeableHashMap<>(new SetCreator<>());
-		
+
 		for(BasicBlock l0 : cfg.vertices()) {
 			Set<CopyVarStatement> phis = blockPhis.getNonNull(l0);
 			for(Statement stmt : l0.getStatements()) {
@@ -231,15 +239,15 @@ public class SreedharDestructor {
 				}
 			}
 		}
-		
+
 		for(Entry<BasicBlock, Set<CopyVarStatement>> e : blockPhis.entrySet()) {
 			BasicBlock l0 = e.getKey();
 			for(CopyVarStatement copy : e.getValue()) {
 				Local l = copy.getVariable().getLocal();
-				
+
 				List<PhiResource> ress = resmap.get(l);
 				Set<PhiResource> cand = find_copy_candidates(l0, ress);
-				
+
 				for(PhiResource r : cand) {
 					Local newL = resolve_conflicts(copy, l0, r);
 					PhiResource newR = new PhiResource(r.block, newL, r.target, r.type);
@@ -255,7 +263,7 @@ public class SreedharDestructor {
 				for(PhiResource r : ress) {
 					mset.add(r.local);
 				}
-				
+
 				Set<Local> congmset = merge_pcc(mset);
 				for(Local s : mset) {
 					phiCongruenceClasses.remove(s);
@@ -264,18 +272,18 @@ public class SreedharDestructor {
 			}
 		}
 	}
-	
+
 	void init_phi(NullPermeableHashMap<Local, List<PhiResource>> phiResources, Set<CopyVarStatement> phis, BasicBlock l0, CopyVarStatement copy) {
 		VarExpression dv = copy.getVariable();
 		Local def = dv.getLocal();
 		List<PhiResource> res = phiResources.getNonNull(def);
-		
+
 		// remember phi copies
 		phis.add(copy);
 		phiDefs.put(def, copy);
-		
+
 		res.add(map_initial_pcc(l0, dv, true));
-		
+
 		PhiExpression phi = (PhiExpression) copy.getExpression();
 		for(Entry<HeaderStatement, Expression> en : phi.getArguments().entrySet()) {
 			Expression e = en.getValue();
@@ -287,7 +295,7 @@ public class SreedharDestructor {
 			res.add(map_initial_pcc(li, v, false));
 		}
 	}
-	
+
 	PhiResource map_initial_pcc(BasicBlock li, VarExpression v, boolean target) {
 		Local xi = v.getLocal();
 		// phiCongruenceClass[x] = {x};
@@ -296,35 +304,35 @@ public class SreedharDestructor {
 			pcc.add(xi);
 			phiCongruenceClasses.put(xi, pcc);
 		}
-		
+
 		// don't need to do this here now, do it
 		// in csaa translation method.
 		// unresolvedNeighborMap[xi] = {};
 		// if(!unresolvedNeighbours.containsKey(xi)) {
 		// 	unresolvedNeighbours.put(xi, new HashSet<>());
 		// }
-		
+
 		PhiResource pr = new PhiResource(li, xi, target, v.getType());
 		return pr;
 	}
-	
+
 	Set<PhiResource> find_copy_candidates(BasicBlock b, List<PhiResource> resources) {
 		int len = resources.size();
-		
+
 		Map<Local, Set<Local>> unresolvedNeighbours = new HashMap<>();
-		
+
 		Set<PhiResource> conflicts = new HashSet<>();
 		Set<PhiResource> candidates = new HashSet<>();
-		
+
 		for(int i=0; i < len - 1; i++) {
 			PhiResource ri = resources.get(i);
 			for(int j = i + 1; j < len; j++) {
 				PhiResource rj = resources.get(j);
-				
+
 				if(ri.local == rj.local) {
 					throw new IllegalStateException(ri + " " + rj);
 				}
-				
+
 				ResolverFrame frame = new ResolverFrame(b, ri, rj, i == 0);
 				if(frame.check_interference()) {
 					Local xi = ri.local;
@@ -339,23 +347,23 @@ public class SreedharDestructor {
 					}
 					if(c == Case.FOURTH) {
 						Set<Local> unresolved;
-						
+
 						unresolved = unresolvedNeighbours.get(xi);
 						if(unresolved == null) {
 							unresolved = new HashSet<>();
 							unresolvedNeighbours.put(xi, unresolved);
 						}
 						unresolved.add(xj);
-						
+
 						unresolved = unresolvedNeighbours.get(xj);
 						if(unresolved == null) {
 							unresolved = new HashSet<>();
 							unresolvedNeighbours.put(xj, unresolved);
 						}
 						unresolved.add(xi);
-						
-						// "the final decision of which copy to insert is 
-						// deferred until all pairs of interfering resources 
+
+						// "the final decision of which copy to insert is
+						// deferred until all pairs of interfering resources
 						// in the phi instruction are processed."
 						conflicts.add(ri);
 						conflicts.add(rj);
@@ -363,15 +371,15 @@ public class SreedharDestructor {
 				}
 			}
 		}
-		
+
 		List<PhiResource> sorted = reorder(conflicts, unresolvedNeighbours);
-		
+
 		for(PhiResource r : sorted) {
 			Local l = r.local;
 			if(candidates.contains(r)) {
 				continue;
 			}
-			
+
 			Set<Local> neighbours = unresolvedNeighbours.get(l);
 			boolean should = false;
 			for(Local n : neighbours) {
@@ -391,19 +399,19 @@ public class SreedharDestructor {
 				candidates.add(r);
 			}
 		}
-		
+
 		System.out.println("cand: " + candidates);
 		return candidates;
 	}
-	
+
 	List<PhiResource> reorder(Set<PhiResource> conflicts, Map<Local, Set<Local>> unresolvedNeighbours) {
 		List<PhiResource> res = new ArrayList<>();
-		
+
 		for(PhiResource r : conflicts) {
 			Set<Local> neighbours = unresolvedNeighbours.get(r.local);
-			
+
 			boolean added = false;
-			
+
 			for(PhiResource rj : new ArrayList<>(res)) {
 				Set<Local> neighbours2 = unresolvedNeighbours.get(rj.local);
 				if(neighbours2.size() < neighbours.size()) {
@@ -414,18 +422,18 @@ public class SreedharDestructor {
 					break;
 				}
 			}
-			
+
 			if(!added) {
 				res.add(r);
 			}
 		}
-		
+
 		return res;
 	}
-	
+
 	Local resolve_conflicts(CopyVarStatement phiCopy, BasicBlock l0, PhiResource r) {
 		verify();
-		
+
 		PhiExpression phi = (PhiExpression) phiCopy.getExpression();
 		Local xi = r.local;
 		Type type = r.type;
@@ -434,23 +442,23 @@ public class SreedharDestructor {
 		Local newL = null;
 		Local dst = null;
 		Local src = null;
-		
+
 		if(r.target) {
 			VersionedLocal latest = code.getLocals().getLatestVersion(xi);
 			VersionedLocal new0 = code.getLocals().get(latest.getIndex(), latest.getIndex() + 1, latest.isStack());
-			
+
 			dst = xi;
 			src = new0;
 			newL = new0;
 		} else {
 			VersionedLocal latest = code.getLocals().getLatestVersion(xi);
 			VersionedLocal newi = code.getLocals().get(latest.getIndex(), latest.getSubscript() + 1, latest.isStack());
-			
+
 			dst = newi;
 			src = xi;
 			newL = newi;
 		}
-		
+
 		CopyVarStatement copy = new CopyVarStatement(new VarExpression(dst, type), new VarExpression(src, type));
 		System.out.println("InsertCopy: " + copy + "  [[" + r + "]]");
 		System.out.println("PCC: " + phiCongruenceClasses.get(newL));
@@ -459,7 +467,7 @@ public class SreedharDestructor {
 			set.add(newL);
 			phiCongruenceClasses.put(newL, set);
 //		}
-		
+
 		if(r.target) {
 			// xi = new0;
 			insert_start(l0, copy);
@@ -467,21 +475,21 @@ public class SreedharDestructor {
 		} else {
 			// newi = xi;
 			insert_end(li, copy);
-			
+
 			HeaderStatement header = headers.get(li);
 			Map<HeaderStatement, Expression> cont = phi.getArguments();
 			cont.put(header, new VarExpression(newL, type));
 		}
-		
+
 		vusages.getNonNull(xi).remove(phiCopy);
 		vusages.getNonNull(newL).add(phiCopy);
-		
+
 		updateInterference();
 		verify();
-		
+
 		return newL;
 	}
-	
+
 	void insert_start(BasicBlock b, Statement s) {
 		List<Statement> stmts = b.getStatements();
 
@@ -489,15 +497,15 @@ public class SreedharDestructor {
 		if(i == -1) {
 			throw new IllegalStateException(b.getId());
 		}
-		
+
 		while (PhiExpression.phi(code.get(++i)));
-		
+
 		code.add(i, s);
 		stmts.add(0, s);
-		
+
 		_added(s);
 	}
-	
+
 	void insert_end(BasicBlock b, Statement s) {
 		List<Statement> stmts = b.getStatements();
 
@@ -523,10 +531,10 @@ public class SreedharDestructor {
 			}
 			code.add(index, s);
 		}
-		
+
 		_added(s);
 	}
-	
+
 	void nullify() {
 		for(Entry<Local, Set<Local>> e : new HashSet<>(phiCongruenceClasses.entrySet())) {
 			Local l = e.getKey();
@@ -535,7 +543,7 @@ public class SreedharDestructor {
 			}
 		}
 	}
-	
+
 	void coalesce() {
 		updateInterference();
 		for(BasicBlock b : cfg.vertices()) {
@@ -546,17 +554,17 @@ public class SreedharDestructor {
 					if(!(e instanceof VarExpression)) {
 						continue;
 					}
-					
+
 					Local lhs = copy.getVariable().getLocal();
 					Local rhs = ((VarExpression) e).getLocal();
-					
+
 					Set<Local> lpcc = phiCongruenceClasses.get(lhs);
 					Set<Local> rpcc = phiCongruenceClasses.get(rhs);
-					
+
 					if(lpcc == null || rpcc == null) {
 						continue;
 					}
-					
+
 					if(check_coalesce(lhs, rhs, lpcc, rpcc)) {
 						verify();
 						coalesce(b, stmt, lhs, rhs, lpcc, rpcc);
@@ -567,19 +575,19 @@ public class SreedharDestructor {
 			}
 		}
 	}
-	
+
 	boolean check_coalesce(Local lhs, Local rhs, Set<Local> lpcc, Set<Local> rpcc) {
 		int l = lpcc.size();
 		int r = rpcc.size();
 		boolean valid = true;
-		
+
 		System.out.println("co: ");
 		System.out.println("  lhs: " + lhs);
 		System.out.println("  rhs: " + rhs);
 		System.out.println("  lpcc: " + lpcc);
 		System.out.println("  rpcc: " + rpcc);
-		
-		if(l == 0 && r == 0) { 
+
+		if(l == 0 && r == 0) {
 			// if pcc[x] and pcc[y] are both empty then the copy can be removed regardless of interference.
 			System.out.println("coalesce case 1");
 		} else if(l == 0 && r > 0) {
@@ -606,7 +614,7 @@ public class SreedharDestructor {
 					System.out.println("coalesce case 3");
 			}
 		}
-		
+
 		return valid;
 	}
 
@@ -615,7 +623,7 @@ public class SreedharDestructor {
 	boolean interfere(Set<Local> ipcc, Set<Local> jpcc, Local i, Local j) {
 		return interfereAny(ipcc, i, jpcc) || interfereAny(jpcc, j, ipcc);
 	}
-	
+
 	// check if any in jpcc interfere with (ipcc - i)
 	boolean interfereAny(Set<Local> ipcc, Local i, Set<Local> jpcc) {
 		for(Local m : ipcc) {
@@ -630,7 +638,7 @@ public class SreedharDestructor {
 		}
 		return false;
 	}
-	
+
 	// check if j interferes with any in (ipcc - i)
 	boolean interfereSingle(Set<Local> ipcc, Local i, Local j) {
 		for(Local l : ipcc) {
@@ -642,15 +650,15 @@ public class SreedharDestructor {
 		}
 		return false;
 	}
-	
+
 	void coalesce(BasicBlock b, Statement s, Local lhs, Local rhs, Set<Local> lpcc, Set<Local> rpcc) {
 		System.out.println("coalesce " + s);
-		
+
 		// remove lhs = rhs
 		//  so replace all uses of lhs with rhs.
-		
+
 		verify();
-		
+
 		Iterator<Statement> it = vusages.getNonNull(lhs).iterator();
 		while(it.hasNext()) {
 //			Statement t = it.next();
@@ -658,28 +666,28 @@ public class SreedharDestructor {
 //			vusages.getNonNull(rhs).add(t);
 //			it.remove();
 		}
-		
+
 		b.getStatements().remove(s);
 		code.remove(s);
 		_removed(s);
-		
+
 		Set<Local> newPcc = new HashSet<>();
 		newPcc.add(lhs);
 		newPcc.add(rhs);
 		newPcc.addAll(lpcc);
 		newPcc.addAll(rpcc);
-		
+
 		Set<Local> mset = merge_pcc(newPcc);
 		mset.add(lhs);
 		mset.add(rhs);
-		
+
 		for(Local l : mset) {
 			phiCongruenceClasses.remove(l);
 			phiCongruenceClasses.put(l, mset);
-			
+
 			// TODO: update other info.
 		}
-		
+
 		verify();
 	}
 
@@ -687,7 +695,7 @@ public class SreedharDestructor {
 		System.out.println(i + " vs " + j + " " + interfere.getNonNull(i).contains(j));
 		return interfere.getNonNull(i).contains(j);
 	}
-	
+
 	void unssa() {
 		for(Entry<Local, Set<Local>> e : phiCongruenceClasses.entrySet()) {
 			System.out.println(e.getKey() + " " + e.getValue());
@@ -703,12 +711,12 @@ public class SreedharDestructor {
 						code.remove(stmt);
 						continue;
 					} else {
-						 
+
 					}
-					
+
 					rename(c.getVariable(), cur, remap);
 				}
-				
+
 				for(Statement s : Statement.enumerate_deep(stmt)) {
 					if(s instanceof VarExpression) {
 						VarExpression v = (VarExpression) s;
@@ -718,7 +726,7 @@ public class SreedharDestructor {
 			}
 		}
 	}
-	
+
 	void rename(VarExpression v, AtomicInteger cur, Map<Set<Local>, Local> remap) {
 		Local l = v.getLocal();
 		Set<Local> pcc = phiCongruenceClasses.get(l);
@@ -726,7 +734,7 @@ public class SreedharDestructor {
 			if(!remap.containsKey(pcc)) {
 				remap.put(pcc, l);
 			}
-			
+
 			System.out.println("remap " + l + " to " + remap.get(pcc) + " " + pcc + " (" + pcc.hashCode() + ")");
 			l = remap.get(pcc);
 			v.setLocal(l);
@@ -735,7 +743,7 @@ public class SreedharDestructor {
 
 	boolean intersects(Set<Local> pcc, Set<Local> live) {
 		Set<Local> merged = merge_pcc(live);
-		
+
 		for(Local l : pcc) {
 			if(merged.contains(l)) {
 				return true;
@@ -743,27 +751,27 @@ public class SreedharDestructor {
 		}
 		return false;
 	}
-	
+
 	Set<Local> merge_pcc(Set<Local> pcc) {
 		LinkedList<Local> worklist = new LinkedList<>();
 		worklist.addAll(pcc);
-		
+
 		Set<Local> newPcc = new HashSet<>();
 		while(!worklist.isEmpty()) {
 			Local l = worklist.pop();
 			if(!newPcc.contains(l)) {
 				newPcc.add(l);
-				
+
 				pcc = phiCongruenceClasses.get(l);
 				if(pcc != null) {
 					worklist.addAll(pcc);
 				}
 			}
 		}
-		
+
 		return newPcc;
 	}
-	
+
 	class ResolverFrame {
 		final PhiResource ri;
 		final PhiResource rj;
@@ -771,21 +779,21 @@ public class SreedharDestructor {
 		final Set<Local> jpcc;
 		final Set<Local> iLive;
 		final Set<Local> jLive;
-		
+
 		// only xi can be the target of a phi where l0 is the definition block
 		ResolverFrame(BasicBlock l0, PhiResource ri, PhiResource rj, boolean target) {
 			this.ri = ri;
 			this.rj = rj;
-			
+
 			ipcc = phiCongruenceClasses.get(ri.local);
 			jpcc = phiCongruenceClasses.get(rj.local);
-			
+
 			if(target) {
 				iLive = liveness.in(l0);
 			} else {
 				iLive = liveness.in(ri.block);
 			}
-			
+
 			jLive = liveness.out(rj.block);
 		}
 
@@ -803,10 +811,10 @@ public class SreedharDestructor {
 					}
 				}
 			}
-			
+
 			return false;
 		}
-		
+
 		public Case find_case() {
 			boolean b1 = intersects(ipcc, jLive);
 			boolean b2 = intersects(jpcc, iLive);
@@ -821,27 +829,27 @@ public class SreedharDestructor {
 			}
 		}
 	}
-	
+
 	enum Case {
 		FIRST,
 		SECOND,
 		THIRD,
 		FOURTH;
 	}
-	
+
 	static class PhiResource {
 		final BasicBlock block;
 		final Local local;
 		final boolean target;
 		final Type type;
-		
+
 		PhiResource(BasicBlock block, Local local, boolean target, Type type) {
 			this.block = block;
 			this.local = local;
 			this.target = target;
 			this.type = type;
 		}
-		
+
 		@Override
 		public String toString() {
 			return block.getId() + ":" + local + "(" + type + ")" + " (targ=" + Boolean.toString(target).substring(0, 1) + ")";
