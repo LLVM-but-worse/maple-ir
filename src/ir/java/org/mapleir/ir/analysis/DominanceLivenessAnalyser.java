@@ -1,10 +1,5 @@
 package org.mapleir.ir.analysis;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.locals.Local;
@@ -12,6 +7,11 @@ import org.mapleir.stdlib.cfg.edge.FlowEdge;
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.bitset.GenericBitSet;
 import org.mapleir.stdlib.collections.graph.flow.TarjanDominanceComputor;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
 
 public class DominanceLivenessAnalyser {
 
@@ -171,15 +171,11 @@ public class DominanceLivenessAnalyser {
 			return true;
 		}
 		
-		GenericBitSet<BasicBlock> tqa = tq.get(b).copy();
-		tqa.retainAll(sdoms.getNonNull(defBlock));
-		
+		GenericBitSet<BasicBlock> tqa = tq.get(b).intersect(sdoms.getNonNull(defBlock));
 		for(BasicBlock t : tqa) {
-			GenericBitSet<BasicBlock> rt = rv.get(t).copy();
-			rt.retainAll(defuse.uses.get(l));
-			if(!rt.isEmpty()) {
+			GenericBitSet<BasicBlock> rt = rv.get(t).intersect(defuse.uses.get(l));
+			if(!rt.isEmpty())
 				return true;
-			}
 		}
 		
 		return false;
@@ -198,29 +194,21 @@ public class DominanceLivenessAnalyser {
 		
 		GenericBitSet<BasicBlock> sdomdef = sdoms.getNonNull(defBlock);
 		if(sdomdef.contains(q)) {
-			GenericBitSet<BasicBlock> tqa = tq.get(q).copy();
-			tqa.retainAll(sdomdef);
-			
+			GenericBitSet<BasicBlock> tqa = tq.get(q).intersect(sdomdef);
+
 //			System.out.printf("sdoms: %s, tqa: %s%n", GraphUtils.toBlockArray(sdomdef), GraphUtils.toBlockArray(tqa));
 //			System.out.printf("b: %s(%b), l: %s, db: %s%n", q.getId(), targ, a, defBlock.getId());
-			
-			
+
 			for(BasicBlock t : tqa) {
 				GenericBitSet<BasicBlock> u = uses.copy();
-				if(t == q && targ) {
+				if(t == q && targ)
 					u.remove(q);
-				}
-				
-				
-				GenericBitSet<BasicBlock> rtt = rv.getNonNull(t).copy();
+
+				GenericBitSet<BasicBlock> rtt = rv.getNonNull(t).intersect(u);
 //				System.out.printf(" t:%s, u:%s, rt:%s%n", t.getId(), GraphUtils.toBlockArray(u), GraphUtils.toBlockArray(rtt));
-				rtt.retainAll(u);
-				if(!rtt.isEmpty()) {
-//					System.out.println();
+				if(!rtt.isEmpty())
 					return true;
-				}
 			}
-			
 //			System.out.println();
 		}
 		
