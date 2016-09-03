@@ -4,7 +4,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
 
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
@@ -17,14 +16,14 @@ import org.mapleir.ir.code.stmt.copy.AbstractCopyStatement;
 import org.mapleir.ir.code.stmt.copy.CopyPhiStatement;
 import org.mapleir.ir.locals.Local;
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
-import org.mapleir.stdlib.collections.SetCreator;
 import org.mapleir.stdlib.collections.ValueCreator;
+import org.mapleir.stdlib.collections.bitset.GenericBitSet;
 
 public class SSADefUseMap implements Opcode {
 	
 	private final ControlFlowGraph cfg;
 	public final Map<Local, BasicBlock> defs;
-	public final NullPermeableHashMap<Local, Set<BasicBlock>> uses;
+	public final NullPermeableHashMap<Local, GenericBitSet<BasicBlock>> uses;
 	public final HashMap<Local, PhiExpression> phis;
 
 	public NullPermeableHashMap<Local, HashMap<BasicBlock, Integer>> lastUseIndex;
@@ -33,7 +32,7 @@ public class SSADefUseMap implements Opcode {
 	public SSADefUseMap(ControlFlowGraph cfg, boolean compute) {
 		this.cfg = cfg;
 		defs = new HashMap<>();
-		uses = new NullPermeableHashMap<>(new SetCreator<>());
+		uses = new NullPermeableHashMap<>(cfg);
 		phis = new HashMap<>();
 
 		if(compute)
