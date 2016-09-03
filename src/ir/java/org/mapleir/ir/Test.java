@@ -346,6 +346,24 @@ public class Test {
 		System.out.println(y);
 	}
 
+	void test131() {
+		int x = 5;
+		int y = 10;
+
+		do {
+			if (q()) {
+				do {
+					int z = y;
+					y = x;
+					x = z;
+				} while (!q());
+			}
+		} while(p());
+
+		System.out.println(x);
+		System.out.println(y);
+	}
+
 	void test011() {
 		int x = v();
 		int y = u();
@@ -449,7 +467,7 @@ public class Test {
 			// }
 
 			if (!m.toString().startsWith("org/mapleir/ir/Test.test011")) {
-				if (!m.toString().startsWith("org/mapleir/ir/Test.test130")) {
+				if (!m.toString().startsWith("org/mapleir/ir/Test.test131")) {
 					continue;
 				}
 

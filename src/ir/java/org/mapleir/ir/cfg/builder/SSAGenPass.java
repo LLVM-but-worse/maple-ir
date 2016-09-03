@@ -140,10 +140,20 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 			}
 		}
 
+		// update assigns
 		Set<Local> assignedLocals = new HashSet<>();
-		for (Statement stmt : newBlock)
+		for (Statement stmt : b)
 			if (stmt.getOpcode() == Opcode.LOCAL_STORE)
 				assignedLocals.add(((CopyVarStatement) stmt).getVariable().getLocal());
+		for (Statement stmt : newBlock) {
+			if (stmt.getOpcode() == Opcode.LOCAL_STORE) {
+				Local copyLocal = ((CopyVarStatement) stmt).getVariable().getLocal();
+				Set<BasicBlock> set = builder.assigns.get(copyLocal);
+				set.add(newBlock);
+				if (!assignedLocals.contains(copyLocal))
+					set.remove(b);
+			}
+		}
 
 		// create immediate to newBlock
 		cfg.addEdge(newBlock, new ImmediateEdge<>(newBlock, b));
