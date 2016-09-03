@@ -35,9 +35,12 @@ public abstract class Local implements Comparable<Local> {
 //		return stack ? getBase() + index : index;
 		return index;
 	}
-	
+
+	private static final boolean DEBUG_PRINT = false;
 	@Override
 	public String toString() {
+		if (DEBUG_PRINT)
+			return (stack ? "S" : "L") + /*"var" +*/ index;
 		return (stack ? "s" : "l") + "var" + index;
 	}
 
