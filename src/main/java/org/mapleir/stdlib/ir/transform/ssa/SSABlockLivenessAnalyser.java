@@ -166,9 +166,7 @@ public class SSABlockLivenessAnalyser implements Liveness<BasicBlock> {
 			oldIn.addAll(phiDef.get(b));
 			
 			// in[n] = use[n] U(out[n] - def[n])
-			GenericBitSet<Local> toAdd = curOut.copy();
-			toAdd.removeAll(def.get(b));
-			curIn.addAll(toAdd);
+			curIn.addAll(curOut.relativeComplement(def.get(b)));
 			
 			in.put(b, curIn);
 			out.put(b, curOut);

@@ -47,11 +47,11 @@ import static org.mapleir.ir.dot.ControlFlowGraphDecorator.OPT_DEEP;
 public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 
 	void print(String p) {
-//		System.out.println();
-//		System.out.println("AFTER " + p.toUpperCase() + ":");
-//		System.out.println(cfg);
-//		System.out.println();
-//		System.out.println();
+		System.out.println();
+		System.out.println("AFTER " + p.toUpperCase() + ":");
+		System.out.println(cfg);
+		System.out.println();
+		System.out.println();
 	}
 
 
@@ -90,16 +90,11 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 //				.setName("pre-destruct")
 //				.export();
 
-		print("initial");
+//		print("initial");
 		// 1. Insert copies to enter CSSA.
 		init();
 		insert_copies();
-		System.out.println();
-		System.out.println("AFTER INSERT:");
-		System.out.println(cfg);
-		System.out.println();
-		System.out.println();
-		print("insert");
+//		print("insert");
 		createDuChains();
 		verify();
 
@@ -120,13 +115,13 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 //		System.out.println();
 //		System.out.println();
 
-		print("interference");
+//		print("interference");
 
 		// 3. Aggressively coalesce while in CSSA to leave SSA
 		// 3a. Coalesce phi locals to leave CSSA (!!!)
 		coalescePhis();
 
-		print("co-phis");
+//		print("co-phis");
 
 		localsTest.clear();
 		localsTest.addAll(defuse.uses.keySet());
@@ -139,9 +134,9 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 
 		// 3b. Coalesce the rest of the copies
 		coalesceCopies();
-		print("co-copies");
+//		print("co-copies");
 		applyRemapping(remap);
-		print("remap");
+//		print("remap");
 		writer.removeAll()
 				.add(new ControlFlowGraphDecorator().setFlags(OPT_DEEP))
 				.setName("after-coalesce")
@@ -149,7 +144,7 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 
 		// 4. Sequentialize parallel copies
 		sequentialize();
-		print("sequen");
+//		print("sequen");
 		writer.removeAll()
 				.add(new ControlFlowGraphDecorator().setFlags(OPT_DEEP))
 				.setName("after-sequentialize")
@@ -264,8 +259,6 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 
 		for(Entry<BasicBlock, List<PhiRes>> e : wl.entrySet()) {
 			BasicBlock p = e.getKey();
-			System.out.println("visiting " + p);
-
 			ParallelCopyVarStatement copy = new ParallelCopyVarStatement();
 
 			for(PhiRes r : e.getValue()) {
@@ -305,7 +298,6 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 			insert_end(p, copy);
 			record_pcopy(p, copy);
 		}
-		System.out.println("end\n");
 	}
 
 	private static final boolean FACILITATE_COALESCE = true;
@@ -658,14 +650,14 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 				nr++;
 				if (redHasNext = ir != lr)
 					ir = red.higher(ir);
-				System.out.println("    Red next, current=" + current + ", hasNext=" + redHasNext);
+//				System.out.println("    Red next, current=" + current + ", hasNext=" + redHasNext);
 			} else {
 //				System.out.println("ib= " + ib);
 				current = new LocalInfo(ib, blue); // current = blue[ib++]
 				nb++;
 				if (blueHasNext = ib != lb)
 					ib = blue.higher(ib);
-				System.out.println("    Blue next, current=" + current + ", hasNext=" + blueHasNext);
+//				System.out.println("    Blue next, current=" + current + ", hasNext=" + blueHasNext);
 			}
 
 			if (!dom.isEmpty()) {
@@ -678,14 +670,14 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 						nb--;
 				} while (!dom.isEmpty() && !checkPreDomOrder(parent.l, current.l));
 
-				System.out.println("    check " + current + " vs " + parent + ":");
+//				System.out.println("    Check " + current + " vs " + parent + ":");
 				if (interference(current.l, parent.l, current.conClass == parent.conClass)) {
-					System.out.println("      => true");
+//					System.out.println("      => true");
 					return true;
 				}
 			}
 			dom.push(current);
-			System.out.println("    (nr, nb) = (" + nr + ", " + nb + ")");
+//			System.out.println("    (nr, nb) = (" + nr + ", " + nb + ")");
 		} while ((redHasNext && nb > 0) || (blueHasNext && nr > 0) || (redHasNext && blueHasNext));
 
 		return false;
@@ -711,15 +703,15 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 		CongruenceClass conClassA = getCongruenceClass(a);
 		CongruenceClass conClassB = getCongruenceClass(b);
 
-		System.out.println("  Check intersection: " + a + " \u2208 " + conClassA + " vs " + b + " \u2208 " + conClassB + ": ");
+//		System.out.println("  Check intersection: " + a + " \u2208 " + conClassA + " vs " + b + " \u2208 " + conClassB + ": ");
 		if (conClassA.size() == 1 && conClassB.size() == 1)
 			return checkInterfereSingle(conClassA, conClassB);
 
 		if (checkInterfere(conClassA, conClassB)) {
-			System.out.println("  => true");
+//			System.out.println("  => true");
 			return false;
 		}
-		System.out.println("  => false");
+//		System.out.println("  => false");
 
 		// merge congruence classes
 		merge(conClassA, conClassB);
@@ -727,11 +719,11 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 	}
 
 	void merge(CongruenceClass conClassA, CongruenceClass conClassB) {
-		System.out.println("    pre-merge: " + conClassA);
+//		System.out.println("    pre-merge: " + conClassA);
 		conClassA.addAll(conClassB);
 		for (Local l : conClassB)
 			congruenceClasses.put(l, conClassA);
-		System.out.println("    post-merge: " + conClassA);
+//		System.out.println("    post-merge: " + conClassA);
 
 		for (Local l : conClassA) {
 			Local in = equalAncIn.get(l);
@@ -779,7 +771,7 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 		}
 
 		for (Entry<Local, Local> e : remap.entrySet()) {
-			System.out.println(e.getKey() + " -> " + e.getValue());
+//			System.out.println(e.getKey() + " -> " + e.getValue());
 			defuse.defs.remove(e.getKey());
 			defuse.uses.remove(e.getKey());
 		}
@@ -810,7 +802,7 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 				congruenceClasses.put(l, phiConClass);
 //				remap.put(l, l1);
 			}
-			System.out.println("phi conclass: " + phiConClass);
+//			System.out.println("phi conclass: " + phiConClass);
 
 			// we can simply drop all the phis without further consideration
 			for (Iterator<Statement> it = b.iterator(); it.hasNext();) {
@@ -870,10 +862,10 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 						}
 						if (copy.pairs.isEmpty()) {
 							it.remove();
-							System.out.println("=> total coalesce");
+//							System.out.println("=> total coalesce");
 						}
-						System.out.println();
-						System.out.println();
+//						System.out.println();
+//						System.out.println();
 					}
 				}
 			}
@@ -908,7 +900,7 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 		for (Entry<ParallelCopyVarStatement, Integer> e : p.entrySet()) {
 			ParallelCopyVarStatement pcvs = e.getKey();
 			int index = e.getValue();
-			System.out.println(b + " " + pcvs + " " + e.getValue());
+//			System.out.println(b + " " + pcvs + " " + e.getValue());
 			if (pcvs.pairs.size() == 0)
 				throw new IllegalArgumentException("pcvs is empty");
 			else if (pcvs.pairs.size() == 1) { // constant sequentialize for trivial parallel copies
@@ -920,7 +912,7 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 				b.remove(index + indexOffset--);
 				// warning: O(N^2) operation
 				for (CopyVarStatement cvs : sequentialized) { // warning: O(N^2) operation
-					System.out.println("  " + cvs + " @ " + index + "+" + indexOffset);
+//					System.out.println("  " + cvs + " @ " + index + "+" + indexOffset);
 					b.add(index + ++indexOffset, cvs);
 				}
 			}
