@@ -19,12 +19,13 @@ import org.mapleir.ir.code.stmt.copy.CopyVarStatement;
 import org.mapleir.stdlib.cfg.util.TypeUtils;
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.SetCreator;
+import org.mapleir.stdlib.collections.ValueCreator;
 import org.mapleir.stdlib.collections.bitset.BitSetIndexer;
 import org.mapleir.stdlib.collections.bitset.GenericBitSet;
 import org.mapleir.stdlib.collections.bitset.IncrementalBitSetIndexer;
 import org.objectweb.asm.Type;
 
-public class LocalsHandler {
+public class LocalsHandler implements ValueCreator<GenericBitSet<Local>> {
 
 	private final AtomicInteger base;
 	private final Map<String, Local> cache;
@@ -39,8 +40,12 @@ public class LocalsHandler {
 	}
 	
 	// factory
-	GenericBitSet<Local> createBitSet() {
+	public GenericBitSet<Local> createBitSet() {
 		return new GenericBitSet<>(indexer);
+	}
+
+	public GenericBitSet<Local> create() {
+		return createBitSet();
 	}
 	
 	public BasicLocal asSimpleLocal(Local l) {

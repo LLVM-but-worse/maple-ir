@@ -1,7 +1,6 @@
 package org.mapleir.ir.analysis;
 
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -11,14 +10,14 @@ import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.locals.Local;
 import org.mapleir.stdlib.cfg.edge.FlowEdge;
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
-import org.mapleir.stdlib.collections.SetCreator;
+import org.mapleir.stdlib.collections.bitset.GenericBitSet;
 import org.mapleir.stdlib.collections.graph.flow.TarjanDominanceComputor;
 
 public class DominanceLivenessAnalyser {
 
-	private final NullPermeableHashMap<BasicBlock, Set<BasicBlock>> rv;
-	private final NullPermeableHashMap<BasicBlock, Set<BasicBlock>> tq;
-	public final NullPermeableHashMap<BasicBlock, Set<BasicBlock>> sdoms;
+	private final NullPermeableHashMap<BasicBlock, GenericBitSet<BasicBlock>> rv;
+	private final NullPermeableHashMap<BasicBlock, GenericBitSet<BasicBlock>> tq;
+	public final NullPermeableHashMap<BasicBlock, GenericBitSet<BasicBlock>> sdoms;
 	
 	public final ControlFlowGraph cfg;
 	private SSADefUseMap defuse;
@@ -26,7 +25,7 @@ public class DominanceLivenessAnalyser {
 	public final ControlFlowGraph red_cfg;
 	public final ExtendedDfs<BasicBlock> cfg_dfs;
 	public final Set<FlowEdge<BasicBlock>> back;
-	public final Set<BasicBlock> btargs;
+	public final GenericBitSet<BasicBlock> btargs;
 	public final ExtendedDfs<BasicBlock> reduced_dfs;
 	public final TarjanDominanceComputor<BasicBlock> domc;
 	
@@ -34,9 +33,9 @@ public class DominanceLivenessAnalyser {
 		this.cfg = cfg;
 		this.defuse = defuse;
 		
-		rv = new NullPermeableHashMap<>(new SetCreator<>());
-		tq = new NullPermeableHashMap<>(new SetCreator<>());
-		sdoms = new NullPermeableHashMap<>(new SetCreator<>());
+		rv = new NullPermeableHashMap<>(cfg);
+		tq = new NullPermeableHashMap<>(cfg);
+		sdoms = new NullPermeableHashMap<>(cfg);
 		
 		if(cfg.getEntries().size() != 1) {
 			throw new IllegalStateException(cfg.getEntries().toString());
@@ -46,7 +45,7 @@ public class DominanceLivenessAnalyser {
 		
 		cfg_dfs = new ExtendedDfs<>(cfg, entry, ExtendedDfs.EDGES | ExtendedDfs.PRE /* for sdoms*/ );
 		back = cfg_dfs.getEdges(ExtendedDfs.BACK);
-		btargs = new HashSet<>();
+		btargs = cfg.createBitSet();
 		
 		red_cfg = reduce(cfg, back);
 		reduced_dfs = new ExtendedDfs<>(red_cfg, entry, ExtendedDfs.POST | ExtendedDfs.PRE);
@@ -74,7 +73,7 @@ public class DominanceLivenessAnalyser {
 	}
 
 	private void computeStrictDominators() {
-		NullPermeableHashMap<BasicBlock, Set<BasicBlock>> sdoms = new NullPermeableHashMap<>(new SetCreator<>());
+		NullPermeableHashMap<BasicBlock, GenericBitSet<BasicBlock>> sdoms = new NullPermeableHashMap<>(cfg);
 		// i think this is how you do it..
 		for(BasicBlock b : cfg_dfs.getPreOrder()) {
 			BasicBlock idom = domc.idom(b);
@@ -86,7 +85,7 @@ public class DominanceLivenessAnalyser {
 			}
 		}
 		
-		for(Entry<BasicBlock, Set<BasicBlock>> e : sdoms.entrySet()) {
+		for(Entry<BasicBlock, GenericBitSet<BasicBlock>> e : sdoms.entrySet()) {
 			for(BasicBlock b : e.getValue()) {
 				this.sdoms.getNonNull(b).add(e.getKey());
 			}
@@ -107,7 +106,7 @@ public class DominanceLivenessAnalyser {
 	}
 	
 	private void computeTargetReachability() {
-		Map<BasicBlock, Set<BasicBlock>> tups = new HashMap<>();
+		Map<BasicBlock, GenericBitSet<BasicBlock>> tups = new HashMap<>();
 		
 		for (BasicBlock b : cfg.vertices()) {
 			tups.put(b, tup(b));
@@ -122,18 +121,19 @@ public class DominanceLivenessAnalyser {
 	}
 	
 	// Tup(t) = set of unreachable backedge targets from reachable sources
-	private Set<BasicBlock> tup(BasicBlock t) {
-		Set<BasicBlock> rt = rv.get(t);
+	private GenericBitSet<BasicBlock> tup(BasicBlock t) {
+		GenericBitSet<BasicBlock> rt = rv.get(t);
 		
 		// t' in {V - r(t)}
-		Set<BasicBlock> set = new HashSet<>(cfg.vertices());
+		GenericBitSet<BasicBlock> set = cfg.createBitSet();
+		set.addAll(cfg.vertices());
 		set.removeAll(rt);
 		
 		// all s' where (s', t') is a backedge and s'
 		//  is in rt.
 		
 		// set of s'
-		Set<BasicBlock> res = new HashSet<>();
+		GenericBitSet<BasicBlock> res = cfg.createBitSet();
 		
 		for(BasicBlock tdash : set) {
 			for(FlowEdge<BasicBlock> pred : cfg.getReverseEdges(tdash)) {
@@ -171,11 +171,11 @@ public class DominanceLivenessAnalyser {
 			return true;
 		}
 		
-		Set<BasicBlock> tqa = new HashSet<>(tq.get(b));
+		GenericBitSet<BasicBlock> tqa = tq.get(b).copy();
 		tqa.retainAll(sdoms.getNonNull(defBlock));
 		
 		for(BasicBlock t : tqa) {
-			Set<BasicBlock> rt = new HashSet<>(rv.get(t));
+			GenericBitSet<BasicBlock> rt = rv.get(t).copy();
 			rt.retainAll(defuse.uses.get(l));
 			if(!rt.isEmpty()) {
 				return true;
@@ -188,7 +188,7 @@ public class DominanceLivenessAnalyser {
 	public boolean isLiveOut(BasicBlock q, Local a) {
 		BasicBlock defBlock = defuse.defs.get(a);
 
-		Set<BasicBlock> uses = defuse.uses.get(a);
+		GenericBitSet<BasicBlock> uses = defuse.uses.get(a);
 		if(defBlock == q) {
 			uses.remove(defBlock);
 			return !uses.isEmpty();
@@ -196,9 +196,9 @@ public class DominanceLivenessAnalyser {
 		
 		boolean targ = !btargs.contains(q);
 		
-		Set<BasicBlock> sdomdef = sdoms.getNonNull(defBlock);
+		GenericBitSet<BasicBlock> sdomdef = sdoms.getNonNull(defBlock);
 		if(sdomdef.contains(q)) {
-			Set<BasicBlock> tqa = new HashSet<>(tq.get(q));
+			GenericBitSet<BasicBlock> tqa = tq.get(q).copy();
 			tqa.retainAll(sdomdef);
 			
 //			System.out.printf("sdoms: %s, tqa: %s%n", GraphUtils.toBlockArray(sdomdef), GraphUtils.toBlockArray(tqa));
@@ -206,13 +206,13 @@ public class DominanceLivenessAnalyser {
 			
 			
 			for(BasicBlock t : tqa) {
-				Set<BasicBlock> u = new HashSet<>(uses);
+				GenericBitSet<BasicBlock> u = uses.copy();
 				if(t == q && targ) {
 					u.remove(q);
 				}
 				
 				
-				Set<BasicBlock> rtt = new HashSet<>(rv.getNonNull(t));
+				GenericBitSet<BasicBlock> rtt = rv.getNonNull(t).copy();
 //				System.out.printf(" t:%s, u:%s, rt:%s%n", t.getId(), GraphUtils.toBlockArray(u), GraphUtils.toBlockArray(rtt));
 				rtt.retainAll(u);
 				if(!rtt.isEmpty()) {
