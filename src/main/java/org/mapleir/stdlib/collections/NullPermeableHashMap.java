@@ -6,25 +6,25 @@ public class NullPermeableHashMap<K, V> extends HashMap<K, V> {
 
 	private static final long serialVersionUID = 1L;
 
-	private final ValueCreator<V> creator;
+	private final KeyedValueCreator<? super K, V> creator;
 
 	public NullPermeableHashMap(NullPermeableHashMap<K, V> map) {
 		super(map);
 		creator = map.creator;
 	}
 	
-	public NullPermeableHashMap(ValueCreator<V> creator) {
+	public NullPermeableHashMap(KeyedValueCreator<? super K, V> creator) {
 		this.creator = creator;
 	}
 
 	public NullPermeableHashMap() {
-		this(new NullCreator<V>());
+		this(new NullCreator<>());
 	}
 	
 	public V getNonNull(K k) {
 		V val = get(k);
 		if (val == null) {
-			val = creator.create();
+			val = creator.create(k);
 			put(k, val);
 		} 
 		return val;

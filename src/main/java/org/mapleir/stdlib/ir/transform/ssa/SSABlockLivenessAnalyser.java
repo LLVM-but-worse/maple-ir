@@ -12,6 +12,7 @@ import org.mapleir.ir.locals.Local;
 import org.mapleir.ir.locals.LocalsHandler;
 import org.mapleir.stdlib.cfg.edge.FlowEdge;
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
+import org.mapleir.stdlib.collections.ValueCreator;
 import org.mapleir.stdlib.collections.bitset.GenericBitSet;
 import org.mapleir.stdlib.ir.transform.Liveness;
 
@@ -38,7 +39,12 @@ public class SSABlockLivenessAnalyser implements Liveness<BasicBlock> {
 		locals = cfg.getLocals();
 		use = new NullPermeableHashMap<>(locals);
 		def = new NullPermeableHashMap<>(locals);
-		phiUse = new NullPermeableHashMap<>(() -> new NullPermeableHashMap<>(locals));
+		phiUse = new NullPermeableHashMap<>(new ValueCreator<NullPermeableHashMap<BasicBlock, GenericBitSet<Local>>>() {
+			@Override
+			public NullPermeableHashMap<BasicBlock, GenericBitSet<Local>> create() {
+				return new NullPermeableHashMap<>(locals);
+			}
+		});
 		phiDef = new NullPermeableHashMap<>(locals);
 		
 		out = new NullPermeableHashMap<>(locals);
