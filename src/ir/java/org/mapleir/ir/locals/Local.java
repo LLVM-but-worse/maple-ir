@@ -72,7 +72,6 @@ public abstract class Local implements Comparable<Local> {
 		return result;
 	}
 
-
 	@Override
 	public boolean equals(Object o) {
 		return (o instanceof Local) && o.hashCode() == hashCode();

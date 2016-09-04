@@ -16,14 +16,19 @@ public class SreedharDestructor {
 	private final ControlFlowGraph cfg;
 	private SSABlockLivenessAnalyser liveness;
 	private SSADefUseMap defuse;
+
 	private final NullPermeableHashMap<Local, GenericBitSet<Local>> interfere;
 	private final LocalsHandler locals;
 	private final Map<Local, GenericBitSet<Local>> pccs;
+	private final NullPermeableHashMap<Local, GenericBitSet<Local>> unresolvedLocalsMap;
+	private final GenericBitSet<Local> candidateResourceSet;
 
 	public SreedharDestructor(ControlFlowGraph cfg) {
 		this.cfg = cfg;
 		locals = cfg.getLocals();
 		interfere = new NullPermeableHashMap<>(locals);
+		unresolvedLocalsMap = new NullPermeableHashMap<>(locals);
+		candidateResourceSet = locals.createBitSet();
 		defuse = new SSADefUseMap(cfg);
 		defuse.compute();
 		pccs = new HashMap<>();
@@ -78,9 +83,9 @@ public class SreedharDestructor {
 			jpcc = pccs.get(rj.local);
 
 			if(target) {
-				iLive = liveness.in(l0);
+				iLive = liveness.in(l0).copy();
 			} else {
-				iLive = liveness.in(ri.block);
+				iLive = liveness.in(ri.block).copy();
 			}
 
 			jLive = liveness.out(rj.block);
