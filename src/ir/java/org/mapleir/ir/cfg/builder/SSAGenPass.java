@@ -1,8 +1,5 @@
 package org.mapleir.ir.cfg.builder;
 
-import java.util.*;
-import java.util.Map.Entry;
-
 import org.mapleir.ir.analysis.ExtendedDfs;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
@@ -34,6 +31,19 @@ import org.mapleir.stdlib.ir.transform.Liveness;
 import org.mapleir.stdlib.ir.transform.ssa.SSABlockLivenessAnalyser;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.LabelNode;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.Stack;
 
 public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 
@@ -423,7 +433,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 				}
 			}
 			
-			Set<Local> ls = new  HashSet<>(liveness.in(h));
+			Set<Local> ls = new HashSet<>(liveness.in(h));
 			for(BasicBlock b : er.get()) {
 				splits.getNonNull(b).addAll(ls);
 				
