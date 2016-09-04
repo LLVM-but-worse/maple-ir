@@ -1,6 +1,9 @@
 package org.mapleir.stdlib.collections;
 
-public abstract interface ValueCreator<V> {
+public interface ValueCreator<V> extends KeyedValueCreator<Object, V> {
+	V create();
 
-	public abstract V create();
+	default V create(Object o) {
+		return create();
+	}
 }

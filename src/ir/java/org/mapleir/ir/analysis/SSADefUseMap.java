@@ -24,7 +24,7 @@ public class SSADefUseMap implements Opcode {
 	private final ControlFlowGraph cfg;
 	public final Map<Local, BasicBlock> defs;
 	public final NullPermeableHashMap<Local, GenericBitSet<BasicBlock>> uses;
-	public final HashMap<Local, PhiExpression> phis;
+	public final Map<Local, CopyPhiStatement> phis;
 
 	public NullPermeableHashMap<Local, HashMap<BasicBlock, Integer>> lastUseIndex;
 	public HashMap<Local, Integer> defIndex;
@@ -64,7 +64,7 @@ public class SSADefUseMap implements Opcode {
 					Local ul = ((VarExpression) en.getValue()).getLocal();
 					uses.getNonNull(ul).add(en.getKey());
 				}
-				phis.put(l, phi);
+				phis.put(l, (CopyPhiStatement) copy);
 			}
 		}
 
