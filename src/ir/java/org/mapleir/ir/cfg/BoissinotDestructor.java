@@ -783,12 +783,12 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 		congruenceClasses = new HashMap<>();
 		remap = new HashMap<>();
 
-		for (Entry<Local, PhiExpression> e : defuse.phis.entrySet()) {
+		for (Entry<Local, CopyPhiStatement> e : defuse.phis.entrySet()) {
 			Local l1 = e.getKey();
 			BasicBlock b = defuse.defs.get(l1);
 			// since we are now in csaa, phi locals never interfere and are in the same congruence class.
 			// therefore we can coalesce them all together and drop phis. with this, we leave cssa.
-			PhiExpression phi = e.getValue();
+			PhiExpression phi = e.getValue().getExpression();
 
 			CongruenceClass phiConClass = new CongruenceClass();
 			phiConClass.add(l1);
