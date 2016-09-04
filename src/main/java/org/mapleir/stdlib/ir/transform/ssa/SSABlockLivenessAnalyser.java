@@ -125,12 +125,12 @@ public class SSABlockLivenessAnalyser implements Liveness<BasicBlock> {
 	
 	@Override
 	public GenericBitSet<Local> in(BasicBlock b) {
-		return in.get(b).copy();
+		return in.get(b);
 	}
 	
 	@Override
 	public GenericBitSet<Local> out(BasicBlock b) {
-		return out.get(b).copy();
+		return out.get(b);
 	}
 	
 	public void compute() {
