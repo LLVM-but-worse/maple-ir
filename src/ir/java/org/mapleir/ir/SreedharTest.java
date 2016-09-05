@@ -389,7 +389,7 @@ public class SreedharTest {
 		Iterator<MethodNode> it = new ArrayList<>(cn.methods).listIterator();
 		while (it.hasNext()) {
 			MethodNode m = it.next();
-			if (!m.toString().startsWith("org/mapleir/ir/Test.test111"))
+			if (!m.toString().startsWith("org/mapleir/ir/Test.loopTest"))
 				continue;
 
 			System.out.println("Processing " + m + "\n");

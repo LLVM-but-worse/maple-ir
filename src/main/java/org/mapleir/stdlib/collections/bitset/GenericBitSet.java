@@ -5,7 +5,6 @@ import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 import java.util.BitSet;
 import java.util.Collection;
 import java.util.Iterator;
-import java.util.Map;
 import java.util.Set;
 import java.util.Spliterator;
 
@@ -55,6 +54,16 @@ public class GenericBitSet<N> implements Set<N> {
 			if (!contains(o))
 				return false;
 		return true;
+	}
+
+	public boolean containsNone(GenericBitSet<N> set) {
+		BitSet temp = (BitSet) bitset.clone();
+		temp.and(set.bitset);
+		return temp.isEmpty();
+	}
+
+	public boolean containsAny(GenericBitSet<N> set) {
+		return !containsNone(set);
 	}
 	
 	public void addAll(GenericBitSet<N> n) {
