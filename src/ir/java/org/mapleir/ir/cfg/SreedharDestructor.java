@@ -70,16 +70,16 @@ public class SreedharDestructor {
 		candidateResourceSet = phiResSetCreator.create();
 
 		init();
-		writer.setName("destruct-init").export();
+//		writer.setName("destruct-init").export();
 
 		csaa_iii();
-		writer.setName("destruct-cssa").export();
+//		writer.setName("destruct-cssa").export();
 
 		coalesce();
-		writer.setName("destruct-coalesce").export();
+//		writer.setName("destruct-coalesce").export();
 
 		leaveSSA();
-		writer.setName("destruct-final").export();
+//		writer.setName("destruct-final").export();
 	}
 
 	// ============================================================================================================= //
@@ -90,16 +90,16 @@ public class SreedharDestructor {
 		for (CopyPhiStatement copyPhi : defuse.phis.values()) {
 			Local phiTarget = copyPhi.getVariable().getLocal();
 			pccs.getNonNull(phiTarget).add(phiTarget);
-			System.out.println("Initphi " + phiTarget);
+//			System.out.println("Initphi " + phiTarget);
 			for (Entry<BasicBlock, Expression> phiEntry : copyPhi.getExpression().getArguments().entrySet()) {
 				if (phiEntry.getValue().getOpcode() != LOCAL_LOAD)
 					throw new IllegalArgumentException("Phi arg is not local; instead is " + phiEntry.getValue().getClass().getSimpleName());
 				Local phiSource = ((VarExpression) phiEntry.getValue()).getLocal();
 				pccs.getNonNull(phiSource).add(phiSource);
-				System.out.println("Initphi " + phiSource);
+//				System.out.println("Initphi " + phiSource);
 			}
 		}
-		System.out.println();
+//		System.out.println();
 
 		// compute liveness
 		(liveness = new SSABlockLivenessAnalyser(cfg)).compute();
@@ -144,10 +144,10 @@ public class SreedharDestructor {
 			}
 		}
 
-		System.out.println("Interference:");
-		for (Entry<Local, GenericBitSet<Local>> entry : interfere.entrySet())
-			System.out.println("  " + entry.getKey() + " : " + entry.getValue());
-		System.out.println();
+//		System.out.println("Interference:");
+//		for (Entry<Local, GenericBitSet<Local>> entry : interfere.entrySet())
+//			System.out.println("  " + entry.getKey() + " : " + entry.getValue());
+//		System.out.println();
 	}
 
 	// ============================================================================================================= //
@@ -156,7 +156,7 @@ public class SreedharDestructor {
 	private void csaa_iii() {
 		// iterate over each phi expression
 		for (Entry<Local, CopyPhiStatement> entry : defuse.phis.entrySet()) {
-			System.out.println("process phi " + entry.getValue());
+//			System.out.println("process phi " + entry.getValue());
 
 			Local phiTarget = entry.getKey(); // x0
 			CopyPhiStatement copy = entry.getValue();
@@ -177,7 +177,7 @@ public class SreedharDestructor {
 			// Process unresolved resources
 			resolveDeferred();
 
-			System.out.println("  Cand: " + candidateResourceSet);
+//			System.out.println("  Cand: " + candidateResourceSet);
 			// Resolve the candidate resources
 			Type phiType = phi.getType();
 			for (PhiResource toResolve : candidateResourceSet) {
@@ -189,10 +189,10 @@ public class SreedharDestructor {
 						phiVar.setLocal(resolvePhiSource(toResolve.local, phiArg.getKey(), phiType));
 				}
 			}
-			System.out.println("  interference: ");
-			for (Entry<Local, GenericBitSet<Local>> entry2 : interfere.entrySet())
-				System.out.println("    " + entry2.getKey() + " : " + entry2.getValue());
-			System.out.println("  post-inserted: " + copy);
+//			System.out.println("  interference: ");
+//			for (Entry<Local, GenericBitSet<Local>> entry2 : interfere.entrySet())
+//				System.out.println("    " + entry2.getKey() + " : " + entry2.getValue());
+//			System.out.println("  post-inserted: " + copy);
 
 			// Merge pccs for all locals in phi
 			final GenericBitSet<Local> phiLocals = locals.createBitSet();
@@ -207,10 +207,10 @@ public class SreedharDestructor {
 				if (pcc.size() <= 1)
 					pcc.clear();
 
-			System.out.println("  pccs:");
-			for (Entry<Local, GenericBitSet<Local>> entry2 : pccs.entrySet())
-				System.out.println("    " + entry2.getKey() + " : " + entry2.getValue());
-			System.out.println();
+//			System.out.println("  pccs:");
+//			for (Entry<Local, GenericBitSet<Local>> entry2 : pccs.entrySet())
+//				System.out.println("    " + entry2.getKey() + " : " + entry2.getValue());
+//			System.out.println();
 		}
 	}
 
@@ -320,13 +320,12 @@ public class SreedharDestructor {
 		liveOut.add(spill);
 		 // xi can be removed from liveOut iff it isn't live into any succ or used in any succ phi.
 		for (BasicBlock lj : succsCache.getNonNull(lk)) {
-			if (!liveness.in(lj).contains(xi))
-				removeFromOut: {
-					for (int i = 0; i < lj.size() && lj.get(i).getOpcode() == Opcode.PHI_STORE; i++)
-						if (((VarExpression) ((CopyPhiStatement) lj.get(i)).getExpression().getArguments().get(lk)).getLocal() == xi)
-							break removeFromOut;
-					liveOut.remove(xi); // poor man's for-else loop
-				}
+			if (!liveness.in(lj).contains(xi)) removeFromOut: {
+				for (int i = 0; i < lj.size() && lj.get(i).getOpcode() == Opcode.PHI_STORE; i++)
+					if (((VarExpression) ((CopyPhiStatement) lj.get(i)).getExpression().getArguments().get(lk)).getLocal() == xi)
+						break removeFromOut;
+				liveOut.remove(xi); // poor man's for-else loop
+			}
 		}
 
 		// Reflexively update interference
@@ -358,9 +357,9 @@ public class SreedharDestructor {
 				Statement stmt = it.next();
 				if (stmt instanceof CopyVarStatement) {
 					CopyVarStatement copy = (CopyVarStatement) stmt;
-					System.out.println("check " + copy);
+//					System.out.println("check " + copy);
 					if (checkCoalesce(copy)) {
-						System.out.println("  coalescing");
+//						System.out.println("  coalescing");
 						it.remove(); // Remove the copy
 
 						// Merge pccs
@@ -376,10 +375,10 @@ public class SreedharDestructor {
 			}
 		}
 
-		System.out.println("post-coalsce pccs:");
-		for (Entry<Local, GenericBitSet<Local>> entry : pccs.entrySet())
-			System.out.println("  " + entry.getKey() + " : " + entry.getValue());
-		System.out.println();
+//		System.out.println("post-coalsce pccs:");
+//		for (Entry<Local, GenericBitSet<Local>> entry : pccs.entrySet())
+//			System.out.println("  " + entry.getKey() + " : " + entry.getValue());
+//		System.out.println();
 	}
 
 	private boolean checkCoalesce(CopyVarStatement copy) {
@@ -389,7 +388,7 @@ public class SreedharDestructor {
 
 		Local localX = copy.getVariable().getLocal();
 		Local localY = ((VarExpression) copy.getExpression()).getLocal();
-		GenericBitSet<Local> pccX = pccs.get(localX), pccY = pccs.get(localY);
+		GenericBitSet<Local> pccX = pccs.getNonNull(localX), pccY = pccs.getNonNull(localY);
 
 		// Trivial case: Now that we are in CSSA, we can simply drop copies within the same pcc.
 		if (pccX == pccY)
@@ -418,26 +417,26 @@ public class SreedharDestructor {
 
 	// Returns true if the copy cannot be removed.
 	private boolean checkPccSingle(GenericBitSet<Local> pccX, Local x, Local y) {
-		System.out.println("  case 2");
+//		System.out.println("  case 2");
 		GenericBitSet<Local> nonEmpty = pccX.copy();
 		nonEmpty.remove(x);
-		return interfere.get(y).containsAny(nonEmpty);
+		return interfere.getNonNull(y).containsAny(nonEmpty);
 	}
 
 	// Quadratic (lmao) coalesce check for coalesce case 3, returns true if the copy cannot be removed.
 	// But thanks to bitsets its linear time
 	private boolean checkPccDouble(GenericBitSet<Local> pccX, Local x, GenericBitSet<Local> pccY, Local y) {
-		System.out.println("  case 3");
+//		System.out.println("  case 3");
 		GenericBitSet<Local> pccYTrim = pccY.copy();
 		pccYTrim.remove(y);
 		for (Local lx : pccX)
-			if (interfere.get(lx).containsAny(pccYTrim))
+			if (interfere.getNonNull(lx).containsAny(pccYTrim))
 				return true;
 
 		GenericBitSet<Local> pccXTrim = pccX.copy();
 		pccXTrim.remove(x);
 		for (Local ly : pccY)
-			if (interfere.get(ly).containsAny(pccXTrim))
+			if (interfere.getNonNull(ly).containsAny(pccXTrim))
 				return true;
 
 		return false;
@@ -448,7 +447,7 @@ public class SreedharDestructor {
 	// ============================================================================================================= //
 	private void leaveSSA() {
 		// Flatten pccs into one variable through remapping
-		System.out.println("remap:");
+//		System.out.println("remap:");
 		Map<Local, Local> remap = new HashMap();
 		for (Entry<Local, GenericBitSet<Local>> entry : pccs.entrySet()) {
 			GenericBitSet<Local> pcc = entry.getValue();
@@ -461,13 +460,13 @@ public class SreedharDestructor {
 
 			Local newLocal = locals.makeLatestVersion(local);
 			remap.put(local, newLocal);
-			System.out.println("  " + local + " -> " + newLocal);
+//			System.out.println("  " + local + " -> " + newLocal);
 			for (Local pccLocal : pcc) {
 				remap.put(pccLocal, newLocal);
-				System.out.println("  " + pccLocal + " -> " + newLocal);
+//				System.out.println("  " + pccLocal + " -> " + newLocal);
 			}
 		}
-		System.out.println();
+//		System.out.println();
 
 		for (BasicBlock b : cfg.vertices()) {
 			for (Iterator<Statement> it = b.iterator(); it.hasNext(); ) {
@@ -495,7 +494,7 @@ public class SreedharDestructor {
 			}
 		}
 
-		System.out.println();
+//		System.out.println();
 	}
 
 	// ============================================================================================================= //
