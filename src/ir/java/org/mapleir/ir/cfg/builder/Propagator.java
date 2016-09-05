@@ -1,13 +1,16 @@
 package org.mapleir.ir.cfg.builder;
 
-import java.util.*;
-import java.util.Map.Entry;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.code.Opcode;
-import org.mapleir.ir.code.expr.*;
+import org.mapleir.ir.code.expr.ArrayLoadExpression;
+import org.mapleir.ir.code.expr.ConstantExpression;
+import org.mapleir.ir.code.expr.Expression;
+import org.mapleir.ir.code.expr.FieldLoadExpression;
+import org.mapleir.ir.code.expr.InitialisedObjectExpression;
+import org.mapleir.ir.code.expr.InvocationExpression;
+import org.mapleir.ir.code.expr.PhiExpression;
+import org.mapleir.ir.code.expr.UninitialisedObjectExpression;
+import org.mapleir.ir.code.expr.VarExpression;
 import org.mapleir.ir.code.stmt.ArrayStoreStatement;
 import org.mapleir.ir.code.stmt.FieldStoreStatement;
 import org.mapleir.ir.code.stmt.MonitorStatement;
@@ -21,6 +24,18 @@ import org.mapleir.stdlib.collections.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.SetCreator;
 import org.mapleir.stdlib.ir.StatementVisitor;
 import org.mapleir.stdlib.ir.transform.ssa.SSALocalAccess;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class Propagator extends OptimisationPass.Optimiser {
 
@@ -272,7 +287,7 @@ public class Propagator extends OptimisationPass.Optimiser {
 		}
 		
 		private boolean fineBladeDefinition(AbstractCopyStatement def, Iterator<?> it) {
-			System.out.println("DEAD(2): " + def);
+//			System.out.println("DEAD(2): " + def);
 			it.remove();
 			Expression rhs = def.getExpression();
 			BasicBlock b = def.getBlock();
@@ -297,7 +312,7 @@ public class Propagator extends OptimisationPass.Optimiser {
 			localAccess.useCount.remove(local);
 			localAccess.defs.remove(local);
 			
-			System.out.println("DEAD(1): " + def);
+//			System.out.println("DEAD(1): " + def);
 		}
 		
 		private int uses(Local l) {
