@@ -10,9 +10,12 @@ import org.mapleir.stdlib.collections.graph.dot.BasicDotConfiguration;
 import org.mapleir.stdlib.collections.graph.dot.DotConfiguration;
 import org.mapleir.stdlib.collections.graph.dot.DotWriter;
 import org.objectweb.asm.ClassReader;
+import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
 
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -382,14 +385,14 @@ public class SreedharTest {
 	}
 
 	public static void main(String[] args) throws IOException {
-		ClassReader cr = new ClassReader(Test.class.getCanonicalName());
+		ClassReader cr = new ClassReader(SreedharTest.class.getCanonicalName());
 		ClassNode cn = new ClassNode();
 		cr.accept(cn, 0);
 
 		Iterator<MethodNode> it = new ArrayList<>(cn.methods).listIterator();
 		while (it.hasNext()) {
 			MethodNode m = it.next();
-			if (!m.toString().startsWith("org/mapleir/ir/Test.loopTest"))
+			if (!m.toString().startsWith("org/mapleir/ir/SreedharTest.test118"))
 				continue;
 
 			System.out.println("Processing " + m + "\n");
@@ -405,10 +408,22 @@ public class SreedharTest {
 				throw new RuntimeException("\n" + cfg.toString(), e);
 			}
 
-//			cfg.getLocals().realloc(cfg);
+			cfg.getLocals().realloc(cfg);
 
-//			System.out.println(cfg);
-//			writer.removeAll().add(new ControlFlowGraphDecorator().setFlags(OPT_DEEP)).setName("destructed").export();
+			System.out.println(cfg);
+			writer.removeAll().add(new ControlFlowGraphDecorator().setFlags(OPT_DEEP)).setName("destructed").export();
+
+			MethodNode m2 = new MethodNode(m.owner, m.access, m.name, m.desc, m.signature, m.exceptions.toArray(new String[0]));
+			ControlFlowGraphDumper.dump(cfg, m2);
+			cn.methods.add(m2);
+			cn.methods.remove(m);
 		}
+
+		ClassWriter clazz = new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
+		cn.accept(clazz);
+		byte[] saved = clazz.toByteArray();
+		FileOutputStream out = new FileOutputStream(new File("out/testclass.class"));
+		out.write(saved, 0, saved.length);
+		out.close();
 	}
 }
