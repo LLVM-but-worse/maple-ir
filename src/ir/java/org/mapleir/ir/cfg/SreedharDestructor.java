@@ -182,7 +182,7 @@ public class SreedharDestructor {
 			Type phiType = phi.getType();
 			for (PhiResource toResolve : candidateResourceSet) {
 				if (toResolve.isTarget)
-					resolveTarget(toResolve, phiType);
+					resolvePhiTarget(toResolve, phiType);
 				else for (Entry<BasicBlock, Expression> phiArg : phi.getArguments().entrySet()) {
 					VarExpression phiVar = (VarExpression) phiArg.getValue();
 					if (phiVar.getLocal() == toResolve.local)
@@ -253,9 +253,10 @@ public class SreedharDestructor {
 				GenericBitSet<PhiResource> neighbors = entry.getValue();
 				int size = neighbors.size();
 				if (size > largestCount) {
-					if (!candidateResourceSet.contains(x) && neighbors.containsAll(candidateResourceSet))
-					largestCount = size;
-					largest = x;
+					if (!candidateResourceSet.contains(x) && !neighbors.containsAll(candidateResourceSet)) {
+						largestCount = size;
+						largest = x;
+					}
 				}
 			}
 
@@ -263,6 +264,8 @@ public class SreedharDestructor {
 				System.out.println("  Add " + largest + " by case 4");
 				candidateResourceSet.add(largest);
 				unresolvedNeighborsMap.remove(largest);
+			} else {
+				break;
 			}
 		}
 	}
@@ -275,7 +278,7 @@ public class SreedharDestructor {
 		return false;
 	}
 
-	private void resolveTarget(PhiResource res, Type phiType) {
+	private void resolvePhiTarget(PhiResource res, Type phiType) {
 		Local spill = insertStart(res, phiType); // Insert spill copy
 
 		// Update liveness
@@ -315,14 +318,15 @@ public class SreedharDestructor {
 		// Update liveness
 		GenericBitSet<Local> liveOut = liveness.out(lk);
 		liveOut.add(spill);
-		removeFromOut: { // xi can be removed from liveOut iff it isn't live into any succ or used in any succ phi.
-			for (BasicBlock lj : succsCache.getNonNull(lk))
-				if (liveness.in(lj).contains(xi))
-					break removeFromOut;
-				else for (int i = 0; i < lj.size() && lj.get(i).getOpcode() == Opcode.PHI_STORE; i++)
-					if (((VarExpression) ((CopyPhiStatement) lj.get(i)).getExpression().getArguments().get(lk)).getLocal() == xi)
-						break removeFromOut;
-			liveOut.remove(xi); // poor man's for-else loop
+		 // xi can be removed from liveOut iff it isn't live into any succ or used in any succ phi.
+		for (BasicBlock lj : succsCache.getNonNull(lk)) {
+			if (!liveness.in(lj).contains(xi))
+				removeFromOut: {
+					for (int i = 0; i < lj.size() && lj.get(i).getOpcode() == Opcode.PHI_STORE; i++)
+						if (((VarExpression) ((CopyPhiStatement) lj.get(i)).getExpression().getArguments().get(lk)).getLocal() == xi)
+							break removeFromOut;
+					liveOut.remove(xi); // poor man's for-else loop
+				}
 		}
 
 		// Reflexively update interference
@@ -361,7 +365,9 @@ public class SreedharDestructor {
 
 						// Merge pccs
 						GenericBitSet<Local> pccX = pccs.get(copy.getVariable().getLocal());
-						GenericBitSet<Local> pccY = pccs.get(((VarExpression) copy.getExpression()).getLocal());
+						Local localY = ((VarExpression) copy.getExpression()).getLocal();
+						GenericBitSet<Local> pccY = pccs.get(localY);
+						pccX.add(localY);
 						pccX.addAll(pccY);
 						for (Local l : pccY)
 							pccs.put(l, pccX);
@@ -530,7 +536,7 @@ public class SreedharDestructor {
 
 		@Override
 		public String toString() {
-			return block.getId() + ":" + local + (isTarget? "(targ) " : "");
+			return block.getId() + ":" + local + (isTarget? "(targ)" : "");
 		}
 	}
 
