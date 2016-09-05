@@ -30,7 +30,7 @@ public class ControlFlowGraphDumper {
 		}
 
 		for (ExceptionRange<BasicBlock> er : cfg.getRanges()) {
-			System.out.println("RANGE: " + er);
+//			System.out.println("RANGE: " + er);
 			String type = null;
 			Set<String> typeSet = er.getTypes();
 			if (typeSet.size() == 0 || typeSet.size() > 1) {

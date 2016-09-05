@@ -4,7 +4,6 @@ import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.BoissinotDestructor;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.cfg.builder.ControlFlowGraphBuilder;
-import org.mapleir.ir.dot.ControlFlowGraphDecorator;
 import org.mapleir.stdlib.cfg.edge.FlowEdge;
 import org.mapleir.stdlib.collections.graph.dot.BasicDotConfiguration;
 import org.mapleir.stdlib.collections.graph.dot.DotConfiguration;
@@ -19,8 +18,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
-
-import static org.mapleir.ir.dot.ControlFlowGraphDecorator.OPT_DEEP;
 
 public class Test {
 
@@ -406,37 +403,33 @@ public class Test {
 			// continue;
 			// }
 
-			if (!m.toString().startsWith("org/mapleir/ir/Test.test011")) {
-				if (!m.toString().startsWith("org/mapleir/ir/Test.test131")) {
-					continue;
-				}
+//			if (!m.toString().startsWith("org/mapleir/ir/Test.test131")) {
+//				continue;
+//			}
 
-				System.out.println("Processing " + m + "\n");
-				ControlFlowGraph cfg = ControlFlowGraphBuilder.build(m);
+			System.out.println("Processing " + m + "\n");
+			ControlFlowGraph cfg = ControlFlowGraphBuilder.build(m);
 
-				BasicDotConfiguration<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> config = new BasicDotConfiguration<>(DotConfiguration.GraphType.DIRECTED);
-				DotWriter<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> writer = new DotWriter<>(config, cfg);
-				writer.removeAll().add(new ControlFlowGraphDecorator().setFlags(OPT_DEEP)).setName("pre-destruct").export();
-				try {
-					BoissinotDestructor destructor = new BoissinotDestructor(cfg);
-				} catch (RuntimeException e) {
-					throw new RuntimeException("\n" + cfg.toString(), e);
-				}
-
-				cfg.getLocals().realloc(cfg);
-				
-				System.out.println(cfg);
-
-				writer.removeAll().add(new ControlFlowGraphDecorator().setFlags(OPT_DEEP)).setName("destructed").export();
-
-				MethodNode m2 = new MethodNode(m.owner, m.access, m.name, m.desc, m.signature, m.exceptions.toArray(new String[0]));
-				ControlFlowGraphDumper.dump(cfg, m2);
-				cn.methods.add(m2);
-				cn.methods.remove(m);
+			BasicDotConfiguration<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> config = new BasicDotConfiguration<>(DotConfiguration.GraphType.DIRECTED);
+			DotWriter<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> writer = new DotWriter<>(config, cfg);
+//			writer.removeAll().add(new ControlFlowGraphDecorator().setFlags(OPT_DEEP)).setName("pre-destruct").export();
+			try {
+				BoissinotDestructor destructor = new BoissinotDestructor(cfg);
+			} catch (RuntimeException e) {
+				throw new RuntimeException("\n" + cfg.toString(), e);
 			}
-		}
-		
 
+			cfg.getLocals().realloc(cfg);
+
+//			System.out.println(cfg);
+
+//			writer.removeAll().add(new ControlFlowGraphDecorator().setFlags(OPT_DEEP)).setName("destructed").export();
+
+			MethodNode m2 = new MethodNode(m.owner, m.access, m.name, m.desc, m.signature, m.exceptions.toArray(new String[0]));
+			ControlFlowGraphDumper.dump(cfg, m2);
+			cn.methods.add(m2);
+			cn.methods.remove(m);
+		}
 
 		ClassWriter clazz = new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
 		cn.accept(clazz);
