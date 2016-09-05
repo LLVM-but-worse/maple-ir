@@ -444,13 +444,21 @@ public class SreedharDestructor {
 		// Flatten pccs into one variable through remapping
 		System.out.println("remap:");
 		Map<Local, Local> remap = new HashMap();
-		for (GenericBitSet<Local> pcc : pccs.values()) {
+		for (Entry<Local, GenericBitSet<Local>> entry : pccs.entrySet()) {
+			GenericBitSet<Local> pcc = entry.getValue();
 			if (pcc.isEmpty())
 				continue;
-			Local newLocal = locals.makeLatestVersion(pcc.iterator().next());
-			for (Local l : pcc) {
-				remap.put(l, newLocal);
-				System.out.println("  " + l + " -> " + newLocal);
+
+			Local local = entry.getKey();
+			if (remap.containsKey(local))
+				continue;
+
+			Local newLocal = locals.makeLatestVersion(local);
+			remap.put(local, newLocal);
+			System.out.println("  " + local + " -> " + newLocal);
+			for (Local pccLocal : pcc) {
+				remap.put(pccLocal, newLocal);
+				System.out.println("  " + pccLocal + " -> " + newLocal);
 			}
 		}
 		System.out.println();
