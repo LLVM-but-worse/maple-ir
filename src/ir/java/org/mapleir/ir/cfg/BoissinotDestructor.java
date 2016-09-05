@@ -989,7 +989,7 @@ public class BoissinotDestructor implements Liveness<BasicBlock>, Opcode {
 		return result;
 	}
 
-	class PhiRes {
+	private class PhiRes {
 		final Local target;
 		final PhiExpression phi;
 		final BasicBlock pred;
