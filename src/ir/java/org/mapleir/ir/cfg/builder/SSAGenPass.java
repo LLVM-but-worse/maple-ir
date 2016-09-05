@@ -216,7 +216,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 						for(FlowEdge<BasicBlock> fe : builder.graph.getReverseEdges(x)) {
 							vls.put(fe.src, new VarExpression(newl, null));
 						}
-						System.out.println("mkphi " + vls);
+//						System.out.println("mkphi " + vls);
 						PhiExpression phi = new PhiExpression(vls);
 						CopyPhiStatement assign = new CopyPhiStatement(new VarExpression(l, null), phi);
 						
@@ -461,7 +461,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 			int i = 0;
 			for (int i1 = 0; i1 < stmtsCopy.size(); i1++) {
 				Statement stmt = stmtsCopy.get(i1);
-				System.out.println("@" + i1 + "@" + i + " " + stmt);
+//				System.out.println("@" + i1 + "@" + i + " " + stmt);
 				if (b.size() == i)
 					break;
 				if (stmt.getOpcode() == Opcode.LOCAL_STORE) {
@@ -469,7 +469,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 					VarExpression v = copy.getVariable();
 					if (ls.contains(v.getLocal())) {
 						BasicBlock n = splitBlock(b, i);
-						System.out.println("Split " + b.getId() + " into " + b.getId() + " and " + n.getId());
+//						System.out.println("Split " + b.getId() + " into " + b.getId() + " and " + n.getId());
 						order.add(order.indexOf(b), n);
 					}
 					i = 0;

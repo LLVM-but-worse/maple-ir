@@ -1,12 +1,5 @@
 package org.mapleir.ir.cfg.builder;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.stmt.copy.AbstractCopyStatement;
@@ -20,6 +13,13 @@ import org.mapleir.stdlib.collections.graph.dot.BasicDotConfiguration;
 import org.mapleir.stdlib.collections.graph.dot.DotConfiguration;
 import org.mapleir.stdlib.collections.graph.dot.DotWriter;
 import org.objectweb.asm.tree.MethodNode;
+
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
 
 import static org.mapleir.ir.dot.ControlFlowGraphDecorator.OPT_DEEP;
 
@@ -98,11 +98,11 @@ public class ControlFlowGraphBuilder {
 				
 				p.run();
 				
-				System.out.println();
-				System.out.println("AFTER " + p.getClass().getSimpleName() + ":");
-				System.out.println(builder.graph);
-				System.out.println();
-				System.out.println();
+//				System.out.println();
+//				System.out.println("AFTER " + p.getClass().getSimpleName() + ":");
+//				System.out.println(builder.graph);
+//				System.out.println();
+//				System.out.println();
 
 				BasicDotConfiguration<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> config = new BasicDotConfiguration<>(DotConfiguration.GraphType.DIRECTED);
 				DotWriter<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> writer = new DotWriter<>(config, builder.graph);
