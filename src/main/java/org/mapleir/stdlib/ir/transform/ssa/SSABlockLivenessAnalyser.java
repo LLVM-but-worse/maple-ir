@@ -7,6 +7,7 @@ import org.mapleir.ir.code.expr.Expression;
 import org.mapleir.ir.code.expr.PhiExpression;
 import org.mapleir.ir.code.expr.VarExpression;
 import org.mapleir.ir.code.stmt.Statement;
+import org.mapleir.ir.code.stmt.copy.CopyPhiStatement;
 import org.mapleir.ir.code.stmt.copy.CopyVarStatement;
 import org.mapleir.ir.locals.Local;
 import org.mapleir.ir.locals.LocalsHandler;
@@ -101,31 +102,30 @@ public class SSABlockLivenessAnalyser implements Liveness<BasicBlock> {
 		ListIterator<Statement> it = b.listIterator(b.size());
 		while (it.hasPrevious()) {
 			Statement stmt = it.previous();
-			if (stmt instanceof CopyVarStatement) {
-				CopyVarStatement cvs = (CopyVarStatement) stmt;
-				VarExpression var = cvs.getVariable();
-				Local defLocal = var.getLocal();
-				Expression rhs = cvs.getExpression();
-				if (rhs instanceof PhiExpression) {
-					phiDef.get(b).add(defLocal);
-					PhiExpression phi = (PhiExpression) rhs;
-					for (Map.Entry<BasicBlock, Expression> e : phi.getArguments().entrySet()) {
-						BasicBlock exprSource = e.getKey();
-						Expression phiExpr = e.getValue();
-						GenericBitSet<Local> useSet = phiUse.get(b).getNonNull(exprSource);
-						for (Statement child : phiExpr)
-							if (child.getOpcode() == Opcode.LOCAL_LOAD)
-								useSet.add(((VarExpression) child).getLocal());
-					}
-					continue; // do this to avoid adding used locals of phi copies
+			if (stmt instanceof CopyPhiStatement) {
+				CopyPhiStatement copy = (CopyPhiStatement) stmt;
+				phiDef.get(b).add(copy.getVariable().getLocal());
+				PhiExpression phi = copy.getExpression();
+				for (Map.Entry<BasicBlock, Expression> e : phi.getArguments().entrySet()) {
+					BasicBlock exprSource = e.getKey();
+					Expression phiExpr = e.getValue();
+					GenericBitSet<Local> useSet = phiUse.get(b).getNonNull(exprSource);
+					if (phiExpr.getOpcode() == Opcode.LOCAL_LOAD)
+						useSet.add(((VarExpression) phiExpr).getLocal());
+					else for (Statement child : phiExpr)
+						if (child.getOpcode() == Opcode.LOCAL_LOAD)
+							useSet.add(((VarExpression) child).getLocal());
 				}
-				
-				def.get(b).add(defLocal);
-				use.get(b).remove(defLocal);
+			} else {
+				if (stmt instanceof CopyVarStatement) {
+					Local defLocal = ((CopyVarStatement) stmt).getVariable().getLocal();
+					def.get(b).add(defLocal);
+					use.get(b).remove(defLocal);
+				}
+				for (Statement child : stmt)
+					if (child.getOpcode() == Opcode.LOCAL_LOAD)
+						use.get(b).add(((VarExpression) child).getLocal());
 			}
-			for (Statement child : stmt)
-				if (child.getOpcode() == Opcode.LOCAL_LOAD)
-					use.get(b).add(((VarExpression) child).getLocal());
 		}
 	}
 	
