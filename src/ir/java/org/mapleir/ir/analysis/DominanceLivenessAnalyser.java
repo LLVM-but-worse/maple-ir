@@ -167,7 +167,7 @@ public class DominanceLivenessAnalyser {
 		// System.out.println("p: " + defuse.phis.contains(l));
 		// System.out.println();
 		
-		if(defuse.phis.containsKey(l) && defBlock == b) {
+		if(defuse.phiDefs.containsKey(l) && defBlock == b) {
 			return true;
 		}
 		
@@ -186,8 +186,7 @@ public class DominanceLivenessAnalyser {
 
 		GenericBitSet<BasicBlock> uses = defuse.uses.get(a);
 		if(defBlock == q) {
-			uses.remove(defBlock);
-			return !uses.isEmpty();
+			return !uses.relativeComplement(defBlock).isEmpty() || defuse.phiUses.get(defBlock).contains(a);
 		}
 		
 		boolean targ = !btargs.contains(q);
