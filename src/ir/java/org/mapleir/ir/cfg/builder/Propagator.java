@@ -673,7 +673,7 @@ public class Propagator extends OptimisationPass.Optimiser {
 				stmt.overwrite(vis, addr);
 				change = true;
 			}
-			verify();
+//			verify();
 		}
 		
 		private void verify() {
