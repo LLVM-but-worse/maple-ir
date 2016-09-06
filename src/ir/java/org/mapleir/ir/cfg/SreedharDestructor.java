@@ -8,19 +8,13 @@ import org.mapleir.ir.code.expr.VarExpression;
 import org.mapleir.ir.code.stmt.Statement;
 import org.mapleir.ir.code.stmt.copy.CopyPhiStatement;
 import org.mapleir.ir.code.stmt.copy.CopyVarStatement;
-import org.mapleir.ir.dot.ControlFlowGraphDecorator;
-import org.mapleir.ir.dot.LivenessDecorator;
 import org.mapleir.ir.locals.Local;
 import org.mapleir.ir.locals.LocalsHandler;
-import org.mapleir.stdlib.cfg.edge.FlowEdge;
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.ValueCreator;
 import org.mapleir.stdlib.collections.bitset.BitSetIndexer;
 import org.mapleir.stdlib.collections.bitset.GenericBitSet;
 import org.mapleir.stdlib.collections.bitset.IncrementalBitSetIndexer;
-import org.mapleir.stdlib.collections.graph.dot.BasicDotConfiguration;
-import org.mapleir.stdlib.collections.graph.dot.DotConfiguration;
-import org.mapleir.stdlib.collections.graph.dot.DotWriter;
 import org.mapleir.stdlib.ir.transform.ssa.SSABlockLivenessAnalyser;
 import org.objectweb.asm.Type;
 
@@ -31,7 +25,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import static org.mapleir.ir.code.Opcode.LOCAL_LOAD;
-import static org.mapleir.ir.dot.ControlFlowGraphDecorator.OPT_DEEP;
 
 public class SreedharDestructor {
 
@@ -47,14 +40,14 @@ public class SreedharDestructor {
 	private final NullPermeableHashMap<BasicBlock, GenericBitSet<BasicBlock>> succsCache;
 	private final GenericBitSet<PhiResource> candidateResourceSet;
 
-	private final BasicDotConfiguration<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> config = new BasicDotConfiguration<>(DotConfiguration.GraphType.DIRECTED);
-	private final DotWriter<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> writer;
+//	private final BasicDotConfiguration<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> config = new BasicDotConfiguration<>(DotConfiguration.GraphType.DIRECTED);
+//	private final DotWriter<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> writer;
 
 	public SreedharDestructor(ControlFlowGraph cfg) {
 		this.cfg = cfg;
-		writer = new DotWriter<>(config, cfg);
-		writer.removeAll()
-				.add(new ControlFlowGraphDecorator().setFlags(OPT_DEEP));
+//		writer = new DotWriter<>(config, cfg);
+//		writer.removeAll()
+//				.add(new ControlFlowGraphDecorator().setFlags(OPT_DEEP));
 		locals = cfg.getLocals();
 		interfere = new NullPermeableHashMap<>(locals);
 		pccs = new NullPermeableHashMap<>(locals);
@@ -70,16 +63,16 @@ public class SreedharDestructor {
 		candidateResourceSet = phiResSetCreator.create();
 
 		init();
-		writer.setName("destruct-init").export();
+//		writer.setName("destruct-init").export();
 
 		csaa_iii();
-		writer.setName("destruct-cssa").export();
+//		writer.setName("destruct-cssa").export();
 
 		coalesce();
-		writer.setName("destruct-coalesce").export();
+//		writer.setName("destruct-coalesce").export();
 
 		leaveSSA();
-		writer.setName("destruct-final").export();
+//		writer.setName("destruct-final").export();
 	}
 
 	// ============================================================================================================= //
@@ -103,7 +96,7 @@ public class SreedharDestructor {
 
 		// compute liveness
 		(liveness = new SSABlockLivenessAnalyser(cfg)).compute();
-		writer.add("liveness", new LivenessDecorator<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>>().setLiveness(liveness));
+//		writer.add("liveness", new LivenessDecorator<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>>().setLiveness(liveness));
 
 		buildInterference();
 	}

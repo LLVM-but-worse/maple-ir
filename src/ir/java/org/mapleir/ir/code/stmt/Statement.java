@@ -1,9 +1,5 @@
 package org.mapleir.ir.code.stmt;
 
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.Opcode;
@@ -11,6 +7,10 @@ import org.mapleir.stdlib.cfg.util.TabbedStringWriter;
 import org.mapleir.stdlib.collections.graph.FastGraphVertex;
 import org.mapleir.stdlib.ir.StatementVisitor;
 import org.objectweb.asm.MethodVisitor;
+
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 
 public abstract class Statement implements FastGraphVertex, Opcode, Iterable<Statement> {
 	
@@ -92,11 +92,11 @@ public abstract class Statement implements FastGraphVertex, Opcode, Iterable<Sta
 			prev.parent = null;
 		}
 		if(s != null) {
-			if(s.parent != null) {
-				throw new IllegalStateException(s + " already belongs to " + s.parent + " (new:" + getRootParent() + ")");
-			} else {
+//			if(s.parent != null) {
+//				throw new IllegalStateException(s + " already belongs to " + s.parent + " (new:" + getRootParent() + ")");
+//			} else {
 				s.parent = this;
-			}
+//			}
 		}
 		
 		return prev;
