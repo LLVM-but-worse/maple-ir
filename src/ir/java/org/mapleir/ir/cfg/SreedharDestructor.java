@@ -70,16 +70,16 @@ public class SreedharDestructor {
 		candidateResourceSet = phiResSetCreator.create();
 
 		init();
-//		writer.setName("destruct-init").export();
+		writer.setName("destruct-init").export();
 
 		csaa_iii();
-//		writer.setName("destruct-cssa").export();
+		writer.setName("destruct-cssa").export();
 
 		coalesce();
-//		writer.setName("destruct-coalesce").export();
+		writer.setName("destruct-coalesce").export();
 
 		leaveSSA();
-//		writer.setName("destruct-final").export();
+		writer.setName("destruct-final").export();
 	}
 
 	// ============================================================================================================= //
@@ -87,7 +87,7 @@ public class SreedharDestructor {
 	// ============================================================================================================= //
 	private void init() {
 		// init pccs
-		for (CopyPhiStatement copyPhi : defuse.phis.values()) {
+		for (CopyPhiStatement copyPhi : defuse.phiDefs.values()) {
 			Local phiTarget = copyPhi.getVariable().getLocal();
 			pccs.getNonNull(phiTarget).add(phiTarget);
 //			System.out.println("Initphi " + phiTarget);
@@ -155,7 +155,7 @@ public class SreedharDestructor {
 	// ============================================================================================================= //
 	private void csaa_iii() {
 		// iterate over each phi expression
-		for (Entry<Local, CopyPhiStatement> entry : defuse.phis.entrySet()) {
+		for (Entry<Local, CopyPhiStatement> entry : defuse.phiDefs.entrySet()) {
 //			System.out.println("process phi " + entry.getValue());
 
 			Local phiTarget = entry.getKey(); // x0
@@ -448,7 +448,7 @@ public class SreedharDestructor {
 	private void leaveSSA() {
 		// Flatten pccs into one variable through remapping
 //		System.out.println("remap:");
-		Map<Local, Local> remap = new HashMap();
+		Map<Local, Local> remap = new HashMap<>();
 		for (Entry<Local, GenericBitSet<Local>> entry : pccs.entrySet()) {
 			GenericBitSet<Local> pcc = entry.getValue();
 			if (pcc.isEmpty())

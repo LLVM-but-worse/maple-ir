@@ -24,7 +24,8 @@ public class SSADefUseMap implements Opcode {
 	private final ControlFlowGraph cfg;
 	public final Map<Local, BasicBlock> defs;
 	public final NullPermeableHashMap<Local, GenericBitSet<BasicBlock>> uses;
-	public final Map<Local, CopyPhiStatement> phis;
+	public final Map<Local, CopyPhiStatement> phiDefs;
+	public final NullPermeableHashMap<BasicBlock, GenericBitSet<Local>> phiUses;
 
 	public NullPermeableHashMap<Local, HashMap<BasicBlock, Integer>> lastUseIndex;
 	public HashMap<Local, Integer> defIndex;
@@ -33,15 +34,18 @@ public class SSADefUseMap implements Opcode {
 		this.cfg = cfg;
 		defs = new HashMap<>();
 		uses = new NullPermeableHashMap<>(cfg);
-		phis = new HashMap<>();
+		phiDefs = new HashMap<>();
+		phiUses = new NullPermeableHashMap<>(cfg.getLocals());
 	}
 
 	public void compute() {
 		defs.clear();
 		uses.clear();
-		phis.clear();
+		phiDefs.clear();
+		phiUses.clear();
 		for(BasicBlock b : cfg.vertices()) {
 			for(Statement stmt : b) {
+				phiUses.getNonNull(b);
 				build(b, stmt);
 			}
 		}
@@ -60,11 +64,13 @@ public class SSADefUseMap implements Opcode {
 
 			if(isPhi) {
 				PhiExpression phi = (PhiExpression) copy.getExpression();
+				GenericBitSet<Local> phiUseSet = phiUses.get(b);
 				for(Entry<BasicBlock, Expression> en : phi.getArguments().entrySet()) {
 					Local ul = ((VarExpression) en.getValue()).getLocal();
 					uses.getNonNull(ul).add(en.getKey());
+					phiUseSet.add(ul);
 				}
-				phis.put(l, (CopyPhiStatement) copy);
+				phiDefs.put(l, (CopyPhiStatement) copy);
 			}
 		}
 

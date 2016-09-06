@@ -118,6 +118,12 @@ public class GenericBitSet<N> implements Set<N> {
 		copy.removeAll(n);
 		return copy;
 	}
+
+	public GenericBitSet<N> relativeComplement(N n) {
+		GenericBitSet<N> copy = copy();
+		copy.remove(n);
+		return copy;
+	}
 	
 	@Override
 	public boolean removeAll(Collection<?> c) {
