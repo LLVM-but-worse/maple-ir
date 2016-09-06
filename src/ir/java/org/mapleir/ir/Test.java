@@ -389,10 +389,10 @@ public class Test {
 		ClassNode cn = new ClassNode();
 		cr.accept(cn, 0);
 
-		// InputStream i = new FileInputStream(new File("res/a.class"));
-		// ClassReader cr = new ClassReader(i);
-		// ClassNode cn = new ClassNode();
-		// cr.accept(cn, 0);
+//		 InputStream i = new FileInputStream(new File("res/specjvm2008/FFT.class"));
+//		 ClassReader cr = new ClassReader(i);
+//		 ClassNode cn = new ClassNode();
+//		 cr.accept(cn, 0);
 
 		Iterator<MethodNode> it = new ArrayList<>(cn.methods).listIterator();
 		while (it.hasNext()) {
@@ -402,11 +402,11 @@ public class Test {
 			// continue;
 			// }
 
-//			if(!m.toString().equals("org/mapleir/ir/Test.test111()V")) {
+//			if(!m.toString().contains("measureFFT")) {
 //				continue;
 //			}
 
-			if (!m.toString().startsWith("org/mapleir/ir/Test.test131")) {
+			if (!m.toString().startsWith("org/mapleir/ir/Test.test130")) {
 				continue;
 			}
 

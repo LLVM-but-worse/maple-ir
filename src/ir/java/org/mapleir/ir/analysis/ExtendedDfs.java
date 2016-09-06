@@ -1,5 +1,11 @@
 package org.mapleir.ir.analysis;
 
+import org.mapleir.stdlib.cfg.edge.FlowEdge;
+import org.mapleir.stdlib.collections.NullPermeableHashMap;
+import org.mapleir.stdlib.collections.ValueCreator;
+import org.mapleir.stdlib.collections.graph.FastGraphVertex;
+import org.mapleir.stdlib.collections.graph.flow.FlowGraph;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -7,12 +13,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-import org.mapleir.stdlib.cfg.edge.FlowEdge;
-import org.mapleir.stdlib.collections.NullPermeableHashMap;
-import org.mapleir.stdlib.collections.ValueCreator;
-import org.mapleir.stdlib.collections.graph.FastGraphVertex;
-import org.mapleir.stdlib.collections.graph.flow.FlowGraph;
 
 public class ExtendedDfs<N extends FastGraphVertex> {
 	
@@ -73,9 +73,17 @@ public class ExtendedDfs<N extends FastGraphVertex> {
 	public List<N> getPreOrder() {
 		return new ArrayList<>(pre);
 	}
+
+	public List<N> getPreOrderNoCopy() {
+		return pre;
+	}
 	
 	public List<N> getPostOrder() {
 		return new ArrayList<>(post);
+	}
+
+	public List<N> getPostOrderNoCopy() {
+		return post;
 	}
 	
 	public List<N> getReversePostOrder() {
