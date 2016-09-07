@@ -26,7 +26,7 @@ public class DominanceLivenessAnalyser {
 	public final ExtendedDfs<BasicBlock> cfg_dfs;
 	public final Set<FlowEdge<BasicBlock>> back;
 	public final GenericBitSet<BasicBlock> btargs;
-	public final ExtendedDfs<BasicBlock> reduced_dfs;
+	public final SimpleDfs<BasicBlock> reduced_dfs;
 	public final TarjanDominanceComputor<BasicBlock> domc;
 	
 	public DominanceLivenessAnalyser(ControlFlowGraph cfg, SSADefUseMap defuse) {
@@ -48,7 +48,7 @@ public class DominanceLivenessAnalyser {
 		btargs = cfg.createBitSet();
 		
 		red_cfg = reduce(cfg, back);
-		reduced_dfs = new ExtendedDfs<>(red_cfg, entry, ExtendedDfs.POST | ExtendedDfs.PRE);
+		reduced_dfs = new SimpleDfs<>(red_cfg, entry, true, true);
 		
 		computeReducedReachability();
 		computeTargetReachability();
@@ -75,7 +75,7 @@ public class DominanceLivenessAnalyser {
 	private void computeStrictDominators() {
 		NullPermeableHashMap<BasicBlock, GenericBitSet<BasicBlock>> sdoms = new NullPermeableHashMap<>(cfg);
 		// i think this is how you do it..
-		for(BasicBlock b : cfg_dfs.getPreOrder()) {
+		for(BasicBlock b : cfg_dfs.preorder) {
 			BasicBlock idom = domc.idom(b);
 			if(idom != null) {
 				sdoms.getNonNull(b).add(idom);
@@ -97,7 +97,7 @@ public class DominanceLivenessAnalyser {
 	}
 
 	private void computeReducedReachability() {
-		for (BasicBlock b : reduced_dfs.getPostOrder()) {
+		for (BasicBlock b : reduced_dfs.postorder) {
 			rv.getNonNull(b).add(b);
 			for (FlowEdge<BasicBlock> e : red_cfg.getReverseEdges(b)) {
 				rv.getNonNull(e.src).addAll(rv.get(b));
@@ -112,7 +112,7 @@ public class DominanceLivenessAnalyser {
 			tups.put(b, tup(b));
 		}
 		
-		for (BasicBlock b : reduced_dfs.getPreOrder()) {
+		for (BasicBlock b : reduced_dfs.preorder) {
 			tq.getNonNull(b).add(b);
 			for (BasicBlock w : tups.get(b)) {
 				tq.get(b).addAll(tq.get(w));
@@ -124,23 +124,20 @@ public class DominanceLivenessAnalyser {
 	private GenericBitSet<BasicBlock> tup(BasicBlock t) {
 		GenericBitSet<BasicBlock> rt = rv.get(t);
 		
-		// t' in {V - r(t)}
+		// add reachable backedge sources to temporary set
 		GenericBitSet<BasicBlock> set = cfg.createBitSet();
-		set.addAll(cfg.vertices());
-		set.removeAll(rt);
+		set.addAll(btargs);
+		set.retainAll(rt);
+		set.add(t);
 		
-		// all s' where (s', t') is a backedge and s'
-		//  is in rt.
-		
-		// set of s'
+		// go through them and see which ones have unreachable targets
 		GenericBitSet<BasicBlock> res = cfg.createBitSet();
-		
 		for(BasicBlock tdash : set) {
-			for(FlowEdge<BasicBlock> pred : cfg.getReverseEdges(tdash)) {
-				BasicBlock src = pred.src;
+			for(FlowEdge<BasicBlock> succ : cfg.getEdges(tdash)) {
+				BasicBlock dst = succ.dst;
 				// s' = src, t' = dst
-				if(back.contains(pred) && rt.contains(src)) {
-					res.add(pred.dst);
+				if(back.contains(succ) && !rt.contains(dst)) {
+					res.add(succ.dst);
 				}
 			}
 		}

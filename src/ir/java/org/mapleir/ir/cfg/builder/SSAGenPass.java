@@ -1,6 +1,6 @@
 package org.mapleir.ir.cfg.builder;
 
-import org.mapleir.ir.analysis.ExtendedDfs;
+import org.mapleir.ir.analysis.SimpleDfs;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.Opcode;
@@ -480,9 +480,9 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		
 		builder.naturaliseGraph(order);
 
-		ExtendedDfs<BasicBlock> dfs = new ExtendedDfs<>(builder.graph, builder.graph.getEntries().iterator().next(), ExtendedDfs.PRE);
+		SimpleDfs<BasicBlock> dfs = new SimpleDfs<>(builder.graph, builder.graph.getEntries().iterator().next(), true, false);
 		int po = 0;
-		for(BasicBlock b : dfs.getPreOrder()) {
+		for(BasicBlock b : dfs.preorder) {
 			insertion.put(b, 0);
 			process.put(b, 0);
 			preorder.put(b, po++);
