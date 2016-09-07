@@ -30,6 +30,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.Stack;
 import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -87,13 +88,13 @@ public class BoissinotDestructor {
 		long now = System.nanoTime();
 		init();
 		insertCopies();
+		constructDominance();
 		createDuChains();
 		elapse1 += System.nanoTime() - now;
 
 		// 2. Build value interference
 		now = System.nanoTime();
 		computeValueInterference();
-		defuse.buildIndices(dom_dfs.preorder);
 		elapse2 += System.nanoTime() - now;
 
 		// 3. Aggressively coalesce while in CSSA to leave SSA
@@ -241,45 +242,7 @@ public class BoissinotDestructor {
 			b.add(b.size() - 1, copy);
 	}
 
-	private void createDuChains() {
-		defuse = new SSADefUseMap(cfg) {
-			@Override
-			protected void build(BasicBlock b, Statement stmt) {
-				if (stmt instanceof ParallelCopyVarStatement) {
-					ParallelCopyVarStatement copy = (ParallelCopyVarStatement) stmt;
-					for (CopyPair pair : copy.pairs) {
-						defs.put(pair.targ, b);
-						uses.getNonNull(pair.source).add(b);
-					}
-				} else {
-					super.build(b, stmt);
-				}
-			}
-
-			@Override
-			protected int buildIndex(BasicBlock b, Statement stmt, int index) {
-				if (stmt instanceof ParallelCopyVarStatement) {
-					ParallelCopyVarStatement copy = (ParallelCopyVarStatement) stmt;
-					for (CopyPair pair : copy.pairs) {
-						defIndex.put(pair.targ, index);
-						lastUseIndex.getNonNull(pair.source).put(b, index);
-						index++;
-					}
-				} else {
-					index = super.buildIndex(b, stmt, index);
-				}
-				return index;
-			}
-		};
-		defuse.compute();
-
-		resolver.setDefuse(defuse);
-	}
-
-	// ============================================================================================================= //
-	// ============================================ Value interference ============================================= //
-	// ============================================================================================================= //
-	private void computeValueInterference() {
+	private void constructDominance() {
 		values = new NullPermeableHashMap<>(local -> {
 			LinkedHashSet<Local> valueClass = new LinkedHashSet<>();
 			valueClass.add(local);
@@ -295,7 +258,47 @@ public class BoissinotDestructor {
 
 		// Compute dominance DFS
 		dom_dfs = new SimpleDfs<>(dom_tree, cfg.getEntries().iterator().next(), true, true);
+	}
 
+	private void createDuChains() {
+		defuse = new SSADefUseMap(cfg) {
+			@Override
+			protected void build(BasicBlock b, Statement stmt, Set<Local> usedLocals) {
+				if (stmt instanceof ParallelCopyVarStatement) {
+					ParallelCopyVarStatement copy = (ParallelCopyVarStatement) stmt;
+					for (CopyPair pair : copy.pairs) {
+						defs.put(pair.targ, b);
+						uses.getNonNull(pair.source).add(b);
+					}
+				} else {
+					super.build(b, stmt, usedLocals);
+				}
+			}
+
+			@Override
+			protected int buildIndex(BasicBlock b, Statement stmt, int index, Set<Local> usedLocals) {
+				if (stmt instanceof ParallelCopyVarStatement) {
+					ParallelCopyVarStatement copy = (ParallelCopyVarStatement) stmt;
+					for (CopyPair pair : copy.pairs) {
+						defIndex.put(pair.targ, index);
+						lastUseIndex.getNonNull(pair.source).put(b, index);
+						index++;
+					}
+				} else {
+					index = super.buildIndex(b, stmt, index, usedLocals);
+				}
+				return index;
+			}
+		};
+		defuse.computeWithIndices(dom_dfs.preorder);
+
+		resolver.setDefuse(defuse);
+	}
+
+	// ============================================================================================================= //
+	// ============================================ Value interference ============================================= //
+	// ============================================================================================================= //
+	private void computeValueInterference() {
 		for (int i = dom_dfs.postorder.size() - 1; i >= 0; i--) {
 			BasicBlock bl = dom_dfs.postorder.get(i);
 			for (Statement stmt : bl) {
