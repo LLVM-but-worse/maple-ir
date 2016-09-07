@@ -1,8 +1,8 @@
 package org.mapleir.ir.cfg;
 
 import org.mapleir.ir.analysis.DominanceLivenessAnalyser;
-import org.mapleir.ir.analysis.ExtendedDfs;
 import org.mapleir.ir.analysis.SSADefUseMap;
+import org.mapleir.ir.analysis.SimpleDfs;
 import org.mapleir.ir.code.Opcode;
 import org.mapleir.ir.code.expr.Expression;
 import org.mapleir.ir.code.expr.PhiExpression;
@@ -72,7 +72,7 @@ public class BoissinotDestructor {
 	private DominanceLivenessAnalyser resolver;
 	private NullPermeableHashMap<Local, LinkedHashSet<Local>> values;
 
-	private ExtendedDfs<BasicBlock> dom_dfs;
+	private SimpleDfs<BasicBlock> dom_dfs;
 	private HashMap<Local, Local> equalAncIn;
 	private HashMap<Local, Local> equalAncOut;
 
@@ -84,8 +84,8 @@ public class BoissinotDestructor {
 		locals = cfg.getLocals();
 
 		// 1. Insert copies to enter CSSA.
-		init();
 		long now = System.nanoTime();
+		init();
 		insertCopies();
 		createDuChains();
 		elapse1 += System.nanoTime() - now;
@@ -93,7 +93,7 @@ public class BoissinotDestructor {
 		// 2. Build value interference
 		now = System.nanoTime();
 		computeValueInterference();
-		defuse.buildIndices(dom_dfs.getPreOrderNoCopy());
+		defuse.buildIndices(dom_dfs.preorder);
 		elapse2 += System.nanoTime() - now;
 
 		// 3. Aggressively coalesce while in CSSA to leave SSA
@@ -294,11 +294,10 @@ public class BoissinotDestructor {
 //		writer.removeAll().setName("domtree").export();
 
 		// Compute dominance DFS
-		dom_dfs = new ExtendedDfs<>(dom_tree, cfg.getEntries().iterator().next(), ExtendedDfs.POST | ExtendedDfs.PRE);
+		dom_dfs = new SimpleDfs<>(dom_tree, cfg.getEntries().iterator().next(), true, true);
 
-		List<BasicBlock> postorder = dom_dfs.getPostOrderNoCopy();
-		for (int i = postorder.size() - 1; i >= 0; i--) {
-			BasicBlock bl = postorder.get(i);
+		for (int i = dom_dfs.postorder.size() - 1; i >= 0; i--) {
+			BasicBlock bl = dom_dfs.postorder.get(i);
 			for (Statement stmt : bl) {
 				if (stmt instanceof CopyVarStatement) {
 					CopyVarStatement copy = (CopyVarStatement) stmt;
@@ -375,7 +374,7 @@ public class BoissinotDestructor {
 		equalAncOut = new HashMap<>();
 		// now for each copy check if lhs and rhs congruence classes do not interfere.
 		// if they do not interfere merge the conClasses and those two vars can be coalesced. delete the copy.
-		for (BasicBlock b : dom_dfs.getPreOrderNoCopy()) {
+		for (BasicBlock b : dom_dfs.preorder) {
 			for (Iterator<Statement> it = b.iterator(); it.hasNext(); ) {
 				Statement stmt = it.next();
 				if (stmt instanceof CopyVarStatement) {
