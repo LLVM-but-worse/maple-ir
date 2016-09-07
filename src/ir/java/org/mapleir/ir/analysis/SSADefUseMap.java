@@ -52,17 +52,15 @@ public class SSADefUseMap implements Opcode {
 	}
 
 	protected void build(BasicBlock b, Statement stmt) {
-		int opcode = stmt.getOpcode();
-		boolean isPhi = opcode == PHI_STORE;
-		boolean isCopy = isPhi || opcode == LOCAL_STORE;
-
-		if(isCopy) {
+		if(stmt instanceof AbstractCopyStatement) {
 			AbstractCopyStatement copy = (AbstractCopyStatement) stmt;
+			if (copy.isSynthetic())
+				return;
 			Local l = copy.getVariable().getLocal();
 			defs.put(l, b);
 			uses.getNonNull(l);
 
-			if(isPhi) {
+			if(stmt instanceof CopyPhiStatement) {
 				PhiExpression phi = (PhiExpression) copy.getExpression();
 				GenericBitSet<Local> phiUseSet = phiUses.get(b);
 				for(Entry<BasicBlock, Expression> en : phi.getArguments().entrySet()) {
@@ -71,15 +69,14 @@ public class SSADefUseMap implements Opcode {
 					phiUseSet.add(ul);
 				}
 				phiDefs.put(l, (CopyPhiStatement) copy);
+				return;
 			}
 		}
 
-		if(!isPhi) {
-			for(Statement s : stmt) {
-				if(s.getOpcode() == LOCAL_LOAD) {
-					Local l = ((VarExpression) s).getLocal();
-					uses.getNonNull(l).add(b);
-				}
+		for(Statement s : stmt) {
+			if(s instanceof VarExpression) {
+				Local l = ((VarExpression) s).getLocal();
+				uses.getNonNull(l).add(b);
 			}
 		}
 	}
@@ -104,6 +101,7 @@ public class SSADefUseMap implements Opcode {
 		if (stmt instanceof AbstractCopyStatement) {
 			AbstractCopyStatement copy = (AbstractCopyStatement) stmt;
 			defIndex.put(copy.getVariable().getLocal(), index);
+
 			if (copy instanceof CopyPhiStatement) {
 				CopyPhiStatement copyPhi = (CopyPhiStatement) copy;
 				PhiExpression phi = copyPhi.getExpression();
@@ -112,10 +110,12 @@ public class SSADefUseMap implements Opcode {
 					lastUseIndex.getNonNull(ul).put(en.getKey(), en.getKey().size());
 //					lastUseIndex.getNonNull(ul).put(b, -1);
 				}
+				return ++index;
 			}
 		}
+
 		for (Statement child : stmt)
-			if (child.getOpcode() == Opcode.LOCAL_LOAD)
+			if (child instanceof VarExpression)
 				lastUseIndex.getNonNull(((VarExpression) child).getLocal()).put(b, index);
 		return ++index;
 	}
