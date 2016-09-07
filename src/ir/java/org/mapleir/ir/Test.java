@@ -406,9 +406,9 @@ public class Test {
 //				continue;
 //			}
 
-			if (!m.toString().startsWith("org/mapleir/ir/Test.test130")) {
-				continue;
-			}
+//			if (!m.toString().startsWith("org/mapleir/ir/Test.test130")) {
+//				continue;
+//			}
 
 			System.out.println("Processing " + m + "\n");
 			ControlFlowGraph cfg = ControlFlowGraphBuilder.build(m);

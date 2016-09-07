@@ -15,9 +15,11 @@ import org.mapleir.stdlib.collections.ValueCreator;
 import org.mapleir.stdlib.collections.bitset.GenericBitSet;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 
 public class SSADefUseMap implements Opcode {
 	
@@ -27,8 +29,8 @@ public class SSADefUseMap implements Opcode {
 	public final Map<Local, CopyPhiStatement> phiDefs;
 	public final NullPermeableHashMap<BasicBlock, GenericBitSet<Local>> phiUses;
 
-	public NullPermeableHashMap<Local, HashMap<BasicBlock, Integer>> lastUseIndex;
-	public HashMap<Local, Integer> defIndex;
+	public final NullPermeableHashMap<Local, HashMap<BasicBlock, Integer>> lastUseIndex;
+	public final HashMap<Local, Integer> defIndex;
 
 	public SSADefUseMap(ControlFlowGraph cfg) {
 		this.cfg = cfg;
@@ -36,6 +38,14 @@ public class SSADefUseMap implements Opcode {
 		uses = new NullPermeableHashMap<>(cfg);
 		phiDefs = new HashMap<>();
 		phiUses = new NullPermeableHashMap<>(cfg.getLocals());
+
+		lastUseIndex = new NullPermeableHashMap<>(new ValueCreator<HashMap<BasicBlock, Integer>>() {
+			@Override
+			public HashMap<BasicBlock, Integer> create() {
+				return new HashMap<>();
+			}
+		});
+		defIndex = new HashMap<>();
 	}
 
 	public void compute() {
@@ -43,15 +53,46 @@ public class SSADefUseMap implements Opcode {
 		uses.clear();
 		phiDefs.clear();
 		phiUses.clear();
+		Set<Local> usedLocals = new HashSet<>();
 		for(BasicBlock b : cfg.vertices()) {
 			for(Statement stmt : b) {
 				phiUses.getNonNull(b);
-				build(b, stmt);
+
+				usedLocals.clear();
+				for (Statement s : stmt)
+					if(s instanceof VarExpression)
+						usedLocals.add(((VarExpression) s).getLocal());
+
+				build(b, stmt, usedLocals);
 			}
 		}
 	}
 
-	protected void build(BasicBlock b, Statement stmt) {
+	public void computeWithIndices(List<BasicBlock> preorder) {
+		defs.clear();
+		uses.clear();
+		phiDefs.clear();
+		phiUses.clear();
+		lastUseIndex.clear();
+		defIndex.clear();
+		int index = 0;
+		Set<Local> usedLocals = new HashSet<>();
+		for (BasicBlock b : preorder) {
+			for (Statement stmt : b) {
+				phiUses.getNonNull(b);
+
+				usedLocals.clear();
+				for(Statement s : stmt)
+					if(s instanceof VarExpression)
+						usedLocals.add(((VarExpression) s).getLocal());
+
+				index = buildIndex(b, stmt, index, usedLocals);
+				build(b, stmt, usedLocals);
+			}
+		}
+	}
+
+	protected void build(BasicBlock b, Statement stmt, Set<Local> usedLocals) {
 		if(stmt instanceof AbstractCopyStatement) {
 			AbstractCopyStatement copy = (AbstractCopyStatement) stmt;
 			if (copy.isSynthetic())
@@ -73,31 +114,11 @@ public class SSADefUseMap implements Opcode {
 			}
 		}
 
-		for(Statement s : stmt) {
-			if(s instanceof VarExpression) {
-				Local l = ((VarExpression) s).getLocal();
-				uses.getNonNull(l).add(b);
-			}
-		}
+		for (Local usedLocal : usedLocals)
+			uses.getNonNull(usedLocal).add(b);
 	}
 
-	public void buildIndices(List<BasicBlock> preorder) {
-		lastUseIndex = new NullPermeableHashMap<>(new ValueCreator<HashMap<BasicBlock, Integer>>() {
-			@Override
-			public HashMap<BasicBlock, Integer> create() {
-				return new HashMap<>();
-			}
-		});
-		defIndex = new HashMap<>();
-
-		int index = 0;
-		for (BasicBlock b : preorder) {
-			for (Statement stmt : b)
-				index = buildIndex(b, stmt, index);
-		}
-	}
-
-	protected int buildIndex(BasicBlock b, Statement stmt, int index) {
+	protected int buildIndex(BasicBlock b, Statement stmt, int index, Set<Local> usedLocals) {
 		if (stmt instanceof AbstractCopyStatement) {
 			AbstractCopyStatement copy = (AbstractCopyStatement) stmt;
 			defIndex.put(copy.getVariable().getLocal(), index);
@@ -114,9 +135,8 @@ public class SSADefUseMap implements Opcode {
 			}
 		}
 
-		for (Statement child : stmt)
-			if (child instanceof VarExpression)
-				lastUseIndex.getNonNull(((VarExpression) child).getLocal()).put(b, index);
+		for (Local usedLocal : usedLocals)
+			lastUseIndex.getNonNull(usedLocal).put(b, index);
 		return ++index;
 	}
 }
