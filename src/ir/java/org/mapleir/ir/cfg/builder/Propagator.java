@@ -1,17 +1,15 @@
 package org.mapleir.ir.cfg.builder;
 
+import java.util.*;
+import java.util.Map.Entry;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.code.Opcode;
-import org.mapleir.ir.code.expr.ArrayLoadExpression;
-import org.mapleir.ir.code.expr.ConstantExpression;
-import org.mapleir.ir.code.expr.Expression;
-import org.mapleir.ir.code.expr.FieldLoadExpression;
-import org.mapleir.ir.code.expr.InitialisedObjectExpression;
-import org.mapleir.ir.code.expr.InvocationExpression;
-import org.mapleir.ir.code.expr.PhiExpression;
-import org.mapleir.ir.code.expr.UninitialisedObjectExpression;
-import org.mapleir.ir.code.expr.VarExpression;
+import org.mapleir.ir.code.expr.*;
 import org.mapleir.ir.code.stmt.ArrayStoreStatement;
+import org.mapleir.ir.code.stmt.ConditionalJumpStatement;
 import org.mapleir.ir.code.stmt.FieldStoreStatement;
 import org.mapleir.ir.code.stmt.MonitorStatement;
 import org.mapleir.ir.code.stmt.PopStatement;
@@ -24,18 +22,6 @@ import org.mapleir.stdlib.collections.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.SetCreator;
 import org.mapleir.stdlib.ir.StatementVisitor;
 import org.mapleir.stdlib.ir.transform.ssa.SSALocalAccess;
-
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 
 public class Propagator extends OptimisationPass.Optimiser {
 
@@ -521,6 +507,27 @@ public class Propagator extends OptimisationPass.Optimiser {
 			}
 			return phi;
 		}
+		
+		private void peep(ArithmeticExpression e) {
+			switch(e.getOperator()) {
+				case ADD: {
+					
+					break;
+				}
+			}
+		}
+		
+		private void reorder(ConditionalJumpStatement js) {
+			Expression left = js.getLeft();
+			if(left.getOpcode() == Opcode.CONST_LOAD) {
+				Expression right = js.getRight();
+				js.delete(1);
+				js.delete(0);
+				
+				js.setLeft(right);
+				js.setRight(left);
+			}
+		}
 
 		@Override
 		public Statement visit(Statement stmt) {
@@ -528,6 +535,10 @@ public class Propagator extends OptimisationPass.Optimiser {
 				return choose(visitVar((VarExpression) stmt), stmt);
 			} else if(stmt.getOpcode() == Opcode.PHI) {
 				return choose(visitPhi((PhiExpression) stmt), stmt);
+			} else if(stmt.getOpcode() == Opcode.ARITHMETIC) {
+//				peep((ArithmeticExpression) stmt);
+			} else if(stmt.getOpcode() == Opcode.COND_JUMP) {
+//				reorder((ConditionalJumpStatement) stmt);
 			}
 			return stmt;
 		}
@@ -745,9 +756,10 @@ public class Propagator extends OptimisationPass.Optimiser {
 			if(visitor.cleanDead()) {
 				changes++;
 			}
-			if(visitor.cleanEquivalentPhis()) {
-				changes++;
-			}
+		}
+		
+		if(visitor.cleanEquivalentPhis()) {
+			changes++;
 		}
 		
 		return changes;
