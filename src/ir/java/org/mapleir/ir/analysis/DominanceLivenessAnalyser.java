@@ -8,9 +8,6 @@ import org.mapleir.stdlib.collections.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.bitset.GenericBitSet;
 import org.mapleir.stdlib.collections.graph.flow.TarjanDominanceComputor;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 
 public class DominanceLivenessAnalyser {
@@ -24,7 +21,7 @@ public class DominanceLivenessAnalyser {
 	public final BasicBlock entry;
 	public final ControlFlowGraph red_cfg;
 	public final ExtendedDfs<BasicBlock> cfg_dfs;
-	public final Set<FlowEdge<BasicBlock>> back;
+	public final NullPermeableHashMap<BasicBlock, GenericBitSet<BasicBlock>> backEdges;
 	public final GenericBitSet<BasicBlock> btargs;
 	public final SimpleDfs<BasicBlock> reduced_dfs;
 	public final TarjanDominanceComputor<BasicBlock> domc;
@@ -43,17 +40,16 @@ public class DominanceLivenessAnalyser {
 		
 		entry = cfg.getEntries().iterator().next();
 		
-		cfg_dfs = new ExtendedDfs<>(cfg, entry, ExtendedDfs.EDGES | ExtendedDfs.PRE /* for sdoms*/ );
-		back = cfg_dfs.getEdges(ExtendedDfs.BACK);
+		cfg_dfs = new ExtendedDfs<>(cfg, entry, ExtendedDfs.EDGES);
+		backEdges = new NullPermeableHashMap<>(cfg);
 		btargs = cfg.createBitSet();
-		
-		red_cfg = reduce(cfg, back);
+		red_cfg = reduce(cfg, cfg_dfs.getEdges(ExtendedDfs.BACK));
 		reduced_dfs = new SimpleDfs<>(red_cfg, entry, true, true);
 		
 		computeReducedReachability();
 		computeTargetReachability();
 		
-		domc = new TarjanDominanceComputor<>(cfg);
+		domc = new TarjanDominanceComputor<>(cfg, reduced_dfs.preorder);
 		
 		computeStrictDominators();
 		
@@ -73,27 +69,19 @@ public class DominanceLivenessAnalyser {
 	}
 
 	private void computeStrictDominators() {
-		NullPermeableHashMap<BasicBlock, GenericBitSet<BasicBlock>> sdoms = new NullPermeableHashMap<>(cfg);
 		// i think this is how you do it..
-		for(BasicBlock b : cfg_dfs.preorder) {
+		for(BasicBlock b : reduced_dfs.postorder) {
 			BasicBlock idom = domc.idom(b);
 			if(idom != null) {
-				sdoms.getNonNull(b).add(idom);
-				sdoms.getNonNull(b).addAll(sdoms.getNonNull(idom));
-//				System.out.println(b.getId() + " idom " + idom.getId());
-				// System.out.println("  sdominators: " + sdoms.getNonNull(b));
+				GenericBitSet<BasicBlock> set = sdoms.getNonNull(idom);
+				set.add(b);
+				set.addAll(sdoms.getNonNull(b));
 			}
 		}
 		
-		for(Entry<BasicBlock, GenericBitSet<BasicBlock>> e : sdoms.entrySet()) {
-			for(BasicBlock b : e.getValue()) {
-				this.sdoms.getNonNull(b).add(e.getKey());
-			}
-		}
-		
-//		for(Entry<BasicBlock, Set<BasicBlock>> e : this.sdoms.entrySet()) {
-//			System.out.println(e.getKey() + " sdom " + GraphUtils.toBlockArray(e.getValue()));
-//		}
+//		for(Entry<BasicBlock, GenericBitSet<BasicBlock>> e : this.sdoms.entrySet())
+//			if (!e.getValue().isEmpty())
+//				System.out.println(e.getKey() + " sdom " + GraphUtils.toBlockArray(e.getValue()));
 	}
 
 	private void computeReducedReachability() {
@@ -106,51 +94,22 @@ public class DominanceLivenessAnalyser {
 	}
 	
 	private void computeTargetReachability() {
-		Map<BasicBlock, GenericBitSet<BasicBlock>> tups = new HashMap<>();
-		
-		for (BasicBlock b : cfg.vertices()) {
-			tups.put(b, tup(b));
-		}
-		
 		for (BasicBlock b : reduced_dfs.preorder) {
 			tq.getNonNull(b).add(b);
-			for (BasicBlock w : tups.get(b)) {
+
+			// Tup(t) = set of unreachable backedge targets from reachable sources
+			GenericBitSet<BasicBlock> tup = backEdges.getNonNull(b).relativeComplement(rv.get(b));
+			for (BasicBlock w : tup)
 				tq.get(b).addAll(tq.get(w));
-			}
 		}
-	}
-	
-	// Tup(t) = set of unreachable backedge targets from reachable sources
-	private GenericBitSet<BasicBlock> tup(BasicBlock t) {
-		GenericBitSet<BasicBlock> rt = rv.get(t);
-		
-		// add reachable backedge sources to temporary set
-		GenericBitSet<BasicBlock> set = cfg.createBitSet();
-		set.addAll(btargs);
-		set.retainAll(rt);
-		set.add(t);
-		
-		// go through them and see which ones have unreachable targets
-		GenericBitSet<BasicBlock> res = cfg.createBitSet();
-		for(BasicBlock tdash : set) {
-			for(FlowEdge<BasicBlock> succ : cfg.getEdges(tdash)) {
-				BasicBlock dst = succ.dst;
-				// s' = src, t' = dst
-				if(back.contains(succ) && !rt.contains(dst)) {
-					res.add(succ.dst);
-				}
-			}
-		}
-		
-		return res;
 	}
 
 	private ControlFlowGraph reduce(ControlFlowGraph cfg, Set<FlowEdge<BasicBlock>> back) {
 		ControlFlowGraph reducedCfg = cfg.copy();
 		for (FlowEdge<BasicBlock> e : back) {
 			reducedCfg.removeEdge(e.src, e);
-			
 			btargs.add(e.dst);
+			backEdges.getNonNull(e.src).add(e.dst);
 		}
 		return reducedCfg;
 	}

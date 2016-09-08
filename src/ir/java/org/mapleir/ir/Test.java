@@ -1,5 +1,6 @@
 package org.mapleir.ir;
 
+import org.mapleir.ir.analysis.DominanceLivenessAnalyser;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.BoissinotDestructor;
 import org.mapleir.ir.cfg.ControlFlowGraph;
@@ -406,9 +407,9 @@ public class Test {
 //				continue;
 //			}
 
-			if (!m.toString().startsWith("org/mapleir/ir/Test.test112")) {
-				continue;
-			}
+//			if (!m.toString().startsWith("org/mapleir/ir/Test.main")) {
+//				continue;
+//			}
 
 			System.out.println("Processing " + m + "\n");
 			ControlFlowGraph cfg = ControlFlowGraphBuilder.build(m);
@@ -417,7 +418,8 @@ public class Test {
 			DotWriter<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> writer = new DotWriter<>(config, cfg);
 			writer.removeAll().add(new ControlFlowGraphDecorator().setFlags(OPT_DEEP)).setName("pre-destruct").export();
 			try {
-				BoissinotDestructor destructor = new BoissinotDestructor(cfg);
+				DominanceLivenessAnalyser resolver = new DominanceLivenessAnalyser(cfg, null);
+				BoissinotDestructor destructor = new BoissinotDestructor(cfg, resolver);
 			} catch (RuntimeException e) {
 				throw new RuntimeException("\n" + cfg.toString(), e);
 			}
@@ -426,7 +428,7 @@ public class Test {
 
 			System.out.println(cfg);
 
-			writer.removeAll().add(new ControlFlowGraphDecorator().setFlags(OPT_DEEP)).setName("destructed").export();
+//			writer.removeAll().add(new ControlFlowGraphDecorator().setFlags(OPT_DEEP)).setName("destructed").export();
 
 			MethodNode m2 = new MethodNode(m.owner, m.access, m.name, m.desc, m.signature, m.exceptions.toArray(new String[0]));
 			ControlFlowGraphDumper.dump(cfg, m2);
