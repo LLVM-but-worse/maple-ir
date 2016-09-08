@@ -37,8 +37,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class BoissinotDestructor {
 	private final static boolean DO_VALUE_INTERFERENCE = true;
-	private final static boolean DO_SHARE_COALESCE = false;
-	private static final boolean DO_FACILITATE_COALESCE = false;
+	private final static boolean DO_SHARE_COALESCE = true;
+	private static final boolean DO_FACILITATE_COALESCE = true;
 	public static long elapse1, elapse2, elapse3, elapse4;
 
 	public void testSequentialize() {
@@ -80,9 +80,10 @@ public class BoissinotDestructor {
 	private Map<Local, CongruenceClass> congruenceClasses;
 	private Map<Local, Local> remap;
 
-	public BoissinotDestructor(ControlFlowGraph cfg) {
+	public BoissinotDestructor(ControlFlowGraph cfg, DominanceLivenessAnalyser resolver) {
 		this.cfg = cfg;
 		locals = cfg.getLocals();
+		this.resolver = resolver;
 
 		// 1. Insert copies to enter CSSA.
 		long now = System.nanoTime();
@@ -130,7 +131,7 @@ public class BoissinotDestructor {
 		}
 
 		// Create dominance
-		resolver = new DominanceLivenessAnalyser(cfg, null);
+//		resolver = new DominanceLivenessAnalyser(cfg, null);
 	}
 
 	private void insertCopies() {
@@ -276,18 +277,17 @@ public class BoissinotDestructor {
 			}
 
 			@Override
-			protected int buildIndex(BasicBlock b, Statement stmt, int index, Set<Local> usedLocals) {
+			protected void buildIndex(BasicBlock b, Statement stmt, int index, Set<Local> usedLocals) {
 				if (stmt instanceof ParallelCopyVarStatement) {
 					ParallelCopyVarStatement copy = (ParallelCopyVarStatement) stmt;
 					for (CopyPair pair : copy.pairs) {
 						defIndex.put(pair.targ, index);
 						lastUseIndex.getNonNull(pair.source).put(b, index);
-						index++;
 					}
 				} else {
-					index = super.buildIndex(b, stmt, index, usedLocals);
+					super.buildIndex(b, stmt, index, usedLocals);
 				}
-				return index;
+				return;
 			}
 		};
 		defuse.computeWithIndices(dom_dfs.preorder);
@@ -462,6 +462,7 @@ public class BoissinotDestructor {
 		return false;
 	}
 
+	// if they are in the same pcvs they will have the same index.
 	private boolean checkPreDomOrder(Local x, Local y) {
 		return defuse.defIndex.get(x) < defuse.defIndex.get(y);
 	}
@@ -620,8 +621,8 @@ public class BoissinotDestructor {
 		}
 		if (checkPreDomOrder(a, b))
 			throw new IllegalArgumentException("b should dom a");
-		if (!checkPreDomOrder(b, a)) // dom = b ; def = a
-			throw new IllegalArgumentException("this shouldn't happen???");
+//		if (!checkPreDomOrder(b, a)) // dom = b ; def = a
+//			throw new IllegalArgumentException("this shouldn't happen???");
 
 		BasicBlock defA = defuse.defs.get(a);
 		// if it's liveOut it definitely intersects
