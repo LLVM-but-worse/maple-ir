@@ -3,6 +3,7 @@ package org.mapleir.ir.code.expr;
 import static org.objectweb.asm.Opcodes.*;
 
 import org.mapleir.ir.cfg.ControlFlowGraph;
+import org.mapleir.ir.code.Opcode;
 import org.mapleir.ir.code.stmt.Statement;
 import org.mapleir.stdlib.cfg.util.TabbedStringWriter;
 import org.mapleir.stdlib.cfg.util.TypeUtils;
@@ -226,5 +227,32 @@ public class ArithmeticExpression extends Expression {
 			return arith.operator == operator && left.equivalent(arith.left) && right.equivalent(arith.right);
 		}
 		return false;
+	}
+	
+	public int[] getIncValue() {
+		if(getType() == Type.INT_TYPE) {
+			if (left.getOpcode() == Opcode.LOCAL_LOAD && right.getOpcode() == Opcode.CONST_LOAD) {
+				ConstantExpression c = (ConstantExpression) right;
+				int l = ((VarExpression) left).getLocal().getCodeIndex();
+				Object o = c.getConstant();
+				if(o instanceof Number) {
+					int i = ((Number) o).intValue();
+					if(i >= Short.MIN_VALUE && i <= Short.MAX_VALUE) {
+						return new int[]{i, l};
+					}
+				}
+			} else if (right.getOpcode() == Opcode.LOCAL_LOAD && left.getOpcode() == Opcode.CONST_LOAD) {
+				ConstantExpression c = (ConstantExpression) left;
+				int l = ((VarExpression) right).getLocal().getCodeIndex();
+				Object o = c.getConstant();
+				if(o instanceof Number) {
+					int i = ((Number) o).intValue();
+					if(i >= Short.MIN_VALUE && i <= Short.MAX_VALUE) {
+						return new int[]{i, l};
+					}
+				}
+			}
+		}
+		return new int[] {0, -1};
 	}
 }
