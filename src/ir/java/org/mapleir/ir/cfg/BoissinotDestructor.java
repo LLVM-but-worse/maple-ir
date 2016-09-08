@@ -11,27 +11,19 @@ import org.mapleir.ir.code.stmt.Statement;
 import org.mapleir.ir.code.stmt.copy.AbstractCopyStatement;
 import org.mapleir.ir.code.stmt.copy.CopyPhiStatement;
 import org.mapleir.ir.code.stmt.copy.CopyVarStatement;
-import org.mapleir.ir.dot.ControlFlowGraphDecorator;
-import org.mapleir.ir.dot.LivenessDecorator;
 import org.mapleir.ir.locals.BasicLocal;
 import org.mapleir.ir.locals.Local;
 import org.mapleir.ir.locals.LocalsHandler;
-import org.mapleir.stdlib.cfg.edge.FlowEdge;
 import org.mapleir.stdlib.cfg.util.TabbedStringWriter;
 import org.mapleir.stdlib.collections.ListCreator;
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.bitset.GenericBitSet;
-import org.mapleir.stdlib.collections.graph.dot.BasicDotConfiguration;
-import org.mapleir.stdlib.collections.graph.dot.DotConfiguration;
-import org.mapleir.stdlib.collections.graph.dot.DotWriter;
-import org.mapleir.stdlib.ir.transform.Liveness;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Type;
 
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -43,31 +35,11 @@ import java.util.Stack;
 import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static org.mapleir.ir.dot.ControlFlowGraphDecorator.OPT_DEEP;
-
-public class BoissinotDestructor implements Liveness<BasicBlock> {
+public class BoissinotDestructor {
 	private final static boolean DO_VALUE_INTERFERENCE = true;
 	private final static boolean DO_SHARE_COALESCE = false;
 	private static final boolean DO_FACILITATE_COALESCE = false;
 	public static long elapse1, elapse2, elapse3, elapse4;
-
-	private final Set<Local> localsTest = new HashSet<>();
-	@Override
-	public Set<Local> in(BasicBlock b) {
-		Set<Local> live = new HashSet<>();
-		for (Local l : localsTest)
-			if (resolver.isLiveIn(b, l))
-				live.add(l);
-		return live;
-	}
-	@Override
-	public Set<Local> out(BasicBlock b) {
-		Set<Local> live = new HashSet<>();
-		for (Local l : localsTest)
-			if (resolver.isLiveOut(b, l))
-				live.add(l);
-		return live;
-	}
 
 	public void testSequentialize() {
 		AtomicInteger base = new AtomicInteger(0);
@@ -120,16 +92,6 @@ public class BoissinotDestructor implements Liveness<BasicBlock> {
 		createDuChains();
 		elapse1 += System.nanoTime() - now;
 
-		System.out.println("insert: " + cfg);
-		localsTest.addAll(defuse.phiDefs.keySet());
-		localsTest.addAll(defuse.uses.keySet());
-		localsTest.addAll(defuse.defs.keySet());
-		BasicDotConfiguration<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> config = new BasicDotConfiguration<>(DotConfiguration.GraphType.DIRECTED);
-		DotWriter<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> writer = new DotWriter<>(config, cfg);
-		writer.add(new ControlFlowGraphDecorator().setFlags(OPT_DEEP))
-				.add("liveness", new LivenessDecorator<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>>().setLiveness(this))
-				.setName("after-insert").export();
-
 		// 2. Build value interference
 		now = System.nanoTime();
 		computeValueInterference();
@@ -144,13 +106,11 @@ public class BoissinotDestructor implements Liveness<BasicBlock> {
 		coalesceCopies();
 		applyRemapping(remap);
 		elapse3 += System.nanoTime() - now;
-		System.out.println("coalesce: " + cfg);
 
 		// 4. Sequentialize parallel copies
 		now = System.nanoTime();
 		sequentialize();
 		elapse4 += System.nanoTime() - now;
-		System.out.println("seq: " + cfg);
 	}
 
 	// ============================================================================================================= //
@@ -395,7 +355,6 @@ public class BoissinotDestructor implements Liveness<BasicBlock> {
 				phiConClass.add(l);
 				congruenceClasses.put(l, phiConClass);
 			}
-			System.out.println("PCC: " + phiConClass);
 
 			// we can simply drop all the phis without further consideration
 			if (!processed.contains(b)) {
@@ -444,11 +403,6 @@ public class BoissinotDestructor implements Liveness<BasicBlock> {
 			}
 		}
 
-		System.out.println("\nFinal congruence classes:");
-		for (Entry<Local, CongruenceClass> e : congruenceClasses.entrySet())
-			System.out.println(e.getKey() + " => " + e.getValue());
-		System.out.println();
-
 		// ok NOW we remap to avoid that double remap issue
 		for (Entry<Local, CongruenceClass> e : congruenceClasses.entrySet())
 			remap.put(e.getKey(), e.getValue().first());
@@ -456,7 +410,6 @@ public class BoissinotDestructor implements Liveness<BasicBlock> {
 
 	// Process the copy a = b. Returns true if a and b can be coalesced via value.
 	private boolean tryCoalesceCopyValue(Local a, Local b) {
-		System.out.println("\nAttempt coalesce copy: " + a + " = " + b);
 		CongruenceClass conClassA = getCongruenceClass(a);
 		CongruenceClass conClassB = getCongruenceClass(b);
 
@@ -466,16 +419,12 @@ public class BoissinotDestructor implements Liveness<BasicBlock> {
 		if (conClassA.size() == 1 && conClassB.size() == 1)
 			return checkInterfereSingle(conClassA, conClassB);
 
-		System.out.println("  Conclasses: " + conClassA + " vs " + conClassB);
 		if (checkInterfere(conClassA, conClassB)) {
 			return false;
 		}
 
 		// merge congruence classes
-		System.out.println("  Pre-merge A: " + conClassA);
-		System.out.println("  Pre-merge B: " + conClassB);
 		merge(conClassA, conClassB);
-		System.out.println("  Post-merge: " + conClassA);
 		return true;
 	}
 
@@ -631,12 +580,8 @@ public class BoissinotDestructor implements Liveness<BasicBlock> {
 						nb--;
 				} while (!dom.isEmpty() && !checkPreDomOrder(parent, current));
 
-				System.out.println("  Interference: " + current + " of " + (currentClass? red : blue) + " vs " + parent + " of " + (parentClass? red : blue));
-				if (interference(current, parent, currentClass == parentClass)) {
-					System.out.println("    => true");
+				if (interference(current, parent, currentClass == parentClass))
 					return true;
-				}
-				System.out.println("    => false");
 			}
 			dom.push(current);
 			domClasses.push(currentClass);
@@ -656,7 +601,6 @@ public class BoissinotDestructor implements Liveness<BasicBlock> {
 			while (tmp != null && !intersect(a, tmp)) {
 				tmp = equalAncIn.get(tmp);
 			}
-			System.out.println("    Values: a=" + values.getNonNull(a) + " b=" + values.getNonNull(b));
 			if (values.getNonNull(a) != values.getNonNull(b)) {
 				return tmp != null;
 			} else {
@@ -679,20 +623,16 @@ public class BoissinotDestructor implements Liveness<BasicBlock> {
 		if (!checkPreDomOrder(b, a)) // dom = b ; def = a
 			throw new IllegalArgumentException("this shouldn't happen???");
 
-		System.out.print("    Intersection check check: " + a + " vs " + b + ": ");
 		BasicBlock defA = defuse.defs.get(a);
-		if (resolver.isLiveOut(defA, b)) { // if it's liveOut it definitely intersects
-			System.out.println("true (liveOut)");
+		// if it's liveOut it definitely intersects
+		if (resolver.isLiveOut(defA, b))
 			return true;
-		}
-		if (!resolver.isLiveIn(defA, b) && defA != defuse.defs.get(b)) { // defA == defB or liveIn to intersect{
-			System.out.println("false (def/liveIn)");
+		// defA == defB or liveIn to intersect{
+		if (!resolver.isLiveIn(defA, b) && defA != defuse.defs.get(b))
 			return false;
-		}
 		// ambiguous case. we need to check if use(dom) occurs after def(def), in that case it interferes. otherwise no
 		int domUseIndex = defuse.lastUseIndex.get(b).get(defA);
 		int defDefIndex = defuse.defIndex.get(a);
-		System.out.println((domUseIndex > defDefIndex) + " (ambiguous)");
 		return domUseIndex > defDefIndex;
 	}
 
