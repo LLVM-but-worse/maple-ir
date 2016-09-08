@@ -86,7 +86,7 @@ public class SSADefUseMap implements Opcode {
 					if(s instanceof VarExpression)
 						usedLocals.add(((VarExpression) s).getLocal());
 
-				index = buildIndex(b, stmt, index, usedLocals);
+				buildIndex(b, stmt, index++, usedLocals);
 				build(b, stmt, usedLocals);
 			}
 		}
@@ -99,17 +99,15 @@ public class SSADefUseMap implements Opcode {
 				return;
 			Local l = copy.getVariable().getLocal();
 			defs.put(l, b);
-			uses.getNonNull(l);
 
-			if(stmt instanceof CopyPhiStatement) {
+			if(copy instanceof CopyPhiStatement) {
+				phiDefs.put(l, (CopyPhiStatement) copy);
 				PhiExpression phi = (PhiExpression) copy.getExpression();
-				GenericBitSet<Local> phiUseSet = phiUses.get(b);
 				for(Entry<BasicBlock, Expression> en : phi.getArguments().entrySet()) {
 					Local ul = ((VarExpression) en.getValue()).getLocal();
 					uses.getNonNull(ul).add(en.getKey());
-					phiUseSet.add(ul);
+					phiUses.get(b).add(ul);
 				}
-				phiDefs.put(l, (CopyPhiStatement) copy);
 				return;
 			}
 		}
@@ -118,25 +116,24 @@ public class SSADefUseMap implements Opcode {
 			uses.getNonNull(usedLocal).add(b);
 	}
 
-	protected int buildIndex(BasicBlock b, Statement stmt, int index, Set<Local> usedLocals) {
+	protected void buildIndex(BasicBlock b, Statement stmt, int index, Set<Local> usedLocals) {
 		if (stmt instanceof AbstractCopyStatement) {
 			AbstractCopyStatement copy = (AbstractCopyStatement) stmt;
+			if (copy.isSynthetic())
+				return;
 			defIndex.put(copy.getVariable().getLocal(), index);
 
 			if (copy instanceof CopyPhiStatement) {
-				CopyPhiStatement copyPhi = (CopyPhiStatement) copy;
-				PhiExpression phi = copyPhi.getExpression();
+				PhiExpression phi = ((CopyPhiStatement) copy).getExpression();
 				for (Entry<BasicBlock, Expression> en : phi.getArguments().entrySet()) {
-					Local ul = ((VarExpression) en.getValue()).getLocal();
-					lastUseIndex.getNonNull(ul).put(en.getKey(), en.getKey().size());
-//					lastUseIndex.getNonNull(ul).put(b, -1);
+					lastUseIndex.getNonNull(((VarExpression) en.getValue()).getLocal()).put(en.getKey(), en.getKey().size());
+//					lastUseIndex.get(ul).put(b, -1);
 				}
-				return ++index;
+				return;
 			}
 		}
 
 		for (Local usedLocal : usedLocals)
 			lastUseIndex.getNonNull(usedLocal).put(b, index);
-		return ++index;
 	}
 }

@@ -1,8 +1,8 @@
 package org.mapleir.ir;
 
+import org.mapleir.ir.analysis.DominanceLivenessAnalyser;
 import org.mapleir.ir.cfg.BoissinotDestructor;
 import org.mapleir.ir.cfg.ControlFlowGraph;
-import org.mapleir.ir.cfg.SreedharDestructor;
 import org.mapleir.ir.cfg.builder.ControlFlowGraphBuilder;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.tree.ClassNode;
@@ -25,7 +25,7 @@ public class Benchmark {
 		cr.accept(cn, 0);
 
 		long totalTime = 0;
-//		System.in.read();
+		System.in.read();
 
 		Iterator<MethodNode> it = new ArrayList<>(cn.methods).listIterator();
 		while (it.hasNext()) {
@@ -38,10 +38,11 @@ public class Benchmark {
 			try {
 				ControlFlowGraph cfgOrig = ControlFlowGraphBuilder.build(m);
 				for (int i = 0; i < NUM_ITER; i++) {
+					DominanceLivenessAnalyser resolver = new DominanceLivenessAnalyser(cfgOrig, null);
 					ControlFlowGraph cfg = cfgOrig.copy();
 					long now = System.nanoTime();
-					new SreedharDestructor(cfg);
-//					new BoissinotDestructor(cfg);
+//					new SreedharDestructor(cfg);
+					new BoissinotDestructor(cfg, resolver);
 					totalTime += System.nanoTime() - now;
 				}
 			} catch (RuntimeException e) {

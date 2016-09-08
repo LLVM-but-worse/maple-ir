@@ -556,7 +556,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		liveness.compute();
 		this.liveness = liveness;
 		
-		doms = new TarjanDominanceComputor<>(builder.graph);
+		doms = new TarjanDominanceComputor<>(builder.graph, new SimpleDfs<>(builder.graph, builder.graph.getEntries().iterator().next(), true, false).preorder);
 		insertPhis();
 		rename();
 //		cleanHandlerPhis(); // we cant do this because it messes up the destructor's coalescing.
