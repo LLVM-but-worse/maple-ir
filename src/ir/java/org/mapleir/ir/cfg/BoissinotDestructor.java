@@ -38,8 +38,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class BoissinotDestructor {
 	private boolean DO_VALUE_INTERFERENCE = false;
 	private boolean DO_SHARE_COALESCE = false;
-	private boolean DO_VALUE_SEQUENTIALIZE = false;
-	private boolean DO_COMPLEX_VALUES = false;
 
 	public void testSequentialize() {
 		AtomicInteger base = new AtomicInteger(0);
@@ -93,10 +91,6 @@ public class BoissinotDestructor {
 			DO_VALUE_INTERFERENCE = true;
 		if ((option & 2) != 0)
 			DO_SHARE_COALESCE = true;
-		if ((option & 4) != 0)
-			DO_COMPLEX_VALUES = true;
-		if ((option & 8) != 0)
-			DO_VALUE_SEQUENTIALIZE = true;
 
 		// 1. Insert copies to enter CSSA.
 		init();
@@ -769,7 +763,6 @@ public class BoissinotDestructor {
 			Stack<Local> ready = new Stack<>();
 			Stack<Local> to_do = new Stack<>();
 			Map<Local, Local> loc = new HashMap<>();
-			Map<Local, Local> values = new HashMap<>();
 			Map<Local, Local> pred = new HashMap<>();
 			Map<Local, Type> types = new HashMap<>();
 			pred.put(spill, null);
@@ -777,10 +770,6 @@ public class BoissinotDestructor {
 			for (CopyPair pair : pairs) { // initialization
 				loc.put(pair.targ, null);
 				loc.put(pair.source, null);
-				if (DO_VALUE_SEQUENTIALIZE) {
-					values.put(pair.targ, pair.targ);
-					values.put(pair.source, pair.source);
-				}
 				types.put(pair.targ, pair.type);
 				types.put(pair.source, pair.type);
 			}
@@ -810,8 +799,6 @@ public class BoissinotDestructor {
 					VarExpression varB = new VarExpression(b, types.get(b)); // generate the copy b = c
 					VarExpression varC = new VarExpression(c, types.get(b));
 					result.add(new CopyVarStatement(varB, varC));
-					if (DO_VALUE_SEQUENTIALIZE)
-						values.put(b, values.get(c));
 
 					loc.put(a, b);
 					if (a == c && pred.get(a) != null) {
@@ -822,14 +809,12 @@ public class BoissinotDestructor {
 				}
 
 				Local b = to_do.pop();
-				if (DO_VALUE_SEQUENTIALIZE ? values.get(b) != values.get(loc.get(pred.get(b))) : b != loc.get(pred.get(b))) {
+				if (b != loc.get(pred.get(b))) {
 					if (!types.containsKey(b))
 						throw new IllegalStateException("this shouldn't happen");
 					VarExpression varN = new VarExpression(spill, types.get(b)); // generate copy n = b
 					VarExpression varB = new VarExpression(b, types.get(b));
 					result.add(new CopyVarStatement(varN, varB));
-					if (DO_VALUE_SEQUENTIALIZE)
-						values.put(spill, values.get(b));
 					loc.put(b, spill);
 					ready.push(b);
 				}
