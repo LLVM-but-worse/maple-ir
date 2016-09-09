@@ -45,10 +45,10 @@ public class Benchmark {
 			}
 		}
 
-		benchCopies(tests);
+		benchmark(tests);
 	}
 
-	private static HashMap<String, Integer> results = new LinkedHashMap<>();
+	private static HashMap<String, Long> results = new LinkedHashMap<>();
 	private static void benchCopies(HashMap<String, Iterable<MethodNode>> tests) throws IOException {
 		for (Entry<String, Iterable<MethodNode>> test : tests.entrySet()) {
 			results.clear();
@@ -72,16 +72,6 @@ public class Benchmark {
 					resolver = new DominanceLivenessAnalyser(cfg, null);
 					new BoissinotDestructor(cfg, resolver, 0b0011);
 					recordCopies(cfg, "BSharing");
-
-					cfg = ControlFlowGraphBuilder.build(m);
-					resolver = new DominanceLivenessAnalyser(cfg, null);
-					new BoissinotDestructor(cfg, resolver, 0b0111);
-					recordCopies(cfg, "ComplexValues");
-
-					cfg = ControlFlowGraphBuilder.build(m);
-					resolver = new DominanceLivenessAnalyser(cfg, null);
-					new BoissinotDestructor(cfg, resolver, 0b1111);
-					recordCopies(cfg, "BAll");
 				} catch (RuntimeException e) {
 					System.err.println(test.getKey());
 					System.err.println(m.toString());
@@ -94,61 +84,47 @@ public class Benchmark {
 	}
 
 	private static void recordCopies(ControlFlowGraph cfg, String key) {
-		results.put(key, results.getOrDefault(key, 0) + countCopies(cfg));
+		results.put(key, results.getOrDefault(key, 0L) + countCopies(cfg));
 	}
 
 	private static void benchmark(HashMap<String, Iterable<MethodNode>> tests) throws IOException {
-		final int NUM_ITER = 10000;
+		final int NUM_ITER = 100;
 		System.in.read();
 
-		printResultsHeader();
 		for (Entry<String, Iterable<MethodNode>> test : tests.entrySet()) {
 			results.clear();
 			for (MethodNode m : test.getValue()) {
+				System.out.println(m.toString());
 				try {
 					for (int i = 0; i < NUM_ITER; i++) {
 						ControlFlowGraph cfg = ControlFlowGraphBuilder.build(m);
-						DominanceLivenessAnalyser resolver = new DominanceLivenessAnalyser(cfg, null);
-
 						time();
 						new SreedharDestructor(cfg);
 						time("Sreedhar3");
+					}
 
-						cfg = ControlFlowGraphBuilder.build(m);
-						resolver = new DominanceLivenessAnalyser(cfg, null);
+					for (int i = 0; i < NUM_ITER; i++) {
+						ControlFlowGraph cfg = ControlFlowGraphBuilder.build(m);
+						DominanceLivenessAnalyser resolver = new DominanceLivenessAnalyser(cfg, null);
 						time();
 						new BoissinotDestructor(cfg, resolver, 0b0000);
 						time("Boissinot");
+					}
 
-						cfg = ControlFlowGraphBuilder.build(m);
-						resolver = new DominanceLivenessAnalyser(cfg, null);
+					for (int i = 0; i < NUM_ITER; i++) {
+						ControlFlowGraph cfg = ControlFlowGraphBuilder.build(m);
+						DominanceLivenessAnalyser resolver = new DominanceLivenessAnalyser(cfg, null);
 						time();
 						new BoissinotDestructor(cfg, resolver, 0b0001);
 						time("BValue");
+					}
 
-						cfg = ControlFlowGraphBuilder.build(m);
-						resolver = new DominanceLivenessAnalyser(cfg, null);
+					for (int i = 0; i < NUM_ITER; i++) {
+						ControlFlowGraph cfg = ControlFlowGraphBuilder.build(m);
+						DominanceLivenessAnalyser resolver = new DominanceLivenessAnalyser(cfg, null);
 						time();
 						new BoissinotDestructor(cfg, resolver, 0b0011);
 						time("BSharing");
-
-						cfg = ControlFlowGraphBuilder.build(m);
-						resolver = new DominanceLivenessAnalyser(cfg, null);
-						time();
-						new BoissinotDestructor(cfg, resolver, 0b0111);
-						time("BFacilitate");
-
-						cfg = ControlFlowGraphBuilder.build(m);
-						resolver = new DominanceLivenessAnalyser(cfg, null);
-						time();
-						new BoissinotDestructor(cfg, resolver, 0b1011);
-						time("BValueSeq");
-
-						cfg = ControlFlowGraphBuilder.build(m);
-						resolver = new DominanceLivenessAnalyser(cfg, null);
-						time();
-						new BoissinotDestructor(cfg, resolver, 0b1111);
-						time("BAll");
 					}
 				} catch (RuntimeException e) {
 					throw new RuntimeException(e);
@@ -156,6 +132,7 @@ public class Benchmark {
 			}
 			printResults(test.getKey());
 		}
+		printResultsHeader();
 	}
 
 	private static void printResultsHeader() {
@@ -170,7 +147,7 @@ public class Benchmark {
 
 	private static void printResults(String testName) {
 		System.out.print(testName + ",");
-		for (Iterator<Integer> iterator = results.values().iterator(); iterator.hasNext();) {
+		for (Iterator<Long> iterator = results.values().iterator(); iterator.hasNext();) {
 			System.out.print(iterator.next());
 			if (iterator.hasNext())
 				System.out.print(",");
@@ -190,7 +167,7 @@ public class Benchmark {
 		long elapsed = System.nanoTime() - now;
 		if (now == -1L)
 			throw new IllegalStateException();
-		results.put(key, (int) elapsed / 1_000_000);
+		results.put(key, results.getOrDefault(key, 0L) + elapsed);
 		now = -1L;
 	}
 
