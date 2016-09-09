@@ -25,7 +25,7 @@ import static org.mapleir.ir.dot.ControlFlowGraphDecorator.OPT_DEEP;
 
 public class Test {
 
-	void loopTest() {
+	void testLoop() {
 		int x = 1;
 		do {
 			if (x > 5)
@@ -390,10 +390,10 @@ public class Test {
 		ClassNode cn = new ClassNode();
 		cr.accept(cn, 0);
 
-//		 InputStream i = new FileInputStream(new File("res/specjvm2008/FFT.class"));
-//		 ClassReader cr = new ClassReader(i);
-//		 ClassNode cn = new ClassNode();
-//		 cr.accept(cn, 0);
+//		InputStream i = new FileInputStream(new File("res/specjvm2008/kernel.class"));
+//		ClassReader cr = new ClassReader(i);
+//		ClassNode cn = new ClassNode();
+//		cr.accept(cn, 0);
 
 		Iterator<MethodNode> it = new ArrayList<>(cn.methods).listIterator();
 		while (it.hasNext()) {

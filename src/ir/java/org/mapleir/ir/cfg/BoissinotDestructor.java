@@ -36,10 +36,10 @@ import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class BoissinotDestructor {
-	private final static boolean DO_VALUE_INTERFERENCE = true;
-	private final static boolean DO_SHARE_COALESCE = true;
-	private static final boolean DO_FACILITATE_COALESCE = true;
-	public static long elapse1, elapse2, elapse3, elapse4;
+	private boolean DO_VALUE_INTERFERENCE = false;
+	private boolean DO_SHARE_COALESCE = false;
+	private boolean DO_VALUE_SEQUENTIALIZE = false;
+	private boolean DO_COMPLEX_VALUES = false;
 
 	public void testSequentialize() {
 		AtomicInteger base = new AtomicInteger(0);
@@ -81,37 +81,42 @@ public class BoissinotDestructor {
 	private Map<Local, Local> remap;
 
 	public BoissinotDestructor(ControlFlowGraph cfg, DominanceLivenessAnalyser resolver) {
+		this(cfg, resolver, -1);
+	}
+
+	public BoissinotDestructor(ControlFlowGraph cfg, DominanceLivenessAnalyser resolver, int option) {
 		this.cfg = cfg;
 		locals = cfg.getLocals();
 		this.resolver = resolver;
 
+		if ((option & 1) != 0)
+			DO_VALUE_INTERFERENCE = true;
+		if ((option & 2) != 0)
+			DO_SHARE_COALESCE = true;
+		if ((option & 4) != 0)
+			DO_COMPLEX_VALUES = true;
+		if ((option & 8) != 0)
+			DO_VALUE_SEQUENTIALIZE = true;
+
 		// 1. Insert copies to enter CSSA.
-		long now = System.nanoTime();
 		init();
 		insertCopies();
 		constructDominance();
 		createDuChains();
-		elapse1 += System.nanoTime() - now;
 
 		// 2. Build value interference
-		now = System.nanoTime();
 		computeValueInterference();
-		elapse2 += System.nanoTime() - now;
 
 		// 3. Aggressively coalesce while in CSSA to leave SSA
-		now = System.nanoTime();
 		// 3a. Coalesce phi locals to leave CSSA (!!!)
 		coalescePhis();
 
 		// 3b. Coalesce the rest of the copies
 		coalesceCopies();
 		applyRemapping(remap);
-		elapse3 += System.nanoTime() - now;
 
 		// 4. Sequentialize parallel copies
-		now = System.nanoTime();
 		sequentialize();
-		elapse4 += System.nanoTime() - now;
 	}
 
 	// ============================================================================================================= //
@@ -199,24 +204,6 @@ public class BoissinotDestructor {
 				//  we need to update the def/use maps here.
 
 				r.phi.setArgument(r.pred, new VarExpression(zi, r.type));
-			}
-
-			if (DO_FACILITATE_COALESCE) {
-				// replace uses of xi with zi in dominated successors to faciltate coalescing
-				for (BasicBlock succ : resolver.sdoms.getNonNull(p)) {
-					for (Statement stmt : succ) {
-						for (Statement child : stmt) {
-							if (child.getOpcode() == Opcode.LOCAL_LOAD) {
-								VarExpression var = ((VarExpression) child);
-								Local local = var.getLocal();
-								for (CopyPair pair : copy.pairs) {
-									if (local == pair.source)
-										var.setLocal(pair.targ);
-								}
-							}
-						}
-					}
-				}
 			}
 
 			insertEnd(p, copy);
@@ -790,8 +777,10 @@ public class BoissinotDestructor {
 			for (CopyPair pair : pairs) { // initialization
 				loc.put(pair.targ, null);
 				loc.put(pair.source, null);
-				values.put(pair.targ, pair.targ);
-				values.put(pair.source, pair.source);
+				if (DO_VALUE_SEQUENTIALIZE) {
+					values.put(pair.targ, pair.targ);
+					values.put(pair.source, pair.source);
+				}
 				types.put(pair.targ, pair.type);
 				types.put(pair.source, pair.type);
 			}
@@ -821,7 +810,8 @@ public class BoissinotDestructor {
 					VarExpression varB = new VarExpression(b, types.get(b)); // generate the copy b = c
 					VarExpression varC = new VarExpression(c, types.get(b));
 					result.add(new CopyVarStatement(varB, varC));
-					values.put(b, values.get(c));
+					if (DO_VALUE_SEQUENTIALIZE)
+						values.put(b, values.get(c));
 
 					loc.put(a, b);
 					if (a == c && pred.get(a) != null) {
@@ -832,13 +822,14 @@ public class BoissinotDestructor {
 				}
 
 				Local b = to_do.pop();
-				if (values.get(b) != values.get(loc.get(pred.get(b)))) {
+				if (DO_VALUE_SEQUENTIALIZE ? values.get(b) != values.get(loc.get(pred.get(b))) : b != loc.get(pred.get(b))) {
 					if (!types.containsKey(b))
 						throw new IllegalStateException("this shouldn't happen");
 					VarExpression varN = new VarExpression(spill, types.get(b)); // generate copy n = b
 					VarExpression varB = new VarExpression(b, types.get(b));
 					result.add(new CopyVarStatement(varN, varB));
-					values.put(spill, values.get(b));
+					if (DO_VALUE_SEQUENTIALIZE)
+						values.put(spill, values.get(b));
 					loc.put(b, spill);
 					ready.push(b);
 				}
