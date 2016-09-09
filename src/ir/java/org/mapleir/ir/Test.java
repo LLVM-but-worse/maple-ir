@@ -16,8 +16,10 @@ import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Iterator;
 
@@ -386,14 +388,14 @@ public class Test {
 	}
 
 	public static void main(String[] args) throws IOException {
-		ClassReader cr = new ClassReader(Test.class.getCanonicalName());
-		ClassNode cn = new ClassNode();
-		cr.accept(cn, 0);
-
-//		InputStream i = new FileInputStream(new File("res/specjvm2008/kernel.class"));
-//		ClassReader cr = new ClassReader(i);
+//		ClassReader cr = new ClassReader(Test.class.getCanonicalName());
 //		ClassNode cn = new ClassNode();
 //		cr.accept(cn, 0);
+
+		InputStream i = new FileInputStream(new File("res/specjvm2008/LU.class"));
+		ClassReader cr = new ClassReader(i);
+		ClassNode cn = new ClassNode();
+		cr.accept(cn, 0);
 
 		Iterator<MethodNode> it = new ArrayList<>(cn.methods).listIterator();
 		while (it.hasNext()) {
