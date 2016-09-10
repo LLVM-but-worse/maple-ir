@@ -8,9 +8,12 @@ import org.mapleir.ir.cfg.SreedharDestructor;
 import org.mapleir.ir.cfg.builder.ControlFlowGraphBuilder;
 import org.mapleir.ir.code.stmt.Statement;
 import org.mapleir.ir.code.stmt.copy.AbstractCopyStatement;
+import org.mapleir.stdlib.collections.NodeTable;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
+import org.topdank.byteengineer.commons.data.JarInfo;
+import org.topdank.byteio.in.SingleJarDownloader;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -25,32 +28,34 @@ import java.util.Map.Entry;
 
 public class Benchmark {
 	public static void main(String[] args) throws IOException {
-		File testDir = new File("res/specjvm2008");
-		HashMap<String, Iterable<MethodNode>> tests = new LinkedHashMap<>();
-		for (File testFile : testDir.listFiles()) {
-			if (testFile.isDirectory())
-				tests.put(testFile.getName(), getMethods(testFile.listFiles()));
-			else
-				tests.put(testFile.getName(), getMethods(testFile));
-		}
+		HashMap<String, List<MethodNode>> tests = new LinkedHashMap<>();
+//		File testDir = new File("res/specjvm2008");
+//		for (File testFile : testDir.listFiles()) {
+//			if (testFile.isDirectory())
+//				tests.put(testFile.getName(), getMethods(testFile.listFiles()));
+//			else
+//				tests.put(testFile.getName(), getMethods(testFile));
+//		}
+//
+//		ClassReader cr = new ClassReader(Test.class.getCanonicalName());
+//		ClassNode cn = new ClassNode();
+//		cr.accept(cn, 0);
+//		for (MethodNode m : cn.methods) {
+//			if (m.name.startsWith("test")) {
+//				List<MethodNode> methods = new ArrayList<>();
+//				methods.add(m);
+//				tests.put(m.name, methods);
+//			}
+//		}
 
-		ClassReader cr = new ClassReader(Test.class.getCanonicalName());
-		ClassNode cn = new ClassNode();
-		cr.accept(cn, 0);
-		for (MethodNode m : cn.methods) {
-			if (m.name.startsWith("test")) {
-				List<MethodNode> methods = new ArrayList<>();
-				methods.add(m);
-				tests.put(m.name, methods);
-			}
-		}
+		tests.put("fernflower", getMethods(new JarInfo(new File("res/fernflower.jar"))));
 
 		benchmark(tests);
 	}
 
 	private static HashMap<String, Long> results = new LinkedHashMap<>();
-	private static void benchCopies(HashMap<String, Iterable<MethodNode>> tests) throws IOException {
-		for (Entry<String, Iterable<MethodNode>> test : tests.entrySet()) {
+	private static void benchCopies(HashMap<String, List<MethodNode>> tests) throws IOException {
+		for (Entry<String, List<MethodNode>> test : tests.entrySet()) {
 			results.clear();
 			for (MethodNode m : test.getValue()) {
 				try {
@@ -87,14 +92,18 @@ public class Benchmark {
 		results.put(key, results.getOrDefault(key, 0L) + countCopies(cfg));
 	}
 
-	private static void benchmark(HashMap<String, Iterable<MethodNode>> tests) throws IOException {
+	private static void benchmark(HashMap<String, List<MethodNode>> tests) throws IOException {
 		final int NUM_ITER = 100;
-		System.in.read();
+//		System.in.read();
 
-		for (Entry<String, Iterable<MethodNode>> test : tests.entrySet()) {
+		for (Entry<String, List<MethodNode>> test : tests.entrySet()) {
 			results.clear();
+			int k = 0;
 			for (MethodNode m : test.getValue()) {
-				System.out.println(m.toString());
+//				if (!m.toString().equals("org/jetbrains/java/decompiler/main/rels/ClassWrapper.init()V"))
+//					continue;
+				k++;
+				System.out.println("  " + m.toString() + " (" + k + " / " + test.getValue().size() + ")");
 				try {
 					for (int i = 0; i < NUM_ITER; i++) {
 						ControlFlowGraph cfg = ControlFlowGraphBuilder.build(m);
@@ -171,7 +180,7 @@ public class Benchmark {
 		now = -1L;
 	}
 
-	private static Iterable<MethodNode> getMethods(File[] files) throws IOException {
+	private static List<MethodNode> getMethods(File[] files) throws IOException {
 		List<MethodNode> methods = new ArrayList<>();
 		for (File f : files)
 			for (MethodNode m : getMethods(f))
@@ -179,13 +188,25 @@ public class Benchmark {
 		return methods;
 	}
 
-	private static Iterable<MethodNode> getMethods(File f) throws IOException {
+	private static List<MethodNode> getMethods(File f) throws IOException {
 		InputStream is = new FileInputStream(f);
 		ClassReader cr = new ClassReader(is);
 		ClassNode cn = new ClassNode();
 		cr.accept(cn, 0);
 		return cn.methods;
 	}
+
+	private static List<MethodNode> getMethods(JarInfo jar) throws IOException {
+		List<MethodNode> methods = new ArrayList<>();
+		NodeTable<ClassNode> nt = new NodeTable<>();
+		SingleJarDownloader<ClassNode> dl = new SingleJarDownloader<>(jar);
+		dl.download();
+		nt.putAll(dl.getJarContents().getClassContents().namedMap());
+		for (ClassNode cn : nt)
+			methods.addAll(cn.methods);
+		return methods;
+	}
+
 
 	private static int countCopies(ControlFlowGraph cfg) {
 //		System.out.println(cfg);
