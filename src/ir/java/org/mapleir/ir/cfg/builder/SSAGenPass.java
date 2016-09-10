@@ -115,34 +115,39 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		b.transferUp(newBlock, to);
 		// redo ranges
 		for(ExceptionRange<BasicBlock> er : cfg.getRanges()) {
-			er.addVertexBefore(b, newBlock);
+			if (er.containsVertex(b))
+				er.addVertexBefore(b, newBlock);
 		}
+
+		Set<FlowEdge<BasicBlock>> oldEdges = new HashSet<>(cfg.getReverseEdges(b));
 		// redirect b preds into newBlock and remove them.
-		Iterator<FlowEdge<BasicBlock>> it = cfg.getReverseEdges(b).iterator();
-		while(it.hasNext()) {
-			FlowEdge<BasicBlock> e = it.next();
+		for (Iterator<FlowEdge<BasicBlock>> iterator = oldEdges.iterator(); iterator.hasNext(); ) {
+			FlowEdge<BasicBlock> e = iterator.next();
 			BasicBlock p = e.src;
 			FlowEdge<BasicBlock> c = e.clone(p, newBlock);
 			cfg.addEdge(p, c);
-			it.remove();
+			cfg.removeEdge(p, e);
 			cfg.getEdges(p).remove(e);
-			
-			if(p.size() > 0) {
+			iterator.remove();
+
+			if (p.size() > 0) {
 				Statement last = p.get(p.size() - 1);
 				int op = last.getOpcode();
-				if(op == Opcode.COND_JUMP) {
+				if (op == Opcode.COND_JUMP) {
 					ConditionalJumpStatement j = (ConditionalJumpStatement) last;
-					assertTarget(last, j.getTrueSuccessor(), b);
-					j.setTrueSuccessor(newBlock);
-				} else if(op == Opcode.UNCOND_JUMP) {
+//					assertTarget(last, j.getTrueSuccessor(), b);
+					if (j.getTrueSuccessor() == b)
+						j.setTrueSuccessor(newBlock);
+				} else if (op == Opcode.UNCOND_JUMP) {
 					UnconditionalJumpStatement j = (UnconditionalJumpStatement) last;
-					assertTarget(j, j.getTarget(), b);
-					j.setTarget(newBlock);
-				} else if(op == Opcode.SWITCH_JUMP) {
+//					assertTarget(j, j.getTarget(), b);
+					if (j.getTarget() == b)
+						j.setTarget(newBlock);
+				} else if (op == Opcode.SWITCH_JUMP) {
 					SwitchStatement s = (SwitchStatement) last;
-					for(Entry<Integer, BasicBlock> en : s.getTargets().entrySet()) {
+					for (Entry<Integer, BasicBlock> en : s.getTargets().entrySet()) {
 						BasicBlock t = en.getValue();
-						if(t == b) {
+						if (t == b) {
 							en.setValue(newBlock);
 						}
 					}
@@ -436,16 +441,16 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 			Set<Local> ls = new HashSet<>(liveness.in(h));
 			for(BasicBlock b : er.get()) {
 				splits.getNonNull(b).addAll(ls);
-				
-				boolean outside = false;
-				
-				for(FlowEdge<BasicBlock> e : builder.graph.getReverseEdges(b)) {
-					BasicBlock p = e.src;
-					if(!er.containsVertex(p)) {
-						outside = true;
-					}
-				}
-				
+
+//				boolean outside = false;
+//
+//				for(FlowEdge<BasicBlock> e : builder.graph.getReverseEdges(b)) {
+//					BasicBlock p = e.src;
+//					if(!er.containsVertex(p)) {
+//						outside = true;
+//					}
+//				}
+
 //				if(outside) {
 //					BasicBlock n = splitBlock(b, 0);
 //					order.add(order.indexOf(b), n);
