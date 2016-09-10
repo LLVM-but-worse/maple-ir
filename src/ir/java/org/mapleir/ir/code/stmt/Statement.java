@@ -1,5 +1,9 @@
 package org.mapleir.ir.code.stmt;
 
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.Opcode;
@@ -7,10 +11,6 @@ import org.mapleir.stdlib.cfg.util.TabbedStringWriter;
 import org.mapleir.stdlib.collections.graph.FastGraphVertex;
 import org.mapleir.stdlib.ir.StatementVisitor;
 import org.objectweb.asm.MethodVisitor;
-
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
 
 public abstract class Statement implements FastGraphVertex, Opcode, Iterable<Statement> {
 	
@@ -23,10 +23,16 @@ public abstract class Statement implements FastGraphVertex, Opcode, Iterable<Sta
 	private Statement[] children;
 	private int ptr;
 
+	private boolean isDirty = false;
+	private final List<Statement> flatChildrenCache;
+
 	public Statement(int opcode) {
 		this.opcode = opcode;
 		children = new Statement[8];
 		ptr = 0;
+
+		flatChildrenCache = new ArrayList<>();
+		markDirty();
 	}
 	
 	public BasicBlock getBlock() {
@@ -38,6 +44,7 @@ public abstract class Statement implements FastGraphVertex, Opcode, Iterable<Sta
 		
 		// i.e. removed, so invalidate this statement.
 		if(block == null) {
+			markDirty();
 			parent = null;
 		}
 		
@@ -54,16 +61,16 @@ public abstract class Statement implements FastGraphVertex, Opcode, Iterable<Sta
 	
 	public int deepSize() {
 		int size = 1;
-		for (int i = 0; i < children.length; i++) 
-			if (children[i] != null) 
+		for (int i = 0; i < children.length; i++)
+			if (children[i] != null)
 				size += children[i].deepSize();
 		return size;
 	}
 	
 	public int size() {
 		int size = 0;
-		for (int i = 0; i < children.length; i++) 
-			if (children[i] != null) 
+		for (int i = 0; i < children.length; i++)
+			if (children[i] != null)
 				size++;
 		return size;
 	}
@@ -73,7 +80,7 @@ public abstract class Statement implements FastGraphVertex, Opcode, Iterable<Sta
 		return (double) size() > max;
 	}
 	
-	protected void expand() { 
+	protected void expand() {
 		if (children.length >= Integer.MAX_VALUE)
 			throw new UnsupportedOperationException();
 		long len = children.length * 2;
@@ -84,7 +91,8 @@ public abstract class Statement implements FastGraphVertex, Opcode, Iterable<Sta
 		children = newArray;
 	}
 	
-	protected Statement writeAt(int index, Statement s) {
+	private Statement writeAt(int index, Statement s) {
+		markDirty();
 		Statement prev = children[index];
 		children[index] = s;
 		
@@ -141,6 +149,7 @@ public abstract class Statement implements FastGraphVertex, Opcode, Iterable<Sta
 	}
 	
 	public void unlink() {
+		markDirty();
 		block = null;
 		parent = null;
 		
@@ -296,16 +305,45 @@ public abstract class Statement implements FastGraphVertex, Opcode, Iterable<Sta
 		return printer.toString();
 	}
 
+	protected void markDirty() {
+		isDirty = true;
+		if (parent != null)
+			parent.markDirty();
+	}
+
+	private void verify() {
+		if (!isDirty) {
+			List<Statement> verifyList = new ArrayList<>();
+			new StatementVisitor(this) {
+				@Override
+				public Statement visit(Statement stmt) {
+					verifyList.add(stmt);
+					return stmt;
+				}
+			}.visit();
+			if (!flatChildrenCache.toString().equals(verifyList.toString())) {
+				System.out.println("Cache " + this + " " + flatChildrenCache);
+				System.out.println("Proper " + this + " " + verifyList + "\n");
+				throw new IllegalStateException("Child statement cache mismatch");
+			}
+		}
+	}
+
 	@Override
 	public Iterator<Statement> iterator() {
-		List<Statement> stmts = new ArrayList<>();
-		new StatementVisitor(this) {
-			@Override
-			public Statement visit(Statement stmt) {
-				stmts.add(stmt);
-				return stmt;
-			}
-		}.visit();
-		return stmts.iterator();
+		if (isDirty) {
+			flatChildrenCache.clear();
+			new StatementVisitor(this) {
+				@Override
+				public Statement visit(Statement stmt) {
+					flatChildrenCache.add(stmt);
+					return stmt;
+				}
+			}.visit();
+			isDirty = false;
+		}
+//		else
+//			verify();
+		return new ArrayList<>(flatChildrenCache).iterator();
 	}
 }

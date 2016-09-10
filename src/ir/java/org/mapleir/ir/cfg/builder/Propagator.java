@@ -177,8 +177,8 @@ public class Propagator extends OptimisationPass.Optimiser {
 						
 						// replace uses
 						for(Statement reachable : findReachable(keepPhi)) {
-							for(Statement s : reachable) {
-								if(s instanceof VarExpression) {
+							for(Statement s : _enumerate(reachable)) {
+								if(s.getOpcode() == Opcode.LOCAL_LOAD) {
 									VarExpression var = (VarExpression) s;
 									VersionedLocal l = (VersionedLocal) var.getLocal();
 									if(toReplace.contains(l)) {
@@ -684,7 +684,7 @@ public class Propagator extends OptimisationPass.Optimiser {
 				stmt.overwrite(vis, addr);
 				change = true;
 			}
-//			verify();
+			verify();
 		}
 		
 		private void verify() {

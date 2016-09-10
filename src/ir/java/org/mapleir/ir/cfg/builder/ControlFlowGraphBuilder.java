@@ -1,5 +1,12 @@
 package org.mapleir.ir.cfg.builder;
 
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.stmt.copy.AbstractCopyStatement;
@@ -9,13 +16,6 @@ import org.mapleir.stdlib.cfg.edge.FlowEdge;
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.SetCreator;
 import org.objectweb.asm.tree.MethodNode;
-
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
 
 public class ControlFlowGraphBuilder {
 
@@ -76,7 +76,8 @@ public class ControlFlowGraphBuilder {
 				new NaturalisationPass1(this),
 //				new NaturalisationPass2(this),
 				new SSAGenPass(this),
-				new OptimisationPass(this)
+				new OptimisationPass(this),
+//				new DeadRangesPass(this)
 		};
 	}
 	
@@ -104,7 +105,7 @@ public class ControlFlowGraphBuilder {
 			}
 			return builder.graph;
 		} catch(RuntimeException e) {
-			System.err.println(builder.graph);
+//			System.err.println(builder.graph);
 			throw e;
 		}
 	}
