@@ -1481,7 +1481,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 			if (((VarExpression) e1).getIndex() != ((VarExpression) e2).getIndex()) {
 				return false;
 			}
-			if (!e1.getType().getDescriptor().equals(e2.getType().getDescriptor())) {
+			if (!TypeUtils.asSimpleType(e1.getType()).getDescriptor().equals(TypeUtils.asSimpleType(e2.getType()).getDescriptor())) {
 				return false;
 			}
 		}
