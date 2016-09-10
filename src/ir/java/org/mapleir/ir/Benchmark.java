@@ -100,10 +100,8 @@ public class Benchmark {
 			results.clear();
 			int k = 0;
 			for (MethodNode m : test.getValue()) {
-//				if (!m.toString().equals("org/jetbrains/java/decompiler/main/rels/ClassWrapper.init()V"))
-//					continue;
 				k++;
-				if (k < 107)
+				if (k < 1500)
 					continue;
 				System.out.println("  " + m.toString() + " (" + k + " / " + test.getValue().size() + ")");
 				try {
@@ -113,7 +111,7 @@ public class Benchmark {
 						new SreedharDestructor(cfg);
 						time("Sreedhar3");
 					}
-
+					
 					for (int i = 0; i < NUM_ITER; i++) {
 						ControlFlowGraph cfg = ControlFlowGraphBuilder.build(m);
 						DominanceLivenessAnalyser resolver = new DominanceLivenessAnalyser(cfg, null);
@@ -121,7 +119,7 @@ public class Benchmark {
 						new BoissinotDestructor(cfg, resolver, 0b0000);
 						time("Boissinot");
 					}
-
+					
 					for (int i = 0; i < NUM_ITER; i++) {
 						ControlFlowGraph cfg = ControlFlowGraphBuilder.build(m);
 						DominanceLivenessAnalyser resolver = new DominanceLivenessAnalyser(cfg, null);
@@ -129,7 +127,7 @@ public class Benchmark {
 						new BoissinotDestructor(cfg, resolver, 0b0001);
 						time("BValue");
 					}
-
+					
 					for (int i = 0; i < NUM_ITER; i++) {
 						ControlFlowGraph cfg = ControlFlowGraphBuilder.build(m);
 						DominanceLivenessAnalyser resolver = new DominanceLivenessAnalyser(cfg, null);
@@ -137,6 +135,8 @@ public class Benchmark {
 						new BoissinotDestructor(cfg, resolver, 0b0011);
 						time("BSharing");
 					}
+				} catch (UnsupportedOperationException e) {
+					System.err.println(e.getMessage());
 				} catch (RuntimeException e) {
 					throw new RuntimeException(e);
 				}
