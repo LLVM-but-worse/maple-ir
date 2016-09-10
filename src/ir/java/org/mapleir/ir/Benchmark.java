@@ -103,6 +103,8 @@ public class Benchmark {
 //				if (!m.toString().equals("org/jetbrains/java/decompiler/main/rels/ClassWrapper.init()V"))
 //					continue;
 				k++;
+				if (k < 107)
+					continue;
 				System.out.println("  " + m.toString() + " (" + k + " / " + test.getValue().size() + ")");
 				try {
 					for (int i = 0; i < NUM_ITER; i++) {

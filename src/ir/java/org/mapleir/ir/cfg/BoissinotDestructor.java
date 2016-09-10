@@ -453,7 +453,7 @@ public class BoissinotDestructor {
 		GenericBitSet<BasicBlock> processed = cfg.createBitSet();
 		GenericBitSet<BasicBlock> processed2 = cfg.createBitSet();
 		for (Local e : remap.keySet()) {
-			for (BasicBlock used : defuse.uses.get(e)) {
+			for (BasicBlock used : defuse.uses.getNonNull(e)) {
 				if (processed.contains(used))
 					continue;
 				processed.add(used);

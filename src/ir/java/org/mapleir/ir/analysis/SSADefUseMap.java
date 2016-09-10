@@ -95,8 +95,6 @@ public class SSADefUseMap implements Opcode {
 	protected void build(BasicBlock b, Statement stmt, Set<Local> usedLocals) {
 		if(stmt instanceof AbstractCopyStatement) {
 			AbstractCopyStatement copy = (AbstractCopyStatement) stmt;
-			if (copy.isSynthetic())
-				return;
 			Local l = copy.getVariable().getLocal();
 			defs.put(l, b);
 
@@ -119,8 +117,6 @@ public class SSADefUseMap implements Opcode {
 	protected void buildIndex(BasicBlock b, Statement stmt, int index, Set<Local> usedLocals) {
 		if (stmt instanceof AbstractCopyStatement) {
 			AbstractCopyStatement copy = (AbstractCopyStatement) stmt;
-			if (copy.isSynthetic())
-				return;
 			defIndex.put(copy.getVariable().getLocal(), index);
 
 			if (copy instanceof CopyPhiStatement) {
