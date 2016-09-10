@@ -303,7 +303,11 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 
 	LabelNode checkLabel() {
 		AbstractInsnNode first = insns.getFirst();
-		if(!(first instanceof LabelNode)) {
+		if (first == null) {
+			LabelNode nFirst = new LabelNode();
+			insns.add(nFirst);
+			first = nFirst;
+		} else if (!(first instanceof LabelNode)) {
 			LabelNode nFirst = new LabelNode();
 			insns.insertBefore(first, nFirst);
 			first = nFirst;
@@ -408,7 +412,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		/* populate instructions. */
 		int codeIndex = insns.indexOf(label);
 		finished.set(block.getNumericId());
-		while(codeIndex <= insns.size()) {
+		while(codeIndex < insns.size() - 1) {
 			AbstractInsnNode ain = insns.get(++codeIndex);
 			int type = ain.type();
 			
