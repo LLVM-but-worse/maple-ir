@@ -27,6 +27,7 @@ import org.objectweb.asm.tree.MethodNode;
 import org.topdank.byteengineer.commons.data.JarInfo;
 import org.topdank.byteio.in.SingleJarDownloader;
 
+import javax.naming.OperationNotSupportedException;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -61,7 +62,9 @@ public class Benchmark {
 //			}
 //		}
 
-		tests.put("procyon", getMethods(new JarInfo(new File("res/procyon.jar"))));
+//		tests.put("procyon", getMethods(new JarInfo(new File("res/procyon.jar"))));
+		
+		tests.put("fernflower", getMethods(new JarInfo(new File("res/fernflower.jar"))));
 
 		benchmark(tests);
 	}
@@ -114,11 +117,9 @@ public class Benchmark {
 			int k = 0;
 			for (MethodNode m : test.getValue()) {
 				k++;
-				if (k < 545)
-					continue;
 				System.out.println("  " + m.toString() + " (" + k + " / " + test.getValue().size() + ")");
-				final ControlFlowGraph cfgOrig = ControlFlowGraphBuilder.build(m);
 				try {
+					final ControlFlowGraph cfgOrig = ControlFlowGraphBuilder.build(m);
 					for (int i = 0; i < NUM_ITER; i++) {
 						time();
 						ControlFlowGraph cfg = deepCopyCfg(cfgOrig);
@@ -155,7 +156,7 @@ public class Benchmark {
 					throw new RuntimeException(e);
 				}
 			}
-			normalizeResults(test.getKey(), test.getValue().size());
+			normalizeResults(test.getValue().size());
 			printResults(test.getKey());
 		}
 		printResultsHeader();
@@ -301,8 +302,10 @@ public class Benchmark {
 		System.out.println();
 	}
 
-	private static void normalizeResults(String testName, int size) {
-		results.put(testName, results.get(testName) / size);
+	private static void normalizeResults(int size) {
+		for (Entry<String, Long> result : results.entrySet()) {
+			result.setValue(result.getValue() / size);
+		}
 	}
 	
 	private static void printResults(String testName) {
