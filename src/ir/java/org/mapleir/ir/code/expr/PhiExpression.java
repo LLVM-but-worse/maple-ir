@@ -43,6 +43,7 @@ public class PhiExpression extends Expression {
 	public void setArgument(BasicBlock b, Expression e) {
 //		if(arguments.containsKey(b)) {
 			arguments.put(b, e);
+			markDirty();
 //		} else {
 //			throw new IllegalStateException("phi has a fixed size of " + arguments.size() + ": " + b + ", " + e);
 //		}
@@ -50,6 +51,7 @@ public class PhiExpression extends Expression {
 	
 	public void removeArgument(BasicBlock b) {
 		arguments.remove(b);
+		markDirty();
 	}
 	
 	@Override
