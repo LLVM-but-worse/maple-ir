@@ -6,9 +6,21 @@ import org.mapleir.ir.cfg.BoissinotDestructor;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.cfg.SreedharDestructor;
 import org.mapleir.ir.cfg.builder.ControlFlowGraphBuilder;
+import org.mapleir.ir.code.expr.Expression;
+import org.mapleir.ir.code.expr.PhiExpression;
+import org.mapleir.ir.code.expr.VarExpression;
+import org.mapleir.ir.code.stmt.ConditionalJumpStatement;
 import org.mapleir.ir.code.stmt.Statement;
+import org.mapleir.ir.code.stmt.SwitchStatement;
+import org.mapleir.ir.code.stmt.UnconditionalJumpStatement;
 import org.mapleir.ir.code.stmt.copy.AbstractCopyStatement;
+import org.mapleir.ir.code.stmt.copy.CopyPhiStatement;
+import org.mapleir.ir.locals.Local;
+import org.mapleir.ir.locals.VersionedLocal;
+import org.mapleir.stdlib.cfg.edge.FlowEdge;
+import org.mapleir.stdlib.cfg.edge.TryCatchEdge;
 import org.mapleir.stdlib.collections.NodeTable;
+import org.mapleir.stdlib.collections.graph.flow.ExceptionRange;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
@@ -24,6 +36,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 
 public class Benchmark {
@@ -48,7 +61,7 @@ public class Benchmark {
 //			}
 //		}
 
-		tests.put("fernflower", getMethods(new JarInfo(new File("res/fernflower.jar"))));
+		tests.put("procyon", getMethods(new JarInfo(new File("res/procyon.jar"))));
 
 		benchmark(tests);
 	}
@@ -93,7 +106,7 @@ public class Benchmark {
 	}
 
 	private static void benchmark(HashMap<String, List<MethodNode>> tests) throws IOException {
-		final int NUM_ITER = 100;
+		final int NUM_ITER = 5;
 //		System.in.read();
 
 		for (Entry<String, List<MethodNode>> test : tests.entrySet()) {
@@ -101,19 +114,20 @@ public class Benchmark {
 			int k = 0;
 			for (MethodNode m : test.getValue()) {
 				k++;
-				if (k < 1500)
+				if (k < 3403)
 					continue;
 				System.out.println("  " + m.toString() + " (" + k + " / " + test.getValue().size() + ")");
+				final ControlFlowGraph cfgOrig = ControlFlowGraphBuilder.build(m);
 				try {
 					for (int i = 0; i < NUM_ITER; i++) {
-						ControlFlowGraph cfg = ControlFlowGraphBuilder.build(m);
 						time();
+						ControlFlowGraph cfg = deepCopyCfg(cfgOrig);
 						new SreedharDestructor(cfg);
 						time("Sreedhar3");
 					}
 					
 					for (int i = 0; i < NUM_ITER; i++) {
-						ControlFlowGraph cfg = ControlFlowGraphBuilder.build(m);
+						ControlFlowGraph cfg = deepCopyCfg(cfgOrig);
 						DominanceLivenessAnalyser resolver = new DominanceLivenessAnalyser(cfg, null);
 						time();
 						new BoissinotDestructor(cfg, resolver, 0b0000);
@@ -121,7 +135,7 @@ public class Benchmark {
 					}
 					
 					for (int i = 0; i < NUM_ITER; i++) {
-						ControlFlowGraph cfg = ControlFlowGraphBuilder.build(m);
+						ControlFlowGraph cfg = deepCopyCfg(cfgOrig);
 						DominanceLivenessAnalyser resolver = new DominanceLivenessAnalyser(cfg, null);
 						time();
 						new BoissinotDestructor(cfg, resolver, 0b0001);
@@ -129,7 +143,7 @@ public class Benchmark {
 					}
 					
 					for (int i = 0; i < NUM_ITER; i++) {
-						ControlFlowGraph cfg = ControlFlowGraphBuilder.build(m);
+						ControlFlowGraph cfg = deepCopyCfg(cfgOrig);
 						DominanceLivenessAnalyser resolver = new DominanceLivenessAnalyser(cfg, null);
 						time();
 						new BoissinotDestructor(cfg, resolver, 0b0011);
@@ -141,11 +155,142 @@ public class Benchmark {
 					throw new RuntimeException(e);
 				}
 			}
+			normalizeResults(test.getKey(), test.getValue().size());
 			printResults(test.getKey());
 		}
 		printResultsHeader();
 	}
 
+	private static ControlFlowGraph deepCopyCfg(ControlFlowGraph cfg) {
+		// Just make a new cfg. too much scaffolding to take care of with copy()
+		ControlFlowGraph copy = new ControlFlowGraph(cfg.getMethod(), cfg.getLocals().getBase());
+		
+		// Copy blocks
+		Map<BasicBlock, BasicBlock> map = new HashMap<>();
+		for (BasicBlock b : cfg.vertices()) {
+			BasicBlock bCopy = new BasicBlock(copy, b.getNumericId() + 1000, b.getLabelNode());
+			// Copy statements
+			for (Statement stmt : b)
+				bCopy.add(stmt.copy());
+			copy.addVertex(bCopy);
+			map.put(b, bCopy);
+		}
+		
+		// Update locals handler
+		for (BasicBlock bCopy : copy.vertices()) {
+			for (Statement sCopy : bCopy) {
+				if (sCopy instanceof AbstractCopyStatement) {
+					AbstractCopyStatement copyStmt = (AbstractCopyStatement) sCopy;
+					Local l = copyStmt.getVariable().getLocal();
+					if (l instanceof VersionedLocal) {
+						VersionedLocal vl = (VersionedLocal) l;
+						copy.getLocals().get(vl.getIndex(), vl.getSubscript(), vl.isStack());
+					} else {
+						copy.getLocals().get(l.getIndex(), l.isStack());
+					}
+					
+					if (copyStmt instanceof CopyPhiStatement) {
+						PhiExpression phi = (PhiExpression) copyStmt.getExpression();
+						for (Expression arg : phi.getArguments().values()) {
+							if (arg instanceof VarExpression) {
+								l = ((VarExpression) arg).getLocal();
+								if (l instanceof VersionedLocal) {
+									VersionedLocal vl = (VersionedLocal) l;
+									copy.getLocals().get(vl.getIndex(), vl.getSubscript(), vl.isStack());
+								} else {
+									copy.getLocals().get(l.getIndex(), l.isStack());
+								}
+							} else for (Statement child : arg) {
+								if (child instanceof VarExpression) {
+									l = ((VarExpression) child).getLocal();
+									if (l instanceof VersionedLocal) {
+										VersionedLocal vl = (VersionedLocal) l;
+										copy.getLocals().get(vl.getIndex(), vl.getSubscript(), vl.isStack());
+									} else {
+										copy.getLocals().get(l.getIndex(), l.isStack());
+									}
+								}
+							}
+						}
+					}
+				}
+				
+				for (Statement child : sCopy) {
+					if (child instanceof VarExpression) {
+						Local l = ((VarExpression) child).getLocal();
+						if (l instanceof VersionedLocal) {
+							VersionedLocal vl = (VersionedLocal) l;
+							copy.getLocals().get(vl.getIndex(), vl.getSubscript(), vl.isStack());
+						} else {
+							copy.getLocals().get(l.getIndex(), l.isStack());
+						}
+					}
+				}
+			}
+		}
+		
+		// Fix jump targets
+		for (BasicBlock bCopy : copy.vertices()) {
+			if (bCopy.isEmpty())
+				continue;
+			Statement last = bCopy.get(bCopy.size() - 1);
+			if (!last.canChangeFlow())
+				continue;
+			if (last instanceof UnconditionalJumpStatement) {
+				UnconditionalJumpStatement jump = (UnconditionalJumpStatement) last;
+				jump.setTarget(map.get(jump.getTarget()));
+			} else if (last instanceof ConditionalJumpStatement) {
+				ConditionalJumpStatement cjmp = (ConditionalJumpStatement) last;
+				cjmp.setTrueSuccessor(map.get(cjmp.getTrueSuccessor()));
+			} else if (last instanceof SwitchStatement) {
+				SwitchStatement swtch = (SwitchStatement) last;
+				for (Entry<Integer, BasicBlock> en : swtch.getTargets().entrySet())
+					en.setValue(map.get(en.getValue()));
+			}
+		}
+		
+		// Fix phis
+		for (BasicBlock bCopy : copy.vertices()) {
+			for (int i = 0; i < bCopy.size() && bCopy.get(i) instanceof CopyPhiStatement; i++) {
+				CopyPhiStatement copyPhi = (CopyPhiStatement) bCopy.get(i);
+				PhiExpression phi = copyPhi.getExpression();
+				Map<BasicBlock, Expression> phiArgsCopy = new HashMap<>(phi.getArguments());
+				phi.getArguments().clear();
+				for (Entry<BasicBlock, Expression> arg : phiArgsCopy.entrySet())
+					phi.getArguments().put(map.get(arg.getKey()), arg.getValue());
+			}
+		}
+		
+		// Copy ranges
+		Map<ExceptionRange<BasicBlock>, ExceptionRange<BasicBlock>> rangeMap = new HashMap<>();
+		for (ExceptionRange<BasicBlock> range : cfg.getRanges()) {
+			ExceptionRange<BasicBlock> rCopy = new ExceptionRange<>(range.getNode());
+			for (BasicBlock b : range.getNodes())
+				rCopy.addVertex(map.get(b));
+			for (String type : range.getTypes())
+				rCopy.addType(type);
+			rCopy.setHandler(map.get(range.getHandler()));
+			copy.addRange(rCopy);
+			rangeMap.put(range, rCopy);
+		}
+		
+		// Copy edges
+		for (BasicBlock b : cfg.vertices()) {
+			for (FlowEdge<BasicBlock> e : cfg.getEdges(b)) {
+				if (e instanceof TryCatchEdge)
+					copy.addEdge(map.get(b), new TryCatchEdge<>(map.get(b), rangeMap.get(((TryCatchEdge) e).erange)));
+				else
+					copy.addEdge(map.get(b), e.clone(map.get(e.src), map.get(e.dst)));
+			}
+		}
+		
+		// Copy entries
+		for (BasicBlock entry : cfg.getEntries())
+			copy.getEntries().add(map.get(entry));
+		
+		return copy;
+	}
+	
 	private static void printResultsHeader() {
 		System.out.print("testcase,");
 		for (Iterator<String> iterator = results.keySet().iterator(); iterator.hasNext();) {
@@ -156,6 +301,10 @@ public class Benchmark {
 		System.out.println();
 	}
 
+	private static void normalizeResults(String testName, int size) {
+		results.put(testName, results.get(testName) / size);
+	}
+	
 	private static void printResults(String testName) {
 		System.out.print(testName + ",");
 		for (Iterator<Long> iterator = results.values().iterator(); iterator.hasNext();) {

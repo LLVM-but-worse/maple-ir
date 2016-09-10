@@ -1,8 +1,6 @@
 package org.mapleir.ir.code.stmt.copy;
 
 import org.mapleir.ir.cfg.ControlFlowGraph;
-import org.mapleir.ir.code.Opcode;
-import org.mapleir.ir.code.expr.ArithmeticExpression;
 import org.mapleir.ir.code.expr.Expression;
 import org.mapleir.ir.code.expr.VarExpression;
 import org.mapleir.ir.code.stmt.Statement;
@@ -92,24 +90,13 @@ public abstract class AbstractCopyStatement extends Statement {
 	@Override
 	// todo: this probably needs a refactoring
 	public void toCode(MethodVisitor visitor, ControlFlowGraph cfg) {
-		Local local = variable.getLocal();
-		
 		if(expression instanceof VarExpression) {
-			if(((VarExpression) expression).getLocal() == local) {
+			if(((VarExpression) expression).getLocal() == variable.getLocal()) {
 				return;
 			}
 		}
 		
-		local.setTempLocal(false);
-		
-		if(expression.getOpcode() == Opcode.ARITHMETIC) {
-			ArithmeticExpression ae = (ArithmeticExpression) expression;
-			int[] i = ae.getIncValue();
-			if(i[1] == local.getCodeIndex()) {
-				visitor.visitIincInsn(i[1], i[0]);
-				return;
-			}
-		}
+		variable.getLocal().setTempLocal(false);
 		
 		expression.toCode(visitor, cfg);
 		Type type = variable.getType();
@@ -119,11 +106,12 @@ public abstract class AbstractCopyStatement extends Statement {
 				visitor.visitInsn(cast[i]);
 		}
 
+		Local local = variable.getLocal();
 		if(local.isStack()) {
-			visitor.visitVarInsn(TypeUtils.getVariableStoreOpcode(getType()), local.getCodeIndex());
+			visitor.visitVarInsn(TypeUtils.getVariableStoreOpcode(getType()), variable.getLocal().getCodeIndex());
 			variable.getLocal().setTempLocal(true);
 		} else {
-			visitor.visitVarInsn(TypeUtils.getVariableStoreOpcode(getType()), local.getCodeIndex());
+			visitor.visitVarInsn(TypeUtils.getVariableStoreOpcode(getType()), variable.getLocal().getCodeIndex());
 		}
 	}
 

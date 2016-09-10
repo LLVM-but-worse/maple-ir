@@ -23,16 +23,10 @@ public abstract class Statement implements FastGraphVertex, Opcode, Iterable<Sta
 	private Statement[] children;
 	private int ptr;
 
-	private boolean isDirty = false;
-	private final List<Statement> flatChildrenCache;
-
 	public Statement(int opcode) {
 		this.opcode = opcode;
 		children = new Statement[8];
 		ptr = 0;
-
-		flatChildrenCache = new ArrayList<>();
-		markDirty();
 	}
 	
 	public BasicBlock getBlock() {
@@ -44,7 +38,6 @@ public abstract class Statement implements FastGraphVertex, Opcode, Iterable<Sta
 		
 		// i.e. removed, so invalidate this statement.
 		if(block == null) {
-			markDirty();
 			parent = null;
 		}
 		
@@ -91,8 +84,7 @@ public abstract class Statement implements FastGraphVertex, Opcode, Iterable<Sta
 		children = newArray;
 	}
 	
-	private Statement writeAt(int index, Statement s) {
-		markDirty();
+	protected Statement writeAt(int index, Statement s) {
 		Statement prev = children[index];
 		children[index] = s;
 		
@@ -149,7 +141,6 @@ public abstract class Statement implements FastGraphVertex, Opcode, Iterable<Sta
 	}
 	
 	public void unlink() {
-		markDirty();
 		block = null;
 		parent = null;
 		
@@ -305,45 +296,16 @@ public abstract class Statement implements FastGraphVertex, Opcode, Iterable<Sta
 		return printer.toString();
 	}
 
-	private void markDirty() {
-		isDirty = true;
-		if (parent != null)
-			parent.markDirty();
-	}
-
-	private void verify() {
-		if (!isDirty) {
-			List<Statement> verifyList = new ArrayList<>();
-			new StatementVisitor(this) {
-				@Override
-				public Statement visit(Statement stmt) {
-					verifyList.add(stmt);
-					return stmt;
-				}
-			}.visit();
-			if (!flatChildrenCache.toString().equals(verifyList.toString())) {
-				System.out.println("Cache " + this + " " + flatChildrenCache);
-				System.out.println("Proper " + this + " " + verifyList + "\n");
-				throw new IllegalStateException("Child statement cache mismatch");
-			}
-		}
-	}
-
 	@Override
 	public Iterator<Statement> iterator() {
-		if (isDirty) {
-			flatChildrenCache.clear();
-			new StatementVisitor(this) {
-				@Override
-				public Statement visit(Statement stmt) {
-					flatChildrenCache.add(stmt);
-					return stmt;
-				}
-			}.visit();
-			isDirty = false;
-		}
-//		else
-//			verify();
-		return new ArrayList<>(flatChildrenCache).iterator();
+		List<Statement> stmts = new ArrayList<>();
+		new StatementVisitor(this) {
+			@Override
+			public Statement visit(Statement stmt) {
+				stmts.add(stmt);
+				return stmt;
+			}
+		}.visit();
+		return stmts.iterator();
 	}
 }

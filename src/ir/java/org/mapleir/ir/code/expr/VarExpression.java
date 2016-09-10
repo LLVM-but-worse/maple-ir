@@ -42,7 +42,7 @@ public class VarExpression extends Expression {
 	}
 
 	@Override
-	public Expression copy() {
+	public VarExpression copy() {
 		return new VarExpression(local, type);
 	}
 

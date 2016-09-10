@@ -57,7 +57,7 @@ public class FieldLoadExpression extends Expression {
 
 	@Override
 	public Expression copy() {
-		return new FieldLoadExpression(instanceExpression, owner, name, desc);
+		return new FieldLoadExpression(instanceExpression == null ? null : instanceExpression.copy(), owner, name, desc);
 	}
 
 	@Override
