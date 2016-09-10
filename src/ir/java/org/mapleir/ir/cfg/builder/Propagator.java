@@ -406,7 +406,7 @@ public class Propagator extends OptimisationPass.Optimiser {
 					// the useCount of svar0_1 to 0. (1 - 1)
 					unuseLocal(use.getLocal());
 					scalpelDefinition(def);
-					return propagatee.copy();
+					return propagatee;
 				}
 			} else {
 				// these statements here can be copied as many times
