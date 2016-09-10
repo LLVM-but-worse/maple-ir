@@ -172,7 +172,7 @@ public class SwitchStatement extends Statement {
 
 	@Override
 	public Statement copy() {
-		return new SwitchStatement(expression, targets, defaultTarget);
+		return new SwitchStatement(expression.copy(), new LinkedHashMap<>(targets), defaultTarget);
 	}
 
 	@Override

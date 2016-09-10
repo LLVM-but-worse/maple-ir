@@ -27,7 +27,7 @@ public class ArrayLengthExpression extends Expression {
 
 	@Override
 	public Expression copy() {
-		return new ArrayLengthExpression(expression);
+		return new ArrayLengthExpression(expression.copy());
 	}
 
 	@Override

@@ -16,7 +16,7 @@ public class CopyVarStatement extends AbstractCopyStatement {
 
 	@Override
 	public Statement copy() {
-		return new CopyVarStatement(getVariable(), getExpression(), isSynthetic());
+		return new CopyVarStatement(getVariable().copy(), getExpression().copy(), isSynthetic());
 	}
 
 	@Override
