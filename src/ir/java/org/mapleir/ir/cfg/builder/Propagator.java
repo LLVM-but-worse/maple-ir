@@ -38,7 +38,6 @@ public class Propagator extends OptimisationPass.Optimiser {
 	public Propagator(ControlFlowGraphBuilder builder, SSALocalAccess localAccess) {
 		super(builder, localAccess);
 		
-		System.out.println(builder.graph);
 		visitor = new FeedbackStatementVisitor(null);
 	}
 	
@@ -183,8 +182,6 @@ public class Propagator extends OptimisationPass.Optimiser {
 									VarExpression var = (VarExpression) s;
 									VersionedLocal l = (VersionedLocal) var.getLocal();
 									if(toReplace.contains(l)) {
-										if (phiLocal.toString().equals("svar0_123") || phiLocal.toString().equals("lvar13_17"))
-											System.out.println("accounted for " + phiLocal + " " + reachable);
 										reuseLocal(phiLocal);
 										unuseLocal(l);
 										var.setLocal(phiLocal);
@@ -270,8 +267,6 @@ public class Propagator extends OptimisationPass.Optimiser {
 		private void copied(Statement stmt) {
 			for(Statement s : enumerate(stmt)) {
 				if(s.getOpcode() == Opcode.LOCAL_LOAD) {
-					if (((VarExpression) s).getLocal().toString().equals("svar0_123") || ((VarExpression) s).getLocal().toString().equals("lvar13_17"))
-						System.out.println("accounted for2 " + stmt);
 					reuseLocal(((VarExpression) s).getLocal());
 				}
 			}
@@ -327,17 +322,11 @@ public class Propagator extends OptimisationPass.Optimiser {
 		}
 		
 		private int unuseLocal(Local l) {
-			int ret = _xuselocal(l, false);
-			if (l.toString().equals("svar0_123") || l.toString().equals("lvar13_17"))
-				System.out.println("deuse " + l + " " + ret);
-			return ret;
+			return _xuselocal(l, false);
 		}
 		
 		private int reuseLocal(Local l) {
-			int ret = _xuselocal(l, true);
-			if (l.toString().equals("svar0_123") || l.toString().equals("lvar13_17"))
-				System.out.println("reuse " + l + " " + ret);
-			return ret;
+			return _xuselocal(l, true);
 		}
 		
 		private Statement handleConstant(AbstractCopyStatement def, VarExpression use, ConstantExpression rhs) {
@@ -369,10 +358,6 @@ public class Propagator extends OptimisationPass.Optimiser {
 			// useCount -= 1;
 			reuseLocal(y);
 			unuseLocal(x);
-			if (y.toString().equals("svar0_123") || y.toString().equals("lvar13_17")) {
-				System.out.println("accounted for3 " + y + " " + root);
-				System.out.println(x + " now at " + localAccess.useCount.get(x));
-			}
 			return rhs.copy();
 		}
 
@@ -421,7 +406,7 @@ public class Propagator extends OptimisationPass.Optimiser {
 					// the useCount of svar0_1 to 0. (1 - 1)
 					unuseLocal(use.getLocal());
 					scalpelDefinition(def);
-					return propagatee;
+					return propagatee.copy();
 				}
 			} else {
 				// these statements here can be copied as many times
@@ -432,7 +417,7 @@ public class Propagator extends OptimisationPass.Optimiser {
 					if(uses(use.getLocal()) == 1) {
 						unuseLocal(use.getLocal());
 						scalpelDefinition(def);
-						return propagatee;
+						return propagatee.copy();
 					}
 				} else {
 					// x = ((y * 2) + (9 / lvar0_0.g))
@@ -448,7 +433,7 @@ public class Propagator extends OptimisationPass.Optimiser {
 						killed(def);
 						scalpelDefinition(def);
 					}
-					return propagatee;
+					return propagatee.copy();
 				}
 			}
 			return null;
