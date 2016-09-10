@@ -305,7 +305,7 @@ public abstract class Statement implements FastGraphVertex, Opcode, Iterable<Sta
 		return printer.toString();
 	}
 
-	protected void markDirty() {
+	private void markDirty() {
 		isDirty = true;
 		if (parent != null)
 			parent.markDirty();

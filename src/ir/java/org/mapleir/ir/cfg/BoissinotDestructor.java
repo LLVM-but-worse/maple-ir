@@ -321,7 +321,7 @@ public class BoissinotDestructor {
 
 		for (Entry<Local, CopyPhiStatement> e : defuse.phiDefs.entrySet()) {
 			Local l1 = e.getKey();
-			BasicBlock b = defuse.defs.get(l1);
+			BasicBlock b = e.getValue().getBlock();
 			// since we are now in csaa, phi locals never interfere and are in the same congruence class.
 			// therefore we can coalesce them all together and drop phis. with this, we leave cssa.
 			PhiExpression phi = e.getValue().getExpression();

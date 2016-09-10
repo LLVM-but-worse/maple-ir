@@ -38,6 +38,7 @@ public class Propagator extends OptimisationPass.Optimiser {
 	public Propagator(ControlFlowGraphBuilder builder, SSALocalAccess localAccess) {
 		super(builder, localAccess);
 		
+		System.out.println(builder.graph);
 		visitor = new FeedbackStatementVisitor(null);
 	}
 	
@@ -182,6 +183,8 @@ public class Propagator extends OptimisationPass.Optimiser {
 									VarExpression var = (VarExpression) s;
 									VersionedLocal l = (VersionedLocal) var.getLocal();
 									if(toReplace.contains(l)) {
+										if (phiLocal.toString().equals("svar0_123") || phiLocal.toString().equals("lvar13_17"))
+											System.out.println("accounted for " + phiLocal + " " + reachable);
 										reuseLocal(phiLocal);
 										unuseLocal(l);
 										var.setLocal(phiLocal);
@@ -267,6 +270,8 @@ public class Propagator extends OptimisationPass.Optimiser {
 		private void copied(Statement stmt) {
 			for(Statement s : enumerate(stmt)) {
 				if(s.getOpcode() == Opcode.LOCAL_LOAD) {
+					if (((VarExpression) s).getLocal().toString().equals("svar0_123") || ((VarExpression) s).getLocal().toString().equals("lvar13_17"))
+						System.out.println("accounted for2 " + stmt);
 					reuseLocal(((VarExpression) s).getLocal());
 				}
 			}
@@ -309,24 +314,30 @@ public class Propagator extends OptimisationPass.Optimiser {
 			}
 		}
 
-		private void _xuselocal(Local l, boolean re) {
+		private int _xuselocal(Local l, boolean re) {
 			if(localAccess.useCount.containsKey(l)) {
 				if(re) {
-					localAccess.useCount.get(l).incrementAndGet();
+					return localAccess.useCount.get(l).incrementAndGet();
 				} else {
-					localAccess.useCount.get(l).decrementAndGet();
+					return localAccess.useCount.get(l).decrementAndGet();
 				}
 			} else {
 				throw new IllegalStateException("Local " + l + " not in useCount map. Def: " + localAccess.defs.get(l));
 			}
 		}
 		
-		private void unuseLocal(Local l) {
-			_xuselocal(l, false);
+		private int unuseLocal(Local l) {
+			int ret = _xuselocal(l, false);
+			if (l.toString().equals("svar0_123") || l.toString().equals("lvar13_17"))
+				System.out.println("deuse " + l + " " + ret);
+			return ret;
 		}
 		
-		private void reuseLocal(Local l) {
-			_xuselocal(l, true);
+		private int reuseLocal(Local l) {
+			int ret = _xuselocal(l, true);
+			if (l.toString().equals("svar0_123") || l.toString().equals("lvar13_17"))
+				System.out.println("reuse " + l + " " + ret);
+			return ret;
 		}
 		
 		private Statement handleConstant(AbstractCopyStatement def, VarExpression use, ConstantExpression rhs) {
@@ -358,6 +369,10 @@ public class Propagator extends OptimisationPass.Optimiser {
 			// useCount -= 1;
 			reuseLocal(y);
 			unuseLocal(x);
+			if (y.toString().equals("svar0_123") || y.toString().equals("lvar13_17")) {
+				System.out.println("accounted for3 " + y + " " + root);
+				System.out.println(x + " now at " + localAccess.useCount.get(x));
+			}
 			return rhs.copy();
 		}
 
@@ -699,11 +714,11 @@ public class Propagator extends OptimisationPass.Optimiser {
 			for(VersionedLocal e : sortedKeys) {
 				AtomicInteger i1 = fresh.useCount.get(e);
 				AtomicInteger i2 = localAccess.useCount.get(e);
-				if(i1 == null) {
+				if(i1 == null && i2.get() != 0) {
 					message = "Real no contain: " + e + ", other: " + i2.get();
-				} else if(i2 == null) {
+				} else if(i2 == null && i1.get() != 0) {
 					message = "Current no contain: " + e + ", other: " + i1.get();
-				} else if(i1.get() != i2.get()) {
+				} else if(i1 != null && i2 != null && i1.get() != i2.get()) {
 					message = "Mismatch: " + e + " " + i1.get() + ":" + i2.get();
 				}
 			}

@@ -114,7 +114,7 @@ public class Benchmark {
 			int k = 0;
 			for (MethodNode m : test.getValue()) {
 				k++;
-				if (k < 3403)
+				if (k < 545)
 					continue;
 				System.out.println("  " + m.toString() + " (" + k + " / " + test.getValue().size() + ")");
 				final ControlFlowGraph cfgOrig = ControlFlowGraphBuilder.build(m);
