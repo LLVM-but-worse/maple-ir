@@ -4,12 +4,14 @@ import org.mapleir.ir.analysis.SimpleDfs;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.Opcode;
+import org.mapleir.ir.code.expr.CaughtExceptionExpression;
 import org.mapleir.ir.code.expr.Expression;
 import org.mapleir.ir.code.expr.PhiExpression;
 import org.mapleir.ir.code.expr.VarExpression;
 import org.mapleir.ir.code.stmt.ConditionalJumpStatement;
 import org.mapleir.ir.code.stmt.Statement;
 import org.mapleir.ir.code.stmt.SwitchStatement;
+import org.mapleir.ir.code.stmt.ThrowStatement;
 import org.mapleir.ir.code.stmt.UnconditionalJumpStatement;
 import org.mapleir.ir.code.stmt.copy.AbstractCopyStatement;
 import org.mapleir.ir.code.stmt.copy.CopyPhiStatement;
@@ -37,7 +39,6 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -113,48 +114,72 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		ControlFlowGraph cfg = builder.graph;
 		BasicBlock newBlock = new BasicBlock(cfg, splitCount++, new LabelNode());
 		b.transferUp(newBlock, to);
+		
 		// redo ranges
 		for(ExceptionRange<BasicBlock> er : cfg.getRanges()) {
 			if (er.containsVertex(b))
 				er.addVertexBefore(b, newBlock);
 		}
 
-		Set<FlowEdge<BasicBlock>> oldEdges = new HashSet<>(cfg.getReverseEdges(b));
 		// redirect b preds into newBlock and remove them.
-		for (Iterator<FlowEdge<BasicBlock>> iterator = oldEdges.iterator(); iterator.hasNext(); ) {
-			FlowEdge<BasicBlock> e = iterator.next();
+		Set<FlowEdge<BasicBlock>> oldEdges = new HashSet<>(cfg.getReverseEdges(b));
+		for (FlowEdge<BasicBlock> e : oldEdges) {
 			BasicBlock p = e.src;
-			FlowEdge<BasicBlock> c = e.clone(p, newBlock);
-			cfg.addEdge(p, c);
-			cfg.removeEdge(p, e);
-			cfg.getEdges(p).remove(e);
-			iterator.remove();
-
-			if (p.size() > 0) {
-				Statement last = p.get(p.size() - 1);
-				int op = last.getOpcode();
-				if (op == Opcode.COND_JUMP) {
-					ConditionalJumpStatement j = (ConditionalJumpStatement) last;
+			FlowEdge<BasicBlock> c;
+			if (e instanceof TryCatchEdge) { // b is ehandler
+				TryCatchEdge<BasicBlock> tce = (TryCatchEdge<BasicBlock>) e;
+				ExceptionRange<BasicBlock> newEr = new ExceptionRange<>(tce.erange.getNode());
+				newEr.addType("null");
+				newEr.setHandler(newBlock);
+				newEr.addVertex(p);
+				c = new TryCatchEdge<>(p, newEr);
+				cfg.addEdge(p, c);
+				cfg.removeEdge(p, e);
+				cfg.addRange(newEr);
+				
+				tce.erange.removeVertex(b);
+			} else {
+				c = e.clone(p, newBlock);
+				cfg.addEdge(p, c);
+				cfg.removeEdge(p, e);
+			}
+			
+			// Fix flow instruction targets
+			if (p.isEmpty())
+				continue;
+			Statement last = p.get(p.size() - 1);
+			int op = last.getOpcode();
+			if (op == Opcode.COND_JUMP) {
+				ConditionalJumpStatement j = (ConditionalJumpStatement) last;
 //					assertTarget(last, j.getTrueSuccessor(), b);
-					if (j.getTrueSuccessor() == b)
-						j.setTrueSuccessor(newBlock);
-				} else if (op == Opcode.UNCOND_JUMP) {
-					UnconditionalJumpStatement j = (UnconditionalJumpStatement) last;
-//					assertTarget(j, j.getTarget(), b);
-					if (j.getTarget() == b)
-						j.setTarget(newBlock);
-				} else if (op == Opcode.SWITCH_JUMP) {
-					SwitchStatement s = (SwitchStatement) last;
-					for (Entry<Integer, BasicBlock> en : s.getTargets().entrySet()) {
-						BasicBlock t = en.getValue();
-						if (t == b) {
-							en.setValue(newBlock);
-						}
+				if (j.getTrueSuccessor() == b)
+					j.setTrueSuccessor(newBlock);
+			} else if (op == Opcode.UNCOND_JUMP) {
+				UnconditionalJumpStatement j = (UnconditionalJumpStatement) last;
+				assertTarget(j, j.getTarget(), b);
+				j.setTarget(newBlock);
+			} else if (op == Opcode.SWITCH_JUMP) {
+				SwitchStatement s = (SwitchStatement) last;
+				for (Entry<Integer, BasicBlock> en : s.getTargets().entrySet()) {
+					BasicBlock t = en.getValue();
+					if (t == b) {
+						en.setValue(newBlock);
 					}
 				}
 			}
 		}
 
+		// clone exception edges
+		for(FlowEdge<BasicBlock> e : cfg.getEdges(b)) {
+			if(e.getType() == FlowEdges.TRYCATCH) {
+				TryCatchEdge<BasicBlock> c = ((TryCatchEdge<BasicBlock>) e).clone(newBlock, null); // second param is discarded (?)
+				cfg.addEdge(newBlock, c);
+			}
+		}
+		
+		// create immediate to newBlock
+		cfg.addEdge(newBlock, new ImmediateEdge<>(newBlock, b));
+		
 		// update assigns
 		Set<Local> assignedLocals = new HashSet<>();
 		for (Statement stmt : b)
@@ -167,16 +192,6 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 				set.add(newBlock);
 				if (!assignedLocals.contains(copyLocal))
 					set.remove(b);
-			}
-		}
-
-		// create immediate to newBlock
-		cfg.addEdge(newBlock, new ImmediateEdge<>(newBlock, b));
-		// clone exception edges
-		for(FlowEdge<BasicBlock> e : cfg.getEdges(b)) {
-			if(e.getType() == FlowEdges.TRYCATCH) {
-				TryCatchEdge<BasicBlock> c = ((TryCatchEdge<BasicBlock>) e).clone(newBlock, null); // second param is discarded (?)
-				cfg.addEdge(newBlock, c);
 			}
 		}
 		
@@ -423,20 +438,54 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		builder.graph.removeVertex(builder.exit);
 	}
 	
+	private void fixFinally() {
+		// fix finally blocks that have handler ranges to themselves
+		for(ExceptionRange<BasicBlock> er : builder.graph.getRanges()) {
+			BasicBlock h = er.getHandler();
+			
+			// debug czech
+//			for(FlowEdge<BasicBlock> e : builder.graph.getReverseEdges(h)) {
+//				if(e.getType() != FlowEdges.TRYCATCH) {
+//					System.out.println(builder.graph);
+//					throw new RuntimeException(h.getId() + " : " + e.toString());
+//				}
+//			}
+			
+			for (FlowEdge<BasicBlock> e : new HashSet<>(builder.graph.getEdges(h))) {
+				if (e instanceof TryCatchEdge && e.dst == h && e.src == h) {
+					// this needs to be fixed. we will insert an empty block with a goto back to the handler
+					BasicBlock newBlock = new BasicBlock(builder.graph, splitCount++, new LabelNode());
+					newBlock.add(new ThrowStatement(new CaughtExceptionExpression("null")));
+
+					ExceptionRange<BasicBlock> newEr2 = new ExceptionRange<>(er.getNode());
+					newEr2.addVertex(newBlock);
+					newEr2.setHandler(h);
+					builder.graph.addVertex(newBlock);
+					builder.graph.addEdge(newBlock, new TryCatchEdge<>(newBlock, newEr2));
+					builder.graph.addRange(newEr2);
+
+					builder.graph.removeEdge(h, e);
+					for(ExceptionRange<BasicBlock> er2 : builder.graph.getRanges())
+						if (er2.getHandler() == h)
+							er2.removeVertex(h);
+
+					ExceptionRange<BasicBlock> newEr = new ExceptionRange<>(er.getNode());
+					newEr.addVertex(h);
+					newEr.setHandler(newBlock);
+					builder.graph.addEdge(h, new TryCatchEdge<>(h, newEr));
+					builder.graph.addRange(newEr);
+
+				}
+			}
+		}
+	}
+	
 	private void splitRanges() {
 		// produce cleaner cfg
 		List<BasicBlock> order = new ArrayList<>(builder.graph.vertices());
 		
 		for(ExceptionRange<BasicBlock> er : builder.graph.getRanges()) {
 			BasicBlock h = er.getHandler();
-			
-			// debug czech
-			for(FlowEdge<BasicBlock> e : builder.graph.getReverseEdges(h)) {
-				if(e.getType() != FlowEdges.TRYCATCH) {
-					System.out.println(builder.graph);
-					throw new RuntimeException(h.getId() + " : " + e.toString());
-				}
-			}
 			
 			Set<Local> ls = new HashSet<>(liveness.in(h));
 			for(BasicBlock b : er.get()) {
@@ -464,12 +513,21 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 			
 			ArrayList<Statement> stmtsCopy = new ArrayList<>(b);
 			int i = 0;
+			Statement prev = null;
 			for (int i1 = 0; i1 < stmtsCopy.size(); i1++) {
 				Statement stmt = stmtsCopy.get(i1);
 //				System.out.println("@" + i1 + "@" + i + " " + stmt);
 				if (b.size() == i)
 					break;
-				if (stmt.getOpcode() == Opcode.LOCAL_STORE) {
+				
+				boolean checkSplit = true;
+				if (prev != null && prev instanceof CopyVarStatement) {
+					CopyVarStatement copy = (CopyVarStatement) prev;
+					// do not split after simple or synthetic copies
+					if (copy.isSynthetic() || copy.getExpression().getOpcode() == Opcode.LOCAL_LOAD)
+						checkSplit = false;
+				}
+				if (checkSplit && stmt.getOpcode() == Opcode.LOCAL_STORE) {
 					CopyVarStatement copy = (CopyVarStatement) stmt;
 					VarExpression v = copy.getVariable();
 					if (ls.contains(v.getLocal())) {
@@ -480,6 +538,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 					i = 0;
 				}
 				i++;
+				prev = stmt;
 			}
 		}
 		
@@ -551,6 +610,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		splitCount = builder.graph.size() + 1;
 		connectExit();
 		
+		fixFinally();
 		SSABlockLivenessAnalyser liveness = new SSABlockLivenessAnalyser(builder.graph);
 		liveness.compute();
 		this.liveness = liveness;
