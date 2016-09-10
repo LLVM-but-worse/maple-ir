@@ -1,27 +1,21 @@
 package org.mapleir.ir;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.Iterator;
+
 import org.mapleir.ir.analysis.DominanceLivenessAnalyser;
-import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.BoissinotDestructor;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.cfg.builder.ControlFlowGraphBuilder;
-import org.mapleir.ir.dot.ControlFlowGraphDecorator;
-import org.mapleir.stdlib.cfg.edge.FlowEdge;
-import org.mapleir.stdlib.collections.graph.dot.BasicDotConfiguration;
-import org.mapleir.stdlib.collections.graph.dot.DotConfiguration;
-import org.mapleir.stdlib.collections.graph.dot.DotWriter;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
-
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Iterator;
-
-import static org.mapleir.ir.dot.ControlFlowGraphDecorator.OPT_DEEP;
 
 public class Test {
 
@@ -402,14 +396,14 @@ public class Test {
 	}
 
 	public static void main(String[] args) throws IOException {
-		ClassReader cr = new ClassReader(Test.class.getCanonicalName());
-		ClassNode cn = new ClassNode();
-		cr.accept(cn, 0);
-
-//		InputStream i = new FileInputStream(new File("res/specjvm2008/LU.class"));
-//		ClassReader cr = new ClassReader(i);
+//		ClassReader cr = new ClassReader(Test.class.getCanonicalName());
 //		ClassNode cn = new ClassNode();
 //		cr.accept(cn, 0);
+
+		InputStream i = new FileInputStream(new File("res/TypeAnalysis.class"));
+		ClassReader cr = new ClassReader(i);
+		ClassNode cn = new ClassNode();
+		cr.accept(cn, 0);
 
 		Iterator<MethodNode> it = new ArrayList<>(cn.methods).listIterator();
 		while (it.hasNext()) {
@@ -419,20 +413,20 @@ public class Test {
 			// continue;
 			// }
 
-//			if(!m.toString().contains("measureFFT")) {
-//				continue;
-//			}
-
-			if (!m.toString().startsWith("org/mapleir/ir/Test.test141")) {
+			if(!m.toString().contains("inferCall")) {
 				continue;
+			}
+
+			if (!m.toString().startsWith("org/mapleir/ir/Test.test123")) {
+//				continue;
 			}
 
 			System.out.println("Processing " + m + "\n");
 			ControlFlowGraph cfg = ControlFlowGraphBuilder.build(m);
 
-			BasicDotConfiguration<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> config = new BasicDotConfiguration<>(DotConfiguration.GraphType.DIRECTED);
-			DotWriter<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> writer = new DotWriter<>(config, cfg);
-			writer.removeAll().add(new ControlFlowGraphDecorator().setFlags(OPT_DEEP)).setName("pre-destruct").export();
+//			BasicDotConfiguration<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> config = new BasicDotConfiguration<>(DotConfiguration.GraphType.DIRECTED);
+//			DotWriter<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> writer = new DotWriter<>(config, cfg);
+//			writer.removeAll().add(new ControlFlowGraphDecorator().setFlags(OPT_DEEP)).setName("pre-destruct").export();
 			try {
 				DominanceLivenessAnalyser resolver = new DominanceLivenessAnalyser(cfg, null);
 				BoissinotDestructor destructor = new BoissinotDestructor(cfg, resolver);
@@ -442,9 +436,9 @@ public class Test {
 
 			cfg.getLocals().realloc(cfg);
 
-			System.out.println(cfg);
+//			System.out.println(cfg);
 
-			writer.removeAll().add(new ControlFlowGraphDecorator().setFlags(OPT_DEEP)).setName("destructed").export();
+//			writer.removeAll().add(new ControlFlowGraphDecorator().setFlags(OPT_DEEP)).setName("destructed").export();
 
 			MethodNode m2 = new MethodNode(m.owner, m.access, m.name, m.desc, m.signature, m.exceptions.toArray(new String[0]));
 			ControlFlowGraphDumper.dump(cfg, m2);
