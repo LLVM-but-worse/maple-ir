@@ -100,11 +100,11 @@ public abstract class Statement implements FastGraphVertex, Opcode, Iterable<Sta
 			prev.parent = null;
 		}
 		if(s != null) {
-//			if(s.parent != null) {
-//				throw new IllegalStateException(s + " already belongs to " + s.parent + " (new:" + getRootParent() + ")");
-//			} else {
+			if(s.parent != null) {
+				throw new IllegalStateException(s + " already belongs to " + s.parent + " (new:" + getRootParent() + ")");
+			} else {
 				s.parent = this;
-//			}
+			}
 		}
 		
 		return prev;
