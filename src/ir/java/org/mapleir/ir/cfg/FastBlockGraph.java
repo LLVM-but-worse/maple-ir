@@ -7,7 +7,6 @@ import java.util.Set;
 
 import org.mapleir.stdlib.cfg.edge.FlowEdge;
 import org.mapleir.stdlib.cfg.edge.TryCatchEdge;
-import org.mapleir.stdlib.collections.graph.flow.ExceptionRange;
 import org.mapleir.stdlib.collections.graph.flow.FlowGraph;
 import org.objectweb.asm.tree.LabelNode;
 
@@ -91,11 +90,7 @@ public class FastBlockGraph extends FlowGraph<BasicBlock, FlowEdge<BasicBlock>> 
 		if(!containsVertex(n)) {
 			return false;
 		}
-		for(ExceptionRange<BasicBlock> r : getRanges()) {
-			if(r.getHandler() == n) {
-				return false;
-			}
-		}
+		
 		Set<FlowEdge<BasicBlock>> predEdges = getReverseEdges(n);
 		
 		Set<BasicBlock> preds = new HashSet<>();
