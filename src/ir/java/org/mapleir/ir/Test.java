@@ -16,10 +16,8 @@ import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Iterator;
 
@@ -360,6 +358,22 @@ public class Test {
 		System.out.println(y);
 	}
 
+	void test141() {
+		int x = 5;
+		int y = 10;
+		try {
+			trap(x, y);
+			int z = x;
+			x = y;
+			trap(x, y);
+			y = z;
+		} catch(RuntimeException e) {
+			System.out.println(x + 2 * y);
+		} finally {
+			System.out.println(x + y);
+		}
+	}
+
 	void test011() {
 		int x = v();
 		int y = u();
@@ -388,14 +402,14 @@ public class Test {
 	}
 
 	public static void main(String[] args) throws IOException {
-//		ClassReader cr = new ClassReader(Test.class.getCanonicalName());
-//		ClassNode cn = new ClassNode();
-//		cr.accept(cn, 0);
-
-		InputStream i = new FileInputStream(new File("res/specjvm2008/LU.class"));
-		ClassReader cr = new ClassReader(i);
+		ClassReader cr = new ClassReader(Test.class.getCanonicalName());
 		ClassNode cn = new ClassNode();
 		cr.accept(cn, 0);
+
+//		InputStream i = new FileInputStream(new File("res/specjvm2008/LU.class"));
+//		ClassReader cr = new ClassReader(i);
+//		ClassNode cn = new ClassNode();
+//		cr.accept(cn, 0);
 
 		Iterator<MethodNode> it = new ArrayList<>(cn.methods).listIterator();
 		while (it.hasNext()) {
@@ -409,9 +423,9 @@ public class Test {
 //				continue;
 //			}
 
-//			if (!m.toString().startsWith("org/mapleir/ir/Test.main")) {
-//				continue;
-//			}
+			if (!m.toString().startsWith("org/mapleir/ir/Test.test141")) {
+				continue;
+			}
 
 			System.out.println("Processing " + m + "\n");
 			ControlFlowGraph cfg = ControlFlowGraphBuilder.build(m);
@@ -430,7 +444,7 @@ public class Test {
 
 			System.out.println(cfg);
 
-//			writer.removeAll().add(new ControlFlowGraphDecorator().setFlags(OPT_DEEP)).setName("destructed").export();
+			writer.removeAll().add(new ControlFlowGraphDecorator().setFlags(OPT_DEEP)).setName("destructed").export();
 
 			MethodNode m2 = new MethodNode(m.owner, m.access, m.name, m.desc, m.signature, m.exceptions.toArray(new String[0]));
 			ControlFlowGraphDumper.dump(cfg, m2);

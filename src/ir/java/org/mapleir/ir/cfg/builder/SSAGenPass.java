@@ -446,10 +446,10 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 					}
 				}
 				
-				if(outside) {
-					BasicBlock n = splitBlock(b, 0);
-					order.add(order.indexOf(b), n);
-				}
+//				if(outside) {
+//					BasicBlock n = splitBlock(b, 0);
+//					order.add(order.indexOf(b), n);
+//				}
 			}
 		}
 		
