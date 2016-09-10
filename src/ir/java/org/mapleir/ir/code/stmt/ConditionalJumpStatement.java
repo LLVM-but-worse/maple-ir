@@ -220,7 +220,7 @@ public class ConditionalJumpStatement extends Statement {
 
 	@Override
 	public Statement copy() {
-		return new ConditionalJumpStatement(left, right, trueSuccessor, type);
+		return new ConditionalJumpStatement(left.copy(), right.copy(), trueSuccessor, type);
 	}
 
 	@Override

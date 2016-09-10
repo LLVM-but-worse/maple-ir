@@ -59,7 +59,7 @@ public class ThrowStatement extends Statement {
 
 	@Override
 	public Statement copy() {
-		return new ThrowStatement(expression);
+		return new ThrowStatement(expression.copy());
 	}
 
 	@Override

@@ -160,4 +160,8 @@ public class ExceptionRange<N extends FastGraphVertex> {
 		
 		return String.format("[#%s...#%s]", set.get(0).getId(), BasicBlock.createBlockName(last));
 	}
+	
+	public List<N> getNodes() {
+		return nodes;
+	}
 }

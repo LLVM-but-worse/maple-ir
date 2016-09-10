@@ -61,7 +61,7 @@ public class PopStatement extends Statement {
 
 	@Override
 	public Statement copy() {
-		return new PopStatement(expression);
+		return new PopStatement(expression.copy());
 	}
 
 	@Override
