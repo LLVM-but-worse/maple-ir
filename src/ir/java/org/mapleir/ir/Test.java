@@ -396,14 +396,14 @@ public class Test {
 	}
 
 	public static void main(String[] args) throws IOException {
-//		ClassReader cr = new ClassReader(Test.class.getCanonicalName());
-//		ClassNode cn = new ClassNode();
-//		cr.accept(cn, 0);
-
-		InputStream i = new FileInputStream(new File("res/TypeAnalysis.class"));
-		ClassReader cr = new ClassReader(i);
+		ClassReader cr = new ClassReader(Test.class.getCanonicalName());
 		ClassNode cn = new ClassNode();
 		cr.accept(cn, 0);
+
+//		InputStream i = new FileInputStream(new File("res/TypeAnalysis.class"));
+//		ClassReader cr = new ClassReader(i);
+//		ClassNode cn = new ClassNode();
+//		cr.accept(cn, 0);
 
 		Iterator<MethodNode> it = new ArrayList<>(cn.methods).listIterator();
 		while (it.hasNext()) {
@@ -413,9 +413,9 @@ public class Test {
 			// continue;
 			// }
 
-			if(!m.toString().contains("inferCall")) {
-				continue;
-			}
+//			if(!m.toString().contains("inferCall")) {
+//				continue;
+//			}
 
 			if (!m.toString().startsWith("org/mapleir/ir/Test.test123")) {
 //				continue;
