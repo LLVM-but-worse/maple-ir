@@ -73,6 +73,7 @@ public class ControlFlowGraphBuilder {
 	}
 	
 	private BuilderPass[] resolvePasses() {
+		SSAGenPass.SPLIT_BLOCK_COUNT = 0;
 		if (!DO_SPLIT) {
 			return new BuilderPass[] {
 					new GenerationPass(this),
