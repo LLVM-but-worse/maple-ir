@@ -528,22 +528,23 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 			
 			ArrayList<Statement> stmtsCopy = new ArrayList<>(b);
 			int i = 0;
-			Statement prev = null;
+			boolean checkSplit = false;
 			for (int i1 = 0; i1 < stmtsCopy.size(); i1++) {
 				Statement stmt = stmtsCopy.get(i1);
 //				System.out.println("@" + i1 + "@" + i + " " + stmt);
 				if (b.size() == i)
 					break;
 				
-				boolean checkSplit = true;
-				if (SKIP_SIMPLE_COPY_SPLIT && prev != null && prev instanceof CopyVarStatement) {
-					CopyVarStatement copy = (CopyVarStatement) prev;
-					// do not split after simple or synthetic copies (catch copy is synthetic)
+				// do not split if we have only seen simple or synthetic copies (catch copy is synthetic)
+				if (stmt instanceof CopyVarStatement) {
+					CopyVarStatement copy = (CopyVarStatement) stmt;
 					int opc = copy.getExpression().getOpcode();
-					if (copy.isSynthetic()|| opc == Opcode.LOCAL_LOAD || opc == Opcode.CATCH)
-						checkSplit = false;
+					if (!copy.isSynthetic() && opc != Opcode.LOCAL_LOAD && opc != Opcode.CATCH)
+						checkSplit = true;
+				} else {
+					checkSplit = true;
 				}
-				if (checkSplit && stmt.getOpcode() == Opcode.LOCAL_STORE) {
+				if ((!SKIP_SIMPLE_COPY_SPLIT || checkSplit) && stmt.getOpcode() == Opcode.LOCAL_STORE) {
 					SPLIT_BLOCK_COUNT++;
 					CopyVarStatement copy = (CopyVarStatement) stmt;
 					VarExpression v = copy.getVariable();
@@ -553,9 +554,9 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 						order.add(order.indexOf(b), n);
 					}
 					i = 0;
+					checkSplit = false;
 				}
 				i++;
-				prev = stmt;
 			}
 		}
 		
