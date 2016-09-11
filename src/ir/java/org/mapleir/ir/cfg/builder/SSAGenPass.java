@@ -493,6 +493,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 	
 	public static boolean SKIP_SIMPLE_COPY_SPLIT = true;
 	public static boolean DO_SPLIT = true;
+	public static int SPLIT_BLOCK_COUNT = 0;
 	
 	private void splitRanges() {
 		// produce cleaner cfg
@@ -537,11 +538,13 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 				boolean checkSplit = true;
 				if (SKIP_SIMPLE_COPY_SPLIT && prev != null && prev instanceof CopyVarStatement) {
 					CopyVarStatement copy = (CopyVarStatement) prev;
-					// do not split after simple or synthetic copies
-					if (copy.isSynthetic() || copy.getExpression().getOpcode() == Opcode.LOCAL_LOAD)
+					// do not split after simple or synthetic copies (catch copy is synthetic)
+					int opc = copy.getExpression().getOpcode();
+					if (copy.isSynthetic()|| opc == Opcode.LOCAL_LOAD || opc == Opcode.CATCH)
 						checkSplit = false;
 				}
 				if (checkSplit && stmt.getOpcode() == Opcode.LOCAL_STORE) {
+					SPLIT_BLOCK_COUNT++;
 					CopyVarStatement copy = (CopyVarStatement) stmt;
 					VarExpression v = copy.getVariable();
 					if (ls.contains(v.getLocal())) {
@@ -628,12 +631,6 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		SSABlockLivenessAnalyser liveness = new SSABlockLivenessAnalyser(builder.graph);
 		liveness.compute();
 		this.liveness = liveness;
-		
-		if (!DO_SPLIT) {
-			disconnectExit();
-			return;
-		}
-		
 		
 //		BasicDotConfiguration<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> config = new BasicDotConfiguration<>(DotConfiguration.GraphType.DIRECTED);
 //		DotWriter<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> writer = new DotWriter<>(config, builder.graph);

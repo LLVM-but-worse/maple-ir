@@ -44,7 +44,6 @@ public class Benchmark {
 	public static void main(String[] args) throws IOException {
 		HashMap<String, List<MethodNode>> tests = new LinkedHashMap<>();
 		
-		/*
 		File testDir = new File("res/specjvm2008");
 		for (File testFile : testDir.listFiles()) {
 			if (testFile.isDirectory())
@@ -62,7 +61,7 @@ public class Benchmark {
 				methods.add(m);
 				tests.put(m.name, methods);
 			}
-		}*/
+		}
 
 		tests.put("procyon", getMethods(new JarInfo(new File("res/procyon.jar"))));
 		
@@ -120,20 +119,24 @@ public class Benchmark {
 				System.out.println("  " + m.toString() + " (" + k + " / " + test.getValue().size() + ")");
 				ControlFlowGraph cfg;
 				
-				SSAGenPass.DO_SPLIT = false;
-				SSAGenPass.SKIP_SIMPLE_COPY_SPLIT = false;
-				cfg = ControlFlowGraphBuilder.build(m);
-				recordHandlers(cfg, "NO_SPLIT");
-				
-				SSAGenPass.DO_SPLIT = true;
-				SSAGenPass.SKIP_SIMPLE_COPY_SPLIT = false;
-				cfg = ControlFlowGraphBuilder.build(m);
-				recordHandlers(cfg, "SPLIT");
-				
-				SSAGenPass.DO_SPLIT = true;
-				SSAGenPass.SKIP_SIMPLE_COPY_SPLIT = true;
-				cfg = ControlFlowGraphBuilder.build(m);
-				recordHandlers(cfg, "SPLIT_SKIP");
+				try {
+					SSAGenPass.DO_SPLIT = false;
+					SSAGenPass.SKIP_SIMPLE_COPY_SPLIT = false;
+					cfg = ControlFlowGraphBuilder.build(m);
+					recordHandlers(cfg, "NO_SPLIT");
+					
+					SSAGenPass.DO_SPLIT = true;
+					SSAGenPass.SKIP_SIMPLE_COPY_SPLIT = false;
+					cfg = ControlFlowGraphBuilder.build(m);
+					recordHandlers(cfg, "SPLIT");
+					
+					SSAGenPass.DO_SPLIT = true;
+					SSAGenPass.SKIP_SIMPLE_COPY_SPLIT = true;
+					cfg = ControlFlowGraphBuilder.build(m);
+					recordHandlers(cfg, "SPLIT_SKIP");
+				} catch (UnsupportedOperationException e) {
+					System.err.println(e.getMessage());
+				}
 			}
 			printResults(test.getKey());
 		}
@@ -141,12 +144,7 @@ public class Benchmark {
 	}
 	
 	private static void recordHandlers(ControlFlowGraph cfg, String key) {
-		int count = 0;
-		for (BasicBlock b : cfg.vertices())
-			for (FlowEdge<BasicBlock> e : cfg.getEdges(b))
-				if (e instanceof TryCatchEdge)
-					count++;
-		results.put(key, results.getOrDefault(key, 0L) + count);
+		results.put(key, results.getOrDefault(key, 0L) + SSAGenPass.SPLIT_BLOCK_COUNT);
 	}
 
 	private static void benchmark(HashMap<String, List<MethodNode>> tests) throws IOException {
