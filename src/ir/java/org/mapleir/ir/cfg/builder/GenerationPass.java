@@ -425,7 +425,10 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 				BasicBlock immediate = resolveTarget((LabelNode) ain);
 				builder.graph.addEdge(block, new ImmediateEdge<>(block, immediate));
 				break;
-			} else  if(type == JUMP_INSN) {
+			} else if(ain.opcode() == ATHROW) {
+				// end block at throw statement; cancel immediate edge.
+				break;
+			} else if(type == JUMP_INSN) {
 				JumpInsnNode jin = (JumpInsnNode) ain;
 				BasicBlock target = resolveTarget(jin.label);
 				
