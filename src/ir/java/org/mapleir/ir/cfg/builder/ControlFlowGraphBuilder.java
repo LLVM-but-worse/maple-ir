@@ -17,6 +17,8 @@ import org.mapleir.stdlib.collections.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.SetCreator;
 import org.objectweb.asm.tree.MethodNode;
 
+import static org.mapleir.ir.cfg.builder.SSAGenPass.DO_SPLIT;
+
 public class ControlFlowGraphBuilder {
 
 	protected final MethodNode method;
@@ -71,6 +73,12 @@ public class ControlFlowGraphBuilder {
 	}
 	
 	private BuilderPass[] resolvePasses() {
+		if (!DO_SPLIT) {
+			return new BuilderPass[] {
+					new GenerationPass(this),
+					new NaturalisationPass1(this),
+			};
+		}
 		return new BuilderPass[] {
 				new GenerationPass(this),
 				new NaturalisationPass1(this),

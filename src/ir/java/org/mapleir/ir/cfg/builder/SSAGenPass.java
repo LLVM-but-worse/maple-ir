@@ -1,8 +1,5 @@
 package org.mapleir.ir.cfg.builder;
 
-import java.util.*;
-import java.util.Map.Entry;
-
 import org.mapleir.ir.analysis.SimpleDfs;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
@@ -22,11 +19,14 @@ import org.mapleir.ir.code.stmt.copy.CopyVarStatement;
 import org.mapleir.ir.locals.Local;
 import org.mapleir.ir.locals.LocalsHandler;
 import org.mapleir.ir.locals.VersionedLocal;
+import org.mapleir.stdlib.cfg.edge.ConditionalJumpEdge;
 import org.mapleir.stdlib.cfg.edge.DummyEdge;
 import org.mapleir.stdlib.cfg.edge.FlowEdge;
 import org.mapleir.stdlib.cfg.edge.FlowEdges;
 import org.mapleir.stdlib.cfg.edge.ImmediateEdge;
+import org.mapleir.stdlib.cfg.edge.SwitchEdge;
 import org.mapleir.stdlib.cfg.edge.TryCatchEdge;
+import org.mapleir.stdlib.cfg.edge.UnconditionalJumpEdge;
 import org.mapleir.stdlib.cfg.util.TypeUtils;
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.SetCreator;
@@ -36,6 +36,18 @@ import org.mapleir.stdlib.ir.transform.Liveness;
 import org.mapleir.stdlib.ir.transform.ssa.SSABlockLivenessAnalyser;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.LabelNode;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.Stack;
 
 public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 
@@ -140,16 +152,22 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 				continue;
 			Statement last = p.get(p.size() - 1);
 			int op = last.getOpcode();
-			if (op == Opcode.COND_JUMP) {
+			if (e instanceof ConditionalJumpEdge) {
+				if (op != Opcode.COND_JUMP)
+					throw new IllegalArgumentException("wrong flow instruction");
 				ConditionalJumpStatement j = (ConditionalJumpStatement) last;
 //					assertTarget(last, j.getTrueSuccessor(), b);
 				if (j.getTrueSuccessor() == b)
 					j.setTrueSuccessor(newBlock);
-			} else if (op == Opcode.UNCOND_JUMP) {
+			} else if (e instanceof UnconditionalJumpEdge) {
+				if (op != Opcode.UNCOND_JUMP)
+					throw new IllegalArgumentException("wrong flow instruction");
 				UnconditionalJumpStatement j = (UnconditionalJumpStatement) last;
 				assertTarget(j, j.getTarget(), b);
 				j.setTarget(newBlock);
-			} else if (op == Opcode.SWITCH_JUMP) {
+			} else if (e instanceof SwitchEdge) {
+				if (op == Opcode.SWITCH_JUMP)
+					throw new IllegalArgumentException("wrong flow instruction");
 				SwitchStatement s = (SwitchStatement) last;
 				for (Entry<Integer, BasicBlock> en : s.getTargets().entrySet()) {
 					BasicBlock t = en.getValue();
@@ -191,6 +209,8 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 	
 	private void assertTarget(Statement s, BasicBlock t, BasicBlock b) {
 		if(t != b) {
+			System.err.println(builder.graph);
+			System.err.println(s.getBlock());
 			throw new IllegalStateException(s + ", "+ t.getId() + " != " + b.getId());
 		}
 	}
@@ -471,6 +491,9 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		}
 	}
 	
+	public static boolean SKIP_SIMPLE_COPY_SPLIT = true;
+	public static boolean DO_SPLIT = true;
+	
 	private void splitRanges() {
 		// produce cleaner cfg
 		List<BasicBlock> order = new ArrayList<>(builder.graph.vertices());
@@ -512,7 +535,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 					break;
 				
 				boolean checkSplit = true;
-				if (prev != null && prev instanceof CopyVarStatement) {
+				if (SKIP_SIMPLE_COPY_SPLIT && prev != null && prev instanceof CopyVarStatement) {
 					CopyVarStatement copy = (CopyVarStatement) prev;
 					// do not split after simple or synthetic copies
 					if (copy.isSynthetic() || copy.getExpression().getOpcode() == Opcode.LOCAL_LOAD)
@@ -601,11 +624,20 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		splitCount = builder.graph.size() + 1;
 		connectExit();
 		
-		fixFinally();
+//		fixFinally();
 		SSABlockLivenessAnalyser liveness = new SSABlockLivenessAnalyser(builder.graph);
 		liveness.compute();
 		this.liveness = liveness;
 		
+		if (!DO_SPLIT) {
+			disconnectExit();
+			return;
+		}
+		
+		
+//		BasicDotConfiguration<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> config = new BasicDotConfiguration<>(DotConfiguration.GraphType.DIRECTED);
+//		DotWriter<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> writer = new DotWriter<>(config, builder.graph);
+//		writer.removeAll().add(new ControlFlowGraphDecorator().setFlags(OPT_DEEP)).setName("presplit").export();
 		splitRanges();
 		// TODO: update instead of recomp?
 		liveness = new SSABlockLivenessAnalyser(builder.graph);

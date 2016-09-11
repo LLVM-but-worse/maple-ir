@@ -6,6 +6,7 @@ import org.mapleir.ir.cfg.BoissinotDestructor;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.cfg.SreedharDestructor;
 import org.mapleir.ir.cfg.builder.ControlFlowGraphBuilder;
+import org.mapleir.ir.cfg.builder.SSAGenPass;
 import org.mapleir.ir.code.expr.Expression;
 import org.mapleir.ir.code.expr.PhiExpression;
 import org.mapleir.ir.code.expr.VarExpression;
@@ -27,7 +28,6 @@ import org.objectweb.asm.tree.MethodNode;
 import org.topdank.byteengineer.commons.data.JarInfo;
 import org.topdank.byteio.in.SingleJarDownloader;
 
-import javax.naming.OperationNotSupportedException;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -43,33 +43,36 @@ import java.util.Map.Entry;
 public class Benchmark {
 	public static void main(String[] args) throws IOException {
 		HashMap<String, List<MethodNode>> tests = new LinkedHashMap<>();
-//		File testDir = new File("res/specjvm2008");
-//		for (File testFile : testDir.listFiles()) {
-//			if (testFile.isDirectory())
-//				tests.put(testFile.getName(), getMethods(testFile.listFiles()));
-//			else
-//				tests.put(testFile.getName(), getMethods(testFile));
-//		}
-//
-//		ClassReader cr = new ClassReader(Test.class.getCanonicalName());
-//		ClassNode cn = new ClassNode();
-//		cr.accept(cn, 0);
-//		for (MethodNode m : cn.methods) {
-//			if (m.name.startsWith("test")) {
-//				List<MethodNode> methods = new ArrayList<>();
-//				methods.add(m);
-//				tests.put(m.name, methods);
-//			}
-//		}
+		
+		/*
+		File testDir = new File("res/specjvm2008");
+		for (File testFile : testDir.listFiles()) {
+			if (testFile.isDirectory())
+				tests.put(testFile.getName(), getMethods(testFile.listFiles()));
+			else
+				tests.put(testFile.getName(), getMethods(testFile));
+		}
 
-//		tests.put("procyon", getMethods(new JarInfo(new File("res/procyon.jar"))));
+		ClassReader cr = new ClassReader(Test.class.getCanonicalName());
+		ClassNode cn = new ClassNode();
+		cr.accept(cn, 0);
+		for (MethodNode m : cn.methods) {
+			if (m.name.startsWith("test")) {
+				List<MethodNode> methods = new ArrayList<>();
+				methods.add(m);
+				tests.put(m.name, methods);
+			}
+		}*/
+
+		tests.put("procyon", getMethods(new JarInfo(new File("res/procyon.jar"))));
 		
 		tests.put("fernflower", getMethods(new JarInfo(new File("res/fernflower.jar"))));
 
-		benchmark(tests);
+		benchCFG(tests);
 	}
 
 	private static HashMap<String, Long> results = new LinkedHashMap<>();
+
 	private static void benchCopies(HashMap<String, List<MethodNode>> tests) throws IOException {
 		for (Entry<String, List<MethodNode>> test : tests.entrySet()) {
 			results.clear();
@@ -107,9 +110,47 @@ public class Benchmark {
 	private static void recordCopies(ControlFlowGraph cfg, String key) {
 		results.put(key, results.getOrDefault(key, 0L) + countCopies(cfg));
 	}
+	
+	private static void benchCFG(HashMap<String, List<MethodNode>> tests) throws IOException {
+		for (Entry<String, List<MethodNode>> test : tests.entrySet()) {
+			results.clear();
+			int k = 0;
+			for (MethodNode m : test.getValue()) {
+				k++;
+				System.out.println("  " + m.toString() + " (" + k + " / " + test.getValue().size() + ")");
+				ControlFlowGraph cfg;
+				
+				SSAGenPass.DO_SPLIT = false;
+				SSAGenPass.SKIP_SIMPLE_COPY_SPLIT = false;
+				cfg = ControlFlowGraphBuilder.build(m);
+				recordHandlers(cfg, "NO_SPLIT");
+				
+				SSAGenPass.DO_SPLIT = true;
+				SSAGenPass.SKIP_SIMPLE_COPY_SPLIT = false;
+				cfg = ControlFlowGraphBuilder.build(m);
+				recordHandlers(cfg, "SPLIT");
+				
+				SSAGenPass.DO_SPLIT = true;
+				SSAGenPass.SKIP_SIMPLE_COPY_SPLIT = true;
+				cfg = ControlFlowGraphBuilder.build(m);
+				recordHandlers(cfg, "SPLIT_SKIP");
+			}
+			printResults(test.getKey());
+		}
+		printResultsHeader();
+	}
+	
+	private static void recordHandlers(ControlFlowGraph cfg, String key) {
+		int count = 0;
+		for (BasicBlock b : cfg.vertices())
+			for (FlowEdge<BasicBlock> e : cfg.getEdges(b))
+				if (e instanceof TryCatchEdge)
+					count++;
+		results.put(key, results.getOrDefault(key, 0L) + count);
+	}
 
 	private static void benchmark(HashMap<String, List<MethodNode>> tests) throws IOException {
-		final int NUM_ITER = 5;
+		final int NUM_ITER = 1000;
 //		System.in.read();
 
 		for (Entry<String, List<MethodNode>> test : tests.entrySet()) {
