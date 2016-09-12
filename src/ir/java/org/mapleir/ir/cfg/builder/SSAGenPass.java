@@ -9,6 +9,7 @@ import org.mapleir.ir.code.expr.Expression;
 import org.mapleir.ir.code.expr.PhiExpression;
 import org.mapleir.ir.code.expr.VarExpression;
 import org.mapleir.ir.code.stmt.ConditionalJumpStatement;
+import org.mapleir.ir.code.stmt.ReturnStatement;
 import org.mapleir.ir.code.stmt.Statement;
 import org.mapleir.ir.code.stmt.SwitchStatement;
 import org.mapleir.ir.code.stmt.ThrowStatement;
@@ -16,6 +17,7 @@ import org.mapleir.ir.code.stmt.UnconditionalJumpStatement;
 import org.mapleir.ir.code.stmt.copy.AbstractCopyStatement;
 import org.mapleir.ir.code.stmt.copy.CopyPhiStatement;
 import org.mapleir.ir.code.stmt.copy.CopyVarStatement;
+import org.mapleir.ir.dot.ControlFlowGraphDecorator;
 import org.mapleir.ir.locals.Local;
 import org.mapleir.ir.locals.LocalsHandler;
 import org.mapleir.ir.locals.VersionedLocal;
@@ -30,6 +32,9 @@ import org.mapleir.stdlib.cfg.edge.UnconditionalJumpEdge;
 import org.mapleir.stdlib.cfg.util.TypeUtils;
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.SetCreator;
+import org.mapleir.stdlib.collections.graph.dot.BasicDotConfiguration;
+import org.mapleir.stdlib.collections.graph.dot.DotConfiguration;
+import org.mapleir.stdlib.collections.graph.dot.DotWriter;
 import org.mapleir.stdlib.collections.graph.flow.ExceptionRange;
 import org.mapleir.stdlib.collections.graph.flow.TarjanDominanceComputor;
 import org.mapleir.stdlib.ir.transform.Liveness;
@@ -44,10 +49,13 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.Stack;
+
+import static org.mapleir.ir.dot.ControlFlowGraphDecorator.OPT_DEEP;
 
 public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 
@@ -74,6 +82,88 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		
 		splits = new NullPermeableHashMap<>(new SetCreator<>());
 		preorder = new HashMap<>();
+	}
+	
+	public static boolean SKIP_SIMPLE_COPY_SPLIT = true;
+	public static boolean DO_SPLIT = true;
+	public static int SPLIT_BLOCK_COUNT = 0;
+	
+	private void splitRanges() {
+		// produce cleaner cfg
+		List<BasicBlock> order = new ArrayList<>(builder.graph.vertices());
+		
+		for(ExceptionRange<BasicBlock> er : builder.graph.getRanges()) {
+			BasicBlock h = er.getHandler();
+			
+			Set<Local> ls = new HashSet<>(liveness.in(h));
+			for(BasicBlock b : er.get()) {
+				splits.getNonNull(b).addAll(ls);
+				
+				//				boolean outside = false;
+				//
+				//				for(FlowEdge<BasicBlock> e : builder.graph.getReverseEdges(b)) {
+				//					BasicBlock p = e.src;
+				//					if(!er.containsVertex(p)) {
+				//						outside = true;
+				//					}
+				//				}
+				
+				//				if(outside) {
+				//					BasicBlock n = splitBlock(b, 0);
+				//					order.add(order.indexOf(b), n);
+				//				}
+			}
+		}
+		
+		for(Entry<BasicBlock, Set<Local>> e : splits.entrySet()) {
+			BasicBlock b = e.getKey();
+			Set<Local> ls = e.getValue();
+			
+			ArrayList<Statement> stmtsCopy = new ArrayList<>(b);
+			int i = 0;
+			boolean checkSplit = false;
+			for (int i1 = 0; i1 < stmtsCopy.size(); i1++) {
+				Statement stmt = stmtsCopy.get(i1);
+				//				System.out.println("@" + i1 + "@" + i + " " + stmt);
+				if (b.size() == i)
+					throw new IllegalStateException("s");
+				
+				if ((!SKIP_SIMPLE_COPY_SPLIT || checkSplit) && stmt.getOpcode() == Opcode.LOCAL_STORE) {
+					SPLIT_BLOCK_COUNT++;
+					CopyVarStatement copy = (CopyVarStatement) stmt;
+					VarExpression v = copy.getVariable();
+					if (ls.contains(v.getLocal())) {
+						BasicBlock n = splitBlock(b, i);
+						//						System.out.println("Split " + b.getId() + " into " + b.getId() + " and " + n.getId());
+						order.add(order.indexOf(b), n);
+						i = 0;
+						checkSplit = false;
+					}
+				} else {
+					// do not split if we have only seen simple or synthetic copies (catch copy is synthetic)
+					if (stmt instanceof CopyVarStatement) {
+						CopyVarStatement copy = (CopyVarStatement) stmt;
+						int opc = copy.getExpression().getOpcode();
+						if (!copy.isSynthetic() && opc != Opcode.LOCAL_LOAD && opc != Opcode.CATCH) {
+							checkSplit = true;
+						}
+					} else {
+						checkSplit = true;
+					}
+				}
+				i++;
+			}
+		}
+		
+		builder.naturaliseGraph(order);
+		
+		SimpleDfs<BasicBlock> dfs = new SimpleDfs<>(builder.graph, builder.graph.getEntries().iterator().next(), true, false);
+		int po = 0;
+		for(BasicBlock b : dfs.preorder) {
+			insertion.put(b, 0);
+			process.put(b, 0);
+			preorder.put(b, po++);
+		}
 	}
 	
 	private BasicBlock splitBlock(BasicBlock b, int to) {
@@ -131,16 +221,9 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 			FlowEdge<BasicBlock> c;
 			if (e instanceof TryCatchEdge) { // b is ehandler
 				TryCatchEdge<BasicBlock> tce = (TryCatchEdge<BasicBlock>) e;
-				ExceptionRange<BasicBlock> newEr = new ExceptionRange<>(tce.erange.getNode());
-				newEr.addType("null");
-				newEr.setHandler(newBlock);
-				newEr.addVertex(p);
-				c = new TryCatchEdge<>(p, newEr);
-				cfg.addEdge(p, c);
-				cfg.removeEdge(p, e);
-				cfg.addRange(newEr);
-				
-				tce.erange.removeVertex(b);
+				tce.erange.setHandler(newBlock);
+				cfg.addEdge(tce.src, tce.clone(tce.src, null));
+				cfg.removeEdge(tce.src, tce);
 			} else {
 				c = e.clone(p, newBlock);
 				cfg.addEdge(p, c);
@@ -166,8 +249,8 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 				assertTarget(j, j.getTarget(), b);
 				j.setTarget(newBlock);
 			} else if (e instanceof SwitchEdge) {
-				if (op == Opcode.SWITCH_JUMP)
-					throw new IllegalArgumentException("wrong flow instruction");
+				if (op != Opcode.SWITCH_JUMP)
+					throw new IllegalArgumentException("wrong flow instruction.");
 				SwitchStatement s = (SwitchStatement) last;
 				for (Entry<Integer, BasicBlock> en : s.getTargets().entrySet()) {
 					BasicBlock t = en.getValue();
@@ -178,11 +261,26 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 			}
 		}
 
+		
+		if (!checkCloneHandler(newBlock)) {
+			System.err.println(cfg);
+			System.err.println(newBlock.getId());
+			System.err.println(b.getId());
+			throw new IllegalStateException("the new block should always need a handler..?");
+		}
+			
 		// clone exception edges
-		for(FlowEdge<BasicBlock> e : cfg.getEdges(b)) {
-			if(e.getType() == FlowEdges.TRYCATCH) {
+		for (FlowEdge<BasicBlock> e : cfg.getEdges(b)) {
+			if (e.getType() == FlowEdges.TRYCATCH) {
 				TryCatchEdge<BasicBlock> c = ((TryCatchEdge<BasicBlock>) e).clone(newBlock, null); // second param is discarded (?)
 				cfg.addEdge(newBlock, c);
+			}
+		}
+		if (!checkCloneHandler(b)) {
+			// remove unnecessary handler edges if this block is now all simple copies, synth copies, or simple jumps.
+			for (FlowEdge<BasicBlock> e : new HashSet<>(cfg.getEdges(b))) {
+				if (e instanceof TryCatchEdge)
+					cfg.removeEdge(b, e);
 			}
 		}
 		
@@ -205,6 +303,30 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		}
 		
 		return newBlock;
+	}
+	
+	private boolean checkCloneHandler(BasicBlock b) {
+		if (!SKIP_SIMPLE_COPY_SPLIT)
+			return true;
+		if (b.isEmpty())
+			throw new IllegalArgumentException("empty block after split?");
+		// backwards iteration is faster
+		for (ListIterator<Statement> it = b.listIterator(b.size()); it.hasPrevious(); ) {
+			Statement stmt = it.previous();
+			if (stmt instanceof CopyVarStatement) {
+				CopyVarStatement copy = (CopyVarStatement) stmt;
+				int opc = copy.getExpression().getOpcode();
+				if (!copy.isSynthetic() && opc != Opcode.LOCAL_LOAD && opc != Opcode.CATCH)
+					return true;
+			} else if (stmt.canChangeFlow()) {
+				if (stmt instanceof ThrowStatement)
+					return true;
+				// no need to check child exprs as no complex subexprs can occur before propagation.
+			} else {
+				return true;
+			}
+		}
+		return false;
 	}
 	
 	private void assertTarget(Statement s, BasicBlock t, BasicBlock b) {
@@ -381,7 +503,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 							Type t = varDef.getType();
 							Type oldT = copy.getType();
 							// TODO: common supertypes
-							if(!oldT.equals(TypeUtils.asSimpleType(t))) {
+							if(oldT.getSize() != TypeUtils.asSimpleType(t).getSize()) {
 								throw new IllegalStateException(l + " " + copy + " " + t + " " + copy.getType());
 							}
 						}
@@ -491,86 +613,6 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		}
 	}
 	
-	public static boolean SKIP_SIMPLE_COPY_SPLIT = true;
-	public static boolean DO_SPLIT = true;
-	public static int SPLIT_BLOCK_COUNT = 0;
-	
-	private void splitRanges() {
-		// produce cleaner cfg
-		List<BasicBlock> order = new ArrayList<>(builder.graph.vertices());
-		
-		for(ExceptionRange<BasicBlock> er : builder.graph.getRanges()) {
-			BasicBlock h = er.getHandler();
-			
-			Set<Local> ls = new HashSet<>(liveness.in(h));
-			for(BasicBlock b : er.get()) {
-				splits.getNonNull(b).addAll(ls);
-
-//				boolean outside = false;
-//
-//				for(FlowEdge<BasicBlock> e : builder.graph.getReverseEdges(b)) {
-//					BasicBlock p = e.src;
-//					if(!er.containsVertex(p)) {
-//						outside = true;
-//					}
-//				}
-
-//				if(outside) {
-//					BasicBlock n = splitBlock(b, 0);
-//					order.add(order.indexOf(b), n);
-//				}
-			}
-		}
-		
-		for(Entry<BasicBlock, Set<Local>> e : splits.entrySet()) {
-			BasicBlock b = e.getKey();
-			Set<Local> ls = e.getValue();
-			
-			ArrayList<Statement> stmtsCopy = new ArrayList<>(b);
-			int i = 0;
-			boolean checkSplit = false;
-			for (int i1 = 0; i1 < stmtsCopy.size(); i1++) {
-				Statement stmt = stmtsCopy.get(i1);
-//				System.out.println("@" + i1 + "@" + i + " " + stmt);
-				if (b.size() == i)
-					break;
-				
-				// do not split if we have only seen simple or synthetic copies (catch copy is synthetic)
-				if (stmt instanceof CopyVarStatement) {
-					CopyVarStatement copy = (CopyVarStatement) stmt;
-					int opc = copy.getExpression().getOpcode();
-					if (!copy.isSynthetic() && opc != Opcode.LOCAL_LOAD && opc != Opcode.CATCH)
-						checkSplit = true;
-				} else {
-					checkSplit = true;
-				}
-				if ((!SKIP_SIMPLE_COPY_SPLIT || checkSplit) && stmt.getOpcode() == Opcode.LOCAL_STORE) {
-					SPLIT_BLOCK_COUNT++;
-					CopyVarStatement copy = (CopyVarStatement) stmt;
-					VarExpression v = copy.getVariable();
-					if (ls.contains(v.getLocal())) {
-						BasicBlock n = splitBlock(b, i);
-//						System.out.println("Split " + b.getId() + " into " + b.getId() + " and " + n.getId());
-						order.add(order.indexOf(b), n);
-					}
-					i = 0;
-					checkSplit = false;
-				}
-				i++;
-			}
-		}
-		
-		builder.naturaliseGraph(order);
-
-		SimpleDfs<BasicBlock> dfs = new SimpleDfs<>(builder.graph, builder.graph.getEntries().iterator().next(), true, false);
-		int po = 0;
-		for(BasicBlock b : dfs.preorder) {
-			insertion.put(b, 0);
-			process.put(b, 0);
-			preorder.put(b, po++);
-		}
-	}
-	
 	private void cleanHandlerPhis() {
 		for(ExceptionRange<BasicBlock> er : builder.graph.getRanges()) {
 			BasicBlock h = er.getHandler();
@@ -633,9 +675,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		liveness.compute();
 		this.liveness = liveness;
 		
-//		BasicDotConfiguration<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> config = new BasicDotConfiguration<>(DotConfiguration.GraphType.DIRECTED);
-//		DotWriter<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> writer = new DotWriter<>(config, builder.graph);
-//		writer.removeAll().add(new ControlFlowGraphDecorator().setFlags(OPT_DEEP)).setName("presplit").export();
+		BasicDotConfiguration<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> config = new BasicDotConfiguration<>(DotConfiguration.GraphType.DIRECTED);
 		splitRanges();
 		// TODO: update instead of recomp?
 		liveness = new SSABlockLivenessAnalyser(builder.graph);
