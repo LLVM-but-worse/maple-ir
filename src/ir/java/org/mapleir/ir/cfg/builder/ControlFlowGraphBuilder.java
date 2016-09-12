@@ -85,7 +85,7 @@ public class ControlFlowGraphBuilder {
 				new NaturalisationPass1(this),
 //				new NaturalisationPass2(this),
 				new SSAGenPass(this),
-				new OptimisationPass(this),
+//				new OptimisationPass(this),
 //				new DeadRangesPass(this)
 		};
 	}

@@ -44,6 +44,7 @@ public class Benchmark {
 	public static void main(String[] args) throws IOException {
 		HashMap<String, List<MethodNode>> tests = new LinkedHashMap<>();
 		
+		/*
 		File testDir = new File("res/specjvm2008");
 		for (File testFile : testDir.listFiles()) {
 			if (testFile.isDirectory())
@@ -62,10 +63,19 @@ public class Benchmark {
 				tests.put(m.name, methods);
 			}
 		}
+		*/
 
-		tests.put("procyon", getMethods(new JarInfo(new File("res/procyon.jar"))));
+//		tests.put("procyon", getMethods(new JarInfo(new File("res/procyon.jar"))));
 		
-		tests.put("fernflower", getMethods(new JarInfo(new File("res/fernflower.jar"))));
+//		tests.put("fernflower", getMethods(new JarInfo(new File("res/fernflower.jar"))));
+		
+//		tests.put("maple-ir", getMethods(new JarInfo(new File("res/maple-ir.jar"))));
+
+//		tests.put("minecraft", getMethods(new JarInfo(new File("res/1.10.2.jar"))));
+		
+//		tests.put("java", getMethods(new JarInfo(new File("res/rt.jar"))));
+		
+		tests.put("specjvm2008", getMethods(new JarInfo(new File("res/SPECjvm2008.jar"))));
 
 		benchCFG(tests);
 	}
@@ -144,7 +154,13 @@ public class Benchmark {
 	}
 	
 	private static void recordHandlers(ControlFlowGraph cfg, String key) {
-		results.put(key, results.getOrDefault(key, 0L) + SSAGenPass.SPLIT_BLOCK_COUNT);
+//		int count = 0;
+//		for (BasicBlock b : cfg.vertices())
+//			for (FlowEdge<BasicBlock> e : cfg.getEdges(b))
+//				if (e instanceof TryCatchEdge)
+//					count++;
+		int count = SSAGenPass.SPLIT_BLOCK_COUNT;
+		results.put(key, results.getOrDefault(key, 0L) + count);
 	}
 
 	private static void benchmark(HashMap<String, List<MethodNode>> tests) throws IOException {
