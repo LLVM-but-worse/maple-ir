@@ -10,7 +10,8 @@ public class OptimisationPass extends ControlFlowGraphBuilder.BuilderPass {
 	}
 
 	// TODO: optimise
-	private Optimiser[] findOptimisers(SSALocalAccess a) {
+	private Optimiser[] findOptimisers() {
+		SSALocalAccess a = builder.localAccess;
 		return new Optimiser[] {
 			new Propagator(builder, a),
 			new Aggregator(builder, a)
@@ -19,8 +20,8 @@ public class OptimisationPass extends ControlFlowGraphBuilder.BuilderPass {
 	
 	@Override
 	public void run() {
-		SSALocalAccess localAccess = new SSALocalAccess(builder.graph);
-		Optimiser[] opt = findOptimisers(localAccess);
+		builder.localAccess = new SSALocalAccess(builder.graph);
+		Optimiser[] opt = findOptimisers();
 		
 		int changes;
 		
