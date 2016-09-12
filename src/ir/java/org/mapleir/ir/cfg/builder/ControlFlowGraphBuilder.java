@@ -18,6 +18,8 @@ import org.mapleir.stdlib.collections.SetCreator;
 import org.mapleir.stdlib.ir.transform.ssa.SSALocalAccess;
 import org.objectweb.asm.tree.MethodNode;
 
+import static org.mapleir.ir.cfg.builder.SSAGenPass.DO_SPLIT;
+
 public class ControlFlowGraphBuilder {
 
 	protected final MethodNode method;
@@ -73,12 +75,19 @@ public class ControlFlowGraphBuilder {
 	}
 	
 	private BuilderPass[] resolvePasses() {
+		SSAGenPass.SPLIT_BLOCK_COUNT = 0;
+		if (!DO_SPLIT) {
+			return new BuilderPass[] {
+					new GenerationPass(this),
+					new NaturalisationPass1(this),
+			};
+		}
 		return new BuilderPass[] {
 				new GenerationPass(this),
 				new NaturalisationPass1(this),
 //				new NaturalisationPass2(this),
 				new SSAGenPass(this),
-				new OptimisationPass(this),
+//				new OptimisationPass(this),
 //				new DeadRangesPass(this)
 		};
 	}
