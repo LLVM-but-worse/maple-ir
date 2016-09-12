@@ -425,7 +425,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 				BasicBlock immediate = resolveTarget((LabelNode) ain);
 				builder.graph.addEdge(block, new ImmediateEdge<>(block, immediate));
 				break;
-			} else  if(type == JUMP_INSN) {
+			} else if(type == JUMP_INSN) {
 				JumpInsnNode jin = (JumpInsnNode) ain;
 				BasicBlock target = resolveTarget(jin.label);
 				
@@ -1333,7 +1333,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 	
 	CopyVarStatement copy(VarExpression v, Expression e) {
 		builder.assigns.getNonNull(v.getLocal()).add(currentBlock);
-		return new CopyVarStatement(v, e);
+		return new CopyVarStatement(v.getParent() != null? v.copy() : v, e.getParent() != null? e.copy() : e);
 	}
 	
 	VarExpression _var_expr(int index, Type type, boolean isStack) {
@@ -1481,7 +1481,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 			if (((VarExpression) e1).getIndex() != ((VarExpression) e2).getIndex()) {
 				return false;
 			}
-			if (!TypeUtils.asSimpleType(e1.getType()).getDescriptor().equals(TypeUtils.asSimpleType(e2.getType()).getDescriptor())) {
+			if (e1.getType().getSize() != e2.getType().getSize()) {
 				return false;
 			}
 		}
