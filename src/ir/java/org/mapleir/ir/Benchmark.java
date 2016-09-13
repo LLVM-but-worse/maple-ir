@@ -1,5 +1,17 @@
 package org.mapleir.ir;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+
 import org.mapleir.ir.analysis.DominanceLivenessAnalyser;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.BoissinotDestructor;
@@ -28,18 +40,6 @@ import org.objectweb.asm.tree.MethodNode;
 import org.topdank.byteengineer.commons.data.JarInfo;
 import org.topdank.byteio.in.SingleJarDownloader;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-
 public class Benchmark {
 	public static void main(String[] args) throws IOException {
 		HashMap<String, List<MethodNode>> tests = new LinkedHashMap<>();
@@ -66,16 +66,12 @@ public class Benchmark {
 		*/
 
 //		tests.put("procyon", getMethods(new JarInfo(new File("res/procyon.jar"))));
-		
 //		tests.put("fernflower", getMethods(new JarInfo(new File("res/fernflower.jar"))));
-		
 //		tests.put("maple-ir", getMethods(new JarInfo(new File("res/maple-ir.jar"))));
-
 //		tests.put("minecraft", getMethods(new JarInfo(new File("res/1.10.2.jar"))));
-		
 //		tests.put("java", getMethods(new JarInfo(new File("res/rt.jar"))));
-		
-		tests.put("specjvm2008", getMethods(new JarInfo(new File("res/SPECjvm2008.jar"))));
+//		tests.put("specjvm2008", getMethods(new JarInfo(new File("res/SPECjvm2008.jar"))));
+		tests.put("runique", getMethods(new JarInfo(new File("res/runique.jar"))));
 
 		benchCFG(tests);
 	}
