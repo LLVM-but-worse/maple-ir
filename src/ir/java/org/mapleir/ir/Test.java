@@ -1,10 +1,8 @@
 package org.mapleir.ir;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Iterator;
 
@@ -12,10 +10,17 @@ import org.mapleir.ir.analysis.DominanceLivenessAnalyser;
 import org.mapleir.ir.cfg.BoissinotDestructor;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.cfg.builder.ControlFlowGraphBuilder;
+import org.mapleir.stdlib.collections.NodeTable;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
+import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.ClassNode;
+import org.objectweb.asm.tree.InsnList;
+import org.objectweb.asm.tree.InsnNode;
+import org.objectweb.asm.tree.MethodInsnNode;
 import org.objectweb.asm.tree.MethodNode;
+import org.topdank.byteengineer.commons.data.JarInfo;
+import org.topdank.byteio.in.SingleJarDownloader;
 
 public class Test {
 
@@ -395,7 +400,44 @@ public class Test {
 		return 114;
 	}
 
+	public static void main1(String[] args) throws IOException {
+		ClassNode cn = new ClassNode();
+		cn.access = Opcodes.ACC_PUBLIC;
+		cn.name = "test/Klass";
+		cn.superName = "java/lang/Object";
+		MethodNode m = new MethodNode(cn, Opcodes.ACC_PUBLIC, "test", "()V", null, null);
+		InsnList insns = m.instructions;
+		insns.add(new MethodInsnNode(Opcodes.INVOKESTATIC, "Klass", "method1", "()I", false));
+		insns.add(new MethodInsnNode(Opcodes.INVOKESTATIC, "Klass", "method2", "()F", false));
+		insns.add(new MethodInsnNode(Opcodes.INVOKESTATIC, "Klass", "method3", "()I", false));
+		insns.add(new InsnNode(Opcodes.DUP_X2));
+		insns.add(new InsnNode(Opcodes.POP));
+		insns.add(new InsnNode(Opcodes.SWAP));
+		
+		ControlFlowGraph cfg = ControlFlowGraphBuilder.build(m);
+		System.out.println(cfg);
+	}
+	
 	public static void main(String[] args) throws IOException {
+		JarInfo jar = new JarInfo(new File("res/runique.jar"));
+		NodeTable<ClassNode> nt = new NodeTable<>();
+		SingleJarDownloader<ClassNode> dl = new SingleJarDownloader<>(jar);
+		dl.download();
+		nt.putAll(dl.getJarContents().getClassContents().namedMap());
+		for (ClassNode cn : nt) {
+			for(MethodNode m : cn.methods) {
+				if(!m.toString().equals("a/a/o/q.run()V")) {
+					continue;
+				}
+				if(m.instructions.size() > 0) {
+					System.out.printf("%s  %d.%n", m, m.instructions.size());
+					ControlFlowGraph cfg = ControlFlowGraphBuilder.build(m);
+				}
+			}
+		}
+	}
+	
+	public static void main2(String[] args) throws IOException {
 		ClassReader cr = new ClassReader(Test.class.getCanonicalName());
 		ClassNode cn = new ClassNode();
 		cr.accept(cn, 0);
