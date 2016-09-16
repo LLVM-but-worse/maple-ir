@@ -78,6 +78,8 @@ public class ControlFlowGraphBuilder {
 			return new BuilderPass[] {
 					new GenerationPass(this),
 					new NaturalisationPass1(this),
+					new SSAGenPass(this),
+					new OptimisationPass(this)
 			};
 		}
 		return new BuilderPass[] {
@@ -85,7 +87,7 @@ public class ControlFlowGraphBuilder {
 				new NaturalisationPass1(this),
 //				new NaturalisationPass2(this),
 				new SSAGenPass(this),
-//				new OptimisationPass(this),
+				new OptimisationPass(this),
 //				new DeadRangesPass(this)
 		};
 	}
