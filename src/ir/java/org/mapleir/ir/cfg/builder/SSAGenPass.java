@@ -84,8 +84,10 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		preorder = new HashMap<>();
 	}
 	
-	public static boolean SKIP_SIMPLE_COPY_SPLIT = true;
 	public static boolean DO_SPLIT = true;
+	public static boolean ULTRANAIVE = false;
+	public static boolean SKIP_SIMPLE_COPY_SPLIT = true;
+	public static boolean PRUNE_EDGES = true;
 	public static int SPLIT_BLOCK_COUNT = 0;
 	
 	private void splitRanges() {
@@ -128,16 +130,22 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 				if (b.size() == i)
 					throw new IllegalStateException("s");
 				
-				if ((!SKIP_SIMPLE_COPY_SPLIT || checkSplit) && stmt.getOpcode() == Opcode.LOCAL_STORE) {
+				if (ULTRANAIVE || (!SKIP_SIMPLE_COPY_SPLIT || checkSplit) && stmt.getOpcode() == Opcode.LOCAL_STORE) {
 					SPLIT_BLOCK_COUNT++;
-					CopyVarStatement copy = (CopyVarStatement) stmt;
-					VarExpression v = copy.getVariable();
-					if (ls.contains(v.getLocal())) {
+					if (ULTRANAIVE) {
 						BasicBlock n = splitBlock(b, i);
-						//						System.out.println("Split " + b.getId() + " into " + b.getId() + " and " + n.getId());
 						order.add(order.indexOf(b), n);
 						i = 0;
-						checkSplit = false;
+					} else {
+						CopyVarStatement copy = (CopyVarStatement) stmt;
+						VarExpression v = copy.getVariable();
+						if (ls.contains(v.getLocal())) {
+							BasicBlock n = splitBlock(b, i);
+							//						System.out.println("Split " + b.getId() + " into " + b.getId() + " and " + n.getId());
+							order.add(order.indexOf(b), n);
+							i = 0;
+							checkSplit = false;
+						}
 					}
 				} else {
 					// do not split if we have only seen simple or synthetic copies (catch copy is synthetic)
@@ -221,9 +229,11 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 			FlowEdge<BasicBlock> c;
 			if (e instanceof TryCatchEdge) { // b is ehandler
 				TryCatchEdge<BasicBlock> tce = (TryCatchEdge<BasicBlock>) e;
-				tce.erange.setHandler(newBlock);
-				cfg.addEdge(tce.src, tce.clone(tce.src, null));
-				cfg.removeEdge(tce.src, tce);
+				if (tce.erange.getHandler() != newBlock) {
+					tce.erange.setHandler(newBlock);
+					cfg.addEdge(tce.src, tce.clone(tce.src, null));
+					cfg.removeEdge(tce.src, tce);
+				}
 			} else {
 				c = e.clone(p, newBlock);
 				cfg.addEdge(p, c);
@@ -231,31 +241,31 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 			}
 			
 			// Fix flow instruction targets
-			if (p.isEmpty())
-				continue;
-			Statement last = p.get(p.size() - 1);
-			int op = last.getOpcode();
-			if (e instanceof ConditionalJumpEdge) {
-				if (op != Opcode.COND_JUMP)
-					throw new IllegalArgumentException("wrong flow instruction");
-				ConditionalJumpStatement j = (ConditionalJumpStatement) last;
+			if (!p.isEmpty()) {
+				Statement last = p.get(p.size() - 1);
+				int op = last.getOpcode();
+				if (e instanceof ConditionalJumpEdge) {
+					if (op != Opcode.COND_JUMP)
+						throw new IllegalArgumentException("wrong flow instruction");
+					ConditionalJumpStatement j = (ConditionalJumpStatement) last;
 //					assertTarget(last, j.getTrueSuccessor(), b);
-				if (j.getTrueSuccessor() == b)
-					j.setTrueSuccessor(newBlock);
-			} else if (e instanceof UnconditionalJumpEdge) {
-				if (op != Opcode.UNCOND_JUMP)
-					throw new IllegalArgumentException("wrong flow instruction");
-				UnconditionalJumpStatement j = (UnconditionalJumpStatement) last;
-				assertTarget(j, j.getTarget(), b);
-				j.setTarget(newBlock);
-			} else if (e instanceof SwitchEdge) {
-				if (op != Opcode.SWITCH_JUMP)
-					throw new IllegalArgumentException("wrong flow instruction.");
-				SwitchStatement s = (SwitchStatement) last;
-				for (Entry<Integer, BasicBlock> en : s.getTargets().entrySet()) {
-					BasicBlock t = en.getValue();
-					if (t == b) {
-						en.setValue(newBlock);
+					if (j.getTrueSuccessor() == b)
+						j.setTrueSuccessor(newBlock);
+				} else if (e instanceof UnconditionalJumpEdge) {
+					if (op != Opcode.UNCOND_JUMP)
+						throw new IllegalArgumentException("wrong flow instruction");
+					UnconditionalJumpStatement j = (UnconditionalJumpStatement) last;
+					assertTarget(j, j.getTarget(), b);
+					j.setTarget(newBlock);
+				} else if (e instanceof SwitchEdge) {
+					if (op != Opcode.SWITCH_JUMP)
+						throw new IllegalArgumentException("wrong flow instruction.");
+					SwitchStatement s = (SwitchStatement) last;
+					for (Entry<Integer, BasicBlock> en : s.getTargets().entrySet()) {
+						BasicBlock t = en.getValue();
+						if (t == b) {
+							en.setValue(newBlock);
+						}
 					}
 				}
 			}
@@ -306,7 +316,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 	}
 	
 	private boolean checkCloneHandler(BasicBlock b) {
-		if (!SKIP_SIMPLE_COPY_SPLIT)
+		if (!SKIP_SIMPLE_COPY_SPLIT || !PRUNE_EDGES)
 			return true;
 		if (b.isEmpty())
 			throw new IllegalArgumentException("empty block after split?");
