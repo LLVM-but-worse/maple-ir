@@ -91,6 +91,7 @@ public class FastBlockGraph extends FlowGraph<BasicBlock, FlowEdge<BasicBlock>> 
 			return false;
 		}
 		
+		// TODO: clean up
 		Set<FlowEdge<BasicBlock>> predEdges = getReverseEdges(n);
 		
 		Set<BasicBlock> preds = new HashSet<>();
@@ -101,13 +102,14 @@ public class FastBlockGraph extends FlowGraph<BasicBlock, FlowEdge<BasicBlock>> 
 		Set<FlowEdge<BasicBlock>> succs = getEdges(n);
 		
 		Set<BasicBlock> realSuccs = new HashSet<>();
-		Set<TryCatchEdge<BasicBlock>> tcs = new HashSet<>();
+		// Set<TryCatchEdge<BasicBlock>> tcs = new HashSet<>();
 		for(FlowEdge<BasicBlock> p : succs) {
 			if(!(p instanceof TryCatchEdge)) {
 				realSuccs.add(p.dst);
-			} else {
-				tcs.add((TryCatchEdge<BasicBlock>) p);
 			}
+			/* else {
+				tcs.add((TryCatchEdge<BasicBlock>) p);
+			} */
 		}
 		
 		if(predEdges.size() >= 1 && realSuccs.size() == 1) {
@@ -121,10 +123,10 @@ public class FastBlockGraph extends FlowGraph<BasicBlock, FlowEdge<BasicBlock>> 
 					addEdge(pred, newEdge);
 				}
 				
-				for(TryCatchEdge<BasicBlock> tce : tcs) {
+				/* for(TryCatchEdge<BasicBlock> tce : tcs) {
 					TryCatchEdge<BasicBlock> newTce = new TryCatchEdge<>(pred, tce.erange);
 					addEdge(pred, newTce);
-				}
+				} */
 			}
 			
 			removeVertex(n);

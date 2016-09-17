@@ -15,6 +15,7 @@ import org.mapleir.ir.locals.VersionedLocal;
 import org.mapleir.stdlib.cfg.edge.FlowEdge;
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.SetCreator;
+import org.mapleir.stdlib.ir.transform.ssa.SSALocalAccess;
 import org.objectweb.asm.tree.MethodNode;
 
 import static org.mapleir.ir.cfg.builder.SSAGenPass.DO_SPLIT;
@@ -26,6 +27,7 @@ public class ControlFlowGraphBuilder {
 	protected final Set<Local> locals;
 	protected final NullPermeableHashMap<Local, Set<BasicBlock>> assigns;
 	protected final Map<VersionedLocal, AbstractCopyStatement> defs;
+	protected SSALocalAccess localAccess;
 	protected int count = 0;
 	protected BasicBlock exit;
 	
@@ -104,11 +106,11 @@ public class ControlFlowGraphBuilder {
 				
 				p.run();
 				
-//				System.out.println();
-//				System.out.println("AFTER " + p.getClass().getSimpleName() + ":");
-//				System.out.println(builder.graph);
-//				System.out.println();
-//				System.out.println();
+				System.out.println();
+				System.out.println("AFTER " + p.getClass().getSimpleName() + ":");
+				System.out.println(builder.graph);
+				System.out.println();
+				System.out.println();
 
 //				BasicDotConfiguration<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> config = new BasicDotConfiguration<>(DotConfiguration.GraphType.DIRECTED);
 //				DotWriter<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> writer = new DotWriter<>(config, builder.graph);
