@@ -66,21 +66,14 @@ public class Benchmark {
 		}
 		*/
 
-//		tests.put("procyon", getMethods(new JarInfo(new File("res/procyon.jar"))));
-		
+		tests.put("rt", getMethods(new JarInfo(new File("res/rt.jar"))));
+		tests.put("javafx", getMethods(new JarInfo(new File("res/jfxrt.jar"))));
+		tests.put("tools", getMethods(new JarInfo(new File("res/tools.jar"))));
 		tests.put("fernflower", getMethods(new JarInfo(new File("res/fernflower.jar"))));
-		
-//		tests.put("maple-ir", getMethods(new JarInfo(new File("res/maple-ir.jar"))));
-
-//		tests.put("minecraft", getMethods(new JarInfo(new File("res/1.10.2.jar"))));
-		
-//		tests.put("rt", getMethods(new JarInfo(new File("res/rt.jar"))));
-		
-//		tests.put("specjvm2008", getMethods(new JarInfo(new File("res/SPECjvm2008.jar"))));
-		
-//		tests.put("javafx", getMethods(new JarInfo(new File("res/jfxrt.jar"))));
-		
-//		tests.put("tools", getMethods(new JarInfo(new File("res/tools.jar"))));
+		tests.put("procyon", getMethods(new JarInfo(new File("res/procyon.jar"))));
+		tests.put("minecraft", getMethods(new JarInfo(new File("res/1.10.2.jar"))));
+		tests.put("self", getMethods(new JarInfo(new File("res/maple-ir.jar"))));
+		tests.put("specjvm2008", getMethods(new JarInfo(new File("res/SPECjvm2008.jar"))));
 
 		benchCFG(tests);
 	}
@@ -129,7 +122,7 @@ public class Benchmark {
 		for (Entry<String, List<MethodNode>> test : tests.entrySet()) {
 			results.clear();
 			int k = 0;
-			System.out.println("  Testcase " + test.getKey());
+//			System.out.println("  Testcase " + test.getKey());
 			for (MethodNode m : test.getValue()) {
 				k++;
 //				System.out.println("  " + m.toString() + " (" + k + " / " + test.getValue().size() + ")");
@@ -141,37 +134,37 @@ public class Benchmark {
 					SSAGenPass.SKIP_SIMPLE_COPY_SPLIT = false;
 					SSAGenPass.PRUNE_EDGES = false;
 					cfg = ControlFlowGraphBuilder.build(m);
-					recordHandlers(cfg, "NO_SPLIT");
+					recordHandlers(cfg, "NOSPLIT");
 
-//					SSAGenPass.DO_SPLIT = true;
-//					SSAGenPass.ULTRANAIVE = true;
-//					SSAGenPass.SKIP_SIMPLE_COPY_SPLIT = false;
-//					SSAGenPass.PRUNE_EDGES = false;
-//					cfg = ControlFlowGraphBuilder.build(m);
-//					recordHandlers(cfg, "SPLIT_NAIVE");
-//
-//					SSAGenPass.DO_SPLIT = true;
-//					SSAGenPass.ULTRANAIVE = false;
-//					SSAGenPass.SKIP_SIMPLE_COPY_SPLIT = false;
-//					SSAGenPass.PRUNE_EDGES = false;
-//					cfg = ControlFlowGraphBuilder.build(m);
-//					recordHandlers(cfg, "SPLIT_LIVE");
-//
-//					SSAGenPass.DO_SPLIT = true;
-//					SSAGenPass.ULTRANAIVE = false;
-//					SSAGenPass.SKIP_SIMPLE_COPY_SPLIT = true;
-//					SSAGenPass.PRUNE_EDGES = false;
-//					cfg = ControlFlowGraphBuilder.build(m);
-//					recordHandlers(cfg, "SPLIT_SKIP");
-					
+					SSAGenPass.DO_SPLIT = true;
+					SSAGenPass.ULTRANAIVE = true;
+					SSAGenPass.SKIP_SIMPLE_COPY_SPLIT = false;
+					SSAGenPass.PRUNE_EDGES = false;
+					cfg = ControlFlowGraphBuilder.build(m);
+					recordHandlers(cfg, "NAIVE");
+
+					SSAGenPass.DO_SPLIT = true;
+					SSAGenPass.ULTRANAIVE = false;
+					SSAGenPass.SKIP_SIMPLE_COPY_SPLIT = false;
+					SSAGenPass.PRUNE_EDGES = false;
+					cfg = ControlFlowGraphBuilder.build(m);
+					recordHandlers(cfg, "LIVENESS");
+
+					SSAGenPass.DO_SPLIT = true;
+					SSAGenPass.ULTRANAIVE = false;
+					SSAGenPass.SKIP_SIMPLE_COPY_SPLIT = true;
+					SSAGenPass.PRUNE_EDGES = false;
+					cfg = ControlFlowGraphBuilder.build(m);
+					recordHandlers(cfg, "OPTIMIZED");
+
 					SSAGenPass.DO_SPLIT = true;
 					SSAGenPass.ULTRANAIVE = false;
 					SSAGenPass.SKIP_SIMPLE_COPY_SPLIT = true;
 					SSAGenPass.PRUNE_EDGES = true;
 					cfg = ControlFlowGraphBuilder.build(m);
-					recordHandlers(cfg, "SPLIT_PRUNE");
+					recordHandlers(cfg, "PRUNE");
 				} catch (UnsupportedOperationException e) {
-					System.err.println(e.getMessage());
+//					System.err.println(e.getMessage());
 				} catch (RuntimeException e) {
 					System.out.println("  " + test.getKey() + "/" + m.toString() + " (" + k + " / " + test.getValue().size() + ")");
 					throw e;
@@ -183,12 +176,14 @@ public class Benchmark {
 	}
 	
 	private static void recordHandlers(ControlFlowGraph cfg, String key) {
-//		int count = 0;
-//		for (BasicBlock b : cfg.vertices())
-//			for (FlowEdge<BasicBlock> e : cfg.getEdges(b))
-//				if (e instanceof TryCatchEdge)
-//					count++;
-		int count = SSAGenPass.SPLIT_BLOCK_COUNT;
+		int count = 0;
+		for (BasicBlock b : cfg.vertices())
+			for (FlowEdge<BasicBlock> e : cfg.getEdges(b))
+				if (e instanceof TryCatchEdge)
+					count++;
+		
+//		int count = SSAGenPass.SPLIT_BLOCK_COUNT;
+//		int count = cfg.vertices().size();
 		results.put(key, results.getOrDefault(key, 0L) + count);
 	}
 
@@ -378,13 +373,13 @@ public class Benchmark {
 	}
 	
 	private static void printResultsHeader() {
-		System.out.print("testcase,");
+		System.out.print("[\"testcase\",");
 		for (Iterator<String> iterator = results.keySet().iterator(); iterator.hasNext();) {
-			System.out.print(iterator.next());
+			System.out.print('"' + iterator.next() + '"');
 			if (iterator.hasNext())
 				System.out.print(",");
 		}
-		System.out.println();
+		System.out.println("]");
 	}
 
 	private static void normalizeResults(int size) {
@@ -394,13 +389,13 @@ public class Benchmark {
 	}
 	
 	private static void printResults(String testName) {
-		System.out.print(testName + ",");
+		System.out.print("[\"" + testName + "\",");
 		for (Iterator<Long> iterator = results.values().iterator(); iterator.hasNext();) {
 			System.out.print(iterator.next());
 			if (iterator.hasNext())
 				System.out.print(",");
 		}
-		System.out.println();
+		System.out.println("],");
 	}
 
 	private static long now = -1L;
