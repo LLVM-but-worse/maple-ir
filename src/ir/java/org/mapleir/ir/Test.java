@@ -378,6 +378,18 @@ public class Test {
 			System.out.println(x + 5);
 		System.out.println(y);
 	}
+	
+	static void test151(int lvar0, int lvar1) {
+		try {
+			lvar0 = lvar0;
+			lvar1 = lvar1;
+			System.out.println(lvar1);
+			lvar1 = lvar0;
+		} catch(Exception e) {
+			System.out.println(lvar1);
+		}
+		System.out.println(lvar1);
+	}
 
 	boolean p() {
 		return true;
