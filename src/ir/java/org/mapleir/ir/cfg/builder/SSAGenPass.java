@@ -130,22 +130,15 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 				if (b.size() == i)
 					throw new IllegalStateException("s");
 				
-				if (ULTRANAIVE || (!SKIP_SIMPLE_COPY_SPLIT || checkSplit) && stmt.getOpcode() == Opcode.LOCAL_STORE) {
-					SPLIT_BLOCK_COUNT++;
-					if (ULTRANAIVE) {
+				if ((!SKIP_SIMPLE_COPY_SPLIT || checkSplit) && stmt.getOpcode() == Opcode.LOCAL_STORE) {
+					CopyVarStatement copy = (CopyVarStatement) stmt;
+					VarExpression v = copy.getVariable();
+					if (ls.contains(v.getLocal()) || (ULTRANAIVE && !v.getLocal().isStack())) {
 						BasicBlock n = splitBlock(b, i);
+						//						System.out.println("Split " + b.getId() + " into " + b.getId() + " and " + n.getId());
 						order.add(order.indexOf(b), n);
 						i = 0;
-					} else {
-						CopyVarStatement copy = (CopyVarStatement) stmt;
-						VarExpression v = copy.getVariable();
-						if (ls.contains(v.getLocal())) {
-							BasicBlock n = splitBlock(b, i);
-							//						System.out.println("Split " + b.getId() + " into " + b.getId() + " and " + n.getId());
-							order.add(order.indexOf(b), n);
-							i = 0;
-							checkSplit = false;
-						}
+						checkSplit = false;
 					}
 				} else {
 					// do not split if we have only seen simple or synthetic copies (catch copy is synthetic)
@@ -211,10 +204,13 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		 *   [jump edge to L2]
 		 *   [exception edges]
 		 */
+		SPLIT_BLOCK_COUNT++;
+		
 		// split block
 		ControlFlowGraph cfg = builder.graph;
 		BasicBlock newBlock = new BasicBlock(cfg, splitCount++, new LabelNode());
 		b.transferUp(newBlock, to);
+		cfg.addVertex(newBlock);
 		
 		// redo ranges
 		for(ExceptionRange<BasicBlock> er : cfg.getRanges()) {
@@ -229,7 +225,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 			FlowEdge<BasicBlock> c;
 			if (e instanceof TryCatchEdge) { // b is ehandler
 				TryCatchEdge<BasicBlock> tce = (TryCatchEdge<BasicBlock>) e;
-				if (tce.erange.getHandler() != newBlock) {
+				if (tce.erange.getHandler() != newBlock || tce.dst != tce.erange.getHandler()) {
 					tce.erange.setHandler(newBlock);
 					cfg.addEdge(tce.src, tce.clone(tce.src, null));
 					cfg.removeEdge(tce.src, tce);
