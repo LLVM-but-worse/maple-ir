@@ -1,5 +1,7 @@
 package org.mapleir.ir.cfg.builder;
 
+import static org.mapleir.ir.cfg.builder.SSAGenPass.DO_SPLIT;
+
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -17,8 +19,6 @@ import org.mapleir.stdlib.collections.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.SetCreator;
 import org.mapleir.stdlib.ir.transform.ssa.SSALocalAccess;
 import org.objectweb.asm.tree.MethodNode;
-
-import static org.mapleir.ir.cfg.builder.SSAGenPass.DO_SPLIT;
 
 public class ControlFlowGraphBuilder {
 
@@ -87,7 +87,7 @@ public class ControlFlowGraphBuilder {
 				new NaturalisationPass1(this),
 //				new NaturalisationPass2(this),
 				new SSAGenPass(this),
-//				new OptimisationPass(this),
+				new OptimisationPass(this),
 //				new DeadRangesPass(this)
 		};
 	}
@@ -104,11 +104,11 @@ public class ControlFlowGraphBuilder {
 				
 				p.run();
 				
-				System.out.println();
-				System.out.println("AFTER " + p.getClass().getSimpleName() + ":");
-				System.out.println(builder.graph);
-				System.out.println();
-				System.out.println();
+//				System.out.println();
+//				System.out.println("AFTER " + p.getClass().getSimpleName() + ":");
+//				System.out.println(builder.graph);
+//				System.out.println();
+//				System.out.println();
 
 //				BasicDotConfiguration<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> config = new BasicDotConfiguration<>(DotConfiguration.GraphType.DIRECTED);
 //				DotWriter<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> writer = new DotWriter<>(config, builder.graph);

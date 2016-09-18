@@ -66,14 +66,14 @@ public class Benchmark {
 		*/
 
 //		tests.put("procyon", getMethods(new JarInfo(new File("res/procyon.jar"))));
-//		tests.put("fernflower", getMethods(new JarInfo(new File("res/fernflower.jar"))));
+		tests.put("fernflower", getMethods(new JarInfo(new File("res/fernflower.jar"))));
 //		tests.put("maple-ir", getMethods(new JarInfo(new File("res/maple-ir.jar"))));
 //		tests.put("minecraft", getMethods(new JarInfo(new File("res/1.10.2.jar"))));
 //		tests.put("java", getMethods(new JarInfo(new File("res/rt.jar"))));
 //		tests.put("specjvm2008", getMethods(new JarInfo(new File("res/SPECjvm2008.jar"))));
-		tests.put("runique", getMethods(new JarInfo(new File("res/runique.jar"))));
+//		tests.put("runique", getMethods(new JarInfo(new File("res/runique.jar"))));
 
-		benchCFG(tests);
+		benchmark(tests);
 	}
 
 	private static HashMap<String, Long> results = new LinkedHashMap<>();
@@ -168,7 +168,7 @@ public class Benchmark {
 			int k = 0;
 			for (MethodNode m : test.getValue()) {
 				k++;
-				System.out.println("  " + m.toString() + " (" + k + " / " + test.getValue().size() + ")");
+				// System.out.println("  " + m.toString() + " (" + k + " / " + test.getValue().size() + ")");
 				try {
 					final ControlFlowGraph cfgOrig = ControlFlowGraphBuilder.build(m);
 					for (int i = 0; i < NUM_ITER; i++) {

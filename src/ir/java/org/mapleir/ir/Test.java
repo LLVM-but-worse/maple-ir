@@ -1,8 +1,10 @@
 package org.mapleir.ir;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Iterator;
 
@@ -383,6 +385,11 @@ public class Test {
 			System.out.println(x + 5);
 		System.out.println(y);
 	}
+	
+	void lla() {
+		Runnable r = () -> {test011();};
+		r.run();
+	}
 
 	boolean p() {
 		return true;
@@ -419,7 +426,7 @@ public class Test {
 	}
 	
 	public static void main(String[] args) throws IOException {
-		JarInfo jar = new JarInfo(new File("res/runique.jar"));
+		JarInfo jar = new JarInfo(new File("res/osbot2489.jar"));
 		NodeTable<ClassNode> nt = new NodeTable<>();
 		SingleJarDownloader<ClassNode> dl = new SingleJarDownloader<>(jar);
 		dl.download();
@@ -427,7 +434,7 @@ public class Test {
 		for (ClassNode cn : nt) {
 			for(MethodNode m : cn.methods) {
 				if(!m.toString().equals("a/a/o/q.run()V")) {
-					continue;
+//					continue;
 				}
 				if(m.instructions.size() > 0) {
 					System.out.printf("%s  %d.%n", m, m.instructions.size());
@@ -437,23 +444,23 @@ public class Test {
 		}
 	}
 	
-	public static void main2(String[] args) throws IOException {
-		ClassReader cr = new ClassReader(Test.class.getCanonicalName());
-		ClassNode cn = new ClassNode();
-		cr.accept(cn, 0);
-
-//		InputStream i = new FileInputStream(new File("res/TypeAnalysis.class"));
-//		ClassReader cr = new ClassReader(i);
+	public static void main5(String[] args) throws IOException {
+//		ClassReader cr = new ClassReader(Test.class.getCanonicalName());
 //		ClassNode cn = new ClassNode();
 //		cr.accept(cn, 0);
+
+		InputStream i = new FileInputStream(new File("res/a.class"));
+		ClassReader cr = new ClassReader(i);
+		ClassNode cn = new ClassNode();
+		cr.accept(cn, 0);
 
 		Iterator<MethodNode> it = new ArrayList<>(cn.methods).listIterator();
 		while (it.hasNext()) {
 			MethodNode m = it.next();
 
-			// if(!m.toString().equals("a/a/f/a.<init>()V")) {
-			// continue;
-			// }
+			 if(!m.toString().equals("a/a/f/a.<init>()V")) {
+			 continue;
+			 }
 
 //			if(!m.toString().contains("inferCall")) {
 //				continue;
@@ -465,6 +472,7 @@ public class Test {
 
 			System.out.println("Processing " + m + "\n");
 			ControlFlowGraph cfg = ControlFlowGraphBuilder.build(m);
+			System.out.println(cfg);
 
 //			BasicDotConfiguration<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> config = new BasicDotConfiguration<>(DotConfiguration.GraphType.DIRECTED);
 //			DotWriter<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> writer = new DotWriter<>(config, cfg);
@@ -478,7 +486,6 @@ public class Test {
 
 			cfg.getLocals().realloc(cfg);
 
-//			System.out.println(cfg);
 
 //			writer.removeAll().add(new ControlFlowGraphDecorator().setFlags(OPT_DEEP)).setName("destructed").export();
 

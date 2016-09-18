@@ -38,6 +38,11 @@ package org.objectweb.asm;
  */
 public final class Handle {
 
+	public static final String[] TAG_NAMES = new String[] {
+			"GETFIELD", "GETSTATIC", "PUTFIELD", "PUTSTATIC",
+			"INVOKEVIRTUAL", "INVOKESTATIC", "INVOKESPECIAL", "NEWINVOKESPECIAL", "INVOKE_INTERFACE"
+	};
+	
     /**
      * The kind of field or method designated by this Handle. Should be
      * {@link Opcodes#H_GETFIELD}, {@link Opcodes#H_GETSTATIC},
@@ -165,6 +170,6 @@ public final class Handle {
      */
     @Override
     public String toString() {
-        return owner + '.' + name + desc + " (" + tag + ')';
+        return owner + '.' + name + desc + " (" + TAG_NAMES[tag-1] + ')';
     }
 }

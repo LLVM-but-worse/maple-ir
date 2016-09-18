@@ -1,5 +1,8 @@
 package org.mapleir.ir.cfg.builder;
 
+import java.util.*;
+import java.util.Map.Entry;
+
 import org.mapleir.ir.analysis.SimpleDfs;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
@@ -9,7 +12,6 @@ import org.mapleir.ir.code.expr.Expression;
 import org.mapleir.ir.code.expr.PhiExpression;
 import org.mapleir.ir.code.expr.VarExpression;
 import org.mapleir.ir.code.stmt.ConditionalJumpStatement;
-import org.mapleir.ir.code.stmt.ReturnStatement;
 import org.mapleir.ir.code.stmt.Statement;
 import org.mapleir.ir.code.stmt.SwitchStatement;
 import org.mapleir.ir.code.stmt.ThrowStatement;
@@ -17,45 +19,19 @@ import org.mapleir.ir.code.stmt.UnconditionalJumpStatement;
 import org.mapleir.ir.code.stmt.copy.AbstractCopyStatement;
 import org.mapleir.ir.code.stmt.copy.CopyPhiStatement;
 import org.mapleir.ir.code.stmt.copy.CopyVarStatement;
-import org.mapleir.ir.dot.ControlFlowGraphDecorator;
 import org.mapleir.ir.locals.Local;
 import org.mapleir.ir.locals.LocalsHandler;
 import org.mapleir.ir.locals.VersionedLocal;
-import org.mapleir.stdlib.cfg.edge.ConditionalJumpEdge;
-import org.mapleir.stdlib.cfg.edge.DummyEdge;
-import org.mapleir.stdlib.cfg.edge.FlowEdge;
-import org.mapleir.stdlib.cfg.edge.FlowEdges;
-import org.mapleir.stdlib.cfg.edge.ImmediateEdge;
-import org.mapleir.stdlib.cfg.edge.SwitchEdge;
-import org.mapleir.stdlib.cfg.edge.TryCatchEdge;
-import org.mapleir.stdlib.cfg.edge.UnconditionalJumpEdge;
+import org.mapleir.stdlib.cfg.edge.*;
 import org.mapleir.stdlib.cfg.util.TypeUtils;
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.SetCreator;
-import org.mapleir.stdlib.collections.graph.dot.BasicDotConfiguration;
-import org.mapleir.stdlib.collections.graph.dot.DotConfiguration;
-import org.mapleir.stdlib.collections.graph.dot.DotWriter;
 import org.mapleir.stdlib.collections.graph.flow.ExceptionRange;
 import org.mapleir.stdlib.collections.graph.flow.TarjanDominanceComputor;
 import org.mapleir.stdlib.ir.transform.Liveness;
 import org.mapleir.stdlib.ir.transform.ssa.SSABlockLivenessAnalyser;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.LabelNode;
-
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.ListIterator;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.Stack;
-
-import static org.mapleir.ir.dot.ControlFlowGraphDecorator.OPT_DEEP;
 
 public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 
@@ -670,12 +646,10 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		splitCount = builder.graph.size() + 1;
 		connectExit();
 		
-//		fixFinally();
 		SSABlockLivenessAnalyser liveness = new SSABlockLivenessAnalyser(builder.graph);
 		liveness.compute();
 		this.liveness = liveness;
 		
-		BasicDotConfiguration<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> config = new BasicDotConfiguration<>(DotConfiguration.GraphType.DIRECTED);
 		splitRanges();
 		// TODO: update instead of recomp?
 		liveness = new SSABlockLivenessAnalyser(builder.graph);
@@ -685,7 +659,6 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		doms = new TarjanDominanceComputor<>(builder.graph, new SimpleDfs<>(builder.graph, builder.graph.getEntries().iterator().next(), true, false).preorder);
 		insertPhis();
 		rename();
-//		cleanHandlerPhis(); // we cant do this because it messes up the destructor's coalescing.
 		
 		disconnectExit();
 	}
