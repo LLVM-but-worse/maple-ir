@@ -1,17 +1,5 @@
 package org.mapleir.ir;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-
 import org.mapleir.ir.analysis.DominanceLivenessAnalyser;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.BoissinotDestructor;
@@ -40,9 +28,22 @@ import org.objectweb.asm.tree.MethodNode;
 import org.topdank.byteengineer.commons.data.JarInfo;
 import org.topdank.byteio.in.SingleJarDownloader;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+
 public class Benchmark {
 	public static void main(String[] args) throws IOException {
 		HashMap<String, List<MethodNode>> tests = new LinkedHashMap<>();
+		System.out.println("  Initializing tests");
 		
 		/*
 		File testDir = new File("res/specjvm2008");
@@ -65,15 +66,16 @@ public class Benchmark {
 		}
 		*/
 
-//		tests.put("procyon", getMethods(new JarInfo(new File("res/procyon.jar"))));
+		tests.put("rt", getMethods(new JarInfo(new File("res/rt.jar"))));
+		tests.put("javafx", getMethods(new JarInfo(new File("res/jfxrt.jar"))));
+		tests.put("tools", getMethods(new JarInfo(new File("res/tools.jar"))));
 		tests.put("fernflower", getMethods(new JarInfo(new File("res/fernflower.jar"))));
-//		tests.put("maple-ir", getMethods(new JarInfo(new File("res/maple-ir.jar"))));
-//		tests.put("minecraft", getMethods(new JarInfo(new File("res/1.10.2.jar"))));
-//		tests.put("java", getMethods(new JarInfo(new File("res/rt.jar"))));
-//		tests.put("specjvm2008", getMethods(new JarInfo(new File("res/SPECjvm2008.jar"))));
-//		tests.put("runique", getMethods(new JarInfo(new File("res/runique.jar"))));
+		tests.put("procyon", getMethods(new JarInfo(new File("res/procyon.jar"))));
+		tests.put("minecraft", getMethods(new JarInfo(new File("res/1.10.2.jar"))));
+		tests.put("self", getMethods(new JarInfo(new File("res/maple-ir.jar"))));
+		tests.put("specjvm2008", getMethods(new JarInfo(new File("res/SPECjvm2008.jar"))));
 
-		benchmark(tests);
+		benchCFG(tests);
 	}
 
 	private static HashMap<String, Long> results = new LinkedHashMap<>();
@@ -120,28 +122,52 @@ public class Benchmark {
 		for (Entry<String, List<MethodNode>> test : tests.entrySet()) {
 			results.clear();
 			int k = 0;
+//			System.out.println("  Testcase " + test.getKey());
 			for (MethodNode m : test.getValue()) {
 				k++;
-				System.out.println("  " + m.toString() + " (" + k + " / " + test.getValue().size() + ")");
+//				System.out.println("  " + m.toString() + " (" + k + " / " + test.getValue().size() + ")");
 				ControlFlowGraph cfg;
 				
 				try {
 					SSAGenPass.DO_SPLIT = false;
+					SSAGenPass.ULTRANAIVE = false;
 					SSAGenPass.SKIP_SIMPLE_COPY_SPLIT = false;
+					SSAGenPass.PRUNE_EDGES = false;
 					cfg = ControlFlowGraphBuilder.build(m);
-					recordHandlers(cfg, "NO_SPLIT");
-					
+					recordHandlers(cfg, "NOSPLIT");
+
 					SSAGenPass.DO_SPLIT = true;
+					SSAGenPass.ULTRANAIVE = true;
 					SSAGenPass.SKIP_SIMPLE_COPY_SPLIT = false;
+					SSAGenPass.PRUNE_EDGES = false;
 					cfg = ControlFlowGraphBuilder.build(m);
-					recordHandlers(cfg, "SPLIT");
-					
+					recordHandlers(cfg, "NAIVE");
+
 					SSAGenPass.DO_SPLIT = true;
+					SSAGenPass.ULTRANAIVE = false;
+					SSAGenPass.SKIP_SIMPLE_COPY_SPLIT = false;
+					SSAGenPass.PRUNE_EDGES = false;
+					cfg = ControlFlowGraphBuilder.build(m);
+					recordHandlers(cfg, "LIVENESS");
+
+					SSAGenPass.DO_SPLIT = true;
+					SSAGenPass.ULTRANAIVE = false;
 					SSAGenPass.SKIP_SIMPLE_COPY_SPLIT = true;
+					SSAGenPass.PRUNE_EDGES = false;
 					cfg = ControlFlowGraphBuilder.build(m);
-					recordHandlers(cfg, "SPLIT_SKIP");
+					recordHandlers(cfg, "OPTIMIZED");
+
+					SSAGenPass.DO_SPLIT = true;
+					SSAGenPass.ULTRANAIVE = false;
+					SSAGenPass.SKIP_SIMPLE_COPY_SPLIT = true;
+					SSAGenPass.PRUNE_EDGES = true;
+					cfg = ControlFlowGraphBuilder.build(m);
+					recordHandlers(cfg, "PRUNE");
 				} catch (UnsupportedOperationException e) {
-					System.err.println(e.getMessage());
+//					System.err.println(e.getMessage());
+				} catch (RuntimeException e) {
+					System.out.println("  " + test.getKey() + "/" + m.toString() + " (" + k + " / " + test.getValue().size() + ")");
+					throw e;
 				}
 			}
 			printResults(test.getKey());
@@ -150,12 +176,14 @@ public class Benchmark {
 	}
 	
 	private static void recordHandlers(ControlFlowGraph cfg, String key) {
-//		int count = 0;
-//		for (BasicBlock b : cfg.vertices())
-//			for (FlowEdge<BasicBlock> e : cfg.getEdges(b))
-//				if (e instanceof TryCatchEdge)
-//					count++;
-		int count = SSAGenPass.SPLIT_BLOCK_COUNT;
+		int count = 0;
+		for (BasicBlock b : cfg.vertices())
+			for (FlowEdge<BasicBlock> e : cfg.getEdges(b))
+				if (e instanceof TryCatchEdge)
+					count++;
+		
+//		int count = SSAGenPass.SPLIT_BLOCK_COUNT;
+//		int count = cfg.vertices().size();
 		results.put(key, results.getOrDefault(key, 0L) + count);
 	}
 
@@ -168,7 +196,7 @@ public class Benchmark {
 			int k = 0;
 			for (MethodNode m : test.getValue()) {
 				k++;
-				// System.out.println("  " + m.toString() + " (" + k + " / " + test.getValue().size() + ")");
+				System.out.println("  " + m.toString() + " (" + k + " / " + test.getValue().size() + ")");
 				try {
 					final ControlFlowGraph cfgOrig = ControlFlowGraphBuilder.build(m);
 					for (int i = 0; i < NUM_ITER; i++) {
@@ -204,6 +232,7 @@ public class Benchmark {
 				} catch (UnsupportedOperationException e) {
 					System.err.println(e.getMessage());
 				} catch (RuntimeException e) {
+					System.out.println("  " + test.getKey() + "/" + m.toString() + " (" + k + " / " + test.getValue().size() + ")");
 					throw new RuntimeException(e);
 				}
 			}
@@ -344,13 +373,13 @@ public class Benchmark {
 	}
 	
 	private static void printResultsHeader() {
-		System.out.print("testcase,");
+		System.out.print("[\"testcase\",");
 		for (Iterator<String> iterator = results.keySet().iterator(); iterator.hasNext();) {
-			System.out.print(iterator.next());
+			System.out.print('"' + iterator.next() + '"');
 			if (iterator.hasNext())
 				System.out.print(",");
 		}
-		System.out.println();
+		System.out.println("]");
 	}
 
 	private static void normalizeResults(int size) {
@@ -360,13 +389,13 @@ public class Benchmark {
 	}
 	
 	private static void printResults(String testName) {
-		System.out.print(testName + ",");
+		System.out.print("[\"" + testName + "\",");
 		for (Iterator<Long> iterator = results.values().iterator(); iterator.hasNext();) {
 			System.out.print(iterator.next());
 			if (iterator.hasNext())
 				System.out.print(",");
 		}
-		System.out.println();
+		System.out.println("],");
 	}
 
 	private static long now = -1L;
