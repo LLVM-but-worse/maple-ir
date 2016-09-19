@@ -55,7 +55,7 @@ public abstract class Statement implements FastGraphVertex, Opcode, Iterable<Sta
 		}
 	}
 	
-	public int getOpcode() {
+	public final int getOpcode() {
 		return opcode;
 	}
 	
