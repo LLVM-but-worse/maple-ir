@@ -1,5 +1,9 @@
 package org.mapleir.ir.cfg;
 
+import java.util.*;
+import java.util.Map.Entry;
+import java.util.concurrent.atomic.AtomicInteger;
+
 import org.mapleir.ir.analysis.DominanceLivenessAnalyser;
 import org.mapleir.ir.analysis.SSADefUseMap;
 import org.mapleir.ir.analysis.SimpleDfs;
@@ -20,20 +24,6 @@ import org.mapleir.stdlib.collections.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.bitset.GenericBitSet;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Type;
-
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.Stack;
-import java.util.TreeSet;
-import java.util.concurrent.atomic.AtomicInteger;
 
 public class BoissinotDestructor {
 	private boolean DO_VALUE_INTERFERENCE = false;
@@ -78,18 +68,22 @@ public class BoissinotDestructor {
 	private Map<Local, CongruenceClass> congruenceClasses;
 	private Map<Local, Local> remap;
 
+	public BoissinotDestructor(ControlFlowGraph cfg) {
+		this(cfg, new DominanceLivenessAnalyser(cfg, null), -1);
+	}
+	
 	public BoissinotDestructor(ControlFlowGraph cfg, DominanceLivenessAnalyser resolver) {
 		this(cfg, resolver, -1);
 	}
 
-	public BoissinotDestructor(ControlFlowGraph cfg, DominanceLivenessAnalyser resolver, int option) {
+	public BoissinotDestructor(ControlFlowGraph cfg, DominanceLivenessAnalyser resolver, int flags) {
 		this.cfg = cfg;
-		locals = cfg.getLocals();
 		this.resolver = resolver;
+		locals = cfg.getLocals();
 
-		if ((option & 1) != 0)
+		if ((flags & 1) != 0)
 			DO_VALUE_INTERFERENCE = true;
-		if ((option & 2) != 0)
+		if ((flags & 2) != 0)
 			DO_SHARE_COALESCE = true;
 
 		// 1. Insert copies to enter CSSA.
