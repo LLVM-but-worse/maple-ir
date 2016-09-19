@@ -303,8 +303,8 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 	void process(BasicBlock b, AbstractInsnNode ain) {
 		int opcode = ain.opcode();
 		
-		// System.out.println("Executing " + Printer.OPCODES[opcode]);
-		// System.out.println(" PreStack: " + currentStack);
+		 System.out.println("Executing " + Printer.OPCODES[opcode]);
+		 System.out.println(" PreStack: " + currentStack);
 		
 		switch (opcode) {
 			case -1: {
@@ -623,7 +623,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		}
 		
 
-		// System.out.println(" PosStack: " + currentStack);
+		 System.out.println(" PosStack: " + currentStack);
 	}
 	
 	void _nop() {
@@ -1073,7 +1073,9 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		if(expr.getType() == Type.VOID_TYPE) {
 			addStmt(new PopStatement(expr));
 		} else {
-			push(expr);
+			int index = currentStack.height();
+			Type type = assign_stack(index, expr);
+			push(load_stack(index, type));
 		}
 		
 		// TODO: redo vm lambdas as static resolution calls/concrete calls.
@@ -1089,7 +1091,9 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		if(callExpr.getType() == Type.VOID_TYPE) {
 			addStmt(new PopStatement(callExpr));
 		} else {
-			push(callExpr);
+			int index = currentStack.height();
+			Type type = assign_stack(index, callExpr);
+			push(load_stack(index, type));
 		}
 	}
 	
@@ -1233,7 +1237,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 	}
 	
 	void addStmt(Statement stmt) {
-		// System.out.println("    ADD: " + stmt);
+		System.out.println("    ADD: " + stmt);
 		currentBlock.add(stmt);
 	}
 	
