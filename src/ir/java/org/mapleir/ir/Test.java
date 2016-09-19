@@ -8,11 +8,11 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Iterator;
 
+import org.mapleir.byteio.CompleteResolvingJarDumper;
 import org.mapleir.ir.analysis.DominanceLivenessAnalyser;
 import org.mapleir.ir.cfg.BoissinotDestructor;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.cfg.builder.ControlFlowGraphBuilder;
-import org.mapleir.stdlib.collections.NodeTable;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Opcodes;
@@ -21,8 +21,10 @@ import org.objectweb.asm.tree.InsnList;
 import org.objectweb.asm.tree.InsnNode;
 import org.objectweb.asm.tree.MethodInsnNode;
 import org.objectweb.asm.tree.MethodNode;
+import org.topdank.byteengineer.commons.data.JarContents;
 import org.topdank.byteengineer.commons.data.JarInfo;
 import org.topdank.byteio.in.SingleJarDownloader;
+import org.topdank.byteio.out.JarDumper;
 
 public class Test {
 
@@ -439,33 +441,29 @@ public class Test {
 	
 	public static void main(String[] args) throws IOException {
 		JarInfo jar = new JarInfo(new File("res/osbot2489.jar"));
-		NodeTable<ClassNode> nt = new NodeTable<>();
 		SingleJarDownloader<ClassNode> dl = new SingleJarDownloader<>(jar);
 		dl.download();
-		nt.putAll(dl.getJarContents().getClassContents().namedMap());
+		JarContents<ClassNode> contents = dl.getJarContents();
 		
-		for (ClassNode cn : nt) {
-			if(cn.name.equals("org/osbot/rs07/api/Combat")) {
-				
-				for(MethodNode m : cn.methods) {
-					if(m.instructions.size() > 0) {
-						System.out.printf("%s  %d.%n", m, m.instructions.size());
+		for (ClassNode cn : contents.getClassContents()) {
+			for(MethodNode m : cn.methods) {
+				if(m.instructions.size() > 0) {
+					// System.out.printf("%s  %d.%n", m, m.instructions.size());
+					try {
 						ControlFlowGraph cfg = ControlFlowGraphBuilder.build(m);
 						new BoissinotDestructor(cfg); // ungay this
 						cfg.getLocals().realloc(cfg);
 
 						ControlFlowGraphDumper.dump(cfg, m);
+					} catch(RuntimeException e) {
+						throw new RuntimeException(m.toString(), e);
 					}
 				}
-				
-				ClassWriter clazz = new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
-				cn.accept(clazz);
-				byte[] saved = clazz.toByteArray();
-				FileOutputStream out = new FileOutputStream(new File("out/testclass.class"));
-				out.write(saved, 0, saved.length);
-				out.close();
 			}
 		}
+		
+		JarDumper dumper = new CompleteResolvingJarDumper(contents);
+		dumper.dump(new File("out/osb.jar"));
 	}
 	
 	public static void main5(String[] args) throws IOException {
