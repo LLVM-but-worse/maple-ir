@@ -1,5 +1,8 @@
 package org.mapleir.ir;
 
+import java.util.List;
+import java.util.Set;
+
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.stmt.Statement;
@@ -9,15 +12,13 @@ import org.objectweb.asm.Label;
 import org.objectweb.asm.tree.LabelNode;
 import org.objectweb.asm.tree.MethodNode;
 
-import java.util.List;
-import java.util.Set;
-
 public class ControlFlowGraphDumper {
 	public static void dump(ControlFlowGraph cfg, MethodNode m) {
-		m.visitCode();
-		m.instructions.clear();
+		m.instructions.removeAll(true);
 		m.tryCatchBlocks.clear();
 
+		m.visitCode();
+		
 		for (BasicBlock b : cfg.vertices()) {
 			b.resetLabel();
 		}

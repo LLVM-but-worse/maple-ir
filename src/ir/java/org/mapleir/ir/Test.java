@@ -443,16 +443,27 @@ public class Test {
 		SingleJarDownloader<ClassNode> dl = new SingleJarDownloader<>(jar);
 		dl.download();
 		nt.putAll(dl.getJarContents().getClassContents().namedMap());
+		
 		for (ClassNode cn : nt) {
-			for(MethodNode m : cn.methods) {
-				if(!m.toString().equals("org/osbot/rs07/api/Combat.initializeModule()V")) {
-					continue;
+			if(cn.name.equals("org/osbot/rs07/api/Combat")) {
+				
+				for(MethodNode m : cn.methods) {
+					if(m.instructions.size() > 0) {
+						System.out.printf("%s  %d.%n", m, m.instructions.size());
+						ControlFlowGraph cfg = ControlFlowGraphBuilder.build(m);
+						new BoissinotDestructor(cfg); // ungay this
+						cfg.getLocals().realloc(cfg);
+
+						ControlFlowGraphDumper.dump(cfg, m);
+					}
 				}
-				if(m.instructions.size() > 0) {
-					System.out.printf("%s  %d.%n", m, m.instructions.size());
-					ControlFlowGraph cfg = ControlFlowGraphBuilder.build(m);
-					System.out.println(cfg);
-				}
+				
+				ClassWriter clazz = new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
+				cn.accept(clazz);
+				byte[] saved = clazz.toByteArray();
+				FileOutputStream out = new FileOutputStream(new File("out/testclass.class"));
+				out.write(saved, 0, saved.length);
+				out.close();
 			}
 		}
 	}
