@@ -10,7 +10,7 @@ import org.objectweb.asm.Type;
 
 public class InvocationExpression extends Expression {
 
-	private int opcode;
+	private int callType;
 	private Expression[] argumentExpressions;
 	private String owner;
 	private String name;
@@ -18,7 +18,7 @@ public class InvocationExpression extends Expression {
 
 	public InvocationExpression(int opcode, Expression[] argumentExpressions, String owner, String name, String desc) {
 		super(INVOKE);
-		this.opcode = opcode;
+		this.callType = opcode;
 		this.argumentExpressions = argumentExpressions;
 		this.owner = owner;
 		this.name = name;
@@ -30,24 +30,23 @@ public class InvocationExpression extends Expression {
 	}
 	
 	public Expression getInstanceExpression() {
-		if(opcode == Opcodes.INVOKESTATIC) {
+		if(callType == Opcodes.INVOKESTATIC) {
 			return null;
 		} else {
 			return argumentExpressions[0];
 		}
 	}
 
-	@Override
-	public int getOpcode() {
-		return opcode;
+	public int getCallType() {
+		return callType;
 	}
 
-	public void setOpcode(int opcode) {
-		this.opcode = opcode;
+	public void setCallType(int callType) {
+		this.callType = callType;
 	}
 	
 	public Expression[] getParameterArguments() {
-		int i = (opcode == Opcodes.INVOKESTATIC) ? 0 : -1;
+		int i = (callType == Opcodes.INVOKESTATIC) ? 0 : -1;
 		Expression[] exprs = new Expression[argumentExpressions.length + i];
 		i = Math.abs(i);
 		for(int j=0; j < exprs.length; j++) {
@@ -70,7 +69,7 @@ public class InvocationExpression extends Expression {
 	}
 
 	public void setArgumentExpressions(Expression[] argumentExpressions) {
-		if (opcode != Opcodes.INVOKESTATIC && argumentExpressions.length <= 0) {
+		if (callType != Opcodes.INVOKESTATIC && argumentExpressions.length <= 0) {
 			throw new ArrayIndexOutOfBoundsException();
 		}
 
@@ -116,7 +115,7 @@ public class InvocationExpression extends Expression {
 		for (int i = 0; i < arguments.length; i++) {
 			arguments[i] = argumentExpressions[i].copy();
 		}
-		return new InvocationExpression(opcode, arguments, owner, name, desc);
+		return new InvocationExpression(callType, arguments, owner, name, desc);
 	}
 
 	@Override
@@ -136,7 +135,7 @@ public class InvocationExpression extends Expression {
 
 	@Override
 	public void toString(TabbedStringWriter printer) {
-		boolean requiresInstance = opcode != Opcodes.INVOKESTATIC;
+		boolean requiresInstance = callType != Opcodes.INVOKESTATIC;
 		if (requiresInstance) {
 			int memberAccessPriority = Precedence.MEMBER_ACCESS.ordinal();
 			Expression instanceExpression = argumentExpressions[0];
@@ -166,7 +165,7 @@ public class InvocationExpression extends Expression {
 	@Override
 	public void toCode(MethodVisitor visitor, ControlFlowGraph cfg) {
 		Type[] argTypes = Type.getArgumentTypes(desc);
-		if (opcode != Opcodes.INVOKESTATIC) {
+		if (callType != Opcodes.INVOKESTATIC) {
 			Type[] bck = argTypes;
 			argTypes = new Type[bck.length + 1];
 			System.arraycopy(bck, 0, argTypes, 1, bck.length);
@@ -182,7 +181,7 @@ public class InvocationExpression extends Expression {
 				}
 			}
 		}
-		visitor.visitMethodInsn(opcode, owner, name, desc, opcode == Opcodes.INVOKEINTERFACE);
+		visitor.visitMethodInsn(callType, owner, name, desc, callType == Opcodes.INVOKEINTERFACE);
 	}
 
 	@Override
@@ -214,7 +213,7 @@ public class InvocationExpression extends Expression {
 	public boolean equivalent(Statement s) {
 		if(s instanceof InvocationExpression) {
 			InvocationExpression o = (InvocationExpression) s;
-			if(opcode != o.opcode || !name.equals(o.name) || !owner.equals(o.owner) || !desc.equals(o.desc)) {
+			if(callType != o.callType || !name.equals(o.name) || !owner.equals(o.owner) || !desc.equals(o.desc)) {
 				return false;
 			}
 			if(argumentExpressions.length != o.argumentExpressions.length) {
