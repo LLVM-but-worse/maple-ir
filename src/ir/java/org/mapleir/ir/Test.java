@@ -445,12 +445,13 @@ public class Test {
 		nt.putAll(dl.getJarContents().getClassContents().namedMap());
 		for (ClassNode cn : nt) {
 			for(MethodNode m : cn.methods) {
-				if(!m.toString().equals("a/a/o/q.run()V")) {
-//					continue;
+				if(!m.toString().equals("org/osbot/rs07/api/Combat.initializeModule()V")) {
+					continue;
 				}
 				if(m.instructions.size() > 0) {
 					System.out.printf("%s  %d.%n", m, m.instructions.size());
 					ControlFlowGraph cfg = ControlFlowGraphBuilder.build(m);
+					System.out.println(cfg);
 				}
 			}
 		}
