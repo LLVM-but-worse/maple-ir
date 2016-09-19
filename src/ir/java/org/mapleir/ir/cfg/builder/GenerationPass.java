@@ -525,24 +525,10 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 				_new(Type.getType("L" + ((TypeInsnNode)ain).desc + ";"));
 				break;
 				
-			case INVOKEDYNAMIC: {
+			case INVOKEDYNAMIC:
 				InvokeDynamicInsnNode dy = (InvokeDynamicInsnNode) ain;
-				System.out.println("DY:");
-				System.out.println(dy.name + " " + dy.desc);
-				System.out.println("HANDLE:");
-				System.out.println("  " + dy.bsm.getOwner());
-				System.out.println("  " + dy.bsm.getName());
-				System.out.println("  " + dy.bsm.getDesc());
-				System.out.println("  " + Handle.TAG_NAMES[dy.bsm.getTag() - 1]);
-				System.out.println("Args:");
-				for(Object o : dy.bsmArgs) {
-					System.out.println("(" + o.getClass().getSimpleName() + ") " + o);
-				}
-				
-				System.err.println(currentStack);
-				System.err.println(builder.graph);
-				throw new UnsupportedOperationException("INVOKEDYNAMIC");
-			}
+				_dynamic_call(dy.bsm, dy.bsmArgs, dy.name, dy.desc);
+				break;
 			case INVOKEVIRTUAL:
 			case INVOKESTATIC:
 			case INVOKESPECIAL:
@@ -1072,6 +1058,27 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		push(load_stack(index, type));
 	}
 	
+	void _dynamic_call(Handle _bsm, Object[] _args, String name, String desc) {
+		Handle provider = new Handle(_bsm.getTag(), _bsm.getOwner(), _bsm.getName(), _bsm.getDesc());
+		Object[] pArgs = new Object[_args.length];
+		System.arraycopy(_args, 0, pArgs, 0, pArgs.length);
+		
+		// FIXME: can this end up as a virtual call
+		Expression[] args = new Expression[Type.getArgumentTypes(desc).length];
+		for(int i = args.length - 1; i >= 0; i--) {
+			args[i] = pop();
+		}
+		
+		DynamicInvocationExpression expr = new DynamicInvocationExpression(provider, pArgs, name, desc, args);
+		if(expr.getType() == Type.VOID_TYPE) {
+			addStmt(new PopStatement(expr));
+		} else {
+			push(expr);
+		}
+		
+		// TODO: redo vm lambdas as static resolution calls/concrete calls.
+	}
+	
 	void _call(int op, String owner, String name, String desc) {
 		int argLen = Type.getArgumentTypes(desc).length + (op == INVOKESTATIC ? 0 : 1);
 		Expression[] args = new Expression[argLen];
@@ -1083,9 +1090,6 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 			addStmt(new PopStatement(callExpr));
 		} else {
 			push(callExpr);
-//			int index = currentStack.height();
-//			Type type = assign_stack(index, callExpr);
-//			push(load_stack(index, type));
 		}
 	}
 	
