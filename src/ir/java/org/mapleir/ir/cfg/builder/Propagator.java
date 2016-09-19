@@ -29,6 +29,7 @@ public class Propagator extends OptimisationPass.Optimiser {
 	
 	static {
 		UNCOPYABLE.add(InvocationExpression.class);
+		UNCOPYABLE.add(DynamicInvocationExpression.class);
 		UNCOPYABLE.add(UninitialisedObjectExpression.class);
 		UNCOPYABLE.add(InitialisedObjectExpression.class);
 	}
@@ -560,6 +561,11 @@ public class Propagator extends OptimisationPass.Optimiser {
 			return false;
 		}
 		
+		private boolean isInvoke(Statement e) {
+			int opcode = e.getOpcode();
+			return opcode == Opcode.INVOKE || opcode == Opcode.DYNAMIC_INVOKE || opcode == Opcode.INIT_OBJ;
+		}
+		
 		private boolean canTransferToUse(Statement use, Statement tail, AbstractCopyStatement def) {
 			Local local = def.getVariable().getLocal();
 			Expression rhs = def.getExpression();
@@ -571,7 +577,7 @@ public class Propagator extends OptimisationPass.Optimiser {
 			{
 				if(rhs instanceof FieldLoadExpression) {
 					fieldsUsed.add(((FieldLoadExpression) rhs).getName() + "." + ((FieldLoadExpression) rhs).getDesc());
-				} else if(rhs instanceof InvocationExpression || rhs instanceof InitialisedObjectExpression) {
+				} else if(isInvoke(rhs)) {
 					invoke.set(true);
 				} else if(rhs instanceof ArrayLoadExpression) {
 					array.set(true);
@@ -585,7 +591,7 @@ public class Propagator extends OptimisationPass.Optimiser {
 				public Statement visit(Statement stmt) {
 					if(stmt instanceof FieldLoadExpression) {
 						fieldsUsed.add(((FieldLoadExpression) stmt).getName() + "." + ((FieldLoadExpression) stmt).getDesc());
-					} else if(stmt instanceof InvocationExpression || stmt instanceof InitialisedObjectExpression) {
+					} else if(isInvoke(stmt)) {
 						invoke.set(true);
 					} else if(stmt instanceof ArrayLoadExpression) {
 						array.set(true);
@@ -624,7 +630,7 @@ public class Propagator extends OptimisationPass.Optimiser {
 							canPropagate = false;
 							break;
 						}
-					} else if(stmt instanceof InitialisedObjectExpression || stmt instanceof InvocationExpression) {
+					} else if(isInvoke(stmt)) {
 						if(invoke.get() || fieldsUsed.size() > 0 || array.get()) {
 							canPropagate = false;
 							break;
@@ -644,7 +650,7 @@ public class Propagator extends OptimisationPass.Optimiser {
 							if(root == use && (s instanceof VarExpression && ((VarExpression) s).getLocal() == local)) {
 								_break();
 							} else {
-								if((s instanceof InvocationExpression || s instanceof InitialisedObjectExpression) || (invoke.get() && (s instanceof FieldStoreStatement || s instanceof ArrayStoreStatement))) {
+								if((isInvoke(s)) || (invoke.get() && (s instanceof FieldStoreStatement || s instanceof ArrayStoreStatement))) {
 									canPropagate2.set(false);
 									_break();
 								}

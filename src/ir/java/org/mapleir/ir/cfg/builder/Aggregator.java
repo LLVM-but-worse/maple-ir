@@ -34,7 +34,7 @@ public class Aggregator extends OptimisationPass.Optimiser implements Opcode {
 				Expression expr = pop.getExpression();
 				if (expr.getOpcode() == INVOKE) {
 					InvocationExpression invoke = (InvocationExpression) expr;
-					if (invoke.getOpcode() == Opcodes.INVOKESPECIAL && invoke.getName().equals("<init>")) {
+					if (invoke.getCallType() == Opcodes.INVOKESPECIAL && invoke.getName().equals("<init>")) {
 						Expression inst = invoke.getInstanceExpression();
 						if (inst.getOpcode() == LOCAL_LOAD) {
 							VarExpression var = (VarExpression) inst;
