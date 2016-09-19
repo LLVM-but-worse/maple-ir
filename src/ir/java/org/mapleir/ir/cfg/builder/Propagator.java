@@ -1,17 +1,15 @@
 package org.mapleir.ir.cfg.builder;
 
+import java.util.*;
+import java.util.Map.Entry;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.code.Opcode;
-import org.mapleir.ir.code.expr.ArrayLoadExpression;
-import org.mapleir.ir.code.expr.ConstantExpression;
-import org.mapleir.ir.code.expr.Expression;
-import org.mapleir.ir.code.expr.FieldLoadExpression;
-import org.mapleir.ir.code.expr.InitialisedObjectExpression;
-import org.mapleir.ir.code.expr.InvocationExpression;
-import org.mapleir.ir.code.expr.PhiExpression;
-import org.mapleir.ir.code.expr.UninitialisedObjectExpression;
-import org.mapleir.ir.code.expr.VarExpression;
+import org.mapleir.ir.code.expr.*;
 import org.mapleir.ir.code.stmt.ArrayStoreStatement;
+import org.mapleir.ir.code.stmt.ConditionalJumpStatement;
 import org.mapleir.ir.code.stmt.FieldStoreStatement;
 import org.mapleir.ir.code.stmt.MonitorStatement;
 import org.mapleir.ir.code.stmt.PopStatement;
@@ -24,18 +22,6 @@ import org.mapleir.stdlib.collections.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.SetCreator;
 import org.mapleir.stdlib.ir.StatementVisitor;
 import org.mapleir.stdlib.ir.transform.ssa.SSALocalAccess;
-
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 
 public class Propagator extends OptimisationPass.Optimiser {
 
@@ -191,8 +177,8 @@ public class Propagator extends OptimisationPass.Optimiser {
 						
 						// replace uses
 						for(Statement reachable : findReachable(keepPhi)) {
-							for(Statement s : reachable) {
-								if(s instanceof VarExpression) {
+							for(Statement s : _enumerate(reachable)) {
+								if(s.getOpcode() == Opcode.LOCAL_LOAD) {
 									VarExpression var = (VarExpression) s;
 									VersionedLocal l = (VersionedLocal) var.getLocal();
 									if(toReplace.contains(l)) {
@@ -323,24 +309,24 @@ public class Propagator extends OptimisationPass.Optimiser {
 			}
 		}
 
-		private void _xuselocal(Local l, boolean re) {
+		private int _xuselocal(Local l, boolean re) {
 			if(localAccess.useCount.containsKey(l)) {
 				if(re) {
-					localAccess.useCount.get(l).incrementAndGet();
+					return localAccess.useCount.get(l).incrementAndGet();
 				} else {
-					localAccess.useCount.get(l).decrementAndGet();
+					return localAccess.useCount.get(l).decrementAndGet();
 				}
 			} else {
 				throw new IllegalStateException("Local " + l + " not in useCount map. Def: " + localAccess.defs.get(l));
 			}
 		}
 		
-		private void unuseLocal(Local l) {
-			_xuselocal(l, false);
+		private int unuseLocal(Local l) {
+			return _xuselocal(l, false);
 		}
 		
-		private void reuseLocal(Local l) {
-			_xuselocal(l, true);
+		private int reuseLocal(Local l) {
+			return _xuselocal(l, true);
 		}
 		
 		private Statement handleConstant(AbstractCopyStatement def, VarExpression use, ConstantExpression rhs) {
@@ -431,7 +417,7 @@ public class Propagator extends OptimisationPass.Optimiser {
 					if(uses(use.getLocal()) == 1) {
 						unuseLocal(use.getLocal());
 						scalpelDefinition(def);
-						return propagatee;
+						return propagatee.copy();
 					}
 				} else {
 					// x = ((y * 2) + (9 / lvar0_0.g))
@@ -447,7 +433,7 @@ public class Propagator extends OptimisationPass.Optimiser {
 						killed(def);
 						scalpelDefinition(def);
 					}
-					return propagatee;
+					return propagatee.copy();
 				}
 			}
 			return null;
@@ -521,6 +507,27 @@ public class Propagator extends OptimisationPass.Optimiser {
 			}
 			return phi;
 		}
+		
+		private void peep(ArithmeticExpression e) {
+			switch(e.getOperator()) {
+				case ADD: {
+					
+					break;
+				}
+			}
+		}
+		
+		private void reorder(ConditionalJumpStatement js) {
+			Expression left = js.getLeft();
+			if(left.getOpcode() == Opcode.CONST_LOAD) {
+				Expression right = js.getRight();
+				js.delete(1);
+				js.delete(0);
+				
+				js.setLeft(right);
+				js.setRight(left);
+			}
+		}
 
 		@Override
 		public Statement visit(Statement stmt) {
@@ -528,6 +535,10 @@ public class Propagator extends OptimisationPass.Optimiser {
 				return choose(visitVar((VarExpression) stmt), stmt);
 			} else if(stmt.getOpcode() == Opcode.PHI) {
 				return choose(visitPhi((PhiExpression) stmt), stmt);
+			} else if(stmt.getOpcode() == Opcode.ARITHMETIC) {
+//				peep((ArithmeticExpression) stmt);
+			} else if(stmt.getOpcode() == Opcode.COND_JUMP) {
+//				reorder((ConditionalJumpStatement) stmt);
 			}
 			return stmt;
 		}
@@ -688,11 +699,11 @@ public class Propagator extends OptimisationPass.Optimiser {
 			for(VersionedLocal e : sortedKeys) {
 				AtomicInteger i1 = fresh.useCount.get(e);
 				AtomicInteger i2 = localAccess.useCount.get(e);
-				if(i1 == null) {
+				if(i1 == null && i2.get() != 0) {
 					message = "Real no contain: " + e + ", other: " + i2.get();
-				} else if(i2 == null) {
+				} else if(i2 == null && i1.get() != 0) {
 					message = "Current no contain: " + e + ", other: " + i1.get();
-				} else if(i1.get() != i2.get()) {
+				} else if(i1 != null && i2 != null && i1.get() != i2.get()) {
 					message = "Mismatch: " + e + " " + i1.get() + ":" + i2.get();
 				}
 			}
@@ -745,9 +756,10 @@ public class Propagator extends OptimisationPass.Optimiser {
 			if(visitor.cleanDead()) {
 				changes++;
 			}
-			if(visitor.cleanEquivalentPhis()) {
-				changes++;
-			}
+		}
+		
+		if(visitor.cleanEquivalentPhis()) {
+			changes++;
 		}
 		
 		return changes;

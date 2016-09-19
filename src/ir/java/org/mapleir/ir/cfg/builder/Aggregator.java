@@ -88,6 +88,7 @@ public class Aggregator extends OptimisationPass.Optimiser {
 							System.err.println(b);
 							System.err.println("Stmt: " + stmt.getId() + ". " + stmt);
 							System.err.println("Inst: " + inst);
+							System.err.println(builder.graph);
 							throw new RuntimeException("interesting1 " + inst.getClass());
 						}
 					}

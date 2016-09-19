@@ -88,7 +88,7 @@ public class ReturnStatement extends Statement {
 
 	@Override
 	public Statement copy() {
-		return new ReturnStatement(type, expression);
+		return new ReturnStatement(type, expression == null ? null : expression.copy());
 	}
 
 	@Override

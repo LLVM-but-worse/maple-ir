@@ -123,7 +123,7 @@ public class ArrayStoreStatement extends Statement {
 
 	@Override
 	public Statement copy() {
-		return new ArrayStoreStatement(arrayExpression, indexExpression, valueExpression, type);
+		return new ArrayStoreStatement(arrayExpression.copy(), indexExpression.copy(), valueExpression.copy(), type);
 	}
 
 	@Override

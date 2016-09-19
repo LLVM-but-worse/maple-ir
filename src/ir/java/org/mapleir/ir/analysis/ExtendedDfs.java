@@ -1,18 +1,17 @@
 package org.mapleir.ir.analysis;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
 import org.mapleir.stdlib.cfg.edge.FlowEdge;
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.ValueCreator;
 import org.mapleir.stdlib.collections.graph.FastGraphVertex;
 import org.mapleir.stdlib.collections.graph.flow.FlowGraph;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 public class ExtendedDfs<N extends FastGraphVertex> {
 	
@@ -25,8 +24,8 @@ public class ExtendedDfs<N extends FastGraphVertex> {
 	private final NullPermeableHashMap<N, Integer> colours;
 	private final Map<Integer, Set<FlowEdge<N>>> edges;
 	private final Map<N, N> parents;
-	private final List<N> pre;
-	private final List<N> post;
+	public final List<N> preorder;
+	public final List<N> postorder;
 	
 	public ExtendedDfs(FlowGraph<N, FlowEdge<N>> graph, N entry, int opt) {
 		this.opt = opt;
@@ -34,13 +33,13 @@ public class ExtendedDfs<N extends FastGraphVertex> {
 		colours = new NullPermeableHashMap<>(new ValueCreator<Integer>() {
 			@Override
 			public Integer create() {
-				return Integer.valueOf(0);
+				return WHITE;
 			}
 		});
 		
 		parents = opt(PARENTS) ? new HashMap<>() : null;
-		pre = opt(PRE) ? new ArrayList<>() : null;
-		post = opt(POST) ? new ArrayList<>() : null;
+		preorder = opt(PRE) ? new ArrayList<>() : null;
+		postorder = opt(POST) ? new ArrayList<>() : null;
 		
 		if(opt(EDGES)) {
 			edges = new HashMap<>();
@@ -69,39 +68,25 @@ public class ExtendedDfs<N extends FastGraphVertex> {
 	public Set<FlowEdge<N>> getEdges(int type) {
 		return edges.get(type);
 	}
-	
-	public List<N> getPreOrder() {
-		return new ArrayList<>(pre);
-	}
-	
-	public List<N> getPostOrder() {
-		return new ArrayList<>(post);
-	}
-	
-	public List<N> getReversePostOrder() {
-		List<N> list = getPostOrder();
-		Collections.reverse(list);
-		return list;
-	}
-	
+
 	private boolean opt(int i) {
 		return (opt & i) != 0;
 	}
 
 	private void dfs(N b) {
-		if(opt(PRE)) pre.add(b);
+		if(opt(PRE)) preorder.add(b);
 		colours.put(b, GREY);
 		
 		for(FlowEdge<N> sE : order(graph.getEdges(b)))  {
 			N s = sE.dst;
 			if(opt(EDGES)) edges.get(colours.getNonNull(s)).add(sE);
-			if(colours.getNonNull(s).intValue() == WHITE) {
+			if(colours.getNonNull(s) == WHITE) {
 				if(opt(PARENTS)) parents.put(s, b);
 				dfs(s);
 			}
 		}
 		
-		if(opt(POST)) post.add(b);
+		if(opt(POST)) postorder.add(b);
 		colours.put(b, BLACK);
 	}
 	

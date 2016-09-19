@@ -27,6 +27,7 @@ import org.mapleir.stdlib.cfg.util.TypeUtils;
 import org.mapleir.stdlib.cfg.util.TypeUtils.ArrayType;
 import org.mapleir.stdlib.collections.graph.flow.ExceptionRange;
 import org.mapleir.stdlib.collections.graph.util.GraphUtils;
+import org.objectweb.asm.Handle;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.*;
@@ -101,7 +102,11 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 
 	LabelNode checkLabel() {
 		AbstractInsnNode first = insns.getFirst();
-		if(!(first instanceof LabelNode)) {
+		if (first == null) {
+			LabelNode nFirst = new LabelNode();
+			insns.add(nFirst);
+			first = nFirst;
+		} else if (!(first instanceof LabelNode)) {
 			LabelNode nFirst = new LabelNode();
 			insns.insertBefore(first, nFirst);
 			first = nFirst;
@@ -206,7 +211,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		/* populate instructions. */
 		int codeIndex = insns.indexOf(label);
 		finished.set(block.getNumericId());
-		while(codeIndex <= insns.size()) {
+		while(codeIndex < insns.size() - 1) {
 			AbstractInsnNode ain = insns.get(++codeIndex);
 			int type = ain.type();
 			
@@ -219,7 +224,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 				BasicBlock immediate = resolveTarget((LabelNode) ain);
 				builder.graph.addEdge(block, new ImmediateEdge<>(block, immediate));
 				break;
-			} else  if(type == JUMP_INSN) {
+			} else if(type == JUMP_INSN) {
 				JumpInsnNode jin = (JumpInsnNode) ain;
 				BasicBlock target = resolveTarget(jin.label);
 				
@@ -520,8 +525,24 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 				_new(Type.getType("L" + ((TypeInsnNode)ain).desc + ";"));
 				break;
 				
-			case INVOKEDYNAMIC:
+			case INVOKEDYNAMIC: {
+				InvokeDynamicInsnNode dy = (InvokeDynamicInsnNode) ain;
+				System.out.println("DY:");
+				System.out.println(dy.name + " " + dy.desc);
+				System.out.println("HANDLE:");
+				System.out.println("  " + dy.bsm.getOwner());
+				System.out.println("  " + dy.bsm.getName());
+				System.out.println("  " + dy.bsm.getDesc());
+				System.out.println("  " + Handle.TAG_NAMES[dy.bsm.getTag() - 1]);
+				System.out.println("Args:");
+				for(Object o : dy.bsmArgs) {
+					System.out.println("(" + o.getClass().getSimpleName() + ") " + o);
+				}
+				
+				System.err.println(currentStack);
+				System.err.println(builder.graph);
 				throw new UnsupportedOperationException("INVOKEDYNAMIC");
+			}
 			case INVOKEVIRTUAL:
 			case INVOKESTATIC:
 			case INVOKESPECIAL:
@@ -676,11 +697,12 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		// prestack: var1, var0 (height = 2)
 		// poststack: var0
 		// assignments: var0 = var0[var1]
-		int height = currentStack.height();
+//		int height = currentStack.height();
 		Expression index = pop();
 		Expression array = pop();
-		assign_stack(height - 2, new ArrayLoadExpression(array, index, type));
-		push(load_stack(height - 2, type.getType()));
+		push(new ArrayLoadExpression(array, index, type));
+//		assign_stack(height - 2, new ArrayLoadExpression(array, index, type));
+//		push(load_stack(height - 2, type.getType()));
 	}
 	
 	void _store_array(ArrayType type) {
@@ -691,8 +713,10 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 	}
 	
 	void _pop(int amt) {
-		for(int i=0; i < amt; i++) {
-			addStmt(new PopStatement(pop()));
+		for(int i=0; i < amt; ) {
+			Expression top = pop();
+			addStmt(new PopStatement(top));
+			i += top.getType().getSize();
 		}
 	}
 	
@@ -1058,9 +1082,10 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		if(callExpr.getType() == Type.VOID_TYPE) {
 			addStmt(new PopStatement(callExpr));
 		} else {
-			int index = currentStack.height();
-			Type type = assign_stack(index, callExpr);
-			push(load_stack(index, type));
+			push(callExpr);
+//			int index = currentStack.height();
+//			Type type = assign_stack(index, callExpr);
+//			push(load_stack(index, type));
 		}
 	}
 	
@@ -1125,7 +1150,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 	
 	CopyVarStatement copy(VarExpression v, Expression e) {
 		builder.assigns.getNonNull(v.getLocal()).add(currentBlock);
-		return new CopyVarStatement(v, e);
+		return new CopyVarStatement(v.getParent() != null? v.copy() : v, e.getParent() != null? e.copy() : e);
 	}
 	
 	VarExpression _var_expr(int index, Type type, boolean isStack) {
@@ -1273,7 +1298,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 			if (((VarExpression) e1).getIndex() != ((VarExpression) e2).getIndex()) {
 				return false;
 			}
-			if (!e1.getType().getDescriptor().equals(e2.getType().getDescriptor())) {
+			if (e1.getType().getSize() != e2.getType().getSize()) {
 				return false;
 			}
 		}
@@ -1307,8 +1332,17 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 	}
 	
 	void makeRanges(List<BasicBlock> order) {
+//		System.out.println(builder.graph);
+//		BasicDotConfiguration<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> config = new BasicDotConfiguration<>(DotConfiguration.GraphType.DIRECTED);
+//		DotWriter<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> writer = new DotWriter<>(config, builder.graph);
+//		writer.removeAll().add(new ControlFlowGraphDecorator().setFlags(ControlFlowGraphDecorator.OPT_DEEP)).setName("test9999").export();
+		
 		Map<String, ExceptionRange<BasicBlock>> ranges = new HashMap<>();
 		for(TryCatchBlockNode tc : builder.method.tryCatchBlocks) {
+			
+//			System.out.printf("from %d to %d, handler:%d, type:%s.%n", insns.indexOf(tc.start), insns.indexOf(tc.end), insns.indexOf(tc.handler), tc.type);
+//			System.out.println(String.format("%s:%s:%s", BasicBlock.createBlockName(insns.indexOf(tc.start)), BasicBlock.createBlockName(insns.indexOf(tc.end)), builder.graph.getBlock(tc.handler).getId()));
+			
 			int start = builder.graph.getBlock(tc.start).getNumericId();
 			int end = builder.graph.getBlock(tc.end).getNumericId() - 1;
 			

@@ -29,7 +29,7 @@ public class InstanceofExpression extends Expression {
 
 	@Override
 	public Expression copy() {
-		return new InstanceofExpression(expression, type);
+		return new InstanceofExpression(expression.copy(), type);
 	}
 
 	@Override
