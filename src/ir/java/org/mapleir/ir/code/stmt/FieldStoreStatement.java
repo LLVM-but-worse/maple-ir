@@ -143,7 +143,7 @@ public class FieldStoreStatement extends Statement {
 
 	@Override
 	public Statement copy() {
-		return new FieldStoreStatement(instanceExpression, valueExpression, owner, name, desc);
+		return new FieldStoreStatement(instanceExpression == null ? null : instanceExpression.copy(), valueExpression.copy(), owner, name, desc);
 	}
 
 	@Override

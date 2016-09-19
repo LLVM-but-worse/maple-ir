@@ -30,8 +30,8 @@ public class CopyPhiStatement extends AbstractCopyStatement {
 	}
 
 	@Override
-	public Statement copy() {
-		return new CopyPhiStatement(getVariable(), getExpression(), isSynthetic());
+	public CopyPhiStatement copy() {
+		return new CopyPhiStatement(getVariable().copy(), getExpression().copy(), isSynthetic());
 	}
 
 	@Override

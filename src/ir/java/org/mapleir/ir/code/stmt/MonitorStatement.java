@@ -71,7 +71,7 @@ public class MonitorStatement extends Statement {
 
 	@Override
 	public Statement copy() {
-		return new MonitorStatement(expression, mode);
+		return new MonitorStatement(expression.copy(), mode);
 	}
 
 	@Override

@@ -27,7 +27,7 @@ public class NegationExpression extends Expression {
 
 	@Override
 	public Expression copy() {
-		return new NegationExpression(expression);
+		return new NegationExpression(expression.copy());
 	}
 
 	@Override
