@@ -1,14 +1,6 @@
 package org.mapleir.ir.cfg.builder;
 
-import org.mapleir.ir.cfg.BasicBlock;
-import org.mapleir.ir.cfg.ControlFlowGraph;
-import org.mapleir.ir.code.stmt.copy.AbstractCopyStatement;
-import org.mapleir.ir.locals.Local;
-import org.mapleir.ir.locals.VersionedLocal;
-import org.mapleir.stdlib.cfg.edge.FlowEdge;
-import org.mapleir.stdlib.collections.NullPermeableHashMap;
-import org.mapleir.stdlib.collections.SetCreator;
-import org.objectweb.asm.tree.MethodNode;
+import static org.mapleir.ir.cfg.builder.SSAGenPass.DO_SPLIT;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -17,6 +9,17 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import org.mapleir.ir.cfg.BasicBlock;
+import org.mapleir.ir.cfg.ControlFlowGraph;
+import org.mapleir.ir.code.stmt.copy.AbstractCopyStatement;
+import org.mapleir.ir.locals.Local;
+import org.mapleir.ir.locals.VersionedLocal;
+import org.mapleir.stdlib.cfg.edge.FlowEdge;
+import org.mapleir.stdlib.collections.NullPermeableHashMap;
+import org.mapleir.stdlib.collections.SetCreator;
+import org.mapleir.stdlib.ir.transform.ssa.SSALocalAccess;
+import org.objectweb.asm.tree.MethodNode;
+
 public class ControlFlowGraphBuilder {
 
 	protected final MethodNode method;
@@ -24,6 +27,7 @@ public class ControlFlowGraphBuilder {
 	protected final Set<Local> locals;
 	protected final NullPermeableHashMap<Local, Set<BasicBlock>> assigns;
 	protected final Map<VersionedLocal, AbstractCopyStatement> defs;
+	protected SSALocalAccess localAccess;
 	protected int count = 0;
 	protected BasicBlock exit;
 	
@@ -71,12 +75,22 @@ public class ControlFlowGraphBuilder {
 	}
 	
 	private BuilderPass[] resolvePasses() {
+		SSAGenPass.SPLIT_BLOCK_COUNT = 0;
+		if (!DO_SPLIT) {
+			return new BuilderPass[] {
+					new GenerationPass(this),
+					new NaturalisationPass1(this),
+//					new SSAGenPass(this),
+//					new OptimisationPass(this)
+			};
+		}
 		return new BuilderPass[] {
 				new GenerationPass(this),
 				new NaturalisationPass1(this),
 //				new NaturalisationPass2(this),
 				new SSAGenPass(this),
-				new OptimisationPass(this)
+				new OptimisationPass(this),
+//				new DeadRangesPass(this)
 		};
 	}
 	
@@ -104,7 +118,7 @@ public class ControlFlowGraphBuilder {
 			}
 			return builder.graph;
 		} catch(RuntimeException e) {
-			System.err.println(builder.graph);
+//			System.err.println(builder.graph);
 			throw e;
 		}
 	}

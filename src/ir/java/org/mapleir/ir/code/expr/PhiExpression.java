@@ -58,10 +58,10 @@ public class PhiExpression extends Expression {
 	}
 
 	@Override
-	public Expression copy() {
+	public PhiExpression copy() {
 		Map<BasicBlock, Expression> map = new HashMap<>();
 		for(Entry<BasicBlock, Expression> e : arguments.entrySet()) {
-			map.put(e.getKey(), e.getValue());
+			map.put(e.getKey(), e.getValue().copy());
 		}
 		return new PhiExpression(map);
 	}

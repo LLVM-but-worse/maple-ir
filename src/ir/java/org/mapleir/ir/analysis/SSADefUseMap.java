@@ -15,9 +15,11 @@ import org.mapleir.stdlib.collections.ValueCreator;
 import org.mapleir.stdlib.collections.bitset.GenericBitSet;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 
 public class SSADefUseMap implements Opcode {
 	
@@ -27,8 +29,8 @@ public class SSADefUseMap implements Opcode {
 	public final Map<Local, CopyPhiStatement> phiDefs;
 	public final NullPermeableHashMap<BasicBlock, GenericBitSet<Local>> phiUses;
 
-	public NullPermeableHashMap<Local, HashMap<BasicBlock, Integer>> lastUseIndex;
-	public HashMap<Local, Integer> defIndex;
+	public final NullPermeableHashMap<Local, HashMap<BasicBlock, Integer>> lastUseIndex;
+	public final HashMap<Local, Integer> defIndex;
 
 	public SSADefUseMap(ControlFlowGraph cfg) {
 		this.cfg = cfg;
@@ -36,55 +38,7 @@ public class SSADefUseMap implements Opcode {
 		uses = new NullPermeableHashMap<>(cfg);
 		phiDefs = new HashMap<>();
 		phiUses = new NullPermeableHashMap<>(cfg.getLocals());
-	}
 
-	public void compute() {
-		defs.clear();
-		uses.clear();
-		phiDefs.clear();
-		phiUses.clear();
-		for(BasicBlock b : cfg.vertices()) {
-			for(Statement stmt : b) {
-				phiUses.getNonNull(b);
-				build(b, stmt);
-			}
-		}
-	}
-
-	protected void build(BasicBlock b, Statement stmt) {
-		int opcode = stmt.getOpcode();
-		boolean isPhi = opcode == PHI_STORE;
-		boolean isCopy = isPhi || opcode == LOCAL_STORE;
-
-		if(isCopy) {
-			AbstractCopyStatement copy = (AbstractCopyStatement) stmt;
-			Local l = copy.getVariable().getLocal();
-			defs.put(l, b);
-			uses.getNonNull(l);
-
-			if(isPhi) {
-				PhiExpression phi = (PhiExpression) copy.getExpression();
-				GenericBitSet<Local> phiUseSet = phiUses.get(b);
-				for(Entry<BasicBlock, Expression> en : phi.getArguments().entrySet()) {
-					Local ul = ((VarExpression) en.getValue()).getLocal();
-					uses.getNonNull(ul).add(en.getKey());
-					phiUseSet.add(ul);
-				}
-				phiDefs.put(l, (CopyPhiStatement) copy);
-			}
-		}
-
-		if(!isPhi) {
-			for(Statement s : stmt) {
-				if(s.getOpcode() == LOCAL_LOAD) {
-					Local l = ((VarExpression) s).getLocal();
-					uses.getNonNull(l).add(b);
-				}
-			}
-		}
-	}
-
-	public void buildIndices(List<BasicBlock> preorder) {
 		lastUseIndex = new NullPermeableHashMap<>(new ValueCreator<HashMap<BasicBlock, Integer>>() {
 			@Override
 			public HashMap<BasicBlock, Integer> create() {
@@ -92,31 +46,90 @@ public class SSADefUseMap implements Opcode {
 			}
 		});
 		defIndex = new HashMap<>();
+	}
 
-		int index = 0;
-		for (BasicBlock b : preorder) {
-			for (Statement stmt : b)
-				index = buildIndex(b, stmt, index);
+	public void compute() {
+		defs.clear();
+		uses.clear();
+		phiDefs.clear();
+		phiUses.clear();
+		Set<Local> usedLocals = new HashSet<>();
+		for(BasicBlock b : cfg.vertices()) {
+			for(Statement stmt : b) {
+				phiUses.getNonNull(b);
+
+				usedLocals.clear();
+				for (Statement s : stmt)
+					if(s instanceof VarExpression)
+						usedLocals.add(((VarExpression) s).getLocal());
+
+				build(b, stmt, usedLocals);
+			}
 		}
 	}
 
-	protected int buildIndex(BasicBlock b, Statement stmt, int index) {
+	public void computeWithIndices(List<BasicBlock> preorder) {
+		defs.clear();
+		uses.clear();
+		phiDefs.clear();
+		phiUses.clear();
+		lastUseIndex.clear();
+		defIndex.clear();
+		int index = 0;
+		Set<Local> usedLocals = new HashSet<>();
+		for (BasicBlock b : preorder) {
+			for (Statement stmt : b) {
+				phiUses.getNonNull(b);
+
+				usedLocals.clear();
+				for(Statement s : stmt)
+					if(s instanceof VarExpression)
+						usedLocals.add(((VarExpression) s).getLocal());
+
+				buildIndex(b, stmt, index++, usedLocals);
+				build(b, stmt, usedLocals);
+			}
+		}
+	}
+
+	protected void build(BasicBlock b, Statement stmt, Set<Local> usedLocals) {
+		if(stmt instanceof AbstractCopyStatement) {
+			AbstractCopyStatement copy = (AbstractCopyStatement) stmt;
+			Local l = copy.getVariable().getLocal();
+			defs.put(l, b);
+
+			if(copy instanceof CopyPhiStatement) {
+				phiDefs.put(l, (CopyPhiStatement) copy);
+				PhiExpression phi = (PhiExpression) copy.getExpression();
+				for(Entry<BasicBlock, Expression> en : phi.getArguments().entrySet()) {
+					Local ul = ((VarExpression) en.getValue()).getLocal();
+					uses.getNonNull(ul).add(en.getKey());
+					phiUses.get(b).add(ul);
+				}
+				return;
+			}
+		}
+
+		for (Local usedLocal : usedLocals)
+			uses.getNonNull(usedLocal).add(b);
+	}
+
+	protected void buildIndex(BasicBlock b, Statement stmt, int index, Set<Local> usedLocals) {
 		if (stmt instanceof AbstractCopyStatement) {
 			AbstractCopyStatement copy = (AbstractCopyStatement) stmt;
 			defIndex.put(copy.getVariable().getLocal(), index);
+
 			if (copy instanceof CopyPhiStatement) {
-				CopyPhiStatement copyPhi = (CopyPhiStatement) copy;
-				PhiExpression phi = copyPhi.getExpression();
+				PhiExpression phi = ((CopyPhiStatement) copy).getExpression();
 				for (Entry<BasicBlock, Expression> en : phi.getArguments().entrySet()) {
-					Local ul = ((VarExpression) en.getValue()).getLocal();
-					lastUseIndex.getNonNull(ul).put(en.getKey(), en.getKey().size());
-//					lastUseIndex.getNonNull(ul).put(b, -1);
+					lastUseIndex.getNonNull(((VarExpression) en.getValue()).getLocal()).put(en.getKey(), en.getKey().size());
+//					lastUseIndex.get(ul).put(b, -1);
 				}
+				return;
 			}
 		}
-		for (Statement child : stmt)
-			if (child.getOpcode() == Opcode.LOCAL_LOAD)
-				lastUseIndex.getNonNull(((VarExpression) child).getLocal()).put(b, index);
-		return ++index;
+
+		for (Local usedLocal : usedLocals)
+			lastUseIndex.getNonNull(usedLocal).put(b, index);
 	}
 }

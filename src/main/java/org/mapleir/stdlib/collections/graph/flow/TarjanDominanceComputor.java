@@ -1,21 +1,24 @@
 package org.mapleir.stdlib.collections.graph.flow;
 
-import java.util.*;
-import java.util.Map.Entry;
-
 import org.mapleir.stdlib.cfg.edge.FlowEdge;
 import org.mapleir.stdlib.cfg.edge.ImmediateEdge;
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
-import org.mapleir.stdlib.collections.bitset.GenericBitSet;
-import org.mapleir.stdlib.collections.graph.FastDirectedGraph;
+import org.mapleir.stdlib.collections.ValueCreator;
 import org.mapleir.stdlib.collections.graph.FastGraph;
 import org.mapleir.stdlib.collections.graph.FastGraphEdge;
 import org.mapleir.stdlib.collections.graph.FastGraphVertex;
 
-public class TarjanDominanceComputor<N extends FastGraphVertex> {
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.Stack;
 
-	private static final Sorter<?> sorterImpl = Sorters.get("dfs");
-	
+public class TarjanDominanceComputor<N extends FastGraphVertex> {
 	private final FlowGraph<N, ?> graph;
 	private final List<N> preOrder;
 	private final Map<N, Integer> semiIndices;
@@ -23,23 +26,23 @@ public class TarjanDominanceComputor<N extends FastGraphVertex> {
 	private final Map<N, N> propagationMap;
 	private final Map<N, N> ancestors;
 	private final Map<N, N> idoms;
-	private final NullPermeableHashMap<N, GenericBitSet<N>> semiDoms;
-	private final NullPermeableHashMap<N, GenericBitSet<N>> domChildren;
-	private final NullPermeableHashMap<N, GenericBitSet<N>> frontiers;
-	private final NullPermeableHashMap<N, GenericBitSet<N>> iteratedFrontiers;
+	private final NullPermeableHashMap<N, Set<N>> semiDoms;
+	private final NullPermeableHashMap<N, Set<N>> domChildren;
+	private final NullPermeableHashMap<N, Set<N>> frontiers;
+	private final NullPermeableHashMap<N, Set<N>> iteratedFrontiers;
 	
-	public TarjanDominanceComputor(FlowGraph<N, ?> graph) {
+	public TarjanDominanceComputor(FlowGraph<N, ?> graph, List<N> preOrder) {
 		this.graph = graph;
-		preOrder = new ArrayList<>();
+		this.preOrder = preOrder;
 		semiIndices = new HashMap<>();
 		parents = new HashMap<>();
 		propagationMap = new HashMap<>();
 		ancestors = new HashMap<>();
 		idoms = new HashMap<>();
-		semiDoms = new NullPermeableHashMap<>(graph);
-		domChildren = new NullPermeableHashMap<>(graph);
-		frontiers = new NullPermeableHashMap<>(graph);
-		iteratedFrontiers = new NullPermeableHashMap<>(graph);
+		semiDoms = new NullPermeableHashMap<>((ValueCreator<Set<N>>) HashSet::new);
+		domChildren = new NullPermeableHashMap<>((ValueCreator<Set<N>>) HashSet::new);
+		frontiers = new NullPermeableHashMap<>((ValueCreator<Set<N>>) HashSet::new);
+		iteratedFrontiers = new NullPermeableHashMap<>((ValueCreator<Set<N>>) HashSet::new);
 		
 		computePreOrder();
 		computeDominators();
@@ -49,7 +52,7 @@ public class TarjanDominanceComputor<N extends FastGraphVertex> {
 	}
 	
 	public void makeTree(FastGraph<N, FlowEdge<N>> dom_tree) {
-		for (Entry<N, GenericBitSet<N>> e : getTree().entrySet()) {
+		for (Entry<N, Set<N>> e : getTree().entrySet()) {
 			N b = e.getKey();
 			dom_tree.addVertex(b);
 			for (N c : e.getValue()) {
@@ -58,35 +61,30 @@ public class TarjanDominanceComputor<N extends FastGraphVertex> {
 		}
 	}
 	
-	public Map<N, GenericBitSet<N>> getTree() {
+	public Map<N, Set<N>> getTree() {
 		return domChildren;
 	}
 	
-	public GenericBitSet<N> children(N n) {
+	public Set<N> children(N n) {
 		return domChildren.getNonNull(n);
 	}
 	
-	public GenericBitSet<N> semiDoms(N n) {
+	public Set<N> semiDoms(N n) {
 		return semiDoms.getNonNull(n);
 	}
 	
-	public GenericBitSet<N> frontier(N n) {
+	public Set<N> frontier(N n) {
 		return frontiers.getNonNull(n);
 	}
 	
-	public GenericBitSet<N> iteratedFrontier(N n) {
+	public Set<N> iteratedFrontier(N n) {
 		return iteratedFrontiers.getNonNull(n);
 	}
 	
 	public N idom(N n) {
 		return idoms.get(n);
 	}
-	
-	@SuppressWarnings("unchecked")
-	private Sorter<N> sorter() {
-		return (Sorter<N>) sorterImpl;
-	}
-	
+
 	private void touchTree() {
 		for(N n : idoms.keySet()) {
 			domChildren.getNonNull(idoms.get(n)).add(n);
@@ -113,13 +111,13 @@ public class TarjanDominanceComputor<N extends FastGraphVertex> {
 	}
 	
 	private void computeIteratedFrontiers(N n) {
-		GenericBitSet<N> res = graph.createBitSet();
+		Set<N> res = new HashSet<>();
 		
-		GenericBitSet<N> workingSet = graph.createBitSet();
+		Set<N> workingSet = new HashSet<>();
 		workingSet.add(n);
 		
 		do {
-			GenericBitSet<N> newWorkingSet = graph.createBitSet();
+			Set<N> newWorkingSet = new HashSet<>();
 			Iterator<N> it = workingSet.iterator();
 			while(it.hasNext()) {
 				N n1 = it.next();
@@ -143,7 +141,7 @@ public class TarjanDominanceComputor<N extends FastGraphVertex> {
 		Iterator<N> it = topoSort();
 		while(it.hasNext()) {
 			N n = it.next();
-			GenericBitSet<N> df = frontiers.getNonNull(n);
+			Set<N> df = frontiers.getNonNull(n);
 			
 			// DF(local)
 			for(FlowEdge<N> e : graph.getEdges(n)) {
@@ -168,18 +166,14 @@ public class TarjanDominanceComputor<N extends FastGraphVertex> {
 	}
 	
 	private void computePreOrder() {
-		Iterator<N> it = sorter().iterator(graph);
-		while(it.hasNext()) {
-			N n = it.next();
-			if(!semiIndices.containsKey(n)) {
-				preOrder.add(n);
-				semiIndices.put(n, semiIndices.size());
-				propagationMap.put(n, n);
-				
-				for(N succ : FastDirectedGraph.computeSuccessors(graph, n)) {
-					if(!semiIndices.containsKey(succ)) {
-						parents.put(succ, n);
-					}
+		for (N n : preOrder) {
+			semiIndices.put(n, semiIndices.size());
+			propagationMap.put(n, n);
+
+			for (FlowEdge<N> succEdge : graph.getEdges(n)) {
+				N succ = succEdge.dst;
+				if(!semiIndices.containsKey(succ)) {
+					parents.put(succ, n);
 				}
 			}
 		}
@@ -188,7 +182,7 @@ public class TarjanDominanceComputor<N extends FastGraphVertex> {
 	private void computeDominators() {
 		// ignore entry
 		// i>0 to i > 2
-		for(int i=semiIndices.size()-1; i > 0; i--) {
+		for(int i = preOrder.size() - 1; i > 0; i--) {
 			N n = preOrder.get(i);
 			N p = parents.get(n);
 			
@@ -196,7 +190,6 @@ public class TarjanDominanceComputor<N extends FastGraphVertex> {
 			for(FastGraphEdge<N> e : graph.getReverseEdges(n)) {
 				newIndex = Math.min(newIndex, semiIndices.get(calcSemiDom(e.src)));
 			}
-			
 			semiIndices.put(n, newIndex);
 			
 			N semiIndex = preOrder.get(newIndex);
@@ -231,7 +224,7 @@ public class TarjanDominanceComputor<N extends FastGraphVertex> {
 	}
 	
 	private void propagate(N n) {
-		LinkedList<N> wl = new LinkedList<>();
+		Stack<N> wl = new Stack<>();
 		wl.add(n);
 		N anc = ancestors.get(n);
 		
