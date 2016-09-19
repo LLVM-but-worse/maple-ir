@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 
 import org.mapleir.ir.cfg.BasicBlock;
+import org.mapleir.ir.code.Opcode;
 import org.mapleir.ir.code.expr.Expression;
 import org.mapleir.ir.code.expr.InitialisedObjectExpression;
 import org.mapleir.ir.code.expr.InvocationExpression;
@@ -17,7 +18,7 @@ import org.mapleir.ir.locals.VersionedLocal;
 import org.mapleir.stdlib.ir.transform.ssa.SSALocalAccess;
 import org.objectweb.asm.Opcodes;
 
-public class Aggregator extends OptimisationPass.Optimiser {
+public class Aggregator extends OptimisationPass.Optimiser implements Opcode {
 
 	public Aggregator(ControlFlowGraphBuilder builder, SSALocalAccess localAccess) {
 		super(builder, localAccess);
@@ -28,21 +29,21 @@ public class Aggregator extends OptimisationPass.Optimiser {
 		int changes = 0;
 		
 		for(Statement stmt : new ArrayList<>(b)) {
-			if (stmt instanceof PopStatement) {
+			if (stmt.getOpcode() == POP) {
 				PopStatement pop = (PopStatement) stmt;
 				Expression expr = pop.getExpression();
-				if (expr instanceof InvocationExpression) {
+				if (expr.getOpcode() == INVOKE) {
 					InvocationExpression invoke = (InvocationExpression) expr;
 					if (invoke.getOpcode() == Opcodes.INVOKESPECIAL && invoke.getName().equals("<init>")) {
 						Expression inst = invoke.getInstanceExpression();
-						if (inst instanceof VarExpression) {
+						if (inst.getOpcode() == LOCAL_LOAD) {
 							VarExpression var = (VarExpression) inst;
 							VersionedLocal local = (VersionedLocal) var.getLocal();
 
 							AbstractCopyStatement def = localAccess.defs.get(local);
 
 							Expression rhs = def.getExpression();
-							if (rhs instanceof UninitialisedObjectExpression) {
+							if (rhs.getOpcode() == UNINIT_OBJ) {
 								// replace pop(x.<init>()) with x := new Klass();
 								// remove x := new Klass;
 								
@@ -69,7 +70,7 @@ public class Aggregator extends OptimisationPass.Optimiser {
 								
 								changes++;
 							}
-						} else if(inst instanceof UninitialisedObjectExpression) {
+						} else if(inst.getOpcode() == UNINIT_OBJ) {
 							// replace pop(new Klass.<init>(args)) with pop(new Klass(args))
 							UninitialisedObjectExpression obj = (UninitialisedObjectExpression) inst;
 							
