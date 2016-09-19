@@ -43,6 +43,11 @@ public final class Handle {
 			"INVOKEVIRTUAL", "INVOKESTATIC", "INVOKESPECIAL", "NEWINVOKESPECIAL", "INVOKE_INTERFACE"
 	};
 	
+	public static final String[] SIMPLE_TAG_NAMES = new String[] {
+			"v_get", "s_get", "v_put", "s_put",
+			"v_invoke", "s_invoke", "sp_invoke", "new_invoke", "itf_invoke"
+	};
+	
     /**
      * The kind of field or method designated by this Handle. Should be
      * {@link Opcodes#H_GETFIELD}, {@link Opcodes#H_GETSTATIC},
@@ -170,6 +175,6 @@ public final class Handle {
      */
     @Override
     public String toString() {
-        return owner + '.' + name + desc + " (" + TAG_NAMES[tag-1] + ')';
+        return SIMPLE_TAG_NAMES[tag-1] + " " + owner + '.' + name + desc;
     }
 }
