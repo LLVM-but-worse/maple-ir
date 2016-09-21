@@ -7,7 +7,6 @@ import java.util.*;
 import java.util.Map.Entry;
 
 import org.mapleir.ir.cfg.BasicBlock;
-import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.ExpressionStack;
 import org.mapleir.ir.code.Opcode;
 import org.mapleir.ir.code.expr.*;
@@ -17,20 +16,15 @@ import org.mapleir.ir.code.stmt.*;
 import org.mapleir.ir.code.stmt.ConditionalJumpStatement.ComparisonType;
 import org.mapleir.ir.code.stmt.MonitorStatement.MonitorMode;
 import org.mapleir.ir.code.stmt.copy.CopyVarStatement;
-import org.mapleir.ir.dot.ControlFlowGraphDecorator;
 import org.mapleir.ir.locals.Local;
 import org.mapleir.stdlib.cfg.edge.ConditionalJumpEdge;
 import org.mapleir.stdlib.cfg.edge.DefaultSwitchEdge;
-import org.mapleir.stdlib.cfg.edge.FlowEdge;
 import org.mapleir.stdlib.cfg.edge.ImmediateEdge;
 import org.mapleir.stdlib.cfg.edge.SwitchEdge;
 import org.mapleir.stdlib.cfg.edge.TryCatchEdge;
 import org.mapleir.stdlib.cfg.edge.UnconditionalJumpEdge;
 import org.mapleir.stdlib.cfg.util.TypeUtils;
 import org.mapleir.stdlib.cfg.util.TypeUtils.ArrayType;
-import org.mapleir.stdlib.collections.graph.dot.BasicDotConfiguration;
-import org.mapleir.stdlib.collections.graph.dot.DotConfiguration;
-import org.mapleir.stdlib.collections.graph.dot.DotWriter;
 import org.mapleir.stdlib.collections.graph.flow.ExceptionRange;
 import org.mapleir.stdlib.collections.graph.util.GraphUtils;
 import org.objectweb.asm.Handle;
@@ -156,9 +150,6 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		
 		queue(label);
 		stacks.set(handler.getNumericId());
-		
-
-		System.out.println("Handler: " + handler.getId());
 	}
 	
 	void defineInputs(MethodNode m, BasicBlock b) {
@@ -216,8 +207,6 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		}
 		
 		preprocess(block);
-		
-		System.out.println("Processing " + block.getId());
 		
 		/* populate instructions. */
 		int codeIndex = insns.indexOf(label);
@@ -286,7 +275,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		// TODO: check if it should have an immediate.
 		BasicBlock im = block.getImmediate();
 		if (im != null && !queue.contains(im)) {
-			System.out.println("Updating " + block.getId() + " -> " + im.getId());
+			// System.out.println("Updating " + block.getId() + " -> " + im.getId());
 			// System.out.println("  Pre: " + currentStack);
 			update_target_stack(block, im, currentStack);
 			// System.out.println("  Pos: " + currentStack);
@@ -314,8 +303,8 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 	void process(BasicBlock b, AbstractInsnNode ain) {
 		int opcode = ain.opcode();
 		
-		 System.out.println("Executing " + Printer.OPCODES[opcode]);
-		 System.out.println(" PreStack: " + currentStack);
+		// System.out.println("Executing " + Printer.OPCODES[opcode]);
+		// System.out.println(" PreStack: " + currentStack);
 		
 		switch (opcode) {
 			case -1: {
@@ -634,7 +623,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		}
 		
 
-		 System.out.println(" PosStack: " + currentStack);
+		// System.out.println(" PosStack: " + currentStack);
 	}
 	
 	void _nop() {
@@ -1143,7 +1132,6 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 			int index = currentStack.height();
 			Type type = assign_stack(index, fExpr);
 			push(load_stack(index, type));
-			push(fExpr);
 		} else {
 			throw new UnsupportedOperationException(Printer.OPCODES[opcode] + " " + owner + "." + name + "   " + desc);
 		}
@@ -1336,7 +1324,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		// checking the merge state.
 		if (!stacks.get(target.getNumericId())) {
 			// unfinalised block found.
-			System.out.println("Setting target stack of " + target.getId() + " to " + stack);
+			// System.out.println("Setting target stack of " + target.getId() + " to " + stack);
 			target.setInputStack(stack.copy());
 			stacks.set(target.getNumericId());
 
@@ -1346,9 +1334,9 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 			// the new stack cannot merge into it, then there
 			// is an error in the bytecode (verifier error).
 			
-			BasicDotConfiguration<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> config = new BasicDotConfiguration<>(DotConfiguration.GraphType.DIRECTED);
-			DotWriter<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> writer = new DotWriter<>(config, builder.graph);
-			writer.removeAll().add(new ControlFlowGraphDecorator().setFlags(ControlFlowGraphDecorator.OPT_DEEP)).setName("6996").export();
+			// BasicDotConfiguration<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> config = new BasicDotConfiguration<>(DotConfiguration.GraphType.DIRECTED);
+			// DotWriter<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> writer = new DotWriter<>(config, builder.graph);
+			// writer.removeAll().add(new ControlFlowGraphDecorator().setFlags(ControlFlowGraphDecorator.OPT_DEEP)).setName("6996").export();
 			
 			System.err.println("Current: " + stack + " in " + b.getId());
 			System.err.println("Target : " + target.getInputStack() + " in " + target.getId());
