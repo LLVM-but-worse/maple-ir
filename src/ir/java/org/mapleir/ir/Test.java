@@ -9,7 +9,6 @@ import java.util.ArrayList;
 import java.util.Iterator;
 
 import org.mapleir.byteio.CompleteResolvingJarDumper;
-import org.mapleir.ir.analysis.DominanceLivenessAnalyser;
 import org.mapleir.ir.cfg.BoissinotDestructor;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.cfg.builder.ControlFlowGraphBuilder;
@@ -439,7 +438,7 @@ public class Test {
 		System.out.println(cfg);
 	}
 	
-	public static void main(String[] args) throws IOException {
+	public static void main5(String[] args) throws IOException {
 		JarInfo jar = new JarInfo(new File("res/osbot2489.jar"));
 		SingleJarDownloader<ClassNode> dl = new SingleJarDownloader<>(jar);
 		dl.download();
@@ -457,7 +456,7 @@ public class Test {
 					ControlFlowGraph cfg = null;
 					try {
 						cfg = ControlFlowGraphBuilder.build(m);
-						new BoissinotDestructor(cfg); // ungay this
+						new BoissinotDestructor(cfg, 0); // ungay this
 						cfg.getLocals().realloc(cfg);
 
 						ControlFlowGraphDumper.dump(cfg, m);
@@ -474,7 +473,7 @@ public class Test {
 		dumper.dump(new File("out/osb.jar"));
 	}
 	
-	public static void main5(String[] args) throws IOException {
+	public static void main(String[] args) throws IOException {
 //		ClassReader cr = new ClassReader(Test.class.getCanonicalName());
 //		ClassNode cn = new ClassNode();
 //		cr.accept(cn, 0);
@@ -502,20 +501,19 @@ public class Test {
 
 			System.out.println("Processing " + m + "\n");
 			ControlFlowGraph cfg = ControlFlowGraphBuilder.build(m);
-			System.out.println(cfg);
 
 //			BasicDotConfiguration<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> config = new BasicDotConfiguration<>(DotConfiguration.GraphType.DIRECTED);
 //			DotWriter<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> writer = new DotWriter<>(config, cfg);
 //			writer.removeAll().add(new ControlFlowGraphDecorator().setFlags(OPT_DEEP)).setName("pre-destruct").export();
 			try {
-				DominanceLivenessAnalyser resolver = new DominanceLivenessAnalyser(cfg, null);
-				BoissinotDestructor destructor = new BoissinotDestructor(cfg, resolver);
+				BoissinotDestructor destructor = new BoissinotDestructor(cfg, 0);
 			} catch (RuntimeException e) {
 				throw new RuntimeException("\n" + cfg.toString(), e);
 			}
 
 			cfg.getLocals().realloc(cfg);
 
+			System.out.println(cfg);
 
 //			writer.removeAll().add(new ControlFlowGraphDecorator().setFlags(OPT_DEEP)).setName("destructed").export();
 

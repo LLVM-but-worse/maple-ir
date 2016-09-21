@@ -69,6 +69,19 @@ public class Propagator extends OptimisationPass.Optimiser {
 		private Iterable<Statement> enumerate(Statement stmt) {
 			return _enumerate(stmt);
 		}
+		
+		private void dfsStmt(List<Statement> list, Statement stmt) {
+			for(Statement c : stmt.getChildren()) {
+				dfsStmt(list, c);
+			}
+			list.add(stmt);
+		}
+		
+		private Iterable<Statement> execEnumerate(Statement stmt) {
+			List<Statement> list = new ArrayList<>();
+			dfsStmt(list, stmt);
+			return list;
+		}
 
 		private Set<Statement> findReachable(Statement from, Statement to) {
 			Set<Statement> res = new HashSet<>();
@@ -264,7 +277,7 @@ public class Propagator extends OptimisationPass.Optimiser {
 		}
 		
 		private void scalpelDefinition(AbstractCopyStatement def) {
-			System.out.println("killded: " + def);
+			// System.out.println("killded: " + def);
 			def.getBlock().remove(def);
 			Local local = def.getVariable().getLocal();
 			localAccess.useCount.remove(local);
@@ -335,7 +348,7 @@ public class Propagator extends OptimisationPass.Optimiser {
 
 		private Statement handleComplex(AbstractCopyStatement def, VarExpression use) {
 			if(!canTransferToUse(root, use, def)) {
-				System.out.println("Refuse to propagate " + def + " into " + use.getRootParent());
+				// System.out.println("Refuse to propagate " + def + " into " + use.getRootParent());
 				return null;
 			}
 
@@ -446,8 +459,9 @@ public class Propagator extends OptimisationPass.Optimiser {
 				
 				if(e.getOpcode() == Opcode.LOCAL_LOAD) {
 					VarExpression use = (VarExpression) e;
+					Local ul = use.getLocal();
 					
-					AbstractCopyStatement def = localAccess.defs.get((use).getLocal());
+					AbstractCopyStatement def = localAccess.defs.get(ul);
 					Expression rhs = def.getExpression();
 					int opcode = rhs.getOpcode();
 
@@ -465,7 +479,9 @@ public class Propagator extends OptimisationPass.Optimiser {
 							cand = (VarExpression) e;
 						}
 					} else if(opcode == Opcode.CONST_LOAD) {
-//						cand = (VarExpression) e;
+						// if(ul.isStack()) {
+							cand = (VarExpression) e;
+						// }
 					}
 					
 					if(cand != null) {
@@ -512,10 +528,44 @@ public class Propagator extends OptimisationPass.Optimiser {
 			return opcode == Opcode.INVOKE || opcode == Opcode.DYNAMIC_INVOKE || opcode == Opcode.INIT_OBJ;
 		}
 		
+		private boolean determineKill(Statement use, Statement tail, AbstractCopyStatement def, 
+				AtomicBoolean invoke, AtomicBoolean array, Set<String> fieldsUsed, Statement s) {
+			
+			if(s.getOpcode() == Opcode.FIELD_LOAD) {
+				if(invoke.get()) {
+					return false;
+				}
+			} else if(s.getOpcode() == Opcode.FIELD_STORE) {
+				if(invoke.get()) {
+					return false;
+				} else if(fieldsUsed.size() > 0) {
+					FieldStoreStatement store = (FieldStoreStatement) s;
+					String key = store.getName() + "." + store.getDesc();
+					if(fieldsUsed.contains(key)) {
+						return false;
+					}
+				}
+			} else if(s.getOpcode() == Opcode.ARRAY_STORE) {
+				if(invoke.get() || array.get()) {
+					return false;
+				}
+			} else if(s.getOpcode() == Opcode.MONITOR) {
+				if(invoke.get()) {
+					return false;
+				}
+			} else if(isInvoke(s)) {
+				if(invoke.get() || fieldsUsed.size() > 0 || array.get()) {
+					return false;
+				}
+			}
+			
+			return true;
+		}
+		
 		private boolean canTransferToUse(Statement use, Statement tail, AbstractCopyStatement def) {
 			Local local = def.getVariable().getLocal();
 			Expression rhs = def.getExpression();
-
+			
 			Set<String> fieldsUsed = new HashSet<>();
 			AtomicBoolean invoke = new AtomicBoolean();
 			AtomicBoolean array = new AtomicBoolean();
@@ -546,6 +596,15 @@ public class Propagator extends OptimisationPass.Optimiser {
 				}
 			}.visit();
 			
+//			System.out.println("Def: " + def);
+//			if(def.toString().equals("svar0_0 = new java.lang.StringBuilder();")) {
+//				System.err.println("Invoke: " + invoke.get());
+//				System.err.println("Array: " + array.get());
+//				System.err.println("FS: " + fieldsUsed);
+//				System.err.println(builder.graph);
+//				throw new RuntimeException();
+//			}
+			
 			Set<Statement> path = findReachable(def, use);
 			path.remove(def);
 			path.add(use);
@@ -555,63 +614,33 @@ public class Propagator extends OptimisationPass.Optimiser {
 			for(Statement stmt : path) {
 				if(stmt != use) {
 					for(Statement s : enumerate(stmt)) {
-						if(s.getOpcode() == Opcode.FIELD_STORE) {
-							if(invoke.get()) {
-								canPropagate = false;
+						if(determineKill(use, tail, def, invoke, array, fieldsUsed, s)) {
+							return false;
+						}
+					}
+				} else {
+					// the root here must be the 'use' Statement.
+					AtomicBoolean canPropagate2 = new AtomicBoolean(canPropagate);
+					
+					if(invoke.get() || array.get() || !fieldsUsed.isEmpty()) {
+						for(Statement s : execEnumerate(stmt)) {
+							if(s == tail && (s.getOpcode() == Opcode.LOCAL_LOAD && ((VarExpression) s).getLocal() == local)) {
 								break;
-							} else if(fieldsUsed.size() > 0) {
-								FieldStoreStatement store = (FieldStoreStatement) s;
-								String key = store.getName() + "." + store.getDesc();
-								if(fieldsUsed.contains(key)) {
-									canPropagate = false;
+							} else {
+								if((isInvoke(s)) || (invoke.get() && (s instanceof FieldStoreStatement || s instanceof ArrayStoreStatement))) {
+									canPropagate2.set(false);
+									// System.out.println("  KILL: " + s);
 									break;
 								}
 							}
-						} else if(s.getOpcode() == Opcode.ARRAY_STORE) {
-							if(invoke.get() || array.get()) {
-								canPropagate = false;
-								break;
-							}
-						} else if(s.getOpcode() == Opcode.MONITOR) {
-							if(invoke.get()) {
-								canPropagate = false;
-								break;
-							}
-						} else if(isInvoke(s)) {
-							if(invoke.get() || fieldsUsed.size() > 0 || array.get()) {
-								canPropagate = false;
-								break;
-							}
 						}
+						
+						canPropagate = canPropagate2.get();
 					}
 				}
 				
 				if(!canPropagate) {
 					return false;
-				}
-				
-				AtomicBoolean canPropagate2 = new AtomicBoolean(canPropagate);
-				if(invoke.get() || array.get() || !fieldsUsed.isEmpty()) {
-					new StatementVisitor(stmt) {
-						@Override
-						public Statement visit(Statement s) {
-							if(root == use) {
-								_break();
-							} else {
-								if((isInvoke(s)) || (invoke.get() && (s instanceof FieldStoreStatement || s instanceof ArrayStoreStatement))) {
-									canPropagate2.set(false);
-									System.out.println("  KILL: " + s);
-									_break();
-								}
-							}
-							return s;
-						}
-					}.visit();
-					canPropagate = canPropagate2.get();
-					
-					if(!canPropagate) {
-						return false;
-					}
 				}
 			}
 			
