@@ -18,6 +18,7 @@ import org.mapleir.ir.code.stmt.copy.CopyVarStatement;
 import org.mapleir.ir.locals.BasicLocal;
 import org.mapleir.ir.locals.Local;
 import org.mapleir.ir.locals.LocalsHandler;
+import org.mapleir.ir.locals.VersionedLocal;
 import org.mapleir.stdlib.cfg.util.TabbedStringWriter;
 import org.mapleir.stdlib.collections.ListCreator;
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
@@ -68,17 +69,8 @@ public class BoissinotDestructor {
 	private Map<Local, CongruenceClass> congruenceClasses;
 	private Map<Local, Local> remap;
 
-	public BoissinotDestructor(ControlFlowGraph cfg) {
-		this(cfg, new DominanceLivenessAnalyser(cfg, null), -1);
-	}
-	
-	public BoissinotDestructor(ControlFlowGraph cfg, DominanceLivenessAnalyser resolver) {
-		this(cfg, resolver, -1);
-	}
-
-	public BoissinotDestructor(ControlFlowGraph cfg, DominanceLivenessAnalyser resolver, int flags) {
+	public BoissinotDestructor(ControlFlowGraph cfg, int flags) {
 		this.cfg = cfg;
-		this.resolver = resolver;
 		locals = cfg.getLocals();
 
 		if ((flags & 1) != 0)
@@ -88,6 +80,9 @@ public class BoissinotDestructor {
 
 		// 1. Insert copies to enter CSSA.
 		init();
+		
+		resolver = new DominanceLivenessAnalyser(cfg, null);
+		
 		insertCopies();
 		constructDominance();
 		createDuChains();
@@ -113,12 +108,22 @@ public class BoissinotDestructor {
 	private void init() {
 		// Sanity check
 		for(BasicBlock b : cfg.vertices()) {
-			for(Statement stmt : b)  {
-				if(stmt instanceof CopyPhiStatement) {
+			for(Statement stmt : new ArrayList<>(b))  {
+				if(stmt.getOpcode() == Opcode.PHI_STORE) {
 					CopyPhiStatement copy = (CopyPhiStatement) stmt;
-					for (Expression arg : copy.getExpression().getArguments().values())
-						if (arg.getOpcode() != Opcode.LOCAL_LOAD)
+					for(Entry<BasicBlock, Expression> e : copy.getExpression().getArguments().entrySet()) {
+						Expression expr = e.getValue();
+						int opcode = expr.getOpcode();
+						if(opcode == Opcode.CONST_LOAD) {
+							VersionedLocal vl = locals.makeLatestVersion(locals.get(0, false));
+							CopyVarStatement cvs = new CopyVarStatement(new VarExpression(vl, expr.getType()), expr);
+							e.setValue(new VarExpression(vl, expr.getType()));
+							
+							insertEnd(e.getKey(), cvs);
+						} else if(opcode != Opcode.LOCAL_LOAD){
 							throw new IllegalArgumentException("Non-variable expression in phi: " + copy);
+						}
+					}
 				}
 			}
 		}
@@ -209,7 +214,7 @@ public class BoissinotDestructor {
 		}
 	}
 
-	private void insertEnd(BasicBlock b, ParallelCopyVarStatement copy) {
+	private void insertEnd(BasicBlock b, Statement copy) {
 		if(b.isEmpty())
 			b.add(copy);
 		else if (!b.get(b.size() - 1).canChangeFlow())
