@@ -218,7 +218,6 @@ public class LocalsHandler implements ValueCreator<GenericBitSet<Local>> {
 	public static void remap(ControlFlowGraph cfg, Map<? extends Local, ? extends Local> remap) {
 		for(BasicBlock b : cfg.vertices()) {
 			for(Statement stmt : b) {
-				System.out.println("remap1: " + stmt);
 				if(stmt.getOpcode() == Opcode.LOCAL_STORE) {
 					VarExpression v = ((CopyVarStatement) stmt).getVariable();
 					Local l = v.getLocal();
@@ -229,7 +228,6 @@ public class LocalsHandler implements ValueCreator<GenericBitSet<Local>> {
 				}
 				
 				for(Statement s : stmt) {
-					System.out.println("  c: " + s);
 					if(s.getOpcode() == Opcode.LOCAL_LOAD) {
 						VarExpression v = (VarExpression) s;
 						Local l = v.getLocal();
@@ -238,7 +236,6 @@ public class LocalsHandler implements ValueCreator<GenericBitSet<Local>> {
 						}
 					}
 				}
-				System.out.println("remap2: " + stmt);
 			}
 		}
 	}
