@@ -439,7 +439,7 @@ public class Test {
 		System.out.println(cfg);
 	}
 	
-	public static void main6(String[] args) throws IOException {
+	public static void main(String[] args) throws IOException {
 		JarInfo jar = new JarInfo(new File("res/osbot2489.jar"));
 		SingleJarDownloader<ClassNode> dl = new SingleJarDownloader<>(jar);
 		dl.download();
@@ -474,7 +474,7 @@ public class Test {
 		dumper.dump(new File("out/osb.jar"));
 	}
 	
-	public static void main(String[] args) throws IOException {
+	public static void main5(String[] args) throws IOException {
 //		ClassReader cr = new ClassReader(Test.class.getCanonicalName());
 //		ClassNode cn = new ClassNode();
 //		cr.accept(cn, 0);
