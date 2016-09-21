@@ -439,7 +439,7 @@ public class Test {
 		System.out.println(cfg);
 	}
 	
-	public static void main(String[] args) throws IOException {
+	public static void main6(String[] args) throws IOException {
 		JarInfo jar = new JarInfo(new File("res/osbot2489.jar"));
 		SingleJarDownloader<ClassNode> dl = new SingleJarDownloader<>(jar);
 		dl.download();
@@ -447,15 +447,23 @@ public class Test {
 		
 		for (ClassNode cn : contents.getClassContents()) {
 			for(MethodNode m : cn.methods) {
+				
+				if(!m.toString().startsWith("org/osbot/At.toString()Ljava/lang/String;")) {
+					continue;
+				}
+				
 				if(m.instructions.size() > 0) {
 					// System.out.printf("%s  %d.%n", m, m.instructions.size());
+					ControlFlowGraph cfg = null;
 					try {
-						ControlFlowGraph cfg = ControlFlowGraphBuilder.build(m);
+						cfg = ControlFlowGraphBuilder.build(m);
 						new BoissinotDestructor(cfg); // ungay this
 						cfg.getLocals().realloc(cfg);
 
 						ControlFlowGraphDumper.dump(cfg, m);
 					} catch(RuntimeException e) {
+						System.err.println();
+						System.err.println(cfg);
 						throw new RuntimeException(m.toString(), e);
 					}
 				}
@@ -466,7 +474,7 @@ public class Test {
 		dumper.dump(new File("out/osb.jar"));
 	}
 	
-	public static void main5(String[] args) throws IOException {
+	public static void main(String[] args) throws IOException {
 //		ClassReader cr = new ClassReader(Test.class.getCanonicalName());
 //		ClassNode cn = new ClassNode();
 //		cr.accept(cn, 0);
@@ -481,7 +489,7 @@ public class Test {
 			MethodNode m = it.next();
 
 			 if(!m.toString().equals("a/a/f/a.<init>()V")) {
-			 continue;
+				 continue;
 			 }
 
 //			if(!m.toString().contains("inferCall")) {

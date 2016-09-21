@@ -7,6 +7,7 @@ import java.util.List;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.Opcode;
+import org.mapleir.ir.code.expr.Expression;
 import org.mapleir.stdlib.cfg.util.TabbedStringWriter;
 import org.mapleir.stdlib.collections.graph.FastGraphVertex;
 import org.mapleir.stdlib.ir.StatementVisitor;
@@ -37,6 +38,10 @@ public abstract class Statement implements FastGraphVertex, Opcode, Iterable<Sta
 	
 	public BasicBlock getBlock() {
 		return block;
+	}
+	
+	static String str(StackTraceElement e) {
+		return e.getClassName() + "." + e.getMethodName() + ":" + e.getLineNumber();
 	}
 	
 	public void setBlock(BasicBlock block) {
@@ -97,13 +102,13 @@ public abstract class Statement implements FastGraphVertex, Opcode, Iterable<Sta
 		children[index] = s;
 		
 		if(prev != null) {
-			prev.parent = null;
+			prev.setParent(null);
 		}
 		if(s != null) {
 			if(s.parent != null) {
 				throw new IllegalStateException(s + " already belongs to " + s.parent + " (new:" + getRootParent() + ")");
 			} else {
-				s.parent = this;
+				s.setParent(this);
 			}
 		}
 		
@@ -250,9 +255,21 @@ public abstract class Statement implements FastGraphVertex, Opcode, Iterable<Sta
 		return parent;
 	}
 	
+	protected void setParent(Statement parent) {
+		this.parent = parent;
+		for(Statement c : children) {
+			if(c != null) {
+				c.setParent(parent);
+			}
+		}
+	}
+	
 	public Statement getRootParent() {
 		Statement p = parent;
 		if(p == null) {
+			if(this instanceof Expression) {
+				throw new UnsupportedOperationException("We've found a dangler, " + id + ". " + this);
+			}
 			return this;
 		} else {
 			return p.getRootParent();
@@ -307,8 +324,14 @@ public abstract class Statement implements FastGraphVertex, Opcode, Iterable<Sta
 
 	private void markDirty() {
 		isDirty = true;
-		if (parent != null)
-			parent.markDirty();
+//		if (parent != null)
+//			parent.markDirty();
+		
+		for(Statement c : children) {
+			if(c != null) {
+				c.markDirty();
+			}
+		}
 	}
 
 	private void verify() {
