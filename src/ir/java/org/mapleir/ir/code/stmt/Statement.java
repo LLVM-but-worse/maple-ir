@@ -324,14 +324,18 @@ public abstract class Statement implements FastGraphVertex, Opcode, Iterable<Sta
 
 	private void markDirty() {
 		isDirty = true;
-//		if (parent != null)
-//			parent.markDirty();
+		if (parent != null)
+			parent.markDirtyUp();
 		
 		for(Statement c : children) {
 			if(c != null) {
 				c.markDirty();
 			}
 		}
+	}
+	
+	private void markDirtyUp() {
+		isDirty = true;
 	}
 
 	private void verify() {
