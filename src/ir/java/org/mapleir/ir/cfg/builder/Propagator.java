@@ -9,9 +9,7 @@ import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.code.Opcode;
 import org.mapleir.ir.code.expr.*;
 import org.mapleir.ir.code.stmt.ArrayStoreStatement;
-import org.mapleir.ir.code.stmt.ConditionalJumpStatement;
 import org.mapleir.ir.code.stmt.FieldStoreStatement;
-import org.mapleir.ir.code.stmt.MonitorStatement;
 import org.mapleir.ir.code.stmt.PopStatement;
 import org.mapleir.ir.code.stmt.Statement;
 import org.mapleir.ir.code.stmt.copy.AbstractCopyStatement;
@@ -209,34 +207,6 @@ public class Propagator extends OptimisationPass.Optimiser {
 			return change;
 		}
 		
-		private void interweavingPhis(BasicBlock bb, List<CopyPhiStatement> phis) {
-			Map<Local, NullPermeableHashMap<BasicBlock, Set<Expression>>> reducedPcc = new HashMap<>();
-			Map<Local, CopyPhiStatement> pdefs = new HashMap<>();
-			
-			for(CopyPhiStatement p : phis) {
-				PhiExpression phi = p.getExpression();
-				NullPermeableHashMap<BasicBlock, Set<Expression>> map = new NullPermeableHashMap<>(new SetCreator<>());
-				
-				for(Entry<BasicBlock, Expression> e : phi.getArguments().entrySet()) {
-					Expression expr = e.getValue();
-					if(expr.getOpcode() == Opcode.LOCAL_LOAD) {
-						VarExpression v = (VarExpression) expr;
-						// we don't want to store phi 
-						AbstractCopyStatement def = localAccess.defs.get(v.getLocal());
-						if(def.getOpcode() == Opcode.PHI_STORE) {
-							continue;
-						}
-					}
-					
-					map.getNonNull(e.getKey()).add(expr);
-				}
-
-				Local l = p.getVariable().getLocal();
-				reducedPcc.put(l, map);
-				pdefs.put(l, p);
-			}
-		}
-		
 		private boolean cleanDead() {
 			boolean changed = false;
 			Iterator<Entry<VersionedLocal, AtomicInteger>> it = localAccess.useCount.entrySet().iterator();
@@ -294,6 +264,7 @@ public class Propagator extends OptimisationPass.Optimiser {
 		}
 		
 		private void scalpelDefinition(AbstractCopyStatement def) {
+			System.out.println("killded: " + def);
 			def.getBlock().remove(def);
 			Local local = def.getVariable().getLocal();
 			localAccess.useCount.remove(local);
@@ -364,10 +335,10 @@ public class Propagator extends OptimisationPass.Optimiser {
 
 		private Statement handleComplex(AbstractCopyStatement def, VarExpression use) {
 			if(!canTransferToUse(root, use, def)) {
+				System.out.println("Refuse to propagate " + def + " into " + use.getRootParent());
 				return null;
 			}
 
-			
 			// this can be propagated
 			Expression propagatee = def.getExpression();
 			if(isUncopyable(propagatee)) {
@@ -508,27 +479,6 @@ public class Propagator extends OptimisationPass.Optimiser {
 			}
 			return phi;
 		}
-		
-		private void peep(ArithmeticExpression e) {
-			switch(e.getOperator()) {
-				case ADD: {
-					
-					break;
-				}
-			}
-		}
-		
-		private void reorder(ConditionalJumpStatement js) {
-			Expression left = js.getLeft();
-			if(left.getOpcode() == Opcode.CONST_LOAD) {
-				Expression right = js.getRight();
-				js.delete(1);
-				js.delete(0);
-				
-				js.setLeft(right);
-				js.setRight(left);
-			}
-		}
 
 		@Override
 		public Statement visit(Statement stmt) {
@@ -536,10 +486,6 @@ public class Propagator extends OptimisationPass.Optimiser {
 				return choose(visitVar((VarExpression) stmt), stmt);
 			} else if(stmt.getOpcode() == Opcode.PHI) {
 				return choose(visitPhi((PhiExpression) stmt), stmt);
-			} else if(stmt.getOpcode() == Opcode.ARITHMETIC) {
-//				peep((ArithmeticExpression) stmt);
-			} else if(stmt.getOpcode() == Opcode.COND_JUMP) {
-//				reorder((ConditionalJumpStatement) stmt);
 			}
 			return stmt;
 		}
@@ -574,26 +520,26 @@ public class Propagator extends OptimisationPass.Optimiser {
 			AtomicBoolean invoke = new AtomicBoolean();
 			AtomicBoolean array = new AtomicBoolean();
 			
-			{
-				if(rhs instanceof FieldLoadExpression) {
-					fieldsUsed.add(((FieldLoadExpression) rhs).getName() + "." + ((FieldLoadExpression) rhs).getDesc());
-				} else if(isInvoke(rhs)) {
-					invoke.set(true);
-				} else if(rhs instanceof ArrayLoadExpression) {
-					array.set(true);
-				} else if(rhs instanceof ConstantExpression) {
-					return true;
-				}
+			if(rhs.getOpcode() == Opcode.FIELD_LOAD) {
+				FieldLoadExpression fl = (FieldLoadExpression) rhs;
+				fieldsUsed.add(fl.getName() + "." + fl.getDesc());
+			} else if(isInvoke(rhs)) {
+				invoke.set(true);
+			} else if(rhs.getOpcode() == Opcode.ARRAY_LOAD) {
+				array.set(true);
+			} else if(rhs.getOpcode() == Opcode.CONST_LOAD) {
+				return true;
 			}
 			
 			new StatementVisitor(rhs) {
 				@Override
 				public Statement visit(Statement stmt) {
-					if(stmt instanceof FieldLoadExpression) {
-						fieldsUsed.add(((FieldLoadExpression) stmt).getName() + "." + ((FieldLoadExpression) stmt).getDesc());
+					if(stmt.getOpcode() == Opcode.FIELD_LOAD) {
+						FieldLoadExpression fl = (FieldLoadExpression) stmt;
+						fieldsUsed.add(fl.getName() + "." + fl.getDesc());
 					} else if(isInvoke(stmt)) {
 						invoke.set(true);
-					} else if(stmt instanceof ArrayLoadExpression) {
+					} else if(stmt.getOpcode() == Opcode.ARRAY_LOAD) {
 						array.set(true);
 					}
 					return stmt;
@@ -608,32 +554,34 @@ public class Propagator extends OptimisationPass.Optimiser {
 			
 			for(Statement stmt : path) {
 				if(stmt != use) {
-					if(stmt instanceof FieldStoreStatement) {
-						if(invoke.get()) {
-							canPropagate = false;
-							break;
-						} else if(fieldsUsed.size() > 0) {
-							FieldStoreStatement store = (FieldStoreStatement) stmt;
-							String key = store.getName() + "." + store.getDesc();
-							if(fieldsUsed.contains(key)) {
+					for(Statement s : enumerate(stmt)) {
+						if(s.getOpcode() == Opcode.FIELD_STORE) {
+							if(invoke.get()) {
+								canPropagate = false;
+								break;
+							} else if(fieldsUsed.size() > 0) {
+								FieldStoreStatement store = (FieldStoreStatement) s;
+								String key = store.getName() + "." + store.getDesc();
+								if(fieldsUsed.contains(key)) {
+									canPropagate = false;
+									break;
+								}
+							}
+						} else if(s.getOpcode() == Opcode.ARRAY_STORE) {
+							if(invoke.get() || array.get()) {
 								canPropagate = false;
 								break;
 							}
-						}
-					} else if(stmt instanceof ArrayStoreStatement) {
-						if(invoke.get() || array.get()) {
-							canPropagate = false;
-							break;
-						}
-					} else if(stmt instanceof MonitorStatement) {
-						if(invoke.get()) {
-							canPropagate = false;
-							break;
-						}
-					} else if(isInvoke(stmt)) {
-						if(invoke.get() || fieldsUsed.size() > 0 || array.get()) {
-							canPropagate = false;
-							break;
+						} else if(s.getOpcode() == Opcode.MONITOR) {
+							if(invoke.get()) {
+								canPropagate = false;
+								break;
+							}
+						} else if(isInvoke(s)) {
+							if(invoke.get() || fieldsUsed.size() > 0 || array.get()) {
+								canPropagate = false;
+								break;
+							}
 						}
 					}
 				}
@@ -647,11 +595,12 @@ public class Propagator extends OptimisationPass.Optimiser {
 					new StatementVisitor(stmt) {
 						@Override
 						public Statement visit(Statement s) {
-							if(root == use && (s instanceof VarExpression && ((VarExpression) s).getLocal() == local)) {
+							if(root == use) {
 								_break();
 							} else {
 								if((isInvoke(s)) || (invoke.get() && (s instanceof FieldStoreStatement || s instanceof ArrayStoreStatement))) {
 									canPropagate2.set(false);
+									System.out.println("  KILL: " + s);
 									_break();
 								}
 							}
@@ -666,10 +615,35 @@ public class Propagator extends OptimisationPass.Optimiser {
 				}
 			}
 			
-			if(canPropagate) {
-				return true;
-			} else {
-				return false;
+			return canPropagate;
+		}
+		
+		@SuppressWarnings("unused")
+		private void interweavingPhis(BasicBlock bb, List<CopyPhiStatement> phis) {
+			Map<Local, NullPermeableHashMap<BasicBlock, Set<Expression>>> reducedPcc = new HashMap<>();
+			Map<Local, CopyPhiStatement> pdefs = new HashMap<>();
+			
+			for(CopyPhiStatement p : phis) {
+				PhiExpression phi = p.getExpression();
+				NullPermeableHashMap<BasicBlock, Set<Expression>> map = new NullPermeableHashMap<>(new SetCreator<>());
+				
+				for(Entry<BasicBlock, Expression> e : phi.getArguments().entrySet()) {
+					Expression expr = e.getValue();
+					if(expr.getOpcode() == Opcode.LOCAL_LOAD) {
+						VarExpression v = (VarExpression) expr;
+						// we don't want to store phi 
+						AbstractCopyStatement def = localAccess.defs.get(v.getLocal());
+						if(def.getOpcode() == Opcode.PHI_STORE) {
+							continue;
+						}
+					}
+					
+					map.getNonNull(e.getKey()).add(expr);
+				}
+
+				Local l = p.getVariable().getLocal();
+				reducedPcc.put(l, map);
+				pdefs.put(l, p);
 			}
 		}
 		
@@ -690,7 +664,7 @@ public class Propagator extends OptimisationPass.Optimiser {
 				stmt.overwrite(vis, addr);
 				change = true;
 			}
-			verify();
+//			verify();
 		}
 		
 		private void verify() {
