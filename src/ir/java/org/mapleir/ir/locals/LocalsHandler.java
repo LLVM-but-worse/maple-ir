@@ -157,7 +157,7 @@ public class LocalsHandler implements ValueCreator<GenericBitSet<Local>> {
 					types.getNonNull(local).add(var.getType());
 				}
 				
-				for(Statement s : stmt) {
+				for(Statement s : stmt.enumerate()) {
 					if(s.getOpcode() == Opcode.LOCAL_LOAD) {
 						VarExpression var = (VarExpression) s;
 						Local local = var.getLocal();
@@ -227,7 +227,7 @@ public class LocalsHandler implements ValueCreator<GenericBitSet<Local>> {
 					}
 				}
 				
-				for(Statement s : stmt) {
+				for(Statement s : stmt.enumerate()) {
 					if(s.getOpcode() == Opcode.LOCAL_LOAD) {
 						VarExpression v = (VarExpression) s;
 						Local l = v.getLocal();

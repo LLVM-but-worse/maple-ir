@@ -47,41 +47,6 @@ public class Propagator extends OptimisationPass.Optimiser {
 		public FeedbackStatementVisitor(Statement root) {
 			super(root);
 		}
-		
-		private Set<Statement> _enumerate(Statement stmt) {
-			Set<Statement> set = new HashSet<>();
-			set.add(stmt);
-			
-			if(stmt.getOpcode() == Opcode.PHI_STORE) {
-				CopyPhiStatement phi = (CopyPhiStatement) stmt;
-				for(Expression e : phi.getExpression().getArguments().values()) {
-					set.addAll(_enumerate(e));
-				}
-			} else {
-				for(Statement s : stmt) {
-					set.addAll(_enumerate(s));
-				}
-			}
-			
-			return set;
-		}
-		
-		private Iterable<Statement> enumerate(Statement stmt) {
-			return _enumerate(stmt);
-		}
-		
-		private void dfsStmt(List<Statement> list, Statement stmt) {
-			for(Statement c : stmt.getChildren()) {
-				dfsStmt(list, c);
-			}
-			list.add(stmt);
-		}
-		
-		private Iterable<Statement> execEnumerate(Statement stmt) {
-			List<Statement> list = new ArrayList<>();
-			dfsStmt(list, stmt);
-			return list;
-		}
 
 		private Set<Statement> findReachable(Statement from, Statement to) {
 			Set<Statement> res = new HashSet<>();
@@ -189,7 +154,7 @@ public class Propagator extends OptimisationPass.Optimiser {
 						
 						// replace uses
 						for(Statement reachable : findReachable(keepPhi)) {
-							for(Statement s : _enumerate(reachable)) {
+							for(Statement s : reachable.enumerate()) {
 								if(s.getOpcode() == Opcode.LOCAL_LOAD) {
 									VarExpression var = (VarExpression) s;
 									VersionedLocal l = (VersionedLocal) var.getLocal();
@@ -241,17 +206,31 @@ public class Propagator extends OptimisationPass.Optimiser {
 		}
 		
 		private void killed(Statement stmt) {
-			for(Statement s : enumerate(stmt)) {
+			for(Statement s : stmt.enumerate()) {
 				if(s.getOpcode() == Opcode.LOCAL_LOAD) {
 					unuseLocal(((VarExpression) s).getLocal());
 				}
 			}
 		}
 		
+		private void print(Statement stmt) {
+			for(Statement c : stmt.enumerate()) {
+				System.err.println("  " + c + " type: " + c.getClass().getSimpleName());
+				System.err.println("      par: " + c.getParent());
+			}
+		}
+		
 		private void copied(Statement stmt) {
-			for(Statement s : enumerate(stmt)) {
+			for(Statement s : stmt.enumerate()) {
 				if(s.getOpcode() == Opcode.LOCAL_LOAD) {
-					reuseLocal(((VarExpression) s).getLocal());
+					try {
+						reuseLocal(((VarExpression) s).getLocal());
+					} catch(RuntimeException e) {
+						System.err.println("Copy: " + stmt);
+						print(stmt);
+						System.err.println("l: " + ((VarExpression) s).getLocal());
+						throw e;
+					}
 				}
 			}
 		}
@@ -302,6 +281,7 @@ public class Propagator extends OptimisationPass.Optimiser {
 					return localAccess.useCount.get(l).decrementAndGet();
 				}
 			} else {
+				System.err.println(builder.graph);
 				throw new IllegalStateException("Local " + l + " not in useCount map. Def: " + localAccess.defs.get(l));
 			}
 		}
@@ -438,14 +418,17 @@ public class Propagator extends OptimisationPass.Optimiser {
 			}
 			Expression rhs = def.getExpression();
 			int opcode = rhs.getOpcode();
+			
+			Statement ret = use;
+			
 			if(opcode == Opcode.CONST_LOAD) {
-				return handleConstant(def, use, (ConstantExpression) rhs);
+				ret =  handleConstant(def, use, (ConstantExpression) rhs);
 			} else if(opcode == Opcode.LOCAL_LOAD) {
-				return handleVar(def, use, (VarExpression) rhs);
+				ret =  handleVar(def, use, (VarExpression) rhs);
 			} else if(opcode != Opcode.CATCH && opcode != Opcode.PHI) {
-				return handleComplex(def, use);
+				ret = handleComplex(def, use);
 			}
-			return use;
+			return ret;
 		}
 
 		private Statement visitVar(VarExpression var) {
@@ -515,7 +498,7 @@ public class Propagator extends OptimisationPass.Optimiser {
 		}
 		
 		private boolean isUncopyable(Statement stmt) {
-			for(Statement s : enumerate(stmt)) {
+			for(Statement s : stmt.enumerate()) {
 				if(UNCOPYABLE.contains(s.getClass())) {
 					return true;
 				}
@@ -613,7 +596,7 @@ public class Propagator extends OptimisationPass.Optimiser {
 			
 			for(Statement stmt : path) {
 				if(stmt != use) {
-					for(Statement s : enumerate(stmt)) {
+					for(Statement s : stmt.enumerate()) {
 						if(determineKill(use, tail, def, invoke, array, fieldsUsed, s)) {
 							return false;
 						}
@@ -623,7 +606,7 @@ public class Propagator extends OptimisationPass.Optimiser {
 					AtomicBoolean canPropagate2 = new AtomicBoolean(canPropagate);
 					
 					if(invoke.get() || array.get() || !fieldsUsed.isEmpty()) {
-						for(Statement s : execEnumerate(stmt)) {
+						for(Statement s : stmt.execEnumerate()) {
 							if(s == tail && (s.getOpcode() == Opcode.LOCAL_LOAD && ((VarExpression) s).getLocal() == local)) {
 								break;
 							} else {
@@ -693,7 +676,7 @@ public class Propagator extends OptimisationPass.Optimiser {
 				stmt.overwrite(vis, addr);
 				change = true;
 			}
-//			verify();
+			verify();
 		}
 		
 		private void verify() {
