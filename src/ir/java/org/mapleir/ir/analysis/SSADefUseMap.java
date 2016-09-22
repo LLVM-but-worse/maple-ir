@@ -1,5 +1,12 @@
 package org.mapleir.ir.analysis;
 
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.Opcode;
@@ -13,13 +20,6 @@ import org.mapleir.ir.locals.Local;
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.ValueCreator;
 import org.mapleir.stdlib.collections.bitset.GenericBitSet;
-
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
 
 public class SSADefUseMap implements Opcode {
 	
@@ -82,7 +82,7 @@ public class SSADefUseMap implements Opcode {
 				phiUses.getNonNull(b);
 
 				usedLocals.clear();
-				for(Statement s : stmt)
+				for(Statement s : stmt.enumerate())
 					if(s instanceof VarExpression)
 						usedLocals.add(((VarExpression) s).getLocal());
 

@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import org.mapleir.ir.Benchmark;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.stmt.copy.AbstractCopyStatement;
@@ -94,10 +95,24 @@ public class ControlFlowGraphBuilder {
 		};
 	}
 	
+	private BuilderPass[] interlace(BuilderPass[] passes) {
+		if(Benchmark.DEBOG) {
+			BuilderPass[] res = new BuilderPass[passes.length *2];
+			for(int i=0; i < passes.length; i++) {
+				BuilderPass p = passes[i];
+				res[i*2] = p;
+				res[(i*2)+1] = new VerificationPass(this, p.getClass().getSimpleName());
+			}
+			return res;
+		} else {
+			return passes;
+		}
+	}
+	
 	public static ControlFlowGraph build(MethodNode method) {
 		ControlFlowGraphBuilder builder = new ControlFlowGraphBuilder(method);
 		try {
-			for(BuilderPass p : builder.resolvePasses()) {
+			for(BuilderPass p : builder.interlace(builder.resolvePasses())) {
 //				System.out.println();
 //				System.out.println("BEFORE: " + p.getClass());
 //				System.out.println(builder.graph);
@@ -106,11 +121,13 @@ public class ControlFlowGraphBuilder {
 				
 				p.run();
 				
-//				System.out.println();
-//				System.out.println("AFTER " + p.getClass().getSimpleName() + ":");
-//				System.out.println(builder.graph);
-//				System.out.println();
-//				System.out.println();
+				if(Benchmark.DEBOG && !(p instanceof VerificationPass)) {
+					System.out.println();
+					System.out.println("AFTER " + p.getClass().getSimpleName() + ":");
+					System.out.println(builder.graph);
+					System.out.println();
+					System.out.println();
+				}
 
 //				BasicDotConfiguration<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> config = new BasicDotConfiguration<>(DotConfiguration.GraphType.DIRECTED);
 //				DotWriter<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> writer = new DotWriter<>(config, builder.graph);
