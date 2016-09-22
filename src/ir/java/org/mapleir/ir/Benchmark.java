@@ -67,13 +67,13 @@ public class Benchmark {
 		*/
 
 		tests.put("rt", getMethods(new JarInfo(new File("res/rt.jar"))));
-		tests.put("javafx", getMethods(new JarInfo(new File("res/jfxrt.jar"))));
-		tests.put("tools", getMethods(new JarInfo(new File("res/tools.jar"))));
+//		tests.put("javafx", getMethods(new JarInfo(new File("res/jfxrt.jar"))));
+//		tests.put("tools", getMethods(new JarInfo(new File("res/tools.jar"))));
 		tests.put("fernflower", getMethods(new JarInfo(new File("res/fernflower.jar"))));
 		tests.put("procyon", getMethods(new JarInfo(new File("res/procyon.jar"))));
-		tests.put("minecraft", getMethods(new JarInfo(new File("res/1.10.2.jar"))));
-		tests.put("self", getMethods(new JarInfo(new File("res/maple-ir.jar"))));
-		tests.put("specjvm2008", getMethods(new JarInfo(new File("res/SPECjvm2008.jar"))));
+//		tests.put("minecraft", getMethods(new JarInfo(new File("res/1.10.2.jar"))));
+//		tests.put("self", getMethods(new JarInfo(new File("res/maple-ir.jar"))));
+//		tests.put("specjvm2008", getMethods(new JarInfo(new File("res/SPECjvm2008.jar"))));
 
 		benchCFG(tests);
 	}
@@ -91,17 +91,17 @@ public class Benchmark {
 
 					cfg = ControlFlowGraphBuilder.build(m);
 					DominanceLivenessAnalyser resolver = new DominanceLivenessAnalyser(cfg, null);
-					new BoissinotDestructor(cfg, resolver, 0b0000);
+					new BoissinotDestructor(cfg, 0b0000);
 					recordCopies(cfg, "Boissinot");
 
 					cfg = ControlFlowGraphBuilder.build(m);
 					resolver = new DominanceLivenessAnalyser(cfg, null);
-					new BoissinotDestructor(cfg, resolver, 0b0001);
+					new BoissinotDestructor(cfg, 0b0001);
 					recordCopies(cfg, "BValue");
 
 					cfg = ControlFlowGraphBuilder.build(m);
 					resolver = new DominanceLivenessAnalyser(cfg, null);
-					new BoissinotDestructor(cfg, resolver, 0b0011);
+					new BoissinotDestructor(cfg, 0b0011);
 					recordCopies(cfg, "BSharing");
 				} catch (RuntimeException e) {
 					System.err.println(test.getKey());
@@ -210,7 +210,7 @@ public class Benchmark {
 						ControlFlowGraph cfg = deepCopyCfg(cfgOrig);
 						DominanceLivenessAnalyser resolver = new DominanceLivenessAnalyser(cfg, null);
 						time();
-						new BoissinotDestructor(cfg, resolver, 0b0000);
+						new BoissinotDestructor(cfg, 0b0000);
 						time("Boissinot");
 					}
 					
@@ -218,7 +218,7 @@ public class Benchmark {
 						ControlFlowGraph cfg = deepCopyCfg(cfgOrig);
 						DominanceLivenessAnalyser resolver = new DominanceLivenessAnalyser(cfg, null);
 						time();
-						new BoissinotDestructor(cfg, resolver, 0b0001);
+						new BoissinotDestructor(cfg, 0b0001);
 						time("BValue");
 					}
 					
@@ -226,7 +226,7 @@ public class Benchmark {
 						ControlFlowGraph cfg = deepCopyCfg(cfgOrig);
 						DominanceLivenessAnalyser resolver = new DominanceLivenessAnalyser(cfg, null);
 						time();
-						new BoissinotDestructor(cfg, resolver, 0b0011);
+						new BoissinotDestructor(cfg, 0b0011);
 						time("BSharing");
 					}
 				} catch (UnsupportedOperationException e) {
