@@ -439,7 +439,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 			int opcode = stmt.getOpcode();
 			
 			if(opcode != Opcode.PHI_STORE) {
-				for(Statement s : stmt) {
+				for(Statement s : stmt.enumerate()) {
 					if(s.getOpcode() == Opcode.LOCAL_LOAD) {
 						VarExpression var = (VarExpression) s;
 						Local l = var.getLocal();

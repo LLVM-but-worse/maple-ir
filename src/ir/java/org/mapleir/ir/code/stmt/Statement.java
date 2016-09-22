@@ -1,16 +1,19 @@
 package org.mapleir.ir.code.stmt;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.Opcode;
 import org.mapleir.ir.code.expr.Expression;
+import org.mapleir.ir.code.stmt.copy.CopyPhiStatement;
 import org.mapleir.stdlib.cfg.util.TabbedStringWriter;
 import org.mapleir.stdlib.collections.graph.FastGraphVertex;
-import org.mapleir.stdlib.ir.StatementVisitor;
 import org.objectweb.asm.MethodVisitor;
 
 public abstract class Statement implements FastGraphVertex, Opcode, Iterable<Statement> {
@@ -21,27 +24,23 @@ public abstract class Statement implements FastGraphVertex, Opcode, Iterable<Sta
 	private final int opcode;
 	private Statement parent;
 	private BasicBlock block;
-	private Statement[] children;
+	public Statement[] children;
 	private int ptr;
 
-	private boolean isDirty = false;
-	private final List<Statement> flatChildrenCache;
+//	private boolean isDirty = false;
+//	private final List<Statement> flatChildrenCache;
 
 	public Statement(int opcode) {
 		this.opcode = opcode;
 		children = new Statement[8];
 		ptr = 0;
 
-		flatChildrenCache = new ArrayList<>();
-		markDirty();
+//		flatChildrenCache = new ArrayList<>();
+//		markDirty();
 	}
 	
 	public BasicBlock getBlock() {
 		return block;
-	}
-	
-	static String str(StackTraceElement e) {
-		return e.getClassName() + "." + e.getMethodName() + ":" + e.getLineNumber();
 	}
 	
 	public void setBlock(BasicBlock block) {
@@ -49,7 +48,7 @@ public abstract class Statement implements FastGraphVertex, Opcode, Iterable<Sta
 		
 		// i.e. removed, so invalidate this statement.
 		if(block == null) {
-			markDirty();
+//			markDirty();
 			parent = null;
 		}
 		
@@ -97,13 +96,14 @@ public abstract class Statement implements FastGraphVertex, Opcode, Iterable<Sta
 	}
 	
 	private Statement writeAt(int index, Statement s) {
-		markDirty();
+//		markDirty();
 		Statement prev = children[index];
-		children[index] = s;
-		
 		if(prev != null) {
 			prev.setParent(null);
 		}
+		children[index] = s;
+		
+		
 		if(s != null) {
 			if(s.parent != null) {
 				throw new IllegalStateException(s + " already belongs to " + s.parent + " (new:" + getRootParent() + ")");
@@ -154,7 +154,7 @@ public abstract class Statement implements FastGraphVertex, Opcode, Iterable<Sta
 	}
 	
 	public void unlink() {
-		markDirty();
+//		markDirty();
 		block = null;
 		parent = null;
 		
@@ -257,11 +257,6 @@ public abstract class Statement implements FastGraphVertex, Opcode, Iterable<Sta
 	
 	protected void setParent(Statement parent) {
 		this.parent = parent;
-		for(Statement c : children) {
-			if(c != null) {
-				c.setParent(parent);
-			}
-		}
 	}
 	
 	public Statement getRootParent() {
@@ -322,55 +317,123 @@ public abstract class Statement implements FastGraphVertex, Opcode, Iterable<Sta
 		return printer.toString();
 	}
 
-	private void markDirty() {
-		isDirty = true;
-		if (parent != null)
-			parent.markDirtyUp();
+//	private void markDirty() {
+//		isDirty = true;
+//		markDirtyUp();
+//		
+//		for(Statement c : children) {
+//			if(c != null) {
+//				c.markDirty();
+//			}
+//		}
+//	}
+	
+//	private void markDirtyUp() {
+//		isDirty = true;
+//		if (parent != null)
+//			parent.markDirtyUp();
+//	}
+
+	@Override
+	public Iterator<Statement> iterator() {
+//		if (isDirty) {
+//			flatChildrenCache.clear();
+//			new StatementVisitor(this) {
+//				@Override
+//				public Statement visit(Statement stmt) {
+//					flatChildrenCache.add(stmt);
+//					return stmt;
+//				}
+//			}.visit();
+//			isDirty = false;
+//		}
+//		return new ArrayList<>(flatChildrenCache).iterator();
+		List<Statement> list = new ArrayList<>();
+//		new StatementVisitor(this) {
+//			@Override
+//			public Statement visit(Statement stmt) {
+//				list.add(stmt);
+//				return stmt;
+//			}
+//		}.visit();
+		for(Statement c : children) {
+			if(c != null) {
+				list.add(c);
+			}
+		}
+		return list.iterator();
+	}
+	
+	public void checkConsistency() {
+		checkConsistency(null);
+	}
+	
+	public void checkConsistency(Statement parent) {
+		if(this.parent != parent) {
+			System.err.println("pc: " + Arrays.toString(parent.children));
+			System.err.println("ac: " + (this.parent != null ? Arrays.toString(this.parent.children) : "NO PARENT"));
+			throw new IllegalStateException("Differening parents: " + this + "\n   Suggested: " + (this.parent == null ? "NULLL" : this.parent) + "\n   Actual: " + parent);
+		}
+		
+		boolean prev = true;
+		for(int i=0; i < children.length; i++) {
+			Statement s = children[i];
+			if(!prev) { 
+				if(s != null) {
+					StringBuilder sb = new StringBuilder();
+					for(Statement s1 : children) {
+						sb.append("  ").append(s1).append("\n");
+					}
+					throw new IllegalStateException("Disjoint children: " + this);
+				}
+			}
+			
+			prev = (s != null);
+		}
 		
 		for(Statement c : children) {
 			if(c != null) {
-				c.markDirty();
+				c.checkConsistency(this);
 			}
 		}
 	}
 	
-	private void markDirtyUp() {
-		isDirty = true;
-	}
-
-	private void verify() {
-		if (!isDirty) {
-			List<Statement> verifyList = new ArrayList<>();
-			new StatementVisitor(this) {
-				@Override
-				public Statement visit(Statement stmt) {
-					verifyList.add(stmt);
-					return stmt;
+	protected Set<Statement> _enumerate() {
+		Set<Statement> set = new HashSet<>();
+		set.add(this);
+		
+		if(opcode == Opcode.PHI_STORE) {
+			CopyPhiStatement phi = (CopyPhiStatement) this;
+			for(Expression e : phi.getExpression().getArguments().values()) {
+				set.addAll(e._enumerate());
+			}
+		} else {
+			for(Statement c : children) {
+				if(c != null) {
+					set.addAll(c._enumerate());
 				}
-			}.visit();
-			if (!flatChildrenCache.toString().equals(verifyList.toString())) {
-				System.out.println("Cache " + this + " " + flatChildrenCache);
-				System.out.println("Proper " + this + " " + verifyList + "\n");
-				throw new IllegalStateException("Child statement cache mismatch");
 			}
 		}
+		
+		return set;
 	}
-
-	@Override
-	public Iterator<Statement> iterator() {
-		if (isDirty) {
-			flatChildrenCache.clear();
-			new StatementVisitor(this) {
-				@Override
-				public Statement visit(Statement stmt) {
-					flatChildrenCache.add(stmt);
-					return stmt;
-				}
-			}.visit();
-			isDirty = false;
+	
+	public Iterable<Statement> enumerate() {
+		return _enumerate();
+	}
+	
+	protected void dfsStmt(List<Statement> list) {
+		for(Statement c : children) {
+			if(c != null) {
+				c.dfsStmt(list);
+			}
 		}
-//		else
-//			verify();
-		return new ArrayList<>(flatChildrenCache).iterator();
+		list.add(this);
+	}
+	
+	public List<Statement> execEnumerate() {
+		List<Statement> list = new ArrayList<>();
+		dfsStmt(list);
+		return list;
 	}
 }

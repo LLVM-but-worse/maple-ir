@@ -12,6 +12,7 @@ import org.mapleir.byteio.CompleteResolvingJarDumper;
 import org.mapleir.ir.cfg.BoissinotDestructor;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.cfg.builder.ControlFlowGraphBuilder;
+import org.mapleir.ir.cfg.builder.SSAGenPass;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Opcodes;
@@ -474,11 +475,7 @@ public class Test {
 	}
 	
 	public static void main(String[] args) throws IOException {
-//		ClassReader cr = new ClassReader(Test.class.getCanonicalName());
-//		ClassNode cn = new ClassNode();
-//		cr.accept(cn, 0);
-
-		InputStream i = new FileInputStream(new File("res/a.class"));
+		InputStream i = new FileInputStream(new File("res/DateTimeFormatterBuilder$LocalizedOffsetIdPrinterParser.class"));
 		ClassReader cr = new ClassReader(i);
 		ClassNode cn = new ClassNode();
 		cr.accept(cn, 0);
@@ -486,37 +483,22 @@ public class Test {
 		Iterator<MethodNode> it = new ArrayList<>(cn.methods).listIterator();
 		while (it.hasNext()) {
 			MethodNode m = it.next();
-
-			 if(!m.toString().equals("a/a/f/a.<init>()V")) {
-				 continue;
-			 }
-
-//			if(!m.toString().contains("inferCall")) {
-//				continue;
-//			}
-
-			if (!m.toString().startsWith("org/mapleir/ir/Test.test123")) {
-//				continue;
+			if (!m.toString().contains(".parse(Ljava/time/format/DateTimeParseContext;Ljava/lang/CharSequence;I)I")) {
+				continue;
 			}
 
 			System.out.println("Processing " + m + "\n");
+			
+			SSAGenPass.DO_SPLIT = true;
+			SSAGenPass.ULTRANAIVE = false;
+			SSAGenPass.SKIP_SIMPLE_COPY_SPLIT = true;
+			SSAGenPass.PRUNE_EDGES = true;
+
 			ControlFlowGraph cfg = ControlFlowGraphBuilder.build(m);
-
-//			BasicDotConfiguration<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> config = new BasicDotConfiguration<>(DotConfiguration.GraphType.DIRECTED);
-//			DotWriter<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> writer = new DotWriter<>(config, cfg);
-//			writer.removeAll().add(new ControlFlowGraphDecorator().setFlags(OPT_DEEP)).setName("pre-destruct").export();
-			try {
-				BoissinotDestructor destructor = new BoissinotDestructor(cfg, 0);
-			} catch (RuntimeException e) {
-				throw new RuntimeException("\n" + cfg.toString(), e);
-			}
-
+			new BoissinotDestructor(cfg, 0);
 			cfg.getLocals().realloc(cfg);
 
 			System.out.println(cfg);
-
-//			writer.removeAll().add(new ControlFlowGraphDecorator().setFlags(OPT_DEEP)).setName("destructed").export();
-
 			MethodNode m2 = new MethodNode(m.owner, m.access, m.name, m.desc, m.signature, m.exceptions.toArray(new String[0]));
 			ControlFlowGraphDumper.dump(cfg, m2);
 			cn.methods.add(m2);

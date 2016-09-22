@@ -44,7 +44,7 @@ public class NegationExpression extends Expression {
 
 	@Override
 	public void onChildUpdated(int ptr) {
-
+		setExpression((Expression) read(ptr));
 	}
 	
 	@Override

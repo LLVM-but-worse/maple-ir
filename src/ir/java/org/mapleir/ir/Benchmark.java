@@ -1,5 +1,17 @@
 package org.mapleir.ir;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+
 import org.mapleir.ir.analysis.DominanceLivenessAnalyser;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.BoissinotDestructor;
@@ -28,22 +40,12 @@ import org.objectweb.asm.tree.MethodNode;
 import org.topdank.byteengineer.commons.data.JarInfo;
 import org.topdank.byteio.in.SingleJarDownloader;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-
 public class Benchmark {
+	public static boolean DEBOG = true;
+	
 	public static void main(String[] args) throws IOException {
 		HashMap<String, List<MethodNode>> tests = new LinkedHashMap<>();
-		System.out.println("  Initializing tests");
+		System.out.println("Initializing tests");
 		
 		/*
 		File testDir = new File("res/specjvm2008");
@@ -66,11 +68,13 @@ public class Benchmark {
 		}
 		*/
 
-		tests.put("rt", getMethods(new JarInfo(new File("res/rt.jar"))));
+//		tests.put("rt", getMethods(new JarInfo(new File("res/rt.jar"))));
+//		tests.put("rt", getMethods(new File("res/Streams$AbstractStreamBuilderImpl.class")));
+		tests.put("rt", getMethods(new File("res/Beans.class")));
 //		tests.put("javafx", getMethods(new JarInfo(new File("res/jfxrt.jar"))));
 //		tests.put("tools", getMethods(new JarInfo(new File("res/tools.jar"))));
-		tests.put("fernflower", getMethods(new JarInfo(new File("res/fernflower.jar"))));
-		tests.put("procyon", getMethods(new JarInfo(new File("res/procyon.jar"))));
+//		tests.put("fernflower", getMethods(new JarInfo(new File("res/fernflower.jar"))));
+//		tests.put("procyon", getMethods(new JarInfo(new File("res/procyon.jar"))));
 //		tests.put("minecraft", getMethods(new JarInfo(new File("res/1.10.2.jar"))));
 //		tests.put("self", getMethods(new JarInfo(new File("res/maple-ir.jar"))));
 //		tests.put("specjvm2008", getMethods(new JarInfo(new File("res/SPECjvm2008.jar"))));
@@ -124,38 +128,44 @@ public class Benchmark {
 			int k = 0;
 //			System.out.println("  Testcase " + test.getKey());
 			for (MethodNode m : test.getValue()) {
+//				if(m.toString().contains("Streams$AbstractStreamBuilderImpl.estimateSize()J")) {
+//				if(m.toString().contains("parse(Ljava/time/format/DateTimeParseContext;Ljava/lang/CharSequence;I)I"))  {
+//					DEBOG = true;
+//				} else {
+//					DEBOG = false;
+//				}
 				k++;
 //				System.out.println("  " + m.toString() + " (" + k + " / " + test.getValue().size() + ")");
 				ControlFlowGraph cfg;
 				
 				try {
-					SSAGenPass.DO_SPLIT = false;
-					SSAGenPass.ULTRANAIVE = false;
-					SSAGenPass.SKIP_SIMPLE_COPY_SPLIT = false;
-					SSAGenPass.PRUNE_EDGES = false;
-					cfg = ControlFlowGraphBuilder.build(m);
-					recordHandlers(cfg, "NOSPLIT");
-
-					SSAGenPass.DO_SPLIT = true;
-					SSAGenPass.ULTRANAIVE = true;
-					SSAGenPass.SKIP_SIMPLE_COPY_SPLIT = false;
-					SSAGenPass.PRUNE_EDGES = false;
-					cfg = ControlFlowGraphBuilder.build(m);
-					recordHandlers(cfg, "NAIVE");
-
-					SSAGenPass.DO_SPLIT = true;
-					SSAGenPass.ULTRANAIVE = false;
-					SSAGenPass.SKIP_SIMPLE_COPY_SPLIT = false;
-					SSAGenPass.PRUNE_EDGES = false;
-					cfg = ControlFlowGraphBuilder.build(m);
-					recordHandlers(cfg, "LIVENESS");
-
-					SSAGenPass.DO_SPLIT = true;
-					SSAGenPass.ULTRANAIVE = false;
-					SSAGenPass.SKIP_SIMPLE_COPY_SPLIT = true;
-					SSAGenPass.PRUNE_EDGES = false;
-					cfg = ControlFlowGraphBuilder.build(m);
-					recordHandlers(cfg, "OPTIMIZED");
+//					SSAGenPass.DO_SPLIT = false;
+//					SSAGenPass.ULTRANAIVE = false;
+//					SSAGenPass.SKIP_SIMPLE_COPY_SPLIT = false;
+//					SSAGenPass.PRUNE_EDGES = false;
+//					cfg = ControlFlowGraphBuilder.build(m);
+//					recordHandlers(cfg, "NOSPLIT");
+//
+//					SSAGenPass.DO_SPLIT = true;
+//					SSAGenPass.ULTRANAIVE = true;
+//					SSAGenPass.SKIP_SIMPLE_COPY_SPLIT = false;
+//					SSAGenPass.PRUNE_EDGES = false;
+//					cfg = ControlFlowGraphBuilder.build(m);
+//					recordHandlers(cfg, "NAIVE");
+//
+//					SSAGenPass.DO_SPLIT = true;
+//					SSAGenPass.ULTRANAIVE = false;
+//					SSAGenPass.SKIP_SIMPLE_COPY_SPLIT = false;
+//					SSAGenPass.PRUNE_EDGES = false;
+//					cfg = ControlFlowGraphBuilder.build(m);
+//					recordHandlers(cfg, "LIVENESS");
+//
+//					SSAGenPass.DO_SPLIT = true;
+//					SSAGenPass.ULTRANAIVE = false;
+//					SSAGenPass.SKIP_SIMPLE_COPY_SPLIT = true;
+//					SSAGenPass.PRUNE_EDGES = false;
+//					cfg = ControlFlowGraphBuilder.build(m);
+//					recordHandlers(cfg, "OPTIMIZED");
 
 					SSAGenPass.DO_SPLIT = true;
 					SSAGenPass.ULTRANAIVE = false;
@@ -164,9 +174,9 @@ public class Benchmark {
 					cfg = ControlFlowGraphBuilder.build(m);
 					recordHandlers(cfg, "PRUNE");
 				} catch (UnsupportedOperationException e) {
-//					System.err.println(e.getMessage());
+					System.err.println(e.getMessage());
 				} catch (RuntimeException e) {
-					System.out.println("  " + test.getKey() + "/" + m.toString() + " (" + k + " / " + test.getValue().size() + ")");
+					System.err.println("  " + test.getKey() + "/" + m.toString() + " (" + k + " / " + test.getValue().size() + ")");
 					throw e;
 				}
 			}
@@ -427,9 +437,10 @@ public class Benchmark {
 		ClassReader cr = new ClassReader(is);
 		ClassNode cn = new ClassNode();
 		cr.accept(cn, 0);
+		System.out.println("Loaded " + cn.methods.size() + " methods");
 		return cn.methods;
 	}
-
+	
 	private static List<MethodNode> getMethods(JarInfo jar) throws IOException {
 		List<MethodNode> methods = new ArrayList<>();
 		NodeTable<ClassNode> nt = new NodeTable<>();
@@ -438,6 +449,7 @@ public class Benchmark {
 		nt.putAll(dl.getJarContents().getClassContents().namedMap());
 		for (ClassNode cn : nt)
 			methods.addAll(cn.methods);
+		System.out.println("Loaded " + methods.size() + " methods");
 		return methods;
 	}
 
