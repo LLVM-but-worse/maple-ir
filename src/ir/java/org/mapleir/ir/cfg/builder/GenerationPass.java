@@ -156,7 +156,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		Type[] args = Type.getArgumentTypes(m.desc);
 		int index = 0;
 		if((m.access & Opcodes.ACC_STATIC) == 0) {
-			addEntry(index, Type.getType(m.owner.name), b);
+			addEntry(index, Type.getType("L" + m.owner.name + ";"), b);
 			index++;
 		}
 	
