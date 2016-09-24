@@ -81,7 +81,7 @@ public class DynamicInvocationExpression extends Expression {
 		if (_args.length < args.length) {
 			setChildPointer(0);
 			while (read(0) != null) {
-				delete();
+				deleteAt(getChildPointer());
 			}
 		}
 		args = _args;

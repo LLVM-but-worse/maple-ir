@@ -1,5 +1,6 @@
 package org.mapleir.ir.cfg.builder;
 
+import org.mapleir.ir.DVBTest;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.stdlib.ir.transform.ssa.SSALocalAccess;
 
@@ -20,6 +21,7 @@ public class OptimisationPass extends ControlFlowGraphBuilder.BuilderPass {
 	
 	@Override
 	public void run() {
+		DVBTest.FLAG = true;
 		builder.localAccess = new SSALocalAccess(builder.graph);
 		Optimiser[] opt = findOptimisers();
 		

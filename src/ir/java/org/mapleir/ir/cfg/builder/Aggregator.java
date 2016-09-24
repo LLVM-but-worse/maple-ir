@@ -51,14 +51,21 @@ public class Aggregator extends OptimisationPass.Optimiser implements Opcode {
 								// can't be used until it is initialised.
 								UninitialisedObjectExpression obj = (UninitialisedObjectExpression) rhs;
 								Expression[] args = invoke.getParameterArguments();
+								System.out.println("Unlink: " + invoke);
 								invoke.unlink();
+								for(Expression e : args) {
+									System.out.println(" Unlink: " + e);
+									e.unlink();
+								}
+								System.out.println("Del: " + def);
+								def.delete();
+								System.out.println("afterdel");
 								Expression[] newArgs = Arrays.copyOf(args, args.length);
 								InitialisedObjectExpression newExpr = new InitialisedObjectExpression(obj.getType(), invoke.getOwner(), invoke.getDesc(), newArgs);
 								// remove the old def
 								// add a copy statement before the pop (x = newExpr)
 								// remove the pop statement
 								
-								b.remove(def);
 								
 								CopyVarStatement newCvs = new CopyVarStatement(var, newExpr);
 								localAccess.defs.put(local, newCvs);

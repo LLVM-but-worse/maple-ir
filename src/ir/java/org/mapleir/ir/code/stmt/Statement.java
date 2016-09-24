@@ -7,6 +7,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
+import org.mapleir.ir.DVBTest;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.Opcode;
@@ -18,7 +19,7 @@ import org.objectweb.asm.MethodVisitor;
 
 public abstract class Statement implements FastGraphVertex, Opcode, Iterable<Statement> {
 	
-	private static int ID_COUNTER = 1;
+	public static int ID_COUNTER = 1;
 	private final int id = ID_COUNTER++;
 	
 	private final int opcode;
@@ -49,7 +50,7 @@ public abstract class Statement implements FastGraphVertex, Opcode, Iterable<Sta
 		// i.e. removed, so invalidate this statement.
 		if(block == null) {
 //			markDirty();
-			parent = null;
+			setParent(null);
 		}
 		
 		for(Statement s : children) {
@@ -65,17 +66,38 @@ public abstract class Statement implements FastGraphVertex, Opcode, Iterable<Sta
 	
 	public int deepSize() {
 		int size = 1;
-		for (int i = 0; i < children.length; i++)
-			if (children[i] != null)
+		for (int i = 0; i < children.length; i++) {
+			if (children[i] != null) {
 				size += children[i].deepSize();
+			}
+		}
 		return size;
+	}
+	
+	public int capacity() {
+		return children.length;
 	}
 	
 	public int size() {
 		int size = 0;
-		for (int i = 0; i < children.length; i++)
-			if (children[i] != null)
+		for (int i = 0; i < children.length; i++) {
+			if (children[i] != null) {
 				size++;
+			}
+		}
+		
+		/* it's a debug thing 
+		int size2 = 0;
+		for(int i=0; i < children.length; i++) {
+			if(children[i] == null) {
+				size2 = i;
+				break;
+			}
+		}
+		if(size != size2) {
+			throw new IllegalStateException(String.format("%d vs %d", size, size2));
+		} */
+		
 		return size;
 	}
 
@@ -106,7 +128,7 @@ public abstract class Statement implements FastGraphVertex, Opcode, Iterable<Sta
 		
 		if(s != null) {
 			if(s.parent != null) {
-				throw new IllegalStateException(s + " already belongs to " + s.parent + " (new:" + getRootParent() + ")");
+				throw new IllegalStateException(s + " already belongs to " + s.parent + " (new:" + (parent != null ? getRootParent() : this) + ")");
 			} else {
 				s.setParent(this);
 			}
@@ -154,35 +176,68 @@ public abstract class Statement implements FastGraphVertex, Opcode, Iterable<Sta
 	}
 	
 	public void unlink() {
-//		markDirty();
 		block = null;
-		parent = null;
-		
+		setParent(null);
+	}
+
+	protected void delete0() {
+		unlink();
 		for(Statement c : children) {
 			if(c != null) {
-				c.unlink();
+				c.delete0();
 			}
 		}
 	}
-
+	
 	public void delete() {
-		delete(ptr);
+		if(parent != null) {
+			parent.deleteAt(parent.indexOf(this));
+		} else {
+			if(block == null) {
+				throw new IllegalStateException();
+			}
+			block.remove(this);
+			delete0();
+		}
 	}
 
-	public void delete(int _ptr) {
+	public void deleteAt(int _ptr) {
 		if (_ptr < 0 || _ptr >= children.length || (_ptr > 0 && children[_ptr - 1] == null))
 			throw new ArrayIndexOutOfBoundsException(String.format("ptr=%d, len=%d, addr=%d", ptr, children.length, _ptr));
 		if (children[_ptr] == null)
 			throw new UnsupportedOperationException("No statement at " + _ptr);
 		
 		if ((_ptr + 1) < children.length && children[_ptr + 1] == null) {
+			// ptr: s5 (4)
+			// len = 8
+			// before: [s1, s2, s3, s4, s5  , null, null, null]
+			// after : [s1, s2, s3, s4, null, null, null, null]
 			writeAt(_ptr, null);
 			onChildUpdated(_ptr);
 		} else {
+			// ptr: s2 (1)
+			// len = 8
+			// before: [s1, s2, s3, s4, s5 ,  null, null, null]
+			// del s2 (1)
+			// before: [s1, null, s3, s4, s5 ,  null, null, null]
+			// ptr+1 = s3 (2)
+			// (ptr+1 to len) = {2, 3, 4, 5, 6, 7}
+			// shift elements down 1
+			// after : [s1, s3, s4, s5, null, null, null, null]
 			writeAt(_ptr, null);
 			onChildUpdated(_ptr);
 			for (int i = _ptr + 1; i < children.length; i++) {
-				writeAt(i-1, children[i]);
+				Statement s = children[i];
+				// set the parent to null, since
+				// the intermediary step in this
+				// shifting looks like:
+				//   [s1, s3, s3, s4, s5, null, null, null]
+				// then we remove the second one
+				//   [s1, s3, null, s4, s5, null, null, null]
+				if(s != null) {
+					s.parent = null;
+				}
+				writeAt(i-1, s);
 				onChildUpdated(i - 1);
 				writeAt(i, null);
 				onChildUpdated(i);
@@ -256,7 +311,12 @@ public abstract class Statement implements FastGraphVertex, Opcode, Iterable<Sta
 	}
 	
 	protected void setParent(Statement parent) {
+		Statement oldParent = this.parent;
 		this.parent = parent;
+		
+		if(DVBTest.FLAG) {
+			System.out.println("Parent of " + this + " = " + parent);
+		}
 	}
 	
 	public Statement getRootParent() {
@@ -395,6 +455,14 @@ public abstract class Statement implements FastGraphVertex, Opcode, Iterable<Sta
 			if(c != null) {
 				c.checkConsistency(this);
 			}
+		}
+	}
+
+	public void spew(String ind) {
+		System.out.println(ind + this);
+		System.out.println(ind + "c: " + Arrays.toString(children));
+		for(Statement c : getChildren()) {
+			c.spew(ind + "  ");
 		}
 	}
 	
