@@ -199,7 +199,8 @@ public class ClassNode extends ClassVisitor {
     public ClassNode() {
         this(Opcodes.ASM5);
         if (getClass() != ClassNode.class) {
-            throw new IllegalStateException();
+        	// fuk off useless shit
+            //throw new IllegalStateException();
         }
     }
 
