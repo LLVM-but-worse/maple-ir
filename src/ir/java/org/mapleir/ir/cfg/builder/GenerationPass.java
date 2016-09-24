@@ -1,20 +1,58 @@
 package org.mapleir.ir.cfg.builder;
 
 import static org.objectweb.asm.Opcodes.*;
-import static org.objectweb.asm.tree.AbstractInsnNode.*;
+import static org.objectweb.asm.tree.AbstractInsnNode.JUMP_INSN;
+import static org.objectweb.asm.tree.AbstractInsnNode.LABEL;
+import static org.objectweb.asm.tree.AbstractInsnNode.LOOKUPSWITCH_INSN;
+import static org.objectweb.asm.tree.AbstractInsnNode.TABLESWITCH_INSN;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.BitSet;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.ListIterator;
+import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.code.ExpressionStack;
 import org.mapleir.ir.code.Opcode;
-import org.mapleir.ir.code.expr.*;
+import org.mapleir.ir.code.expr.ArithmeticExpression;
 import org.mapleir.ir.code.expr.ArithmeticExpression.Operator;
+import org.mapleir.ir.code.expr.ArrayLengthExpression;
+import org.mapleir.ir.code.expr.ArrayLoadExpression;
+import org.mapleir.ir.code.expr.CastExpression;
+import org.mapleir.ir.code.expr.CaughtExceptionExpression;
+import org.mapleir.ir.code.expr.ComparisonExpression;
 import org.mapleir.ir.code.expr.ComparisonExpression.ValueComparisonType;
-import org.mapleir.ir.code.stmt.*;
+import org.mapleir.ir.code.expr.ConstantExpression;
+import org.mapleir.ir.code.expr.DynamicInvocationExpression;
+import org.mapleir.ir.code.expr.Expression;
+import org.mapleir.ir.code.expr.FieldLoadExpression;
+import org.mapleir.ir.code.expr.InstanceofExpression;
+import org.mapleir.ir.code.expr.InvocationExpression;
+import org.mapleir.ir.code.expr.NegationExpression;
+import org.mapleir.ir.code.expr.NewArrayExpression;
+import org.mapleir.ir.code.expr.UninitialisedObjectExpression;
+import org.mapleir.ir.code.expr.VarExpression;
+import org.mapleir.ir.code.stmt.ArrayStoreStatement;
+import org.mapleir.ir.code.stmt.ConditionalJumpStatement;
 import org.mapleir.ir.code.stmt.ConditionalJumpStatement.ComparisonType;
+import org.mapleir.ir.code.stmt.FieldStoreStatement;
+import org.mapleir.ir.code.stmt.MonitorStatement;
 import org.mapleir.ir.code.stmt.MonitorStatement.MonitorMode;
+import org.mapleir.ir.code.stmt.PopStatement;
+import org.mapleir.ir.code.stmt.ReturnStatement;
+import org.mapleir.ir.code.stmt.Statement;
+import org.mapleir.ir.code.stmt.SwitchStatement;
+import org.mapleir.ir.code.stmt.ThrowStatement;
+import org.mapleir.ir.code.stmt.UnconditionalJumpStatement;
 import org.mapleir.ir.code.stmt.copy.CopyVarStatement;
 import org.mapleir.ir.locals.Local;
 import org.mapleir.stdlib.cfg.edge.ConditionalJumpEdge;
@@ -30,7 +68,23 @@ import org.mapleir.stdlib.collections.graph.util.GraphUtils;
 import org.objectweb.asm.Handle;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
-import org.objectweb.asm.tree.*;
+import org.objectweb.asm.tree.AbstractInsnNode;
+import org.objectweb.asm.tree.FieldInsnNode;
+import org.objectweb.asm.tree.IincInsnNode;
+import org.objectweb.asm.tree.InsnList;
+import org.objectweb.asm.tree.IntInsnNode;
+import org.objectweb.asm.tree.InvokeDynamicInsnNode;
+import org.objectweb.asm.tree.JumpInsnNode;
+import org.objectweb.asm.tree.LabelNode;
+import org.objectweb.asm.tree.LdcInsnNode;
+import org.objectweb.asm.tree.LookupSwitchInsnNode;
+import org.objectweb.asm.tree.MethodInsnNode;
+import org.objectweb.asm.tree.MethodNode;
+import org.objectweb.asm.tree.MultiANewArrayInsnNode;
+import org.objectweb.asm.tree.TableSwitchInsnNode;
+import org.objectweb.asm.tree.TryCatchBlockNode;
+import org.objectweb.asm.tree.TypeInsnNode;
+import org.objectweb.asm.tree.VarInsnNode;
 import org.objectweb.asm.util.Printer;
 
 public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
@@ -56,7 +110,8 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 	private final InsnList insns;
 	private final BitSet finished;
 	private final LinkedList<LabelNode> queue;
-
+	private final Set<LabelNode> marks;
+	
 	private BitSet stacks;
 	private BasicBlock currentBlock;
 	private ExpressionStack currentStack;
@@ -73,6 +128,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		finished = new BitSet();
 		queue = new LinkedList<>();
 		stacks = new BitSet();
+		marks = new HashSet<>();
 		
 		insns = builder.method.instructions;
 	}
@@ -149,6 +205,8 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		stack.push(load_stack(0, type));
 		
 		queue(label);
+		marks.add(tc.end);
+		
 		stacks.set(handler.getNumericId());
 	}
 	
@@ -326,7 +384,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 			case ICONST_3:
 			case ICONST_4:
 			case ICONST_5:
-				_const((int) (opcode - ICONST_M1) - 1);
+				_const(opcode - ICONST_M1 - 1);
 				break;
 			case LCONST_0:
 			case LCONST_1:
@@ -1389,11 +1447,36 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		}
 	}
 	
+	void ensureMarks() {
+		// it is possible for the end blocks of ranges
+		// to not be generated/blocked during generation,
+		// so we generate them here.
+		
+		for(LabelNode m : marks) {
+			// creates the block if it's not
+			// already in the graph.
+			resolveTarget(m);
+		}
+		// queue is irrelevant at this point.
+		queue.clear();
+		
+		// since the blocks created were not reached
+		// it means that their inputstacks were empty.
+		// this also means no edges are needed to connect
+		// them except for the range edges which are done
+		// later.
+		// we can also rely on the natural label ordering
+		// code to fix up the graph to make it look like
+		// this block is next to the previous block in code.
+	}
+	
 	void processQueue() {
 		while(!queue.isEmpty()) {
 			LabelNode label = queue.removeFirst();
 			process(label);
 		}
+		
+		ensureMarks();
 		
 		List<BasicBlock> blocks = new ArrayList<>(builder.graph.vertices());
 		Collections.sort(blocks, new Comparator<BasicBlock>() {
