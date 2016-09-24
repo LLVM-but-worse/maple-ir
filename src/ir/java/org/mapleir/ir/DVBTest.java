@@ -13,6 +13,8 @@ import org.mapleir.ir.cfg.builder.ControlFlowGraphBuilder;
 import org.mapleir.ir.cfg.builder.SSAGenPass;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
+import org.objectweb.asm.MethodVisitor;
+import org.objectweb.asm.commons.JSRInlinerAdapter;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
 
@@ -23,14 +25,22 @@ public class DVBTest {
 		for (int i = 1; i <= 23; i++) {
 			InputStream is = new FileInputStream(new File(String.format("res/dvb/DVB%04d.class", i)));
 			ClassReader cr = new ClassReader(is);
-			ClassNode cn = new ClassNode();
+			ClassNode cn = new ClassNode() {
+				 @Override
+				public MethodVisitor visitMethod(final int access, final String name,
+				            final String desc, final String signature, final String[] exceptions) {
+					 MethodVisitor origVisitor = super.visitMethod(access, name, desc, signature, exceptions);
+					 return new JSRInlinerAdapter(origVisitor, access, name, desc, signature, exceptions);
+				 }
+			};
+			
 			cr.accept(cn, 0);
 
 			Iterator<MethodNode> it = new ArrayList<>(cn.methods).listIterator();
 			while (it.hasNext()) {
 				MethodNode m = it.next();
 				if(!m.toString().contains("DVB0001.main([Ljava/lang/String;)V")) {
-					continue;
+//					continue;
 				}
 				System.out.println(m);
 				SSAGenPass.DO_SPLIT = true;
