@@ -41,7 +41,7 @@ import org.topdank.byteengineer.commons.data.JarInfo;
 import org.topdank.byteio.in.SingleJarDownloader;
 
 public class Benchmark {
-	public static boolean DEBOG = true;
+	public static boolean DEBOG = false;
 	
 	public static void main(String[] args) throws IOException {
 		HashMap<String, List<MethodNode>> tests = new LinkedHashMap<>();
