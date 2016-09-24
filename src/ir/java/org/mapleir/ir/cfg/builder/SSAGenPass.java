@@ -1,13 +1,22 @@
 package org.mapleir.ir.cfg.builder;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.ListIterator;
+import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
+import java.util.Stack;
 
 import org.mapleir.ir.analysis.SimpleDfs;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.Opcode;
-import org.mapleir.ir.code.expr.CaughtExceptionExpression;
 import org.mapleir.ir.code.expr.Expression;
 import org.mapleir.ir.code.expr.PhiExpression;
 import org.mapleir.ir.code.expr.VarExpression;
@@ -22,7 +31,14 @@ import org.mapleir.ir.code.stmt.copy.CopyVarStatement;
 import org.mapleir.ir.locals.Local;
 import org.mapleir.ir.locals.LocalsHandler;
 import org.mapleir.ir.locals.VersionedLocal;
-import org.mapleir.stdlib.cfg.edge.*;
+import org.mapleir.stdlib.cfg.edge.ConditionalJumpEdge;
+import org.mapleir.stdlib.cfg.edge.DummyEdge;
+import org.mapleir.stdlib.cfg.edge.FlowEdge;
+import org.mapleir.stdlib.cfg.edge.FlowEdges;
+import org.mapleir.stdlib.cfg.edge.ImmediateEdge;
+import org.mapleir.stdlib.cfg.edge.SwitchEdge;
+import org.mapleir.stdlib.cfg.edge.TryCatchEdge;
+import org.mapleir.stdlib.cfg.edge.UnconditionalJumpEdge;
 import org.mapleir.stdlib.cfg.util.TypeUtils;
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.SetCreator;
@@ -42,6 +58,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 	private final Map<BasicBlock, Integer> process;
 	private final NullPermeableHashMap<BasicBlock, Set<Local>> splits;
 	private final Map<BasicBlock, Integer> preorder;
+	private final Set<BasicBlock> handlers;
 	
 	private TarjanDominanceComputor<BasicBlock> doms;
 	private Liveness<BasicBlock> liveness;
@@ -58,6 +75,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		
 		splits = new NullPermeableHashMap<>(new SetCreator<>());
 		preorder = new HashMap<>();
+		handlers = new HashSet<>();
 	}
 	
 	public static boolean DO_SPLIT = true;
@@ -72,6 +90,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		
 		for(ExceptionRange<BasicBlock> er : builder.graph.getRanges()) {
 			BasicBlock h = er.getHandler();
+			handlers.add(h);
 			
 			Set<Local> ls = new HashSet<>(liveness.in(h));
 			for(BasicBlock b : er.get()) {
@@ -344,14 +363,30 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		
 		for(BasicBlock x : doms.iteratedFrontier(b)) {
 			if(insertion.get(x) < i) {
-				if(builder.graph.getReverseEdges(x).size() > 1) {
-					// pruned SSA
-					if(liveness.in(x).contains(l)) {
+				// pruned SSA
+				if(liveness.in(x).contains(l)) {
+					/* Scenarios: (assuming live in)
+					 *   mutliple lvar into any block      -> add phi
+					 *   
+					 *   svar0 into handler from exception 
+					 *    and non exception edge and       -> add phi
+					 */
+					if(handlers.contains(x) && l.isStack()) {
+						boolean naturalFlow = false;
+						for(FlowEdge<BasicBlock> e : builder.graph.getReverseEdges(x)) {
+							if(e.getType() != FlowEdges.TRYCATCH) {
+								naturalFlow = true;
+								break;
+							}
+						}
+						if(naturalFlow) {
+							System.err.println("ADD A HANDLER PHI IN " + x.getId() + " FOR " + l);
+						}
+					} else if(builder.graph.getReverseEdges(x).size() > 1) {
 						Map<BasicBlock, Expression> vls = new HashMap<>();
 						for(FlowEdge<BasicBlock> fe : builder.graph.getReverseEdges(x)) {
 							vls.put(fe.src, new VarExpression(newl, null));
 						}
-//						System.out.println("mkphi " + vls);
 						PhiExpression phi = new PhiExpression(vls);
 						CopyPhiStatement assign = new CopyPhiStatement(new VarExpression(l, null), phi);
 						
@@ -473,7 +508,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 //				}
 				
 				if(e.getOpcode() == Opcode.LOCAL_LOAD) {
-					Local l = (VersionedLocal) ((VarExpression) e).getLocal();
+					Local l = ((VarExpression) e).getLocal();
 					l = _top(stmt, l.getIndex(), l.isStack());
 					try {
 						AbstractCopyStatement varDef = builder.defs.get(l);
@@ -553,7 +588,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		builder.graph.removeVertex(builder.exit);
 	}
 	
-	private void fixFinally() {
+	/* private void fixFinally() {
 		// fix finally blocks that have handler ranges to themselves
 		for(ExceptionRange<BasicBlock> er : builder.graph.getRanges()) {
 			BasicBlock h = er.getHandler();
@@ -594,7 +629,6 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 			}
 		}
 	}
-	
 	private void cleanHandlerPhis() {
 		for(ExceptionRange<BasicBlock> er : builder.graph.getRanges()) {
 			BasicBlock h = er.getHandler();
@@ -645,7 +679,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 				}
 			}
 		}
-	}
+	} */
 
 	@Override
 	public void run() {
