@@ -199,7 +199,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		Expression expr = new CaughtExceptionExpression(tc.type);
 		Type type = expr.getType();
 		VarExpression var = _var_expr(0, type, true);
-		CopyVarStatement stmt = copy(var, expr);
+		CopyVarStatement stmt = copy(var, expr, handler);
 		handler.add(stmt);
 		
 		stack.push(load_stack(0, type));
@@ -1215,7 +1215,11 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 	}
 	
 	CopyVarStatement copy(VarExpression v, Expression e) {
-		builder.assigns.getNonNull(v.getLocal()).add(currentBlock);
+		return copy(v, e, currentBlock);
+	}
+	
+	CopyVarStatement copy(VarExpression v, Expression e, BasicBlock b) {
+		builder.assigns.getNonNull(v.getLocal()).add(b);
 		return new CopyVarStatement(v.getParent() != null? v.copy() : v, e.getParent() != null? e.copy() : e);
 	}
 	
