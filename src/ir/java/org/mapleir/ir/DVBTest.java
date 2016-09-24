@@ -17,9 +17,10 @@ import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
 
 public class DVBTest {
+	public static boolean FLAG = false;
+	
 	public static void main(String[] args) throws Exception {
 		for (int i = 1; i <= 23; i++) {
-			System.out.println(i);
 			InputStream is = new FileInputStream(new File(String.format("res/dvb/DVB%04d.class", i)));
 			ClassReader cr = new ClassReader(is);
 			ClassNode cn = new ClassNode();
@@ -28,6 +29,10 @@ public class DVBTest {
 			Iterator<MethodNode> it = new ArrayList<>(cn.methods).listIterator();
 			while (it.hasNext()) {
 				MethodNode m = it.next();
+				if(!m.toString().contains("DVB0001.main([Ljava/lang/String;)V")) {
+					continue;
+				}
+				System.out.println(m);
 				SSAGenPass.DO_SPLIT = true;
 				SSAGenPass.ULTRANAIVE = false;
 				SSAGenPass.SKIP_SIMPLE_COPY_SPLIT = true;
