@@ -7,7 +7,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
-import org.mapleir.ir.DVBTest;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.Opcode;
@@ -120,7 +119,7 @@ public abstract class Statement implements FastGraphVertex, Opcode, Iterable<Sta
 	private Statement writeAt(int index, Statement s) {
 //		markDirty();
 		Statement prev = children[index];
-		if(prev != null) {
+		if(prev != s && prev != null) {
 			prev.setParent(null);
 		}
 		children[index] = s;
@@ -202,6 +201,10 @@ public abstract class Statement implements FastGraphVertex, Opcode, Iterable<Sta
 	}
 
 	public void deleteAt(int _ptr) {
+//		System.out.println("del " + children[_ptr]);
+//		System.out.println("in");
+//		System.out.println(children[_ptr].getRootParent());
+		
 		if (_ptr < 0 || _ptr >= children.length || (_ptr > 0 && children[_ptr - 1] == null))
 			throw new ArrayIndexOutOfBoundsException(String.format("ptr=%d, len=%d, addr=%d", ptr, children.length, _ptr));
 		if (children[_ptr] == null)
@@ -226,6 +229,7 @@ public abstract class Statement implements FastGraphVertex, Opcode, Iterable<Sta
 			// after : [s1, s3, s4, s5, null, null, null, null]
 			writeAt(_ptr, null);
 			onChildUpdated(_ptr);
+//			System.out.println("lop");
 			for (int i = _ptr + 1; i < children.length; i++) {
 				Statement s = children[i];
 				// set the parent to null, since
@@ -235,12 +239,20 @@ public abstract class Statement implements FastGraphVertex, Opcode, Iterable<Sta
 				// then we remove the second one
 				//   [s1, s3, null, s4, s5, null, null, null]
 				if(s != null) {
-					s.parent = null;
+					s.setParent(null);
 				}
 				writeAt(i-1, s);
 				onChildUpdated(i - 1);
 				writeAt(i, null);
 				onChildUpdated(i);
+				// we need to set the parent again,
+				// because we have 2 of the same
+				// node in the children array, which
+				// means the last writeAt call, sets
+				// the parent as null.
+				if(s != null) {
+					s.setParent(this);
+				}
 			}
 		}
 	}
@@ -311,12 +323,17 @@ public abstract class Statement implements FastGraphVertex, Opcode, Iterable<Sta
 	}
 	
 	protected void setParent(Statement parent) {
-		Statement oldParent = this.parent;
+//		Statement oldParent = this.parent;
 		this.parent = parent;
-		
-		if(DVBTest.FLAG) {
-			System.out.println("Parent of " + this + " = " + parent);
+		if(parent != null) {
+			block = parent.block;
+		} else {
+			block = null;
 		}
+		
+//		if(DVBTest.FLAG) {
+//			System.out.println("Parent of " + this + " = " + parent);
+//		}
 	}
 	
 	public Statement getRootParent() {
