@@ -1,6 +1,6 @@
 package org.mapleir.test;
 
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 import org.junit.Test;
 import org.mapleir.ir.cfg.ControlFlowGraph;
@@ -26,6 +26,7 @@ public class StatementTest {
 	
 	@Test
 	public void testDeleteAt() {
+		// mathematically bad rigour test.
 		for(int i=1; i < 16; i++) { 
 			// random statement deletion
 			for(int j=0; j < i; j++) {
@@ -43,9 +44,9 @@ public class StatementTest {
 				popul8(stmt, 0, i);
 				// forward deletion
 				for(int j=0; j < i; j++) {
-					assertTrue(String.format("%d vs %d", stmt.size(), (i-j)), stmt.size() == (i-j));
+					assertEquals(String.format("i:%d, j:%d", i, j), stmt.size(), (i - j));
 					stmt.deleteAt(0);
-					assertTrue(String.format("%d vs %d", stmt.size(), (i-j-1)), stmt.size() == (i-j-1));
+					assertEquals(String.format("i:%d, j:%d", i, j), stmt.size(), (i - j - 1));
 				}
 			}
 			
@@ -54,10 +55,12 @@ public class StatementTest {
 				TestStatement stmt = new TestStatement();
 				popul8(stmt, 0, i);
 				// forward deletion
+				int k = 0;
 				for(int j=i-1; j >= 0; j--) {
-					assertTrue(stmt.size() == (i-j));
+					assertEquals(String.format("i:%d, j:%d", i, j), stmt.size(), (i - k));
 					stmt.deleteAt(j);
-					assertTrue(stmt.size() == (i-j-1));
+					assertEquals(String.format("i:%d, j:%d", i, j), stmt.size(), (i - k - 1));
+					k++;
 				}
 			}
 		}
