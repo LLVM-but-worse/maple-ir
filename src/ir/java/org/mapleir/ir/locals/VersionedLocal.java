@@ -43,10 +43,18 @@ public class VersionedLocal extends Local {
 		if(!(o instanceof VersionedLocal)) {
 			throw new UnsupportedOperationException(this + " vs " + o.toString());
 		}
-		
+
 		int comp = super.compareTo(o);
+		
+		VersionedLocal v = (VersionedLocal) o;
+		if(subscript == 0 && v.subscript != 0) {
+			return -1;
+		} else if(subscript != 0 && v.subscript == 0) {
+			return 1;
+		}
+		
 		if(comp == 0) {
-			comp = Integer.compare(subscript, ((VersionedLocal)o).subscript);
+			comp = Integer.compare(subscript, v.subscript);
 		}
 		return comp;
 	}
