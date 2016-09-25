@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Predicate;
 
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
@@ -37,6 +38,16 @@ public class LocalsHandler implements ValueCreator<GenericBitSet<Local>> {
 		cache = new HashMap<>();
 		latest = new HashMap<>();
 		indexer = new IncrementalBitSetIndexer<>();
+	}
+	
+	public Set<Local> getAll(Predicate<Local> p)  {
+		Set<Local> set = new HashSet<>();
+		for(Local l : cache.values()) {
+			if(p.test(l)) {
+				set.add(l);
+			}
+		}
+		return set;
 	}
 	
 	// factory

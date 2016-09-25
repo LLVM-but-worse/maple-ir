@@ -1,5 +1,7 @@
 package org.mapleir.ir.analysis;
 
+import java.util.Set;
+
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.locals.Local;
@@ -7,8 +9,6 @@ import org.mapleir.stdlib.cfg.edge.FlowEdge;
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.bitset.GenericBitSet;
 import org.mapleir.stdlib.collections.graph.flow.TarjanDominanceComputor;
-
-import java.util.Set;
 
 public class DominanceLivenessAnalyser {
 
@@ -140,7 +140,7 @@ public class DominanceLivenessAnalyser {
 	public boolean isLiveOut(BasicBlock q, Local a) {
 		BasicBlock defBlock = defuse.defs.get(a);
 
-		GenericBitSet<BasicBlock> uses = defuse.uses.get(a);
+		GenericBitSet<BasicBlock> uses = defuse.uses.getNonNull(a);
 		if(defBlock == q) {
 			return !uses.relativeComplement(defBlock).isEmpty() || defuse.phiUses.get(defBlock).contains(a);
 		}
