@@ -207,6 +207,7 @@ public class LocalsHandler implements ValueCreator<GenericBitSet<Local>> {
 		
 		// lvars then svars, ordered of course,
 		List<Local> wl = new ArrayList<>(stypes.keySet());
+		System.out.println("safe: " + safe);
 		Collections.sort(wl, new Comparator<Local>() {
 			@Override
 			public int compare(Local o1, Local o2) {
@@ -214,14 +215,16 @@ public class LocalsHandler implements ValueCreator<GenericBitSet<Local>> {
 				boolean s2 = safe.contains(o2);
 				
 				if(s1 && !s2) {
-					return 1;
-				} else if(!s1 && s2) {
 					return -1;
+				} else if(!s1 && s2) {
+					return 1;
 				} else {
 					return o1.compareTo(o2);
 				}
 			}
 		});
+		System.out.println("wl: " + wl);
+		
 		
 		Map<Local, Local> remap = new HashMap<>();
 		int idx = min;
