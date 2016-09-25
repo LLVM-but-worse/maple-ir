@@ -37,4 +37,17 @@ public class VersionedLocal extends Local {
 		result = prime * result + subscript;
 		return result;
 	}
+
+	@Override
+	public int compareTo(Local o) {
+		if(!(o instanceof VersionedLocal)) {
+			throw new UnsupportedOperationException(this + " vs " + o.toString());
+		}
+		
+		int comp = super.compareTo(o);
+		if(comp == 0) {
+			comp = Integer.compare(subscript, ((VersionedLocal)o).subscript);
+		}
+		return comp;
+	}
 }
