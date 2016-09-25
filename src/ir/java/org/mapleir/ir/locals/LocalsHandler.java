@@ -1,13 +1,7 @@
 package org.mapleir.ir.locals;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 
@@ -154,7 +148,6 @@ public class LocalsHandler implements ValueCreator<GenericBitSet<Local>> {
 		Set<Local> safe = new HashSet<>();
 		for(BasicBlock b : cfg.vertices()) {
 			for(Statement stmt : b) {
-
 				if(stmt.getOpcode() == Opcode.LOCAL_STORE) {
 					CopyVarStatement cp = (CopyVarStatement) stmt;
 					VarExpression var = cp.getVariable();
@@ -163,7 +156,7 @@ public class LocalsHandler implements ValueCreator<GenericBitSet<Local>> {
 						types.getNonNull(local).add(var.getType());
 					} else {
 //						min = Math.max(min, local.getIndex());
-//						safe.add(local);
+						safe.add(local);
 					}
 					types.getNonNull(local).add(var.getType());
 				}
@@ -195,14 +188,16 @@ public class LocalsHandler implements ValueCreator<GenericBitSet<Local>> {
 					throw new RuntimeException("illegal typesets for " + e.getKey());
 				}
 				Local l = e.getKey();
-				if(!safe.contains(l)) {
-					stypes.put(l, refined.iterator().next());
-				}
+				stypes.put(l, refined.iterator().next());
+				
+//				if(!safe.contains(l)) {
+//					stypes.put(l, refined.iterator().next());
+//				}
 			} else {
 				Local l = e.getKey();
-				if(!safe.contains(l)) {
-					stypes.put(l, set.iterator().next());
-				}
+				stypes.put(l, set.iterator().next());
+//				if(!safe.contains(l)) {
+//				}
 			}
 		}
 		
@@ -212,8 +207,22 @@ public class LocalsHandler implements ValueCreator<GenericBitSet<Local>> {
 		
 		// lvars then svars, ordered of course,
 		List<Local> wl = new ArrayList<>(stypes.keySet());
-		Collections.sort(wl);
-
+		Collections.sort(wl, new Comparator<Local>() {
+			@Override
+			public int compare(Local o1, Local o2) {
+				boolean s1 = safe.contains(o1);
+				boolean s2 = safe.contains(o2);
+				
+				if(s1 && !s2) {
+					return 1;
+				} else if(!s1 && s2) {
+					return -1;
+				} else {
+					return o1.compareTo(o2);
+				}
+			}
+		});
+		
 		Map<Local, Local> remap = new HashMap<>();
 		int idx = min;
 		for(Local l : wl) {
