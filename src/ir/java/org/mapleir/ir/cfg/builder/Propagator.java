@@ -194,7 +194,7 @@ public class Propagator extends OptimisationPass.Optimiser {
 					AbstractCopyStatement def = localAccess.defs.get(e.getKey());
 					Expression rhs = def.getExpression();
 					int op = rhs.getOpcode();
-					if(!def.isSynthetic() && op != Opcode.CATCH) {
+					if(!def.isSynthetic() && op != Opcode.CATCH && op != Opcode.EPHI) {
 						if(!fineBladeDefinition(def, it)) {
 							killed(def);
 							changed = true;
@@ -425,7 +425,7 @@ public class Propagator extends OptimisationPass.Optimiser {
 				ret =  handleConstant(def, use, (ConstantExpression) rhs);
 			} else if(opcode == Opcode.LOCAL_LOAD) {
 				ret =  handleVar(def, use, (VarExpression) rhs);
-			} else if(opcode != Opcode.CATCH && opcode != Opcode.PHI) {
+			} else if(opcode != Opcode.CATCH && opcode != Opcode.PHI && opcode != Opcode.EPHI) {
 				ret = handleComplex(def, use);
 			}
 			return ret;
@@ -483,7 +483,7 @@ public class Propagator extends OptimisationPass.Optimiser {
 		public Statement visit(Statement stmt) {
 			if(stmt.getOpcode() == Opcode.LOCAL_LOAD) {
 				return choose(visitVar((VarExpression) stmt), stmt);
-			} else if(stmt.getOpcode() == Opcode.PHI) {
+			} else if(stmt.getOpcode() == Opcode.PHI || stmt.getOpcode() == Opcode.EPHI) {
 				return choose(visitPhi((PhiExpression) stmt), stmt);
 			}
 			return stmt;
