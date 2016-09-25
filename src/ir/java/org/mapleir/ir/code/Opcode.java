@@ -40,9 +40,9 @@ public interface Opcode {
 	int THROW          = 0x706;
 	int MONITOR        = 0x707;
 
-	int CLASS_PARALLEL = 0x900;
+	int CLASS_PHI      = 0x900;
 	int PHI            = 0x901;
-	int PHI_HANDLER    = 0x902;
+	int EPHI           = 0x902;
 
 	int CLASS_RESERVED = 0x1000; // reserved for inner classes
 }

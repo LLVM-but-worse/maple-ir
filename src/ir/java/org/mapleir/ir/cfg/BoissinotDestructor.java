@@ -114,7 +114,7 @@ public class BoissinotDestructor {
 					for(Entry<BasicBlock, Expression> e : copy.getExpression().getArguments().entrySet()) {
 						Expression expr = e.getValue();
 						int opcode = expr.getOpcode();
-						if(opcode == Opcode.CONST_LOAD) {
+						if(opcode == Opcode.CONST_LOAD || opcode == Opcode.CATCH) {
 							VersionedLocal vl = locals.makeLatestVersion(locals.get(0, false));
 							CopyVarStatement cvs = new CopyVarStatement(new VarExpression(vl, expr.getType()), expr);
 							e.setValue(new VarExpression(vl, expr.getType()));
@@ -612,7 +612,10 @@ public class BoissinotDestructor {
 		if (!resolver.isLiveIn(defA, b) && defA != defuse.defs.get(b))
 			return false;
 		// ambiguous case. we need to check if use(dom) occurs after def(def), in that case it interferes. otherwise no
-		int domUseIndex = defuse.lastUseIndex.get(b).get(defA);
+		int domUseIndex = defuse.lastUseIndex.getNonNull(b).getOrDefault(defA, -1);
+		if(domUseIndex == -1) {
+			return false;
+		}
 		int defDefIndex = defuse.defIndex.get(a);
 		return domUseIndex > defDefIndex;
 	}
@@ -854,6 +857,7 @@ public class BoissinotDestructor {
 	}
 
 	private class CongruenceClass extends TreeSet<Local> {
+		private static final long serialVersionUID = -4472334406997712498L;
 		CongruenceClass() {
 			super(new Comparator<Local>() {
 				@Override
