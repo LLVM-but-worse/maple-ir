@@ -60,7 +60,12 @@ public abstract class Local implements Comparable<Local> {
 
 	@Override
 	public int compareTo(Local o) {
-		return (toString().compareTo(o.toString()));
+		if(stack && !o.stack) {
+			return -1;
+		} else if(!stack && o.stack) {
+			return 1;
+		}
+		return Integer.compare(index, o.index);
 	}
 
 	@Override
