@@ -228,9 +228,7 @@ public class LocalsHandler implements ValueCreator<GenericBitSet<Local>> {
 		
 		Map<Local, Local> remap = new HashMap<>();
 		int idx = min;
-		Iterator<Local> it = wl.iterator();
-		while(it.hasNext()) {
-			Local l = it.next();
+		for(Local l : wl) {
 			Type type = stypes.get(l);
 			Local newL = get(idx, false);
 			if(l != newL) {
