@@ -142,7 +142,7 @@ public class LocalsHandler implements ValueCreator<GenericBitSet<Local>> {
 		}
 	} */
 	
-	public void realloc(ControlFlowGraph cfg) {
+	public int realloc(ControlFlowGraph cfg) {
 		NullPermeableHashMap<Local, Set<Type>> types = new NullPermeableHashMap<>(new SetCreator<>());
 		int min = 0;
 		Set<Local> safe = new HashSet<>();
@@ -228,7 +228,9 @@ public class LocalsHandler implements ValueCreator<GenericBitSet<Local>> {
 		
 		Map<Local, Local> remap = new HashMap<>();
 		int idx = min;
-		for(Local l : wl) {
+		Iterator<Local> it = wl.iterator();
+		while(it.hasNext()) {
+			Local l = it.next();
 			Type type = stypes.get(l);
 			Local newL = get(idx, false);
 			if(l != newL) {
@@ -237,6 +239,8 @@ public class LocalsHandler implements ValueCreator<GenericBitSet<Local>> {
 			idx += type.getSize();
 		}
 		remap(cfg, remap);
+		
+		return idx;
 	}
 	
 	public static void remap(ControlFlowGraph cfg, Map<? extends Local, ? extends Local> remap) {
