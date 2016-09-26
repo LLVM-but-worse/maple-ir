@@ -256,7 +256,7 @@ public class Propagator extends OptimisationPass.Optimiser {
 		}
 		
 		private void scalpelDefinition(AbstractCopyStatement def) {
-			System.out.println("killded: " + def);
+//			System.out.println("killded: " + def);
 			def.getBlock().remove(def);
 			Local local = def.getVariable().getLocal();
 			localAccess.useCount.remove(local);

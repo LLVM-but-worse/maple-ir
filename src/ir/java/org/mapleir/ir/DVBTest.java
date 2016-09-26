@@ -59,10 +59,13 @@ public class DVBTest {
 						System.out.println();
 
 						ControlFlowGraph cfg = ControlFlowGraphBuilder.build(m);
-						System.out.println("IR:");
-						System.out.println(cfg);
 						new BoissinotDestructor(cfg, 0);
 						cfg.getLocals().realloc(cfg);
+						
+
+						System.out.println("IR:");
+						System.out.println(cfg);
+						
 						ControlFlowGraphDumper.dump(cfg, m);
 						System.out.println();
 						System.out.println("Processed bytecode:");
