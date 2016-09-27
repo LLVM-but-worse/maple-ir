@@ -46,7 +46,7 @@ public class ClassNodeUtil {
 			cr.accept(cs, flags);
 			return cs;
 		} catch (IOException e) {
-			e.printStackTrace();
+			System.err.println(e.getMessage() + ": " + name + "  (" + Integer.toBinaryString(flags) + ")");
 			return null;
 		}
 	}
