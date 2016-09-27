@@ -74,7 +74,7 @@ public class Propagator extends OptimisationPass.Optimiser {
 				res.add(b.get(i));
 			}
 			
-			for(BasicBlock r : builder.graph.wanderAllTrails(b, builder.exit)) {
+			for(BasicBlock r : builder.graph.wanderAllTrails(b, builder.head)) {
 				res.addAll(r);
 			}
 			

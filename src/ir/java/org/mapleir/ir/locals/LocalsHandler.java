@@ -225,7 +225,6 @@ public class LocalsHandler implements ValueCreator<GenericBitSet<Local>> {
 		});
 		System.out.println("wl: " + wl);
 		
-		
 		Map<Local, Local> remap = new HashMap<>();
 		int idx = min;
 		for(Local l : wl) {
