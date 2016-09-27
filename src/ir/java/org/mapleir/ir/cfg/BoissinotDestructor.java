@@ -23,6 +23,7 @@ import org.mapleir.stdlib.cfg.util.TabbedStringWriter;
 import org.mapleir.stdlib.collections.ListCreator;
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.bitset.GenericBitSet;
+import org.mapleir.stdlib.collections.graph.util.GraphUtils;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Type;
 
@@ -80,8 +81,9 @@ public class BoissinotDestructor {
 
 		// 1. Insert copies to enter CSSA.
 		init();
-		
-		resolver = new DominanceLivenessAnalyser(cfg, null);
+
+		BasicBlock head = GraphUtils.connectHead(cfg);
+		resolver = new DominanceLivenessAnalyser(cfg, head, null);
 		
 		insertCopies();
 		constructDominance();
@@ -156,7 +158,7 @@ public class BoissinotDestructor {
 
 			CopyPhiStatement copy = (CopyPhiStatement) stmt;
 			PhiExpression phi = copy.getExpression();
-
+			
 			// for every xi arg of the phi from pred Li, add it to the worklist
 			// so that we can parallelise the copy when we insert it.
 			for(Entry<BasicBlock, Expression> e : phi.getArguments().entrySet()) {

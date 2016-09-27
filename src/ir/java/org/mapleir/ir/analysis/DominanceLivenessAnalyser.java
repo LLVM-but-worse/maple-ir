@@ -18,7 +18,6 @@ public class DominanceLivenessAnalyser {
 	
 	public final ControlFlowGraph cfg;
 	private SSADefUseMap defuse;
-	public final BasicBlock entry;
 	public final ControlFlowGraph red_cfg;
 	public final ExtendedDfs<BasicBlock> cfg_dfs;
 	public final NullPermeableHashMap<BasicBlock, GenericBitSet<BasicBlock>> backEdges;
@@ -26,19 +25,13 @@ public class DominanceLivenessAnalyser {
 	public final SimpleDfs<BasicBlock> reduced_dfs;
 	public final TarjanDominanceComputor<BasicBlock> domc;
 	
-	public DominanceLivenessAnalyser(ControlFlowGraph cfg, SSADefUseMap defuse) {
+	public DominanceLivenessAnalyser(ControlFlowGraph cfg, BasicBlock entry, SSADefUseMap defuse) {
 		this.cfg = cfg;
 		this.defuse = defuse;
 		
 		rv = new NullPermeableHashMap<>(cfg);
 		tq = new NullPermeableHashMap<>(cfg);
 		sdoms = new NullPermeableHashMap<>(cfg);
-		
-		if(cfg.getEntries().size() != 1) {
-			throw new IllegalStateException(cfg.getEntries().toString());
-		}
-		
-		entry = cfg.getEntries().iterator().next();
 		
 		cfg_dfs = new ExtendedDfs<>(cfg, entry, ExtendedDfs.EDGES);
 		backEdges = new NullPermeableHashMap<>(cfg);

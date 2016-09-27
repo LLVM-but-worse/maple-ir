@@ -1,5 +1,8 @@
 package org.mapleir.stdlib.collections.graph.flow;
 
+import java.util.*;
+import java.util.Map.Entry;
+
 import org.mapleir.stdlib.cfg.edge.FlowEdge;
 import org.mapleir.stdlib.cfg.edge.ImmediateEdge;
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
@@ -7,16 +10,6 @@ import org.mapleir.stdlib.collections.ValueCreator;
 import org.mapleir.stdlib.collections.graph.FastGraph;
 import org.mapleir.stdlib.collections.graph.FastGraphEdge;
 import org.mapleir.stdlib.collections.graph.FastGraphVertex;
-
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.Stack;
 
 public class TarjanDominanceComputor<N extends FastGraphVertex> {
 	private final FlowGraph<N, ?> graph;
@@ -54,6 +47,9 @@ public class TarjanDominanceComputor<N extends FastGraphVertex> {
 	public void makeTree(FastGraph<N, FlowEdge<N>> dom_tree) {
 		for (Entry<N, Set<N>> e : getTree().entrySet()) {
 			N b = e.getKey();
+			if(b == null) {
+				continue;
+			}
 			dom_tree.addVertex(b);
 			for (N c : e.getValue()) {
 				dom_tree.addEdge(b, new ImmediateEdge<>(b, c));
@@ -188,7 +184,8 @@ public class TarjanDominanceComputor<N extends FastGraphVertex> {
 			
 			int newIndex = semiIndices.get(n);
 			for(FastGraphEdge<N> e : graph.getReverseEdges(n)) {
-				newIndex = Math.min(newIndex, semiIndices.get(calcSemiDom(e.src)));
+				N sd = calcSemiDom(e.src);
+				newIndex = Math.min(newIndex, semiIndices.get(sd));
 			}
 			semiIndices.put(n, newIndex);
 			
@@ -199,7 +196,6 @@ public class TarjanDominanceComputor<N extends FastGraphVertex> {
 			
 			for(N v : semiDoms.getNonNull(p)) {
 				N u = calcSemiDom(v);
-				
 				if(semiIndices.get(u) < semiIndices.get(v)) {
 					idoms.put(v, u);
 				} else {
@@ -234,7 +230,9 @@ public class TarjanDominanceComputor<N extends FastGraphVertex> {
 		}
 		
 		anc = wl.pop();
-		int bottom = semiIndices.get(propagationMap.get(anc));
+		
+		N p = propagationMap.get(anc);
+		int bottom = semiIndices.get(p);
 		
 		while(!wl.isEmpty()) {
 			N d = wl.pop();
