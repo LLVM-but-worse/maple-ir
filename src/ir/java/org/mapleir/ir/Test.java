@@ -23,12 +23,8 @@ import org.objectweb.asm.tree.InsnList;
 import org.objectweb.asm.tree.InsnNode;
 import org.objectweb.asm.tree.MethodInsnNode;
 import org.objectweb.asm.tree.MethodNode;
-import org.objectweb.asm.tree.analysis.Analyzer;
 import org.objectweb.asm.tree.analysis.AnalyzerException;
-import org.objectweb.asm.tree.analysis.BasicInterpreter;
-import org.objectweb.asm.tree.analysis.BasicValue;
 import org.objectweb.asm.util.CheckClassAdapter;
-import org.topdank.banalysis.asm.insn.InstructionPrinter;
 import org.topdank.byteengineer.commons.data.JarContents;
 import org.topdank.byteengineer.commons.data.JarInfo;
 import org.topdank.byteio.in.SingleJarDownloader;
@@ -447,8 +443,8 @@ public class Test {
 		System.out.println(cfg);
 	}
 	
-	public static void main5(String[] args) throws IOException {
-		JarInfo jar = new JarInfo(new File("res/osbot2489.jar"));
+	public static void main(String[] args) throws IOException {
+		JarInfo jar = new JarInfo(new File("res/allatori.jar"));
 		SingleJarDownloader<ClassNode> dl = new SingleJarDownloader<>(jar);
 		dl.download();
 		JarContents<ClassNode> contents = dl.getJarContents();
@@ -456,18 +452,19 @@ public class Test {
 		for (ClassNode cn : contents.getClassContents()) {
 			for(MethodNode m : cn.methods) {
 				
-				if(!m.toString().startsWith("org/osbot/At.toString()Ljava/lang/String;")) {
+				if(!m.toString().startsWith("com/allatori/wtk/WTKObfuscator.run(Ljava/io/File;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V")) {
 					continue;
 				}
 				
 				if(m.instructions.size() > 0) {
-					// System.out.printf("%s  %d.%n", m, m.instructions.size());
+					System.out.printf("%s  %d.%n", m, m.instructions.size());
 					ControlFlowGraph cfg = null;
 					try {
 						cfg = ControlFlowGraphBuilder.build(m);
+						System.out.println(cfg);
+						
 						new BoissinotDestructor(cfg, 0); // ungay this
 						cfg.getLocals().realloc(cfg);
-
 						ControlFlowGraphDumper.dump(cfg, m);
 					} catch(RuntimeException e) {
 						System.err.println();
@@ -482,7 +479,7 @@ public class Test {
 		dumper.dump(new File("out/osb.jar"));
 	}
 	
-	public static void main(String[] args) throws IOException, AnalyzerException {
+	public static void main3(String[] args) throws IOException, AnalyzerException {
 		InputStream i = new FileInputStream(new File("res/DateTimeFormatterBuilder$LocalizedOffsetIdPrinterParser.class"));
 		ClassReader cr = new ClassReader(i);
 		ClassNode cn = new ClassNode();
@@ -510,14 +507,16 @@ public class Test {
 //			MethodNode m2 = new MethodNode(m.owner, m.access, m.name, m.desc, m.signature, m.exceptions.toArray(new String[0]));
 			ControlFlowGraphDumper.dump(cfg, m);
 			
-			System.out.println();
-			int j = 0;
-			for(String s : InstructionPrinter.getLines(m)) {
-				System.out.printf("%03d. %s.%n", j++, s);
-			}
-
-			Analyzer<BasicValue> a = new Analyzer<>(new BasicInterpreter());
-			a.analyze(cn.name, m);
+			System.out.println(cfg);
+			
+//			System.out.println();
+//			int j = 0;
+//			for(String s : InstructionPrinter.getLines(m)) {
+//				System.out.printf("%03d. %s.%n", j++, s);
+//			}
+//
+//			Analyzer<BasicValue> a = new Analyzer<>(new BasicInterpreter());
+//			a.analyze(cn.name, m);
 			
 //			new ClassLoader() {
 //				JarContents<ClassNode> contents;

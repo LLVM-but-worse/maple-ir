@@ -30,7 +30,7 @@ public class ControlFlowGraphBuilder {
 	protected final Map<VersionedLocal, AbstractCopyStatement> defs;
 	protected SSALocalAccess localAccess;
 	protected int count = 0;
-	protected BasicBlock exit;
+	protected BasicBlock head;
 	
 	private ControlFlowGraphBuilder(MethodNode method) {
 		this.method = method;

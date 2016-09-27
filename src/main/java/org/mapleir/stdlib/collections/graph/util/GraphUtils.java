@@ -7,6 +7,8 @@ import java.util.List;
 
 //import org.mapleir.ir.analysis.StatementGraph;
 import org.mapleir.ir.cfg.BasicBlock;
+import org.mapleir.ir.cfg.ControlFlowGraph;
+import org.mapleir.stdlib.cfg.edge.DummyEdge;
 import org.mapleir.stdlib.collections.graph.FastGraphVertex;
 
 public class GraphUtils {
@@ -675,4 +677,26 @@ public class GraphUtils {
 		// mergeTrys(cfg, order, pred, b);
 	}
 	*/
+	
+	public static BasicBlock connectHead(ControlFlowGraph cfg) {
+		BasicBlock head = new BasicBlock(cfg, Integer.MAX_VALUE -1, null) {
+			@Override
+			public String getId() {
+				return "fakehead";
+			}
+		};
+		cfg.addVertex(head);
+		
+		for(BasicBlock b : cfg.vertices()) {
+			if(cfg.getReverseEdges(b).size() == 0 && b != head) {
+				cfg.addEdge(head, new DummyEdge<>(head, b));
+			}
+		}
+		
+		return head;
+	}
+	
+	public static void disconnectHead(ControlFlowGraph cfg, BasicBlock head) {
+		cfg.removeVertex(head);
+	}
 }

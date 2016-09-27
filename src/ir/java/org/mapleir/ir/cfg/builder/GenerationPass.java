@@ -151,6 +151,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		stack.push(load_stack(0, type));
 		
 		queue(label);
+		marks.add(tc.start);
 		marks.add(tc.end);
 		
 		stacks.set(handler.getNumericId());
@@ -1398,7 +1399,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 	}
 	
 	void ensureMarks() {
-		// it is possible for the end blocks of ranges
+		// it is possible for the start/end blocks of ranges
 		// to not be generated/blocked during generation,
 		// so we generate them here.
 		

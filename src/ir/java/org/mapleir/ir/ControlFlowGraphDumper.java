@@ -1,5 +1,7 @@
 package org.mapleir.ir;
 
+import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
@@ -23,11 +25,19 @@ public class ControlFlowGraphDumper {
 			b.resetLabel();
 		}
 
-		for (BasicBlock b : cfg.vertices()) {
+		List<BasicBlock> blocks = new ArrayList<>(cfg.vertices());
+		
+		for (BasicBlock b : blocks) {
 			m.visitLabel(b.getLabel());
 			for (Statement stmt : b) {
 				stmt.toCode(m, null);
 			}
+		}
+		
+		Iterator<BasicBlock> it = blocks.iterator();
+		while(it.hasNext()) {
+			BasicBlock b = it.next();
+			
 		}
 
 		for (ExceptionRange<BasicBlock> er : cfg.getRanges()) {
