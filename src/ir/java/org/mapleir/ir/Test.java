@@ -460,11 +460,12 @@ public class Test {
 					System.out.printf("%s  %d.%n", m, m.instructions.size());
 					ControlFlowGraph cfg = null;
 					try {
+						m.localVariables.clear();
 						cfg = ControlFlowGraphBuilder.build(m);
-						System.out.println(cfg);
-						
+						m.access ^= Opcodes.ACC_SYNTHETIC;
 						new BoissinotDestructor(cfg, 0); // ungay this
 						cfg.getLocals().realloc(cfg);
+						System.out.println(cfg);
 						ControlFlowGraphDumper.dump(cfg, m);
 					} catch(RuntimeException e) {
 						System.err.println();

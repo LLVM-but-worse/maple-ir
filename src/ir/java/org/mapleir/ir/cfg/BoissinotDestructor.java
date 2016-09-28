@@ -102,6 +102,8 @@ public class BoissinotDestructor {
 
 		// 4. Sequentialize parallel copies
 		sequentialize();
+		
+		GraphUtils.disconnectHead(cfg, head);
 	}
 
 	// ============================================================================================================= //
