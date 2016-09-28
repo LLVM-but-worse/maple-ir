@@ -1,14 +1,16 @@
 package org.mapleir.ir;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Set;
 
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.stmt.Statement;
 import org.mapleir.stdlib.cfg.edge.DummyEdge;
+import org.mapleir.stdlib.cfg.edge.FlowEdge;
+import org.mapleir.stdlib.cfg.edge.FlowEdges;
 import org.mapleir.stdlib.collections.graph.flow.ExceptionRange;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.tree.LabelNode;
@@ -34,10 +36,24 @@ public class ControlFlowGraphDumper {
 			}
 		}
 		
-		Iterator<BasicBlock> it = blocks.iterator();
+		ListIterator<BasicBlock> it = blocks.listIterator();
 		while(it.hasNext()) {
 			BasicBlock b = it.next();
 			
+			for(FlowEdge<BasicBlock> e: cfg.getEdges(b)) {
+				if(e.getType() == FlowEdges.IMMEDIATE) {
+					if(it.hasNext()) {
+						BasicBlock n = it.next();
+						it.previous();
+						
+						if(n != e.dst) {
+							throw new IllegalStateException("Illegal flow " + e + " > " + n);
+						}
+					} else {
+						throw new IllegalStateException("Trailing " + e);
+					}
+				}
+			}
 		}
 
 		for (ExceptionRange<BasicBlock> er : cfg.getRanges()) {
