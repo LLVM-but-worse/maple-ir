@@ -3,7 +3,6 @@ package org.mapleir.ir.code.stmt;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
@@ -16,7 +15,7 @@ import org.mapleir.stdlib.cfg.util.TabbedStringWriter;
 import org.mapleir.stdlib.collections.graph.FastGraphVertex;
 import org.objectweb.asm.MethodVisitor;
 
-public abstract class Statement implements FastGraphVertex, Opcode, Iterable<Statement> {
+public abstract class Statement implements FastGraphVertex, Opcode {
 	
 	public static int ID_COUNTER = 1;
 	private final int id = ID_COUNTER++;
@@ -411,21 +410,20 @@ public abstract class Statement implements FastGraphVertex, Opcode, Iterable<Sta
 //			parent.markDirtyUp();
 //	}
 
-	@Override
+/*	@Override
 	public Iterator<Statement> iterator() {
 //		if (isDirty) {
-//			flatChildrenCache.clear();
-//			new StatementVisitor(this) {
-//				@Override
-//				public Statement visit(Statement stmt) {
-//					flatChildrenCache.add(stmt);
-//					return stmt;
-//				}
-//			}.visit();
-//			isDirty = false;
-//		}
-//		return new ArrayList<>(flatChildrenCache).iterator();
-		List<Statement> list = new ArrayList<>();
+//		flatChildrenCache.clear();
+//		new StatementVisitor(this) {
+//			@Override
+//			public Statement visit(Statement stmt) {
+//				flatChildrenCache.add(stmt);
+//				return stmt;
+//			}
+//		}.visit();
+//		isDirty = false;
+//	}
+//	return new ArrayList<>(flatChildrenCache).iterator();
 //		new StatementVisitor(this) {
 //			@Override
 //			public Statement visit(Statement stmt) {
@@ -433,13 +431,14 @@ public abstract class Statement implements FastGraphVertex, Opcode, Iterable<Sta
 //				return stmt;
 //			}
 //		}.visit();
+		List<Statement> list = new ArrayList<>();
 		for(Statement c : children) {
 			if(c != null) {
 				list.add(c);
 			}
 		}
 		return list.iterator();
-	}
+	} */
 	
 	public void checkConsistency() {
 		checkConsistency(null);
