@@ -1,5 +1,13 @@
 package org.mapleir.ir.cfg;
 
+import static org.mapleir.ir.code.Opcode.LOCAL_LOAD;
+
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.ListIterator;
+import java.util.Map;
+import java.util.Map.Entry;
+
 import org.mapleir.ir.analysis.SSADefUseMap;
 import org.mapleir.ir.code.Opcode;
 import org.mapleir.ir.code.expr.Expression;
@@ -17,14 +25,6 @@ import org.mapleir.stdlib.collections.bitset.GenericBitSet;
 import org.mapleir.stdlib.collections.bitset.IncrementalBitSetIndexer;
 import org.mapleir.stdlib.ir.transform.ssa.SSABlockLivenessAnalyser;
 import org.objectweb.asm.Type;
-
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.ListIterator;
-import java.util.Map;
-import java.util.Map.Entry;
-
-import static org.mapleir.ir.code.Opcode.LOCAL_LOAD;
 
 public class SreedharDestructor {
 
@@ -124,7 +124,7 @@ public class SreedharDestructor {
 					Local defLocal = copy.getVariable().getLocal();
 					intraLive.remove(defLocal);
 				}
-				for (Statement child : stmt) {
+				for (Statement child : stmt.enumerate()) {
 					if (stmt.getOpcode() == LOCAL_LOAD) {
 						Local usedLocal = ((VarExpression) child).getLocal();
 						if (intraLive.add(usedLocal)) {
@@ -477,7 +477,7 @@ public class SreedharDestructor {
 					Local copyTarget = lhs.getLocal();
 					lhs.setLocal(remap.getOrDefault(copyTarget, copyTarget));
 				}
-				for (Statement child : stmt) {
+				for (Statement child : stmt.enumerate()) {
 					if (child.getOpcode() == LOCAL_LOAD) {
 						VarExpression var = (VarExpression) child;
 						Local loadSource = var.getLocal();

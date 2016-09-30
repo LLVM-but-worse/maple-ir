@@ -136,7 +136,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		LabelNode label = tc.handler;
 		BasicBlock handler = resolveTarget(label);
 		if(handler.getInputStack() != null) {
-			return;
+			throw new RuntimeException(builder.method.toString());
 		}
 		
 		ExpressionStack stack = new ExpressionStack(16);

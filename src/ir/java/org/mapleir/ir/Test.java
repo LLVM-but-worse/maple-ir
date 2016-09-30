@@ -465,8 +465,10 @@ public class Test {
 						m.access ^= Opcodes.ACC_SYNTHETIC;
 						new BoissinotDestructor(cfg, 0); // ungay this
 						cfg.getLocals().realloc(cfg);
-						System.out.println(cfg);
 						ControlFlowGraphDumper.dump(cfg, m);
+						System.out.println(cfg);
+						
+//						cfg = ControlFlowGraphBuilder.build(m);
 					} catch(RuntimeException e) {
 						System.err.println();
 						System.err.println(cfg);
