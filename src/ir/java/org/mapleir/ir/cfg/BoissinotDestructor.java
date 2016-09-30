@@ -46,7 +46,7 @@ public class BoissinotDestructor {
 		pcvs.pairs.add(new CopyPair(c, b, null));
 		pcvs.pairs.add(new CopyPair(d, c, null));
 		pcvs.pairs.add(new CopyPair(e, a, null));
-		for (Statement stmt : pcvs) {
+		for (Statement stmt : pcvs.enumerate()) {
 			if (stmt.getOpcode() == Opcode.LOCAL_LOAD)
 				System.out.println(((VarExpression) stmt).getLocal());
 		}
@@ -81,11 +81,12 @@ public class BoissinotDestructor {
 
 		// 1. Insert copies to enter CSSA.
 		init();
-
+		
 		BasicBlock head = GraphUtils.connectHead(cfg);
 		resolver = new DominanceLivenessAnalyser(cfg, head, null);
 		
 		insertCopies();
+		
 		constructDominance();
 		createDuChains();
 
@@ -95,9 +96,9 @@ public class BoissinotDestructor {
 		// 3. Aggressively coalesce while in CSSA to leave SSA
 		// 3a. Coalesce phi locals to leave CSSA (!!!)
 		coalescePhis();
-
 		// 3b. Coalesce the rest of the copies
 		coalesceCopies();
+		
 		applyRemapping(remap);
 
 		// 4. Sequentialize parallel copies
@@ -461,7 +462,7 @@ public class BoissinotDestructor {
 					continue;
 				processed.add(used);
 				for (Statement stmt : used) {
-					for (Statement s : stmt) {
+					for (Statement s : stmt.enumerate()) {
 						if (s.getOpcode() == Opcode.LOCAL_LOAD) {
 							VarExpression v = (VarExpression) s;
 							v.setLocal(remap.getOrDefault(v.getLocal(), v.getLocal()));
@@ -473,6 +474,7 @@ public class BoissinotDestructor {
 			if (processed2.contains(b))
 				continue;
 			processed2.add(b);
+			
 			for (Iterator<Statement> it = b.iterator(); it.hasNext(); ) {
 				Statement stmt = it.next();
 				if (stmt instanceof ParallelCopyVarStatement) {
