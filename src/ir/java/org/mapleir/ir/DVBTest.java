@@ -87,7 +87,7 @@ public class DVBTest {
 					cn.accept(clazz);
 					byte[] saved = clazz.toByteArray();
 					FileOutputStream out = new FileOutputStream(
-							new File(String.format("res/dvb/processed_DVB%04d.class", i)));
+							new File(String.format("out/dvb/processed_DVB%04d.class", i)));
 					out.write(saved, 0, saved.length);
 					out.close();
 					statuses[i - 1] = true;
