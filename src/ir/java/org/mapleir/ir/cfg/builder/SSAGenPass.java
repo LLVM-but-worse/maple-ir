@@ -7,8 +7,8 @@ import org.mapleir.ir.analysis.SimpleDfs;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.Opcode;
-import org.mapleir.ir.code.expr.CaughtExceptionExpression;
 import org.mapleir.ir.code.expr.Expression;
+import org.mapleir.ir.code.expr.PhiExceptionExpression;
 import org.mapleir.ir.code.expr.PhiExpression;
 import org.mapleir.ir.code.expr.VarExpression;
 import org.mapleir.ir.code.stmt.ConditionalJumpStatement;
@@ -22,18 +22,31 @@ import org.mapleir.ir.code.stmt.copy.CopyVarStatement;
 import org.mapleir.ir.locals.Local;
 import org.mapleir.ir.locals.LocalsHandler;
 import org.mapleir.ir.locals.VersionedLocal;
-import org.mapleir.stdlib.cfg.edge.*;
+import org.mapleir.stdlib.cfg.edge.ConditionalJumpEdge;
+import org.mapleir.stdlib.cfg.edge.FlowEdge;
+import org.mapleir.stdlib.cfg.edge.FlowEdges;
+import org.mapleir.stdlib.cfg.edge.ImmediateEdge;
+import org.mapleir.stdlib.cfg.edge.SwitchEdge;
+import org.mapleir.stdlib.cfg.edge.TryCatchEdge;
+import org.mapleir.stdlib.cfg.edge.UnconditionalJumpEdge;
 import org.mapleir.stdlib.cfg.util.TypeUtils;
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.SetCreator;
 import org.mapleir.stdlib.collections.graph.flow.ExceptionRange;
 import org.mapleir.stdlib.collections.graph.flow.TarjanDominanceComputor;
+import org.mapleir.stdlib.collections.graph.util.GraphUtils;
 import org.mapleir.stdlib.ir.transform.Liveness;
 import org.mapleir.stdlib.ir.transform.ssa.SSABlockLivenessAnalyser;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.LabelNode;
 
 public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
+	
+	public static boolean DO_SPLIT = true;
+	public static boolean ULTRANAIVE = false;
+	public static boolean SKIP_SIMPLE_COPY_SPLIT = true;
+	public static boolean PRUNE_EDGES = true;
+	public static int SPLIT_BLOCK_COUNT = 0;
 
 	private final Map<Local, Integer> counters;
 	private final Map<Local, Stack<Integer>> stacks;
@@ -42,6 +55,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 	private final Map<BasicBlock, Integer> process;
 	private final NullPermeableHashMap<BasicBlock, Set<Local>> splits;
 	private final Map<BasicBlock, Integer> preorder;
+	private final Set<BasicBlock> handlers;
 	
 	private TarjanDominanceComputor<BasicBlock> doms;
 	private Liveness<BasicBlock> liveness;
@@ -58,13 +72,8 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		
 		splits = new NullPermeableHashMap<>(new SetCreator<>());
 		preorder = new HashMap<>();
+		handlers = new HashSet<>();
 	}
-	
-	public static boolean DO_SPLIT = true;
-	public static boolean ULTRANAIVE = false;
-	public static boolean SKIP_SIMPLE_COPY_SPLIT = true;
-	public static boolean PRUNE_EDGES = true;
-	public static int SPLIT_BLOCK_COUNT = 0;
 	
 	private void splitRanges() {
 		// produce cleaner cfg
@@ -72,6 +81,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		
 		for(ExceptionRange<BasicBlock> er : builder.graph.getRanges()) {
 			BasicBlock h = er.getHandler();
+			handlers.add(h);
 			
 			Set<Local> ls = new HashSet<>(liveness.in(h));
 			for(BasicBlock b : er.get()) {
@@ -336,7 +346,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 	}
 	
 	private void insertPhis(BasicBlock b, Local l, int i, LinkedList<BasicBlock> queue) {
-		if(b == null || b == builder.exit) {
+		if(b == null || b == builder.head) {
 			return; // exit
 		}
 
@@ -344,14 +354,61 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		
 		for(BasicBlock x : doms.iteratedFrontier(b)) {
 			if(insertion.get(x) < i) {
-				if(builder.graph.getReverseEdges(x).size() > 1) {
-					// pruned SSA
-					if(liveness.in(x).contains(l)) {
+				// pruned SSA
+				if(liveness.in(x).contains(l)) {
+					/* Scenarios: (assuming live in)
+					 *   multiple lvar into any block      -> add phi
+					 *   
+					 *   svar0 into handler from exception 
+					 *    and non exception edge and       -> add phi
+					 */
+					if(handlers.contains(x) && l.isStack()) {
+						boolean naturalFlow = false;
+						for(FlowEdge<BasicBlock> e : builder.graph.getReverseEdges(x)) {
+							if(e.getType() != FlowEdges.TRYCATCH) {
+								naturalFlow = true;
+								break;
+							}
+						}
+						if(naturalFlow) {
+							CopyVarStatement catcher = null;
+							
+							for(Statement stmt : x) {
+								if(stmt.getOpcode() == Opcode.LOCAL_STORE) {
+									CopyVarStatement copy = (CopyVarStatement) stmt;
+									Expression e = copy.getExpression();
+									if(e.getOpcode() == Opcode.CATCH) {
+										catcher = copy;
+										break;
+									}
+								}
+							}
+							
+							if(catcher == null) {
+								throw new IllegalStateException(x.getId());
+							}
+							
+							if(catcher.getVariable().getLocal() != l) {
+								continue;
+							}
+							
+							Map<BasicBlock, Expression> vls = new HashMap<>();
+							for(FlowEdge<BasicBlock> fe : builder.graph.getReverseEdges(x)) {
+								vls.put(fe.src, new VarExpression(newl, null));
+							}
+							vls.put(x, catcher.getExpression().copy());
+							catcher.delete();
+							
+							PhiExpression phi = new PhiExceptionExpression(vls);
+							CopyPhiStatement assign = new CopyPhiStatement(new VarExpression(l, null), phi);
+							
+							x.add(0, assign);
+						}
+					} else if(builder.graph.getReverseEdges(x).size() > 1) {
 						Map<BasicBlock, Expression> vls = new HashMap<>();
 						for(FlowEdge<BasicBlock> fe : builder.graph.getReverseEdges(x)) {
 							vls.put(fe.src, new VarExpression(newl, null));
 						}
-//						System.out.println("mkphi " + vls);
 						PhiExpression phi = new PhiExpression(vls);
 						CopyPhiStatement assign = new CopyPhiStatement(new VarExpression(l, null), phi);
 						
@@ -473,7 +530,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 //				}
 				
 				if(e.getOpcode() == Opcode.LOCAL_LOAD) {
-					Local l = (VersionedLocal) ((VarExpression) e).getLocal();
+					Local l = ((VarExpression) e).getLocal();
 					l = _top(stmt, l.getIndex(), l.isStack());
 					try {
 						AbstractCopyStatement varDef = builder.defs.get(l);
@@ -496,8 +553,6 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 						System.err.println(succ.getId() + ": " + phi.getId() + ". " + phi);
 						throw eg;
 					}
-				} else {
-					throw new UnsupportedOperationException(String.valueOf(e));
 				}
 			} else {
 				break;
@@ -530,30 +585,8 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		int subscript = stack.peek();
 		return handler.get(index, subscript, isStack);
 	}
-
-	private void connectExit() {
-		builder.naturaliseGraph(new ArrayList<>(builder.graph.vertices()));
-		
-		builder.exit = new BasicBlock(builder.graph, Integer.MAX_VALUE -1, null) {
-			@Override
-			public String getId() {
-				return "fakeexit";
-			}
-		};
-		builder.graph.addVertex(builder.exit);
-		
-		for(BasicBlock b : builder.graph.vertices()) {
-			if(builder.graph.getEdges(b).size() == 0) {
-				builder.graph.addEdge(b, new DummyEdge<>(b, builder.exit));
-			}
-		}
-	}
 	
-	private void disconnectExit() {
-		builder.graph.removeVertex(builder.exit);
-	}
-	
-	private void fixFinally() {
+	/* private void fixFinally() {
 		// fix finally blocks that have handler ranges to themselves
 		for(ExceptionRange<BasicBlock> er : builder.graph.getRanges()) {
 			BasicBlock h = er.getHandler();
@@ -594,7 +627,6 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 			}
 		}
 	}
-	
 	private void cleanHandlerPhis() {
 		for(ExceptionRange<BasicBlock> er : builder.graph.getRanges()) {
 			BasicBlock h = er.getHandler();
@@ -645,12 +677,22 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 				}
 			}
 		}
-	}
+	} */
 
 	@Override
 	public void run() {
 		splitCount = builder.graph.size() + 1;
-		connectExit();
+		builder.head = GraphUtils.connectHead(builder.graph);
+
+		List<BasicBlock> order = new ArrayList<>(builder.graph.vertices());
+		order.remove(builder.head);
+		order.add(0, builder.head);
+		builder.naturaliseGraph(order);
+		
+//		BasicDotConfiguration<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> config = new BasicDotConfiguration<>(DotConfiguration.GraphType.DIRECTED);
+//		DotWriter<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> writer = new DotWriter<>(config, builder.graph);
+//		writer.removeAll().add(new ControlFlowGraphDecorator()).setName("headed").export();
+
 		
 		SSABlockLivenessAnalyser liveness = new SSABlockLivenessAnalyser(builder.graph);
 		liveness.compute();
@@ -662,10 +704,10 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		liveness.compute();
 		this.liveness = liveness;
 		
-		doms = new TarjanDominanceComputor<>(builder.graph, new SimpleDfs<>(builder.graph, builder.graph.getEntries().iterator().next(), true, false).preorder);
+		doms = new TarjanDominanceComputor<>(builder.graph, new SimpleDfs<>(builder.graph, builder.head, true, false).preorder);
 		insertPhis();
 		rename();
 		
-		disconnectExit();
+		GraphUtils.disconnectHead(builder.graph, builder.head);
 	}
 }

@@ -5,6 +5,8 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Iterator;
 
@@ -21,6 +23,8 @@ import org.objectweb.asm.tree.InsnList;
 import org.objectweb.asm.tree.InsnNode;
 import org.objectweb.asm.tree.MethodInsnNode;
 import org.objectweb.asm.tree.MethodNode;
+import org.objectweb.asm.tree.analysis.AnalyzerException;
+import org.objectweb.asm.util.CheckClassAdapter;
 import org.topdank.byteengineer.commons.data.JarContents;
 import org.topdank.byteengineer.commons.data.JarInfo;
 import org.topdank.byteio.in.SingleJarDownloader;
@@ -439,8 +443,8 @@ public class Test {
 		System.out.println(cfg);
 	}
 	
-	public static void main5(String[] args) throws IOException {
-		JarInfo jar = new JarInfo(new File("res/osbot2489.jar"));
+	public static void main(String[] args) throws IOException {
+		JarInfo jar = new JarInfo(new File("res/allatori.jar"));
 		SingleJarDownloader<ClassNode> dl = new SingleJarDownloader<>(jar);
 		dl.download();
 		JarContents<ClassNode> contents = dl.getJarContents();
@@ -448,19 +452,25 @@ public class Test {
 		for (ClassNode cn : contents.getClassContents()) {
 			for(MethodNode m : cn.methods) {
 				
-				if(!m.toString().startsWith("org/osbot/At.toString()Ljava/lang/String;")) {
+				if(!m.toString().startsWith("com/allatori/wtk/WTKObfuscator.run(Ljava/io/File;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V")) {
 					continue;
 				}
 				
 				if(m.instructions.size() > 0) {
-					// System.out.printf("%s  %d.%n", m, m.instructions.size());
+					System.out.printf("%s  %d.%n", m, m.instructions.size());
 					ControlFlowGraph cfg = null;
 					try {
+						m.localVariables.clear();
 						cfg = ControlFlowGraphBuilder.build(m);
+						m.access ^= Opcodes.ACC_SYNTHETIC;
+						System.out.println(cfg);
 						new BoissinotDestructor(cfg, 0); // ungay this
+						System.out.println(cfg);
 						cfg.getLocals().realloc(cfg);
-
 						ControlFlowGraphDumper.dump(cfg, m);
+						System.out.println(cfg);
+						
+						cfg = ControlFlowGraphBuilder.build(m);
 					} catch(RuntimeException e) {
 						System.err.println();
 						System.err.println(cfg);
@@ -474,7 +484,7 @@ public class Test {
 		dumper.dump(new File("out/osb.jar"));
 	}
 	
-	public static void main(String[] args) throws IOException {
+	public static void main3(String[] args) throws IOException, AnalyzerException {
 		InputStream i = new FileInputStream(new File("res/DateTimeFormatterBuilder$LocalizedOffsetIdPrinterParser.class"));
 		ClassReader cr = new ClassReader(i);
 		ClassNode cn = new ClassNode();
@@ -496,20 +506,62 @@ public class Test {
 
 			ControlFlowGraph cfg = ControlFlowGraphBuilder.build(m);
 			new BoissinotDestructor(cfg, 0);
-			cfg.getLocals().realloc(cfg);
-
+			m.maxLocals = cfg.getLocals().realloc(cfg);
+			
+//			System.out.println(cfg);
+//			MethodNode m2 = new MethodNode(m.owner, m.access, m.name, m.desc, m.signature, m.exceptions.toArray(new String[0]));
+			ControlFlowGraphDumper.dump(cfg, m);
+			
 			System.out.println(cfg);
-			MethodNode m2 = new MethodNode(m.owner, m.access, m.name, m.desc, m.signature, m.exceptions.toArray(new String[0]));
-			ControlFlowGraphDumper.dump(cfg, m2);
-			cn.methods.add(m2);
-			cn.methods.remove(m);
+			
+//			System.out.println();
+//			int j = 0;
+//			for(String s : InstructionPrinter.getLines(m)) {
+//				System.out.printf("%03d. %s.%n", j++, s);
+//			}
+//
+//			Analyzer<BasicValue> a = new Analyzer<>(new BasicInterpreter());
+//			a.analyze(cn.name, m);
+			
+//			new ClassLoader() {
+//				JarContents<ClassNode> contents;
+//				{
+//					AbstractJarDownloader<ClassNode> dl = new SingleJarDownloader<>(new JarInfo(new File("res/rt.jar")));
+//					dl.download();
+//					contents = dl.getJarContents();
+//					ClassWriter clazz = new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
+//					cn.accept(clazz);
+//					byte[] b = clazz.toByteArray();
+//					defineClass(b, 0, b.length);
+//				}
+//				
+//				@Override
+//				public Class<?> loadClass(String name) throws ClassNotFoundException {
+//					if(name.contains("DateTimeFormatterBuilder")) {
+//						ClassNode cn = contents.getClassContents().namedMap().get(name.replace(".", "/"));
+//						cn.access ^= Opcodes.ACC_PRIVATE;
+//						cn.access &= Opcodes.ACC_PUBLIC;
+//						ClassWriter clazz = new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
+//						cn.accept(clazz);
+//						byte[] b = clazz.toByteArray();
+//						return defineClass(b, 0, b.length);
+//					} else {
+//						return super.loadClass(name);
+//					}
+//				}
+//			};
 		}
 
-		ClassWriter clazz = new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
-		cn.accept(clazz);
-		byte[] saved = clazz.toByteArray();
+		ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
+		cn.accept(cw);
+		byte[] bs = cw.toByteArray();
+		
+		StringWriter sw = new StringWriter();
+		PrintWriter pw = new PrintWriter(sw);
+		CheckClassAdapter.verify(new ClassReader(bs), false, pw);
+		
 		FileOutputStream out = new FileOutputStream(new File("out/testclass.class"));
-		out.write(saved, 0, saved.length);
+		out.write(bs, 0, bs.length);
 		out.close();
 	}
 }

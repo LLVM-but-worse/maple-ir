@@ -34,7 +34,7 @@ public class NewArrayExpression extends Expression {
 		if (bounds.length < this.bounds.length) {
 			setChildPointer(0);
 			while (read(0) != null) {
-				delete();
+				deleteAt(getChildPointer());
 			}
 		}
 

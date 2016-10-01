@@ -56,7 +56,8 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 	private final InsnList insns;
 	private final BitSet finished;
 	private final LinkedList<LabelNode> queue;
-
+	private final Set<LabelNode> marks;
+	
 	private BitSet stacks;
 	private BasicBlock currentBlock;
 	private ExpressionStack currentStack;
@@ -73,6 +74,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		finished = new BitSet();
 		queue = new LinkedList<>();
 		stacks = new BitSet();
+		marks = new HashSet<>();
 		
 		insns = builder.method.instructions;
 	}
@@ -134,21 +136,24 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		LabelNode label = tc.handler;
 		BasicBlock handler = resolveTarget(label);
 		if(handler.getInputStack() != null) {
-			return;
+			throw new RuntimeException(builder.method.toString());
 		}
 		
 		ExpressionStack stack = new ExpressionStack(16);
 		handler.setInputStack(stack);
 		
-		Expression expr = new CaughtExceptionExpression(tc.type);
+		Expression expr = new CaughtExceptionExpression("L" + tc.type + ";");
 		Type type = expr.getType();
 		VarExpression var = _var_expr(0, type, true);
-		CopyVarStatement stmt = copy(var, expr);
+		CopyVarStatement stmt = copy(var, expr, handler);
 		handler.add(stmt);
 		
 		stack.push(load_stack(0, type));
 		
 		queue(label);
+		marks.add(tc.start);
+		marks.add(tc.end);
+		
 		stacks.set(handler.getNumericId());
 	}
 	
@@ -326,7 +331,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 			case ICONST_3:
 			case ICONST_4:
 			case ICONST_5:
-				_const((int) (opcode - ICONST_M1) - 1);
+				_const(opcode - ICONST_M1 - 1);
 				break;
 			case LCONST_0:
 			case LCONST_1:
@@ -1157,7 +1162,11 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 	}
 	
 	CopyVarStatement copy(VarExpression v, Expression e) {
-		builder.assigns.getNonNull(v.getLocal()).add(currentBlock);
+		return copy(v, e, currentBlock);
+	}
+	
+	CopyVarStatement copy(VarExpression v, Expression e, BasicBlock b) {
+		builder.assigns.getNonNull(v.getLocal()).add(b);
 		return new CopyVarStatement(v.getParent() != null? v.copy() : v, e.getParent() != null? e.copy() : e);
 	}
 	
@@ -1389,11 +1398,36 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		}
 	}
 	
+	void ensureMarks() {
+		// it is possible for the start/end blocks of ranges
+		// to not be generated/blocked during generation,
+		// so we generate them here.
+		
+		for(LabelNode m : marks) {
+			// creates the block if it's not
+			// already in the graph.
+			resolveTarget(m);
+		}
+		// queue is irrelevant at this point.
+		queue.clear();
+		
+		// since the blocks created were not reached
+		// it means that their inputstacks were empty.
+		// this also means no edges are needed to connect
+		// them except for the range edges which are done
+		// later.
+		// we can also rely on the natural label ordering
+		// code to fix up the graph to make it look like
+		// this block is next to the previous block in code.
+	}
+	
 	void processQueue() {
 		while(!queue.isEmpty()) {
 			LabelNode label = queue.removeFirst();
 			process(label);
 		}
+		
+		ensureMarks();
 		
 		List<BasicBlock> blocks = new ArrayList<>(builder.graph.vertices());
 		Collections.sort(blocks, new Comparator<BasicBlock>() {

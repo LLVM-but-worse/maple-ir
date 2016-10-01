@@ -88,12 +88,20 @@ public class CompleteResolvingJarDumper implements JarDumper {
 		    	ClassNode dcn = classTree.getClass(type2);
 		    	
 		    	if(ccn == null) {
-		    		classTree.build(ClassNodeUtil.create(type1));
+		    		ClassNode c = ClassNodeUtil.create(type1);
+		    		if(c == null) {
+		    			return "java/lang/Object";
+		    		}
+		    		classTree.build(c);
 		    		return getCommonSuperClass(type1, type2);
 		    	}
 		    	
 		    	if(dcn == null) {
-		    		classTree.build(ClassNodeUtil.create(type2));
+		    		ClassNode c = ClassNodeUtil.create(type2);
+		    		if(c == null) {
+		    			return "java/lang/Object";
+		    		}
+		    		classTree.build(c);
 		    		return getCommonSuperClass(type1, type2);
 		    	}
 		    	

@@ -15,14 +15,20 @@ import org.mapleir.ir.code.stmt.Statement;
 import org.mapleir.ir.code.stmt.copy.AbstractCopyStatement;
 import org.mapleir.ir.code.stmt.copy.CopyPhiStatement;
 import org.mapleir.ir.code.stmt.copy.CopyVarStatement;
+import org.mapleir.ir.dot.ControlFlowGraphDecorator;
 import org.mapleir.ir.locals.BasicLocal;
 import org.mapleir.ir.locals.Local;
 import org.mapleir.ir.locals.LocalsHandler;
 import org.mapleir.ir.locals.VersionedLocal;
+import org.mapleir.stdlib.cfg.edge.FlowEdge;
 import org.mapleir.stdlib.cfg.util.TabbedStringWriter;
 import org.mapleir.stdlib.collections.ListCreator;
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.bitset.GenericBitSet;
+import org.mapleir.stdlib.collections.graph.dot.BasicDotConfiguration;
+import org.mapleir.stdlib.collections.graph.dot.DotConfiguration;
+import org.mapleir.stdlib.collections.graph.dot.DotWriter;
+import org.mapleir.stdlib.collections.graph.util.GraphUtils;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Type;
 
@@ -45,7 +51,7 @@ public class BoissinotDestructor {
 		pcvs.pairs.add(new CopyPair(c, b, null));
 		pcvs.pairs.add(new CopyPair(d, c, null));
 		pcvs.pairs.add(new CopyPair(e, a, null));
-		for (Statement stmt : pcvs) {
+		for (Statement stmt : pcvs.enumerate()) {
 			if (stmt.getOpcode() == Opcode.LOCAL_LOAD)
 				System.out.println(((VarExpression) stmt).getLocal());
 		}
@@ -81,9 +87,16 @@ public class BoissinotDestructor {
 		// 1. Insert copies to enter CSSA.
 		init();
 		
-		resolver = new DominanceLivenessAnalyser(cfg, null);
+		BasicBlock head = GraphUtils.connectHead(cfg);
+		
+		BasicDotConfiguration<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> config = new BasicDotConfiguration<>(DotConfiguration.GraphType.DIRECTED);
+		DotWriter<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> writer = new DotWriter<>(config, cfg);
+		writer.removeAll().add(new ControlFlowGraphDecorator()).setName("999111").export();
+		
+		resolver = new DominanceLivenessAnalyser(cfg, head, null);
 		
 		insertCopies();
+		
 		constructDominance();
 		createDuChains();
 
@@ -93,13 +106,22 @@ public class BoissinotDestructor {
 		// 3. Aggressively coalesce while in CSSA to leave SSA
 		// 3a. Coalesce phi locals to leave CSSA (!!!)
 		coalescePhis();
-
 		// 3b. Coalesce the rest of the copies
 		coalesceCopies();
+		
+		System.out.println();
+		System.out.println("classes:");
+		for(Entry<Local, CongruenceClass> e : congruenceClasses.entrySet()) {
+			System.out.println("   " + e.getKey() + " == " + e.getValue());
+		}
+		System.out.println(cfg);
+		
 		applyRemapping(remap);
 
 		// 4. Sequentialize parallel copies
 		sequentialize();
+		
+		GraphUtils.disconnectHead(cfg, head);
 	}
 
 	// ============================================================================================================= //
@@ -114,7 +136,7 @@ public class BoissinotDestructor {
 					for(Entry<BasicBlock, Expression> e : copy.getExpression().getArguments().entrySet()) {
 						Expression expr = e.getValue();
 						int opcode = expr.getOpcode();
-						if(opcode == Opcode.CONST_LOAD) {
+						if(opcode == Opcode.CONST_LOAD || opcode == Opcode.CATCH) {
 							VersionedLocal vl = locals.makeLatestVersion(locals.get(0, false));
 							CopyVarStatement cvs = new CopyVarStatement(new VarExpression(vl, expr.getType()), expr);
 							e.setValue(new VarExpression(vl, expr.getType()));
@@ -156,7 +178,7 @@ public class BoissinotDestructor {
 
 			CopyPhiStatement copy = (CopyPhiStatement) stmt;
 			PhiExpression phi = copy.getExpression();
-
+			
 			// for every xi arg of the phi from pred Li, add it to the worklist
 			// so that we can parallelise the copy when we insert it.
 			for(Entry<BasicBlock, Expression> e : phi.getArguments().entrySet()) {
@@ -457,7 +479,7 @@ public class BoissinotDestructor {
 					continue;
 				processed.add(used);
 				for (Statement stmt : used) {
-					for (Statement s : stmt) {
+					for (Statement s : stmt.enumerate()) {
 						if (s.getOpcode() == Opcode.LOCAL_LOAD) {
 							VarExpression v = (VarExpression) s;
 							v.setLocal(remap.getOrDefault(v.getLocal(), v.getLocal()));
@@ -469,6 +491,7 @@ public class BoissinotDestructor {
 			if (processed2.contains(b))
 				continue;
 			processed2.add(b);
+			
 			for (Iterator<Statement> it = b.iterator(); it.hasNext(); ) {
 				Statement stmt = it.next();
 				if (stmt instanceof ParallelCopyVarStatement) {
@@ -612,7 +635,10 @@ public class BoissinotDestructor {
 		if (!resolver.isLiveIn(defA, b) && defA != defuse.defs.get(b))
 			return false;
 		// ambiguous case. we need to check if use(dom) occurs after def(def), in that case it interferes. otherwise no
-		int domUseIndex = defuse.lastUseIndex.get(b).get(defA);
+		int domUseIndex = defuse.lastUseIndex.getNonNull(b).getOrDefault(defA, -1);
+		if(domUseIndex == -1) {
+			return false;
+		}
 		int defDefIndex = defuse.defIndex.get(a);
 		return domUseIndex > defDefIndex;
 	}
@@ -854,6 +880,7 @@ public class BoissinotDestructor {
 	}
 
 	private class CongruenceClass extends TreeSet<Local> {
+		private static final long serialVersionUID = -4472334406997712498L;
 		CongruenceClass() {
 			super(new Comparator<Local>() {
 				@Override
