@@ -185,6 +185,7 @@ public class LocalsHandler implements ValueCreator<GenericBitSet<Local>> {
 					for(Entry<Local, Set<Type>> e1 : types.entrySet()) {
 						System.err.println(e1.getKey() + "  ==  " + e1.getValue());
 					}
+					// String.format("illegal typesets for %s, set=%s, refined=%s", args)
 					throw new RuntimeException("illegal typesets for " + e.getKey());
 				}
 				Local l = e.getKey();
@@ -207,7 +208,7 @@ public class LocalsHandler implements ValueCreator<GenericBitSet<Local>> {
 		
 		// lvars then svars, ordered of course,
 		List<Local> wl = new ArrayList<>(stypes.keySet());
-		System.out.println("safe: " + safe);
+//		System.out.println("safe: " + safe);
 		Collections.sort(wl, new Comparator<Local>() {
 			@Override
 			public int compare(Local o1, Local o2) {
@@ -223,7 +224,7 @@ public class LocalsHandler implements ValueCreator<GenericBitSet<Local>> {
 				}
 			}
 		});
-		System.out.println("wl: " + wl);
+//		System.out.println("wl: " + wl);
 		
 		Map<Local, Local> remap = new HashMap<>();
 		int idx = min;
@@ -232,7 +233,7 @@ public class LocalsHandler implements ValueCreator<GenericBitSet<Local>> {
 			Local newL = get(idx, false);
 			if(l != newL) {
 				remap.put(l, newL);
-				System.out.println(l + " -> " + newL);
+//				System.out.println(l + " -> " + newL);
 			}
 			idx += type.getSize();
 		}
