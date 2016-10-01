@@ -232,6 +232,7 @@ public class LocalsHandler implements ValueCreator<GenericBitSet<Local>> {
 			Local newL = get(idx, false);
 			if(l != newL) {
 				remap.put(l, newL);
+				System.out.println(l + " -> " + newL);
 			}
 			idx += type.getSize();
 		}

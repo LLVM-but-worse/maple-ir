@@ -15,14 +15,19 @@ import org.mapleir.ir.code.stmt.Statement;
 import org.mapleir.ir.code.stmt.copy.AbstractCopyStatement;
 import org.mapleir.ir.code.stmt.copy.CopyPhiStatement;
 import org.mapleir.ir.code.stmt.copy.CopyVarStatement;
+import org.mapleir.ir.dot.ControlFlowGraphDecorator;
 import org.mapleir.ir.locals.BasicLocal;
 import org.mapleir.ir.locals.Local;
 import org.mapleir.ir.locals.LocalsHandler;
 import org.mapleir.ir.locals.VersionedLocal;
+import org.mapleir.stdlib.cfg.edge.FlowEdge;
 import org.mapleir.stdlib.cfg.util.TabbedStringWriter;
 import org.mapleir.stdlib.collections.ListCreator;
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.bitset.GenericBitSet;
+import org.mapleir.stdlib.collections.graph.dot.BasicDotConfiguration;
+import org.mapleir.stdlib.collections.graph.dot.DotConfiguration;
+import org.mapleir.stdlib.collections.graph.dot.DotWriter;
 import org.mapleir.stdlib.collections.graph.util.GraphUtils;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Type;
@@ -83,6 +88,11 @@ public class BoissinotDestructor {
 		init();
 		
 		BasicBlock head = GraphUtils.connectHead(cfg);
+		
+		BasicDotConfiguration<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> config = new BasicDotConfiguration<>(DotConfiguration.GraphType.DIRECTED);
+		DotWriter<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> writer = new DotWriter<>(config, cfg);
+		writer.removeAll().add(new ControlFlowGraphDecorator()).setName("999111").export();
+		
 		resolver = new DominanceLivenessAnalyser(cfg, head, null);
 		
 		insertCopies();
@@ -98,6 +108,13 @@ public class BoissinotDestructor {
 		coalescePhis();
 		// 3b. Coalesce the rest of the copies
 		coalesceCopies();
+		
+		System.out.println();
+		System.out.println("classes:");
+		for(Entry<Local, CongruenceClass> e : congruenceClasses.entrySet()) {
+			System.out.println("   " + e.getKey() + " == " + e.getValue());
+		}
+		System.out.println(cfg);
 		
 		applyRemapping(remap);
 
