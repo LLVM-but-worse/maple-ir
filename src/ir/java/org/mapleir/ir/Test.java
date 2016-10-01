@@ -452,7 +452,7 @@ public class Test {
 		for (ClassNode cn : contents.getClassContents()) {
 			for(MethodNode m : cn.methods) {
 				
-				if(!m.toString().startsWith("com/allatori/wtk/WTKObfuscator.run(Ljava/io/File;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V")) {
+				if(!m.toString().startsWith("com/allatori/IIiIIIiIiI.IIIIIIiIII(I)V")) {
 					continue;
 				}
 				
@@ -463,12 +463,12 @@ public class Test {
 						m.localVariables.clear();
 						cfg = ControlFlowGraphBuilder.build(m);
 						m.access ^= Opcodes.ACC_SYNTHETIC;
-						System.out.println(cfg);
+//						System.out.println(cfg);
 						new BoissinotDestructor(cfg, 0); // ungay this
-						System.out.println(cfg);
+//						System.out.println(cfg);
 						cfg.getLocals().realloc(cfg);
 						ControlFlowGraphDumper.dump(cfg, m);
-						System.out.println(cfg);
+//						System.out.println(cfg);
 						
 						cfg = ControlFlowGraphBuilder.build(m);
 					} catch(RuntimeException e) {

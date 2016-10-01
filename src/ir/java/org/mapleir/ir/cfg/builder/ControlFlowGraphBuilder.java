@@ -121,13 +121,13 @@ public class ControlFlowGraphBuilder {
 				
 				p.run();
 				
-//				if(!(p instanceof VerificationPass)) {
-//					System.out.println();
-//					System.out.println("AFTER " + p.getClass().getSimpleName() + ":");
-//					System.out.println(builder.graph);
-//					System.out.println();
-//					System.out.println();
-//				}
+				if(p instanceof SSAGenPass && !(p instanceof VerificationPass)) {
+					System.out.println();
+					System.out.println("AFTER " + p.getClass().getSimpleName() + ":");
+					System.out.println(builder.graph);
+					System.out.println();
+					System.out.println();
+				}
 
 //				BasicDotConfiguration<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> config = new BasicDotConfiguration<>(DotConfiguration.GraphType.DIRECTED);
 //				DotWriter<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> writer = new DotWriter<>(config, builder.graph);
