@@ -1,12 +1,12 @@
 package org.mapleir.stdlib.collections.bitset;
 
-import sun.reflect.generics.reflectiveObjects.NotImplementedException;
-
 import java.util.BitSet;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.Spliterator;
+
+import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 public class GenericBitSet<N> implements Set<N> {
 	private BitSet bitset;
@@ -176,7 +176,7 @@ public class GenericBitSet<N> implements Set<N> {
 	@Override
 	public Iterator<N> iterator() {
 		return new Iterator<N> () {
-			int index = 0;
+			int index = -1;
 			
 			@Override
 			public boolean hasNext() {
