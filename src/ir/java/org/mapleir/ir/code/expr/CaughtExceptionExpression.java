@@ -9,7 +9,7 @@ import org.objectweb.asm.Type;
 public class CaughtExceptionExpression extends Expression {
 
 	private Type type;
-
+	
 	private CaughtExceptionExpression(Type type) {
 		super(CATCH);
 		this.type = type;
@@ -65,6 +65,11 @@ public class CaughtExceptionExpression extends Expression {
 
 	@Override
 	public boolean equivalent(Statement s) {
-		return (s instanceof CaughtExceptionExpression && type.equals(((CaughtExceptionExpression) s).type));
+		if(s.getOpcode() == CATCH) {
+			CaughtExceptionExpression e = (CaughtExceptionExpression) s;
+			return type.equals(e.type);
+		} else {
+			return false;
+		}
 	}
 }

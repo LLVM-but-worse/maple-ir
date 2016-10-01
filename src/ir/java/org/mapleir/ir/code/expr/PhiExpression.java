@@ -19,6 +19,11 @@ public class PhiExpression extends Expression {
 	private final Map<BasicBlock, Expression> arguments;
 	private Type type;
 	
+	protected PhiExpression(int opcode, Map<BasicBlock, Expression> arguments) {
+		super(opcode);
+		this.arguments = arguments;
+	}
+	
 	public PhiExpression(Map<BasicBlock, Expression> arguments) {
 		super(PHI);
 		this.arguments = arguments;
@@ -41,11 +46,7 @@ public class PhiExpression extends Expression {
 	}
 	
 	public void setArgument(BasicBlock b, Expression e) {
-//		if(arguments.containsKey(b)) {
-			arguments.put(b, e);
-//		} else {
-//			throw new IllegalStateException("phi has a fixed size of " + arguments.size() + ": " + b + ", " + e);
-//		}
+		arguments.put(b, e);
 	}
 	
 	public void removeArgument(BasicBlock b) {
@@ -74,10 +75,14 @@ public class PhiExpression extends Expression {
 	public void setType(Type type) {
 		this.type = type;
 	}
+	
+	protected char getPhiType() {
+		return '\u0278';
+	}
 
 	@Override
 	public void toString(TabbedStringWriter printer) {
-		printer.print("\u0278{");
+		printer.print(getPhiType() + "{");
 		Iterator<Entry<BasicBlock, Expression>> it = arguments.entrySet().iterator();
 		while(it.hasNext()) {
 			Entry<BasicBlock, Expression> e = it.next();
