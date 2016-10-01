@@ -1,22 +1,20 @@
 package org.mapleir.stdlib.ir;
 
+import static org.objectweb.asm.Type.*;
+
+import java.util.HashSet;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
+
 import org.mapleir.ir.code.expr.*;
 import org.mapleir.ir.code.stmt.ConditionalJumpStatement;
 import org.mapleir.ir.code.stmt.Statement;
-import org.mapleir.ir.code.stmt.copy.CopyVarStatement;
 import org.mapleir.ir.locals.Local;
 import org.mapleir.stdlib.cfg.util.TypeUtils;
 import org.mapleir.stdlib.ir.transform.ssa.SSALocalAccess;
 import org.objectweb.asm.Type;
 
 import sun.reflect.generics.reflectiveObjects.NotImplementedException;
-
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
-
-import static org.objectweb.asm.Type.*;
 
 public class ExpressionEvaluator {
 	public static Expression evaluate(Expression in, SSALocalAccess vars) {
@@ -68,7 +66,7 @@ public class ExpressionEvaluator {
 	public static boolean isConstant(Expression expr) {
 		if (expr instanceof PhiExpression)
 			return false;
-		for (Statement stmt : expr) {
+		for (Statement stmt : expr.enumerate()) {
 			if (!EVALUATABLE.contains(stmt.getClass()))
 				return false;
 			else if (stmt instanceof Expression && TypeUtils.isPrimitive(((Expression) stmt).getType()))

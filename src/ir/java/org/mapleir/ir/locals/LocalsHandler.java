@@ -1,14 +1,9 @@
 package org.mapleir.ir.locals;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Predicate;
 
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
@@ -37,6 +32,16 @@ public class LocalsHandler implements ValueCreator<GenericBitSet<Local>> {
 		cache = new HashMap<>();
 		latest = new HashMap<>();
 		indexer = new IncrementalBitSetIndexer<>();
+	}
+	
+	public Set<Local> getAll(Predicate<Local> p)  {
+		Set<Local> set = new HashSet<>();
+		for(Local l : cache.values()) {
+			if(p.test(l)) {
+				set.add(l);
+			}
+		}
+		return set;
 	}
 	
 	// factory
@@ -137,13 +142,12 @@ public class LocalsHandler implements ValueCreator<GenericBitSet<Local>> {
 		}
 	} */
 	
-	public void realloc(ControlFlowGraph cfg) {
+	public int realloc(ControlFlowGraph cfg) {
 		NullPermeableHashMap<Local, Set<Type>> types = new NullPermeableHashMap<>(new SetCreator<>());
 		int min = 0;
 		Set<Local> safe = new HashSet<>();
 		for(BasicBlock b : cfg.vertices()) {
 			for(Statement stmt : b) {
-
 				if(stmt.getOpcode() == Opcode.LOCAL_STORE) {
 					CopyVarStatement cp = (CopyVarStatement) stmt;
 					VarExpression var = cp.getVariable();
@@ -152,11 +156,12 @@ public class LocalsHandler implements ValueCreator<GenericBitSet<Local>> {
 						types.getNonNull(local).add(var.getType());
 					} else {
 //						min = Math.max(min, local.getIndex());
-//						safe.add(local);
+						safe.add(local);
 					}
 					types.getNonNull(local).add(var.getType());
 				}
 				
+				// System.out.println("x: " + stmt);
 				for(Statement s : stmt.enumerate()) {
 					if(s.getOpcode() == Opcode.LOCAL_LOAD) {
 						VarExpression var = (VarExpression) s;
@@ -183,14 +188,16 @@ public class LocalsHandler implements ValueCreator<GenericBitSet<Local>> {
 					throw new RuntimeException("illegal typesets for " + e.getKey());
 				}
 				Local l = e.getKey();
-				if(!safe.contains(l)) {
-					stypes.put(l, refined.iterator().next());
-				}
+				stypes.put(l, refined.iterator().next());
+				
+//				if(!safe.contains(l)) {
+//					stypes.put(l, refined.iterator().next());
+//				}
 			} else {
 				Local l = e.getKey();
-				if(!safe.contains(l)) {
-					stypes.put(l, set.iterator().next());
-				}
+				stypes.put(l, set.iterator().next());
+//				if(!safe.contains(l)) {
+//				}
 			}
 		}
 		
@@ -200,8 +207,24 @@ public class LocalsHandler implements ValueCreator<GenericBitSet<Local>> {
 		
 		// lvars then svars, ordered of course,
 		List<Local> wl = new ArrayList<>(stypes.keySet());
-		Collections.sort(wl);
-
+		System.out.println("safe: " + safe);
+		Collections.sort(wl, new Comparator<Local>() {
+			@Override
+			public int compare(Local o1, Local o2) {
+				boolean s1 = safe.contains(o1);
+				boolean s2 = safe.contains(o2);
+				
+				if(s1 && !s2) {
+					return -1;
+				} else if(!s1 && s2) {
+					return 1;
+				} else {
+					return o1.compareTo(o2);
+				}
+			}
+		});
+		System.out.println("wl: " + wl);
+		
 		Map<Local, Local> remap = new HashMap<>();
 		int idx = min;
 		for(Local l : wl) {
@@ -209,10 +232,13 @@ public class LocalsHandler implements ValueCreator<GenericBitSet<Local>> {
 			Local newL = get(idx, false);
 			if(l != newL) {
 				remap.put(l, newL);
+				System.out.println(l + " -> " + newL);
 			}
 			idx += type.getSize();
 		}
 		remap(cfg, remap);
+		
+		return idx;
 	}
 	
 	public static void remap(ControlFlowGraph cfg, Map<? extends Local, ? extends Local> remap) {

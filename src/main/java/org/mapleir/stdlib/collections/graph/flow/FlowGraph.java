@@ -2,7 +2,6 @@ package org.mapleir.stdlib.collections.graph.flow;
 
 import java.util.*;
 
-import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.stdlib.cfg.edge.FlowEdge;
 import org.mapleir.stdlib.cfg.edge.TryCatchEdge;
 import org.mapleir.stdlib.collections.ValueCreator;
@@ -149,6 +148,7 @@ public abstract class FlowGraph<N extends FastGraphVertex, E extends FlowEdge<N>
 		return new GenericBitSet<>(indexer);
 	}
 
+	@Override
 	public GenericBitSet<N> create() {
 		return createBitSet();
 	}

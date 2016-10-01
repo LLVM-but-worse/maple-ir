@@ -59,8 +59,8 @@ public class SSADefUseMap implements Opcode {
 				phiUses.getNonNull(b);
 
 				usedLocals.clear();
-				for (Statement s : stmt)
-					if(s instanceof VarExpression)
+				for (Statement s : stmt.enumerate())
+					if(s.getOpcode() == Opcode.LOCAL_LOAD)
 						usedLocals.add(((VarExpression) s).getLocal());
 
 				build(b, stmt, usedLocals);

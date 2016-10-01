@@ -18,7 +18,7 @@ public class InvocationExpression extends Expression {
 
 	public InvocationExpression(int opcode, Expression[] argumentExpressions, String owner, String name, String desc) {
 		super(INVOKE);
-		this.callType = opcode;
+		callType = opcode;
 		this.argumentExpressions = argumentExpressions;
 		this.owner = owner;
 		this.name = name;
@@ -76,7 +76,7 @@ public class InvocationExpression extends Expression {
 		if (argumentExpressions.length < this.argumentExpressions.length) {
 			setChildPointer(0);
 			while (read(0) != null) {
-				delete();
+				deleteAt(getChildPointer());
 			}
 		}
 		this.argumentExpressions = argumentExpressions;

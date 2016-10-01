@@ -30,7 +30,7 @@ public class ControlFlowGraphBuilder {
 	protected final Map<VersionedLocal, AbstractCopyStatement> defs;
 	protected SSALocalAccess localAccess;
 	protected int count = 0;
-	protected BasicBlock exit;
+	protected BasicBlock head;
 	
 	private ControlFlowGraphBuilder(MethodNode method) {
 		this.method = method;
@@ -121,13 +121,13 @@ public class ControlFlowGraphBuilder {
 				
 				p.run();
 				
-				if(Benchmark.DEBOG && !(p instanceof VerificationPass)) {
-					System.out.println();
-					System.out.println("AFTER " + p.getClass().getSimpleName() + ":");
-					System.out.println(builder.graph);
-					System.out.println();
-					System.out.println();
-				}
+//				if(!(p instanceof VerificationPass)) {
+//					System.out.println();
+//					System.out.println("AFTER " + p.getClass().getSimpleName() + ":");
+//					System.out.println(builder.graph);
+//					System.out.println();
+//					System.out.println();
+//				}
 
 //				BasicDotConfiguration<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> config = new BasicDotConfiguration<>(DotConfiguration.GraphType.DIRECTED);
 //				DotWriter<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> writer = new DotWriter<>(config, builder.graph);
@@ -135,7 +135,7 @@ public class ControlFlowGraphBuilder {
 			}
 			return builder.graph;
 		} catch(RuntimeException e) {
-//			System.err.println(builder.graph);
+			System.err.println(builder.graph);
 			throw e;
 		}
 	}
