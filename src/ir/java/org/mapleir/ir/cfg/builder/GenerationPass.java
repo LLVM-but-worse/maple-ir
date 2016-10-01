@@ -673,7 +673,10 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 	}
 
 	void _arithmetic(Operator op) {
-		push(new ArithmeticExpression(pop(), pop(), op));
+		Expression e = new ArithmeticExpression(pop(), pop(), op);
+		int index = currentStack.height();
+		Type type = assign_stack(index, e);
+		push(load_stack(index, type));
 	}
 	
 	void _neg() {
