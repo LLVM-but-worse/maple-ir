@@ -463,12 +463,14 @@ public class Test {
 						m.localVariables.clear();
 						cfg = ControlFlowGraphBuilder.build(m);
 						m.access ^= Opcodes.ACC_SYNTHETIC;
+						System.out.println(cfg);
 						new BoissinotDestructor(cfg, 0); // ungay this
+						System.out.println(cfg);
 						cfg.getLocals().realloc(cfg);
 						ControlFlowGraphDumper.dump(cfg, m);
 						System.out.println(cfg);
 						
-//						cfg = ControlFlowGraphBuilder.build(m);
+						cfg = ControlFlowGraphBuilder.build(m);
 					} catch(RuntimeException e) {
 						System.err.println();
 						System.err.println(cfg);
