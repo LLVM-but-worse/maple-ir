@@ -15,26 +15,21 @@ import org.mapleir.ir.code.stmt.Statement;
 import org.mapleir.ir.code.stmt.copy.AbstractCopyStatement;
 import org.mapleir.ir.code.stmt.copy.CopyPhiStatement;
 import org.mapleir.ir.code.stmt.copy.CopyVarStatement;
-import org.mapleir.ir.dot.ControlFlowGraphDecorator;
 import org.mapleir.ir.locals.BasicLocal;
 import org.mapleir.ir.locals.Local;
 import org.mapleir.ir.locals.LocalsHandler;
 import org.mapleir.ir.locals.VersionedLocal;
-import org.mapleir.stdlib.cfg.edge.FlowEdge;
 import org.mapleir.stdlib.cfg.util.TabbedStringWriter;
 import org.mapleir.stdlib.collections.ListCreator;
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.bitset.GenericBitSet;
-import org.mapleir.stdlib.collections.graph.dot.BasicDotConfiguration;
-import org.mapleir.stdlib.collections.graph.dot.DotConfiguration;
-import org.mapleir.stdlib.collections.graph.dot.DotWriter;
 import org.mapleir.stdlib.collections.graph.util.GraphUtils;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Type;
 
 public class BoissinotDestructor {
-	private boolean DO_VALUE_INTERFERENCE = false;
-	private boolean DO_SHARE_COALESCE = false;
+	private boolean DO_VALUE_INTERFERENCE = true;
+	private boolean DO_SHARE_COALESCE = true;
 
 	public void testSequentialize() {
 		AtomicInteger base = new AtomicInteger(0);
@@ -88,14 +83,11 @@ public class BoissinotDestructor {
 		init();
 		
 		BasicBlock head = GraphUtils.connectHead(cfg);
-		
-		BasicDotConfiguration<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> config = new BasicDotConfiguration<>(DotConfiguration.GraphType.DIRECTED);
-		DotWriter<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> writer = new DotWriter<>(config, cfg);
-		writer.removeAll().add(new ControlFlowGraphDecorator()).setName("999111").export();
-		
+				
 		resolver = new DominanceLivenessAnalyser(cfg, head, null);
 		
 		insertCopies();
+
 		
 		constructDominance();
 		createDuChains();
@@ -109,12 +101,12 @@ public class BoissinotDestructor {
 		// 3b. Coalesce the rest of the copies
 		coalesceCopies();
 		
-		System.out.println();
-		System.out.println("classes:");
-		for(Entry<Local, CongruenceClass> e : congruenceClasses.entrySet()) {
-			System.out.println("   " + e.getKey() + " == " + e.getValue());
-		}
-		System.out.println(cfg);
+//		System.out.println();
+//		System.out.println("classes:");
+//		for(Entry<Local, CongruenceClass> e : congruenceClasses.entrySet()) {
+//			System.out.println("   " + e.getKey() + " == " + e.getValue());
+//		}
+//		System.out.println(cfg);
 		
 		applyRemapping(remap);
 
@@ -142,6 +134,8 @@ public class BoissinotDestructor {
 							e.setValue(new VarExpression(vl, expr.getType()));
 							
 							insertEnd(e.getKey(), cvs);
+//							System.out.println("ADD " + cvs);
+//							System.out.println(" for: " + copy);
 						} else if(opcode != Opcode.LOCAL_LOAD){
 							throw new IllegalArgumentException("Non-variable expression in phi: " + copy);
 						}
@@ -387,8 +381,15 @@ public class BoissinotDestructor {
 					if (!copy.isSynthetic() && copy.getExpression() instanceof VarExpression) {
 						Local lhs = copy.getVariable().getLocal();
 						Local rhs = ((VarExpression) copy.getExpression()).getLocal();
-						if (tryCoalesceCopyValue(lhs, rhs) || tryCoalesceCopySharing(lhs, rhs))
+						if (tryCoalesceCopyValue(lhs, rhs)) {
+//							System.out.println("COPYKILL(1) " + lhs + " == " + rhs);
 							it.remove();
+						}
+						
+						if(tryCoalesceCopySharing(lhs, rhs)) {
+//							System.out.println("SHAREKILL(1) " + lhs + " == " + rhs);
+							it.remove();
+						}
 					}
 				} else if (stmt instanceof ParallelCopyVarStatement) {
 					// we need to do it for each one. if all of the copies are removed then remove the pcvs
@@ -396,8 +397,15 @@ public class BoissinotDestructor {
 					for (Iterator<CopyPair> pairIter = copy.pairs.iterator(); pairIter.hasNext(); ) {
 						CopyPair pair = pairIter.next();
 						Local lhs = pair.targ, rhs = pair.source;
-						if (tryCoalesceCopyValue(lhs, rhs) || tryCoalesceCopySharing(lhs, rhs))
+						if (tryCoalesceCopyValue(lhs, rhs)) {
+//							System.out.println("COPYKILL(2) " + lhs + " == " + rhs);
 							pairIter.remove();
+						}
+						
+						if(tryCoalesceCopySharing(lhs, rhs)) {
+//							System.out.println("SHAREKILL(2) " + lhs + " == " + rhs);
+							pairIter.remove();
+						}
 					}
 					if (copy.pairs.isEmpty())
 						it.remove();
@@ -412,21 +420,33 @@ public class BoissinotDestructor {
 
 	// Process the copy a = b. Returns true if a and b can be coalesced via value.
 	private boolean tryCoalesceCopyValue(Local a, Local b) {
+//		System.out.println("Enter COPY");
 		CongruenceClass conClassA = getCongruenceClass(a);
 		CongruenceClass conClassB = getCongruenceClass(b);
+		
+//		System.out.println(" A: " + conClassA);
+//		System.out.println(" B: " + conClassB);
 
+//		System.out.println("   same=" + (conClassA == conClassB));
 		if (conClassA == conClassB)
 			return true;
 
-		if (conClassA.size() == 1 && conClassB.size() == 1)
-			return checkInterfereSingle(conClassA, conClassB);
-
-		if (checkInterfere(conClassA, conClassB)) {
+		if (conClassA.size() == 1 && conClassB.size() == 1) {
+			boolean r = checkInterfereSingle(conClassA, conClassB);
+//			System.out.println("   single=" + r);
+			return r;
+		}
+		
+		
+		boolean r2 = checkInterfere(conClassA, conClassB);
+//		System.out.println("   both=" + r2);
+		if (r2) {
 			return false;
 		}
 
 		// merge congruence classes
 		merge(conClassA, conClassB);
+//		System.out.println("Exit COPY");
 		return true;
 	}
 
@@ -534,8 +554,13 @@ public class BoissinotDestructor {
 			a = b;
 			b = c;
 		}
-		if (!DO_VALUE_INTERFERENCE)
-			return intersect(a, b);
+//		System.out.println("   a,b=" + a + ", " + b);
+		if (!DO_VALUE_INTERFERENCE) {
+			boolean r1 = intersect(a, b);
+//			System.out.println("     intersect=" + r1);
+			return r1;
+		}
+//		System.out.println("   s  valA,valB: " + values.getNonNull(a) + ", " + values.getNonNull(b));
 		if (intersect(a, b) && values.getNonNull(a) != values.getNonNull(b)) {
 			return true;
 		} else {
