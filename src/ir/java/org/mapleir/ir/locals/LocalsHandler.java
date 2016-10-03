@@ -182,11 +182,26 @@ public class LocalsHandler implements ValueCreator<GenericBitSet<Local>> {
 					refined.add(TypeUtils.asSimpleType(t));
 				}
 				if(refined.size() != 1) {
-					for(Entry<Local, Set<Type>> e1 : types.entrySet()) {
-						System.err.println(e1.getKey() + "  ==  " + e1.getValue());
+					boolean valid = false;
+					
+					if(refined.size() == 2) {
+						// TODO: proper check
+						Iterator<Type> it = refined.iterator();
+						if(it.next().getSize() == it.next().getSize()) {
+							Type t = refined.iterator().next();
+							refined.clear();
+							refined.add(t);
+							valid = true;
+						}
 					}
-					// String.format("illegal typesets for %s, set=%s, refined=%s", args)
-					throw new RuntimeException("illegal typesets for " + e.getKey());
+					
+					if(!valid) {
+						for(Entry<Local, Set<Type>> e1 : types.entrySet()) {
+							System.err.println(e1.getKey() + "  ==  " + e1.getValue());
+						}
+						// String.format("illegal typesets for %s, set=%s, refined=%s", args)
+						throw new RuntimeException("illegal typesets for " + e.getKey());
+					}
 				}
 				Local l = e.getKey();
 				stypes.put(l, refined.iterator().next());

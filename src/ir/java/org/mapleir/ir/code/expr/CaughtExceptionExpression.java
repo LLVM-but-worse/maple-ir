@@ -19,6 +19,8 @@ public class CaughtExceptionExpression extends Expression {
 		super(CATCH);
 		if (type == null) {
 			type = "Ljava/lang/Throwable;";
+		} else {
+			type = "L" + type + ";";
 		}
 		this.type = Type.getType(type);
 	}

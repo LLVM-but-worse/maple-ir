@@ -452,28 +452,43 @@ public class Test {
 		for (ClassNode cn : contents.getClassContents()) {
 			for(MethodNode m : cn.methods) {
 				
-				if(!m.toString().startsWith("com/allatori/IIiIIIiIiI.IIIIIIiIII(I)V")) {
+				if(!m.toString().startsWith("com/allatori/IiIIIiiIii.IIIIIIiIII(Ljava/io/File;Ljava/io/File;)V")) {
 					continue;
 				}
 				
 				if(m.instructions.size() > 0) {
 					System.out.printf("%s  %d.%n", m, m.instructions.size());
 					ControlFlowGraph cfg = null;
+					{
+						ClassWriter cw = new ClassWriter(0);
+						cn.accept(cw);
+						byte[] bs = cw.toByteArray();
+						FileOutputStream out = new FileOutputStream(new File("out/pre.class"));
+						out.write(bs, 0, bs.length);
+						out.close();
+					}
 					try {
 						m.localVariables.clear();
 						cfg = ControlFlowGraphBuilder.build(m);
 						m.access ^= Opcodes.ACC_SYNTHETIC;
-//						System.out.println(cfg);
 						new BoissinotDestructor(cfg, 0); // ungay this
 //						System.out.println(cfg);
 						cfg.getLocals().realloc(cfg);
+//						System.out.println(cfg);
 						ControlFlowGraphDumper.dump(cfg, m);
 //						System.out.println(cfg);
 						
 						cfg = ControlFlowGraphBuilder.build(m);
 					} catch(RuntimeException e) {
-						System.err.println();
-						System.err.println(cfg);
+						ClassWriter cw = new ClassWriter(0);
+						cn.accept(cw);
+						byte[] bs = cw.toByteArray();
+						FileOutputStream out = new FileOutputStream(new File("out/err.class"));
+						out.write(bs, 0, bs.length);
+						out.close();
+						
+//						System.err.println();
+//						System.err.println(cfg);
 						throw new RuntimeException(m.toString(), e);
 					}
 				}
