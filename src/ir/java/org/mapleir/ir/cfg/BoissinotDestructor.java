@@ -87,6 +87,7 @@ public class BoissinotDestructor {
 		resolver = new DominanceLivenessAnalyser(cfg, head, null);
 		
 		insertCopies();
+
 		
 		constructDominance();
 		createDuChains();
@@ -133,6 +134,8 @@ public class BoissinotDestructor {
 							e.setValue(new VarExpression(vl, expr.getType()));
 							
 							insertEnd(e.getKey(), cvs);
+//							System.out.println("ADD " + cvs);
+//							System.out.println(" for: " + copy);
 						} else if(opcode != Opcode.LOCAL_LOAD){
 							throw new IllegalArgumentException("Non-variable expression in phi: " + copy);
 						}
