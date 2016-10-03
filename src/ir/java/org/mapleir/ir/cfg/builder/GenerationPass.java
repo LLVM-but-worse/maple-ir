@@ -98,6 +98,9 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		entry(checkLabel());
 		
 		for(TryCatchBlockNode tc : builder.method.tryCatchBlocks) {
+//			System.out.println(tc.start);
+//			System.out.println(tc.end);
+//			System.out.println(tc.handler);
 			handler(tc);
 		}
 	}
@@ -136,13 +139,15 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		LabelNode label = tc.handler;
 		BasicBlock handler = resolveTarget(label);
 		if(handler.getInputStack() != null) {
-			throw new RuntimeException(builder.method.toString());
+//			System.err.println(handler.getInputStack());
+//			System.err.println("Double handler: " + handler.getId() + " " + tc);
+			return;
 		}
 		
 		ExpressionStack stack = new ExpressionStack(16);
 		handler.setInputStack(stack);
 		
-		Expression expr = new CaughtExceptionExpression("L" + tc.type + ";");
+		Expression expr = new CaughtExceptionExpression(tc.type);
 		Type type = expr.getType();
 		VarExpression var = _var_expr(0, type, true);
 		CopyVarStatement stmt = copy(var, expr, handler);
