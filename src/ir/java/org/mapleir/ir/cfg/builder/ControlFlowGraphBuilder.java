@@ -135,7 +135,7 @@ public class ControlFlowGraphBuilder {
 			}
 			return builder.graph;
 		} catch(RuntimeException e) {
-			System.err.println(builder.graph);
+//			System.err.println(builder.graph);
 			throw e;
 		}
 	}
