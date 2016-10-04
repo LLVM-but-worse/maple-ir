@@ -472,13 +472,20 @@ public class Test {
 						cfg = ControlFlowGraphBuilder.build(m);
 						m.access ^= Opcodes.ACC_SYNTHETIC;
 						new BoissinotDestructor(cfg, 0); // ungay this
-//						System.out.println(cfg);
 						cfg.getLocals().realloc(cfg);
-//						System.out.println(cfg);
+						System.out.println(cfg);
 						ControlFlowGraphDumper.dump(cfg, m);
+						
+						ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
+						cn.accept(cw);
+						byte[] bs = cw.toByteArray();
+						FileOutputStream out = new FileOutputStream(new File("out/work.class"));
+						out.write(bs, 0, bs.length);
+						out.close();
+						
 //						System.out.println(cfg);
 						
-						cfg = ControlFlowGraphBuilder.build(m);
+//						cfg = ControlFlowGraphBuilder.build(m);
 					} catch(RuntimeException e) {
 						ClassWriter cw = new ClassWriter(0);
 						cn.accept(cw);
@@ -486,7 +493,6 @@ public class Test {
 						FileOutputStream out = new FileOutputStream(new File("out/err.class"));
 						out.write(bs, 0, bs.length);
 						out.close();
-						
 //						System.err.println();
 //						System.err.println(cfg);
 						throw new RuntimeException(m.toString(), e);
