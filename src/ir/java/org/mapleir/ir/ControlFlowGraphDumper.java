@@ -69,6 +69,9 @@ public class ControlFlowGraphDumper {
 			}
 			List<BasicBlock> range = er.get();
 			Label start = range.get(0).getLabel();
+//			if(range.get(0).getId().equals("C")) {
+//				start = range.get(1).getLabel();
+//			}
 			Label end = null;
 			BasicBlock endBlock = range.get(range.size() - 1);
 			BasicBlock im = endBlock.getImmediate();
