@@ -294,7 +294,7 @@ public class Propagator extends OptimisationPass.Optimiser {
 			return _xuselocal(l, true);
 		}
 		
-		private Statement handleConstant(AbstractCopyStatement def, VarExpression use, ConstantExpression rhs) {
+		private Expression handleConstant(AbstractCopyStatement def, VarExpression use, ConstantExpression rhs) {
 			// x = 7;
 			// use(x)
 			//         goes to
@@ -306,7 +306,7 @@ public class Propagator extends OptimisationPass.Optimiser {
 			return rhs.copy();
 		}
 
-		private Statement handleVar(AbstractCopyStatement def, VarExpression use, VarExpression rhs) {
+		private Expression handleVar(AbstractCopyStatement def, VarExpression use, VarExpression rhs) {
 			Local x = use.getLocal();
 			Local y = rhs.getLocal();
 			if(x == y) {
@@ -326,7 +326,7 @@ public class Propagator extends OptimisationPass.Optimiser {
 			return rhs.copy();
 		}
 
-		private Statement handleComplex(AbstractCopyStatement def, VarExpression use) {
+		private Expression handleComplex(AbstractCopyStatement def, VarExpression use) {
 			if(!canTransferToUse(root, use, def)) {
 				// System.out.println("Refuse to propagate " + def + " into " + use.getRootParent());
 				return null;
@@ -404,7 +404,7 @@ public class Propagator extends OptimisationPass.Optimiser {
 			return null;
 		}
 		
-		private Statement findSubstitution(Statement root, AbstractCopyStatement def, VarExpression use) {
+		private Expression findSubstitution(Statement root, AbstractCopyStatement def, VarExpression use) {
 			// n.b. if this is called improperly (i.e. unpropagatable def),
 			//      then the code may be dirtied/ruined.
 			Local local = use.getLocal();
@@ -419,7 +419,7 @@ public class Propagator extends OptimisationPass.Optimiser {
 			Expression rhs = def.getExpression();
 			int opcode = rhs.getOpcode();
 			
-			Statement ret = use;
+			Expression ret = use;
 			
 			if(opcode == Opcode.CONST_LOAD) {
 				ret =  handleConstant(def, use, (ConstantExpression) rhs);
@@ -431,12 +431,18 @@ public class Propagator extends OptimisationPass.Optimiser {
 			return ret;
 		}
 
-		private Statement visitVar(VarExpression var) {
+		private Expression visitVar(VarExpression var) {
 			AbstractCopyStatement def = localAccess.defs.get(var.getLocal());
-			return findSubstitution(root, def, var);
+			Expression e = findSubstitution(root, def, var);
+			if(e != null) {
+				if(!var.getType().equals(e.getType())) {
+					throw new RuntimeException(String.format("t1:%s, t2:%s", var.getType(), e.getType()));
+				}
+			}
+			return e;
 		}
 		
-		private Statement visitPhi(PhiExpression phi) {
+		private PhiExpression visitPhi(PhiExpression phi) {
 			for(BasicBlock s : phi.getSources()) {
 				Expression e = phi.getArgument(s);
 				
@@ -472,8 +478,13 @@ public class Propagator extends OptimisationPass.Optimiser {
 					}
 					
 					if(cand != null) {
-						Statement sub = findSubstitution(phi, def, (VarExpression) e);
+						Expression sub = findSubstitution(phi, def, (VarExpression) e);
 						if(sub != null && sub != e) {
+							if(e != null) {
+								if(!sub.getType().equals(e.getType())) {
+									throw new RuntimeException(String.format("t1:%s, t2:%s", sub.getType(), e.getType()));
+								}
+							}
 							phi.setArgument(s, (Expression) sub);
 							change = true;
 						}
@@ -486,14 +497,16 @@ public class Propagator extends OptimisationPass.Optimiser {
 		@Override
 		public Statement visit(Statement stmt) {
 			if(stmt.getOpcode() == Opcode.LOCAL_LOAD) {
-				return choose(visitVar((VarExpression) stmt), stmt);
+				VarExpression v = (VarExpression) stmt;
+				return choose(visitVar(v), v);
 			} else if(stmt.getOpcode() == Opcode.PHI || stmt.getOpcode() == Opcode.EPHI) {
-				return choose(visitPhi((PhiExpression) stmt), stmt);
+				PhiExpression phi = (PhiExpression) stmt;
+				return choose(visitPhi(phi), phi);
 			}
 			return stmt;
 		}
 		
-		private Statement choose(Statement e, Statement def) {
+		private Statement choose(Expression e, Expression def) {
 			if(e != null) {
 				return e;
 			} else {
