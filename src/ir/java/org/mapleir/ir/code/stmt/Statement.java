@@ -17,13 +17,13 @@ import org.objectweb.asm.MethodVisitor;
 
 public abstract class Statement implements FastGraphVertex, Opcode {
 	
-	public static int ID_COUNTER = 1;
+	private static int ID_COUNTER = 1;
 	private final int id = ID_COUNTER++;
 	
 	private final int opcode;
 	private Statement parent;
 	private BasicBlock block;
-	public Statement[] children;
+	private Statement[] children;
 	private int ptr;
 
 //	private boolean isDirty = false;
