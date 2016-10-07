@@ -12,16 +12,10 @@ import java.util.Iterator;
 import java.util.List;
 
 import org.mapleir.byteio.CompleteResolvingJarDumper;
-import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.BoissinotDestructor;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.cfg.builder.ControlFlowGraphBuilder;
 import org.mapleir.ir.cfg.builder.SSAGenPass;
-import org.mapleir.ir.dot.ControlFlowGraphDecorator;
-import org.mapleir.stdlib.cfg.edge.FlowEdge;
-import org.mapleir.stdlib.collections.graph.dot.BasicDotConfiguration;
-import org.mapleir.stdlib.collections.graph.dot.DotConfiguration;
-import org.mapleir.stdlib.collections.graph.dot.DotWriter;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Opcodes;
@@ -486,9 +480,9 @@ public class Test {
 						cfg = ControlFlowGraphBuilder.build(m);
 						m.access ^= Opcodes.ACC_SYNTHETIC;
 						
-						BasicDotConfiguration<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> config = new BasicDotConfiguration<>(DotConfiguration.GraphType.DIRECTED);
-						DotWriter<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> writer = new DotWriter<>(config, cfg);
-						writer.removeAll().add(new ControlFlowGraphDecorator()).setName("irreducible").export();
+//						BasicDotConfiguration<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> config = new BasicDotConfiguration<>(DotConfiguration.GraphType.DIRECTED);
+//						DotWriter<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> writer = new DotWriter<>(config, cfg);
+//						writer.removeAll().add(new ControlFlowGraphDecorator()).setName("irreducible").export();
 						
 						new BoissinotDestructor(cfg, 0); // ungay this
 						cfg.getLocals().realloc(cfg);
