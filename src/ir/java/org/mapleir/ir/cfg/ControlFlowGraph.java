@@ -52,7 +52,7 @@ public class ControlFlowGraph extends FastBlockGraph {
 			}
 			while(it.hasNext()) {
 				Statement stmt = it.next();
-				sw.print(insn++ + ". ");
+				sw.print(stmt.getId() + ". ");
 				stmt.toString(sw);
 				
 				if(!it.hasNext()) {

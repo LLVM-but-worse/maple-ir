@@ -83,6 +83,7 @@ public class ArrayLoadExpression extends Expression {
 			printer.print(')');
 		}
 		printer.print('[');
+		printer.print("(" + index.getType() + ")");
 		index.toString(printer);
 		printer.print(']');
 	}
@@ -91,7 +92,7 @@ public class ArrayLoadExpression extends Expression {
 	public void toCode(MethodVisitor visitor, ControlFlowGraph cfg) {
 		array.toCode(visitor, cfg);
 		index.toCode(visitor, cfg);
-		System.out.println(this);
+		System.out.println(getId() + ". "+ this);
 		int[] iCast = TypeUtils.getPrimitiveCastOpcodes(index.getType(), Type.INT_TYPE);
 		for (int i = 0; i < iCast.length; i++) {
 			visitor.visitInsn(iCast[i]);
