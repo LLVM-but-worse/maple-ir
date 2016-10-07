@@ -91,6 +91,7 @@ public class ArrayLoadExpression extends Expression {
 	public void toCode(MethodVisitor visitor, ControlFlowGraph cfg) {
 		array.toCode(visitor, cfg);
 		index.toCode(visitor, cfg);
+		System.out.println(this);
 		int[] iCast = TypeUtils.getPrimitiveCastOpcodes(index.getType(), Type.INT_TYPE);
 		for (int i = 0; i < iCast.length; i++) {
 			visitor.visitInsn(iCast[i]);

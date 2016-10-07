@@ -462,8 +462,12 @@ public class Propagator extends OptimisationPass.Optimiser {
 							cand = (VarExpression) e;
 						}
 					} else if(opcode == Opcode.CONST_LOAD) {
+//						ConstantExpression c = (ConstantExpression) rhs;
+//						if(c.getConstant() != null) {
+//							cand = (VarExpression) e;
+//						}
 						// if(ul.isStack()) {
-							cand = (VarExpression) e;
+//							cand = (VarExpression) e;
 						// }
 					}
 					

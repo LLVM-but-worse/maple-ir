@@ -465,7 +465,6 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		
 		for(FlowEdge<BasicBlock> succE : succs) {
 			BasicBlock succ = succE.dst;
-			System.out.println(b.getId() + " -> " + succ.getId());
 			search(succ, vis);
 		}
 		

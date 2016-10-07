@@ -9,12 +9,19 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 
 import org.mapleir.byteio.CompleteResolvingJarDumper;
+import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.BoissinotDestructor;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.cfg.builder.ControlFlowGraphBuilder;
 import org.mapleir.ir.cfg.builder.SSAGenPass;
+import org.mapleir.ir.dot.ControlFlowGraphDecorator;
+import org.mapleir.stdlib.cfg.edge.FlowEdge;
+import org.mapleir.stdlib.collections.graph.dot.BasicDotConfiguration;
+import org.mapleir.stdlib.collections.graph.dot.DotConfiguration;
+import org.mapleir.stdlib.collections.graph.dot.DotWriter;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Opcodes;
@@ -452,7 +459,7 @@ public class Test {
 		for (ClassNode cn : contents.getClassContents()) {
 			for(MethodNode m : cn.methods) {
 				
-				if(!m.toString().startsWith("com/allatori/IiIIIiiIii.IIIIIIiIII(Ljava/io/File;Ljava/io/File;)V")) {
+				if(!m.toString().startsWith("com/allatori/IIiIIiIiIi.IIIIIIiIII([Lcom/allatori/IiiiIiiIIi;Lcom/allatori/iiiIIiiiII;)V")) {
 					continue;
 				}
 				
@@ -460,41 +467,55 @@ public class Test {
 					System.out.printf("%s  %d.%n", m, m.instructions.size());
 					ControlFlowGraph cfg = null;
 					{
+						
+						List<MethodNode> methods = new ArrayList<>(cn.methods);
+						cn.methods.clear();
+						cn.methods.add(m);
+						
 						ClassWriter cw = new ClassWriter(0);
 						cn.accept(cw);
 						byte[] bs = cw.toByteArray();
 						FileOutputStream out = new FileOutputStream(new File("out/pre.class"));
 						out.write(bs, 0, bs.length);
 						out.close();
+						
+						cn.methods.addAll(methods);
 					}
 					try {
 						m.localVariables.clear();
 						cfg = ControlFlowGraphBuilder.build(m);
 						m.access ^= Opcodes.ACC_SYNTHETIC;
+						
+						BasicDotConfiguration<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> config = new BasicDotConfiguration<>(DotConfiguration.GraphType.DIRECTED);
+						DotWriter<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> writer = new DotWriter<>(config, cfg);
+						writer.removeAll().add(new ControlFlowGraphDecorator()).setName("irreducible").export();
+						
 						new BoissinotDestructor(cfg, 0); // ungay this
 						cfg.getLocals().realloc(cfg);
-						System.out.println(cfg);
+//						System.out.println(cfg);
 						ControlFlowGraphDumper.dump(cfg, m);
 						
-						ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
-						cn.accept(cw);
-						byte[] bs = cw.toByteArray();
-						FileOutputStream out = new FileOutputStream(new File("out/work.class"));
-						out.write(bs, 0, bs.length);
-						out.close();
+//						ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
+//						cn.accept(cw);
+//						byte[] bs = cw.toByteArray();
+//						FileOutputStream out = new FileOutputStream(new File("out/work.class"));
+//						out.write(bs, 0, bs.length);
+//						out.close();
 						
 //						System.out.println(cfg);
 						
 //						cfg = ControlFlowGraphBuilder.build(m);
 					} catch(RuntimeException e) {
+						cn.methods.clear();
+						cn.methods.add(m);
 						ClassWriter cw = new ClassWriter(0);
 						cn.accept(cw);
 						byte[] bs = cw.toByteArray();
 						FileOutputStream out = new FileOutputStream(new File("out/err.class"));
 						out.write(bs, 0, bs.length);
 						out.close();
-//						System.err.println();
-//						System.err.println(cfg);
+						System.err.println();
+						System.err.println(cfg);
 						throw new RuntimeException(m.toString(), e);
 					}
 				}
