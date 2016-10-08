@@ -12,9 +12,7 @@ import java.util.Set;
 import org.mapleir.ir.Benchmark;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
-import org.mapleir.ir.code.stmt.copy.AbstractCopyStatement;
 import org.mapleir.ir.locals.Local;
-import org.mapleir.ir.locals.VersionedLocal;
 import org.mapleir.stdlib.cfg.edge.FlowEdge;
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.SetCreator;
@@ -27,7 +25,6 @@ public class ControlFlowGraphBuilder {
 	protected final ControlFlowGraph graph;
 	protected final Set<Local> locals;
 	protected final NullPermeableHashMap<Local, Set<BasicBlock>> assigns;
-	protected final Map<VersionedLocal, AbstractCopyStatement> defs;
 	protected SSALocalAccess localAccess;
 	protected int count = 0;
 	protected BasicBlock head;
@@ -38,7 +35,6 @@ public class ControlFlowGraphBuilder {
 		
 		locals = new HashSet<>();
 		assigns = new NullPermeableHashMap<>(new SetCreator<>());
-		defs = new HashMap<>();
 	}
 	
 	protected void naturaliseGraph(List<BasicBlock> order) {
