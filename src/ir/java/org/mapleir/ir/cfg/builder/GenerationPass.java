@@ -1054,7 +1054,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		InstanceofExpression e = new InstanceofExpression(pop(), type);
 		int index = currentStack.height();
 		assign_stack(index, e);
-		push(load_stack(index, type));
+		push(load_stack(index, Type.BOOLEAN_TYPE));
 	}
 	
 	void _new(Type type) {
@@ -1203,7 +1203,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		return _var_expr(index, type, true);
 	}
 	
-	void _jump_compare(BasicBlock target, ComparisonType type, Expression left, Expression right) {
+	void _jump_cmp(BasicBlock target, ComparisonType type, Expression left, Expression right) {
 		update_target_stack(currentBlock, target, currentStack);
 		addStmt(new ConditionalJumpStatement(left, right, target, type));
 	}
@@ -1211,13 +1211,13 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 	void _jump_cmp(BasicBlock target, ComparisonType type) {
 		Expression right = pop();
 		Expression left = pop();
-		_jump_compare(target, type, left, right);
+		_jump_cmp(target, type, left, right);
 	}
 	
 	void _jump_cmp0(BasicBlock target, ComparisonType type) {
 		Expression left = pop();
 		ConstantExpression right = new ConstantExpression(0);
-		_jump_compare(target, type, left, right);
+		_jump_cmp(target, type, left, right);
 	}
 
 	void _jump_null(BasicBlock target, boolean invert) {
@@ -1225,7 +1225,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		ConstantExpression right = new ConstantExpression(null);
 		ComparisonType type = invert ? ComparisonType.NE : ComparisonType.EQ;
 		
-		_jump_compare(target, type, left, right);
+		_jump_cmp(target, type, left, right);
 	}
 
 	void _jump_uncond(BasicBlock target) {
