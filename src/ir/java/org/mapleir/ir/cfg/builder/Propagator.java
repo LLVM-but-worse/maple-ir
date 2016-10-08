@@ -436,7 +436,7 @@ public class Propagator extends OptimisationPass.Optimiser {
 			Expression e = findSubstitution(root, def, var);
 			if(e != null) {
 				if(!var.getType().equals(e.getType())) {
-					throw new RuntimeException(String.format("t1:%s, t2:%s", var.getType(), e.getType()));
+					throw new RuntimeException(String.format("[%s]%s, [%s]%s, t1:%s, t2:%s", var.getOpname(), var, e.getOpname(), e, var.getType(), e.getType()));
 				}
 			}
 			return e;
@@ -482,7 +482,7 @@ public class Propagator extends OptimisationPass.Optimiser {
 						if(sub != null && sub != e) {
 							if(e != null) {
 								if(!sub.getType().equals(e.getType())) {
-									throw new RuntimeException(String.format("t1:%s, t2:%s", sub.getType(), e.getType()));
+									throw new RuntimeException(String.format("[%s]%s, [%s]%s, t1:%s, t2:%s", sub.getOpname(), sub, e.getOpname(), e, sub.getType(), e.getType()));
 								}
 							}
 							phi.setArgument(s, (Expression) sub);

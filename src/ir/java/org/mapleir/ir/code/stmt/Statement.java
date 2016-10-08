@@ -62,6 +62,10 @@ public abstract class Statement implements FastGraphVertex, Opcode {
 		return opcode;
 	}
 	
+	public final String getOpname() {
+		return Opcode.opname(opcode);
+	}
+	
 	public int deepSize() {
 		int size = 1;
 		for (int i = 0; i < children.length; i++) {
