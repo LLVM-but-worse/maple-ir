@@ -48,12 +48,12 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 	public static boolean PRUNE_EDGES = true;
 	public static int SPLIT_BLOCK_COUNT = 0;
 
+	private final Map<VersionedLocal, AbstractCopyStatement> defs;
 	private final Map<Local, Integer> counters;
 	private final Map<Local, Stack<Integer>> stacks;
 	// TODO: use arrays.
 	private final Map<BasicBlock, Integer> insertion;
 	private final Map<BasicBlock, Integer> process;
-	private final NullPermeableHashMap<BasicBlock, Set<Local>> splits;
 	private final Map<BasicBlock, Integer> preorder;
 	private final Set<BasicBlock> handlers;
 	
@@ -64,13 +64,13 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 	public SSAGenPass(ControlFlowGraphBuilder builder) {
 		super(builder);
 
+		defs = new HashMap<>();
 		counters = new HashMap<>();
 		stacks = new HashMap<>();
 		
 		insertion = new HashMap<>();
 		process = new HashMap<>();
 		
-		splits = new NullPermeableHashMap<>(new SetCreator<>());
 		preorder = new HashMap<>();
 		handlers = new HashSet<>();
 	}
@@ -78,6 +78,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 	private void splitRanges() {
 		// produce cleaner cfg
 		List<BasicBlock> order = new ArrayList<>(builder.graph.vertices());
+		NullPermeableHashMap<BasicBlock, Set<Local>> splits = new NullPermeableHashMap<>(new SetCreator<>());
 		
 		for(ExceptionRange<BasicBlock> er : builder.graph.getRanges()) {
 			BasicBlock h = er.getHandler();
@@ -486,7 +487,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 				Local lhs = var.getLocal();
 				VersionedLocal vl = _gen_name(lhs.getIndex(), lhs.isStack());
 				var.setLocal(vl);;
-				builder.defs.put(vl, copy);
+				defs.put(vl, copy);
 			}
 		}
 	}
@@ -511,7 +512,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 				Local lhs = var.getLocal();
 				VersionedLocal vl = _gen_name(lhs.getIndex(), lhs.isStack());
 				var.setLocal(vl);
-				builder.defs.put(vl, copy);
+				defs.put(vl, copy);
 			}
 		}
 	}
@@ -533,7 +534,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 					Local l = ((VarExpression) e).getLocal();
 					l = _top(stmt, l.getIndex(), l.isStack());
 					try {
-						AbstractCopyStatement varDef = builder.defs.get(l);
+						AbstractCopyStatement varDef = defs.get(l);
 						if(copy.getType() == null) {
 							Type t = TypeUtils.asSimpleType(varDef.getType());
 							copy.getVariable().setType(t);
