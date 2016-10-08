@@ -83,7 +83,6 @@ public class ArrayLoadExpression extends Expression {
 			printer.print(')');
 		}
 		printer.print('[');
-		printer.print("(" + index.getType() + ")");
 		index.toString(printer);
 		printer.print(']');
 	}
