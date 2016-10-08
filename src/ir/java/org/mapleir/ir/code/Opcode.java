@@ -2,6 +2,72 @@ package org.mapleir.ir.code;
 
 public interface Opcode {
 
+	String[][] OPNAMES = new String[][] {
+			/*EMPTY_CLASS_0*/{
+				
+			},
+			/*CLASS_STORE*/{
+				"v_store",
+				"arr_store",
+				"f_store",
+				"phi_store"
+			},
+			/*CLASS_LOAD*/{
+				"v_load",
+				"arr_load",
+				"f_load",
+				"c_load"
+			},
+			/*CLASS_FUNC*/{
+				"invoke",
+				"dinvoke",
+				"consume",
+				"return"
+			},
+			/*CLASS_ARITHMETIC*/{
+				"arith",
+				"neg"
+			},
+			/*CLASS_JUMP*/{
+				"cond",
+				"uncond",
+				"switch"
+			},
+			/*CLASS_OBJ*/{
+				"uninit",
+				"init",
+				"narray"
+			},
+			/*CLASS_INTERN*/{
+				"alen",
+				"cast",
+				"inst",
+				"cmp",
+				"catch",
+				"throw",
+				"monitor"
+			},
+			/*EMPTY_CLASS_8*/{
+				
+			},
+			/*CLASS_PHI*/{
+				"phi",
+				"ephi"
+			}
+	};
+	
+	static String opname(int op) {
+		byte b1 = (byte) ((op >> 8) & 0xFF);
+		byte b2 = (byte) ((op >> 0) & 0xFF);
+		
+		if(b1 < 0 || b1 >= OPNAMES.length) {
+			throw new IllegalStateException("No class: 0x" + Integer.toHexString(op));
+		} else if(b2 <= 0 || b2 > OPNAMES[b1].length) {
+			throw new IllegalStateException("No opcode: 0x" + Integer.toHexString(op) + (b2 == 0 ? " (class)" : ""));
+		}
+		return OPNAMES[b1][b2 - 1];
+	}
+	
 	int CLASS_STORE    = 0x100;
 	int LOCAL_STORE    = 0x101;
 	int ARRAY_STORE    = 0x102;
