@@ -33,7 +33,11 @@ public class PopStatement extends Statement {
 	@Override
 	public void toString(TabbedStringWriter printer) {
 		printer.print("_consume(");
-		expression.toString(printer);
+		if(expression != null) {
+			expression.toString(printer);
+		} else {
+			printer.print("_NULL_STMT_");
+		}
 		printer.print(");");		
 	}
 

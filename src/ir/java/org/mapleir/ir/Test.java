@@ -9,7 +9,6 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.List;
 
 import org.mapleir.byteio.CompleteResolvingJarDumper;
 import org.mapleir.ir.cfg.BoissinotDestructor;
@@ -451,9 +450,19 @@ public class Test {
 		JarContents<ClassNode> contents = dl.getJarContents();
 		
 		for (ClassNode cn : contents.getClassContents()) {
-			for(MethodNode m : cn.methods) {
+			
+//			if(cn.name.equals("com/allatori/IIiIIiIiIi")) {
+//				ClassWriter cw = new ClassWriter(0);
+//				cn.accept(cw);
+//				byte[] bs = cw.toByteArray();
+//				FileOutputStream out = new FileOutputStream(new File("out/dmp.class"));
+//				out.write(bs, 0, bs.length);
+//				out.close();
+//			}
+			
+			for(MethodNode m : new ArrayList<>(cn.methods)) {
 				
-				if(!m.toString().startsWith("com/allatori/IIiIIiIiIi.IIIIIIiIII([Lcom/allatori/IiiiIiiIIi;Lcom/allatori/iiiIIiiiII;)V")) {
+				if(!m.toString().startsWith("com/allatori/iiiIiiIiii.findClass(Ljava/lang/String;)Ljava/lang/Class")) {
 					continue;
 				}
 				
@@ -462,18 +471,18 @@ public class Test {
 					ControlFlowGraph cfg = null;
 					{
 						
-						List<MethodNode> methods = new ArrayList<>(cn.methods);
-						cn.methods.clear();
-						cn.methods.add(m);
-						
-						ClassWriter cw = new ClassWriter(0);
-						cn.accept(cw);
-						byte[] bs = cw.toByteArray();
-						FileOutputStream out = new FileOutputStream(new File("out/pre.class"));
-						out.write(bs, 0, bs.length);
-						out.close();
-						
-						cn.methods.addAll(methods);
+//						List<MethodNode> methods = new ArrayList<>(cn.methods);
+//						cn.methods.clear();
+//						cn.methods.add(m);
+//						
+//						ClassWriter cw = new ClassWriter(0);
+//						cn.accept(cw);
+//						byte[] bs = cw.toByteArray();
+//						FileOutputStream out = new FileOutputStream(new File("out/pre.class"));
+//						out.write(bs, 0, bs.length);
+//						out.close();
+//						
+//						cn.methods.addAll(methods);
 					}
 					try {
 						m.localVariables.clear();
@@ -484,21 +493,81 @@ public class Test {
 //						DotWriter<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> writer = new DotWriter<>(config, cfg);
 //						writer.removeAll().add(new ControlFlowGraphDecorator()).setName("irreducible").export();
 						
+						System.out.println(cfg);
+						
 						new BoissinotDestructor(cfg, 0); // ungay this
 						cfg.getLocals().realloc(cfg);
 //						System.out.println(cfg);
 						ControlFlowGraphDumper.dump(cfg, m);
-						
-//						ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
+
+//						ClassTree classTree = new ClassTree(contents.getClassContents());
+//						ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS) {
+//
+//							// this method in ClassWriter uses the systemclassloader as
+//							// a stream location to load the super class, however, most of
+//							// the time the class is loaded/read and parsed by us so it
+//							// isn't defined in the system classloader. in certain cases
+//							// we may not even want it to be loaded/resolved and we can
+//							// bypass this by implementing the hierarchy scanning algorithm
+//							// with ClassNodes rather than Classes.
+//						    @Override
+//							protected String getCommonSuperClass(String type1, String type2) {
+//						    	ClassNode ccn = classTree.getClass(type1);
+//						    	ClassNode dcn = classTree.getClass(type2);
+//						    	
+//						    	if(ccn == null) {
+//						    		ClassNode c = ClassNodeUtil.create(type1);
+//						    		if(c == null) {
+//						    			return "java/lang/Object";
+//						    		}
+//						    		classTree.build(c);
+//						    		return getCommonSuperClass(type1, type2);
+//						    	}
+//						    	
+//						    	if(dcn == null) {
+//						    		ClassNode c = ClassNodeUtil.create(type2);
+//						    		if(c == null) {
+//						    			return "java/lang/Object";
+//						    		}
+//						    		classTree.build(c);
+//						    		return getCommonSuperClass(type1, type2);
+//						    	}
+//						    	
+//						        Set<ClassNode> c = classTree.getSupers(ccn);
+//						        Set<ClassNode> d = classTree.getSupers(dcn);
+//						        
+//						        if(c.contains(dcn))
+//						        	return type1;
+//						        
+//						        if(d.contains(ccn))
+//						        	return type2;
+//						        
+//						        if(Modifier.isInterface(ccn.access) || Modifier.isInterface(dcn.access)) {
+//						        	// enums as well?
+//						        	return "java/lang/Object";
+//						        } else {
+//						        	do {
+//						        		ClassNode nccn = classTree.getClass(ccn.superName);
+//						        		if(nccn == null)
+//						        			break;
+//						        		ccn = nccn;
+//						        		c = classTree.getSupers(ccn);
+//						        	} while(!c.contains(dcn));
+//						        	return ccn.name;
+//						        }
+//						    }
+//						
+//						};
+//						cn.methods.clear();
+//						cn.methods.add(m);
 //						cn.accept(cw);
 //						byte[] bs = cw.toByteArray();
 //						FileOutputStream out = new FileOutputStream(new File("out/work.class"));
 //						out.write(bs, 0, bs.length);
 //						out.close();
-						
-//						System.out.println(cfg);
-						
-//						cfg = ControlFlowGraphBuilder.build(m);
+//						
+//						return;
+//					
 					} catch(RuntimeException e) {
 						cn.methods.clear();
 						cn.methods.add(m);
