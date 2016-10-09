@@ -23,7 +23,7 @@ public abstract class Statement implements FastGraphVertex, Opcode {
 	private final int opcode;
 	private Statement parent;
 	private BasicBlock block;
-	private Statement[] children;
+	public Statement[] children;
 	private int ptr;
 
 //	private boolean isDirty = false;
@@ -284,6 +284,7 @@ public abstract class Statement implements FastGraphVertex, Opcode {
 		
 		if (children[newPtr] != node) {
 			Statement prev = children[newPtr];
+//			System.out.println("Overwrite " + prev + " with " + node);
 			writeAt(newPtr, node);
 			onChildUpdated(newPtr);
 			return prev;
@@ -479,11 +480,11 @@ public abstract class Statement implements FastGraphVertex, Opcode {
 	}
 
 	public void spew(String ind) {
-		System.out.println(ind + this);
-		System.out.println(ind + "c: " + Arrays.toString(children));
-		for(Statement c : getChildren()) {
-			c.spew(ind + "  ");
-		}
+//		System.out.println(ind + this);
+//		System.out.println(ind + "c: " + Arrays.toString(children));
+//		for(Statement c : getChildren()) {
+//			c.spew(ind + "  ");
+//		}
 	}
 	
 	protected Set<Statement> _enumerate() {

@@ -49,6 +49,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 	public static int SPLIT_BLOCK_COUNT = 0;
 
 	private final Map<VersionedLocal, AbstractCopyStatement> defs;
+	private final Map<VersionedLocal, Type> types;
 	private final Map<Local, Integer> counters;
 	private final Map<Local, Stack<Integer>> stacks;
 	// TODO: use arrays.
@@ -65,6 +66,8 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		super(builder);
 
 		defs = new HashMap<>();
+		types = new HashMap<>();
+		
 		counters = new HashMap<>();
 		stacks = new HashMap<>();
 		
@@ -487,6 +490,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 				Local lhs = var.getLocal();
 				VersionedLocal vl = _gen_name(lhs.getIndex(), lhs.isStack());
 				var.setLocal(vl);;
+				types.put(vl, copy.getExpression().getType());
 				defs.put(vl, copy);
 			}
 		}
@@ -501,7 +505,14 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 					if(s.getOpcode() == Opcode.LOCAL_LOAD) {
 						VarExpression var = (VarExpression) s;
 						Local l = var.getLocal();
-						var.setLocal(_top(s, l.getIndex(), l.isStack()));
+						VersionedLocal vl = _top(s, l.getIndex(), l.isStack());
+						var.setLocal(vl);
+						
+						Type t = types.get(vl);
+						if(t == null) {
+							throw new IllegalStateException(var + ", " + vl + ", t=null");
+						}
+						var.setType(t);
 					}
 				}
 			}
@@ -513,6 +524,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 				VersionedLocal vl = _gen_name(lhs.getIndex(), lhs.isStack());
 				var.setLocal(vl);
 				defs.put(vl, copy);
+				types.put(vl, copy.getExpression().getType());
 			}
 		}
 	}
@@ -524,36 +536,36 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 				PhiExpression phi = copy.getExpression();
 				Expression e = phi.getArgument(b);
 				
-//				if(e == null) {
-//					Local l = copy.getVariable().getLocal();
-//					Local newl = builder.graph.getLocals().get(l.getIndex(), 0, l.isStack());
-//					phi.setArgument(b, e = new VarExpression(newl, null));
-//				}
+				//	if(e == null) {
+				//	  Local l = copy.getVariable().getLocal();
+				//	  Local newl = builder.graph.getLocals().get(l.getIndex(), 0, l.isStack());
+				//	  phi.setArgument(b, e = new VarExpression(newl, null));
+				//	}
 				
 				if(e.getOpcode() == Opcode.LOCAL_LOAD) {
+					VarExpression v = (VarExpression) e;
 					Local l = ((VarExpression) e).getLocal();
 					l = _top(stmt, l.getIndex(), l.isStack());
-					try {
-						AbstractCopyStatement varDef = defs.get(l);
-						if(copy.getType() == null) {
-							Type t = TypeUtils.asSimpleType(varDef.getType());
-							copy.getVariable().setType(t);
-							phi.setType(t);
-						} else {
-							Type t = varDef.getType();
-							Type oldT = copy.getType();
-							// TODO: common supertypes
-							if(oldT.getSize() != TypeUtils.asSimpleType(t).getSize()) {
-								throw new IllegalStateException(l + " " + copy + " " + t + " " + copy.getType());
-							}
+					AbstractCopyStatement varDef = defs.get(l);
+					System.out.printf("Arg: %s, l:%s, cType:%s, vType:%s.%n", v, l, copy.getType(), varDef.getType());
+					if(copy.getType() == null) {
+						/* type not set yet */
+						Type t = varDef.getType();
+						copy.getVariable().setType(t);
+						phi.setType(t);
+						v.setType(t);
+					} else {
+						/* this doesn't check the types of
+						 * non vars in the phi. */
+						Type t = varDef.getType();
+						Type oldT = copy.getType();
+						// TODO: common supertypes
+						if(oldT.getSize() != TypeUtils.asSimpleType(t).getSize()) {
+							throw new IllegalStateException(l + " " + copy + " " + t + " " + copy.getType());
 						}
-						VarExpression var = new VarExpression(l, varDef.getType());
-						phi.setArgument(b, var);
-					} catch (IllegalStateException eg) {
-						System.err.println(builder.graph);
-						System.err.println(succ.getId() + ": " + phi.getId() + ". " + phi);
-						throw eg;
 					}
+					VarExpression var = new VarExpression(l, v.getType());
+					phi.setArgument(b, var);
 				}
 			} else {
 				break;

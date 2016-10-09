@@ -152,6 +152,7 @@ public class InvocationExpression extends Expression {
 		}
 		printer.print('.');
 		printer.print(name);
+//		printer.print("  desc:" + desc + "  ");
 		printer.print('(');
 		for (int i = requiresInstance ? 1 : 0; i < argumentExpressions.length; i++) {
 			argumentExpressions[i].toString(printer);

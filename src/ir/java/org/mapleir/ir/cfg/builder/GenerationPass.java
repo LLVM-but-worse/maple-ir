@@ -138,6 +138,8 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 	void handler(TryCatchBlockNode tc) {
 		LabelNode label = tc.handler;
 		BasicBlock handler = resolveTarget(label);
+		marks.add(tc.start);
+		marks.add(tc.end);
 		if(handler.getInputStack() != null) {
 //			System.err.println(handler.getInputStack());
 //			System.err.println("Double handler: " + handler.getId() + " " + tc);
@@ -156,8 +158,6 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		stack.push(load_stack(0, type));
 		
 		queue(label);
-		marks.add(tc.start);
-		marks.add(tc.end);
 		
 		stacks.set(handler.getNumericId());
 	}
@@ -705,6 +705,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 	}
 	
 	void _store_array(ArrayType type) {
+		save_stack(false);
 		Expression value = pop();
 		Expression index = pop();
 		Expression array = pop();
@@ -1095,6 +1096,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 	}
 	
 	void _call(int op, String owner, String name, String desc) {
+		save_stack(false);
 		int argLen = Type.getArgumentTypes(desc).length + (op == INVOKESTATIC ? 0 : 1);
 		Expression[] args = new Expression[argLen];
 		for (int i = args.length - 1; i >= 0; i--) {
@@ -1139,6 +1141,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		if(opcode == GETFIELD || opcode == GETSTATIC) {
 			Expression inst = null;
 			if(opcode == GETFIELD) {
+				save_stack(false);
 				inst = pop();
 			}
 			FieldLoadExpression fExpr = new FieldLoadExpression(inst, owner, name, desc);
@@ -1151,8 +1154,9 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 	}
 	
 	void _store(int index, Type type) {
+		save_stack(false);
 		Expression expr = pop();
-		VarExpression var = _var_expr(index, type, false);
+		VarExpression var = _var_expr(index, expr.getType(), false);
 		addStmt(copy(var, expr));
 	}
 
@@ -1163,6 +1167,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 	}
 
 	void _inc(int index, int amt) {
+		save_stack(false);
 		VarExpression load = _var_expr(index, Type.INT_TYPE, false);
 		ArithmeticExpression inc = new ArithmeticExpression(new ConstantExpression(amt), load, Operator.ADD);
 		VarExpression var = _var_expr(index, Type.INT_TYPE, false);
@@ -1254,7 +1259,6 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 	}
 	
 	void addStmt(Statement stmt) {
-//		System.out.println("    ADD: " + stmt);
 		currentBlock.add(stmt);
 	}
 	
@@ -1374,6 +1378,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 //			System.out.printf("from %d to %d, handler:%d, type:%s.%n", insns.indexOf(tc.start), insns.indexOf(tc.end), insns.indexOf(tc.handler), tc.type);
 //			System.out.println(String.format("%s:%s:%s", BasicBlock.createBlockName(insns.indexOf(tc.start)), BasicBlock.createBlockName(insns.indexOf(tc.end)), builder.graph.getBlock(tc.handler).getId()));
 			
+			System.out.println("st: " + tc.start);
 			int start = builder.graph.getBlock(tc.start).getNumericId();
 			int end = builder.graph.getBlock(tc.end).getNumericId() - 1;
 			
@@ -1412,6 +1417,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		// so we generate them here.
 		
 		for(LabelNode m : marks) {
+			System.out.println("making " + m);
 			// creates the block if it's not
 			// already in the graph.
 			resolveTarget(m);
