@@ -51,12 +51,21 @@ public class Aggregator extends OptimisationPass.Optimiser implements Opcode {
 								// can't be used until it is initialised.
 								UninitialisedObjectExpression obj = (UninitialisedObjectExpression) rhs;
 								Expression[] args = invoke.getParameterArguments();
+
+//								System.out.println(pop);
 								
 								// we want to reuse the exprs, so free it first.
-								invoke.unlink();
-								for(Expression e : args) {
-									e.unlink();
+								pop.deleteAt(0);
+//								invoke.unlink();
+//								System.out.println(Arrays.toString(invoke.children));
+//								System.out.println(Arrays.toString(args));
+								Expression[] newArgs = Arrays.copyOf(args, args.length);
+								for(int i=args.length-1; i >= 0; i--) {
+//									System.out.println(i);
+//									invoke.deleteAt(i);
+									args[i].unlink();
 								}
+//								System.out.println(Arrays.toString(args));
 								
 								// remove the old def
 								def.delete();
@@ -64,7 +73,7 @@ public class Aggregator extends OptimisationPass.Optimiser implements Opcode {
 								int index = b.indexOf(pop);
 								
 								// add a copy statement before the pop (x = newExpr)
-								Expression[] newArgs = Arrays.copyOf(args, args.length);
+//								System.out.println(Arrays.toString(newArgs));
 								InitialisedObjectExpression newExpr = new InitialisedObjectExpression(obj.getType(), invoke.getOwner(), invoke.getDesc(), newArgs);
 								CopyVarStatement newCvs = new CopyVarStatement(var, newExpr);
 								localAccess.defs.put(local, newCvs);
@@ -74,6 +83,8 @@ public class Aggregator extends OptimisationPass.Optimiser implements Opcode {
 								// remove the pop statement
 								b.remove(pop);
 								
+//								newCvs.checkConsistency();
+								
 								changes++;
 							}
 						} else if(inst.getOpcode() == UNINIT_OBJ) {
@@ -81,7 +92,11 @@ public class Aggregator extends OptimisationPass.Optimiser implements Opcode {
 							UninitialisedObjectExpression obj = (UninitialisedObjectExpression) inst;
 							
 							Expression[] args = invoke.getParameterArguments();
+							// we want to reuse the exprs, so free it first.
 							invoke.unlink();
+							for(Expression e : args) {
+								e.unlink();
+							}
 							
 							Expression[] newArgs = Arrays.copyOf(args, args.length);
 							InitialisedObjectExpression newExpr = new InitialisedObjectExpression(obj.getType(), invoke.getOwner(), invoke.getDesc(), newArgs);

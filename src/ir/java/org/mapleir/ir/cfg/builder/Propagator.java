@@ -16,6 +16,7 @@ import org.mapleir.ir.code.stmt.copy.AbstractCopyStatement;
 import org.mapleir.ir.code.stmt.copy.CopyPhiStatement;
 import org.mapleir.ir.locals.Local;
 import org.mapleir.ir.locals.VersionedLocal;
+import org.mapleir.stdlib.cfg.util.TypeUtils;
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.SetCreator;
 import org.mapleir.stdlib.ir.StatementVisitor;
@@ -436,7 +437,12 @@ public class Propagator extends OptimisationPass.Optimiser {
 			Expression e = findSubstitution(root, def, var);
 			if(e != null) {
 				if(!var.getType().equals(e.getType())) {
-					throw new RuntimeException(String.format("[%s]%s, [%s]%s, t1:%s, t2:%s", var.getOpname(), var, e.getOpname(), e, var.getType(), e.getType()));
+					System.err.println("Root: " + var.getRootParent().getId() + ". " + var.getRootParent());
+					System.err.println(" var: " + var);
+					System.err.println(" sub: " + e);
+					System.err.println(" vt: " + var.getType());
+					System.err.println(" st: " + e.getType());
+					throw new RuntimeException();
 				}
 			}
 			return e;
@@ -481,7 +487,7 @@ public class Propagator extends OptimisationPass.Optimiser {
 						Expression sub = findSubstitution(phi, def, (VarExpression) e);
 						if(sub != null && sub != e) {
 							if(e != null) {
-								if(!sub.getType().equals(e.getType())) {
+								if(!TypeUtils.asSimpleType(sub.getType()).equals(TypeUtils.asSimpleType(e.getType()))) {
 									throw new RuntimeException(String.format("[%s]%s, [%s]%s, t1:%s, t2:%s", sub.getOpname(), sub, e.getOpname(), e, sub.getType(), e.getType()));
 								}
 							}
@@ -692,8 +698,19 @@ public class Propagator extends OptimisationPass.Optimiser {
 			if(vis != node) {
 				stmt.overwrite(vis, addr);
 				change = true;
+				
+//				for (BasicBlock b : builder.graph.vertices()) {
+//					for (Statement s : b) {
+//						s.spew("");
+//						try {
+//							s.checkConsistency();
+//						} catch (RuntimeException e) {
+//							throw new RuntimeException(s.toString() + " in #" + b.getId() + "\n  After " + node, e);
+//						}
+//					}
+//				}
 			}
-			verify();
+//			verify();
 		}
 		
 		private void verify() {
