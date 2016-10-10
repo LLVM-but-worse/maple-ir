@@ -1378,7 +1378,6 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 //			System.out.printf("from %d to %d, handler:%d, type:%s.%n", insns.indexOf(tc.start), insns.indexOf(tc.end), insns.indexOf(tc.handler), tc.type);
 //			System.out.println(String.format("%s:%s:%s", BasicBlock.createBlockName(insns.indexOf(tc.start)), BasicBlock.createBlockName(insns.indexOf(tc.end)), builder.graph.getBlock(tc.handler).getId()));
 			
-			System.out.println("st: " + tc.start);
 			int start = builder.graph.getBlock(tc.start).getNumericId();
 			int end = builder.graph.getBlock(tc.end).getNumericId() - 1;
 			
@@ -1417,7 +1416,6 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		// so we generate them here.
 		
 		for(LabelNode m : marks) {
-			System.out.println("making " + m);
 			// creates the block if it's not
 			// already in the graph.
 			resolveTarget(m);
@@ -1462,7 +1460,6 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		if(builder.count == 0) { // no blocks created
 			init();
 			processQueue();
-			System.out.println("Aftergen: " + builder.graph.getEntries());
 		}
 	}
 }
