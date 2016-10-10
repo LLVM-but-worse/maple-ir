@@ -1462,6 +1462,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		if(builder.count == 0) { // no blocks created
 			init();
 			processQueue();
+			System.out.println("Aftergen: " + builder.graph.getEntries());
 		}
 	}
 }
