@@ -52,6 +52,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 	private final Map<VersionedLocal, Type> types;
 	private final Map<Local, Integer> counters;
 	private final Map<Local, Stack<Integer>> stacks;
+	private final List<BasicBlock> order;
 	// TODO: use arrays.
 	private final Map<BasicBlock, Integer> insertion;
 	private final Map<BasicBlock, Integer> process;
@@ -70,6 +71,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		
 		counters = new HashMap<>();
 		stacks = new HashMap<>();
+		order = new ArrayList<>();
 		
 		insertion = new HashMap<>();
 		process = new HashMap<>();
@@ -439,6 +441,28 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		for(BasicBlock e : builder.graph.getEntries()) {
 			search(e, vis);
 		}
+		
+		for(BasicBlock b : order) {
+			for(Statement s : b) {
+				if(s.getOpcode() != Opcode.PHI_STORE) {
+					break;
+				}
+				
+				CopyPhiStatement cps = (CopyPhiStatement) s;
+				
+				for(Entry<BasicBlock, Expression> e : cps.getExpression().getArguments().entrySet()) {
+					BasicBlock src = e.getKey();
+					if(vis.contains(src))
+						continue;
+					
+					VarExpression v = (VarExpression) e.getValue();
+					Local l = v.getLocal();
+					// what if the def is never reached?
+					AbstractCopyStatement def = defs.get(l);
+					v.setType(def.getType());
+				}
+			}
+		}
 	}
 	
 	private void search(BasicBlock b, Set<BasicBlock> vis) {
@@ -472,6 +496,10 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 			search(succ, vis);
 		}
 		
+		unstackDefs(b);
+	}
+	
+	private void unstackDefs(BasicBlock b) {
 		for (Statement s : b) {
 			if (s.getOpcode() == Opcode.PHI_STORE || s.getOpcode() == Opcode.LOCAL_STORE) {
 				AbstractCopyStatement cvs = (AbstractCopyStatement) s;
@@ -546,25 +574,27 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 					VarExpression v = (VarExpression) e;
 					Local l = ((VarExpression) e).getLocal();
 					l = _top(stmt, l.getIndex(), l.isStack());
-					AbstractCopyStatement varDef = defs.get(l);
-					System.out.printf("Arg: %s, l:%s, cType:%s, vType:%s.%n", v, l, copy.getType(), varDef.getType());
+					
+					Type t;
 					if(copy.getType() == null) {
 						/* type not set yet */
-						Type t = varDef.getType();
+						t = types.get(l);
 						copy.getVariable().setType(t);
 						phi.setType(t);
 						v.setType(t);
 					} else {
 						/* this doesn't check the types of
 						 * non vars in the phi. */
-						Type t = varDef.getType();
+						AbstractCopyStatement varDef = defs.get(l);
+						t = varDef.getType();
 						Type oldT = copy.getType();
 						// TODO: common supertypes
 						if(oldT.getSize() != TypeUtils.asSimpleType(t).getSize()) {
 							throw new IllegalStateException(l + " " + copy + " " + t + " " + copy.getType());
 						}
 					}
-					VarExpression var = new VarExpression(l, v.getType());
+					System.out.printf("%s from %s: %s.%n", l, b.getId(), t);
+					VarExpression var = new VarExpression(l, t);
 					phi.setArgument(b, var);
 				}
 			} else {
@@ -697,7 +727,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		splitCount = builder.graph.size() + 1;
 		builder.head = GraphUtils.connectHead(builder.graph);
 
-		List<BasicBlock> order = new ArrayList<>(builder.graph.vertices());
+		order.addAll(builder.graph.vertices());
 		order.remove(builder.head);
 		order.add(0, builder.head);
 		builder.naturaliseGraph(order);

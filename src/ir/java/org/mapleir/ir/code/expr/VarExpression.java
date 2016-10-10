@@ -52,8 +52,8 @@ public class VarExpression extends Expression {
 
 	@Override
 	public void toString(TabbedStringWriter printer) {
-		printer.print("(" + type + ")" + local.toString());
-//		printer.print(local.toString());
+//		printer.print("(" + type + ")" + local.toString());
+		printer.print(local.toString());
 	}
 
 	@Override

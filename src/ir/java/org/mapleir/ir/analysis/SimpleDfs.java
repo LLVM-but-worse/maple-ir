@@ -1,14 +1,11 @@
 package org.mapleir.ir.analysis;
 
+import java.util.*;
+
 import org.mapleir.stdlib.cfg.edge.FlowEdge;
+import org.mapleir.stdlib.cfg.edge.FlowEdges;
 import org.mapleir.stdlib.collections.graph.FastGraphVertex;
 import org.mapleir.stdlib.collections.graph.flow.FlowGraph;
-
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.Stack;
 
 public class SimpleDfs<N extends FastGraphVertex> {
 	public List<N> preorder;
@@ -36,11 +33,27 @@ public class SimpleDfs<N extends FastGraphVertex> {
 				preorder.add(current);
 			if (post)
 				postStack.push(current);
-			for (FlowEdge<N> succ : graph.getEdges(current))
+			for (FlowEdge<N> succ : weigh(graph.getEdges(current)))
 				preStack.push(succ.dst);
 		}
 		if (post)
 			while (!postStack.isEmpty())
 				postorder.add(postStack.pop());
+	}
+
+	private Collection<FlowEdge<N>> weigh(Set<FlowEdge<N>> edges) {
+		List<FlowEdge<N>> lst = new ArrayList<>();
+		Collections.sort(lst, new Comparator<FlowEdge<N>>() {
+			@Override
+			public int compare(FlowEdge<N> o1, FlowEdge<N> o2) {
+				if(o1.getType() == FlowEdges.DUMMY) {
+					return -1;
+				} else if(o1.getType() == FlowEdges.DUMMY) {
+					return 1;
+				}
+				return 0;
+			}
+		});
+		return lst;
 	}
 }

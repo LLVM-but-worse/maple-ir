@@ -82,7 +82,11 @@ public class BoissinotDestructor {
 		// 1. Insert copies to enter CSSA.
 		init();
 		
+		BasicBlock realHead = cfg.getEntries().iterator().next();
 		BasicBlock head = GraphUtils.connectHead(cfg);
+		
+		cfg.getEntries().clear();
+		cfg.getEntries().add(head);
 				
 		resolver = new DominanceLivenessAnalyser(cfg, head, null);
 		
@@ -114,6 +118,8 @@ public class BoissinotDestructor {
 		sequentialize();
 		
 		GraphUtils.disconnectHead(cfg, head);
+		cfg.getEntries().clear();
+		cfg.getEntries().add(realHead);
 	}
 
 	// ============================================================================================================= //
@@ -249,12 +255,13 @@ public class BoissinotDestructor {
 		resolver.domc.makeTree(dom_tree);
 		dom_tree.getEntries().addAll(cfg.getEntries());
 
-//		BasicDotConfiguration<FastBlockGraph, BasicBlock, FlowEdge<BasicBlock>> config = new BasicDotConfiguration<>(DotConfiguration.GraphType.DIRECTED);
-//		DotWriter<FastBlockGraph, BasicBlock, FlowEdge<BasicBlock>> writer = new DotWriter<>(config, dom_tree);
-//		writer.removeAll().setName("domtree").export();
 
 		// Compute dominance DFS
 		dom_dfs = new SimpleDfs<>(dom_tree, cfg.getEntries().iterator().next(), true, true);
+		
+//		BasicDotConfiguration<FastBlockGraph, BasicBlock, FlowEdge<BasicBlock>> config = new BasicDotConfiguration<>(DotConfiguration.GraphType.DIRECTED);
+//		DotWriter<FastBlockGraph, BasicBlock, FlowEdge<BasicBlock>> writer = new DotWriter<>(config, dom_tree);
+//		writer.removeAll().setName("domtree").export();
 	}
 
 	private void createDuChains() {
