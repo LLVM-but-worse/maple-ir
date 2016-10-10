@@ -16,9 +16,11 @@ import org.mapleir.ir.code.stmt.copy.AbstractCopyStatement;
 import org.mapleir.ir.code.stmt.copy.CopyPhiStatement;
 import org.mapleir.ir.locals.Local;
 import org.mapleir.ir.locals.VersionedLocal;
+import org.mapleir.stdlib.cfg.edge.TryCatchEdge;
 import org.mapleir.stdlib.cfg.util.TypeUtils;
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.SetCreator;
+import org.mapleir.stdlib.collections.graph.flow.ExceptionRange;
 import org.mapleir.stdlib.ir.StatementVisitor;
 import org.mapleir.stdlib.ir.transform.ssa.SSALocalAccess;
 
@@ -75,7 +77,7 @@ public class Propagator extends OptimisationPass.Optimiser {
 				res.add(b.get(i));
 			}
 			
-			for(BasicBlock r : builder.graph.wanderAllTrails(b, builder.head)) {
+			for(BasicBlock r : builder.graph.wanderAllTrails(b)) {
 				res.addAll(r);
 			}
 			
@@ -237,7 +239,6 @@ public class Propagator extends OptimisationPass.Optimiser {
 		}
 		
 		private boolean fineBladeDefinition(AbstractCopyStatement def, Iterator<?> it) {
-//			System.out.println("DEAD(2): " + def);
 			it.remove();
 			Expression rhs = def.getExpression();
 			BasicBlock b = def.getBlock();
@@ -427,7 +428,39 @@ public class Propagator extends OptimisationPass.Optimiser {
 			} else if(opcode == Opcode.LOCAL_LOAD) {
 				ret =  handleVar(def, use, (VarExpression) rhs);
 			} else if(opcode != Opcode.CATCH && opcode != Opcode.PHI && opcode != Opcode.EPHI) {
-				ret = handleComplex(def, use);
+				BasicBlock db = def.getBlock();
+				BasicBlock ub = root.getBlock();
+				
+				List<ExceptionRange<BasicBlock>> dr = db.getProtectingRanges();
+				List<ExceptionRange<BasicBlock>> ur = ub.getProtectingRanges();
+				
+				int drs = dr.size(), urs = ur.size();
+				
+				boolean transferable = false;
+				
+				if(drs > 0) {
+					if(urs == 0) {
+						// we can clone the range information.
+						for(ExceptionRange<BasicBlock> e : dr) {
+							e.addVertex(ub);
+							builder.graph.addEdge(ub, new TryCatchEdge<>(ub, e));
+						}
+						
+						transferable = true;
+					} else {
+						dr.removeAll(ur);
+						
+						if(dr.size() == 0) {
+							transferable = true;
+						}
+					}
+				} else if(urs == 0) {
+					transferable = true;
+				}
+				
+				if(transferable) {
+					ret = handleComplex(def, use);
+				}
 			}
 			return ret;
 		}
@@ -686,7 +719,6 @@ public class Propagator extends OptimisationPass.Optimiser {
 			return change;
 		}
 		
-		// Selects a statement to be processed.
 		@Override
 		public void reset(Statement stmt) {
 			super.reset(stmt);

@@ -142,6 +142,29 @@ public abstract class FlowGraph<N extends FastGraphVertex, E extends FlowEdge<N>
 		visited.add(from);
 		
 		return visited;
+	}	
+	
+	public Set<N> wanderAllTrails(N from) {
+		Set<N> visited = new HashSet<>();
+		LinkedList<N> stack = new LinkedList<>();
+		stack.add(from);
+		
+		while(!stack.isEmpty()) {
+			N s = stack.pop();
+			
+			Set<E> edges = getEdges(s);
+			for(FlowEdge<N> e : edges) {
+				N next = e.dst;
+				if(!visited.contains(next)) {
+					stack.add(next);
+					visited.add(next);
+				}
+			}
+		}
+		
+		visited.add(from);
+		
+		return visited;
 	}
 
 	public GenericBitSet<N> createBitSet() {
