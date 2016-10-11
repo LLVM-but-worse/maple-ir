@@ -138,6 +138,7 @@ public class BasicBlock implements FastGraphVertex, Comparable<BasicBlock>, List
 	
 	@Override
 	public Statement set(int index, Statement stmt) {
+		stmt.setBlock(this);
 		return statements.set(index, stmt);
 	}
 	
@@ -396,5 +397,11 @@ public class BasicBlock implements FastGraphVertex, Comparable<BasicBlock>, List
 		for (int i = label.length() - 1; i >= 0; i--)
 			result = result + (label.charAt(i) - 64) * (int) Math.pow(26, label.length() - (i + 1));
 		return result;
+	}
+	
+	public void checkConsistency() {
+		for (Statement stmt : statements)
+			if (stmt.getBlock() != this)
+				throw new IllegalStateException("Orphaned child " + stmt);
 	}
 }
