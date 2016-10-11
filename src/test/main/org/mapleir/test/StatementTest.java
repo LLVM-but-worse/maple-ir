@@ -30,7 +30,7 @@ public class StatementTest {
 		for (int i = 1; i < 16; i++) {
 			// random statement deletion
 			for (int j = 0; j < i; j++) {
-				Statement.ID_COUNTER = 0;
+//				Statement.ID_COUNTER = 0;
 				try {
 					TestStatement stmt = new TestStatement();
 					popul8(stmt, 0, i);
@@ -47,7 +47,7 @@ public class StatementTest {
 			}
 
 			{
-				Statement.ID_COUNTER = 0;
+//				Statement.ID_COUNTER = 0;
 				TestStatement stmt = new TestStatement();
 				popul8(stmt, 0, i);
 				// forward deletion
@@ -67,7 +67,7 @@ public class StatementTest {
 			}
 
 			{
-				Statement.ID_COUNTER = 0;
+//				Statement.ID_COUNTER = 0;
 				TestStatement stmt = new TestStatement();
 				popul8(stmt, 0, i);
 				// forward deletion

@@ -9,7 +9,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import org.mapleir.ir.Benchmark;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.locals.Local;
@@ -92,17 +91,7 @@ public class ControlFlowGraphBuilder {
 	}
 	
 	private BuilderPass[] interlace(BuilderPass[] passes) {
-		if(Benchmark.DEBOG) {
-			BuilderPass[] res = new BuilderPass[passes.length *2];
-			for(int i=0; i < passes.length; i++) {
-				BuilderPass p = passes[i];
-				res[i*2] = p;
-				res[(i*2)+1] = new VerificationPass(this, p.getClass().getSimpleName());
-			}
-			return res;
-		} else {
-			return passes;
-		}
+		return passes;
 	}
 	
 	public static ControlFlowGraph build(MethodNode method) {
@@ -118,11 +107,11 @@ public class ControlFlowGraphBuilder {
 				p.run();
 				
 //				if(p instanceof SSAGenPass && !(p instanceof VerificationPass)) {
-//					System.out.println();
-//					System.out.println("AFTER " + p.getClass().getSimpleName() + ":");
-//					System.out.println(builder.graph);
-//					System.out.println();
-//					System.out.println();
+					System.out.println();
+					System.out.println("AFTER " + p.getClass().getSimpleName() + ":");
+					System.out.println(builder.graph);
+					System.out.println();
+					System.out.println();
 //				}
 
 //				BasicDotConfiguration<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> config = new BasicDotConfiguration<>(DotConfiguration.GraphType.DIRECTED);

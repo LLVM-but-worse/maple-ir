@@ -467,7 +467,7 @@ public class Test {
 			
 			for(MethodNode m : new ArrayList<>(cn.methods)) {
 				
-				if(!m.toString().startsWith("com/allatori/iiiIiiIiii.findClass(Ljava/lang/String;)Ljava/lang/Class")) {
+				if(!m.toString().startsWith("com/allatori/wtk/WTKObfuscator.run(Ljava/io/File;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V")) {
 					continue;
 				}
 				
