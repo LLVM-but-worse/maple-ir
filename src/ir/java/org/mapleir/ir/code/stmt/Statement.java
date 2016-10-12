@@ -47,9 +47,11 @@ public abstract class Statement implements FastGraphVertex, Opcode {
 		
 		// i.e. removed, so invalidate this statement.
 		if(block == null) {
-			System.out.println("Statement.setBlock() " + this);
+//			if(Test.temp) {
+//				System.out.println("Statement.setBlock() " + this);
+//			}
 //			markDirty();
-			setParent(null);
+//			setParent(null);
 		}
 		
 		for(Statement s : children) {
@@ -179,8 +181,16 @@ public abstract class Statement implements FastGraphVertex, Opcode {
 	}
 	
 	public void unlink() {
-		block = null;
-		setParent(null);
+//		setBlock(null);
+//		setParent(null);
+//		if(parent == null) {
+//			throw new UnsupportedOperationException("{{" + this + "}} unlink from nothing");
+//		} else {
+//			
+//		}
+		if(parent != null) {
+			parent.deleteAt(parent.indexOf(this));
+		}
 	}
 
 	protected void delete0() {
@@ -285,15 +295,19 @@ public abstract class Statement implements FastGraphVertex, Opcode {
 		
 		if (children[newPtr] != node) {
 			Statement prev = children[newPtr];
+//			if(prev != null) {
+//				System.out.println("In: " + this);
+//				System.out.println(" myPar: {{" + parent + "}}");
+//				System.out.println("  Overwrite {{" + prev + "}} with {{" + node + "}}");
+//				System.out.println("   prePrevPar: " + prev.parent + ", sPar: " + node.parent);
+//			}
 			writeAt(newPtr, node);
 			onChildUpdated(newPtr);
 
-			if(prev != null) {
-				System.out.println("PostIn: " + this);
-				System.out.println("PostOverwrite " + prev + " with " + node);
-				System.out.println("PostPrevPar: " + prev.parent + ", sPar: " + node.parent);
-				checkConsistency();
-			}
+//			if(prev != null) {
+//				System.out.println("   posPrevPar: " + prev.parent + ", sPar: " + node.parent);
+//				System.out.println(" myPar: {{" + parent + "}}");
+//			}
 			
 			return prev;
 		}
@@ -343,8 +357,8 @@ public abstract class Statement implements FastGraphVertex, Opcode {
 			block = null;
 		}
 		
-//		if(DVBTest.FLAG) {
-//			System.out.println("Parent of " + this + " = " + parent);
+//		if(Test.temp) {
+//			System.out.println("  setParent of {{" + this + "}} === {{" + parent + "}}");
 //		}
 	}
 	
@@ -378,7 +392,7 @@ public abstract class Statement implements FastGraphVertex, Opcode {
 	
 	@Override
 	public String toString() {
-		return id + ". " + print(this);
+		return print(this);
 	}
 
 	@Override
@@ -453,6 +467,11 @@ public abstract class Statement implements FastGraphVertex, Opcode {
 		return list.iterator();
 	} */
 	
+	/**
+	 * Checks the consistency of a top level statement. Note that if this
+	 * Statement is not the highest one in the chain, it will produce false
+	 * exceptions.
+	 */
 	public void checkConsistency() {
 		checkConsistency(null);
 	}
