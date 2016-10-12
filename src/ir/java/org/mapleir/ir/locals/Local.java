@@ -70,7 +70,7 @@ public abstract class Local implements Comparable<Local> {
 
 	@Override
 	public int hashCode() {
-		final int prime = 31;
+		final int prime = 257;
 		int result = 1;
 		result = prime * result + index;
 		result = prime * result + (stack ? 1 : 0);
