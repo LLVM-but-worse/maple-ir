@@ -32,11 +32,11 @@ public class VersionedLocal extends Local {
 
 	@Override
 	public int hashCode() {
-		return toString().hashCode();
-//		final int prime = 37;
-//		int result = super.hashCode();
-//		result = prime * result + subscript;
-//		return result;
+//		return toString().hashCode();
+		final int prime = 257;
+		int result = super.hashCode();
+		result = prime * result + subscript;
+		return result;
 	}
 
 	@Override
