@@ -649,6 +649,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 	}
 
 	void _compare(ValueComparisonType ctype) {
+		save_stack(false);
 		Expression right = pop();
 		Expression left = pop();
 		push(new ComparisonExpression(left, right, ctype));
@@ -659,6 +660,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 			currentStack.assertHeights(EMPTY_STACK_HEIGHTS);
 			addStmt(new ReturnStatement());
 		} else {
+			save_stack(false);
 			if(type.getSize() == 2) {
 				currentStack.assertHeights(DOUBLE_RETURN_HEIGHTS);
 			} else {
@@ -669,15 +671,18 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 	}
 
 	void _throw() {
+		save_stack(false);
 		currentStack.assertHeights(SINGLE_RETURN_HEIGHTS);
 		addStmt(new ThrowStatement(pop()));
 	}
 
 	void _monitor(MonitorMode mode) {
+		save_stack(false);
 		addStmt(new MonitorStatement(pop(), mode));
 	}
 
 	void _arithmetic(Operator op) {
+		save_stack(false);
 		Expression e = new ArithmeticExpression(pop(), pop(), op);
 		int index = currentStack.height();
 		Type type = assign_stack(index, e);
@@ -685,14 +690,17 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 	}
 	
 	void _neg() {
+		save_stack(false);
 		push(new NegationExpression(pop()));
 	}
 	
 	void _arraylength() {
+		save_stack(false);
 		push(new ArrayLengthExpression(pop()));
 	}
 	
 	void _load_array(ArrayType type) {
+		save_stack(false);
 		// prestack: var1, var0 (height = 2)
 		// poststack: var0
 		// assignments: var0 = var0[var1]
@@ -1045,6 +1053,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 	}
 	
 	void _cast(Type type) {
+		save_stack(false);
 		Expression e = new CastExpression(pop(), type);
 		int index = currentStack.height();
 		assign_stack(index, e);
@@ -1052,6 +1061,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 	}
 	
 	void _instanceof(Type type) {
+		save_stack(false);
 		InstanceofExpression e = new InstanceofExpression(pop(), type);
 		int index = currentStack.height();
 		assign_stack(index, e);
@@ -1073,6 +1083,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 	}
 	
 	void _dynamic_call(Handle _bsm, Object[] _args, String name, String desc) {
+		save_stack(false);
 		Handle provider = new Handle(_bsm.getTag(), _bsm.getOwner(), _bsm.getName(), _bsm.getDesc());
 		Object[] pArgs = new Object[_args.length];
 		System.arraycopy(_args, 0, pArgs, 0, pArgs.length);
@@ -1113,6 +1124,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 	}
 	
 	void _switch(LinkedHashMap<Integer, BasicBlock> targets, BasicBlock dflt) {
+		save_stack(false);
 		Expression expr = pop();
 		
 		for (Entry<Integer, BasicBlock> e : targets.entrySet()) {
@@ -1125,6 +1137,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 	}
 
 	void _store_field(int opcode, String owner, String name, String desc) {
+		save_stack(false);
 		if(opcode == PUTFIELD) {
 			Expression val = pop();
 			Expression inst = pop();
@@ -1138,10 +1151,10 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 	}
 	
 	void _load_field(int opcode, String owner, String name, String desc) {
+		save_stack(false);
 		if(opcode == GETFIELD || opcode == GETSTATIC) {
 			Expression inst = null;
 			if(opcode == GETFIELD) {
-				save_stack(false);
 				inst = pop();
 			}
 			FieldLoadExpression fExpr = new FieldLoadExpression(inst, owner, name, desc);
@@ -1214,18 +1227,21 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 	}
 	
 	void _jump_cmp(BasicBlock target, ComparisonType type) {
+		save_stack(false);
 		Expression right = pop();
 		Expression left = pop();
 		_jump_cmp(target, type, left, right);
 	}
 	
 	void _jump_cmp0(BasicBlock target, ComparisonType type) {
+		save_stack(false);
 		Expression left = pop();
 		ConstantExpression right = new ConstantExpression(0);
 		_jump_cmp(target, type, left, right);
 	}
 
 	void _jump_null(BasicBlock target, boolean invert) {
+		save_stack(false);
 		Expression left = pop();
 		ConstantExpression right = new ConstantExpression(null);
 		ComparisonType type = invert ? ComparisonType.NE : ComparisonType.EQ;
