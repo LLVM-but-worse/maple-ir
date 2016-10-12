@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import org.mapleir.ir.Test;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.locals.Local;
@@ -91,7 +92,17 @@ public class ControlFlowGraphBuilder {
 	}
 	
 	private BuilderPass[] interlace(BuilderPass[] passes) {
-		return passes;
+		if (Test.temp) {
+			BuilderPass[] res = new BuilderPass[passes.length * 2];
+			for (int i = 0; i < passes.length; i++) {
+				BuilderPass p = passes[i];
+				res[i * 2] = p;
+				res[(i * 2) + 1] = new VerificationPass(this, p.getClass().getSimpleName());
+			}
+			return res;
+		} else {
+			return passes;
+		}
 	}
 	
 	public static ControlFlowGraph build(MethodNode method) {
@@ -114,8 +125,8 @@ public class ControlFlowGraphBuilder {
 //					System.out.println();
 //				}
 				
-				for (BasicBlock b : builder.graph.vertices())
-					b.checkConsistency();
+//				for (BasicBlock b : builder.graph.vertices())
+//					b.checkConsistency();
 
 //				BasicDotConfiguration<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> config = new BasicDotConfiguration<>(DotConfiguration.GraphType.DIRECTED);
 //				DotWriter<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> writer = new DotWriter<>(config, builder.graph);

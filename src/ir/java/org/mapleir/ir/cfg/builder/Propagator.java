@@ -373,6 +373,7 @@ public class Propagator extends OptimisationPass.Optimiser {
 					// the useCount of svar0_1 to 0. (1 - 1)
 					unuseLocal(use.getLocal());
 					scalpelDefinition(def);
+					propagatee.unlink();
 					return propagatee;
 				}
 			} else {
@@ -426,13 +427,10 @@ public class Propagator extends OptimisationPass.Optimiser {
 			if(opcode == Opcode.CONST_LOAD) {
 				ret =  handleConstant(def, use, (ConstantExpression) rhs);
 			} else if(opcode == Opcode.LOCAL_LOAD) {
-//				ret =  handleVar(def, use, (VarExpression) rhs);
+				ret =  handleVar(def, use, (VarExpression) rhs);
 			} else if(opcode != Opcode.CATCH && opcode != Opcode.PHI && opcode != Opcode.EPHI) {
 				BasicBlock db = def.getBlock();
 				BasicBlock ub = root.getBlock();
-				
-				System.out.println("def: " + def);
-				System.out.println(root + " " + ub);
 				
 				List<ExceptionRange<BasicBlock>> dr = db.getProtectingRanges();
 				List<ExceptionRange<BasicBlock>> ur = ub.getProtectingRanges();
@@ -463,6 +461,10 @@ public class Propagator extends OptimisationPass.Optimiser {
 				
 				if(transferable) {
 					ret = handleComplex(def, use);
+//					if(ret != null) {
+//						System.out.println("^ def: " + def);
+//						System.out.println("  {{" + root + "}} " + ub);
+//					}
 				}
 			}
 			return ret;
