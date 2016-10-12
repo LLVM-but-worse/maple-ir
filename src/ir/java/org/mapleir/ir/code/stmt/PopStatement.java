@@ -43,7 +43,6 @@ public class PopStatement extends Statement {
 
 	@Override
 	public void toCode(MethodVisitor visitor, ControlFlowGraph cfg) {
-		System.out.println(expression);
 		expression.toCode(visitor, cfg);
 		if (expression.getType() != Type.VOID_TYPE)
 			visitor.visitInsn(TypeUtils.getPopOpcode(expression.getType()));	
