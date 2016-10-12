@@ -475,11 +475,21 @@ public class Propagator extends OptimisationPass.Optimiser {
 			Expression e = findSubstitution(root, def, var);
 			if(e != null) {
 				if(!var.getType().equals(e.getType())) {
+					System.err.println();
+					System.err.println(builder.graph);
+					System.err.println();
 					System.err.println("Root: " + var.getRootParent().getId() + ". " + var.getRootParent());
+					System.err.println("Def: " + def.getId() + ". " + def);
 					System.err.println(" var: " + var);
 					System.err.println(" sub: " + e);
 					System.err.println(" vt: " + var.getType());
 					System.err.println(" st: " + e.getType());
+					System.err.println(" v1: " + var.getLocal());
+					System.err.println(" v1: " + def.getVariable().getLocal());
+					System.err.println(" hc1: " + var.getLocal().hashCode());
+					System.err.println(" hc2: " + def.getVariable().getLocal().hashCode());
+					System.err.println();
+					System.err.println();
 					throw new RuntimeException();
 				}
 			}
