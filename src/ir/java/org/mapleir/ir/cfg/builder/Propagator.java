@@ -426,10 +426,13 @@ public class Propagator extends OptimisationPass.Optimiser {
 			if(opcode == Opcode.CONST_LOAD) {
 				ret =  handleConstant(def, use, (ConstantExpression) rhs);
 			} else if(opcode == Opcode.LOCAL_LOAD) {
-				ret =  handleVar(def, use, (VarExpression) rhs);
+//				ret =  handleVar(def, use, (VarExpression) rhs);
 			} else if(opcode != Opcode.CATCH && opcode != Opcode.PHI && opcode != Opcode.EPHI) {
 				BasicBlock db = def.getBlock();
 				BasicBlock ub = root.getBlock();
+				
+				System.out.println("def: " + def);
+				System.out.println(root + " " + ub);
 				
 				List<ExceptionRange<BasicBlock>> dr = db.getProtectingRanges();
 				List<ExceptionRange<BasicBlock>> ur = ub.getProtectingRanges();
