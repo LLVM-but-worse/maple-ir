@@ -47,6 +47,7 @@ public abstract class Statement implements FastGraphVertex, Opcode {
 		
 		// i.e. removed, so invalidate this statement.
 		if(block == null) {
+			System.out.println("Statement.setBlock() " + this);
 //			markDirty();
 			setParent(null);
 		}
@@ -122,11 +123,11 @@ public abstract class Statement implements FastGraphVertex, Opcode {
 	private Statement writeAt(int index, Statement s) {
 //		markDirty();
 		Statement prev = children[index];
+
 		if(prev != s && prev != null) {
 			prev.setParent(null);
 		}
 		children[index] = s;
-		
 		
 		if(s != null) {
 			if(s.parent != null) {
@@ -284,9 +285,16 @@ public abstract class Statement implements FastGraphVertex, Opcode {
 		
 		if (children[newPtr] != node) {
 			Statement prev = children[newPtr];
-//			System.out.println("Overwrite " + prev + " with " + node);
 			writeAt(newPtr, node);
 			onChildUpdated(newPtr);
+
+			if(prev != null) {
+				System.out.println("PostIn: " + this);
+				System.out.println("PostOverwrite " + prev + " with " + node);
+				System.out.println("PostPrevPar: " + prev.parent + ", sPar: " + node.parent);
+				checkConsistency();
+			}
+			
 			return prev;
 		}
 		
@@ -370,7 +378,7 @@ public abstract class Statement implements FastGraphVertex, Opcode {
 	
 	@Override
 	public String toString() {
-		return print(this);
+		return id + ". " + print(this);
 	}
 
 	@Override
@@ -451,7 +459,7 @@ public abstract class Statement implements FastGraphVertex, Opcode {
 	
 	public void checkConsistency(Statement parent) {
 		if(this.parent != parent) {
-			System.err.println("pc: " + Arrays.toString(parent.children));
+			System.err.println("pc: " + (parent != null ? Arrays.toString(parent.children) : "NOPAR"));
 			System.err.println("ac: " + (this.parent != null ? Arrays.toString(this.parent.children) : "NO PARENT"));
 			throw new IllegalStateException("Differening parents: " + this + "\n   Suggested: " + (this.parent == null ? "NULLL" : this.parent) + "\n   Actual: " + parent);
 		}
