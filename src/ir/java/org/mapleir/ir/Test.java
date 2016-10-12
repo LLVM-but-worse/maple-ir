@@ -7,14 +7,18 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.Set;
 
 import org.mapleir.byteio.CompleteResolvingJarDumper;
 import org.mapleir.ir.cfg.BoissinotDestructor;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.cfg.builder.ControlFlowGraphBuilder;
 import org.mapleir.ir.cfg.builder.SSAGenPass;
+import org.mapleir.stdlib.klass.ClassNodeUtil;
+import org.mapleir.stdlib.klass.ClassTree;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Opcodes;
@@ -172,7 +176,7 @@ public class Test {
 
 		System.out.println(x);
 	}
-	
+
 	void trap() {
 	}
 
@@ -238,7 +242,7 @@ public class Test {
 		System.out.println(x);
 		System.out.println(y);
 	}
-	
+
 	void trap(int x, int y) {
 	}
 
@@ -287,7 +291,7 @@ public class Test {
 				x = z;
 				trap(x, y);
 			}
-		} while(p());
+		} while (p());
 
 		System.out.println(x);
 		System.out.println(y);
@@ -304,7 +308,7 @@ public class Test {
 				trap(x, y);
 				y = 123;
 			} catch (RuntimeException e) {
-				while(!p()) {
+				while (!p()) {
 					trap(x, y);
 					int z = y;
 					trap(x, y);
@@ -314,7 +318,7 @@ public class Test {
 					trap(x, y);
 				}
 			}
-		} while(p());
+		} while (p());
 
 		System.out.println(x);
 		System.out.println(y);
@@ -339,9 +343,9 @@ public class Test {
 					trap(x, y);
 					x = z;
 					trap(x, y);
-				} while(!p());
+				} while (!p());
 			}
-		} while(p());
+		} while (p());
 
 		System.out.println(x);
 		System.out.println(y);
@@ -359,7 +363,7 @@ public class Test {
 					x = z;
 				} while (!q());
 			}
-		} while(p());
+		} while (p());
 
 		System.out.println(x);
 		System.out.println(y);
@@ -374,7 +378,7 @@ public class Test {
 			x = y;
 			trap(x, y);
 			y = z;
-		} catch(RuntimeException e) {
+		} catch (RuntimeException e) {
 			System.out.println(x + 2 * y);
 		} finally {
 			System.out.println(x + y);
@@ -391,19 +395,21 @@ public class Test {
 			System.out.println(x + 5);
 		System.out.println(y);
 	}
-	
+
 	void lla() {
-		Runnable r = () -> {test011();};
+		Runnable r = () -> {
+			test011();
+		};
 		r.run();
 	}
-	
+
 	static void test151(int lvar0, int lvar1) {
 		try {
 			lvar0 = lvar0;
 			lvar1 = lvar1;
 			System.out.println(lvar1);
 			lvar1 = lvar0;
-		} catch(Exception e) {
+		} catch (Exception e) {
 			System.out.println(lvar1);
 		}
 		System.out.println(lvar1);
@@ -438,159 +444,231 @@ public class Test {
 		insns.add(new InsnNode(Opcodes.DUP_X2));
 		insns.add(new InsnNode(Opcodes.POP));
 		insns.add(new InsnNode(Opcodes.SWAP));
-		
+
 		ControlFlowGraph cfg = ControlFlowGraphBuilder.build(m);
 		System.out.println(cfg);
 	}
-	
+
 	public static void main(String[] args) throws IOException {
 		JarInfo jar = new JarInfo(new File("res/allatori.jar"));
 		SingleJarDownloader<ClassNode> dl = new SingleJarDownloader<>(jar);
 		dl.download();
 		JarContents<ClassNode> contents = dl.getJarContents();
-		
-		for (ClassNode cn : contents.getClassContents()) {
-			
-//			if(cn.name.equals("com/allatori/IIiIIiIiIi")) {
-//				ClassWriter cw = new ClassWriter(0);
-//				cn.accept(cw);
-//				byte[] bs = cw.toByteArray();
-//				FileOutputStream out = new FileOutputStream(new File("out/dmp.class"));
-//				out.write(bs, 0, bs.length);
-//				out.close();
-//			}
-			
-			for(MethodNode m : new ArrayList<>(cn.methods)) {
-				
-				if(!m.toString().startsWith("com/allatori/iiiIiiIiii.findClass(Ljava/lang/String;)Ljava/lang/Class")) {
-//					continue;
-				}
-				
-				if(m.instructions.size() > 0) {
-					System.out.printf("%s  %d.%n", m, m.instructions.size());
-					ControlFlowGraph cfg = null;
-					{
-						
-//						List<MethodNode> methods = new ArrayList<>(cn.methods);
-//						cn.methods.clear();
-//						cn.methods.add(m);
-//						
-//						ClassWriter cw = new ClassWriter(0);
-//						cn.accept(cw);
-//						byte[] bs = cw.toByteArray();
-//						FileOutputStream out = new FileOutputStream(new File("out/pre.class"));
-//						out.write(bs, 0, bs.length);
-//						out.close();
-//						
-//						cn.methods.addAll(methods);
-					}
-					try {
-						m.localVariables.clear();
-						cfg = ControlFlowGraphBuilder.build(m);
-						m.access ^= Opcodes.ACC_SYNTHETIC;
-						
-//						BasicDotConfiguration<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> config = new BasicDotConfiguration<>(DotConfiguration.GraphType.DIRECTED);
-//						DotWriter<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> writer = new DotWriter<>(config, cfg);
-//						writer.removeAll().add(new ControlFlowGraphDecorator()).setName("irreducible").export();
-						
-//						System.out.println(cfg);
-						
-						new BoissinotDestructor(cfg, 0); // ungay this
-						cfg.getLocals().realloc(cfg);
-//						System.out.println(cfg);
-						ControlFlowGraphDumper.dump(cfg, m);
 
-//						ClassTree classTree = new ClassTree(contents.getClassContents());
-//						ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS) {
-//
-//							// this method in ClassWriter uses the systemclassloader as
-//							// a stream location to load the super class, however, most of
-//							// the time the class is loaded/read and parsed by us so it
-//							// isn't defined in the system classloader. in certain cases
-//							// we may not even want it to be loaded/resolved and we can
-//							// bypass this by implementing the hierarchy scanning algorithm
-//							// with ClassNodes rather than Classes.
-//						    @Override
-//							protected String getCommonSuperClass(String type1, String type2) {
-//						    	ClassNode ccn = classTree.getClass(type1);
-//						    	ClassNode dcn = classTree.getClass(type2);
-//						    	
-//						    	if(ccn == null) {
-//						    		ClassNode c = ClassNodeUtil.create(type1);
-//						    		if(c == null) {
-//						    			return "java/lang/Object";
-//						    		}
-//						    		classTree.build(c);
-//						    		return getCommonSuperClass(type1, type2);
-//						    	}
-//						    	
-//						    	if(dcn == null) {
-//						    		ClassNode c = ClassNodeUtil.create(type2);
-//						    		if(c == null) {
-//						    			return "java/lang/Object";
-//						    		}
-//						    		classTree.build(c);
-//						    		return getCommonSuperClass(type1, type2);
-//						    	}
-//						    	
-//						        Set<ClassNode> c = classTree.getSupers(ccn);
-//						        Set<ClassNode> d = classTree.getSupers(dcn);
-//						        
-//						        if(c.contains(dcn))
-//						        	return type1;
-//						        
-//						        if(d.contains(ccn))
-//						        	return type2;
-//						        
-//						        if(Modifier.isInterface(ccn.access) || Modifier.isInterface(dcn.access)) {
-//						        	// enums as well?
-//						        	return "java/lang/Object";
-//						        } else {
-//						        	do {
-//						        		ClassNode nccn = classTree.getClass(ccn.superName);
-//						        		if(nccn == null)
-//						        			break;
-//						        		ccn = nccn;
-//						        		c = classTree.getSupers(ccn);
-//						        	} while(!c.contains(dcn));
-//						        	return ccn.name;
-//						        }
-//						    }
-//						
-//						};
-//						cn.methods.clear();
-//						cn.methods.add(m);
-//						cn.accept(cw);
-//						byte[] bs = cw.toByteArray();
-//						FileOutputStream out = new FileOutputStream(new File("out/work.class"));
-//						out.write(bs, 0, bs.length);
-//						out.close();
-//						
-//						return;
-//					
-					} catch(RuntimeException e) {
-						cn.methods.clear();
-						cn.methods.add(m);
-						ClassWriter cw = new ClassWriter(0);
-						cn.accept(cw);
-						byte[] bs = cw.toByteArray();
-						FileOutputStream out = new FileOutputStream(new File("out/err.class"));
-						out.write(bs, 0, bs.length);
-						out.close();
-						System.err.println();
-						System.err.println(cfg);
-						throw new RuntimeException(m.toString(), e);
+		int index = 0;
+		for (ClassNode cn : contents.getClassContents()) {
+
+			// if(cn.name.equals("com/allatori/IIiIIiIiIi")) {
+			// ClassWriter cw = new ClassWriter(0);
+			// cn.accept(cw);
+			// byte[] bs = cw.toByteArray();
+			// FileOutputStream out = new FileOutputStream(new File("out/dmp.class"));
+			// out.write(bs, 0, bs.length);
+			// out.close();
+			// }
+
+			ArrayList<MethodNode> methodNodes = new ArrayList<>(cn.methods);
+			for (MethodNode m : methodNodes) {
+				if (!m.toString().startsWith("com/allatori/iiiIiiIiii.findClass(Ljava/lang/String;)Ljava/lang/Class")) {
+					// continue;
+					if (++index != 546) {
+						continue;
+					}
+
+					if (m.instructions.size() > 0) {
+						System.out.printf("#%d: %s  [%d]%n", index, m, m.instructions.size());
+						ControlFlowGraph cfg = null;
+						{
+
+							// List<MethodNode> methods = new ArrayList<>(cn.methods);
+							// cn.methods.clear();
+							// cn.methods.add(m);
+							//
+							// ClassWriter cw = new ClassWriter(0);
+							// cn.accept(cw);
+							// byte[] bs = cw.toByteArray();
+							// FileOutputStream out = new FileOutputStream(new File("out/pre.class"));
+							// out.write(bs, 0, bs.length);
+							// out.close();
+							//
+							// cn.methods.addAll(methods);
+						}
+						try {
+							m.localVariables.clear();
+							cfg = ControlFlowGraphBuilder.build(m);
+							m.access ^= Opcodes.ACC_SYNTHETIC;
+
+							// BasicDotConfiguration<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> config = new BasicDotConfiguration<>(DotConfiguration.GraphType.DIRECTED);
+							// DotWriter<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> writer = new DotWriter<>(config, cfg);
+							// writer.removeAll().add(new ControlFlowGraphDecorator()).setName("irreducible").export();
+
+							// System.out.println(cfg);
+
+							new BoissinotDestructor(cfg, 0); // ungay this
+							cfg.getLocals().realloc(cfg);
+							// System.out.println(cfg);
+							ControlFlowGraphDumper.dump(cfg, m);
+
+							// ClassTree classTree = new ClassTree(contents.getClassContents());
+							// ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS) {
+							//
+							// // this method in ClassWriter uses the systemclassloader as
+							// // a stream location to load the super class, however, most of
+							// // the time the class is loaded/read and parsed by us so it
+							// // isn't defined in the system classloader. in certain cases
+							// // we may not even want it to be loaded/resolved and we can
+							// // bypass this by implementing the hierarchy scanning algorithm
+							// // with ClassNodes rather than Classes.
+							// @Override
+							// protected String getCommonSuperClass(String type1, String type2) {
+							// ClassNode ccn = classTree.getClass(type1);
+							// ClassNode dcn = classTree.getClass(type2);
+							//
+							// if(ccn == null) {
+							// ClassNode c = ClassNodeUtil.create(type1);
+							// if(c == null) {
+							// return "java/lang/Object";
+							// }
+							// classTree.build(c);
+							// return getCommonSuperClass(type1, type2);
+							// }
+							//
+							// if(dcn == null) {
+							// ClassNode c = ClassNodeUtil.create(type2);
+							// if(c == null) {
+							// return "java/lang/Object";
+							// }
+							// classTree.build(c);
+							// return getCommonSuperClass(type1, type2);
+							// }
+							//
+							// Set<ClassNode> c = classTree.getSupers(ccn);
+							// Set<ClassNode> d = classTree.getSupers(dcn);
+							//
+							// if(c.contains(dcn))
+							// return type1;
+							//
+							// if(d.contains(ccn))
+							// return type2;
+							//
+							// if(Modifier.isInterface(ccn.access) || Modifier.isInterface(dcn.access)) {
+							// // enums as well?
+							// return "java/lang/Object";
+							// } else {
+							// do {
+							// ClassNode nccn = classTree.getClass(ccn.superName);
+							// if(nccn == null)
+							// break;
+							// ccn = nccn;
+							// c = classTree.getSupers(ccn);
+							// } while(!c.contains(dcn));
+							// return ccn.name;
+							// }
+							// }
+							//
+							// };
+							// cn.methods.clear();
+							// cn.methods.add(m);
+							// cn.accept(cw);
+							// byte[] bs = cw.toByteArray();
+							// FileOutputStream out = new FileOutputStream(new File("out/work.class"));
+							// out.write(bs, 0, bs.length);
+							// out.close();
+							//
+
+							ClassTree classTree = new ClassTree(contents.getClassContents());
+							ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS) {
+
+								// this method in ClassWriter uses the systemclassloader as
+								// a stream location to load the super class, however, most of
+								// the time the class is loaded/read and parsed by us so it
+								// isn't defined in the system classloader. in certain cases
+								// we may not even want it to be loaded/resolved and we can
+								// bypass this by implementing the hierarchy scanning algorithm
+								// with ClassNodes rather than Classes.
+								@Override
+								protected String getCommonSuperClass(String type1, String type2) {
+									ClassNode ccn = classTree.getClass(type1);
+									ClassNode dcn = classTree.getClass(type2);
+
+									if (ccn == null) {
+										ClassNode c = ClassNodeUtil.create(type1);
+										if (c == null) {
+											return "java/lang/Object";
+										}
+										classTree.build(c);
+										return getCommonSuperClass(type1, type2);
+									}
+
+									if (dcn == null) {
+										ClassNode c = ClassNodeUtil.create(type2);
+										if (c == null) {
+											return "java/lang/Object";
+										}
+										classTree.build(c);
+										return getCommonSuperClass(type1, type2);
+									}
+
+									Set<ClassNode> c = classTree.getSupers(ccn);
+									Set<ClassNode> d = classTree.getSupers(dcn);
+
+									if (c.contains(dcn))
+										return type1;
+
+									if (d.contains(ccn))
+										return type2;
+
+									if (Modifier.isInterface(ccn.access) || Modifier.isInterface(dcn.access)) {
+										// enums as well?
+										return "java/lang/Object";
+									} else {
+										do {
+											ClassNode nccn = classTree.getClass(ccn.superName);
+											if (nccn == null)
+												break;
+											ccn = nccn;
+											c = classTree.getSupers(ccn);
+										} while (!c.contains(dcn));
+										return ccn.name;
+									}
+								}
+
+							};
+							cn.methods.clear();
+							cn.methods.add(m);
+							cn.accept(cw);
+							byte[] bs = cw.toByteArray();
+							FileOutputStream out = new FileOutputStream(new File("out/work.class"));
+							out.write(bs, 0, bs.length);
+							out.close();
+
+							// return;
+							//
+						} catch (RuntimeException e) {
+							cn.methods.clear();
+							cn.methods.add(m);
+							ClassWriter cw = new ClassWriter(0);
+							cn.accept(cw);
+							byte[] bs = cw.toByteArray();
+							FileOutputStream out = new FileOutputStream(new File("out/err.class"));
+							out.write(bs, 0, bs.length);
+							out.close();
+							System.err.println();
+							System.err.println(cfg);
+							throw new RuntimeException(m.toString(), e);
+						}
 					}
 				}
 			}
 		}
-		
+
 		JarDumper dumper = new CompleteResolvingJarDumper(contents);
 		dumper.dump(new File("out/osb.jar"));
 	}
-	
+
 	public static void main3(String[] args) throws IOException, AnalyzerException {
-		InputStream i = new FileInputStream(new File("res/DateTimeFormatterBuilder$LocalizedOffsetIdPrinterParser.class"));
+		InputStream i = new FileInputStream(
+				new File("res/DateTimeFormatterBuilder$LocalizedOffsetIdPrinterParser.class"));
 		ClassReader cr = new ClassReader(i);
 		ClassNode cn = new ClassNode();
 		cr.accept(cn, 0);
@@ -603,7 +681,7 @@ public class Test {
 			}
 
 			System.out.println("Processing " + m + "\n");
-			
+
 			SSAGenPass.DO_SPLIT = true;
 			SSAGenPass.ULTRANAIVE = false;
 			SSAGenPass.SKIP_SIMPLE_COPY_SPLIT = true;
@@ -612,59 +690,59 @@ public class Test {
 			ControlFlowGraph cfg = ControlFlowGraphBuilder.build(m);
 			new BoissinotDestructor(cfg, 0);
 			m.maxLocals = cfg.getLocals().realloc(cfg);
-			
-//			System.out.println(cfg);
-//			MethodNode m2 = new MethodNode(m.owner, m.access, m.name, m.desc, m.signature, m.exceptions.toArray(new String[0]));
+
+			// System.out.println(cfg);
+			// MethodNode m2 = new MethodNode(m.owner, m.access, m.name, m.desc, m.signature, m.exceptions.toArray(new String[0]));
 			ControlFlowGraphDumper.dump(cfg, m);
-			
+
 			System.out.println(cfg);
-			
-//			System.out.println();
-//			int j = 0;
-//			for(String s : InstructionPrinter.getLines(m)) {
-//				System.out.printf("%03d. %s.%n", j++, s);
-//			}
-//
-//			Analyzer<BasicValue> a = new Analyzer<>(new BasicInterpreter());
-//			a.analyze(cn.name, m);
-			
-//			new ClassLoader() {
-//				JarContents<ClassNode> contents;
-//				{
-//					AbstractJarDownloader<ClassNode> dl = new SingleJarDownloader<>(new JarInfo(new File("res/rt.jar")));
-//					dl.download();
-//					contents = dl.getJarContents();
-//					ClassWriter clazz = new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
-//					cn.accept(clazz);
-//					byte[] b = clazz.toByteArray();
-//					defineClass(b, 0, b.length);
-//				}
-//				
-//				@Override
-//				public Class<?> loadClass(String name) throws ClassNotFoundException {
-//					if(name.contains("DateTimeFormatterBuilder")) {
-//						ClassNode cn = contents.getClassContents().namedMap().get(name.replace(".", "/"));
-//						cn.access ^= Opcodes.ACC_PRIVATE;
-//						cn.access &= Opcodes.ACC_PUBLIC;
-//						ClassWriter clazz = new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
-//						cn.accept(clazz);
-//						byte[] b = clazz.toByteArray();
-//						return defineClass(b, 0, b.length);
-//					} else {
-//						return super.loadClass(name);
-//					}
-//				}
-//			};
+
+			// System.out.println();
+			// int j = 0;
+			// for(String s : InstructionPrinter.getLines(m)) {
+			// System.out.printf("%03d. %s.%n", j++, s);
+			// }
+			//
+			// Analyzer<BasicValue> a = new Analyzer<>(new BasicInterpreter());
+			// a.analyze(cn.name, m);
+
+			// new ClassLoader() {
+			// JarContents<ClassNode> contents;
+			// {
+			// AbstractJarDownloader<ClassNode> dl = new SingleJarDownloader<>(new JarInfo(new File("res/rt.jar")));
+			// dl.download();
+			// contents = dl.getJarContents();
+			// ClassWriter clazz = new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
+			// cn.accept(clazz);
+			// byte[] b = clazz.toByteArray();
+			// defineClass(b, 0, b.length);
+			// }
+			//
+			// @Override
+			// public Class<?> loadClass(String name) throws ClassNotFoundException {
+			// if(name.contains("DateTimeFormatterBuilder")) {
+			// ClassNode cn = contents.getClassContents().namedMap().get(name.replace(".", "/"));
+			// cn.access ^= Opcodes.ACC_PRIVATE;
+			// cn.access &= Opcodes.ACC_PUBLIC;
+			// ClassWriter clazz = new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
+			// cn.accept(clazz);
+			// byte[] b = clazz.toByteArray();
+			// return defineClass(b, 0, b.length);
+			// } else {
+			// return super.loadClass(name);
+			// }
+			// }
+			// };
 		}
 
 		ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
 		cn.accept(cw);
 		byte[] bs = cw.toByteArray();
-		
+
 		StringWriter sw = new StringWriter();
 		PrintWriter pw = new PrintWriter(sw);
 		CheckClassAdapter.verify(new ClassReader(bs), false, pw);
-		
+
 		FileOutputStream out = new FileOutputStream(new File("out/testclass.class"));
 		out.write(bs, 0, bs.length);
 		out.close();
