@@ -48,9 +48,9 @@ public class SimpleDfs<N extends FastGraphVertex> {
 			@Override
 			public int compare(FlowEdge<N> o1, FlowEdge<N> o2) {
 				if(o1.getType() == FlowEdges.DUMMY) {
-					return -1;
-				} else if(o2.getType() == FlowEdges.DUMMY) {
 					return 1;
+				} else if(o2.getType() == FlowEdges.DUMMY) {
+					return -1;
 				}
 				return 0;
 			}

@@ -15,12 +15,12 @@ public class DummyEdge<N extends FastGraphVertex> extends FlowEdge<N>{
 
 	@Override
 	public String toString() {
-		return "Dummy";
+		return "Dummy #" + src.getId() + " -> #" + dst.getId();
 	}
 
 	@Override
 	public String toInverseString() {
-		return "Dummy";
+		return "Dummy #" + src.getId() + " <- #" + dst.getId();
 	}
 
 	@Override
