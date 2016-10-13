@@ -488,9 +488,9 @@ public class Test {
 
 			ArrayList<MethodNode> methodNodes = new ArrayList<>(cn.methods);
 			for (MethodNode m : methodNodes) {
-				if (!m.toString().startsWith("com/allatori/IiIIIIiIIi.IIIIIIiIII()Lcom/allatori/iiiIiiIiii;")) {
-					continue;
-				}
+//				if (!m.toString().startsWith("com/allatori/IiIIIIiIIi.IIIIIIiIII()Lcom/allatori/iiiIiiIiii;")) {
+//					continue;
+//				}
 //					if (++index != 546) {
 //						continue;
 //					}
