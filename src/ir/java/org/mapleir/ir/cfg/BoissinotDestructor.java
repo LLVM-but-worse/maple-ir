@@ -87,7 +87,10 @@ public class BoissinotDestructor {
 		
 		cfg.getEntries().clear();
 		cfg.getEntries().add(head);
-				
+		
+		System.out.println("modded");
+		System.out.println(cfg);
+		
 		resolver = new DominanceLivenessAnalyser(cfg, head, null);
 		
 		insertCopies();
@@ -302,6 +305,8 @@ public class BoissinotDestructor {
 	// ============================================ Value interference ============================================= //
 	// ============================================================================================================= //
 	private void computeValueInterference() {
+		System.out.println("Preorder: " + GraphUtils.toBlockArray(dom_dfs.preorder));
+		System.out.println("PostORder: " + GraphUtils.toBlockArray(dom_dfs.postorder));
 		for (int i = dom_dfs.postorder.size() - 1; i >= 0; i--) {
 			BasicBlock bl = dom_dfs.postorder.get(i);
 			for (Statement stmt : bl) {
@@ -323,8 +328,9 @@ public class BoissinotDestructor {
 				} else if (stmt instanceof ParallelCopyVarStatement) {
 					ParallelCopyVarStatement copy = (ParallelCopyVarStatement) stmt;
 					for (CopyPair p : copy.pairs) {
-						LinkedHashSet<Local> valueClass = values.get(p.source);
+						LinkedHashSet<Local> valueClass = values.getNonNull(p.source);
 						valueClass.add(p.targ);
+						System.out.println(p.source);
 						values.put(p.targ, valueClass);
 					}
 				}

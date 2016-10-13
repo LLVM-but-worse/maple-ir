@@ -223,6 +223,7 @@ public class BasicBlock implements FastGraphVertex, Comparable<BasicBlock>, List
 		id = i;
 	}
 	
+	@Override
 	public int getNumericId() {
 		return id;
 	}
