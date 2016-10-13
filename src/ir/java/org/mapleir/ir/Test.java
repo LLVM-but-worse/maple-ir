@@ -489,7 +489,7 @@ public class Test {
 
 			ArrayList<MethodNode> methodNodes = new ArrayList<>(cn.methods);
 			for (MethodNode m : methodNodes) {
-				if (!m.toString().startsWith("com/allatori/iiiIiiIiii.findClass(Ljava/lang/String;)Ljava/lang/Class;")) {
+				if (!m.toString().startsWith("com/allatori/iiiIIiIiiI.IIIIIIiIII()I")) {
 					continue;
 				}
 //					if (++index != 546) {
