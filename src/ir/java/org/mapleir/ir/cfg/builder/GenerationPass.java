@@ -379,6 +379,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 				break;
 			}
 			case MULTIANEWARRAY: {
+				save_stack(false);
 				MultiANewArrayInsnNode in = (MultiANewArrayInsnNode) ain;
 				Expression[] bounds = new Expression[in.dims];
 				for (int i = in.dims - 1; i >= 0; i--) {
@@ -1079,7 +1080,6 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 	}
 	
 	void _new_array(Expression[] bounds, Type type) {
-		save_stack(false);
 		int index = currentStack.height();
 		NewArrayExpression e = new NewArrayExpression(bounds, type);
 		assign_stack(index, e);
