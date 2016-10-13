@@ -9,7 +9,6 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.List;
 
 import org.mapleir.byteio.CompleteResolvingJarDumper;
 import org.mapleir.ir.cfg.BoissinotDestructor;
@@ -489,9 +488,9 @@ public class Test {
 
 			ArrayList<MethodNode> methodNodes = new ArrayList<>(cn.methods);
 			for (MethodNode m : methodNodes) {
-				if (!m.toString().startsWith("com/allatori/iiiIiiIiii.findClass(Ljava/lang/String;)Ljava/lang/Class;")) {
-					continue;
-				}
+//				if (!m.toString().startsWith("com/allatori/iiiIiiIiii.findClass(Ljava/lang/String;)Ljava/lang/Class;")) {
+//					continue;
+//				}
 //					if (++index != 546) {
 //						continue;
 //					}
@@ -501,18 +500,18 @@ public class Test {
 						ControlFlowGraph cfg = null;
 						{
 
-							 List<MethodNode> methods = new ArrayList<>(cn.methods);
-							 cn.methods.clear();
-							 cn.methods.add(m);
-							
-							 ClassWriter cw = new ClassWriter(0);
-							 cn.accept(cw);
-							 byte[] bs = cw.toByteArray();
-							 FileOutputStream out = new FileOutputStream(new File("out/pre.class"));
-							 out.write(bs, 0, bs.length);
-							 out.close();
-							
-							 cn.methods.addAll(methods);
+//							 List<MethodNode> methods = new ArrayList<>(cn.methods);
+//							 cn.methods.clear();
+//							 cn.methods.add(m);
+//							
+//							 ClassWriter cw = new ClassWriter(0);
+//							 cn.accept(cw);
+//							 byte[] bs = cw.toByteArray();
+//							 FileOutputStream out = new FileOutputStream(new File("out/pre.class"));
+//							 out.write(bs, 0, bs.length);
+//							 out.close();
+//							
+//							 cn.methods.addAll(methods);
 						}
 						try {
 							m.localVariables.clear();
@@ -523,7 +522,7 @@ public class Test {
 							// DotWriter<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> writer = new DotWriter<>(config, cfg);
 							// writer.removeAll().add(new ControlFlowGraphDecorator()).setName("irreducible").export();
 
-							 System.out.println(cfg);
+//							 System.out.println(cfg);
 
 							new BoissinotDestructor(cfg, 0); // ungay this
 							cfg.getLocals().realloc(cfg);
