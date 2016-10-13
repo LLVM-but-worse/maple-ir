@@ -17,6 +17,8 @@ public abstract class Local implements Comparable<Local> {
 		this.base = base;
 		this.index = index;
 		this.stack = stack;
+		if (index < 0)
+			throw new IllegalArgumentException("Index underflow; hashCode collision possible " + index);
 	}
 	
 	public int getBase() {
@@ -70,11 +72,7 @@ public abstract class Local implements Comparable<Local> {
 
 	@Override
 	public int hashCode() {
-		final int prime = 257;
-		int result = 1;
-		result = prime * result + index;
-		result = prime * result + (stack ? 1 : 0);
-		return result;
+		return ((stack ? 0 : 1) << 31) | index;
 	}
 
 	@Override

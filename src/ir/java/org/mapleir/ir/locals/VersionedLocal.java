@@ -8,11 +8,15 @@ public class VersionedLocal extends Local {
 	
 	public VersionedLocal(AtomicInteger base, int index, int subscript) {
 		super(base, index);
+		if (index > INDEX_MASK || subscript > SUBSCRIPT_MASK)
+			throw new IllegalArgumentException("Index/subscript overflow; hashCode collision possible " + index + " " + subscript);
 		this.subscript = subscript;
 	}
 	
 	public VersionedLocal(AtomicInteger base, int index, int subscript, boolean stack) {
 		super(base, index, stack);
+		if (index > INDEX_MASK || subscript > SUBSCRIPT_MASK)
+			throw new IllegalArgumentException("Index/subscript overflow; hashCode collision possible " + index + " " + subscript);
 		this.subscript = subscript;
 	}
 	
@@ -30,13 +34,12 @@ public class VersionedLocal extends Local {
 		return super.toString() + "_" + subscript;
 	}
 
+	private static final int SUBSCRIPT_MASK = (1 << 24) - 1; // 24 bits for subscript
+	private static final int INDEX_MASK = (1 << 11) - 1; // 11 bits for index
+	
 	@Override
 	public int hashCode() {
-//		return toString().hashCode();
-		final int prime = 257;
-		int result = super.hashCode();
-		result = prime * result + subscript;
-		return result;
+		return ((isStack() ? 0 : 1) << 31) | ((getIndex() & INDEX_MASK) << 11) | (getSubscript() & SUBSCRIPT_MASK);
 	}
 
 	@Override
