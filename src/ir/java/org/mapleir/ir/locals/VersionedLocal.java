@@ -43,6 +43,17 @@ public class VersionedLocal extends Local {
 	}
 
 	@Override
+	public boolean equals(Object o) {
+		if (this == o)
+			return true;
+		else if (o instanceof VersionedLocal) {
+			VersionedLocal other = (VersionedLocal) o;
+			return isStack() == other.isStack() && getIndex() == other.getIndex() && getSubscript() == other.getSubscript();
+		} else
+			return false;
+	}
+	
+	@Override
 	public int compareTo(Local o) {
 		if(!(o instanceof VersionedLocal)) {
 			throw new UnsupportedOperationException(this + " vs " + o.toString());
