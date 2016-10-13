@@ -388,11 +388,6 @@ public class BasicBlock implements FastGraphVertex, Comparable<BasicBlock>, List
 		return label;
 	}
 	
-	@Override
-	public int hashCode() {
-		return id;
-	}
-	
 	public static int numeric(String label) {
 		int result = 0;
 		for (int i = label.length() - 1; i >= 0; i--)
