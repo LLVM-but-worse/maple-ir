@@ -2,13 +2,17 @@ package org.mapleir.stdlib.collections.graph.util;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 
 //import org.mapleir.ir.analysis.StatementGraph;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.stdlib.cfg.edge.DummyEdge;
+import org.mapleir.stdlib.cfg.edge.FlowEdge;
+import org.mapleir.stdlib.cfg.edge.ImmediateEdge;
 import org.mapleir.stdlib.collections.graph.FastGraphVertex;
 
 public class GraphUtils {
@@ -687,9 +691,17 @@ public class GraphUtils {
 		};
 		cfg.addVertex(head);
 		
+		Set<BasicBlock> entries = new HashSet<>(cfg.getEntries());
+		
 		for(BasicBlock b : cfg.vertices()) {
 			if(cfg.getReverseEdges(b).size() == 0 && b != head) {
-				cfg.addEdge(head, new DummyEdge<>(head, b));
+				FlowEdge<BasicBlock> e = null;
+				if(entries.contains(b)) {
+					e = new ImmediateEdge<>(head, b);
+				} else {
+					e = new DummyEdge<>(head, b);
+				}
+				cfg.addEdge(head, e);
 			}
 		}
 		
