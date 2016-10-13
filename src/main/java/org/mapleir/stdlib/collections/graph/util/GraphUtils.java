@@ -691,12 +691,10 @@ public class GraphUtils {
 		};
 		cfg.addVertex(head);
 		
-		Set<BasicBlock> entries = new HashSet<>(cfg.getEntries());
-		
 		for(BasicBlock b : cfg.vertices()) {
 			if(cfg.getReverseEdges(b).size() == 0 && b != head) {
 				FlowEdge<BasicBlock> e = null;
-				if(entries.contains(b)) {
+				if(cfg.getEntries().contains(b)) {
 					e = new ImmediateEdge<>(head, b);
 				} else {
 					e = new DummyEdge<>(head, b);
