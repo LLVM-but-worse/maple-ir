@@ -84,6 +84,93 @@ public class Propagator extends OptimisationPass.Optimiser {
 			return res;
 		}
 		
+		private Expression findRootDefinition(VarExpression v) {
+			Local l = v.getLocal();
+			AbstractCopyStatement def = localAccess.defs.get(l);
+			Expression e = def.getExpression();
+			
+			int opcode = e.getOpcode();
+			if(opcode == Opcode.LOCAL_LOAD) {
+				VarExpression v2 = (VarExpression) e;
+				return findRootDefinition(v2);
+			} else if(opcode == Opcode.CONST_LOAD) {
+				return e;
+			} else {
+				// if this is a phi, should we reject?
+				return e;
+			}
+		}
+		
+		private boolean areEquivalent(PhiExpression p, PhiExpression q) {
+			Set<BasicBlock> sources = new HashSet<>();
+			Set<BasicBlock> psrc = p.getSources();
+			Set<BasicBlock> qsrc = q.getSources();
+			
+			sources.addAll(p.getSources());
+			sources.addAll(q.getSources());
+
+			if(sources.size() != psrc.size() || sources.size() != qsrc.size()) {
+				return false;
+			}
+
+			for(BasicBlock b : sources) {
+				Expression e1 = p.getArgument(b);
+				Expression e2 = q.getArgument(b);
+				if(e1 == null || e2 == null) {
+					return false;
+				}
+				
+				if(e1.getOpcode() == Opcode.LOCAL_LOAD) {
+					e1 = findRootDefinition((VarExpression) e1);
+				}
+				if(e2.getOpcode() == Opcode.LOCAL_LOAD) {
+					e2 = findRootDefinition((VarExpression) e2);
+				}
+				
+				if(!e1.equivalent(e2)) {
+					return false;
+				}
+			}
+
+			return true;
+		}
+		
+		private Set<List<CopyPhiStatement>> buildEquivalencyMap(List<CopyPhiStatement> phis) {
+			Set<List<CopyPhiStatement>> equiv = new HashSet<>();
+			Set<CopyPhiStatement> resolved = new HashSet<>();
+			
+			/* For each phi, p:
+			 *   we check all of the other phis that have
+			 *   not yet been resolved and if we find any
+			 *   phis that are equivalent, we map them to
+			 *   p. so that we are able to */
+			for(CopyPhiStatement cps : phis) {
+				if(resolved.contains(cps)) {
+					continue;
+				}
+				resolved.add(cps);
+				
+				List<CopyPhiStatement> res = new ArrayList<>();
+				res.add(cps);
+
+				PhiExpression p = cps.getExpression();
+				
+				for(CopyPhiStatement cps2 : phis) {
+					if(cps != cps2 && !resolved.contains(cps2)) {
+						PhiExpression q = cps2.getExpression();
+						if(areEquivalent(p, q)) {
+							res.add(cps2);
+							resolved.add(cps2);
+						}
+					}
+				}
+				
+				equiv.add(res);
+			}
+			
+			return equiv;
+		}
+		
 		private boolean cleanEquivalentPhis() {
 			boolean change = false;
 						
@@ -97,41 +184,24 @@ public class Propagator extends OptimisationPass.Optimiser {
 						break;
 					}
 				}
-						
+				
 				if(phis.size() > 1) {
-					NullPermeableHashMap<CopyPhiStatement, Set<CopyPhiStatement>> equiv = new NullPermeableHashMap<>(new SetCreator<>());
-					for(CopyPhiStatement cps : phis) {
-						if(equiv.values().contains(cps)) {
-							continue;
-						}
-						PhiExpression phi = cps.getExpression();
-						for(CopyPhiStatement cps2 : phis) {
-							if(cps != cps2) {
-								if(equiv.keySet().contains(cps2)) {
-									continue;
-								}
-								PhiExpression phi2 = cps2.getExpression();
-								if(phi.equivalent(phi2)) {
-									equiv.getNonNull(cps).add(cps2);
-								}
-							}
-						}
-					}
+					Set<List<CopyPhiStatement>> equiv = buildEquivalencyMap(phis);
 
-					for(Entry<CopyPhiStatement, Set<CopyPhiStatement>> e : equiv.entrySet()) {					
+					for(List<CopyPhiStatement> e : equiv) {
+						if(e.size() <= 1)
+							continue;
+						
 						// key should be earliest
 						// remove vals from code and replace use of val vars with key var
 						
 						// choose which phi to keep.
 						// favour lvars.
-						
-						Set<CopyPhiStatement> all = new HashSet<>();
-						all.add(e.getKey());
-						all.addAll(e.getValue());
+
 						
 						CopyPhiStatement keepPhi = null;
 						
-						for(CopyPhiStatement cps : all) {
+						for(CopyPhiStatement cps : e) {
 							if(!cps.getVariable().getLocal().isStack()) {
 								keepPhi = cps;
 								break;
@@ -139,10 +209,10 @@ public class Propagator extends OptimisationPass.Optimiser {
 						}
 						
 						if(keepPhi == null) {
-							keepPhi = e.getKey();
+							keepPhi = e.get(0);
 						}
 						
-						Set<CopyPhiStatement> useless = new HashSet<>(all);
+						Set<CopyPhiStatement> useless = new HashSet<>(e);
 						useless.remove(keepPhi);
 						
 						VersionedLocal phiLocal = (VersionedLocal) keepPhi.getVariable().getLocal();

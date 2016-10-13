@@ -593,7 +593,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 							throw new IllegalStateException(l + " " + copy + " " + t + " " + copy.getType());
 						}
 					}
-					System.out.printf("%s from %s: %s.%n", l, b.getId(), t);
+					// System.out.printf("%s from %s: %s.%n", l, b.getId(), t);
 					VarExpression var = new VarExpression(l, t);
 					phi.setArgument(b, var);
 				}
