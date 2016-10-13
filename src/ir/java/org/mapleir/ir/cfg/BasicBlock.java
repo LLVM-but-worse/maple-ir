@@ -345,19 +345,6 @@ public class BasicBlock implements FastGraphVertex, Comparable<BasicBlock>, List
 	}
 
 	@Override
-	public boolean equals(Object obj) {
-		if (obj == this) {
-			return true;
-		} else if (obj instanceof BasicBlock) {
-			BasicBlock other = (BasicBlock) obj;
-			return other.id == id;
-			// return hashcode == other.hashcode;
-		} else {
-			return false;
-		}
-	}
-
-	@Override
 	public String toString() {
 		return String.format("Block #%s", createBlockName(id)/* (%s), label != null ? label.hashCode() : "dummy"*/);
 	}
