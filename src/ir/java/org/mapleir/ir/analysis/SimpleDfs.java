@@ -43,12 +43,13 @@ public class SimpleDfs<N extends FastGraphVertex> {
 
 	private Collection<FlowEdge<N>> weigh(Set<FlowEdge<N>> edges) {
 		List<FlowEdge<N>> lst = new ArrayList<>();
+		lst.addAll(edges);
 		Collections.sort(lst, new Comparator<FlowEdge<N>>() {
 			@Override
 			public int compare(FlowEdge<N> o1, FlowEdge<N> o2) {
 				if(o1.getType() == FlowEdges.DUMMY) {
 					return -1;
-				} else if(o1.getType() == FlowEdges.DUMMY) {
+				} else if(o2.getType() == FlowEdges.DUMMY) {
 					return 1;
 				}
 				return 0;
