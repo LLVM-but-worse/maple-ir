@@ -1079,6 +1079,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 	}
 	
 	void _new_array(Expression[] bounds, Type type) {
+		save_stack(false);
 		int index = currentStack.height();
 		NewArrayExpression e = new NewArrayExpression(bounds, type);
 		assign_stack(index, e);
