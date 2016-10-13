@@ -488,7 +488,7 @@ public class Test {
 
 			ArrayList<MethodNode> methodNodes = new ArrayList<>(cn.methods);
 			for (MethodNode m : methodNodes) {
-				if (!m.toString().startsWith("com/allatori/IIIIIIiIIi.<init>(Lcom/allatori/iIIIiiiIII;)V")) {
+				if (!m.toString().startsWith("com/allatori/IiIIIIiIIi.IIIIIIiIII()Lcom/allatori/iiiIiiIiii;")) {
 					continue;
 				}
 //					if (++index != 546) {
@@ -496,7 +496,7 @@ public class Test {
 //					}
 
 					if (m.instructions.size() > 0) {
-						System.out.printf("#%d: %s  [%d]%n", index, m, m.instructions.size());
+						System.out.printf("#%d: %s  [%d]%n", index++, m, m.instructions.size());
 						ControlFlowGraph cfg = null;
 						{
 
@@ -522,7 +522,7 @@ public class Test {
 							// DotWriter<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> writer = new DotWriter<>(config, cfg);
 							// writer.removeAll().add(new ControlFlowGraphDecorator()).setName("irreducible").export();
 
-							// System.out.println(cfg);
+//							 System.out.println(cfg);
 
 							new BoissinotDestructor(cfg, 0); // ungay this
 							cfg.getLocals().realloc(cfg);

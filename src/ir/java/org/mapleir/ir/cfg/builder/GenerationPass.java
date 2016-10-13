@@ -363,6 +363,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 				break;
 			}
 			case NEWARRAY: {
+				save_stack(false);
 				_new_array(
 					new Expression[] { pop() }, 
 					TypeUtils.getPrimitiveArrayType(((IntInsnNode) ain).operand)
@@ -370,6 +371,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 				break;
 			}
 			case ANEWARRAY: {
+				save_stack(false);
 				_new_array(
 					new Expression[] { pop() }, 
 					Type.getType("[L" + ((TypeInsnNode) ain).desc + ";")
@@ -1069,6 +1071,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 	}
 	
 	void _new(Type type) {
+		save_stack(false);
 		int index = currentStack.height();
 		UninitialisedObjectExpression e = new UninitialisedObjectExpression(type);
 		assign_stack(index, e);
