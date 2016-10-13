@@ -1,7 +1,5 @@
 package org.mapleir.ir.cfg.builder;
 
-import static org.mapleir.ir.cfg.builder.SSAGenPass.DO_SPLIT;
-
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -73,20 +71,20 @@ public class ControlFlowGraphBuilder {
 	
 	private BuilderPass[] resolvePasses() {
 		SSAGenPass.SPLIT_BLOCK_COUNT = 0;
-		if (!DO_SPLIT) {
-			return new BuilderPass[] {
-					new GenerationPass(this),
-					new NaturalisationPass1(this),
-//					new SSAGenPass(this),
-//					new OptimisationPass(this)
-			};
-		}
+//		if (!DO_SPLIT) {
+//			return new BuilderPass[] {
+//					new GenerationPass(this),
+//					new NaturalisationPass1(this),
+////					new SSAGenPass(this),
+////					new OptimisationPass(this)
+//			};
+//		}
 		return new BuilderPass[] {
 				new GenerationPass(this),
 				new NaturalisationPass1(this),
 //				new NaturalisationPass2(this),
 				new SSAGenPass(this),
-//				new OptimisationPass(this),
+				new OptimisationPass(this),
 //				new DeadRangesPass(this)
 		};
 	}
