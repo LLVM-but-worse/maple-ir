@@ -92,13 +92,12 @@ public class Propagator extends OptimisationPass.Optimiser {
 			int opcode = e.getOpcode();
 			if(opcode == Opcode.LOCAL_LOAD) {
 				VarExpression v2 = (VarExpression) e;
-				return findRootDefinition(v2);
-			} else if(opcode == Opcode.CONST_LOAD) {
-				return e;
-			} else {
-				// if this is a phi, should we reject?
-				return e;
+				if(v2.getLocal() != l) {
+					return findRootDefinition(v2);
+				}
 			}
+			
+			return e;
 		}
 		
 		private boolean areEquivalent(PhiExpression p, PhiExpression q) {
