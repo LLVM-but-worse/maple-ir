@@ -29,161 +29,146 @@ import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 
 public class BoissinotDestructor {
-	private boolean DO_VALUE_INTERFERENCE = true;
-	private boolean DO_SHARE_COALESCE = true;
-
-	public void testSequentialize() {
-		AtomicInteger base = new AtomicInteger(0);
-		Local a = new BasicLocal(base, 1, false);
-		Local b = new BasicLocal(base, 2, false);
-		Local c = new BasicLocal(base, 3, false);
-		Local d = new BasicLocal(base, 4, false);
-		Local e = new BasicLocal(base, 5, false);
-		Local spill = new BasicLocal(base, 6, false);
-		System.out.println("SEQ TEST START");
-		ParallelCopyVarStatement pcvs = new ParallelCopyVarStatement();
-		pcvs.pairs.add(new CopyPair(a, b, null));
-		pcvs.pairs.add(new CopyPair(b, a, null));
-		pcvs.pairs.add(new CopyPair(c, b, null));
-		pcvs.pairs.add(new CopyPair(d, c, null));
-		pcvs.pairs.add(new CopyPair(e, a, null));
-		for (Statement stmt : pcvs.enumerate()) {
-			if (stmt.getOpcode() == Opcode.LOCAL_LOAD)
-				System.out.println(((VarExpression) stmt).getLocal());
-		}
-		List<CopyVarStatement> seqd = pcvs.sequentialize(spill);
-		System.out.println("seq test: " + pcvs);
-		for (CopyVarStatement cvs : seqd)
-			System.out.println("  " + cvs);
+	// private boolean DO_VALUE_INTERFERENCE = true;
+	// private boolean DO_SHARE_COALESCE = true;
+	
+	public static void leaveSSA(ControlFlowGraph cfg) {
+		new BoissinotDestructor(cfg);
 	}
 
 	private final ControlFlowGraph cfg;
 	private final LocalsHandler locals;
+	private final BasicBlock dummyHead;
 
-	private SSADefUseMap defuse;
-	private DominanceLivenessAnalyser resolver;
-	private NullPermeableHashMap<Local, LinkedHashSet<Local>> values;
+	private final DominanceLivenessAnalyser resolver;
+	private final NullPermeableHashMap<Local, LinkedHashSet<Local>> values;
+	private final SimpleDfs<BasicBlock> dom_dfs;
+	private final SSADefUseMap defuse;
 
-	private SimpleDfs<BasicBlock> dom_dfs;
-	private HashMap<Local, Local> equalAncIn;
-	private HashMap<Local, Local> equalAncOut;
+	private final Map<Local, Local> equalAncIn;
+	private final Map<Local, Local> equalAncOut;
 
-	private Map<Local, CongruenceClass> congruenceClasses;
-	private Map<Local, Local> remap;
+	private final Map<Local, CongruenceClass> congruenceClasses;
+	private final Map<Local, Local> remap;
 
-	public BoissinotDestructor(ControlFlowGraph cfg, int flags) {
+	private BoissinotDestructor(ControlFlowGraph cfg) {
 		this.cfg = cfg;
 		locals = cfg.getLocals();
 
-		if ((flags & 1) != 0)
-			DO_VALUE_INTERFERENCE = true;
-		if ((flags & 2) != 0)
-			DO_SHARE_COALESCE = true;
+		// if ((flags & 1) != 0)
+		// DO_VALUE_INTERFERENCE = true;
+		// if ((flags & 2) != 0)
+		// DO_SHARE_COALESCE = true;
+		
+		values = new NullPermeableHashMap<>(local -> {
+			LinkedHashSet<Local> vc = new LinkedHashSet<>();
+			vc.add(local);
+			return vc;
+		});
+		congruenceClasses = new HashMap<>();
+		equalAncIn = new HashMap<>();
+		equalAncOut = new HashMap<>();
+		remap = new HashMap<>();
 
 		// 1. Insert copies to enter CSSA.
-		init();
-		
-		BasicBlock realHead = cfg.getEntries().iterator().next();
-		BasicBlock head = GraphUtils.connectHead(cfg);
-		
-		cfg.getEntries().clear();
-		cfg.getEntries().add(head);
-		
-		resolver = new DominanceLivenessAnalyser(cfg, head, null);
-		
-		insertCopies();
+		liftPhiOperands();
 
-		
-		constructDominance();
-		createDuChains();
+		BasicBlock previousHead = cfg.getEntries().iterator().next();
+		dummyHead = GraphUtils.connectHead(cfg);
+		correctGraphEntry(dummyHead);
 
-		// 2. Build value interference
+		// compute the dominance here after we have
+		// connected the dummy head and lifted non
+		// variable phi operands.
+		resolver = new DominanceLivenessAnalyser(cfg, dummyHead, null);
+		
+		copyPhiOperands();
+		
+		dom_dfs = traverseDominatorTree();
+		defuse = createDuChains();
+		// this is bad.
+		resolver.setDefuse(defuse);
+
 		computeValueInterference();
 
-		// 3. Aggressively coalesce while in CSSA to leave SSA
-		// 3a. Coalesce phi locals to leave CSSA (!!!)
 		coalescePhis();
-		// 3b. Coalesce the rest of the copies
 		coalesceCopies();
 		
-//		System.out.println();
-//		System.out.println("classes:");
-//		for(Entry<Local, CongruenceClass> e : congruenceClasses.entrySet()) {
-//			System.out.println("   " + e.getKey() + " == " + e.getValue());
-//		}
-//		System.out.println(cfg);
-		
-		applyRemapping(remap);
+		remapLocals();
+		applyRemapping();
 
-		// 4. Sequentialize parallel copies
 		sequentialize();
-		
-		GraphUtils.disconnectHead(cfg, head);
-		cfg.getEntries().clear();
-		cfg.getEntries().add(realHead);
+
+		GraphUtils.disconnectHead(cfg, dummyHead);
+		correctGraphEntry(previousHead);
 	}
 
-	// ============================================================================================================= //
-	// ================================================ Insert copies ============================================== //
-	// ============================================================================================================= //
-	private void init() {
-		// Sanity check
-		for(BasicBlock b : cfg.vertices()) {
-			for(Statement stmt : new ArrayList<>(b))  {
-				if(stmt.getOpcode() == Opcode.PHI_STORE) {
+	private void correctGraphEntry(BasicBlock b) {
+		Set<BasicBlock> entries = cfg.getEntries();
+		if (entries.size() > 1) {
+			throw new IllegalStateException("Broken code graph, entries=" + GraphUtils.toBlockArray(entries));
+		}
+		entries.clear();
+		entries.add(b);
+	}
+
+	private void liftPhiOperands() {
+		for (BasicBlock b : cfg.vertices()) {
+			for (Statement stmt : new ArrayList<>(b)) {
+				if (stmt.getOpcode() == Opcode.PHI_STORE) {
 					CopyPhiStatement copy = (CopyPhiStatement) stmt;
-					for(Entry<BasicBlock, Expression> e : copy.getExpression().getArguments().entrySet()) {
+					for (Entry<BasicBlock, Expression> e : copy.getExpression().getArguments().entrySet()) {
 						Expression expr = e.getValue();
 						int opcode = expr.getOpcode();
-						if(opcode == Opcode.CONST_LOAD || opcode == Opcode.CATCH) {
+						if (opcode == Opcode.CONST_LOAD || opcode == Opcode.CATCH) {
 							VersionedLocal vl = locals.makeLatestVersion(locals.get(0, false));
 							CopyVarStatement cvs = new CopyVarStatement(new VarExpression(vl, expr.getType()), expr);
 							e.setValue(new VarExpression(vl, expr.getType()));
-							
+
 							insertEnd(e.getKey(), cvs);
-//							System.out.println("ADD " + cvs);
-//							System.out.println(" for: " + copy);
-						} else if(opcode != Opcode.LOCAL_LOAD){
+						} else if (opcode != Opcode.LOCAL_LOAD) {
 							throw new IllegalArgumentException("Non-variable expression in phi: " + copy);
 						}
 					}
 				}
 			}
 		}
-
-		// Create dominance
-//		resolver = new DominanceLivenessAnalyser(cfg, null);
 	}
 
-	private void insertCopies() {
-		for(BasicBlock b : cfg.vertices())
-			insertCopies(b);
+	private void copyPhiOperands() {
+		for (BasicBlock b : cfg.vertices()) {
+			if (b != dummyHead) {
+				copyPhiOperands(b);
+			}
+		}
 	}
 
-	private void insertCopies(BasicBlock b) {
+	private void copyPhiOperands(BasicBlock b) {
 		NullPermeableHashMap<BasicBlock, List<PhiRes>> wl = new NullPermeableHashMap<>(new ListCreator<>());
 		ParallelCopyVarStatement dst_copy = new ParallelCopyVarStatement();
 
 		// given a phi: L0: x0 = phi(L1:x1, L2:x2)
-		//  insert the copies:
-		//   L0: x0 = x3 (at the end of L0)
-		//   L1: x4 = x1
-		//   L2: x5 = x2
-		//  and change the phi to:
-		//   x3 = phi(L1:x4, L2:x5)
+		// insert the copies:
+		// L0: x0 = x3 (at the end of L0)
+		// L1: x4 = x1
+		// L2: x5 = x2
+		// and change the phi to:
+		// x3 = phi(L1:x4, L2:x5)
 
-		for(Statement stmt : b) {
-			if(stmt.getOpcode() != Opcode.PHI_STORE) {
+		for (Statement stmt : b) {
+			// phis only appear at the start of a block.
+			if (stmt.getOpcode() != Opcode.PHI_STORE) {
 				break;
 			}
 
 			CopyPhiStatement copy = (CopyPhiStatement) stmt;
 			PhiExpression phi = copy.getExpression();
-			
+
 			// for every xi arg of the phi from pred Li, add it to the worklist
 			// so that we can parallelise the copy when we insert it.
-			for(Entry<BasicBlock, Expression> e : phi.getArguments().entrySet()) {
+			for (Entry<BasicBlock, Expression> e : phi.getArguments().entrySet()) {
 				BasicBlock h = e.getKey();
+				// these are validated in init().
 				VarExpression v = (VarExpression) e.getValue();
 				PhiRes r = new PhiRes(copy.getVariable().getLocal(), phi, h, v.getLocal(), v.getType());
 				wl.getNonNull(h).add(r);
@@ -199,14 +184,14 @@ public class BoissinotDestructor {
 		}
 
 		// resolve
-		if(dst_copy.pairs.size() > 0)
+		if (dst_copy.pairs.size() > 0)
 			insertStart(b, dst_copy);
 
-		for(Entry<BasicBlock, List<PhiRes>> e : wl.entrySet()) {
+		for (Entry<BasicBlock, List<PhiRes>> e : wl.entrySet()) {
 			BasicBlock p = e.getKey();
 			ParallelCopyVarStatement copy = new ParallelCopyVarStatement();
 
-			for(PhiRes r : e.getValue()) {
+			for (PhiRes r : e.getValue()) {
 				// for each xi source in a phi, create a new variable zi,
 				// and insert the copy zi = xi in the pred Li. then replace
 				// the phi arg from Li with zi.
@@ -216,9 +201,8 @@ public class BoissinotDestructor {
 				copy.pairs.add(new CopyPair(zi, xi, r.type));
 
 				// we consider phi args to be used in the pred
-				//  instead of the block where the phi is, so
-				//  we need to update the def/use maps here.
-
+				// instead of the block where the phi is, so
+				// we need to update the def/use maps here.
 				r.phi.setArgument(r.pred, new VarExpression(zi, r.type));
 			}
 
@@ -226,47 +210,40 @@ public class BoissinotDestructor {
 		}
 	}
 
-	private void insertStart(BasicBlock b, ParallelCopyVarStatement copy) {
-		if(b.isEmpty()) {
+	private void insertStart(BasicBlock b, Statement copy) {
+		if (b.isEmpty()) {
 			b.add(copy);
 		} else {
 			// insert after phi.
 			int i;
-			for (i = 0; i < b.size() && b.get(i).getOpcode() == Opcode.PHI_STORE; i++);
+			for (i = 0; i < b.size() && b.get(i).getOpcode() == Opcode.PHI_STORE; i++)
+				; // skipping ptr.
 			b.add(i, copy);
 		}
 	}
 
 	private void insertEnd(BasicBlock b, Statement copy) {
-		if(b.isEmpty())
+		if (b.isEmpty()) {
 			b.add(copy);
-		else if (!b.get(b.size() - 1).canChangeFlow())
-			b.add(copy);
-		else
-			b.add(b.size() - 1, copy);
+		} else {
+			int pos = b.size() - 1;
+			if (b.get(pos).canChangeFlow()) {
+				b.add(pos, copy);
+			} else {
+				b.add(copy);
+			}
+		}
 	}
 
-	private void constructDominance() {
-		values = new NullPermeableHashMap<>(local -> {
-			LinkedHashSet<Local> valueClass = new LinkedHashSet<>();
-			valueClass.add(local);
-			return valueClass;
-		});
-		FastBlockGraph dom_tree = new FastBlockGraph();
-		resolver.domc.makeTree(dom_tree);
-		dom_tree.getEntries().addAll(cfg.getEntries());
-
-
-		// Compute dominance DFS
-		dom_dfs = new SimpleDfs<>(dom_tree, cfg.getEntries().iterator().next(), true, true);
-		
-//		BasicDotConfiguration<FastBlockGraph, BasicBlock, FlowEdge<BasicBlock>> config = new BasicDotConfiguration<>(DotConfiguration.GraphType.DIRECTED);
-//		DotWriter<FastBlockGraph, BasicBlock, FlowEdge<BasicBlock>> writer = new DotWriter<>(config, dom_tree);
-//		writer.removeAll().setName("domtree").export();
+	private SimpleDfs<BasicBlock> traverseDominatorTree() {
+		FastBlockGraph dominatorTree = new FastBlockGraph();
+		resolver.domc.makeTree(dominatorTree);
+		dominatorTree.getEntries().add(dummyHead);
+		return new SimpleDfs<>(dominatorTree, dummyHead, true, true);
 	}
 
-	private void createDuChains() {
-		defuse = new SSADefUseMap(cfg) {
+	private SSADefUseMap createDuChains() {
+		SSADefUseMap defuse = new SSADefUseMap(cfg) {
 			@Override
 			protected void build(BasicBlock b, Statement stmt, Set<Local> usedLocals) {
 				if (stmt instanceof ParallelCopyVarStatement) {
@@ -294,34 +271,33 @@ public class BoissinotDestructor {
 				return;
 			}
 		};
-		defuse.computeWithIndices(dom_dfs.preorder);
-
-		resolver.setDefuse(defuse);
+		defuse.computeWithIndices(dom_dfs.getPreOrder());
+		return defuse;
 	}
 
-	// ============================================================================================================= //
-	// ============================================ Value interference ============================================= //
-	// ============================================================================================================= //
 	private void computeValueInterference() {
-		for (int i = dom_dfs.postorder.size() - 1; i >= 0; i--) {
-			BasicBlock bl = dom_dfs.postorder.get(i);
+		List<BasicBlock> postorder = dom_dfs.getPostOrder();
+		
+		for (int i = postorder.size() - 1; i >= 0; i--) {
+			BasicBlock bl = postorder.get(i);
 			for (Statement stmt : bl) {
-				if (stmt instanceof CopyVarStatement) {
+				int opcode = stmt.getOpcode();
+				if (opcode == Opcode.LOCAL_STORE) {
 					CopyVarStatement copy = (CopyVarStatement) stmt;
 					Expression e = copy.getExpression();
 					Local b = copy.getVariable().getLocal();
 
-					if (!copy.isSynthetic() && e instanceof VarExpression) {
-						LinkedHashSet<Local> valueClass = values.get(((VarExpression) e).getLocal());
-						valueClass.add(b);
-						values.put(b, valueClass);
+					if (!copy.isSynthetic() && e.getOpcode() == Opcode.LOCAL_LOAD) {
+						LinkedHashSet<Local> vc = values.get(((VarExpression) e).getLocal());
+						vc.add(b);
+						values.put(b, vc);
 					} else {
 						values.getNonNull(b);
 					}
-				} else if (stmt instanceof CopyPhiStatement) {
+				} else if (opcode == Opcode.PHI_STORE) {
 					CopyPhiStatement copy = (CopyPhiStatement) stmt;
 					values.getNonNull(copy.getVariable().getLocal());
-				} else if (stmt instanceof ParallelCopyVarStatement) {
+				} else if (opcode == -1) {
 					ParallelCopyVarStatement copy = (ParallelCopyVarStatement) stmt;
 					for (CopyPair p : copy.pairs) {
 						LinkedHashSet<Local> valueClass = values.getNonNull(p.source);
@@ -332,42 +308,42 @@ public class BoissinotDestructor {
 			}
 		}
 	}
-
-	// ============================================================================================================= //
-	// ================================================= Coalesce ================================================== //
-	// ============================================================================================================= //
+	
 	// Initialize ccs based on phis and drop phi statements
 	private void coalescePhis() {
-		congruenceClasses = new HashMap<>();
-		remap = new HashMap<>();
 		GenericBitSet<BasicBlock> processed = cfg.createBitSet();
 
 		for (Entry<Local, CopyPhiStatement> e : defuse.phiDefs.entrySet()) {
-			Local l1 = e.getKey();
+			Local l = e.getKey();
 			BasicBlock b = e.getValue().getBlock();
-			// since we are now in csaa, phi locals never interfere and are in the same congruence class.
-			// therefore we can coalesce them all together and drop phis. with this, we leave cssa.
+			// since we are now in csaa, phi locals never interfere and are in
+			// the same congruence class.
+			// therefore we can coalesce them all together and drop phis. with
+			// this, we leave cssa.
 			PhiExpression phi = e.getValue().getExpression();
 
-			CongruenceClass phiConClass = new CongruenceClass();
-			phiConClass.add(l1);
-			congruenceClasses.put(l1, phiConClass);
+			CongruenceClass pcc = new CongruenceClass();
+			pcc.add(l);
+			congruenceClasses.put(l, pcc);
 
-			for(Expression ex : phi.getArguments().values()) {
+			for (Expression ex : phi.getArguments().values()) {
 				VarExpression v = (VarExpression) ex;
-				Local l = v.getLocal();
-				phiConClass.add(l);
-				congruenceClasses.put(l, phiConClass);
+				Local argL = v.getLocal();
+				pcc.add(argL);
+				congruenceClasses.put(argL, pcc);
 			}
 
 			// we can simply drop all the phis without further consideration
 			if (!processed.contains(b)) {
 				processed.add(b);
-				for (Iterator<Statement> it = b.iterator(); it.hasNext(); ) {
-					if (it.next().getOpcode() == Opcode.PHI_STORE)
+				Iterator<Statement> it = b.iterator();
+				while(it.hasNext()) {
+					Statement stmt = it.next();
+					if(stmt.getOpcode() == Opcode.PHI_STORE) {
 						it.remove();
-					else
+					} else {
 						break;
+					}
 				}
 			}
 		}
@@ -375,44 +351,51 @@ public class BoissinotDestructor {
 		defuse.phiDefs.clear();
 	}
 
-	// Coalesce parallel and standard copies based on value interference, dropping coalesced copies
+	// Coalesce parallel and standard copies based on value interference,
+	// dropping coalesced copies
 	private void coalesceCopies() {
-		equalAncIn = new HashMap<>();
-		equalAncOut = new HashMap<>();
-		// now for each copy check if lhs and rhs congruence classes do not interfere.
-		// if they do not interfere merge the conClasses and those two vars can be coalesced. delete the copy.
-		for (BasicBlock b : dom_dfs.preorder) {
-			for (Iterator<Statement> it = b.iterator(); it.hasNext(); ) {
+		// now for each copy check if lhs and rhs congruence classes do not
+		// interfere.
+		// if they do not interfere merge the conClasses and those two vars can
+		// be coalesced. delete the copy.
+		for (BasicBlock b : dom_dfs.getPreOrder()) {
+			for (Iterator<Statement> it = b.iterator(); it.hasNext();) {
 				Statement stmt = it.next();
 				if (stmt instanceof CopyVarStatement) {
 					CopyVarStatement copy = (CopyVarStatement) stmt;
 					if (!copy.isSynthetic() && copy.getExpression() instanceof VarExpression) {
 						Local lhs = copy.getVariable().getLocal();
 						Local rhs = ((VarExpression) copy.getExpression()).getLocal();
-						if (tryCoalesceCopyValue(lhs, rhs)) {
-//							System.out.println("COPYKILL(1) " + lhs + " == " + rhs);
-							it.remove();
-						}
-						
-						if(tryCoalesceCopySharing(lhs, rhs)) {
-//							System.out.println("SHAREKILL(1) " + lhs + " == " + rhs);
-							it.remove();
+						if (!isReservedRegister((VersionedLocal) rhs)) {
+							if (tryCoalesceCopyValue(lhs, rhs)) {
+								// System.out.println("COPYKILL(1) " + lhs + " == " + rhs);
+								it.remove();
+							}
+
+							if (tryCoalesceCopySharing(lhs, rhs)) {
+								// System.out.println("SHAREKILL(1) " + lhs + " == " + rhs);
+								it.remove();
+							}
 						}
 					}
 				} else if (stmt instanceof ParallelCopyVarStatement) {
-					// we need to do it for each one. if all of the copies are removed then remove the pcvs
+					// we need to do it for each one. if all of the copies are
+					// removed then remove the pcvs
 					ParallelCopyVarStatement copy = (ParallelCopyVarStatement) stmt;
-					for (Iterator<CopyPair> pairIter = copy.pairs.iterator(); pairIter.hasNext(); ) {
+					for (Iterator<CopyPair> pairIter = copy.pairs.listIterator(); pairIter.hasNext();) {
 						CopyPair pair = pairIter.next();
 						Local lhs = pair.targ, rhs = pair.source;
-						if (tryCoalesceCopyValue(lhs, rhs)) {
-//							System.out.println("COPYKILL(2) " + lhs + " == " + rhs);
-							pairIter.remove();
-						}
 						
-						if(tryCoalesceCopySharing(lhs, rhs)) {
-//							System.out.println("SHAREKILL(2) " + lhs + " == " + rhs);
-							pairIter.remove();
+						if(!isReservedRegister((VersionedLocal) rhs)) {
+							if (tryCoalesceCopyValue(lhs, rhs)) {
+								// System.out.println("COPYKILL(2) " + lhs + " == " + rhs);
+								pairIter.remove();
+							}
+
+							if (tryCoalesceCopySharing(lhs, rhs)) {
+								// System.out.println("SHAREKILL(2) " + lhs + " == " + rhs);
+								pairIter.remove();
+							}
 						}
 					}
 					if (copy.pairs.isEmpty())
@@ -420,75 +403,60 @@ public class BoissinotDestructor {
 				}
 			}
 		}
+	}
 
-		// ok NOW we remap to avoid that double remap issue
-		for (Entry<Local, CongruenceClass> e : congruenceClasses.entrySet()) {
-			VersionedLocal l = (VersionedLocal) e.getKey();
-			CongruenceClass cc = e.getValue();
-			if(isReservedRegister(l)) {
-				remap.put(l, l);
-				Local spilled = spill(l);
-				cc.remove(l);
-				remap.put(e.getValue().first(), e.getValue().first());
-			} else {
-				remap.put(l, e.getValue().first());
-			}
-		}
-	}
-	
-	private VersionedLocal spill(VersionedLocal l) {
-		
-	}
-	
 	private boolean isReservedRegister(VersionedLocal l) {
-		return (cfg.getMethod().access & Opcodes.ACC_STATIC) == 0 && (!l.isStack() && l.getIndex() == 0 && l.getSubscript() == 0);
+		return (cfg.getMethod().access & Opcodes.ACC_STATIC) == 0
+				&& (!l.isStack() && l.getIndex() == 0 && l.getSubscript() == 0);
 	}
 
-	// Process the copy a = b. Returns true if a and b can be coalesced via value.
+	// Process the copy a = b. Returns true if a and b can be coalesced via
+	// value.
 	private boolean tryCoalesceCopyValue(Local a, Local b) {
-//		System.out.println("Enter COPY");
+		// System.out.println("Enter COPY");
 		CongruenceClass conClassA = getCongruenceClass(a);
 		CongruenceClass conClassB = getCongruenceClass(b);
-		
-//		System.out.println(" A: " + conClassA);
-//		System.out.println(" B: " + conClassB);
 
-//		System.out.println("   same=" + (conClassA == conClassB));
+		// System.out.println(" A: " + conClassA);
+		// System.out.println(" B: " + conClassB);
+
+		// System.out.println(" same=" + (conClassA == conClassB));
 		if (conClassA == conClassB)
 			return true;
 
 		if (conClassA.size() == 1 && conClassB.size() == 1) {
 			boolean r = checkInterfereSingle(conClassA, conClassB);
-//			System.out.println("   single=" + r);
+			// System.out.println(" single=" + r);
 			return r;
 		}
-		
-		
+
 		boolean r2 = checkInterfere(conClassA, conClassB);
-//		System.out.println("   both=" + r2);
+		// System.out.println(" both=" + r2);
 		if (r2) {
 			return false;
 		}
 
 		// merge congruence classes
 		merge(conClassA, conClassB);
-//		System.out.println("Exit COPY");
+		// System.out.println("Exit COPY");
 		return true;
 	}
 
 	private CongruenceClass getCongruenceClass(Local l) {
-		if (congruenceClasses.containsKey(l))
+		if (congruenceClasses.containsKey(l)) {
 			return congruenceClasses.get(l);
-		CongruenceClass conClass = new CongruenceClass();
-		conClass.add(l);
-		congruenceClasses.put(l, conClass);
-		return conClass;
+		}
+		CongruenceClass cc = new CongruenceClass();
+		cc.add(l);
+		congruenceClasses.put(l, cc);
+		return cc;
 	}
 
-	// Process the copy a = b. Returns true of a and b can be coalesced via sharing.
+	// Process the copy a = b. Returns true of a and b can be coalesced via
+	// sharing.
 	private boolean tryCoalesceCopySharing(Local a, Local b) {
-		if (!DO_SHARE_COALESCE)
-			return false;
+		// if (!DO_SHARE_COALESCE)
+		// return false;
 		CongruenceClass pccX = getCongruenceClass(a);
 		CongruenceClass pccY = getCongruenceClass(b);
 		for (Local c : values.get(a)) {
@@ -501,8 +469,10 @@ public class BoissinotDestructor {
 				return true;
 			}
 
-			// If X, Y, and Z are all different and if a and c are coalescable via value then the copy is redundant
-			// after a and b have been coalesced as c already has the correct value.
+			// If X, Y, and Z are all different and if a and c are coalescable
+			// via value then the copy is redundant
+			// after a and b have been coalesced as c already has the correct
+			// value.
 			if (pccY != pccX && pccY != pccZ && pccX != pccZ && tryCoalesceCopyValue(a, c)) {
 				return true;
 			}
@@ -515,8 +485,16 @@ public class BoissinotDestructor {
 		return defuse.defIndex.get(x) < defuse.defIndex.get(y);
 	}
 
-	// Flatten ccs so that each local in each cc is replaced with a new representative local.
-	private void applyRemapping(Map<Local, Local> remap) {
+	private void remapLocals() {
+		// ok NOW we remap to avoid that double remap issue
+		for (Entry<Local, CongruenceClass> e : congruenceClasses.entrySet()) {
+			remap.put(e.getKey(), e.getValue().first());
+		}
+	}
+
+	// Flatten ccs so that each local in each cc is replaced with a new
+	// representative local.
+	private void applyRemapping() {
 		GenericBitSet<BasicBlock> processed = cfg.createBitSet();
 		GenericBitSet<BasicBlock> processed2 = cfg.createBitSet();
 		for (Local e : remap.keySet()) {
@@ -537,12 +515,12 @@ public class BoissinotDestructor {
 			if (processed2.contains(b))
 				continue;
 			processed2.add(b);
-			
-			for (Iterator<Statement> it = b.iterator(); it.hasNext(); ) {
+
+			for (Iterator<Statement> it = b.iterator(); it.hasNext();) {
 				Statement stmt = it.next();
 				if (stmt instanceof ParallelCopyVarStatement) {
 					ParallelCopyVarStatement copy = (ParallelCopyVarStatement) stmt;
-					for (Iterator<CopyPair> it2 = copy.pairs.iterator(); it2.hasNext(); ) {
+					for (Iterator<CopyPair> it2 = copy.pairs.iterator(); it2.hasNext();) {
 						CopyPair p = it2.next();
 						p.source = remap.getOrDefault(p.source, p.source);
 						p.targ = remap.getOrDefault(p.targ, p.targ);
@@ -569,24 +547,25 @@ public class BoissinotDestructor {
 		}
 	}
 
-	// ============================================================================================================= //
-	// =============================================== Interference ================================================ //
-	// ============================================================================================================= //
 	private boolean checkInterfereSingle(CongruenceClass red, CongruenceClass blue) {
 		Local a = red.first();
 		Local b = blue.first();
-		if (checkPreDomOrder(a, b)) { // we want a > b in dom order (b is parent)
+		// we want a > b in dom order (b is parent)
+		if (checkPreDomOrder(a, b)) {
 			Local c = a;
 			a = b;
 			b = c;
 		}
-//		System.out.println("   a,b=" + a + ", " + b);
-		if (!DO_VALUE_INTERFERENCE) {
-			boolean r1 = intersect(a, b);
-//			System.out.println("     intersect=" + r1);
-			return r1;
-		}
-//		System.out.println("   s  valA,valB: " + values.getNonNull(a) + ", " + values.getNonNull(b));
+
+		// System.out.println(" a,b=" + a + ", " + b);
+		// if (!DO_VALUE_INTERFERENCE) {
+		// boolean r1 = intersect(a, b);
+		// System.out.println(" intersect=" + r1);
+		// return r1;
+		// }
+		// System.out.println(" s valA,valB: " + values.getNonNull(a) + ", " +
+		// values.getNonNull(b));
+
 		if (intersect(a, b) && values.getNonNull(a) != values.getNonNull(b)) {
 			return true;
 		} else {
@@ -604,7 +583,8 @@ public class BoissinotDestructor {
 		Local ir = red.first(), ib = blue.first();
 		Local lr = red.last(), lb = blue.last(); // end sentinels
 		boolean redHasNext = true, blueHasNext = true;
-		equalAncOut.put(ir, null); // these have no parents so we have to manually init them
+		equalAncOut.put(ir, null); // these have no parents so we have to
+									// manually init them
 		equalAncOut.put(ib, null);
 		do {
 			Local current;
@@ -646,37 +626,33 @@ public class BoissinotDestructor {
 	}
 
 	private boolean interference(Local a, Local b, boolean sameConClass) {
-		if (DO_VALUE_INTERFERENCE) {
-			equalAncOut.put(a, null);
-			if (sameConClass) {
-				b = equalAncOut.get(b);
-			}
+		equalAncOut.put(a, null);
+		if (sameConClass) {
+			b = equalAncOut.get(b);
+		}
 
-			Local tmp = b;
-			while (tmp != null && !intersect(a, tmp)) {
-				tmp = equalAncIn.get(tmp);
-			}
-			if (values.getNonNull(a) != values.getNonNull(b)) {
-				return tmp != null;
-			} else {
-				equalAncOut.put(a, tmp);
-				return false;
-			}
+		Local tmp = b;
+		while (tmp != null && !intersect(a, tmp)) {
+			tmp = equalAncIn.get(tmp);
+		}
+		if (values.getNonNull(a) != values.getNonNull(b)) {
+			return tmp != null;
 		} else {
-			return intersect(a, b);
+			equalAncOut.put(a, tmp);
+			return false;
 		}
 	}
 
 	private boolean intersect(Local a, Local b) {
 		if (a == b) {
-			for (Entry<Local, CongruenceClass> e : congruenceClasses.entrySet())
+			for (Entry<Local, CongruenceClass> e : congruenceClasses.entrySet()) {
 				System.err.println(e.getKey() + " in " + e.getValue());
+			}
 			throw new IllegalArgumentException("me too thanks: " + a);
 		}
+		
 		if (checkPreDomOrder(a, b))
 			throw new IllegalArgumentException("b should dom a");
-//		if (!checkPreDomOrder(b, a)) // dom = b ; def = a
-//			throw new IllegalArgumentException("this shouldn't happen???");
 
 		BasicBlock defA = defuse.defs.get(a);
 		// if it's liveOut it definitely intersects
@@ -685,9 +661,10 @@ public class BoissinotDestructor {
 		// defA == defB or liveIn to intersect{
 		if (!resolver.isLiveIn(defA, b) && defA != defuse.defs.get(b))
 			return false;
-		// ambiguous case. we need to check if use(dom) occurs after def(def), in that case it interferes. otherwise no
+		// ambiguous case. we need to check if use(dom) occurs after def(def),
+		// in that case it interferes. otherwise no
 		int domUseIndex = defuse.lastUseIndex.getNonNull(b).getOrDefault(defA, -1);
-		if(domUseIndex == -1) {
+		if (domUseIndex == -1) {
 			return false;
 		}
 		int defDefIndex = defuse.defIndex.get(a);
@@ -709,10 +686,6 @@ public class BoissinotDestructor {
 		}
 	}
 
-
-	// ============================================================================================================= //
-	// ============================================== Sequentialize ================================================ //
-	// ============================================================================================================= //
 	private void sequentialize() {
 		for (BasicBlock b : cfg.vertices())
 			sequentialize(b);
@@ -736,15 +709,18 @@ public class BoissinotDestructor {
 			int index = e.getValue();
 			if (pcvs.pairs.size() == 0)
 				throw new IllegalArgumentException("pcvs is empty");
-			else if (pcvs.pairs.size() == 1) { // constant sequentialize for trivial parallel copies
+			else if (pcvs.pairs.size() == 1) { // constant sequentialize for
+												// trivial parallel copies
 				CopyPair pair = pcvs.pairs.get(0);
-				CopyVarStatement newCopy = new CopyVarStatement(new VarExpression(pair.targ, pair.type), new VarExpression(pair.source, pair.type));
+				CopyVarStatement newCopy = new CopyVarStatement(new VarExpression(pair.targ, pair.type),
+						new VarExpression(pair.source, pair.type));
 				b.set(index + indexOffset, newCopy);
 			} else {
 				List<CopyVarStatement> sequentialized = pcvs.sequentialize(spill);
 				b.remove(index + indexOffset--);
 				// warning: O(N^2) operation
-				for (CopyVarStatement cvs : sequentialized) { // warning: O(N^2) operation
+				for (CopyVarStatement cvs : sequentialized) { // warning: O(N^2)
+																// operation
 					b.add(index + ++indexOffset, cvs);
 				}
 			}
@@ -810,24 +786,24 @@ public class BoissinotDestructor {
 		public void toString(TabbedStringWriter printer) {
 			printer.print("PARALLEL(");
 
-			for (Iterator<CopyPair> it = pairs.iterator(); it.hasNext(); ) {
+			for (Iterator<CopyPair> it = pairs.iterator(); it.hasNext();) {
 				CopyPair p = it.next();
 				printer.print(p.targ.toString());
-//				printer.print("(" + p.type + ")");
+				// printer.print("(" + p.type + ")");
 
-				if(it.hasNext()) {
+				if (it.hasNext()) {
 					printer.print(", ");
 				}
 			}
 
 			printer.print(") = (");
 
-			for (Iterator<CopyPair> it = pairs.iterator(); it.hasNext(); ) {
+			for (Iterator<CopyPair> it = pairs.iterator(); it.hasNext();) {
 				CopyPair p = it.next();
 				printer.print(p.source.toString());
-//				printer.print("(" + p.type + ")");
+				// printer.print("(" + p.type + ")");
 
-				if(it.hasNext()) {
+				if (it.hasNext()) {
 					printer.print(", ");
 				}
 			}
@@ -859,7 +835,8 @@ public class BoissinotDestructor {
 			for (CopyPair pair : pairs) {
 				if (!loc.containsKey(pair.targ))
 					throw new IllegalStateException("this shouldn't happen");
-				if (loc.get(pair.targ) == null) // b is not used and can be overwritten
+				if (loc.get(pair.targ) == null) // b is not used and can be
+												// overwritten
 					ready.push(pair.targ);
 			}
 
@@ -872,7 +849,12 @@ public class BoissinotDestructor {
 					if ((!types.containsKey(b) && b != spill) || (!types.containsKey(c) && c != spill))
 						throw new IllegalStateException("this shouldn't happen " + b + " " + c);
 
-					VarExpression varB = new VarExpression(b, types.get(b)); // generate the copy b = c
+					VarExpression varB = new VarExpression(b, types.get(b)); // generate
+																				// the
+																				// copy
+																				// b
+																				// =
+																				// c
 					VarExpression varC = new VarExpression(c, types.get(b));
 					result.add(new CopyVarStatement(varB, varC));
 
@@ -888,7 +870,11 @@ public class BoissinotDestructor {
 				if (b != loc.get(pred.get(b))) {
 					if (!types.containsKey(b))
 						throw new IllegalStateException("this shouldn't happen");
-					VarExpression varN = new VarExpression(spill, types.get(b)); // generate copy n = b
+					VarExpression varN = new VarExpression(spill, types.get(b)); // generate
+																					// copy
+																					// n
+																					// =
+																					// b
 					VarExpression varB = new VarExpression(b, types.get(b));
 					result.add(new CopyVarStatement(varN, varB));
 					loc.put(b, spill);
@@ -932,6 +918,7 @@ public class BoissinotDestructor {
 
 	private class CongruenceClass extends TreeSet<Local> {
 		private static final long serialVersionUID = -4472334406997712498L;
+
 		CongruenceClass() {
 			super(new Comparator<Local>() {
 				@Override
@@ -942,5 +929,30 @@ public class BoissinotDestructor {
 				}
 			});
 		}
+	}
+
+	public void testSequentialize() {
+		AtomicInteger base = new AtomicInteger(0);
+		Local a = new BasicLocal(base, 1, false);
+		Local b = new BasicLocal(base, 2, false);
+		Local c = new BasicLocal(base, 3, false);
+		Local d = new BasicLocal(base, 4, false);
+		Local e = new BasicLocal(base, 5, false);
+		Local spill = new BasicLocal(base, 6, false);
+		System.out.println("SEQ TEST START");
+		ParallelCopyVarStatement pcvs = new ParallelCopyVarStatement();
+		pcvs.pairs.add(new CopyPair(a, b, null));
+		pcvs.pairs.add(new CopyPair(b, a, null));
+		pcvs.pairs.add(new CopyPair(c, b, null));
+		pcvs.pairs.add(new CopyPair(d, c, null));
+		pcvs.pairs.add(new CopyPair(e, a, null));
+		for (Statement stmt : pcvs.enumerate()) {
+			if (stmt.getOpcode() == Opcode.LOCAL_LOAD)
+				System.out.println(((VarExpression) stmt).getLocal());
+		}
+		List<CopyVarStatement> seqd = pcvs.sequentialize(spill);
+		System.out.println("seq test: " + pcvs);
+		for (CopyVarStatement cvs : seqd)
+			System.out.println("  " + cvs);
 	}
 }
