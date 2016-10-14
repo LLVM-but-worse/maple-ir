@@ -152,7 +152,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		
 		SimpleDfs<BasicBlock> dfs = new SimpleDfs<>(builder.graph, builder.graph.getEntries().iterator().next(), true, false);
 		int po = 0;
-		for(BasicBlock b : dfs.preorder) {
+		for(BasicBlock b : dfs.getPreOrder()) {
 			insertion.put(b, 0);
 			process.put(b, 0);
 			preorder.put(b, po++);
@@ -747,7 +747,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		liveness.compute();
 		this.liveness = liveness;
 		
-		doms = new TarjanDominanceComputor<>(builder.graph, new SimpleDfs<>(builder.graph, builder.head, true, false).preorder);
+		doms = new TarjanDominanceComputor<>(builder.graph, new SimpleDfs<>(builder.graph, builder.head, true, false).getPreOrder());
 		insertPhis();
 		rename();
 		
