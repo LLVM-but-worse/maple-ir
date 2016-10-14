@@ -25,6 +25,7 @@ import org.mapleir.stdlib.collections.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.bitset.GenericBitSet;
 import org.mapleir.stdlib.collections.graph.util.GraphUtils;
 import org.objectweb.asm.MethodVisitor;
+import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 
 public class BoissinotDestructor {
@@ -421,8 +422,26 @@ public class BoissinotDestructor {
 		}
 
 		// ok NOW we remap to avoid that double remap issue
-		for (Entry<Local, CongruenceClass> e : congruenceClasses.entrySet())
-			remap.put(e.getKey(), e.getValue().first());
+		for (Entry<Local, CongruenceClass> e : congruenceClasses.entrySet()) {
+			VersionedLocal l = (VersionedLocal) e.getKey();
+			CongruenceClass cc = e.getValue();
+			if(isReservedRegister(l)) {
+				remap.put(l, l);
+				Local spilled = spill(l);
+				cc.remove(l);
+				remap.put(e.getValue().first(), e.getValue().first());
+			} else {
+				remap.put(l, e.getValue().first());
+			}
+		}
+	}
+	
+	private VersionedLocal spill(VersionedLocal l) {
+		
+	}
+	
+	private boolean isReservedRegister(VersionedLocal l) {
+		return (cfg.getMethod().access & Opcodes.ACC_STATIC) == 0 && (!l.isStack() && l.getIndex() == 0 && l.getSubscript() == 0);
 	}
 
 	// Process the copy a = b. Returns true if a and b can be coalesced via value.

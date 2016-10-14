@@ -115,7 +115,7 @@ public class ControlFlowGraphBuilder {
 				
 				p.run();
 				
-//				if(p instanceof GenerationPass && !(p instanceof VerificationPass)) {
+//				if(p instanceof SSAGenPass && !(p instanceof VerificationPass)) {
 //					System.out.println();
 //					System.out.println("AFTER " + p.getClass().getSimpleName() + ":");
 //					System.out.println(builder.graph);
