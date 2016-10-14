@@ -14,8 +14,8 @@ public class DominanceLivenessAnalyser {
 
 	private final NullPermeableHashMap<BasicBlock, GenericBitSet<BasicBlock>> rv;
 	private final NullPermeableHashMap<BasicBlock, GenericBitSet<BasicBlock>> tq;
-	public final NullPermeableHashMap<BasicBlock, GenericBitSet<BasicBlock>> sdoms;
-	
+	private final NullPermeableHashMap<BasicBlock, GenericBitSet<BasicBlock>> sdoms;
+
 	public final ControlFlowGraph cfg;
 	private SSADefUseMap defuse;
 	public final ControlFlowGraph red_cfg;
@@ -24,29 +24,27 @@ public class DominanceLivenessAnalyser {
 	public final GenericBitSet<BasicBlock> btargs;
 	public final SimpleDfs<BasicBlock> reduced_dfs;
 	public final TarjanDominanceComputor<BasicBlock> domc;
-	
+
 	public DominanceLivenessAnalyser(ControlFlowGraph cfg, BasicBlock entry, SSADefUseMap defuse) {
 		this.cfg = cfg;
 		this.defuse = defuse;
-		
+
 		rv = new NullPermeableHashMap<>(cfg);
 		tq = new NullPermeableHashMap<>(cfg);
 		sdoms = new NullPermeableHashMap<>(cfg);
-		
+
 		cfg_dfs = new ExtendedDfs<>(cfg, entry, ExtendedDfs.EDGES);
 		backEdges = new NullPermeableHashMap<>(cfg);
 		btargs = cfg.createBitSet();
 		red_cfg = reduce(cfg, cfg_dfs.getEdges(ExtendedDfs.BACK));
 		reduced_dfs = new SimpleDfs<>(red_cfg, entry, true, true);
-		
+
 		computeReducedReachability();
 		computeTargetReachability();
-		
-		domc = new TarjanDominanceComputor<>(cfg, reduced_dfs.preorder);
-		
+
+		domc = new TarjanDominanceComputor<>(cfg, reduced_dfs.getPreOrder());
+
 		computeStrictDominators();
-		
-//		System.out.println("Backedge Targets: " + GraphUtils.toBlockArray(btargs));
 	}
 
 	public void setDefuse(SSADefUseMap defuse) {
@@ -56,38 +54,33 @@ public class DominanceLivenessAnalyser {
 	public boolean sdoms(BasicBlock x, BasicBlock y) {
 		return sdoms.getNonNull(x).contains(y);
 	}
-	
+
 	public boolean doms(BasicBlock x, BasicBlock y) {
 		return x == y || sdoms.getNonNull(x).contains(y);
 	}
 
 	private void computeStrictDominators() {
-		// i think this is how you do it..
-		for(BasicBlock b : reduced_dfs.postorder) {
+		for (BasicBlock b : reduced_dfs.getPostOrder()) {
 			BasicBlock idom = domc.idom(b);
-			if(idom != null) {
+			if (idom != null) {
 				GenericBitSet<BasicBlock> set = sdoms.getNonNull(idom);
 				set.add(b);
 				set.addAll(sdoms.getNonNull(b));
 			}
 		}
-		
-//		for(Entry<BasicBlock, GenericBitSet<BasicBlock>> e : this.sdoms.entrySet())
-//			if (!e.getValue().isEmpty())
-//				System.out.println(e.getKey() + " sdom " + GraphUtils.toBlockArray(e.getValue()));
 	}
 
 	private void computeReducedReachability() {
-		for (BasicBlock b : reduced_dfs.postorder) {
+		for (BasicBlock b : reduced_dfs.getPostOrder()) {
 			rv.getNonNull(b).add(b);
 			for (FlowEdge<BasicBlock> e : red_cfg.getReverseEdges(b)) {
 				rv.getNonNull(e.src).addAll(rv.get(b));
 			}
 		}
 	}
-	
+
 	private void computeTargetReachability() {
-		for (BasicBlock b : reduced_dfs.preorder) {
+		for (BasicBlock b : reduced_dfs.getPreOrder()) {
 			tq.getNonNull(b).add(b);
 
 			// Tup(t) = set of unreachable backedge targets from reachable sources
@@ -106,60 +99,49 @@ public class DominanceLivenessAnalyser {
 		}
 		return reducedCfg;
 	}
-	
+
 	public boolean isLiveIn(BasicBlock b, Local l) {
 		BasicBlock defBlock = defuse.defs.get(l);
-		
-		// System.out.println("l: " + l);
-		// System.out.println("b: " + b.getId());
-		// System.out.println("d: " + defBlock.getId());
-		// System.out.println("p: " + defuse.phis.contains(l));
-		// System.out.println();
-		
-		if(defuse.phiDefs.containsKey(l) && defBlock == b) {
+
+		if (defuse.phiDefs.containsKey(l) && defBlock == b) {
 			return true;
 		}
-		
+
 		GenericBitSet<BasicBlock> tqa = tq.get(b).intersect(sdoms.getNonNull(defBlock));
-		for(BasicBlock t : tqa) {
+		for (BasicBlock t : tqa) {
 			GenericBitSet<BasicBlock> rt = rv.get(t).intersect(defuse.uses.get(l));
-			if(!rt.isEmpty())
+			if (!rt.isEmpty())
 				return true;
 		}
-		
+
 		return false;
 	}
-	
+
 	public boolean isLiveOut(BasicBlock q, Local a) {
 		BasicBlock defBlock = defuse.defs.get(a);
 
 		GenericBitSet<BasicBlock> uses = defuse.uses.getNonNull(a);
-		if(defBlock == q) {
+		if (defBlock == q) {
 			return !uses.relativeComplement(defBlock).isEmpty() || defuse.phiUses.get(defBlock).contains(a);
 		}
-		
+
 		boolean targ = !btargs.contains(q);
-		
+
 		GenericBitSet<BasicBlock> sdomdef = sdoms.getNonNull(defBlock);
-		if(sdomdef.contains(q)) {
+		if (sdomdef.contains(q)) {
 			GenericBitSet<BasicBlock> tqa = tq.get(q).intersect(sdomdef);
 
-//			System.out.printf("sdoms: %s, tqa: %s%n", GraphUtils.toBlockArray(sdomdef), GraphUtils.toBlockArray(tqa));
-//			System.out.printf("b: %s(%b), l: %s, db: %s%n", q.getId(), targ, a, defBlock.getId());
-
-			for(BasicBlock t : tqa) {
+			for (BasicBlock t : tqa) {
 				GenericBitSet<BasicBlock> u = uses.copy();
-				if(t == q && targ)
+				if (t == q && targ)
 					u.remove(q);
 
 				GenericBitSet<BasicBlock> rtt = rv.getNonNull(t).intersect(u);
-//				System.out.printf(" t:%s, u:%s, rt:%s%n", t.getId(), GraphUtils.toBlockArray(u), GraphUtils.toBlockArray(rtt));
-				if(!rtt.isEmpty())
+				if (!rtt.isEmpty())
 					return true;
 			}
-//			System.out.println();
 		}
-		
+
 		return false;
 	}
 }
