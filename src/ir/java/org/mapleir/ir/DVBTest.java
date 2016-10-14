@@ -59,7 +59,7 @@ public class DVBTest {
 						System.out.println();
 
 						ControlFlowGraph cfg = ControlFlowGraphBuilder.build(m);
-						new BoissinotDestructor(cfg, 0);
+						BoissinotDestructor.leaveSSA(cfg);
 						cfg.getLocals().realloc(cfg);
 						
 
