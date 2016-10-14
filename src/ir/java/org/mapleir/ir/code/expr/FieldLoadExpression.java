@@ -118,8 +118,16 @@ public class FieldLoadExpression extends Expression {
 	public boolean equivalent(Statement s) {
 		if(s instanceof FieldLoadExpression) {
 			FieldLoadExpression load = (FieldLoadExpression) s;
-			return instanceExpression.equivalent(load.instanceExpression) &&
-					name.equals(load.name) && desc.equals(load.desc) && owner.equals(load.owner);
+			if(instanceExpression != null && load.instanceExpression == null) {
+				return false;
+			} else if(instanceExpression == null && load.instanceExpression != null) {
+				return false;
+			} else if(instanceExpression != null && load.instanceExpression != null) {
+				if(!instanceExpression.equivalent(load.instanceExpression)) {
+					return false;
+				}
+			}
+			return name.equals(load.name) && desc.equals(load.desc) && owner.equals(load.owner);
 		}
 		return false;
 	}
