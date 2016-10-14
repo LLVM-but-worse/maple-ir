@@ -77,9 +77,7 @@ public class BoissinotDestructor {
 		dummyHead = GraphUtils.connectHead(cfg);
 		correctGraphEntry(dummyHead);
 
-		// compute the dominance here after we have
-		// connected the dummy head and lifted non
-		// variable phi operands.
+		// compute the dominance here after we have connected the dummy head and lifted non variable phi operands.
 		resolver = new DominanceLivenessAnalyser(cfg, dummyHead, null);
 		
 		copyPhiOperands();
@@ -174,9 +172,8 @@ public class BoissinotDestructor {
 				wl.getNonNull(h).add(r);
 			}
 
-			// for each x0, where x0 is a phi copy target, create a new
-			// variable z0 for a copy x0 = z0 and replace the phi
-			// copy target to z0.
+			// for each x0, where x0 is a phi copy target, create a new variable z0 for
+			// a copy x0 = z0 and replace the phi copy target to z0.
 			Local x0 = copy.getVariable().getLocal();
 			Local z0 = locals.makeLatestVersion(x0);
 			dst_copy.pairs.add(new CopyPair(x0, z0, copy.getVariable().getType())); // x0 = z0
@@ -192,17 +189,15 @@ public class BoissinotDestructor {
 			ParallelCopyVarStatement copy = new ParallelCopyVarStatement();
 
 			for (PhiRes r : e.getValue()) {
-				// for each xi source in a phi, create a new variable zi,
-				// and insert the copy zi = xi in the pred Li. then replace
-				// the phi arg from Li with zi.
+				// for each xi source in a phi, create a new variable zi, and insert the copy
+				// zi = xi in the pred Li. then replace the phi arg from Li with zi.
 
 				Local xi = r.l;
 				Local zi = locals.makeLatestVersion(xi);
 				copy.pairs.add(new CopyPair(zi, xi, r.type));
 
-				// we consider phi args to be used in the pred
-				// instead of the block where the phi is, so
-				// we need to update the def/use maps here.
+				// we consider phi args to be used in the pred instead of the block
+				// where the phi is, so we need to update the def/use maps here.
 				r.phi.setArgument(r.pred, new VarExpression(zi, r.type));
 			}
 
@@ -316,10 +311,8 @@ public class BoissinotDestructor {
 		for (Entry<Local, CopyPhiStatement> e : defuse.phiDefs.entrySet()) {
 			Local l = e.getKey();
 			BasicBlock b = e.getValue().getBlock();
-			// since we are now in csaa, phi locals never interfere and are in
-			// the same congruence class.
-			// therefore we can coalesce them all together and drop phis. with
-			// this, we leave cssa.
+			// since we are now in csaa, phi locals never interfere and are in the same congruence class.
+			// therefore we can coalesce them all together and drop phis. with this, we leave cssa.
 			PhiExpression phi = e.getValue().getExpression();
 
 			CongruenceClass pcc = new CongruenceClass();
@@ -351,13 +344,10 @@ public class BoissinotDestructor {
 		defuse.phiDefs.clear();
 	}
 
-	// Coalesce parallel and standard copies based on value interference,
-	// dropping coalesced copies
+	// Coalesce parallel and standard copies based on value interference, dropping coalesced copies
 	private void coalesceCopies() {
-		// now for each copy check if lhs and rhs congruence classes do not
-		// interfere.
-		// if they do not interfere merge the conClasses and those two vars can
-		// be coalesced. delete the copy.
+		// now for each copy check if lhs and rhs congruence classes do not interfere.
+		// if they do not interfere merge the conClasses and those two vars can be coalesced. delete the copy.
 		for (BasicBlock b : dom_dfs.getPreOrder()) {
 			for (Iterator<Statement> it = b.iterator(); it.hasNext();) {
 				Statement stmt = it.next();
@@ -410,8 +400,7 @@ public class BoissinotDestructor {
 				&& (!l.isStack() && l.getIndex() == 0 && l.getSubscript() == 0);
 	}
 
-	// Process the copy a = b. Returns true if a and b can be coalesced via
-	// value.
+	// Process the copy a = b. Returns true if a and b can be coalesced via value.
 	private boolean tryCoalesceCopyValue(Local a, Local b) {
 		// System.out.println("Enter COPY");
 		CongruenceClass conClassA = getCongruenceClass(a);
@@ -452,8 +441,7 @@ public class BoissinotDestructor {
 		return cc;
 	}
 
-	// Process the copy a = b. Returns true of a and b can be coalesced via
-	// sharing.
+	// Process the copy a = b. Returns true of a and b can be coalesced via sharing.
 	private boolean tryCoalesceCopySharing(Local a, Local b) {
 		// if (!DO_SHARE_COALESCE)
 		// return false;
@@ -469,10 +457,8 @@ public class BoissinotDestructor {
 				return true;
 			}
 
-			// If X, Y, and Z are all different and if a and c are coalescable
-			// via value then the copy is redundant
-			// after a and b have been coalesced as c already has the correct
-			// value.
+			// If X, Y, and Z are all different and if a and c are coalescable via value then the copy is redundant
+			// after a and b have been coalesced as c already has the correct value.
 			if (pccY != pccX && pccY != pccZ && pccX != pccZ && tryCoalesceCopyValue(a, c)) {
 				return true;
 			}
@@ -492,8 +478,7 @@ public class BoissinotDestructor {
 		}
 	}
 
-	// Flatten ccs so that each local in each cc is replaced with a new
-	// representative local.
+	// Flatten ccs so that each local in each cc is replaced with a new representative local.
 	private void applyRemapping() {
 		GenericBitSet<BasicBlock> processed = cfg.createBitSet();
 		GenericBitSet<BasicBlock> processed2 = cfg.createBitSet();
@@ -583,8 +568,7 @@ public class BoissinotDestructor {
 		Local ir = red.first(), ib = blue.first();
 		Local lr = red.last(), lb = blue.last(); // end sentinels
 		boolean redHasNext = true, blueHasNext = true;
-		equalAncOut.put(ir, null); // these have no parents so we have to
-									// manually init them
+		equalAncOut.put(ir, null); // these have no parents so we have to manually init them
 		equalAncOut.put(ib, null);
 		do {
 			Local current;
@@ -661,8 +645,7 @@ public class BoissinotDestructor {
 		// defA == defB or liveIn to intersect{
 		if (!resolver.isLiveIn(defA, b) && defA != defuse.defs.get(b))
 			return false;
-		// ambiguous case. we need to check if use(dom) occurs after def(def),
-		// in that case it interferes. otherwise no
+		// ambiguous case. we need to check if use(dom) occurs after def(def), n that case it interferes. otherwise no
 		int domUseIndex = defuse.lastUseIndex.getNonNull(b).getOrDefault(defA, -1);
 		if (domUseIndex == -1) {
 			return false;
@@ -709,8 +692,7 @@ public class BoissinotDestructor {
 			int index = e.getValue();
 			if (pcvs.pairs.size() == 0)
 				throw new IllegalArgumentException("pcvs is empty");
-			else if (pcvs.pairs.size() == 1) { // constant sequentialize for
-												// trivial parallel copies
+			else if (pcvs.pairs.size() == 1) { // constant sequentialize for trivial parallel copies
 				CopyPair pair = pcvs.pairs.get(0);
 				CopyVarStatement newCopy = new CopyVarStatement(new VarExpression(pair.targ, pair.type),
 						new VarExpression(pair.source, pair.type));
@@ -718,9 +700,7 @@ public class BoissinotDestructor {
 			} else {
 				List<CopyVarStatement> sequentialized = pcvs.sequentialize(spill);
 				b.remove(index + indexOffset--);
-				// warning: O(N^2) operation
-				for (CopyVarStatement cvs : sequentialized) { // warning: O(N^2)
-																// operation
+				for (CopyVarStatement cvs : sequentialized) { // warning: O(N^2) operation
 					b.add(index + ++indexOffset, cvs);
 				}
 			}
@@ -835,8 +815,7 @@ public class BoissinotDestructor {
 			for (CopyPair pair : pairs) {
 				if (!loc.containsKey(pair.targ))
 					throw new IllegalStateException("this shouldn't happen");
-				if (loc.get(pair.targ) == null) // b is not used and can be
-												// overwritten
+				if (loc.get(pair.targ) == null) // b is not used and can be overwritten
 					ready.push(pair.targ);
 			}
 
@@ -849,12 +828,7 @@ public class BoissinotDestructor {
 					if ((!types.containsKey(b) && b != spill) || (!types.containsKey(c) && c != spill))
 						throw new IllegalStateException("this shouldn't happen " + b + " " + c);
 
-					VarExpression varB = new VarExpression(b, types.get(b)); // generate
-																				// the
-																				// copy
-																				// b
-																				// =
-																				// c
+					VarExpression varB = new VarExpression(b, types.get(b)); // generate the copy b = c
 					VarExpression varC = new VarExpression(c, types.get(b));
 					result.add(new CopyVarStatement(varB, varC));
 
@@ -870,11 +844,7 @@ public class BoissinotDestructor {
 				if (b != loc.get(pred.get(b))) {
 					if (!types.containsKey(b))
 						throw new IllegalStateException("this shouldn't happen");
-					VarExpression varN = new VarExpression(spill, types.get(b)); // generate
-																					// copy
-																					// n
-																					// =
-																					// b
+					VarExpression varN = new VarExpression(spill, types.get(b)); // generate the copy n = b
 					VarExpression varB = new VarExpression(b, types.get(b));
 					result.add(new CopyVarStatement(varN, varB));
 					loc.put(b, spill);
