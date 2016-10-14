@@ -1,11 +1,5 @@
 package org.mapleir.ir.analysis;
 
-import org.mapleir.stdlib.cfg.edge.FlowEdge;
-import org.mapleir.stdlib.collections.NullPermeableHashMap;
-import org.mapleir.stdlib.collections.ValueCreator;
-import org.mapleir.stdlib.collections.graph.FastGraphVertex;
-import org.mapleir.stdlib.collections.graph.flow.FlowGraph;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -13,7 +7,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public class ExtendedDfs<N extends FastGraphVertex> {
+import org.mapleir.stdlib.cfg.edge.FlowEdge;
+import org.mapleir.stdlib.collections.NullPermeableHashMap;
+import org.mapleir.stdlib.collections.ValueCreator;
+import org.mapleir.stdlib.collections.graph.FastGraphVertex;
+import org.mapleir.stdlib.collections.graph.flow.FlowGraph;
+
+public class ExtendedDfs<N extends FastGraphVertex> implements DepthFirstSearch<N> {
 	
 	public static final int WHITE = 0, GREY = 1, BLACK = 2;
 	public static final int TREE = WHITE, BACK = GREY, FOR_CROSS = BLACK;
@@ -24,8 +24,8 @@ public class ExtendedDfs<N extends FastGraphVertex> {
 	private final NullPermeableHashMap<N, Integer> colours;
 	private final Map<Integer, Set<FlowEdge<N>>> edges;
 	private final Map<N, N> parents;
-	public final List<N> preorder;
-	public final List<N> postorder;
+	private final List<N> preorder;
+	private final List<N> postorder;
 	
 	public ExtendedDfs(FlowGraph<N, FlowEdge<N>> graph, N entry, int opt) {
 		this.opt = opt;
@@ -92,5 +92,15 @@ public class ExtendedDfs<N extends FastGraphVertex> {
 	
 	protected Iterable<FlowEdge<N>> order(Set<FlowEdge<N>> edges) {
 		return edges;
+	}
+
+	@Override
+	public List<N> getPreOrder() {
+		return preorder;
+	}
+
+	@Override
+	public List<N> getPostOrder() {
+		return postorder;
 	}
 }
