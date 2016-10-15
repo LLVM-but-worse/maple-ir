@@ -1,4 +1,4 @@
-package org.mapleir.stdlib.collections.graph.util;
+package org.mapleir.stdlib.collections.graph;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -11,11 +11,10 @@ import java.util.Set;
 //import org.mapleir.ir.analysis.StatementGraph;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
-import org.mapleir.stdlib.cfg.edge.DummyEdge;
-import org.mapleir.stdlib.cfg.edge.FlowEdge;
-import org.mapleir.stdlib.cfg.edge.FlowEdges;
-import org.mapleir.stdlib.cfg.edge.ImmediateEdge;
-import org.mapleir.stdlib.collections.graph.FastGraphVertex;
+import org.mapleir.ir.cfg.edge.DummyEdge;
+import org.mapleir.ir.cfg.edge.FlowEdge;
+import org.mapleir.ir.cfg.edge.FlowEdges;
+import org.mapleir.ir.cfg.edge.ImmediateEdge;
 
 public class GraphUtils {
 

@@ -1,8 +1,8 @@
-package org.mapleir.stdlib.cfg.edge;
+package org.mapleir.ir.cfg.edge;
 
 import org.mapleir.stdlib.collections.graph.FastGraphVertex;
+import org.mapleir.stdlib.collections.graph.GraphUtils;
 import org.mapleir.stdlib.collections.graph.flow.ExceptionRange;
-import org.mapleir.stdlib.collections.graph.util.GraphUtils;
 
 public class TryCatchEdge<N extends FastGraphVertex> extends FlowEdge<N> {
 	

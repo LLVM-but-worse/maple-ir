@@ -5,8 +5,8 @@ import org.mapleir.ir.code.expr.Expression;
 import org.mapleir.ir.code.expr.VarExpression;
 import org.mapleir.ir.code.stmt.Statement;
 import org.mapleir.ir.locals.Local;
-import org.mapleir.stdlib.cfg.util.TabbedStringWriter;
-import org.mapleir.stdlib.cfg.util.TypeUtils;
+import org.mapleir.stdlib.util.TabbedStringWriter;
+import org.mapleir.stdlib.util.TypeUtils;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Type;
 

@@ -6,7 +6,7 @@ import org.junit.Test;
 import org.mapleir.ir.analysis.SimpleDfs;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.FastBlockGraph;
-import org.mapleir.stdlib.cfg.edge.ImmediateEdge;
+import org.mapleir.ir.cfg.edge.ImmediateEdge;
 import org.mapleir.stdlib.collections.graph.flow.TarjanDominanceComputor;
 
 public class DominanceTest {

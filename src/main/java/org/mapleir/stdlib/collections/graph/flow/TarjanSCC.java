@@ -6,7 +6,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import org.mapleir.stdlib.cfg.edge.FlowEdge;
+import org.mapleir.ir.cfg.edge.FlowEdge;
 import org.mapleir.stdlib.collections.graph.FastGraphVertex;
 
 public class TarjanSCC <N extends FastGraphVertex> {

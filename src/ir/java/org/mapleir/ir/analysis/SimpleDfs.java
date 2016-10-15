@@ -6,10 +6,10 @@ import java.util.List;
 import java.util.Set;
 import java.util.Stack;
 
-import org.mapleir.stdlib.cfg.edge.FlowEdge;
+import org.mapleir.ir.cfg.edge.FlowEdge;
 import org.mapleir.stdlib.collections.graph.FastGraphVertex;
+import org.mapleir.stdlib.collections.graph.GraphUtils;
 import org.mapleir.stdlib.collections.graph.flow.FlowGraph;
-import org.mapleir.stdlib.collections.graph.util.GraphUtils;
 
 public class SimpleDfs<N extends FastGraphVertex> implements DepthFirstSearch<N> {
 	

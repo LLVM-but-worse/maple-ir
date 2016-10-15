@@ -5,8 +5,8 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import org.mapleir.stdlib.cfg.edge.FlowEdge;
-import org.mapleir.stdlib.cfg.edge.TryCatchEdge;
+import org.mapleir.ir.cfg.edge.FlowEdge;
+import org.mapleir.ir.cfg.edge.TryCatchEdge;
 import org.mapleir.stdlib.collections.graph.flow.FlowGraph;
 import org.objectweb.asm.tree.LabelNode;
 

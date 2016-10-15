@@ -7,19 +7,14 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.List;
-import java.util.Set;
 
 import org.mapleir.byteio.CompleteResolvingJarDumper;
 import org.mapleir.ir.cfg.BoissinotDestructor;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.cfg.builder.ControlFlowGraphBuilder;
 import org.mapleir.ir.cfg.builder.SSAGenPass;
-import org.mapleir.stdlib.klass.ClassNodeUtil;
-import org.mapleir.stdlib.klass.ClassTree;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Opcodes;
@@ -474,7 +469,7 @@ public class Test {
 //	}
 
 	public static void main(String[] args) throws IOException {
-		JarInfo jar = new JarInfo(new File("res/allatori.jar"));
+		JarInfo jar = new JarInfo(new File("res/gamepack107.jar"));
 		SingleJarDownloader<ClassNode> dl = new SingleJarDownloader<>(jar);
 		dl.download();
 		JarContents<ClassNode> contents = dl.getJarContents();

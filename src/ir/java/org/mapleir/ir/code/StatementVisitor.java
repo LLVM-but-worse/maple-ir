@@ -1,4 +1,4 @@
-package org.mapleir.stdlib.ir;
+package org.mapleir.ir.code;
 
 import org.mapleir.ir.code.stmt.Statement;
 

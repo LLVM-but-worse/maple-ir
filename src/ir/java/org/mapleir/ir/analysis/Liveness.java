@@ -1,4 +1,4 @@
-package org.mapleir.stdlib.ir.transform;
+package org.mapleir.ir.analysis;
 
 import java.util.Set;
 
