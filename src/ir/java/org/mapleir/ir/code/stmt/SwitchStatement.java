@@ -77,7 +77,7 @@ public class SwitchStatement extends Statement {
 	}
 	
 	private boolean fitsIntoTableSwitch() {
-		if (targets.size() < 1) {
+		if (targets.isEmpty()) {
 			return false;
 		}
 		
@@ -86,7 +86,7 @@ public class SwitchStatement extends Statement {
 		while(it.hasNext()) {
 			int i = it.next();
 			if(i != (last + 1)) {
-				return true;
+				return false;
 			}
 			
 			last = i;
