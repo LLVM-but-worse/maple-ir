@@ -529,7 +529,10 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 				_cast(TypeUtils.getCastType(opcode));
 				break;
 			case CHECKCAST:
-				_cast(Type.getType("L" + ((TypeInsnNode)ain).desc + ";"));
+				String typeName = ((TypeInsnNode)ain).desc;
+				if (typeName.charAt(0) != '[') // arrays aren't objects.
+					typeName = "L" + typeName + ";";
+				_cast(Type.getType(typeName));
 				break;
 			case INSTANCEOF:
 				_instanceof(Type.getType("L" + ((TypeInsnNode)ain).desc + ";"));
