@@ -1,8 +1,10 @@
 package org.mapleir.stdlib.call;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.ListIterator;
+import java.util.Set;
 
 import org.mapleir.stdlib.call.CallGraph.Invocation;
 import org.mapleir.stdlib.collections.graph.FastDirectedGraph;
@@ -42,7 +44,8 @@ public class CallGraph extends FastDirectedGraph<MethodNode, Invocation> {
 	}
 	
 	private void reduce() {
-		int total = 0, removed = 0, prot = 0;
+		Set<MethodNode> prot = new HashSet<>();
+		int total = 0, removed = 0;
 		int lastRemoved = 0, i = 1;
 
 		do {
@@ -54,7 +57,7 @@ public class CallGraph extends FastDirectedGraph<MethodNode, Invocation> {
 				}
 				entries.addAll(findEntries(classTree, cn));
 			}
-			prot += entries.size();
+			prot.addAll(entries);
 			for(MethodNode m : entries) {
 				traverse(m);
 			}
@@ -80,7 +83,7 @@ public class CallGraph extends FastDirectedGraph<MethodNode, Invocation> {
 			i++;
 		} while((removed - lastRemoved) != 0);
 
-		System.out.printf("   %d protected methods.%n", prot);
+		System.out.printf("   %d protected methods.%n", prot.size());
 		System.out.printf("   Found %d/%d used methods (removed %d dummy methods).%n", (total - removed), total, removed);
 	}
 	
