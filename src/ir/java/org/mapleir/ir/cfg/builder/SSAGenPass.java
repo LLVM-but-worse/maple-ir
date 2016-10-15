@@ -29,7 +29,6 @@ import org.mapleir.stdlib.cfg.edge.ImmediateEdge;
 import org.mapleir.stdlib.cfg.edge.SwitchEdge;
 import org.mapleir.stdlib.cfg.edge.TryCatchEdge;
 import org.mapleir.stdlib.cfg.edge.UnconditionalJumpEdge;
-import org.mapleir.stdlib.cfg.util.TypeUtils;
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.SetCreator;
 import org.mapleir.stdlib.collections.graph.flow.ExceptionRange;
@@ -576,23 +575,30 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 					l = _top(stmt, l.getIndex(), l.isStack());
 					
 					Type t;
-					if(copy.getType() == null) {
-						/* type not set yet */
-						t = types.get(l);
-						copy.getVariable().setType(t);
-						phi.setType(t);
-						v.setType(t);
-					} else {
-						/* this doesn't check the types of
-						 * non vars in the phi. */
-						AbstractCopyStatement varDef = defs.get(l);
-						t = varDef.getType();
-						Type oldT = copy.getType();
-						// TODO: common supertypes
-						if(oldT.getSize() != TypeUtils.asSimpleType(t).getSize()) {
-							throw new IllegalStateException(l + " " + copy + " " + t + " " + copy.getType());
-						}
-					}
+//					if(copy.getType() == null) {
+//						/* type not set yet */
+//						t = types.get(l);
+//						copy.getVariable().setType(t);
+//						phi.setType(t);
+//						v.setType(t);
+//					} else {
+//						/* this doesn't check the types of
+//						 * non vars in the phi. */
+//						AbstractCopyStatement varDef = defs.get(l);
+//						t = varDef.getType();
+//						Type oldT = copy.getType();
+//						// TODO: common supertypes
+//						if(oldT.getSize() != TypeUtils.asSimpleType(t).getSize()) {
+//							TabbedStringWriter sw = new TabbedStringWriter();
+//							ControlFlowGraph.blockToString(sw, builder.graph, copy.getBlock(), 0);
+//							System.err.println(sw.toString());
+//							throw new IllegalStateException(String.format("{{%s}}, copy:{{%s}}, t:{{%s}}, def:{{%s}}, t:{{%s}}", l, copy, copy.getType(), varDef, varDef.getType()));
+//						}
+//					}
+					t = types.get(l);
+					copy.getVariable().setType(t);
+					phi.setType(t);
+					v.setType(t);
 					// System.out.printf("%s from %s: %s.%n", l, b.getId(), t);
 					VarExpression var = new VarExpression(l, t);
 					phi.setArgument(b, var);
