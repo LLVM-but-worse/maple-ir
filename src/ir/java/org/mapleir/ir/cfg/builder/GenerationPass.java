@@ -372,9 +372,14 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 			}
 			case ANEWARRAY: {
 				save_stack(false);
+				String typeName = ((TypeInsnNode) ain).desc;
+				if (typeName.charAt(0) != '[')
+					typeName = "[L" + typeName + ";";
+				else
+					typeName = '[' + typeName;
 				_new_array(
 					new Expression[] { pop() }, 
-					Type.getType("[L" + ((TypeInsnNode) ain).desc + ";")
+					Type.getType(typeName)
 				);
 				break;
 			}
@@ -535,10 +540,16 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 				_cast(Type.getType(typeName));
 				break;
 			case INSTANCEOF:
-				_instanceof(Type.getType("L" + ((TypeInsnNode)ain).desc + ";"));
+				typeName = ((TypeInsnNode)ain).desc;
+				if (typeName.charAt(0) != '[')
+					typeName = "L" + typeName + ";";
+				_instanceof(Type.getType(typeName));
 				break;
 			case NEW:
-				_new(Type.getType("L" + ((TypeInsnNode)ain).desc + ";"));
+				typeName = ((TypeInsnNode)ain).desc;
+				if (typeName.charAt(0) != '[')
+					typeName = "L" + typeName + ";";
+				_new(Type.getType(typeName));
 				break;
 				
 			case INVOKEDYNAMIC:
