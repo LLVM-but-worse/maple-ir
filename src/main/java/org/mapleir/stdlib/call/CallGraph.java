@@ -63,7 +63,7 @@ public class CallGraph extends FastDirectedGraph<MethodNode, Invocation> {
 				ListIterator<MethodNode> lit = cn.methods.listIterator();
 				while (lit.hasNext()) {
 					MethodNode mn = lit.next();
-					if(!containsReverseVertex(mn)) {
+					if(!entries.contains(mn) && !containsReverseVertex(mn)) {
 						lit.remove();
 						removed++;
 					}
@@ -85,7 +85,7 @@ public class CallGraph extends FastDirectedGraph<MethodNode, Invocation> {
 	}
 	
 	private void traverse(MethodNode m) {
-		if(containsVertex(m)) {
+		if(containsVertex(m) && getEdges(m).size() > 0) {
 			return;
 		}
 		
