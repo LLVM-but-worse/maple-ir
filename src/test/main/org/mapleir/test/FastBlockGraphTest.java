@@ -5,7 +5,7 @@ import static org.junit.Assert.assertTrue;
 import org.junit.Test;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.FastBlockGraph;
-import org.mapleir.stdlib.cfg.edge.ImmediateEdge;
+import org.mapleir.ir.cfg.edge.ImmediateEdge;
 
 public class FastBlockGraphTest {
 

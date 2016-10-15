@@ -11,8 +11,8 @@ import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.Opcode;
 import org.mapleir.ir.code.expr.Expression;
 import org.mapleir.ir.code.stmt.copy.CopyPhiStatement;
-import org.mapleir.stdlib.cfg.util.TabbedStringWriter;
 import org.mapleir.stdlib.collections.graph.FastGraphVertex;
+import org.mapleir.stdlib.util.TabbedStringWriter;
 import org.objectweb.asm.MethodVisitor;
 
 public abstract class Statement implements FastGraphVertex, Opcode {

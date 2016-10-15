@@ -3,6 +3,7 @@ package org.mapleir.ir.cfg.builder;
 import java.util.ArrayList;
 import java.util.Arrays;
 
+import org.mapleir.ir.analysis.SSALocalAccess;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.code.Opcode;
 import org.mapleir.ir.code.expr.Expression;
@@ -15,7 +16,6 @@ import org.mapleir.ir.code.stmt.Statement;
 import org.mapleir.ir.code.stmt.copy.AbstractCopyStatement;
 import org.mapleir.ir.code.stmt.copy.CopyVarStatement;
 import org.mapleir.ir.locals.VersionedLocal;
-import org.mapleir.stdlib.ir.transform.ssa.SSALocalAccess;
 import org.objectweb.asm.Opcodes;
 
 public class Aggregator extends OptimisationPass.Optimiser implements Opcode {

@@ -1,4 +1,4 @@
-package org.mapleir.stdlib.cfg.edge;
+package org.mapleir.ir.cfg.edge;
 
 import org.mapleir.stdlib.collections.graph.FastGraphEdge;
 import org.mapleir.stdlib.collections.graph.FastGraphVertex;

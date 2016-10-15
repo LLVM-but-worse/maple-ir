@@ -5,8 +5,11 @@ import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.mapleir.ir.analysis.SSALocalAccess;
 import org.mapleir.ir.cfg.BasicBlock;
+import org.mapleir.ir.cfg.edge.TryCatchEdge;
 import org.mapleir.ir.code.Opcode;
+import org.mapleir.ir.code.StatementVisitor;
 import org.mapleir.ir.code.expr.*;
 import org.mapleir.ir.code.stmt.ArrayStoreStatement;
 import org.mapleir.ir.code.stmt.FieldStoreStatement;
@@ -16,13 +19,10 @@ import org.mapleir.ir.code.stmt.copy.AbstractCopyStatement;
 import org.mapleir.ir.code.stmt.copy.CopyPhiStatement;
 import org.mapleir.ir.locals.Local;
 import org.mapleir.ir.locals.VersionedLocal;
-import org.mapleir.stdlib.cfg.edge.TryCatchEdge;
-import org.mapleir.stdlib.cfg.util.TypeUtils;
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.SetCreator;
 import org.mapleir.stdlib.collections.graph.flow.ExceptionRange;
-import org.mapleir.stdlib.ir.StatementVisitor;
-import org.mapleir.stdlib.ir.transform.ssa.SSALocalAccess;
+import org.mapleir.stdlib.util.TypeUtils;
 
 public class Propagator extends OptimisationPass.Optimiser {
 

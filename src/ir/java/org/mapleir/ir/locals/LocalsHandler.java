@@ -11,13 +11,13 @@ import org.mapleir.ir.code.Opcode;
 import org.mapleir.ir.code.expr.VarExpression;
 import org.mapleir.ir.code.stmt.Statement;
 import org.mapleir.ir.code.stmt.copy.CopyVarStatement;
-import org.mapleir.stdlib.cfg.util.TypeUtils;
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.SetCreator;
 import org.mapleir.stdlib.collections.ValueCreator;
 import org.mapleir.stdlib.collections.bitset.BitSetIndexer;
 import org.mapleir.stdlib.collections.bitset.GenericBitSet;
 import org.mapleir.stdlib.collections.bitset.IncrementalBitSetIndexer;
+import org.mapleir.stdlib.util.TypeUtils;
 import org.objectweb.asm.Type;
 
 public class LocalsHandler implements ValueCreator<GenericBitSet<Local>> {
