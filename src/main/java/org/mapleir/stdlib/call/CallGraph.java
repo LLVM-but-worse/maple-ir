@@ -73,10 +73,9 @@ public class CallGraph extends FastDirectedGraph<MethodNode, Invocation> {
 				}
 			}
 			
-			clear();
-			
 			int d = removed - lastRemoved;
 			if(d > 0) {
+				clear();
 				System.out.printf("   Pass %d: removed %d methods%n", i, d);
 			}
 			
