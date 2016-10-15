@@ -7,14 +7,19 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
 
 import org.mapleir.byteio.CompleteResolvingJarDumper;
 import org.mapleir.ir.cfg.BoissinotDestructor;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.cfg.builder.ControlFlowGraphBuilder;
 import org.mapleir.ir.cfg.builder.SSAGenPass;
+import org.mapleir.stdlib.klass.ClassNodeUtil;
+import org.mapleir.stdlib.klass.ClassTree;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Opcodes;
@@ -491,135 +496,136 @@ public class Test {
 
 			ArrayList<MethodNode> methodNodes = new ArrayList<>(cn.methods);
 			for (MethodNode m : methodNodes) {
-				if (!m.toString().startsWith("com/allatori/iiiIIiIiiI.IIIIIIiIII()I")) {
+//				if (!m.toString().startsWith("com/allatori/iiiIIIIiIi.<clinit>")) {
 //					continue;
-				}
-//					if (++index != 546) {
-//						continue;
+//				}
+//				if (index != 546) {
+//					continue;
+//				}
+
+				if (m.instructions.size() > 0) {
+					index++;
+					System.out.printf("#%d: %s  [%d]%n", index, m, m.instructions.size());
+					if (index % 100 == 0) {
+						System.out.println(index + " done.");
+					}
+					
+					ControlFlowGraph cfg = null;
+					
+//					{
+//						List<MethodNode> methods = new ArrayList<>(cn.methods);
+//						cn.methods.clear();
+//						cn.methods.add(m);
+//
+//						ClassWriter cw = new ClassWriter(0);
+//						cn.accept(cw);
+//						byte[] bs = cw.toByteArray();
+//						FileOutputStream out = new FileOutputStream(new File("out/pre.class"));
+//						out.write(bs, 0, bs.length);
+//						out.close();
+//
+//						cn.methods.addAll(methods);
 //					}
+					
+					try {
+						m.localVariables.clear();
+						cfg = ControlFlowGraphBuilder.build(m);
+						m.access ^= Opcodes.ACC_SYNTHETIC;
 
-					if (m.instructions.size() > 0) {
-						index++;
+//						BasicDotConfiguration<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> config = new BasicDotConfiguration<>(DotConfiguration.GraphType.DIRECTED);
+//						DotWriter<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> writer = new DotWriter<>(config, cfg);
+//						writer.removeAll().add(new ControlFlowGraphDecorator()).setName("irreducible").export();
+
+//						System.out.println(cfg);
+
+						BoissinotDestructor.leaveSSA(cfg);
+						cfg.getLocals().realloc(cfg);
+//						System.out.println(cfg);
+						ControlFlowGraphDumper.dump(cfg, m);
 						
-						if(index % 100 == 0) {
-							System.out.println(index + " done.");
-						}
-//						System.out.printf("#%d: %s  [%d]%n", index++, m, m.instructions.size());
-						ControlFlowGraph cfg = null;
-						{
-
-//							 List<MethodNode> methods = new ArrayList<>(cn.methods);
-//							 cn.methods.clear();
-//							 cn.methods.add(m);
-//							
-//							 ClassWriter cw = new ClassWriter(0);
-//							 cn.accept(cw);
-//							 byte[] bs = cw.toByteArray();
-//							 FileOutputStream out = new FileOutputStream(new File("out/pre.class"));
-//							 out.write(bs, 0, bs.length);
-//							 out.close();
-//							
-//							 cn.methods.addAll(methods);
-						}
-						try {
-							m.localVariables.clear();
-							cfg = ControlFlowGraphBuilder.build(m);
-							m.access ^= Opcodes.ACC_SYNTHETIC;
-
-							// BasicDotConfiguration<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> config = new BasicDotConfiguration<>(DotConfiguration.GraphType.DIRECTED);
-							// DotWriter<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> writer = new DotWriter<>(config, cfg);
-							// writer.removeAll().add(new ControlFlowGraphDecorator()).setName("irreducible").export();
-
-//							 System.out.println(cfg);
-
-							BoissinotDestructor.leaveSSA(cfg);
-							cfg.getLocals().realloc(cfg);
-							ControlFlowGraphDumper.dump(cfg, m);
-//							 System.out.println(cfg);
-
-
-//							ClassTree classTree = new ClassTree(contents.getClassContents());
-//							ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS) {
+//						ClassTree classTree = new ClassTree(contents.getClassContents());
+//						ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS) {
 //
-//								// this method in ClassWriter uses the systemclassloader as
-//								// a stream location to load the super class, however, most of
-//								// the time the class is loaded/read and parsed by us so it
-//								// isn't defined in the system classloader. in certain cases
-//								// we may not even want it to be loaded/resolved and we can
-//								// bypass this by implementing the hierarchy scanning algorithm
-//								// with ClassNodes rather than Classes.
-//								@Override
-//								protected String getCommonSuperClass(String type1, String type2) {
-//									ClassNode ccn = classTree.getClass(type1);
-//									ClassNode dcn = classTree.getClass(type2);
+//							// this method in ClassWriter uses the systemclassloader as
+//							// a stream location to load the super class, however, most of
+//							// the time the class is loaded/read and parsed by us so it
+//							// isn't defined in the system classloader. in certain cases
+//							// we may not even want it to be loaded/resolved and we can
+//							// bypass this by implementing the hierarchy scanning algorithm
+//							// with ClassNodes rather than Classes.
+//							@Override
+//							protected String getCommonSuperClass(String type1, String type2) {
+//								ClassNode ccn = classTree.getClass(type1);
+//								ClassNode dcn = classTree.getClass(type2);
 //
-//									if (ccn == null) {
-//										ClassNode c = ClassNodeUtil.create(type1);
-//										if (c == null) {
-//											return "java/lang/Object";
-//										}
-//										classTree.build(c);
-//										return getCommonSuperClass(type1, type2);
-//									}
-//
-//									if (dcn == null) {
-//										ClassNode c = ClassNodeUtil.create(type2);
-//										if (c == null) {
-//											return "java/lang/Object";
-//										}
-//										classTree.build(c);
-//										return getCommonSuperClass(type1, type2);
-//									}
-//
-//									Set<ClassNode> c = classTree.getSupers(ccn);
-//									Set<ClassNode> d = classTree.getSupers(dcn);
-//
-//									if (c.contains(dcn))
-//										return type1;
-//
-//									if (d.contains(ccn))
-//										return type2;
-//
-//									if (Modifier.isInterface(ccn.access) || Modifier.isInterface(dcn.access)) {
-//										// enums as well?
+//								if (ccn == null) {
+//									ClassNode c = ClassNodeUtil.create(type1);
+//									if (c == null) {
 //										return "java/lang/Object";
-//									} else {
-//										do {
-//											ClassNode nccn = classTree.getClass(ccn.superName);
-//											if (nccn == null)
-//												break;
-//											ccn = nccn;
-//											c = classTree.getSupers(ccn);
-//										} while (!c.contains(dcn));
-//										return ccn.name;
 //									}
+//									classTree.build(c);
+//									return getCommonSuperClass(type1, type2);
 //								}
 //
-//							};
-//							cn.methods.clear();
-//							cn.methods.add(m);
-//							cn.accept(cw);
-//							byte[] bs = cw.toByteArray();
-//							FileOutputStream out = new FileOutputStream(new File("out/work.class"));
-//							out.write(bs, 0, bs.length);
-//							out.close();
-
-							// return;
-							//
-						} catch (RuntimeException e) {
-							cn.methods.clear();
-							cn.methods.add(m);
-							ClassWriter cw = new ClassWriter(0);
-							cn.accept(cw);
-							byte[] bs = cw.toByteArray();
-							FileOutputStream out = new FileOutputStream(new File("out/err.class"));
-							out.write(bs, 0, bs.length);
-							out.close();
-							System.err.println();
-							System.err.println(cfg);
-							throw new RuntimeException(m.toString(), e);
-						}
+//								if (dcn == null) {
+//									ClassNode c = ClassNodeUtil.create(type2);
+//									if (c == null) {
+//										return "java/lang/Object";
+//									}
+//									classTree.build(c);
+//									return getCommonSuperClass(type1, type2);
+//								}
+//
+//								Set<ClassNode> c = classTree.getSupers(ccn);
+//								Set<ClassNode> d = classTree.getSupers(dcn);
+//
+//								if (c.contains(dcn))
+//									return type1;
+//
+//								if (d.contains(ccn))
+//									return type2;
+//
+//								if (Modifier.isInterface(ccn.access) || Modifier.isInterface(dcn.access)) {
+//									// enums as well?
+//									return "java/lang/Object";
+//								} else {
+//									do {
+//										ClassNode nccn = classTree.getClass(ccn.superName);
+//										if (nccn == null)
+//											break;
+//										ccn = nccn;
+//										c = classTree.getSupers(ccn);
+//									} while (!c.contains(dcn));
+//									return ccn.name;
+//								}
+//							}
+//
+//						};
+//						cn.methods.clear();
+//						cn.methods.add(m);
+//						cn.accept(cw);
+//						byte[] bs = cw.toByteArray();
+//						FileOutputStream out = new FileOutputStream(new File("out/work.class"));
+//						out.write(bs, 0, bs.length);
+//						out.close();
+//
+//						return;
+						
+					} catch (RuntimeException e) {
+						cn.methods.clear();
+						cn.methods.add(m);
+						ClassWriter cw = new ClassWriter(0);
+						cn.accept(cw);
+						byte[] bs = cw.toByteArray();
+						FileOutputStream out = new FileOutputStream(new File("out/err.class"));
+						out.write(bs, 0, bs.length);
+						out.close();
+						System.err.println();
+						System.err.println(cfg);
+						throw new RuntimeException(m.toString(), e);
 					}
+				}
+				System.gc(); // ayy lmao
 			}
 		}
 		
