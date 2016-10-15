@@ -7,14 +7,19 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
 
 import org.mapleir.byteio.CompleteResolvingJarDumper;
 import org.mapleir.ir.cfg.BoissinotDestructor;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.cfg.builder.ControlFlowGraphBuilder;
 import org.mapleir.ir.cfg.builder.SSAGenPass;
+import org.mapleir.stdlib.klass.ClassNodeUtil;
+import org.mapleir.stdlib.klass.ClassTree;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Opcodes;
@@ -491,20 +496,19 @@ public class Test {
 
 			ArrayList<MethodNode> methodNodes = new ArrayList<>(cn.methods);
 			for (MethodNode m : methodNodes) {
-				if (!m.toString().startsWith("com/allatori/iiiIIiIiiI.IIIIIIiIII()I")) {
-//					continue;
+				if (!m.toString().startsWith("com/allatori/IiiIiiIIiI.IIIIIIiIII(Ljava/lang/String;)Ljava/lang/String;")) {
+					continue;
 				}
-//					if (++index != 546) {
+//					if (index != 546) {
 //						continue;
 //					}
 
 					if (m.instructions.size() > 0) {
 						index++;
-						
-						if(index % 100 == 0) {
+						System.out.printf("#%d: %s  [%d]%n", index, m, m.instructions.size());
+						if (index % 100 == 0) {
 							System.out.println(index + " done.");
 						}
-//						System.out.printf("#%d: %s  [%d]%n", index++, m, m.instructions.size());
 						ControlFlowGraph cfg = null;
 						{
 
@@ -534,8 +538,8 @@ public class Test {
 
 							BoissinotDestructor.leaveSSA(cfg);
 							cfg.getLocals().realloc(cfg);
+//							System.out.println(cfg);
 							ControlFlowGraphDumper.dump(cfg, m);
-//							 System.out.println(cfg);
 
 
 //							ClassTree classTree = new ClassTree(contents.getClassContents());
