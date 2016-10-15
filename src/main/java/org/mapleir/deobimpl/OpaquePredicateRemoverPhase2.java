@@ -2,7 +2,6 @@ package org.mapleir.deobimpl;
 
 import java.util.List;
 
-import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.stdlib.IContext;
 import org.mapleir.stdlib.deob.IPhase;
 import org.objectweb.asm.tree.ClassNode;
@@ -20,7 +19,6 @@ public class OpaquePredicateRemoverPhase2 implements IPhase {
 	public void accept(IContext cxt, IPhase prev, List<IPhase> completed) {
 		for(ClassNode cn : cxt.getNodes().values()) {
 			for(MethodNode m : cn.methods) {
-				ControlFlowGraph cfg = cxt.createControlFlowGraph(m);
 				
 			}
 		}
