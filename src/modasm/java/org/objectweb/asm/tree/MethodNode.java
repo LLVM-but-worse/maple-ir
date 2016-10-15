@@ -29,13 +29,15 @@
  */
 package org.objectweb.asm.tree;
 
-import org.mapleir.stdlib.collections.graph.FastGraphVertex;
-import org.objectweb.asm.*;
-import org.objectweb.asm.commons.cfg.query.InsnQuery;
-
+import java.io.File;
+import java.io.FileOutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+
+import org.mapleir.stdlib.collections.graph.FastGraphVertex;
+import org.objectweb.asm.*;
+import org.objectweb.asm.commons.cfg.query.InsnQuery;
 
 /**
  * A node that represents a method.
@@ -304,13 +306,13 @@ public class MethodNode extends MethodVisitor implements FastGraphVertex {
         this.name = name;
         this.desc = desc;
         this.signature = signature;
-        this.exceptions = new ArrayList<String>(exceptions == null ? 0
+        this.exceptions = new ArrayList<>(exceptions == null ? 0
                 : exceptions.length);
         boolean isAbstract = (access & Opcodes.ACC_ABSTRACT) != 0;
         if (!isAbstract) {
-            localVariables = new ArrayList<LocalVariableNode>(5);
+            localVariables = new ArrayList<>(5);
         }
-        tryCatchBlocks = new ArrayList<TryCatchBlockNode>();
+        tryCatchBlocks = new ArrayList<>();
         if (exceptions != null) {
             this.exceptions.addAll(Arrays.asList(exceptions));
         }
@@ -326,7 +328,7 @@ public class MethodNode extends MethodVisitor implements FastGraphVertex {
     @Override
     public void visitParameter(String name, int access) {
         if (parameters == null) {
-            parameters = new ArrayList<ParameterNode>(5);
+            parameters = new ArrayList<>(5);
         }
         parameters.add(new ParameterNode(name, access));
     }
@@ -349,12 +351,12 @@ public class MethodNode extends MethodVisitor implements FastGraphVertex {
         AnnotationNode an = new AnnotationNode(desc);
         if (visible) {
             if (visibleAnnotations == null) {
-                visibleAnnotations = new ArrayList<AnnotationNode>(1);
+                visibleAnnotations = new ArrayList<>(1);
             }
             visibleAnnotations.add(an);
         } else {
             if (invisibleAnnotations == null) {
-                invisibleAnnotations = new ArrayList<AnnotationNode>(1);
+                invisibleAnnotations = new ArrayList<>(1);
             }
             invisibleAnnotations.add(an);
         }
@@ -367,12 +369,12 @@ public class MethodNode extends MethodVisitor implements FastGraphVertex {
         TypeAnnotationNode an = new TypeAnnotationNode(typeRef, typePath, desc);
         if (visible) {
             if (visibleTypeAnnotations == null) {
-                visibleTypeAnnotations = new ArrayList<TypeAnnotationNode>(1);
+                visibleTypeAnnotations = new ArrayList<>(1);
             }
             visibleTypeAnnotations.add(an);
         } else {
             if (invisibleTypeAnnotations == null) {
-                invisibleTypeAnnotations = new ArrayList<TypeAnnotationNode>(1);
+                invisibleTypeAnnotations = new ArrayList<>(1);
             }
             invisibleTypeAnnotations.add(an);
         }
@@ -390,7 +392,7 @@ public class MethodNode extends MethodVisitor implements FastGraphVertex {
                 visibleParameterAnnotations = (List<AnnotationNode>[]) new List<?>[params];
             }
             if (visibleParameterAnnotations[parameter] == null) {
-                visibleParameterAnnotations[parameter] = new ArrayList<AnnotationNode>(
+                visibleParameterAnnotations[parameter] = new ArrayList<>(
                         1);
             }
             visibleParameterAnnotations[parameter].add(an);
@@ -400,7 +402,7 @@ public class MethodNode extends MethodVisitor implements FastGraphVertex {
                 invisibleParameterAnnotations = (List<AnnotationNode>[]) new List<?>[params];
             }
             if (invisibleParameterAnnotations[parameter] == null) {
-                invisibleParameterAnnotations[parameter] = new ArrayList<AnnotationNode>(
+                invisibleParameterAnnotations[parameter] = new ArrayList<>(
                         1);
             }
             invisibleParameterAnnotations[parameter].add(an);
@@ -411,7 +413,7 @@ public class MethodNode extends MethodVisitor implements FastGraphVertex {
     @Override
     public void visitAttribute(final Attribute attr) {
         if (attrs == null) {
-            attrs = new ArrayList<Attribute>(1);
+            attrs = new ArrayList<>(1);
         }
         attrs.add(attr);
     }
@@ -567,13 +569,13 @@ public class MethodNode extends MethodVisitor implements FastGraphVertex {
         TypeAnnotationNode an = new TypeAnnotationNode(typeRef, typePath, desc);
         if (visible) {
             if (insn.visibleTypeAnnotations == null) {
-                insn.visibleTypeAnnotations = new ArrayList<TypeAnnotationNode>(
+                insn.visibleTypeAnnotations = new ArrayList<>(
                         1);
             }
             insn.visibleTypeAnnotations.add(an);
         } else {
             if (insn.invisibleTypeAnnotations == null) {
-                insn.invisibleTypeAnnotations = new ArrayList<TypeAnnotationNode>(
+                insn.invisibleTypeAnnotations = new ArrayList<>(
                         1);
             }
             insn.invisibleTypeAnnotations.add(an);
@@ -595,13 +597,13 @@ public class MethodNode extends MethodVisitor implements FastGraphVertex {
         TypeAnnotationNode an = new TypeAnnotationNode(typeRef, typePath, desc);
         if (visible) {
             if (tcb.visibleTypeAnnotations == null) {
-                tcb.visibleTypeAnnotations = new ArrayList<TypeAnnotationNode>(
+                tcb.visibleTypeAnnotations = new ArrayList<>(
                         1);
             }
             tcb.visibleTypeAnnotations.add(an);
         } else {
             if (tcb.invisibleTypeAnnotations == null) {
-                tcb.invisibleTypeAnnotations = new ArrayList<TypeAnnotationNode>(
+                tcb.invisibleTypeAnnotations = new ArrayList<>(
                         1);
             }
             tcb.invisibleTypeAnnotations.add(an);
@@ -626,13 +628,13 @@ public class MethodNode extends MethodVisitor implements FastGraphVertex {
                 index, desc);
         if (visible) {
             if (visibleLocalVariableAnnotations == null) {
-                visibleLocalVariableAnnotations = new ArrayList<LocalVariableAnnotationNode>(
+                visibleLocalVariableAnnotations = new ArrayList<>(
                         1);
             }
             visibleLocalVariableAnnotations.add(an);
         } else {
             if (invisibleLocalVariableAnnotations == null) {
-                invisibleLocalVariableAnnotations = new ArrayList<LocalVariableAnnotationNode>(
+                invisibleLocalVariableAnnotations = new ArrayList<>(
                         1);
             }
             invisibleLocalVariableAnnotations.add(an);
@@ -887,7 +889,26 @@ public class MethodNode extends MethodVisitor implements FastGraphVertex {
             }
             // visits maxs
 //            System.out.println(this);
-            mv.visitMaxs(maxStack, maxLocals);
+            try {
+            	mv.visitMaxs(maxStack, maxLocals);
+            } catch(RuntimeException e) {
+            	System.err.println(this);
+            	try {
+            		ClassNode cn = owner;
+                	MethodNode m = this;
+                	cn.methods.clear();
+        			cn.methods.add(m);
+        			ClassWriter cw = new ClassWriter(0);
+        			cn.accept(cw);
+        			byte[] bs = cw.toByteArray();
+        			FileOutputStream out = new FileOutputStream(new File("out/err.class"));
+        			out.write(bs, 0, bs.length);
+        			out.close();
+            	} catch(Throwable e1) {
+            		e1.printStackTrace();
+            	}
+            	throw e;
+            }
             visited = true;
         }
         mv.visitEnd();
