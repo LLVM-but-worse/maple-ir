@@ -8,6 +8,7 @@ import java.util.ListIterator;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.mapleir.ir.analysis.SSABlockLivenessAnalyser;
 import org.mapleir.ir.analysis.SSADefUseMap;
 import org.mapleir.ir.code.Opcode;
 import org.mapleir.ir.code.expr.Expression;
@@ -23,7 +24,6 @@ import org.mapleir.stdlib.collections.ValueCreator;
 import org.mapleir.stdlib.collections.bitset.BitSetIndexer;
 import org.mapleir.stdlib.collections.bitset.GenericBitSet;
 import org.mapleir.stdlib.collections.bitset.IncrementalBitSetIndexer;
-import org.mapleir.stdlib.ir.transform.ssa.SSABlockLivenessAnalyser;
 import org.objectweb.asm.Type;
 
 public class SreedharDestructor {

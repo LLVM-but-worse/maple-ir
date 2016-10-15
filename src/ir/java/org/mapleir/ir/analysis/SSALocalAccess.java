@@ -1,4 +1,4 @@
-package org.mapleir.stdlib.ir.transform.ssa;
+package org.mapleir.ir.analysis;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -7,6 +7,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.Opcode;
+import org.mapleir.ir.code.StatementVisitor;
 import org.mapleir.ir.code.expr.Expression;
 import org.mapleir.ir.code.expr.PhiExpression;
 import org.mapleir.ir.code.expr.VarExpression;
@@ -15,7 +16,6 @@ import org.mapleir.ir.code.stmt.copy.AbstractCopyStatement;
 import org.mapleir.ir.locals.VersionedLocal;
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.ValueCreator;
-import org.mapleir.stdlib.ir.StatementVisitor;
 
 public class SSALocalAccess {
 

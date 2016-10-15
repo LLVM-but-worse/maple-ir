@@ -7,10 +7,10 @@ import java.util.Set;
 
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
+import org.mapleir.ir.cfg.edge.DummyEdge;
+import org.mapleir.ir.cfg.edge.FlowEdge;
+import org.mapleir.ir.cfg.edge.FlowEdges;
 import org.mapleir.ir.code.stmt.Statement;
-import org.mapleir.stdlib.cfg.edge.DummyEdge;
-import org.mapleir.stdlib.cfg.edge.FlowEdge;
-import org.mapleir.stdlib.cfg.edge.FlowEdges;
 import org.mapleir.stdlib.collections.graph.flow.ExceptionRange;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.tree.LabelNode;

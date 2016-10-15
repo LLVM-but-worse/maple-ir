@@ -1,4 +1,4 @@
-package org.mapleir.stdlib.cfg.util;
+package org.mapleir.stdlib.util;
 
 import java.io.StringWriter;
 

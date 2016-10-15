@@ -9,11 +9,11 @@ import java.util.ListIterator;
 import java.util.Set;
 import java.util.function.Predicate;
 
+import org.mapleir.ir.cfg.edge.FlowEdge;
+import org.mapleir.ir.cfg.edge.ImmediateEdge;
+import org.mapleir.ir.cfg.edge.TryCatchEdge;
 import org.mapleir.ir.code.ExpressionStack;
 import org.mapleir.ir.code.stmt.Statement;
-import org.mapleir.stdlib.cfg.edge.FlowEdge;
-import org.mapleir.stdlib.cfg.edge.ImmediateEdge;
-import org.mapleir.stdlib.cfg.edge.TryCatchEdge;
 import org.mapleir.stdlib.collections.graph.FastGraphVertex;
 import org.mapleir.stdlib.collections.graph.flow.ExceptionRange;
 import org.objectweb.asm.Label;

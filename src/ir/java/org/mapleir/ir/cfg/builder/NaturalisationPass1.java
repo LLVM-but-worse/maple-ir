@@ -9,10 +9,10 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import org.mapleir.ir.cfg.BasicBlock;
+import org.mapleir.ir.cfg.edge.FlowEdge;
+import org.mapleir.ir.cfg.edge.FlowEdges;
+import org.mapleir.ir.cfg.edge.TryCatchEdge;
 import org.mapleir.ir.locals.Local;
-import org.mapleir.stdlib.cfg.edge.FlowEdge;
-import org.mapleir.stdlib.cfg.edge.FlowEdges;
-import org.mapleir.stdlib.cfg.edge.TryCatchEdge;
 import org.mapleir.stdlib.collections.graph.flow.ExceptionRange;
 
 public class NaturalisationPass1 extends ControlFlowGraphBuilder.BuilderPass {

@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.mapleir.stdlib.cfg.edge.FlowEdge;
+import org.mapleir.ir.cfg.edge.FlowEdge;
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.ValueCreator;
 import org.mapleir.stdlib.collections.graph.FastGraphVertex;

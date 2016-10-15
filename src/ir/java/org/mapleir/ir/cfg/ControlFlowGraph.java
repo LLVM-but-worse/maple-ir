@@ -2,11 +2,11 @@ package org.mapleir.ir.cfg;
 
 import java.util.Iterator;
 
+import org.mapleir.ir.cfg.edge.FlowEdge;
 import org.mapleir.ir.code.stmt.Statement;
 import org.mapleir.ir.locals.LocalsHandler;
-import org.mapleir.stdlib.cfg.edge.FlowEdge;
-import org.mapleir.stdlib.cfg.util.TabbedStringWriter;
 import org.mapleir.stdlib.collections.graph.flow.ExceptionRange;
+import org.mapleir.stdlib.util.TabbedStringWriter;
 import org.objectweb.asm.tree.MethodNode;
 
 public class ControlFlowGraph extends FastBlockGraph {

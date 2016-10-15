@@ -3,8 +3,8 @@ package org.mapleir.stdlib.collections.graph.flow;
 import java.util.*;
 import java.util.Map.Entry;
 
-import org.mapleir.stdlib.cfg.edge.FlowEdge;
-import org.mapleir.stdlib.cfg.edge.ImmediateEdge;
+import org.mapleir.ir.cfg.edge.FlowEdge;
+import org.mapleir.ir.cfg.edge.ImmediateEdge;
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.ValueCreator;
 import org.mapleir.stdlib.collections.graph.FastGraph;

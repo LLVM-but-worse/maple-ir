@@ -8,13 +8,13 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import org.mapleir.ir.Test;
+import org.mapleir.ir.analysis.SSALocalAccess;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
+import org.mapleir.ir.cfg.edge.FlowEdge;
 import org.mapleir.ir.locals.Local;
-import org.mapleir.stdlib.cfg.edge.FlowEdge;
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.SetCreator;
-import org.mapleir.stdlib.ir.transform.ssa.SSALocalAccess;
 import org.objectweb.asm.tree.MethodNode;
 
 public class ControlFlowGraphBuilder {
