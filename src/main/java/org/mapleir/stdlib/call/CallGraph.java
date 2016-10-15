@@ -44,6 +44,7 @@ public class CallGraph extends FastDirectedGraph<MethodNode, Invocation> {
 	}
 	
 	private void reduce() {
+		// TODO: removal analytics/information.
 		Set<MethodNode> prot = new HashSet<>();
 		int total = 0, removed = 0;
 		int lastRemoved = 0, i = 1;
