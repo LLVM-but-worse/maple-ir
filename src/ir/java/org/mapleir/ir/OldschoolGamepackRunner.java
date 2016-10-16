@@ -1,12 +1,15 @@
 package org.mapleir.ir;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.lang.reflect.Modifier;
+import java.util.Collection;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-import org.mapleir.byteio.CompleteResolvingJarDumper;
 import org.mapleir.ir.cfg.BoissinotDestructor;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.cfg.builder.ControlFlowGraphBuilder;
@@ -14,13 +17,14 @@ import org.mapleir.stdlib.IContext;
 import org.mapleir.stdlib.call.CallGraph;
 import org.mapleir.stdlib.call.CallGraph.CallgraphAdapter;
 import org.mapleir.stdlib.collections.NodeTable;
+import org.mapleir.stdlib.klass.ClassNodeUtil;
 import org.mapleir.stdlib.klass.ClassTree;
+import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.topdank.byteengineer.commons.data.JarInfo;
 import org.topdank.byteio.in.SingleJarDownloader;
-import org.topdank.byteio.out.JarDumper;
 
 public class OldschoolGamepackRunner {
 
@@ -55,7 +59,28 @@ public class OldschoolGamepackRunner {
 		for(ClassNode cn : nt) {
 			for(MethodNode m : cn.methods) {
 				if(m.toString().equals("dx.<clinit>()V")) {
-					exec.submit(makeJob(m));
+//					exec.submit(makeJob(m));
+					makeJob(m).run();
+					
+					cn.superName = "java/lang/Object";
+					
+					ClassLoader cl = new ClassLoader(){
+						{
+							ClassWriter cw = new ClassWriter(0);
+		        			cn.accept(cw);
+		        			byte[] b = cw.toByteArray();
+							defineClass(b, 0, b.length);
+						}
+					};
+					try {
+						System.out.println(cl.loadClass("dx"));;
+					} catch (ClassNotFoundException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+					
+					out(dl.getJarContents().getClassContents(), cn, m);
+					break;
 				}
 			}
 			mcount += cn.methods.size();
@@ -71,8 +96,76 @@ public class OldschoolGamepackRunner {
 		System.out.println("Processed " + mcount + " methods.");
 		System.out.printf("That took %d seconds.%n", (System.nanoTime() - start) / 1000000000);
 
-		JarDumper dumper = new CompleteResolvingJarDumper(dl.getJarContents());
-		dumper.dump(new File("out/" + name));
+//		JarDumper dumper = new CompleteResolvingJarDumper(dl.getJarContents());
+//		dumper.dump(new File("out/" + name));
+	}
+	
+	private void out(Collection<ClassNode> cc, ClassNode cn, MethodNode m) throws IOException {
+		ClassTree classTree = new ClassTree(cc);
+		ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS) {
+
+			// this method in ClassWriter uses the systemclassloader as
+			// a stream location to load the super class, however, most of
+			// the time the class is loaded/read and parsed by us so it
+			// isn't defined in the system classloader. in certain cases
+			// we may not even want it to be loaded/resolved and we can
+			// bypass this by implementing the hierarchy scanning algorithm
+			// with ClassNodes rather than Classes.
+			@Override
+			protected String getCommonSuperClass(String type1, String type2) {
+				ClassNode ccn = classTree.getClass(type1);
+				ClassNode dcn = classTree.getClass(type2);
+
+				if (ccn == null) {
+					ClassNode c = ClassNodeUtil.create(type1);
+					if (c == null) {
+						return "java/lang/Object";
+					}
+					classTree.build(c);
+					return getCommonSuperClass(type1, type2);
+				}
+
+				if (dcn == null) {
+					ClassNode c = ClassNodeUtil.create(type2);
+					if (c == null) {
+						return "java/lang/Object";
+					}
+					classTree.build(c);
+					return getCommonSuperClass(type1, type2);
+				}
+
+				Set<ClassNode> c = classTree.getSupers(ccn);
+				Set<ClassNode> d = classTree.getSupers(dcn);
+
+				if (c.contains(dcn))
+					return type1;
+
+				if (d.contains(ccn))
+					return type2;
+
+				if (Modifier.isInterface(ccn.access) || Modifier.isInterface(dcn.access)) {
+					// enums as well?
+					return "java/lang/Object";
+				} else {
+					do {
+						ClassNode nccn = classTree.getClass(ccn.superName);
+						if (nccn == null)
+							break;
+						ccn = nccn;
+						c = classTree.getSupers(ccn);
+					} while (!c.contains(dcn));
+					return ccn.name;
+				}
+			}
+
+		};
+		cn.methods.clear();
+		cn.methods.add(m);
+		cn.accept(cw);
+		byte[] bs = cw.toByteArray();
+		FileOutputStream out = new FileOutputStream(new File("out/work.class"));
+		out.write(bs, 0, bs.length);
+		out.close();
 	}
 	
 	private CallGraph pruneCallGraph() {
@@ -98,6 +191,8 @@ public class OldschoolGamepackRunner {
 				BoissinotDestructor.leaveSSA(cfg);
 				cfg.getLocals().realloc(cfg);
 				ControlFlowGraphDumper.dump(cfg, m);
+//				System.out.println(cfg);
+//				InstructionPrinter.consolePrint(m);
 			}
 		};
 	}
