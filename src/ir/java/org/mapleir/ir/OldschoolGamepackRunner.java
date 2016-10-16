@@ -3,6 +3,7 @@ package org.mapleir.ir;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.Collection;
 import java.util.Set;
@@ -62,22 +63,27 @@ public class OldschoolGamepackRunner {
 //					exec.submit(makeJob(m));
 					makeJob(m).run();
 					
+					cn.methods.clear();
+					cn.methods.add(m);
+					
 					cn.superName = "java/lang/Object";
 					
 					ClassLoader cl = new ClassLoader(){
 						{
-							ClassWriter cw = new ClassWriter(0);
-		        			cn.accept(cw);
-		        			byte[] b = cw.toByteArray();
-							defineClass(b, 0, b.length);
+							try {
+								ClassWriter cw = new ClassWriter(0);
+			        			cn.accept(cw);
+			        			byte[] b = cw.toByteArray();
+								Class<?> c = defineClass(b, 0, b.length);
+								System.out.println(c);
+								for(Field f : c.getDeclaredFields()) {
+									System.out.println(f);
+								}
+							} catch(Exception e) {
+								e.printStackTrace();
+							}
 						}
 					};
-					try {
-						System.out.println(cl.loadClass("dx"));;
-					} catch (ClassNotFoundException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}
 					
 					out(dl.getJarContents().getClassContents(), cn, m);
 					break;
