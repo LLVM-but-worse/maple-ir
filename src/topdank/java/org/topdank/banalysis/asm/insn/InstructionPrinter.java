@@ -32,18 +32,18 @@ public class InstructionPrinter {
 	
 	public InstructionPrinter(MethodNode m) {
 		mNode = m;
-		labels = new HashMap<LabelNode, Integer>();
+		labels = new HashMap<>();
 		// matchedInsns = new ArrayList<AbstractInsnNode>(); // ingnored because match = false
 		match = false;
 	}
 	
 	public InstructionPrinter(MethodNode m, InstructionPattern pattern) {
 		mNode = m;
-		labels = new HashMap<LabelNode, Integer>();
+		labels = new HashMap<>();
 		searcher = new InstructionSearcher(m.instructions, pattern);
 		match = searcher.search();
 		if (match) {
-			matchedInsns = new ArrayList<AbstractInsnNode>();
+			matchedInsns = new ArrayList<>();
 			for(AbstractInsnNode[] ains : searcher.getMatches()) {
 				for(AbstractInsnNode ain : ains) {
 					matchedInsns.add(ain);
@@ -57,7 +57,7 @@ public class InstructionPrinter {
 	 * @return The print as an ArrayList
 	 */
 	public ArrayList<String> createPrint() {
-		ArrayList<String> info = new ArrayList<String>();
+		ArrayList<String> info = new ArrayList<>();
 		ListIterator<?> it = mNode.instructions.iterator();
 		while (it.hasNext()) {
 			AbstractInsnNode ain = (AbstractInsnNode) it.next();

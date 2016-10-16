@@ -1473,9 +1473,9 @@ class MethodWriter extends MethodVisitor {
                 Edge e = l.successors;
                 while (e != null) {
                     Label n = e.successor.getFirst();
-                    if(n.frame == null) {
-                    	System.out.println("frame at " + l.hashCode() + " " + l.position);
-                    }
+//                    if(n.frame == null) {
+                    	System.out.println("frame at " + n.hashCode() + " " + n.position);
+//                    }
                     boolean change = f.merge(cw, n.frame, e.info);
                     if (change && n.next == null) {
                         // if n has changed and is not already in the 'changed'
