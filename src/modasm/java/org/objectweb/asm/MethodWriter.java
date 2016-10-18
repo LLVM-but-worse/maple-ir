@@ -1471,6 +1471,7 @@ class MethodWriter extends MethodVisitor {
                 }
                 // updates the successors of the current basic block
                 Edge e = l.successors;
+                System.out.println("l: " + l.hashCode() +"  at " + l.position);
                 while (e != null) {
                     Label n = e.successor.getFirst();
 //                    if(n.frame == null) {

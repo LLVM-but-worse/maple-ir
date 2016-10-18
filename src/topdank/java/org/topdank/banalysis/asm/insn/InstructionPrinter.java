@@ -151,7 +151,7 @@ public class InstructionPrinter {
 	}
 	
 	protected String printLabelnode(LabelNode label) {
-		return "L" + resolveLabel(label) + " " + label.hashCode();
+		return "L" + resolveLabel(label) + " " + label.getLabel().hashCode() + " at " + label.getLabel().getOffset();
 	}
 	
 	protected String printTypeInsnNode(TypeInsnNode tin) {
