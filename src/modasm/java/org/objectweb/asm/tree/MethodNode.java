@@ -29,8 +29,6 @@
  */
 package org.objectweb.asm.tree;
 
-import java.io.File;
-import java.io.FileOutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -38,6 +36,7 @@ import java.util.List;
 import org.mapleir.stdlib.collections.graph.FastGraphVertex;
 import org.objectweb.asm.*;
 import org.objectweb.asm.commons.cfg.query.InsnQuery;
+import org.topdank.banalysis.asm.insn.InstructionPrinter;
 
 /**
  * A node that represents a method.
@@ -888,25 +887,25 @@ public class MethodNode extends MethodVisitor implements FastGraphVertex {
                 invisibleLocalVariableAnnotations.get(i).accept(mv, false);
             }
             // visits maxs
-//            System.out.println(this);
             try {
+				InstructionPrinter.consolePrint(this);
             	mv.visitMaxs(maxStack, maxLocals);
             } catch(RuntimeException e) {
-            	System.err.println(this);
-            	try {
-            		ClassNode cn = owner;
-                	MethodNode m = this;
-                	cn.methods.clear();
-        			cn.methods.add(m);
-        			ClassWriter cw = new ClassWriter(0);
-        			cn.accept(cw);
-        			byte[] bs = cw.toByteArray();
-        			FileOutputStream out = new FileOutputStream(new File("out/err.class"));
-        			out.write(bs, 0, bs.length);
-        			out.close();
-            	} catch(Throwable e1) {
-            		e1.printStackTrace();
-            	}
+//            	System.err.println(this);
+//            	try {
+//            		ClassNode cn = owner;
+//                	MethodNode m = this;
+//                	cn.methods.clear();
+//        			cn.methods.add(m);
+//        			ClassWriter cw = new ClassWriter(0);
+//        			cn.accept(cw);
+//        			byte[] bs = cw.toByteArray();
+//        			FileOutputStream out = new FileOutputStream(new File("out/err.class"));
+//        			out.write(bs, 0, bs.length);
+//        			out.close();
+//            	} catch(Throwable e1) {
+//            		e1.printStackTrace();
+//            	}
             	throw e;
             }
             visited = true;

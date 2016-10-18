@@ -3,7 +3,6 @@ package org.mapleir.ir;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.Collection;
 import java.util.Set;
@@ -66,25 +65,27 @@ public class OldschoolGamepackRunner {
 					cn.methods.clear();
 					cn.methods.add(m);
 					
-					cn.superName = "java/lang/Object";
-					
-					ClassLoader cl = new ClassLoader(){
-						{
-							try {
-								ClassWriter cw = new ClassWriter(0);
-			        			cn.accept(cw);
-			        			byte[] b = cw.toByteArray();
-								Class<?> c = defineClass(b, 0, b.length);
-								System.out.println(c);
-								for(Field f : c.getDeclaredFields()) {
-									System.out.println(f);
-								}
-							} catch(Exception e) {
-								e.printStackTrace();
-							}
-						}
-					};
-					
+//					ClassLoader cl = new ClassLoader(){
+//						{
+//							try {
+//								ClassWriter cw = new ClassWriter(0);
+//			        			cn.accept(cw);
+//			        			byte[] b = cw.toByteArray();
+//								Class<?> c = defineClass(b, 0, b.length);
+//								System.out.println(c);
+//								for(Field f : c.getDeclaredFields()) {
+//									f.setAccessible(true);
+//									if(Modifier.isStatic(f.getModifiers())) {
+//										System.out.println(f);
+//										System.out.println(" = " + f.get(null));
+//									}
+//								}
+//							} catch(Exception e) {
+//								e.printStackTrace();
+//							}
+//						}
+//					};
+
 					out(dl.getJarContents().getClassContents(), cn, m);
 					break;
 				}
