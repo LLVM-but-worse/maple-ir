@@ -29,8 +29,6 @@
  */
 package org.objectweb.asm;
 
-import java.util.Arrays;
-
 /**
  * Information about the input and output stack map frames of a basic block.
  * 
@@ -1346,13 +1344,13 @@ final class Frame {
             changed = true;
         }
 
-        System.out.printf(" nis: %d, is: %d, owner: %s at %d, delta(owner): %d.%n", nInputStack, inputStack.length, owner, owner.position, owner.inputStackTop);
+//        System.out.printf(" nis: %d, is: %d, owner: %s at %d, delta(owner): %d.%n", nInputStack, inputStack.length, owner, owner.position, owner.inputStackTop);
         for (i = 0; i < nInputStack; ++i) {
             t = inputStack[i];
             if (initializations != null) {
                 t = init(cw, t);
             }
-        	System.out.println("  in " + Arrays.toString(frame.inputStack) + " " + i);
+//        	System.out.println("  in " + Arrays.toString(frame.inputStack) + " " + i);
             changed |= merge(cw, t, frame.inputStack, i);
         }
         for (i = 0; i < outputStackTop; ++i) {
