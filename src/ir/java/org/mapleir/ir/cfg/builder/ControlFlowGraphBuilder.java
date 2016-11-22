@@ -106,7 +106,7 @@ public class ControlFlowGraphBuilder {
 	public static ControlFlowGraph build(MethodNode method) {
 		ControlFlowGraphBuilder builder = new ControlFlowGraphBuilder(method);
 		try {
-			for(BuilderPass p : builder.interlace(builder.resolvePasses())) {
+			for(BuilderPass p : builder.resolvePasses()) {
 //				System.out.println();
 //				System.out.println("BEFORE: " + p.getClass());
 //				System.out.println(builder.graph);
