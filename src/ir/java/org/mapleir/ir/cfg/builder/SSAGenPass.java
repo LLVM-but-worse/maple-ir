@@ -58,6 +58,8 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 	private final Map<BasicBlock, Integer> preorder;
 	private final Set<BasicBlock> handlers;
 	
+	private final Map<VersionedLocal, VersionedLocal> carriedValue;
+	
 	private TarjanDominanceComputor<BasicBlock> doms;
 	private Liveness<BasicBlock> liveness;
 	private int splitCount;
@@ -77,6 +79,8 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		
 		preorder = new HashMap<>();
 		handlers = new HashSet<>();
+		
+		carriedValue = new HashMap<>();
 	}
 	
 	private void splitRanges() {
@@ -91,20 +95,6 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 			Set<Local> ls = new HashSet<>(liveness.in(h));
 			for(BasicBlock b : er.get()) {
 				splits.getNonNull(b).addAll(ls);
-				
-				//				boolean outside = false;
-				//
-				//				for(FlowEdge<BasicBlock> e : builder.graph.getReverseEdges(b)) {
-				//					BasicBlock p = e.src;
-				//					if(!er.containsVertex(p)) {
-				//						outside = true;
-				//					}
-				//				}
-				
-				//				if(outside) {
-				//					BasicBlock n = splitBlock(b, 0);
-				//					order.add(order.indexOf(b), n);
-				//				}
 			}
 		}
 		
@@ -117,7 +107,6 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 			boolean checkSplit = false;
 			for (int i1 = 0; i1 < stmtsCopy.size(); i1++) {
 				Statement stmt = stmtsCopy.get(i1);
-				//				System.out.println("@" + i1 + "@" + i + " " + stmt);
 				if (b.size() == i)
 					throw new IllegalStateException("s");
 				
@@ -126,7 +115,6 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 					VarExpression v = copy.getVariable();
 					if (ls.contains(v.getLocal()) || (ULTRANAIVE && !v.getLocal().isStack())) {
 						BasicBlock n = splitBlock(b, i);
-						//						System.out.println("Split " + b.getId() + " into " + b.getId() + " and " + n.getId());
 						order.add(order.indexOf(b), n);
 						i = 0;
 						checkSplit = false;
@@ -509,15 +497,6 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		}
 	}
 	
-//	private void renamePhis(BasicBlock b) {
-//		for(Statement stmt : b) {
-//			if(stmt.getOpcode() == Opcode.PHI_STORE) {
-//				CopyPhiStatement copy = (CopyPhiStatement) stmt;
-//				_gen_name(copy);
-//			}
-//		}
-//	}
-	
 	private void renameNonPhis(BasicBlock b) {
 		for(Statement stmt : b) {
 			int opcode = stmt.getOpcode();
@@ -556,43 +535,15 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 				PhiExpression phi = copy.getExpression();
 				Expression e = phi.getArgument(b);
 				
-				//	if(e == null) {
-				//	  Local l = copy.getVariable().getLocal();
-				//	  Local newl = builder.graph.getLocals().get(l.getIndex(), 0, l.isStack());
-				//	  phi.setArgument(b, e = new VarExpression(newl, null));
-				//	}
-				
 				if(e.getOpcode() == Opcode.LOCAL_LOAD) {
 					VarExpression v = (VarExpression) e;
 					Local l = ((VarExpression) e).getLocal();
 					l = _top(stmt, l.getIndex(), l.isStack());
 					
-					Type t;
-//					if(copy.getType() == null) {
-//						/* type not set yet */
-//						t = types.get(l);
-//						copy.getVariable().setType(t);
-//						phi.setType(t);
-//						v.setType(t);
-//					} else {
-//						/* this doesn't check the types of
-//						 * non vars in the phi. */
-//						AbstractCopyStatement varDef = defs.get(l);
-//						t = varDef.getType();
-//						Type oldT = copy.getType();
-//						// TODO: common supertypes
-//						if(oldT.getSize() != TypeUtils.asSimpleType(t).getSize()) {
-//							TabbedStringWriter sw = new TabbedStringWriter();
-//							ControlFlowGraph.blockToString(sw, builder.graph, copy.getBlock(), 0);
-//							System.err.println(sw.toString());
-//							throw new IllegalStateException(String.format("{{%s}}, copy:{{%s}}, t:{{%s}}, def:{{%s}}, t:{{%s}}", l, copy, copy.getType(), varDef, varDef.getType()));
-//						}
-//					}
-					t = types.get(l);
+					Type t = types.get(l);
 					copy.getVariable().setType(t);
 					phi.setType(t);
 					v.setType(t);
-					// System.out.printf("%s from %s: %s.%n", l, b.getId(), t);
 					VarExpression var = new VarExpression(l, t);
 					phi.setArgument(b, var);
 				}
