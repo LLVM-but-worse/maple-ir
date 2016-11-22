@@ -470,7 +470,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		}
 		vis.add(b);
 		
-		renamePhis(b);
+//		renamePhis(b);
 		renameNonPhis(b);
 		
 		List<FlowEdge<BasicBlock>> succs = new ArrayList<>();
@@ -509,14 +509,14 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		}
 	}
 	
-	private void renamePhis(BasicBlock b) {
-		for(Statement stmt : b) {
-			if(stmt.getOpcode() == Opcode.PHI_STORE) {
-				CopyPhiStatement copy = (CopyPhiStatement) stmt;
-				_gen_name(copy);
-			}
-		}
-	}
+//	private void renamePhis(BasicBlock b) {
+//		for(Statement stmt : b) {
+//			if(stmt.getOpcode() == Opcode.PHI_STORE) {
+//				CopyPhiStatement copy = (CopyPhiStatement) stmt;
+//				_gen_name(copy);
+//			}
+//		}
+//	}
 	
 	private void renameNonPhis(BasicBlock b) {
 		for(Statement stmt : b) {
@@ -537,6 +537,9 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 						var.setType(t);
 					}
 				}
+			} else {
+				CopyPhiStatement copy = (CopyPhiStatement) stmt;
+				_gen_name(copy);
 			}
 			
 			if(opcode == Opcode.LOCAL_STORE) {
