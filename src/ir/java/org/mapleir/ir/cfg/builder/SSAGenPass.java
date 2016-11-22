@@ -470,7 +470,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		}
 		vis.add(b);
 		
-		renamePhis(b);
+//		renamePhis(b);
 		renameNonPhis(b);
 		
 		List<FlowEdge<BasicBlock>> succs = new ArrayList<>();
@@ -509,19 +509,14 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		}
 	}
 	
-	private void renamePhis(BasicBlock b) {
-		for(Statement stmt : b) {
-			if(stmt.getOpcode() == Opcode.PHI_STORE) {
-				CopyPhiStatement copy = (CopyPhiStatement) stmt;
-				VarExpression var = copy.getVariable();
-				Local lhs = var.getLocal();
-				VersionedLocal vl = _gen_name(lhs.getIndex(), lhs.isStack());
-				var.setLocal(vl);;
-				types.put(vl, copy.getExpression().getType());
-				defs.put(vl, copy);
-			}
-		}
-	}
+//	private void renamePhis(BasicBlock b) {
+//		for(Statement stmt : b) {
+//			if(stmt.getOpcode() == Opcode.PHI_STORE) {
+//				CopyPhiStatement copy = (CopyPhiStatement) stmt;
+//				_gen_name(copy);
+//			}
+//		}
+//	}
 	
 	private void renameNonPhis(BasicBlock b) {
 		for(Statement stmt : b) {
@@ -542,16 +537,14 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 						var.setType(t);
 					}
 				}
+			} else {
+				CopyPhiStatement copy = (CopyPhiStatement) stmt;
+				_gen_name(copy);
 			}
 			
 			if(opcode == Opcode.LOCAL_STORE) {
 				CopyVarStatement copy = (CopyVarStatement) stmt;
-				VarExpression var = copy.getVariable();
-				Local lhs = var.getLocal();
-				VersionedLocal vl = _gen_name(lhs.getIndex(), lhs.isStack());
-				var.setLocal(vl);
-				defs.put(vl, copy);
-				types.put(vl, copy.getExpression().getType());
+				_gen_name(copy);
 			}
 		}
 	}
@@ -609,13 +602,24 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		}
 	}
 	
-	private VersionedLocal _gen_name(int index, boolean isStack) {
+	private VersionedLocal _gen_name(AbstractCopyStatement copy) {
+		VarExpression v = copy.getVariable();
+		Local nssaL = v.getLocal();
+		int index = nssaL.getIndex();
+		boolean isStack = nssaL.isStack();
+		
 		LocalsHandler handler = builder.graph.getLocals();
 		Local l = handler.get(index, isStack);
 		int subscript = counters.get(l);
 		stacks.get(l).push(subscript);
 		counters.put(l, subscript+1);
-		return handler.get(index, subscript, isStack);
+		
+		VersionedLocal ssaL = handler.get(index, subscript, isStack);
+		v.setLocal(ssaL);
+		defs.put(ssaL, copy);
+		types.put(ssaL, copy.getExpression().getType());
+		
+		return ssaL;
 	}
 	
 	private VersionedLocal _top(Statement root, int index, boolean isStack) {
