@@ -471,6 +471,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		vis.add(b);
 		
 		renamePhis(b);
+		renameNonPhis(b);
 		
 		List<FlowEdge<BasicBlock>> succs = new ArrayList<>();
 		for(FlowEdge<BasicBlock> succE : builder.graph.getEdges(b)) {
@@ -510,12 +511,18 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 	
 	private void renamePhis(BasicBlock b) {
 		for(Statement stmt : b) {
-			int opcode = stmt.getOpcode();
-			
-			if(opcode == Opcode.PHI_STORE) {
+			if(stmt.getOpcode() == Opcode.PHI_STORE) {
 				CopyPhiStatement copy = (CopyPhiStatement) stmt;
 				_gen_name(copy);
-			} else {
+			}
+		}
+	}
+	
+	private void renameNonPhis(BasicBlock b) {
+		for(Statement stmt : b) {
+			int opcode = stmt.getOpcode();
+			
+			if(opcode != Opcode.PHI_STORE) {
 				for(Statement s : stmt.enumerate()) {
 					if(s.getOpcode() == Opcode.LOCAL_LOAD) {
 						VarExpression var = (VarExpression) s;
@@ -530,11 +537,11 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 						var.setType(t);
 					}
 				}
-				
-				if(opcode == Opcode.LOCAL_STORE) {
-					CopyVarStatement copy = (CopyVarStatement) stmt;
-					_gen_name(copy);
-				}
+			}
+			
+			if(opcode == Opcode.LOCAL_STORE) {
+				CopyVarStatement copy = (CopyVarStatement) stmt;
+				_gen_name(copy);
 			}
 		}
 	}
@@ -546,16 +553,43 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 				PhiExpression phi = copy.getExpression();
 				Expression e = phi.getArgument(b);
 				
+				//	if(e == null) {
+				//	  Local l = copy.getVariable().getLocal();
+				//	  Local newl = builder.graph.getLocals().get(l.getIndex(), 0, l.isStack());
+				//	  phi.setArgument(b, e = new VarExpression(newl, null));
+				//	}
+				
 				if(e.getOpcode() == Opcode.LOCAL_LOAD) {
 					VarExpression v = (VarExpression) e;
 					Local l = ((VarExpression) e).getLocal();
 					l = _top(stmt, l.getIndex(), l.isStack());
 					
 					Type t;
+//					if(copy.getType() == null) {
+//						/* type not set yet */
+//						t = types.get(l);
+//						copy.getVariable().setType(t);
+//						phi.setType(t);
+//						v.setType(t);
+//					} else {
+//						/* this doesn't check the types of
+//						 * non vars in the phi. */
+//						AbstractCopyStatement varDef = defs.get(l);
+//						t = varDef.getType();
+//						Type oldT = copy.getType();
+//						// TODO: common supertypes
+//						if(oldT.getSize() != TypeUtils.asSimpleType(t).getSize()) {
+//							TabbedStringWriter sw = new TabbedStringWriter();
+//							ControlFlowGraph.blockToString(sw, builder.graph, copy.getBlock(), 0);
+//							System.err.println(sw.toString());
+//							throw new IllegalStateException(String.format("{{%s}}, copy:{{%s}}, t:{{%s}}, def:{{%s}}, t:{{%s}}", l, copy, copy.getType(), varDef, varDef.getType()));
+//						}
+//					}
 					t = types.get(l);
 					copy.getVariable().setType(t);
 					phi.setType(t);
 					v.setType(t);
+					// System.out.printf("%s from %s: %s.%n", l, b.getId(), t);
 					VarExpression var = new VarExpression(l, t);
 					phi.setArgument(b, var);
 				}
@@ -575,7 +609,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		Local l = handler.get(index, isStack);
 		int subscript = counters.get(l);
 		stacks.get(l).push(subscript);
-		counters.put(l, subscript + 1);
+		counters.put(l, subscript+1);
 		
 		VersionedLocal ssaL = handler.get(index, subscript, isStack);
 		v.setLocal(ssaL);

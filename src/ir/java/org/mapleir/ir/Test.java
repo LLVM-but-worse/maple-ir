@@ -10,6 +10,7 @@ import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Iterator;
 
+import org.mapleir.byteio.CompleteResolvingJarDumper;
 import org.mapleir.ir.cfg.BoissinotDestructor;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.cfg.builder.ControlFlowGraphBuilder;
@@ -27,6 +28,7 @@ import org.objectweb.asm.util.CheckClassAdapter;
 import org.topdank.byteengineer.commons.data.JarContents;
 import org.topdank.byteengineer.commons.data.JarInfo;
 import org.topdank.byteio.in.SingleJarDownloader;
+import org.topdank.byteio.out.JarDumper;
 
 public class Test {
 
@@ -472,8 +474,6 @@ public class Test {
 		dl.download();
 		JarContents<ClassNode> contents = dl.getJarContents();
 
-		System.in.read();
-		
 		System.out.println("davai");
 		long start = System.nanoTime();
 		
@@ -491,9 +491,9 @@ public class Test {
 
 			ArrayList<MethodNode> methodNodes = new ArrayList<>(cn.methods);
 			for (MethodNode m : methodNodes) {
-				if (!m.toString().startsWith("n.g(Led;Ljava/awt/Component;III)Lbc;")) {
+//				if (!m.toString().startsWith("com/allatori/iiiIIIIiIi.<clinit>")) {
 //					continue;
-				}
+//				}
 //				if (index != 546) {
 //					continue;
 //				}
@@ -627,8 +627,8 @@ public class Test {
 		System.out.println("did " + index + " methods.");
 		System.out.printf("that shit took %d seconds.%n", (System.nanoTime() - start) / 1000000000);
 
-//		JarDumper dumper = new CompleteResolvingJarDumper(contents);
-//		dumper.dump(new File("out/osb.jar"));
+		JarDumper dumper = new CompleteResolvingJarDumper(contents);
+		dumper.dump(new File("out/osb.jar"));
 	}
 
 	public static boolean temp = false;
