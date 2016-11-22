@@ -36,7 +36,6 @@ import java.util.List;
 import org.mapleir.stdlib.collections.graph.FastGraphVertex;
 import org.objectweb.asm.*;
 import org.objectweb.asm.commons.cfg.query.InsnQuery;
-import org.topdank.banalysis.asm.insn.InstructionPrinter;
 
 /**
  * A node that represents a method.
@@ -775,7 +774,6 @@ public class MethodNode extends MethodVisitor implements FastGraphVertex {
             	accept(mv);
             } catch(NullPointerException e) {
             	e.printStackTrace();
-            	System.out.println(this);
             	System.exit(1);
             }
         }
@@ -888,7 +886,7 @@ public class MethodNode extends MethodVisitor implements FastGraphVertex {
             }
             // visits maxs
             try {
-				InstructionPrinter.consolePrint(this);
+//				InstructionPrinter.consolePrint(this);
             	mv.visitMaxs(maxStack, maxLocals);
             } catch(RuntimeException e) {
 //            	System.err.println(this);
