@@ -1471,11 +1471,11 @@ class MethodWriter extends MethodVisitor {
                 }
                 // updates the successors of the current basic block
                 Edge e = l.successors;
-                System.out.println("l: " + l.hashCode() +"  at " + l.position);
+//                System.out.println("l: " + l.hashCode() +"  at " + l.position);
                 while (e != null) {
                     Label n = e.successor.getFirst();
 //                    if(n.frame == null) {
-                    	System.out.println("frame at " + n.hashCode() + " " + n.position);
+//                    	System.out.println("frame at " + n.hashCode() + " " + n.position);
 //                    }
                     boolean change = f.merge(cw, n.frame, e.info);
                     if (change && n.next == null) {
