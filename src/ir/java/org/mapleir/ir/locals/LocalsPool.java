@@ -20,14 +20,14 @@ import org.mapleir.stdlib.collections.bitset.IncrementalBitSetIndexer;
 import org.mapleir.stdlib.util.TypeUtils;
 import org.objectweb.asm.Type;
 
-public class LocalsHandler implements ValueCreator<GenericBitSet<Local>> {
+public class LocalsPool implements ValueCreator<GenericBitSet<Local>> {
 
 	private final AtomicInteger base;
 	private final Map<String, Local> cache;
 	private final Map<BasicLocal, VersionedLocal> latest;
 	private final BitSetIndexer<Local> indexer;
 	
-	public LocalsHandler(int base) {
+	public LocalsPool(int base) {
 		this.base = new AtomicInteger(base);
 		cache = new HashMap<>();
 		latest = new HashMap<>();

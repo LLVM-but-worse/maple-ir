@@ -16,7 +16,7 @@ import org.mapleir.ir.code.stmt.Statement;
 import org.mapleir.ir.code.stmt.copy.CopyPhiStatement;
 import org.mapleir.ir.code.stmt.copy.CopyVarStatement;
 import org.mapleir.ir.locals.Local;
-import org.mapleir.ir.locals.LocalsHandler;
+import org.mapleir.ir.locals.LocalsPool;
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.ValueCreator;
 import org.mapleir.stdlib.collections.bitset.GenericBitSet;
@@ -31,7 +31,7 @@ public class SSABlockLivenessAnalyser implements Liveness<BasicBlock> {
 	private final NullPermeableHashMap<BasicBlock, GenericBitSet<Local>> in;
 
 	private final Queue<BasicBlock> queue;
-	private final LocalsHandler locals;
+	private final LocalsPool locals;
 
 	private final ControlFlowGraph cfg;
 
