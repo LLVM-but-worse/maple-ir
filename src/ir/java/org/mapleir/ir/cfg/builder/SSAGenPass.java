@@ -8,6 +8,8 @@ import org.mapleir.ir.analysis.SSABlockLivenessAnalyser;
 import org.mapleir.ir.analysis.SimpleDfs;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
+import org.mapleir.ir.cfg.builder.ssaopt.ConstraintUtil;
+import org.mapleir.ir.cfg.builder.ssaopt.LatestValue;
 import org.mapleir.ir.cfg.edge.ConditionalJumpEdge;
 import org.mapleir.ir.cfg.edge.FlowEdge;
 import org.mapleir.ir.cfg.edge.FlowEdges;
@@ -16,8 +18,8 @@ import org.mapleir.ir.cfg.edge.SwitchEdge;
 import org.mapleir.ir.cfg.edge.TryCatchEdge;
 import org.mapleir.ir.cfg.edge.UnconditionalJumpEdge;
 import org.mapleir.ir.code.Opcode;
+import org.mapleir.ir.code.expr.ConstantExpression;
 import org.mapleir.ir.code.expr.Expression;
-import org.mapleir.ir.code.expr.PhiExceptionExpression;
 import org.mapleir.ir.code.expr.PhiExpression;
 import org.mapleir.ir.code.expr.VarExpression;
 import org.mapleir.ir.code.stmt.ConditionalJumpStatement;
@@ -29,7 +31,7 @@ import org.mapleir.ir.code.stmt.copy.AbstractCopyStatement;
 import org.mapleir.ir.code.stmt.copy.CopyPhiStatement;
 import org.mapleir.ir.code.stmt.copy.CopyVarStatement;
 import org.mapleir.ir.locals.Local;
-import org.mapleir.ir.locals.LocalsHandler;
+import org.mapleir.ir.locals.LocalsPool;
 import org.mapleir.ir.locals.VersionedLocal;
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.SetCreator;
@@ -40,11 +42,8 @@ import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.LabelNode;
 
 public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
-	
-	public static boolean DO_SPLIT = true;
-	public static boolean ULTRANAIVE = false;
-	public static boolean SKIP_SIMPLE_COPY_SPLIT = true;
-	public static boolean PRUNE_EDGES = true;
+
+	private static final boolean OPTIMISE = true;
 	public static int SPLIT_BLOCK_COUNT = 0;
 
 	private final Map<VersionedLocal, AbstractCopyStatement> defs;
@@ -58,11 +57,14 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 	private final Map<BasicBlock, Integer> preorder;
 	private final Set<BasicBlock> handlers;
 	
-	private final Map<VersionedLocal, VersionedLocal> carriedValue;
+	private final Map<VersionedLocal, LatestValue> latest;
+	private final Map<VersionedLocal, Set<VarExpression>> uses;
+//	private final List<DeferredTranslation> deferred;
+	private final Set<VersionedLocal> deferred;
 	
 	private TarjanDominanceComputor<BasicBlock> doms;
 	private Liveness<BasicBlock> liveness;
-	private int splitCount;
+	private int graphSize;
 	
 	public SSAGenPass(ControlFlowGraphBuilder builder) {
 		super(builder);
@@ -80,7 +82,10 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		preorder = new HashMap<>();
 		handlers = new HashSet<>();
 		
-		carriedValue = new HashMap<>();
+		latest = new HashMap<>();
+		uses = new HashMap<>();
+//		deferred = new ArrayList<>();
+		deferred = new HashSet<>();
 	}
 	
 	private void splitRanges() {
@@ -110,10 +115,10 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 				if (b.size() == i)
 					throw new IllegalStateException("s");
 				
-				if ((!SKIP_SIMPLE_COPY_SPLIT || checkSplit) && stmt.getOpcode() == Opcode.LOCAL_STORE) {
+				if (checkSplit && stmt.getOpcode() == Opcode.LOCAL_STORE) {
 					CopyVarStatement copy = (CopyVarStatement) stmt;
 					VarExpression v = copy.getVariable();
-					if (ls.contains(v.getLocal()) || (ULTRANAIVE && !v.getLocal().isStack())) {
+					if (ls.contains(v.getLocal())) {
 						BasicBlock n = splitBlock(b, i);
 						order.add(order.indexOf(b), n);
 						i = 0;
@@ -187,7 +192,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		
 		// split block
 		ControlFlowGraph cfg = builder.graph;
-		BasicBlock newBlock = new BasicBlock(cfg, splitCount++, new LabelNode());
+		BasicBlock newBlock = new BasicBlock(cfg, graphSize++, new LabelNode());
 		b.transferUp(newBlock, to);
 		cfg.addVertex(newBlock);
 		
@@ -291,8 +296,6 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 	}
 	
 	private boolean checkCloneHandler(BasicBlock b) {
-		if (!SKIP_SIMPLE_COPY_SPLIT || !PRUNE_EDGES)
-			return true;
 		if (b.isEmpty())
 			throw new IllegalArgumentException("empty block after split?");
 		// backwards iteration is faster
@@ -385,7 +388,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 								continue;
 							}
 							
-							Map<BasicBlock, Expression> vls = new HashMap<>();
+							/* Map<BasicBlock, Expression> vls = new HashMap<>();
 							for(FlowEdge<BasicBlock> fe : builder.graph.getReverseEdges(x)) {
 								vls.put(fe.src, new VarExpression(newl, null));
 							}
@@ -395,7 +398,9 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 							PhiExpression phi = new PhiExceptionExpression(vls);
 							CopyPhiStatement assign = new CopyPhiStatement(new VarExpression(l, null), phi);
 							
-							x.add(0, assign);
+							x.add(0, assign); */
+							
+							throw new UnsupportedOperationException(builder.method.toString());
 						}
 					} else if(builder.graph.getReverseEdges(x).size() > 1) {
 						Map<BasicBlock, Expression> vls = new HashMap<>();
@@ -458,8 +463,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		}
 		vis.add(b);
 		
-//		renamePhis(b);
-		renameNonPhis(b);
+		searchImpl(b);
 		
 		List<FlowEdge<BasicBlock>> succs = new ArrayList<>();
 		for(FlowEdge<BasicBlock> succE : builder.graph.getEdges(b)) {
@@ -486,6 +490,36 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		unstackDefs(b);
 	}
 	
+	private void fixPhiArgs(BasicBlock b, BasicBlock succ) {
+		for(Statement stmt : succ) {
+			if(stmt.getOpcode() == Opcode.PHI_STORE) {
+				CopyPhiStatement copy = (CopyPhiStatement) stmt;
+				PhiExpression phi = copy.getExpression();
+				Expression e = phi.getArgument(b);
+				
+				if(e.getOpcode() == Opcode.LOCAL_LOAD) {
+					VarExpression v = (VarExpression) e;
+					
+					translate(v, true, true);
+					
+					VersionedLocal ssaL = (VersionedLocal) v.getLocal();
+					
+					Type t = types.get(ssaL);
+					copy.getVariable().setType(t);
+					phi.setType(t);
+				} else {
+					throw new IllegalArgumentException(phi + ", " + e);
+				}
+			} else {
+				/* No need to search the rest of the block
+				 * after we have visited the phis as they
+				 * precede all other statements.
+				 */
+				break;
+			}
+		}
+	}
+	
 	private void unstackDefs(BasicBlock b) {
 		for (Statement s : b) {
 			if (s.getOpcode() == Opcode.PHI_STORE || s.getOpcode() == Opcode.LOCAL_STORE) {
@@ -497,84 +531,317 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		}
 	}
 	
-	private void renameNonPhis(BasicBlock b) {
+	private void searchImpl(BasicBlock b) {
 		for(Statement stmt : b) {
 			int opcode = stmt.getOpcode();
 			
-			if(opcode != Opcode.PHI_STORE) {
-				for(Statement s : stmt.enumerate()) {
-					if(s.getOpcode() == Opcode.LOCAL_LOAD) {
-						VarExpression var = (VarExpression) s;
-						Local l = var.getLocal();
-						VersionedLocal vl = _top(s, l.getIndex(), l.isStack());
-						var.setLocal(vl);
-						
-						Type t = types.get(vl);
-						if(t == null) {
-							throw new IllegalStateException(var + ", " + vl + ", t=null");
-						}
-						var.setType(t);
-					}
-				}
-			} else {
+			if(opcode == Opcode.PHI_STORE) {
+				/* We can rename these any time as these
+				 * are visited before all other statements
+				 * in a block (since they are always
+				 * the starting statements of a block, if
+				 * that block contains phi statements).
+				 */
 				CopyPhiStatement copy = (CopyPhiStatement) stmt;
-				_gen_name(copy);
+				generate(copy);
+			} else {
+				/* Translates locals into their latest SSA
+				 * versioned locals.
+				 * 
+				 * Do this before a LOCAL_STORE (x = ...)
+				 * so that the target local isn't defined
+				 * before the use so that copies in the
+				 * form x = x; do not get mangled into
+				 * x0 = x0 after SSA renaming.
+				 * 
+				 * We rename phi args later as the source
+				 * local can originate from exotic blocks.
+				 */
+				translate(stmt, true, false);
 			}
 			
 			if(opcode == Opcode.LOCAL_STORE) {
+				/* Generate the target local after
+				 * renaming the source uses. 
+				 */
 				CopyVarStatement copy = (CopyVarStatement) stmt;
-				_gen_name(copy);
+				generate(copy);
 			}
 		}
 	}
 	
-	private void fixPhiArgs(BasicBlock b, BasicBlock succ) {
-		for(Statement stmt : succ) {
-			if(stmt.getOpcode() == Opcode.PHI_STORE) {
-				CopyPhiStatement copy = (CopyPhiStatement) stmt;
-				PhiExpression phi = copy.getExpression();
-				Expression e = phi.getArgument(b);
-				
-				if(e.getOpcode() == Opcode.LOCAL_LOAD) {
-					VarExpression v = (VarExpression) e;
-					Local l = ((VarExpression) e).getLocal();
-					l = _top(stmt, l.getIndex(), l.isStack());
-					
-					Type t = types.get(l);
-					copy.getVariable().setType(t);
-					phi.setType(t);
-					v.setType(t);
-					VarExpression var = new VarExpression(l, t);
-					phi.setArgument(b, var);
-				}
-			} else {
-				break;
-			}
-		}
-	}
-	
-	private VersionedLocal _gen_name(AbstractCopyStatement copy) {
+	private VersionedLocal generate(AbstractCopyStatement copy) {
 		VarExpression v = copy.getVariable();
-		Local nssaL = v.getLocal();
-		int index = nssaL.getIndex();
-		boolean isStack = nssaL.isStack();
+		Local oldLocal = v.getLocal();
+		int index = oldLocal.getIndex();
+		boolean isStack = oldLocal.isStack();
 		
-		LocalsHandler handler = builder.graph.getLocals();
+		LocalsPool handler = builder.graph.getLocals();
 		Local l = handler.get(index, isStack);
 		int subscript = counters.get(l);
 		stacks.get(l).push(subscript);
 		counters.put(l, subscript+1);
 		
 		VersionedLocal ssaL = handler.get(index, subscript, isStack);
+		
+		if(OPTIMISE) {
+			makeValue(copy, ssaL);
+		}
+		
 		v.setLocal(ssaL);
 		defs.put(ssaL, copy);
 		types.put(ssaL, copy.getExpression().getType());
+		uses.put(ssaL, new HashSet<>());
 		
 		return ssaL;
 	}
 	
-	private VersionedLocal _top(Statement root, int index, boolean isStack) {
-		LocalsHandler handler = builder.graph.getLocals();
+	private void makeValue(AbstractCopyStatement copy, VersionedLocal ssaL) {
+		Expression e = copy.getExpression();
+		if(e.getOpcode() == Opcode.LOCAL_LOAD) {
+			if(copy.isSynthetic()) {
+				LatestValue value = new LatestValue(builder.graph, LatestValue.TYPE_LOCAL, ssaL, ssaL);
+				latest.put(ssaL, value);
+			} else {
+				/* i.e. x = y, where x and y are both variables.
+				 * 
+				 * It is expected that the local uses of the copy 
+				 * (rhs) are visited before the target is.
+				 */
+				VarExpression rhs = (VarExpression) e;
+				VersionedLocal rhsL = (VersionedLocal) rhs.getLocal();
+				if(!latest.containsKey(ssaL)) {
+					if(latest.containsKey(rhsL)) {
+						LatestValue anc = latest.get(rhsL);
+						
+						/* To improve generated code, the following
+						 * adjustments are made to simple mapping:
+						 * 
+						 * 1. If an ancestor is an svar, but the
+						 *    current ssaL is an lvar, overwrite
+						 *    the local with the lvar.*/
+						
+						Object sval = anc.getSuggestedValue();
+//						if(anc.getType() == LatestValue.TYPE_LOCAL) {
+//							VersionedLocal ancL = (VersionedLocal) anc.getSuggestedValue();
+//							//if(!(ancL.isStack() && !ssaL.isStack())) {
+//								/* We can use the ancestor.*/
+//							//	sval = ancL;
+//							//} else {
+//								/* Reject the ancestor.*/
+//							//	sval = ssaL;
+//							//}
+//							sval = ancL;
+//						} else {
+//							/* Use whatever the ancestor uses (non local).*/
+//							sval = anc.getSuggestedValue();
+//						}
+
+						LatestValue value = new LatestValue(builder.graph, anc.getType(), rhsL, sval);
+						value.importConstraints(anc);
+						latest.put(ssaL, value);
+					} else {
+						throw new IllegalStateException("Non anc parent: " + ssaL + " = " + rhsL + " (def: " + defs.get(rhsL) + ")");
+					}
+				} else {
+					throw new IllegalStateException("Revisit def " + ssaL + " ( = " + rhsL + ")");
+				}	
+			}
+		} else {
+			int opcode = e.getOpcode();
+			
+			LatestValue value;
+			if(opcode == Opcode.CONST_LOAD) {
+				ConstantExpression ce = (ConstantExpression) e;
+				value = new LatestValue(builder.graph, LatestValue.TYPE_CONST, ce, ce);
+			} else if((opcode & Opcode.CLASS_PHI) == Opcode.CLASS_PHI){
+				value = new LatestValue(builder.graph, LatestValue.TYPE_PHI, ssaL, ssaL);
+			} else {
+				if(e.getOpcode() == Opcode.LOCAL_LOAD) {
+					throw new RuntimeException(copy + "    " + e);
+				}
+				value = new LatestValue(builder.graph, LatestValue.TYPE_OTHER, e, e);
+				value.makeConstraints(e);
+			}
+			
+			latest.put(ssaL, value);
+		}
+	}
+	
+	private void translate(Statement stmt, boolean resolve, boolean isPhi) {
+		/* At the point in the lifetime of
+		 * the IR, we can only have var loads
+		 * as child expressions of a phi.*/
+		if(stmt.getOpcode() == Opcode.LOCAL_LOAD) {
+			translateStmt((VarExpression) stmt, resolve, isPhi);
+		} else if(!isPhi) {
+			for(Statement c : stmt.getChildren()) {
+				translate(c, resolve, false);
+			}
+		}
+	}
+	
+	private void translateStmt(VarExpression var, boolean resolve, boolean isPhi) {
+		/* Here we only remap local variable loads
+		 * on the right hand side of a statement or
+		 * expression. This means that if we are able
+		 * to simply replace a local load which has
+		 * a constant or deferred local value.
+		 * 
+		 * However, if the value of the local is
+		 * a complex expression we need to check that
+		 * we can propagate it before we do.
+		 * 
+		 * Since we will only replace a single
+		 * local load in the original expression,
+		 * only 1 variable is killed. However, there
+		 * may be local load expressions in the
+		 * propagated expression. To account for this,
+		 * these local loads must be counted as new
+		 * uses (except for when an expression is
+		 * moved instead of copied to a use site).*/
+		
+		Local l = var.getLocal();
+		VersionedLocal ssaL;
+		
+		if(resolve) {
+			ssaL = latest(var, l.getIndex(), l.isStack());
+		} else {
+			ssaL = (VersionedLocal) l;
+		}
+		
+		uses.get(ssaL).add(var);
+		
+		VersionedLocal newL = ssaL;
+
+		boolean exists = true;
+
+		if(OPTIMISE) {
+			if(latest.containsKey(ssaL)) {
+				/* Try to propagate a simple copy local
+				 * to its use site. It is possible that
+				 * a non simple copy (including phis)
+				 * will not have a mapping. In this case
+				 * they will not have an updated target.*/
+				LatestValue value = latest.get(ssaL);
+				if((value.getType() == LatestValue.TYPE_LOCAL || value.getType() == LatestValue.TYPE_PHI) && ssaL != value.getSuggestedValue()) {
+					VersionedLocal vl = (VersionedLocal) value.getSuggestedValue();
+					if((ssaL.isStack() && !vl.isStack()) || (ssaL.isStack() == vl.isStack())) {
+						newL = vl;
+					}
+				} else if(!isPhi && (value.getType() != LatestValue.TYPE_LOCAL && value.getType() != LatestValue.TYPE_PHI)) {
+					Expression e = null;
+					
+					AbstractCopyStatement def = defs.get(ssaL);
+					Expression rval = (Expression) value.getSuggestedValue();
+					if(ConstraintUtil.isUncopyable(rval)) {
+						/* If the expression is uncopyable, we may
+						 * be able to propagate it but it is also
+						 * possible that we may not be able to. The
+						 * current copy may be a simple copy, however,
+						 * so we can try to propagate the simply copy
+						 * target first. */
+						if(value.getRealValue() instanceof VersionedLocal) {
+							VersionedLocal realVal = (VersionedLocal) value.getRealValue();
+							AbstractCopyStatement realValDef = defs.get(realVal);
+							Expression realValDefE = realValDef.getExpression();
+							if(realValDefE.getOpcode() == Opcode.LOCAL_LOAD) {
+								VersionedLocal varDef = (VersionedLocal) ((VarExpression) realValDefE).getLocal();
+								newL = varDef;
+							}
+						}
+						
+						if(newL == ssaL) {
+							deferred.add(newL);
+//							System.out.println("Start Check constraints");
+//							if(value.canPropagate(def, var.getRootParent(), var, true)) {
+//								DeferredTranslation dt = new DeferredTranslation(ssaL, def, var.getRootParent(), var, value);
+//								deferred.add(dt);
+//								System.out.println(value);
+//								System.out.println("defer: " + def);
+//							} 
+//							else {
+//								System.out.println("SSAGenPass.translateStmt(noprop)");
+//							}
+//							System.out.println("End Check constraints");
+						}
+					} else {
+						if(!value.hasConstraints() || value.canPropagate(def, var.getRootParent(), var, false)) {
+							e = rval;
+						}
+					}
+					
+					if(e != null) {
+//						System.out.println("=====");
+//						System.out.println("   ssaL: " + ssaL);
+//						System.out.println("   bpar: " + var.getParent());
+						Statement parent = var.getParent();
+						int idx = parent.indexOf(var);
+						parent.overwrite(e = e.copy(), idx);
+						
+//						System.out.println("    def: " + def);
+//						System.out.println("    idx: " + idx);
+//						System.out.println("    val: " + value);
+//						System.out.println("   apar: " + parent);
+//						System.out.println("      e: " + e);
+
+						/* Remove the use of the var before
+						 * we translate the children of the 
+						 * newly propagated expression.*/
+						uses.get(ssaL).remove(var);
+//						System.out.println("   uses: " + uses.get(ssaL));
+						
+						/* Account for the new uses.*/
+						for(Statement c : e.enumerate()) {
+							if(c.getOpcode() == Opcode.LOCAL_LOAD) {
+//								System.out.println("           v: " + c);
+								VarExpression ve = (VarExpression) c;
+								VersionedLocal veL = (VersionedLocal) ve.getLocal();
+								uses.get(veL).add(ve);
+							}
+						}
+						
+						/* Finally see if we can reduce
+						 * this statement further.*/
+						translate(e, false, isPhi);
+						
+						exists = false;
+					}
+				} else {
+					newL = ssaL;
+				}
+			} else {
+				throw new IllegalStateException("No (self) ancestors: " + l + " -> " + ssaL);
+			}
+		}
+
+		if(exists) {
+			if(OPTIMISE) {
+				/* If we removed the local load expression,
+				 * check to see if we need to update the
+				 * use-map.*/
+				// System.out.println("replace: " + ssaL + " with " + newL);
+				if(ssaL != newL) {
+					System.out.println(ssaL + "  -->  " + newL);
+					uses.get(ssaL).remove(var);
+					uses.get(newL).add(var);
+				}
+			}
+
+			/* If the expression still exists, update
+			 * or set both variable and type information.*/
+			var.setLocal(newL);
+			Type type = types.get(ssaL);
+			if(type == null) {
+				throw new IllegalStateException(var + ", " + ssaL + ", t=null");
+			} else {
+				var.setType(type);
+			}
+		}
+	}
+	
+	private VersionedLocal latest(Statement root, int index, boolean isStack) {
+		LocalsPool handler = builder.graph.getLocals();
 		Local l = handler.get(index, isStack);
 		Stack<Integer> stack = stacks.get(l);
 		if(stack == null) {
@@ -586,106 +853,117 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 			System.err.println(stacks);
 			throw new IllegalStateException(root.toString() + ", " +  l.toString());
 		}
-		int subscript = stack.peek();
-		return handler.get(index, subscript, isStack);
+		
+		return handler.get(index, stack.peek()/*subscript*/, isStack);
 	}
 	
-	/* private void fixFinally() {
-		// fix finally blocks that have handler ranges to themselves
-		for(ExceptionRange<BasicBlock> er : builder.graph.getRanges()) {
-			BasicBlock h = er.getHandler();
-			
-			// debug czech
-//			for(FlowEdge<BasicBlock> e : builder.graph.getReverseEdges(h)) {
-//				if(e.getType() != FlowEdges.TRYCATCH) {
-//					System.out.println(builder.graph);
-//					throw new RuntimeException(h.getId() + " : " + e.toString());
-//				}
-//			}
-			
-			for (FlowEdge<BasicBlock> e : new HashSet<>(builder.graph.getEdges(h))) {
-				if (e instanceof TryCatchEdge && e.dst == h && e.src == h) {
-					// this needs to be fixed. we will insert an empty block with a goto back to the handler
-					BasicBlock newBlock = new BasicBlock(builder.graph, splitCount++, new LabelNode());
-					newBlock.add(new ThrowStatement(new CaughtExceptionExpression("null")));
-
-					ExceptionRange<BasicBlock> newEr2 = new ExceptionRange<>(er.getNode());
-					newEr2.addVertex(newBlock);
-					newEr2.setHandler(h);
-					builder.graph.addVertex(newBlock);
-					builder.graph.addEdge(newBlock, new TryCatchEdge<>(newBlock, newEr2));
-					builder.graph.addRange(newEr2);
-
-					builder.graph.removeEdge(h, e);
-					for(ExceptionRange<BasicBlock> er2 : builder.graph.getRanges())
-						if (er2.getHandler() == h)
-							er2.removeVertex(h);
-
-					ExceptionRange<BasicBlock> newEr = new ExceptionRange<>(er.getNode());
-					newEr.addVertex(h);
-					newEr.setHandler(newBlock);
-					builder.graph.addEdge(h, new TryCatchEdge<>(h, newEr));
-					builder.graph.addRange(newEr);
-
-				}
+	private void pruneStatements() {
+		for(Entry<VersionedLocal, Set<VarExpression>> e : uses.entrySet()) {
+			VersionedLocal vl = e.getKey();
+			if(e.getValue().size() == 0) {
+				AbstractCopyStatement def = defs.get(vl);
+				prune(def);
 			}
 		}
 	}
-	private void cleanHandlerPhis() {
-		for(ExceptionRange<BasicBlock> er : builder.graph.getRanges()) {
-			BasicBlock h = er.getHandler();
-			
-			for(Statement stmt : h) {
-				if(stmt.getOpcode() != Opcode.PHI_STORE) {
-					break;
-				}
-				
-				CopyPhiStatement cps = (CopyPhiStatement) stmt;
-				PhiExpression phi = cps.getExpression();
-				
-				NullPermeableHashMap<Local, Set<BasicBlock>> conf = new NullPermeableHashMap<>(new SetCreator<>());
-				Set<Local> wl = new HashSet<>();
-				
-				for(Entry<BasicBlock, Expression> e : phi.getArguments().entrySet()) {
-					BasicBlock b = e.getKey();
-					Expression expr = e.getValue();
-					if(expr.getOpcode() == Opcode.LOCAL_LOAD) {
-						VarExpression v = (VarExpression) expr;
-						Local l = v.getLocal();
-						Set<BasicBlock> set = conf.getNonNull(l);
-						if(set.size() >= 1) {
-							wl.add(l);
-						}
-						set.add(b);
-					} else {
-						throw new UnsupportedOperationException(String.valueOf(expr));
-					}
-				}
-				
-				for(Local l : wl) {
-					// should be fairly small, size >= 2
-					Set<BasicBlock> cand = conf.get(l);
-					// FIXME: is this right? or do we need a dominance test.
-					List<BasicBlock> pre = new ArrayList<>(cand);
-					Collections.sort(pre, new Comparator<BasicBlock>() {
-						@Override
-						public int compare(BasicBlock o1, BasicBlock o2) {
-							return Integer.compare(preorder.get(o1), preorder.get(o2));
-						}
-					});
-					
-					for(int i=1; i < cand.size(); i++) {
-						BasicBlock b = pre.get(i);
-						phi.removeArgument(b);
-					}
-				}
+	
+	private void prune(AbstractCopyStatement def) {
+		if(def.isSynthetic()) {
+			return;
+		}
+		
+		Expression e = def.getExpression();
+		
+		if(canPrune(e)) {
+			def.getRootParent().delete();
+		}
+	}
+	
+	private boolean canPrune(Statement stmt) {
+		int op = stmt.getOpcode();
+		if(op == Opcode.INVOKE || op == Opcode.DYNAMIC_INVOKE || op == Opcode.INIT_OBJ) {
+			return false;
+		}
+		
+		for(Statement s : stmt.getChildren()) {
+			if(!canPrune(s)) {
+				return false;
 			}
 		}
-	} */
+		
+		return true;
+	}
+	
+	private void processDeferredTranslations() {
+		for (VersionedLocal l : deferred) {
+			Set<VarExpression> useSet = uses.get(l);
 
+			if (useSet.size() == 1) {
+				/* In this case, the only place that the value
+				 * of this assignment will be used is at the use site.
+				 * Since that value can not be spread until this one
+				 * is, we can propagate it.*/
+				AbstractCopyStatement def = defs.get(l);
+				if (def.getOpcode() != Opcode.PHI_STORE) {
+					System.out.println(" propp " + l);
+					Expression rhs = def.getExpression();
+					rhs.unlink();
+					def.delete();
+
+					VarExpression use = useSet.iterator().next();
+					Statement parent = use.getParent();
+					parent.overwrite(rhs, parent.indexOf(use));
+				}
+			} else {
+			}
+		}
+		
+//		for(DeferredTranslation d : deferred) {
+//			VersionedLocal l = d.getLocal();
+//			Set<VarExpression> useSet = uses.get(l);
+//			System.out.println("dt:");
+//			System.out.println("   l   : " + d.getLocal());
+//			System.out.println("   def : " + d.getDef());
+//			System.out.println("   use : " + d.getUse());
+//			System.out.println("   tail: " + d.getTail());
+//			System.out.println("   val : " + d.getValue());
+//			
+//			if(useSet.size() == 1) {
+//				/* In this case, the only place that the value of
+//				 * this assignment will be used is at the use site.
+//				 * Since that value can not be spread until this one
+//				 * is, we can propagate it. */
+//				AbstractCopyStatement def = d.getDef();
+//				if(def.getOpcode() != Opcode.PHI_STORE) {
+//					System.out.println("   willprop");
+//					Expression rhs = def.getExpression();
+//					rhs.unlink();
+//					def.delete();
+//					
+//					VarExpression use = (VarExpression) d.getTail();
+//					Statement parent = use.getParent();
+//					parent.overwrite(rhs, parent.indexOf(use));
+//				}
+//			} else {
+//				System.out.println("   wontprop");
+//			}
+//		}
+	}
+	
+	private void makeLiveness() {
+		SSABlockLivenessAnalyser liveness = new SSABlockLivenessAnalyser(builder.graph);
+		liveness.compute();
+		this.liveness = liveness;
+	}
+	
 	@Override
 	public void run() {
-		splitCount = builder.graph.size() + 1;
+		System.out.println(builder.graph);
+		System.out.println();
+		System.out.println();
+		System.out.println();
+		
+		graphSize = builder.graph.size() + 1;
 		builder.head = GraphUtils.connectHead(builder.graph);
 
 		order.addAll(builder.graph.vertices());
@@ -693,24 +971,18 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		order.add(0, builder.head);
 		builder.naturaliseGraph(order);
 		
-//		BasicDotConfiguration<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> config = new BasicDotConfiguration<>(DotConfiguration.GraphType.DIRECTED);
-//		DotWriter<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> writer = new DotWriter<>(config, builder.graph);
-//		writer.removeAll().add(new ControlFlowGraphDecorator()).setName("headed").export();
-
-		
-		SSABlockLivenessAnalyser liveness = new SSABlockLivenessAnalyser(builder.graph);
-		liveness.compute();
-		this.liveness = liveness;
-		
+		makeLiveness();
 		splitRanges();
-		// TODO: update instead of recomp?
-		liveness = new SSABlockLivenessAnalyser(builder.graph);
-		liveness.compute();
-		this.liveness = liveness;
+		makeLiveness();
 		
 		doms = new TarjanDominanceComputor<>(builder.graph, new SimpleDfs<>(builder.graph, builder.head, true, false).getPreOrder());
 		insertPhis();
 		rename();
+		
+		if(OPTIMISE) {
+			processDeferredTranslations();
+			pruneStatements();
+		}
 		
 		GraphUtils.disconnectHead(builder.graph, builder.head);
 	}

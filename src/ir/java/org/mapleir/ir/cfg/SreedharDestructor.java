@@ -18,7 +18,7 @@ import org.mapleir.ir.code.stmt.Statement;
 import org.mapleir.ir.code.stmt.copy.CopyPhiStatement;
 import org.mapleir.ir.code.stmt.copy.CopyVarStatement;
 import org.mapleir.ir.locals.Local;
-import org.mapleir.ir.locals.LocalsHandler;
+import org.mapleir.ir.locals.LocalsPool;
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.ValueCreator;
 import org.mapleir.stdlib.collections.bitset.BitSetIndexer;
@@ -29,7 +29,7 @@ import org.objectweb.asm.Type;
 public class SreedharDestructor {
 
 	private final ControlFlowGraph cfg;
-	private final LocalsHandler locals;
+	private final LocalsPool locals;
 	private SSABlockLivenessAnalyser liveness;
 	private SSADefUseMap defuse;
 
