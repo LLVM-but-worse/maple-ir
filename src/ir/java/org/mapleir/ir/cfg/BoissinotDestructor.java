@@ -17,7 +17,7 @@ import org.mapleir.ir.code.stmt.copy.CopyPhiStatement;
 import org.mapleir.ir.code.stmt.copy.CopyVarStatement;
 import org.mapleir.ir.locals.BasicLocal;
 import org.mapleir.ir.locals.Local;
-import org.mapleir.ir.locals.LocalsHandler;
+import org.mapleir.ir.locals.LocalsPool;
 import org.mapleir.ir.locals.VersionedLocal;
 import org.mapleir.stdlib.collections.ListCreator;
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
@@ -37,7 +37,7 @@ public class BoissinotDestructor {
 	}
 
 	private final ControlFlowGraph cfg;
-	private final LocalsHandler locals;
+	private final LocalsPool locals;
 	private final BasicBlock dummyHead;
 
 	private final DominanceLivenessAnalyser resolver;

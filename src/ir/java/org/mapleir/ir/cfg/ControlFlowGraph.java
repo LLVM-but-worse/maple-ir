@@ -4,7 +4,7 @@ import java.util.Iterator;
 
 import org.mapleir.ir.cfg.edge.FlowEdge;
 import org.mapleir.ir.code.stmt.Statement;
-import org.mapleir.ir.locals.LocalsHandler;
+import org.mapleir.ir.locals.LocalsPool;
 import org.mapleir.stdlib.collections.graph.flow.ExceptionRange;
 import org.mapleir.stdlib.util.TabbedStringWriter;
 import org.objectweb.asm.tree.MethodNode;
@@ -12,11 +12,11 @@ import org.objectweb.asm.tree.MethodNode;
 public class ControlFlowGraph extends FastBlockGraph {
 	
 	private final MethodNode method;
-	private final LocalsHandler locals;
+	private final LocalsPool locals;
 	
 	public ControlFlowGraph(MethodNode method, int base) {
 		this.method = method;
-		locals = new LocalsHandler(base);
+		locals = new LocalsPool(base);
 	}
 	
 	public ControlFlowGraph(ControlFlowGraph cfg) {
@@ -91,7 +91,7 @@ public class ControlFlowGraph extends FastBlockGraph {
 		return new ControlFlowGraph(this);
 	}
 
-	public LocalsHandler getLocals() {
+	public LocalsPool getLocals() {
 		return locals;
 	}
 }

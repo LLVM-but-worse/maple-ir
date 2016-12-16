@@ -491,9 +491,9 @@ public class Test {
 
 			ArrayList<MethodNode> methodNodes = new ArrayList<>(cn.methods);
 			for (MethodNode m : methodNodes) {
-//				if (!m.toString().startsWith("com/allatori/iiiIIIIiIi.<clinit>")) {
-//					continue;
-//				}
+				if (!m.toString().startsWith("c.x([BIIII[Ldk;)V")) {
+					continue;
+				}
 //				if (index != 546) {
 //					continue;
 //				}
@@ -533,10 +533,10 @@ public class Test {
 
 //						System.out.println(cfg);
 
-						BoissinotDestructor.leaveSSA(cfg);
-						cfg.getLocals().realloc(cfg);
-//						System.out.println(cfg);
-						ControlFlowGraphDumper.dump(cfg, m);
+//						BoissinotDestructor.leaveSSA(cfg);
+//						cfg.getLocals().realloc(cfg);
+						System.out.println(cfg);
+//						ControlFlowGraphDumper.dump(cfg, m);
 						
 //						ClassTree classTree = new ClassTree(contents.getClassContents());
 //						ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS) {
