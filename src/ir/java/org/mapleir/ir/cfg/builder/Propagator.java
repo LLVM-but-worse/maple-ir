@@ -33,6 +33,7 @@ public class Propagator extends OptimisationPass.Optimiser {
 		UNCOPYABLE.add(DynamicInvocationExpression.class);
 		UNCOPYABLE.add(UninitialisedObjectExpression.class);
 		UNCOPYABLE.add(InitialisedObjectExpression.class);
+		UNCOPYABLE.add(NewArrayExpression.class);
 	}
 
 	private FeedbackStatementVisitor visitor;

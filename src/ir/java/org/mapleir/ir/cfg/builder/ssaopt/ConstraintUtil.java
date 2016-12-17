@@ -26,6 +26,6 @@ public class ConstraintUtil {
 	
 	private static boolean isUncopyable0(int opcode) {
 		return opcode == Opcode.INVOKE || opcode == Opcode.DYNAMIC_INVOKE || opcode == Opcode.INIT_OBJ
-				|| opcode == Opcode.UNINIT_OBJ;
+				|| opcode == Opcode.UNINIT_OBJ || opcode == Opcode.NEW_ARRAY;
 	}
 }
