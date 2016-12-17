@@ -22,7 +22,7 @@ public class CopyPhiStatement extends AbstractCopyStatement {
 	
 	@Override
 	public void setExpression(Expression expression) {
-		if(!(expression instanceof PhiExpression)) {
+		if(expression != null && !(expression instanceof PhiExpression)) {
 			throw new UnsupportedOperationException(expression.toString());
 		}
 		

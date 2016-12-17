@@ -17,14 +17,18 @@ import org.mapleir.ir.locals.Local;
 
 public class LatestValue {
 	
-	public static final int TYPE_LOCAL = 1, TYPE_CONST = 2, TYPE_PHI = 3, TYPE_OTHER = 4;
-	private static final String[] TO_STRING = new String[]{"local", "const", "phi", "other"};
+	public static final int PARAM = 0, PHI = 1, CONST = 2, VAR = 3;
+	private static final String[] TO_STRING = new String[]{"param", "phi", "phi", "other"};
 	
 	private final ControlFlowGraph cfg;
 	private final int type;
 	private final Object rvalue;
 	private final Object svalue;
 	private final List<Constraint> constraints;
+	
+	public LatestValue(ControlFlowGraph cfg, int type, Object val) {
+		this(cfg, type, val, val);
+	}
 	
 	public LatestValue(ControlFlowGraph cfg, int type, Object rvalue, Object svalue) {
 		this.cfg = cfg;
@@ -135,6 +139,6 @@ public class LatestValue {
 	
 	@Override
 	public String toString() {
-		return String.format("LatestValue: {type=%s, rval=%s, sval=%s, cons=%d}", TO_STRING[type-1], rvalue, svalue, constraints.size());
+		return String.format("LatestValue: {type=%s, rval=%s, sval=%s, cons=%d}", TO_STRING[type], rvalue, svalue, constraints.size());
 	}
 }

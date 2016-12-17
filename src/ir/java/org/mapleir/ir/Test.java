@@ -477,6 +477,8 @@ public class Test {
 		System.out.println("davai");
 		long start = System.nanoTime();
 		
+		System.in.read();
+		
 		int index = 0;
 		for (ClassNode cn : contents.getClassContents()) {
 
@@ -491,7 +493,7 @@ public class Test {
 
 			ArrayList<MethodNode> methodNodes = new ArrayList<>(cn.methods);
 			for (MethodNode m : methodNodes) {
-				if (!m.toString().startsWith("c.x([BIIII[Ldk;)V")) {
+				if (!m.toString().startsWith("c.<clinit>()V")) {
 					continue;
 				}
 //				if (index != 546) {
@@ -535,7 +537,7 @@ public class Test {
 
 //						BoissinotDestructor.leaveSSA(cfg);
 //						cfg.getLocals().realloc(cfg);
-						System.out.println(cfg);
+//						System.out.println(cfg);
 //						ControlFlowGraphDumper.dump(cfg, m);
 						
 //						ClassTree classTree = new ClassTree(contents.getClassContents());
