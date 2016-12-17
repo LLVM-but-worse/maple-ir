@@ -188,6 +188,7 @@ public abstract class Statement implements FastGraphVertex, Opcode {
 //		} else {
 //			
 //		}
+//		System.out.println("unlink " + this  + "  " + getClass());
 		if(parent != null) {
 			parent.deleteAt(parent.indexOf(this));
 		}
@@ -195,8 +196,10 @@ public abstract class Statement implements FastGraphVertex, Opcode {
 
 	protected void delete0() {
 		unlink();
+//		System.out.println("cs: " + Arrays.toString(children));
 		for(Statement c : children) {
 			if(c != null) {
+//				System.out.println(" c: " + c);
 				c.delete0();
 			}
 		}
@@ -223,13 +226,16 @@ public abstract class Statement implements FastGraphVertex, Opcode {
 			throw new ArrayIndexOutOfBoundsException(String.format("ptr=%d, len=%d, addr=%d", ptr, children.length, _ptr));
 		if (children[_ptr] == null)
 			throw new UnsupportedOperationException("No statement at " + _ptr);
-		
+//		System.out.println("del: " + _ptr);
+//		System.out.println("delc: " + children[_ptr]);
+//		System.out.println("chil: " + Arrays.toString(children));
 		if ((_ptr + 1) < children.length && children[_ptr + 1] == null) {
 			// ptr: s5 (4)
 			// len = 8
 			// before: [s1, s2, s3, s4, s5  , null, null, null]
 			// after : [s1, s2, s3, s4, null, null, null, null]
 			writeAt(_ptr, null);
+//			System.out.println("Statement.deleteAt(1)");
 			onChildUpdated(_ptr);
 		} else {
 			// ptr: s2 (1)
@@ -241,8 +247,10 @@ public abstract class Statement implements FastGraphVertex, Opcode {
 			// (ptr+1 to len) = {2, 3, 4, 5, 6, 7}
 			// shift elements down 1
 			// after : [s1, s3, s4, s5, null, null, null, null]
+//			System.out.println("Statement.deleteAt(2)");
 			writeAt(_ptr, null);
 			onChildUpdated(_ptr);
+//			System.out.println("prechil: " + Arrays.toString(children));
 //			System.out.println("lop");
 			for (int i = _ptr + 1; i < children.length; i++) {
 				Statement s = children[i];
@@ -255,10 +263,13 @@ public abstract class Statement implements FastGraphVertex, Opcode {
 				if(s != null) {
 					s.setParent(null);
 				}
+//				System.out.println("Statement.deleteAt(3)");
 				writeAt(i-1, s);
 				onChildUpdated(i - 1);
+//				System.out.println("stmt: " + s + " at " + (i - 1));
 				writeAt(i, null);
 				onChildUpdated(i);
+//				System.out.println("null at " + i);
 				// we need to set the parent again,
 				// because we have 2 of the same
 				// node in the children array, which

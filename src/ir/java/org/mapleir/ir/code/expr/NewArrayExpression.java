@@ -44,12 +44,14 @@ public class NewArrayExpression extends Expression {
 		}
 	}
 
-	public void updateLength(int dimension, Expression length) {
+	public void updateLength(int dimension, Expression length, boolean overwrite) {
 		if (dimension < 0 || dimension >= bounds.length)
-			throw new ArrayIndexOutOfBoundsException();
+			throw new ArrayIndexOutOfBoundsException(dimension);
 
 		bounds[dimension] = length;
-		overwrite(length, dimension);
+		if(overwrite) {
+			overwrite(length, dimension);
+		}
 	}
 
 	@Override
@@ -71,7 +73,15 @@ public class NewArrayExpression extends Expression {
 
 	@Override
 	public void onChildUpdated(int ptr) {
-		updateLength(ptr, (Expression) read(ptr));
+		if(ptr >= 0 && ptr < bounds.length) {
+			Expression e;
+			if(children[ptr] == null) {
+				e = null;
+			} else {
+				e = (Expression) read(ptr);
+			}
+			updateLength(ptr, e, true);
+		}
 	}
 	
 	@Override
