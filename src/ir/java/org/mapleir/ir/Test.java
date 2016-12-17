@@ -494,7 +494,7 @@ public class Test {
 			ArrayList<MethodNode> methodNodes = new ArrayList<>(cn.methods);
 			for (MethodNode m : methodNodes) {
 				if (!m.toString().startsWith("c.<clinit>()V")) {
-					continue;
+//					continue;
 				}
 //				if (index != 546) {
 //					continue;
