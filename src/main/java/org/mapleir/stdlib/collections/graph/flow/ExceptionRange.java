@@ -122,7 +122,7 @@ public class ExceptionRange<N extends FastGraphVertex> {
 	
 	@Override
 	public String toString() {
-		return String.format("handler=%s, types=%s, range=%s", handler, types, nodes);
+		return String.format("handler=%s, types=%s, range=%s", handler, types, rangetoString(nodes));
 	}
 	
 	@Override
@@ -147,6 +147,10 @@ public class ExceptionRange<N extends FastGraphVertex> {
 	}
 
 	public static <N extends FastGraphVertex> String rangetoString(List<N> set) {
+		if(set.size() == 0) {
+			return set.toString();
+		}
+		
 		int last = BasicBlock.numeric(set.get(0).getId()) - 1;
 		for(int i=0; i < set.size(); i++) {
 			int num = BasicBlock.numeric(set.get(i).getId());
