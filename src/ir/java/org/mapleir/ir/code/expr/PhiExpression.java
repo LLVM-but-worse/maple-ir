@@ -34,7 +34,7 @@ public class PhiExpression extends Expression {
 	}
 	
 	public Set<BasicBlock> getSources() {
-		return new HashSet<>(arguments.keySet());
+		return arguments.keySet();
 	}
 	
 	public Map<BasicBlock, Expression> getArguments() {
