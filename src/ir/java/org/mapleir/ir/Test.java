@@ -493,7 +493,7 @@ public class Test {
 
 			ArrayList<MethodNode> methodNodes = new ArrayList<>(cn.methods);
 			for (MethodNode m : methodNodes) {
-				if (!m.toString().startsWith("c.<clinit>()V")) {
+				if (!m.toString().startsWith("i.f(Ldw;I)V")) {
 //					continue;
 				}
 //				if (index != 546) {
@@ -534,11 +534,14 @@ public class Test {
 //						writer.removeAll().add(new ControlFlowGraphDecorator()).setName("irreducible").export();
 
 //						System.out.println(cfg);
-
-//						BoissinotDestructor.leaveSSA(cfg);
-//						cfg.getLocals().realloc(cfg);
-//						System.out.println(cfg);
-//						ControlFlowGraphDumper.dump(cfg, m);
+						try {
+							BoissinotDestructor.leaveSSA(cfg);
+							cfg.getLocals().realloc(cfg);
+//							System.out.println(cfg);
+							ControlFlowGraphDumper.dump(cfg, m);
+						} catch(RuntimeException e) {
+							System.out.println(e.getMessage() +" on " + m);
+						}
 						
 //						ClassTree classTree = new ClassTree(contents.getClassContents());
 //						ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS) {
