@@ -3,11 +3,12 @@ package org.mapleir.ir.cfg.builder.ssaopt;
 import org.mapleir.ir.code.Opcode;
 import org.mapleir.ir.code.stmt.Statement;
 
-public class ConstraintUtil {
+public class ConstraintUtil implements Opcode {
 
 	public static boolean isInvoke(Statement e) {
 		int opcode = e.getOpcode();
-		return opcode == Opcode.INVOKE || opcode == Opcode.DYNAMIC_INVOKE || opcode == Opcode.INIT_OBJ;
+		/* INIT_OBJ contains a folded constructor call. */
+		return opcode == INVOKE || opcode == DYNAMIC_INVOKE || opcode == INIT_OBJ;
 	}
 
 	public static boolean isUncopyable(Statement stmt) {
@@ -25,7 +26,17 @@ public class ConstraintUtil {
 	}
 	
 	private static boolean isUncopyable0(int opcode) {
-		return opcode == Opcode.INVOKE || opcode == Opcode.DYNAMIC_INVOKE || opcode == Opcode.INIT_OBJ
-				|| opcode == Opcode.UNINIT_OBJ || opcode == Opcode.NEW_ARRAY;
+		switch (opcode) {
+			case INVOKE:
+			case DYNAMIC_INVOKE:
+			case INIT_OBJ:
+			case UNINIT_OBJ:
+			case NEW_ARRAY:
+			case CATCH:
+			case EPHI:
+			case PHI:
+				return true;
+		};
+		return false;
 	}
 }
