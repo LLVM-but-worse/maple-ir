@@ -34,12 +34,12 @@ public class TryCatchEdge<N extends FastGraphVertex> extends FlowEdge<N> {
 	@Override
 	public String toString() {
 		List<N> l = erange.get();
-		return String.format("TryCatch range: %s...%s -> %s (%s)", l.get(0).getId(), l.get(l.size() - 1).getId()/*ExceptionRange.rangetoString(erange.get())*/, dst.getId(), erange.getTypes());
+		return String.format("TryCatch range: [%s...%s] -> %s (%s)", l.get(0).getId(), l.get(l.size() - 1).getId()/*ExceptionRange.rangetoString(erange.get())*/, dst.getId(), erange.getTypes());
 	}
 
 	@Override
 	public String toInverseString() {
-		return String.format("TryCatch handler: %s <- range: %s from %s (%s)", dst.getId(), erange.get().iterator().next()/*ExceptionRange.rangetoString(erange.get())*/, src.getId(), erange.getTypes());
+		return String.format("TryCatch handler: %s <- range: [%s...%s] (%s)", dst.getId(), erange.get().iterator().next()/*ExceptionRange.rangetoString(erange.get())*/, src.getId(), erange.getTypes());
 	}
 
 	@Override
