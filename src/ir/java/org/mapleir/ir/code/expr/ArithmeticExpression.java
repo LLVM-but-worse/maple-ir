@@ -227,4 +227,10 @@ public class ArithmeticExpression extends Expression {
 		}
 		return false;
 	}
+
+//	@Override
+//	public int getExecutionCost() {
+//		// TODO Auto-generated method stub
+//		return 0;
+//	}
 }

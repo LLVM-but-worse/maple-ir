@@ -50,4 +50,7 @@ public abstract class Expression extends Statement {
 	protected Precedence getPrecedence0() {
 		return Precedence.NORMAL;
 	}
+	
+//	@Override
+//	public abstract int getExecutionCost();
 }

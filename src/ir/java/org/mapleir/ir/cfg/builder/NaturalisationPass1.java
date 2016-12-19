@@ -45,6 +45,9 @@ public class NaturalisationPass1 extends ControlFlowGraphBuilder.BuilderPass {
 			if(in == null) {
 				continue;
 			}
+			if(in.isFlagSet(BasicBlock.FLAG_NO_MERGE)) {
+				continue;
+			}
 			Set<FlowEdge<BasicBlock>> inSuccs = in.getSuccessors(e -> !(e instanceof TryCatchEdge));
 			if(inSuccs.size() != 1 || builder.graph.getReverseEdges(b).size() != 1) {
 				continue;

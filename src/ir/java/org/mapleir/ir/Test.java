@@ -494,7 +494,7 @@ public class Test {
 			ArrayList<MethodNode> methodNodes = new ArrayList<>(cn.methods);
 			for (MethodNode m : methodNodes) {
 				if (!m.toString().startsWith("i.f(Ldw;I)V")) {
-//					continue;
+					continue;
 				}
 //				if (index != 546) {
 //					continue;
@@ -533,7 +533,7 @@ public class Test {
 //						DotWriter<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> writer = new DotWriter<>(config, cfg);
 //						writer.removeAll().add(new ControlFlowGraphDecorator()).setName("irreducible").export();
 
-//						System.out.println(cfg);
+						System.out.println(cfg);
 						try {
 							BoissinotDestructor.leaveSSA(cfg);
 							cfg.getLocals().realloc(cfg);

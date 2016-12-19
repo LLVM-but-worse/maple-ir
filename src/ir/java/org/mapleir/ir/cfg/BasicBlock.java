@@ -21,11 +21,14 @@ import org.objectweb.asm.tree.LabelNode;
 
 public class BasicBlock implements FastGraphVertex, Comparable<BasicBlock>, List<Statement> {
 
+	public static final int FLAG_NO_MERGE = 0x1;
+	
 	private int id;
 	private final ControlFlowGraph cfg;
 	private LabelNode label;
 	private final List<Statement> statements;
 	private ExpressionStack inputStack;
+	private int flags = 0;
 	// private Map<ExceptionRange<BasicBlock>, Integer> ranges;
 	
 	public BasicBlock(ControlFlowGraph cfg, int id, LabelNode label) {
@@ -35,6 +38,18 @@ public class BasicBlock implements FastGraphVertex, Comparable<BasicBlock>, List
 		
 		statements = new ArrayList<>();
 		// ranges = new HashMap<>();
+	}
+	
+	public boolean isFlagSet(int flag) {
+		return (flags & flag) == flag;
+	}
+	
+	public void setFlag(int flag, boolean b) {
+		if(b) {
+			flags |= flag;
+		} else {
+			flags ^= flag;
+		}
 	}
 	
 	public ControlFlowGraph getGraph() {
@@ -386,5 +401,9 @@ public class BasicBlock implements FastGraphVertex, Comparable<BasicBlock>, List
 		for (Statement stmt : statements)
 			if (stmt.getBlock() != this)
 				throw new IllegalStateException("Orphaned child " + stmt);
+	}
+
+	public int getFlags() {
+		return flags;
 	}
 }
