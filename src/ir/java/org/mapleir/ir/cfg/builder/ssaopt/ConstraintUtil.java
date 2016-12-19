@@ -39,4 +39,8 @@ public class ConstraintUtil implements Opcode {
 		};
 		return false;
 	}
+	
+//	public static int getCost(Statement stmt) {
+//		int cost = 0;
+//	}
 }

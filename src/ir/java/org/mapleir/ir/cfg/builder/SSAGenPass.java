@@ -52,7 +52,6 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 	private static final boolean OPTIMISE = true;
 	public static int SPLIT_BLOCK_COUNT = 0;
 
-	private final Map<VersionedLocal, AbstractCopyStatement> defs;
 	private final Map<VersionedLocal, Type> types;
 	private final Map<Local, Integer> counters;
 	private final Map<Local, Stack<Integer>> stacks;
@@ -64,10 +63,10 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 	private final Set<BasicBlock> handlers;
 	
 	private final Map<VersionedLocal, LatestValue> latest;
-	private final Map<VersionedLocal, Set<VarExpression>> uses;
 	private final Set<VersionedLocal> deferred;
 	private final NullPermeableHashMap<VersionedLocal, Set<VersionedLocal>> shadowed;
 	
+	private LocalsPool pool;
 	private TarjanDominanceComputor<BasicBlock> doms;
 	private Liveness<BasicBlock> liveness;
 	private int graphSize;
@@ -75,7 +74,6 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 	public SSAGenPass(ControlFlowGraphBuilder builder) {
 		super(builder);
 
-		defs = new HashMap<>();
 		types = new HashMap<>();
 		
 		counters = new HashMap<>();
@@ -89,7 +87,6 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		handlers = new HashSet<>();
 		
 		latest = new HashMap<>();
-		uses = new HashMap<>();
 		deferred = new HashSet<>();
 		shadowed = new NullPermeableHashMap<>(new KeyedValueCreator<VersionedLocal, Set<VersionedLocal>>() {
 			@Override
@@ -463,7 +460,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 					VarExpression v = (VarExpression) e.getValue();
 					Local l = v.getLocal();
 					// what if the def is never reached?
-					AbstractCopyStatement def = defs.get(l);
+					AbstractCopyStatement def = pool.defs.get(l);
 					v.setType(def.getType());
 				}
 			}
@@ -575,7 +572,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 			
 			if(opcode == Opcode.LOCAL_STORE) {
 				/* Generate the target local after
-				 * renaming the source uses. 
+				 * renaming the source pool.uses. 
 				 */
 				CopyVarStatement copy = (CopyVarStatement) stmt;
 				generate(copy);
@@ -602,9 +599,9 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		}
 		
 		v.setLocal(ssaL);
-		defs.put(ssaL, copy);
+		pool.defs.put(ssaL, copy);
 		types.put(ssaL, copy.getExpression().getType());
-		uses.put(ssaL, new HashSet<>());
+		pool.uses.put(ssaL, new HashSet<>());
 		
 		return ssaL;
 	}
@@ -645,7 +642,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 						value.importConstraints(anc);
 						latest.put(ssaL, value);
 					} else {
-						throw new IllegalStateException("Non anc parent: " + ssaL + " = " + rhsL + " (def: " + defs.get(rhsL) + ")");
+						throw new IllegalStateException("Non anc parent: " + ssaL + " = " + rhsL + " (def: " + pool.defs.get(rhsL) + ")");
 					}
 				} else {
 					throw new IllegalStateException("Revisit def " + ssaL + " ( = " + rhsL + ")");
@@ -673,7 +670,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		for(Statement c : e.enumerate()) {
 			if(c.getOpcode() == Opcode.LOCAL_LOAD) {
 				VarExpression ve = (VarExpression) c;
-				uses.get((VersionedLocal) ve.getLocal()).add(ve);
+				pool.uses.get((VersionedLocal) ve.getLocal()).add(ve);
 			}
 		}
 	}
@@ -724,7 +721,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 			ssaL = (VersionedLocal) l;
 		}
 		
-		uses.get(ssaL).add(var);
+		pool.uses.get(ssaL).add(var);
 		
 		VersionedLocal newL = ssaL;
 
@@ -748,7 +745,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 				} else if(!isPhi && !variableVar) {
 					Expression e = null;
 					
-					AbstractCopyStatement def = defs.get(ssaL);
+					AbstractCopyStatement def = pool.defs.get(ssaL);
 					Expression rval = (Expression) value.getSuggestedValue();
 					if(ConstraintUtil.isUncopyable(rval)) {
 						/* A variable might have a value
@@ -772,7 +769,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 							if(shouldPropagate(ssaL, realVal)) {
 								newL = realVal;
 //								System.out.println(" " + ssaL + "  with " + realVal);
-//								AbstractCopyStatement realValDef = defs.get(realVal);
+//								AbstractCopyStatement realValDef = pool.defs.get(realVal);
 //								Expression realValDefE = realValDef.getExpression();
 //								if(realValDefE.getOpcode() == Opcode.LOCAL_LOAD) {
 //									VersionedLocal varDef = (VersionedLocal) ((VarExpression) realValDefE).getLocal();
@@ -830,10 +827,10 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 						/* Remove the use of the var before
 						 * we translate the children of the 
 						 * newly propagated expression.*/
-						uses.get(ssaL).remove(var);
-//						System.out.println("   uses: " + uses.get(ssaL));
+						pool.uses.get(ssaL).remove(var);
+//						System.out.println("   uses: " + pool.uses.get(ssaL));
 						
-						/* Account for the new uses.*/
+						/* Account for the new pool.uses.*/
 						collectUses(e);
 						
 						/* Finally see if we can reduce
@@ -858,8 +855,8 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 				// System.out.println("replace: " + ssaL + " with " + newL);
 				if(ssaL != newL) {
 //					System.out.println(ssaL + "  -->  " + newL);
-					uses.get(ssaL).remove(var);
-					uses.get(newL).add(var);
+					pool.uses.get(ssaL).remove(var);
+					pool.uses.get(newL).add(var);
 				}
 			}
 
@@ -910,7 +907,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 								VarExpression var = (VarExpression) inst;
 								VersionedLocal local = (VersionedLocal) var.getLocal();
 
-								AbstractCopyStatement def = defs.get(local);
+								AbstractCopyStatement def = pool.defs.get(local);
 
 								Expression rhs = def.getExpression();
 								if (rhs.getOpcode() == Opcode.UNINIT_OBJ) {
@@ -947,10 +944,10 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 //									System.out.println(Arrays.toString(newArgs));
 									InitialisedObjectExpression newExpr = new InitialisedObjectExpression(obj.getType(), invoke.getOwner(), invoke.getDesc(), newArgs);
 									CopyVarStatement newCvs = new CopyVarStatement(var, newExpr);
-									defs.put(local, newCvs);
-//									System.out.println("pre: " + uses.get(local));
-									uses.get(local).remove(v);
-//									System.out.println("pos: " + uses.get(local));
+									pool.defs.put(local, newCvs);
+//									System.out.println("pre: " + pool.uses.get(local));
+									pool.uses.get(local).remove(v);
+//									System.out.println("pos: " + pool.uses.get(local));
 									b.add(index, newCvs);
 
 									// remove the pop statement
@@ -993,13 +990,13 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 	private int pruneStatements() {
 		int i = 0;
 		
-		Iterator<Entry<VersionedLocal, Set<VarExpression>>> it = uses.entrySet().iterator();
+		Iterator<Entry<VersionedLocal, Set<VarExpression>>> it = pool.uses.entrySet().iterator();
 		while(it.hasNext()) {
 			Entry<VersionedLocal, Set<VarExpression>> e = it.next();
 			
 			VersionedLocal vl = e.getKey();
 			if(e.getValue().size() == 0) {
-				AbstractCopyStatement def = defs.get(vl);
+				AbstractCopyStatement def = pool.defs.get(vl);
 				/* i.e. it has not been shadowed. */
 				if(def != null && def.getBlock() != null && prune(def)) {
 					if(vl != def.getVariable().getLocal()) {
@@ -1007,7 +1004,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 					}
 					i++;
 					it.remove();
-					defs.remove(vl);
+					pool.defs.remove(vl);
 				}
 			}
 		}
@@ -1032,7 +1029,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 				if(s.getOpcode() == Opcode.LOCAL_LOAD) {
 					VarExpression v = (VarExpression) s;
 					VersionedLocal vl = (VersionedLocal) v.getLocal();
-					uses.get(vl).remove(v);
+					pool.uses.get(vl).remove(v);
 				}
 			}
 //			System.out.println();
@@ -1104,7 +1101,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		VersionedLocal vl = (VersionedLocal) v.getLocal();
 		copy.delete();
 		
-		uses.get(vl).remove(v);
+		pool.uses.get(vl).remove(v);
 	}
 	
 	private void resolveShadowedLocals() {
@@ -1155,12 +1152,12 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 				
 				Set<AbstractCopyStatement> orig = new HashSet<>();
 				
-				Set<VarExpression> spillUses = uses.get(spill);
+				Set<VarExpression> spillUses = pool.uses.get(spill);
 				
 //				System.out.println("spillUses: " + spillUses);
 				
 				for(VersionedLocal vl : set) {
-					AbstractCopyStatement copy = defs.get(vl);
+					AbstractCopyStatement copy = pool.defs.get(vl);
 					Expression ex = copy.getExpression();
 					if(vl != spill) {
 						if(ex.getOpcode() != Opcode.LOCAL_LOAD) {
@@ -1173,7 +1170,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 						/* transfer the uses of each shadowed
 						 * var to the spill var, since we
 						 * rename all of the shadowed vars. */
-						Set<VarExpression> useSet = uses.get(vl);
+						Set<VarExpression> useSet = pool.uses.get(vl);
 //						System.out.println("uses of " + vl + " ; " + useSet);
 						for(VarExpression v : useSet) {
 							v.setLocal(spill);
@@ -1181,13 +1178,13 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 						spillUses.addAll(useSet);
 						
 						useSet.clear();
-						uses.remove(vl);
+						pool.uses.remove(vl);
 					} else {
 //						System.out.println("del2: " + copy);
 						removeSimpleCopy(copy);
 					}
 					
-					defs.remove(vl);
+					pool.defs.remove(vl);
 				}
 				
 //				System.out.println(String.format("set:%s, spill:%s", set, spill));
@@ -1197,7 +1194,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 				
 				AbstractCopyStatement copy = orig.iterator().next();
 				copy.getVariable().setLocal(spill);
-				defs.put(spill, copy);
+				pool.defs.put(spill, copy);
 			}
 		}
 	}
@@ -1205,14 +1202,14 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 	private int processDeferredTranslations() {
 		int i = 0;
 		
-		Iterator<Entry<VersionedLocal, Set<VarExpression>>> it = uses.entrySet().iterator();
+		Iterator<Entry<VersionedLocal, Set<VarExpression>>> it = pool.uses.entrySet().iterator();
 		while(it.hasNext()) {
 			Entry<VersionedLocal, Set<VarExpression>> e = it.next();
 //			System.out.println(e.getKey() + " ->  " + e.getValue());
 			VersionedLocal vl = e.getKey();
 			if(deferred.contains(vl) || vl.isStack()) {
 				Set<VarExpression> useSet = e.getValue();
-				AbstractCopyStatement def = defs.get(vl);
+				AbstractCopyStatement def = pool.defs.get(vl);
 				if (def != null && useSet.size() == 1) {
 					/* In this case, the only place that the value
 					 * of this assignment will be used is at the use site.
@@ -1239,7 +1236,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 //									v.setLocal(vl2);
 //									
 //									useSet.clear();
-//									uses.get(vl2).add(v);
+//									pool.uses.get(vl2).add(v);
 //									
 //									i++;
 //								}
@@ -1250,7 +1247,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 //								System.out.println("  kill " + def);
 								rhs.unlink();
 								def.delete();
-								defs.remove(vl);
+								pool.defs.remove(vl);
 								
 								useSet.clear();
 								
@@ -1285,6 +1282,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 //		System.out.println();
 //		System.out.println();
 //		System.out.println();
+		pool = builder.graph.getLocals();
 		
 		graphSize = builder.graph.size() + 1;
 		builder.head = GraphUtils.connectHead(builder.graph);
@@ -1306,6 +1304,8 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 			if(OPTIMISE) {
 				resolveShadowedLocals();
 				aggregateInitialisers();
+				
+				
 				int i;
 				do {
 //					System.out.println("SSAGenPass.run()");
@@ -1324,7 +1324,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 	}
 	
 	private void print() {
-//		for(Entry<VersionedLocal, Set<VarExpression>> e : uses.entrySet()) {
+//		for(Entry<VersionedLocal, Set<VarExpression>> e : pool.uses.entrySet()) {
 //			System.out.println(e.getKey() + " ->  " + e.getValue());
 //		}
 		GraphUtils.disconnectHead(builder.graph, builder.head);

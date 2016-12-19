@@ -889,7 +889,7 @@ public class MethodNode extends MethodVisitor implements FastGraphVertex {
 //				InstructionPrinter.consolePrint(this);
             	mv.visitMaxs(maxStack, maxLocals);
             } catch(RuntimeException e) {
-//            	System.err.println(this);
+            	System.err.println(this);
 //            	try {
 //            		ClassNode cn = owner;
 //                	MethodNode m = this;

@@ -563,4 +563,16 @@ public abstract class Statement implements FastGraphVertex, Opcode {
 		dfsStmt(list);
 		return list;
 	}
+	
+//	public int getExecutionCost() {
+//		int cost = 0;
+//		
+//		for(Statement c : enumerate()) {
+//			if(c != this) {
+//				cost += ((Expression) c).getExecutionCost();
+//			}
+//		}
+//		
+//		return cost;
+//	}
 }
