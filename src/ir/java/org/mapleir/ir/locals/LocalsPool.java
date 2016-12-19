@@ -10,6 +10,7 @@ import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.Opcode;
 import org.mapleir.ir.code.expr.VarExpression;
 import org.mapleir.ir.code.stmt.Statement;
+import org.mapleir.ir.code.stmt.copy.AbstractCopyStatement;
 import org.mapleir.ir.code.stmt.copy.CopyVarStatement;
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.SetCreator;
@@ -27,11 +28,17 @@ public class LocalsPool implements ValueCreator<GenericBitSet<Local>> {
 	private final Map<BasicLocal, VersionedLocal> latest;
 	private final BitSetIndexer<Local> indexer;
 	
+	public final Map<VersionedLocal, AbstractCopyStatement> defs;
+	public final Map<VersionedLocal, Set<VarExpression>> uses;
+	
 	public LocalsPool(int base) {
 		this.base = new AtomicInteger(base);
 		cache = new HashMap<>();
 		latest = new HashMap<>();
 		indexer = new IncrementalBitSetIndexer<>();
+		
+		defs = new HashMap<>();
+		uses = new HashMap<>();
 	}
 	
 	public Set<Local> getAll(Predicate<Local> p)  {
