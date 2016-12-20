@@ -1,24 +1,22 @@
 package org.mapleir.ir.code;
 
-import org.mapleir.ir.code.stmt.Statement;
-
 public abstract class StatementVisitor {
 
-	protected Statement root;
-	private Statement[] current;
+	protected CodeUnit root;
+	private CodeUnit[] current;
 	private int[] currentPtrs;
 	private int depth;
 	private boolean broken;
 
-	public StatementVisitor(Statement root) {
+	public StatementVisitor(CodeUnit root) {
 		this.root = root;
-		current = new Statement[2];
+		current = new CodeUnit[2];
 		currentPtrs = new int[2];
 	}
 	
-	public void reset(Statement root) {
+	public void reset(CodeUnit root) {
 		this.root = root;
-		current = new Statement[2];
+		current = new CodeUnit[2];
 		currentPtrs = new int[2];
 		broken = false;
 		depth = 0;
@@ -44,13 +42,13 @@ public abstract class StatementVisitor {
 		}
 	}
 	
-	protected void visited(Statement stmt, Statement node, int addr, Statement vis) {
+	protected void visited(CodeUnit stmt, Expr node, int addr, Expr vis) {
 		if(vis != node) {
 			stmt.overwrite(vis, addr);
 		}
 	}
 
-	private void _start(Statement stmt, int startAddr) {
+	private void _start(CodeUnit stmt, int startAddr) {
 		if ((depth + 1) >= current.length) {
 			expand();
 		}
@@ -58,13 +56,13 @@ public abstract class StatementVisitor {
 		current[depth - 1] = stmt;
 		for (int addr = startAddr; stmt.read(addr) != null; addr++) {
 			currentPtrs[depth - 1] = addr;
-			Statement node = stmt.read(addr);
+			Expr node = stmt.read(addr);
 			_start(node, 0);
 			// System.out.println("Visiting " + stmt + " at addr=" + addr);
 			// System.out.println("   Node: " + node);
 			// System.out.println("   Visit: " + visit(node));
 			// stmt.overwrite(visit(node), addr);
-			Statement nn = visit(node);
+			Expr nn = visit(node);
 			visited(stmt, node, addr, nn);
 			if (broken) {
 				throw new RuntimeException("break");
@@ -76,7 +74,7 @@ public abstract class StatementVisitor {
 	}
 
 	private void expand() {
-		Statement[] current = new Statement[this.current.length * 2];
+		CodeUnit[] current = new CodeUnit[this.current.length * 2];
 		int[] ptr = new int[currentPtrs.length * 2];
 		System.arraycopy(this.current, 0, current, 0, this.current.length);
 		System.arraycopy(currentPtrs, 0, ptr, 0, currentPtrs.length);
@@ -84,11 +82,11 @@ public abstract class StatementVisitor {
 		currentPtrs = ptr;
 	}
 
-	public Statement getRoot() {
+	public CodeUnit getRoot() {
 		return root;
 	}
 
-	public Statement getCurrent(int depth) {
+	public CodeUnit getCurrent(int depth) {
 		return current[depth - 1];
 	}
 
@@ -100,5 +98,5 @@ public abstract class StatementVisitor {
 		return depth;
 	}
 
-	public abstract Statement visit(Statement stmt);
+	public abstract Expr visit(Expr stmt);
 }

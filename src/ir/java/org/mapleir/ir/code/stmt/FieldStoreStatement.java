@@ -1,23 +1,25 @@
 package org.mapleir.ir.code.stmt;
 
 import org.mapleir.ir.cfg.ControlFlowGraph;
-import org.mapleir.ir.code.expr.Expression;
-import org.mapleir.ir.code.expr.Expression.Precedence;
+import org.mapleir.ir.code.CodeUnit;
+import org.mapleir.ir.code.Expr;
+import org.mapleir.ir.code.Expr.Precedence;
+import org.mapleir.ir.code.Stmt;
 import org.mapleir.stdlib.util.TabbedStringWriter;
 import org.mapleir.stdlib.util.TypeUtils;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 
-public class FieldStoreStatement extends Statement {
+public class FieldStoreStatement extends Stmt {
 
-	private Expression instanceExpression;
-	private Expression valueExpression;
+	private Expr instanceExpression;
+	private Expr valueExpression;
 	private String owner;
 	private String name;
 	private String desc;
 
-	public FieldStoreStatement(Expression instanceExpression, Expression valueExpression, String owner, String name, String desc) {
+	public FieldStoreStatement(Expr instanceExpression, Expr valueExpression, String owner, String name, String desc) {
 		super(FIELD_STORE);
 		this.instanceExpression = instanceExpression;
 		this.valueExpression = valueExpression;
@@ -29,11 +31,11 @@ public class FieldStoreStatement extends Statement {
 		overwrite(valueExpression, instanceExpression == null ? 0 : 1);
 	}
 
-	public Expression getInstanceExpression() {
+	public Expr getInstanceExpression() {
 		return instanceExpression;
 	}
 
-	public void setInstanceExpression(Expression instanceExpression) {
+	public void setInstanceExpression(Expr instanceExpression) {
 		if (this.instanceExpression == null && instanceExpression != null) {
 			this.instanceExpression = instanceExpression;
 			overwrite(valueExpression, 1);
@@ -48,11 +50,11 @@ public class FieldStoreStatement extends Statement {
 		}
 	}
 
-	public Expression getValueExpression() {
+	public Expr getValueExpression() {
 		return valueExpression;
 	}
 
-	public void setValueExpression(Expression valueExpression) {
+	public void setValueExpression(Expr valueExpression) {
 		this.valueExpression = valueExpression;
 		overwrite(valueExpression, instanceExpression == null ? 0 : 1);
 	}
@@ -84,11 +86,11 @@ public class FieldStoreStatement extends Statement {
 	@Override
 	public void onChildUpdated(int ptr) {
 		if (instanceExpression != null && ptr == 0) {
-			setInstanceExpression((Expression) read(0));
+			setInstanceExpression((Expr) read(0));
 		} else if (instanceExpression == null && ptr == 0) {
-			setValueExpression((Expression) read(0));
+			setValueExpression((Expr) read(0));
 		} else if (ptr == 1) {
-			setValueExpression((Expression) read(1));
+			setValueExpression((Expr) read(1));
 		}
 	}
 
@@ -135,19 +137,19 @@ public class FieldStoreStatement extends Statement {
 	}
 
 	@Override
-	public boolean isAffectedBy(Statement stmt) {
+	public boolean isAffectedBy(CodeUnit stmt) {
 		return stmt.canChangeLogic()
 				|| (instanceExpression != null && instanceExpression.isAffectedBy(stmt)) 
 				|| valueExpression.isAffectedBy(stmt);
 	}
 
 	@Override
-	public Statement copy() {
+	public FieldStoreStatement copy() {
 		return new FieldStoreStatement(instanceExpression == null ? null : instanceExpression.copy(), valueExpression.copy(), owner, name, desc);
 	}
 
 	@Override
-	public boolean equivalent(Statement s) {
+	public boolean equivalent(CodeUnit s) {
 		if(s instanceof FieldStoreStatement) {
 			FieldStoreStatement store = (FieldStoreStatement) s;
 			return owner.equals(store.owner) && name.equals(store.name) && desc.equals(store.desc) &&

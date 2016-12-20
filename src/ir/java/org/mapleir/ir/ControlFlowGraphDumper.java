@@ -10,7 +10,7 @@ import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.cfg.edge.DummyEdge;
 import org.mapleir.ir.cfg.edge.FlowEdge;
 import org.mapleir.ir.cfg.edge.FlowEdges;
-import org.mapleir.ir.code.stmt.Statement;
+import org.mapleir.ir.code.Stmt;
 import org.mapleir.stdlib.collections.graph.flow.ExceptionRange;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.tree.LabelNode;
@@ -31,7 +31,7 @@ public class ControlFlowGraphDumper {
 		
 		for (BasicBlock b : blocks) {
 			m.visitLabel(b.getLabel());
-			for (Statement stmt : b) {
+			for (Stmt stmt : b) {
 				stmt.toCode(m, null);
 			}
 		}

@@ -5,31 +5,33 @@ import java.util.Map.Entry;
 
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
-import org.mapleir.ir.code.expr.Expression;
+import org.mapleir.ir.code.CodeUnit;
+import org.mapleir.ir.code.Expr;
+import org.mapleir.ir.code.Stmt;
 import org.mapleir.stdlib.util.TabbedStringWriter;
 import org.mapleir.stdlib.util.TypeUtils;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Type;
 
-public class SwitchStatement extends Statement {
+public class SwitchStatement extends Stmt {
 
-	private Expression expression;
+	private Expr expression;
 	private LinkedHashMap<Integer, BasicBlock> targets;
 	private BasicBlock defaultTarget;
 
-	public SwitchStatement(Expression expr, LinkedHashMap<Integer, BasicBlock> targets, BasicBlock defaultTarget) {
+	public SwitchStatement(Expr expr, LinkedHashMap<Integer, BasicBlock> targets, BasicBlock defaultTarget) {
 		super(SWITCH_JUMP);
 		setExpression(expr);
 		this.targets = targets;
 		this.defaultTarget = defaultTarget;
 	}
 
-	public Expression getExpression() {
+	public Expr getExpression() {
 		return expression;
 	}
 
-	public void setExpression(Expression expression) {
+	public void setExpression(Expr expression) {
 		this.expression = expression;
 		overwrite(expression, 0);
 	}
@@ -53,7 +55,7 @@ public class SwitchStatement extends Statement {
 	@Override
 	public void onChildUpdated(int ptr) {
 		if (ptr == 0) {
-			setExpression((Expression) read(ptr));
+			setExpression((Expr) read(ptr));
 		}
 	}
 	
@@ -166,17 +168,17 @@ public class SwitchStatement extends Statement {
 	}
 
 	@Override
-	public boolean isAffectedBy(Statement stmt) {
+	public boolean isAffectedBy(CodeUnit stmt) {
 		return expression.isAffectedBy(stmt);
 	}
 
 	@Override
-	public Statement copy() {
+	public SwitchStatement copy() {
 		return new SwitchStatement(expression.copy(), new LinkedHashMap<>(targets), defaultTarget);
 	}
 
 	@Override
-	public boolean equivalent(Statement s) {
+	public boolean equivalent(CodeUnit s) {
 		if(s instanceof SwitchStatement) {
 			SwitchStatement sw = (SwitchStatement) s;
 			if(defaultTarget.getNumericId() != sw.defaultTarget.getNumericId() || !expression.equivalent(sw.expression)) {

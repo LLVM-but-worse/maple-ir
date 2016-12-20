@@ -13,8 +13,10 @@ import org.mapleir.ir.cfg.edge.ImmediateEdge;
 import org.mapleir.ir.cfg.edge.SwitchEdge;
 import org.mapleir.ir.cfg.edge.TryCatchEdge;
 import org.mapleir.ir.cfg.edge.UnconditionalJumpEdge;
+import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.code.ExpressionStack;
 import org.mapleir.ir.code.Opcode;
+import org.mapleir.ir.code.Stmt;
 import org.mapleir.ir.code.expr.*;
 import org.mapleir.ir.code.expr.ArithmeticExpression.Operator;
 import org.mapleir.ir.code.expr.ComparisonExpression.ValueComparisonType;
@@ -151,7 +153,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		ExpressionStack stack = new ExpressionStack(16);
 		handler.setInputStack(stack);
 		
-		Expression expr = new CaughtExceptionExpression(tc.type);
+		CaughtExceptionExpression expr = new CaughtExceptionExpression(tc.type);
 		Type type = expr.getType();
 		VarExpression var = _var_expr(0, type, true);
 		CopyVarStatement stmt = copy(var, expr, handler);
@@ -367,7 +369,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 			case NEWARRAY: {
 				save_stack(false);
 				_new_array(
-					new Expression[] { pop() }, 
+					new Expr[] { pop() }, 
 					TypeUtils.getPrimitiveArrayType(((IntInsnNode) ain).operand)
 				);
 				break;
@@ -380,7 +382,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 				else
 					typeName = '[' + typeName;
 				_new_array(
-					new Expression[] { pop() }, 
+					new Expr[] { pop() }, 
 					Type.getType(typeName)
 				);
 				break;
@@ -388,7 +390,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 			case MULTIANEWARRAY: {
 				save_stack(false);
 				MultiANewArrayInsnNode in = (MultiANewArrayInsnNode) ain;
-				Expression[] bounds = new Expression[in.dims];
+				Expr[] bounds = new Expr[in.dims];
 				for (int i = in.dims - 1; i >= 0; i--) {
 					bounds[i] = pop();
 				}
@@ -660,7 +662,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 	}
 
 	void _const(Object o) {
-		Expression e = new ConstantExpression(o);
+		Expr e = new ConstantExpression(o);
 		// int index = currentStack.height();
 		// Type type = assign_stack(index, e);
 		// push(load_stack(index, type));
@@ -669,8 +671,8 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 
 	void _compare(ValueComparisonType ctype) {
 		save_stack(false);
-		Expression right = pop();
-		Expression left = pop();
+		Expr right = pop();
+		Expr left = pop();
 		push(new ComparisonExpression(left, right, ctype));
 	}
 
@@ -702,7 +704,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 
 	void _arithmetic(Operator op) {
 		save_stack(false);
-		Expression e = new ArithmeticExpression(pop(), pop(), op);
+		Expr e = new ArithmeticExpression(pop(), pop(), op);
 		int index = currentStack.height();
 		Type type = assign_stack(index, e);
 		push(load_stack(index, type));
@@ -724,8 +726,8 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		// poststack: var0
 		// assignments: var0 = var0[var1]
 //		int height = currentStack.height();
-		Expression index = pop();
-		Expression array = pop();
+		Expr index = pop();
+		Expr array = pop();
 		push(new ArrayLoadExpression(array, index, type));
 //		assign_stack(height - 2, new ArrayLoadExpression(array, index, type));
 //		push(load_stack(height - 2, type.getType()));
@@ -733,15 +735,15 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 	
 	void _store_array(ArrayType type) {
 		save_stack(false);
-		Expression value = pop();
-		Expression index = pop();
-		Expression array = pop();
+		Expr value = pop();
+		Expr index = pop();
+		Expr array = pop();
 		addStmt(new ArrayStoreStatement(array, index, value, type));
 	}
 	
 	void _pop(int amt) {
 		for(int i=0; i < amt; ) {
-			Expression top = pop();
+			Expr top = pop();
 			addStmt(new PopStatement(top));
 			i += top.getType().getSize();
 		}
@@ -755,7 +757,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		int baseHeight = currentStack.height();
 		save_stack(false);
 		
-		Expression var0 = pop();
+		Expr var0 = pop();
 
 		Type var1Type = assign_stack(baseHeight, var0); // var1 = var0
 		push(load_stack(baseHeight - 1, var0.getType())); //  push var0
@@ -772,8 +774,8 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		int baseHeight = currentStack.height();
 		save_stack(false);
 
-		Expression var1 = pop();
-		Expression var0 = pop();
+		Expr var1 = pop();
+		Expr var0 = pop();
 
 		Type var3Type = assign_stack(baseHeight + 1, var0); // var3 = var0
 
@@ -798,8 +800,8 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 			// assignments: var3 = var2(initial)
 			currentStack.assertHeights(DUP_X2_64_HEIGHTS);
 
-			Expression var2 = pop();
-			Expression var0 = pop();
+			Expr var2 = pop();
+			Expr var0 = pop();
 
 			Type var4Type = assign_stack(baseHeight + 1, var0); // var4 = var0(initial)
 
@@ -819,9 +821,9 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 			// assignments: var3 = var2(initial)
 			currentStack.assertHeights(DUP_X2_32_HEIGHTS);
 
-			Expression var2 = pop();
-			Expression var1 = pop();
-			Expression var0 = pop();
+			Expr var2 = pop();
+			Expr var1 = pop();
+			Expr var0 = pop();
 
 			Type var4Type = assign_stack(baseHeight + 1, var0); // var4 = var0(initial)
 			Type var5Type = assign_stack(baseHeight + 2, var1); // var5 = var1(initial)
@@ -847,7 +849,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 			// poststack: var2, var0
 			// assignments: var2 = var0
 
-			Expression var0 = pop();
+			Expr var0 = pop();
 
 			Type var2Type = assign_stack(baseHeight, var0); // var2 = var0
 			push(load_stack(baseHeight - 2, var0.getType())); //  push var0
@@ -859,8 +861,8 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 			// assignments: var3 = var1(initial)
 			currentStack.assertHeights(DUP2_32_HEIGHTS);
 
-			Expression var1 = pop();
-			Expression var0 = pop();
+			Expr var1 = pop();
+			Expr var0 = pop();
 
 			Type var2Type = assign_stack(baseHeight + 0, var0); // var2 = var0
 			Type var3Type = assign_stack(baseHeight + 1, var1); // var3 = var1
@@ -885,8 +887,8 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 			// assignments: var3 = var2(initial)
 			currentStack.assertHeights(DUP2_X1_64_HEIGHTS);
 
-			Expression var2 = pop();
-			Expression var0 = pop();
+			Expr var2 = pop();
+			Expr var0 = pop();
 
 			Type var4Type = assign_stack(baseHeight + 1, var0); // var4 = var0(initial)
 
@@ -907,9 +909,9 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 			// assignments: var4 = var2(initial)
 			currentStack.assertHeights(DUP2_X1_32_HEIGHTS);
 
-			Expression var2 = pop();
-			Expression var1 = pop();
-			Expression var0 = pop();
+			Expr var2 = pop();
+			Expr var1 = pop();
+			Expr var0 = pop();
 
 			Type var5Type = assign_stack(baseHeight + 2, var0); // var5 = var0(initial)
 
@@ -943,8 +945,8 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 				// assignments: var4 = var2(initial)
 				currentStack.assertHeights(DUP2_X2_64x64_HEIGHTS);
 
-				Expression var2 = pop();
-				Expression var0 = pop();
+				Expr var2 = pop();
+				Expr var0 = pop();
 
 				Type var6Type = assign_stack(baseHeight + 2, var0); // var6 = var0(initial)
 
@@ -965,9 +967,9 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 				// assignments: var4 = var2(initial)
 				currentStack.assertHeights(DUP2_X2_64x32_HEIGHTS);
 
-				Expression var2 = pop();
-				Expression var1 = pop();
-				Expression var0 = pop();
+				Expr var2 = pop();
+				Expr var1 = pop();
+				Expr var0 = pop();
 
 				Type var6Type = assign_stack(baseHeight + 2, var0); // var6 = var0(initial)
 
@@ -994,9 +996,9 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 				// assignments: var5 = var3(initial)
 				currentStack.assertHeights(DUP2_X2_32x64_HEIGHTS);
 
-				Expression var3 = pop();
-				Expression var2 = pop();
-				Expression var0 = pop();
+				Expr var3 = pop();
+				Expr var2 = pop();
+				Expr var0 = pop();
 
 				Type var6Type = assign_stack(baseHeight + 2, var0); // var6 = var0(initial)
 
@@ -1023,10 +1025,10 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 				// var5 = var3
 				currentStack.assertHeights(DUP2_X2_32x32_HEIGHTS);
 
-				Expression var3 = pop();
-				Expression var2 = pop();
-				Expression var1 = pop();
-				Expression var0 = pop();
+				Expr var3 = pop();
+				Expr var2 = pop();
+				Expr var1 = pop();
+				Expr var0 = pop();
 
 				Type var6Type = assign_stack(baseHeight + 2, var0); // var6 = var0(initial)
 				Type var7Type = assign_stack(baseHeight + 3, var1); // var7 = var1(initial)
@@ -1058,8 +1060,8 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		int baseHeight = currentStack.height();
 		save_stack(false);
 
-		Expression var1 = pop();
-		Expression var0 = pop();
+		Expr var1 = pop();
+		Expr var0 = pop();
 
 		Type var2Type = assign_stack(baseHeight + 0, var0); // var2 = var0
 		Type var3Type = assign_stack(baseHeight + 1, var1); // var3 = var1
@@ -1073,7 +1075,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 	
 	void _cast(Type type) {
 		save_stack(false);
-		Expression e = new CastExpression(pop(), type);
+		Expr e = new CastExpression(pop(), type);
 		int index = currentStack.height();
 		assign_stack(index, e);
 		push(load_stack(index, type));
@@ -1095,7 +1097,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		push(load_stack(index, type));
 	}
 	
-	void _new_array(Expression[] bounds, Type type) {
+	void _new_array(Expr[] bounds, Type type) {
 		int index = currentStack.height();
 		NewArrayExpression e = new NewArrayExpression(bounds, type);
 		assign_stack(index, e);
@@ -1109,7 +1111,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		System.arraycopy(_args, 0, pArgs, 0, pArgs.length);
 		
 		// FIXME: can this end up as a virtual call
-		Expression[] args = new Expression[Type.getArgumentTypes(desc).length];
+		Expr[] args = new Expr[Type.getArgumentTypes(desc).length];
 		for(int i = args.length - 1; i >= 0; i--) {
 			args[i] = pop();
 		}
@@ -1129,7 +1131,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 	void _call(int op, String owner, String name, String desc) {
 		save_stack(false);
 		int argLen = Type.getArgumentTypes(desc).length + (op == INVOKESTATIC ? 0 : 1);
-		Expression[] args = new Expression[argLen];
+		Expr[] args = new Expr[argLen];
 		for (int i = args.length - 1; i >= 0; i--) {
 			args[i] = pop();
 		}
@@ -1145,7 +1147,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 	
 	void _switch(LinkedHashMap<Integer, BasicBlock> targets, BasicBlock dflt) {
 		save_stack(false);
-		Expression expr = pop();
+		Expr expr = pop();
 		
 		for (Entry<Integer, BasicBlock> e : targets.entrySet()) {
 			update_target_stack(currentBlock, e.getValue(), currentStack);
@@ -1159,11 +1161,11 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 	void _store_field(int opcode, String owner, String name, String desc) {
 		save_stack(false);
 		if(opcode == PUTFIELD) {
-			Expression val = pop();
-			Expression inst = pop();
+			Expr val = pop();
+			Expr inst = pop();
 			addStmt(new FieldStoreStatement(inst, val, owner, name, desc));
 		} else if(opcode == PUTSTATIC) {
-			Expression val = pop();
+			Expr val = pop();
 			addStmt(new FieldStoreStatement(null, val, owner, name, desc));
 		} else {
 			throw new UnsupportedOperationException(Printer.OPCODES[opcode] + " " + owner + "." + name + "   " + desc);
@@ -1173,7 +1175,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 	void _load_field(int opcode, String owner, String name, String desc) {
 		save_stack(false);
 		if(opcode == GETFIELD || opcode == GETSTATIC) {
-			Expression inst = null;
+			Expr inst = null;
 			if(opcode == GETFIELD) {
 				inst = pop();
 			}
@@ -1188,7 +1190,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 	
 	void _store(int index, Type type) {
 		save_stack(false);
-		Expression expr = pop();
+		Expr expr = pop();
 		VarExpression var = _var_expr(index, expr.getType(), false);
 		addStmt(copy(var, expr));
 	}
@@ -1207,11 +1209,11 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		addStmt(copy(var, inc));
 	}
 	
-	CopyVarStatement copy(VarExpression v, Expression e) {
+	CopyVarStatement copy(VarExpression v, Expr e) {
 		return copy(v, e, currentBlock);
 	}
 	
-	CopyVarStatement copy(VarExpression v, Expression e, BasicBlock b) {
+	CopyVarStatement copy(VarExpression v, Expr e, BasicBlock b) {
 		builder.assigns.getNonNull(v.getLocal()).add(b);
 		return new CopyVarStatement(v.getParent() != null? v.copy() : v, e.getParent() != null? e.copy() : e);
 	}
@@ -1223,7 +1225,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 	}
 	
 	// var[index] = expr
-	Type assign_stack(int index, Expression expr) {
+	Type assign_stack(int index, Expr expr) {
 		if(expr.getOpcode() == Opcode.LOCAL_LOAD) {
 			VarExpression v = (VarExpression) expr;
 			if(v.getIndex() == index && v.getLocal().isStack()) {
@@ -1237,32 +1239,32 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		return type;
 	}
 	
-	Expression load_stack(int index, Type type) {
+	Expr load_stack(int index, Type type) {
 		return _var_expr(index, type, true);
 	}
 	
-	void _jump_cmp(BasicBlock target, ComparisonType type, Expression left, Expression right) {
+	void _jump_cmp(BasicBlock target, ComparisonType type, Expr left, Expr right) {
 		update_target_stack(currentBlock, target, currentStack);
 		addStmt(new ConditionalJumpStatement(left, right, target, type));
 	}
 	
 	void _jump_cmp(BasicBlock target, ComparisonType type) {
 		save_stack(false);
-		Expression right = pop();
-		Expression left = pop();
+		Expr right = pop();
+		Expr left = pop();
 		_jump_cmp(target, type, left, right);
 	}
 	
 	void _jump_cmp0(BasicBlock target, ComparisonType type) {
 		save_stack(false);
-		Expression left = pop();
+		Expr left = pop();
 		ConstantExpression right = new ConstantExpression(0);
 		_jump_cmp(target, type, left, right);
 	}
 
 	void _jump_null(BasicBlock target, boolean invert) {
 		save_stack(false);
-		Expression left = pop();
+		Expr left = pop();
 		ConstantExpression right = new ConstantExpression(null);
 		ComparisonType type = invert ? ComparisonType.NE : ComparisonType.EQ;
 		
@@ -1274,7 +1276,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		addStmt(new UnconditionalJumpStatement(target));
 	}
 	
-	Expression _pop(Expression e) {
+	Expr _pop(Expr e) {
 		if(e.getParent() != null) {
 			return e.copy();
 		} else {
@@ -1282,19 +1284,19 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		}
 	}
 	
-	Expression pop() {
+	Expr pop() {
 		return _pop(currentStack.pop());
 	}
 	
-	Expression peek() {
+	Expr peek() {
 		return currentStack.peek();
 	}
 
-	void push(Expression e) {
+	void push(Expr e) {
 		currentStack.push(e);
 	}
 	
-	void addStmt(Statement stmt) {
+	void addStmt(Stmt stmt) {
 		currentBlock.add(stmt);
 	}
 	
@@ -1322,7 +1324,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 			// peek(len-1) = btm
 
 			int index = height;
-			Expression expr = copy.peek(i);
+			Expr expr = copy.peek(i);
 			
 			if(expr.getParent() != null) {
 				expr = expr.copy();
@@ -1331,7 +1333,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 			// System.out.println("    Pop: " + expr + ":" + expr.getType());
 			// System.out.println("    Idx: " + index);
 			Type type = assign_stack(index, expr);
-			Expression e = load_stack(index, type);
+			Expr e = load_stack(index, type);
 			// System.out.println("    Push " + e + ":" + e.getType());
 			// System.out.println("    tlen: " + type.getSize());
 
@@ -1355,8 +1357,8 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		ExpressionStack c0 = s.copy();
 		ExpressionStack c1 = succ.copy();
 		while (c0.height() > 0) {
-			Expression e1 = c0.pop();
-			Expression e2 = c1.pop();
+			Expr e1 = c0.pop();
+			Expr e2 = c1.pop();
 			if (!(e1.getOpcode() == Opcode.LOCAL_LOAD) || !(e2.getOpcode() == Opcode.LOCAL_LOAD)) {
 				return false;
 			}

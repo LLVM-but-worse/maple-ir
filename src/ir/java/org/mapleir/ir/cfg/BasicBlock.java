@@ -13,20 +13,20 @@ import org.mapleir.ir.cfg.edge.FlowEdge;
 import org.mapleir.ir.cfg.edge.ImmediateEdge;
 import org.mapleir.ir.cfg.edge.TryCatchEdge;
 import org.mapleir.ir.code.ExpressionStack;
-import org.mapleir.ir.code.stmt.Statement;
+import org.mapleir.ir.code.Stmt;
 import org.mapleir.stdlib.collections.graph.FastGraphVertex;
 import org.mapleir.stdlib.collections.graph.flow.ExceptionRange;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.tree.LabelNode;
 
-public class BasicBlock implements FastGraphVertex, Comparable<BasicBlock>, List<Statement> {
+public class BasicBlock implements FastGraphVertex, Comparable<BasicBlock>, List<Stmt> {
 
 	public static final int FLAG_NO_MERGE = 0x1;
 	
 	private int id;
 	private final ControlFlowGraph cfg;
 	private LabelNode label;
-	private final List<Statement> statements;
+	private final List<Stmt> statements;
 	private ExpressionStack inputStack;
 	private int flags = 0;
 	// private Map<ExceptionRange<BasicBlock>, Integer> ranges;
@@ -57,14 +57,14 @@ public class BasicBlock implements FastGraphVertex, Comparable<BasicBlock>, List
 	}
 	
 	@Override
-	public boolean add(Statement stmt) {
+	public boolean add(Stmt stmt) {
 		boolean ret = statements.add(stmt);
 		stmt.setBlock(this);
 		return ret;
 	}
 
 	@Override
-	public void add(int index, Statement stmt) {
+	public void add(int index, Stmt stmt) {
 		statements.add(index, stmt);
 		stmt.setBlock(this);
 	}
@@ -72,8 +72,8 @@ public class BasicBlock implements FastGraphVertex, Comparable<BasicBlock>, List
 	@Override
 	public boolean remove(Object o) {
 		boolean ret = statements.remove(o);
-		if (o instanceof Statement)
-			((Statement) o).setBlock(null);
+		if (o instanceof Stmt)
+			((Stmt) o).setBlock(null);
 		return ret;
 	}
 	
@@ -83,15 +83,15 @@ public class BasicBlock implements FastGraphVertex, Comparable<BasicBlock>, List
 	}
 	
 	@Override
-	public boolean addAll(Collection<? extends Statement> c) {
-		for (Statement stmt : c)
+	public boolean addAll(Collection<? extends Stmt> c) {
+		for (Stmt stmt : c)
 			add(stmt);
 		return c.size() != 0;
 	}
 	
 	@Override
-	public boolean addAll(int index, Collection<? extends Statement> c) {
-		for (Statement stmt : c)
+	public boolean addAll(int index, Collection<? extends Stmt> c) {
+		for (Stmt stmt : c)
 			add(index++, stmt);
 		return c.size() != 0;
 	}
@@ -107,9 +107,9 @@ public class BasicBlock implements FastGraphVertex, Comparable<BasicBlock>, List
 	@Override
 	public boolean retainAll(Collection<?> c) {
 		boolean ret = false;
-		Iterator<Statement> it = iterator();
+		Iterator<Stmt> it = iterator();
 		while (it.hasNext()) {
-			Statement stmt = it.next();
+			Stmt stmt = it.next();
 			if (!c.contains(stmt)) {
 				it.remove();
 				stmt.setBlock(null);
@@ -120,8 +120,8 @@ public class BasicBlock implements FastGraphVertex, Comparable<BasicBlock>, List
 	}
 	
 	@Override
-	public Statement remove(int index) {
-		Statement stmt = statements.remove(index);
+	public Stmt remove(int index) {
+		Stmt stmt = statements.remove(index);
 		stmt.setBlock(null);
 		return stmt;
 	}
@@ -147,12 +147,12 @@ public class BasicBlock implements FastGraphVertex, Comparable<BasicBlock>, List
 	}
 	
 	@Override
-	public Statement get(int index) {
+	public Stmt get(int index) {
 		return statements.get(index);
 	}
 	
 	@Override
-	public Statement set(int index, Statement stmt) {
+	public Stmt set(int index, Stmt stmt) {
 		stmt.setBlock(this);
 		return statements.set(index, stmt);
 	}
@@ -164,26 +164,26 @@ public class BasicBlock implements FastGraphVertex, Comparable<BasicBlock>, List
 	
 	@Override
 	public void clear() {
-		Iterator<Statement> it = statements.iterator();
+		Iterator<Stmt> it = statements.iterator();
 		while(it.hasNext()) {
-			Statement s = it.next();
+			Stmt s = it.next();
 			s.setBlock(null);
 			it.remove();
 		}
 	}
 	
 	@Override
-	public Iterator<Statement> iterator() {
+	public Iterator<Stmt> iterator() {
 		return statements.iterator();
 	}
 		
 	@Override
-	public ListIterator<Statement> listIterator() {
+	public ListIterator<Stmt> listIterator() {
 		return statements.listIterator();
 	}
 	
 	@Override
-	public ListIterator<Statement> listIterator(int index) {
+	public ListIterator<Stmt> listIterator(int index) {
 		return statements.listIterator(index);
 	}
 	
@@ -198,14 +198,14 @@ public class BasicBlock implements FastGraphVertex, Comparable<BasicBlock>, List
 	}
 	
 	@Override
-	public List<Statement> subList(int fromIndex, int toIndex) {
+	public List<Stmt> subList(int fromIndex, int toIndex) {
 		throw new UnsupportedOperationException();
 	}
 	
 	public void transfer(BasicBlock to) {
-		Iterator<Statement> it = statements.iterator();
+		Iterator<Stmt> it = statements.iterator();
 		while(it.hasNext()) {
-			Statement s = it.next();
+			Stmt s = it.next();
 			to.statements.add(s);
 			s.setBlock(to);
 			it.remove();
@@ -215,7 +215,7 @@ public class BasicBlock implements FastGraphVertex, Comparable<BasicBlock>, List
 	public void transferUp(BasicBlock dst, int to) {
 		// FIXME: faster
 		for(int i=to - 1; i >= 0; i--) {
-			Statement s = statements.remove(0);
+			Stmt s = statements.remove(0);
 			dst.add(s);
 			s.setBlock(dst);
 		}
@@ -397,11 +397,11 @@ public class BasicBlock implements FastGraphVertex, Comparable<BasicBlock>, List
 		return result;
 	}
 	
-	public void checkConsistency() {
-		for (Statement stmt : statements)
-			if (stmt.getBlock() != this)
-				throw new IllegalStateException("Orphaned child " + stmt);
-	}
+//	public void checkConsistency() {
+//		for (Stmt stmt : statements)
+//			if (stmt.getBlock() != this)
+//				throw new IllegalStateException("Orphaned child " + stmt);
+//	}
 
 	public int getFlags() {
 		return flags;

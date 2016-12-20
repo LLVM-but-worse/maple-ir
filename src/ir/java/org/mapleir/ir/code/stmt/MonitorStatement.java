@@ -1,32 +1,34 @@
 package org.mapleir.ir.code.stmt;
 
 import org.mapleir.ir.cfg.ControlFlowGraph;
-import org.mapleir.ir.code.expr.Expression;
+import org.mapleir.ir.code.CodeUnit;
+import org.mapleir.ir.code.Expr;
+import org.mapleir.ir.code.Stmt;
 import org.mapleir.stdlib.util.TabbedStringWriter;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
-public class MonitorStatement extends Statement {
+public class MonitorStatement extends Stmt {
 
 	public enum MonitorMode {
 		ENTER, EXIT;
 	}
 
-	private Expression expression;
+	private Expr expression;
 	private MonitorMode mode;
 
-	public MonitorStatement(Expression expression, MonitorMode mode) {
+	public MonitorStatement(Expr expression, MonitorMode mode) {
 		super(MONITOR);
 		setExpression(expression);
 		this.mode = mode;
 	}
 
-	public void setExpression(Expression expression) {
+	public void setExpression(Expr expression) {
 		this.expression = expression;
 		overwrite(expression, 0);
 	}
 
-	public Expression getExpression() {
+	public Expr getExpression() {
 		return expression;
 	}
 
@@ -36,7 +38,7 @@ public class MonitorStatement extends Statement {
 
 	@Override
 	public void onChildUpdated(int ptr) {
-		setExpression((Expression) read(ptr));
+		setExpression((Expr) read(ptr));
 	}
 
 	@Override
@@ -65,17 +67,17 @@ public class MonitorStatement extends Statement {
 	}
 
 	@Override
-	public boolean isAffectedBy(Statement stmt) {
+	public boolean isAffectedBy(CodeUnit stmt) {
 		return stmt.canChangeLogic() || expression.isAffectedBy(stmt);
 	}
 
 	@Override
-	public Statement copy() {
+	public MonitorStatement copy() {
 		return new MonitorStatement(expression.copy(), mode);
 	}
 
 	@Override
-	public boolean equivalent(Statement s) {
+	public boolean equivalent(CodeUnit s) {
 		if(s instanceof MonitorStatement) {
 			MonitorStatement mon = (MonitorStatement) s;
 			return mode == mon.mode && expression.equivalent(mon.expression);

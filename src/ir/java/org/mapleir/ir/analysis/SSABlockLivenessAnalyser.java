@@ -8,11 +8,11 @@ import java.util.Queue;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.cfg.edge.FlowEdge;
+import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.code.Opcode;
-import org.mapleir.ir.code.expr.Expression;
+import org.mapleir.ir.code.Stmt;
 import org.mapleir.ir.code.expr.PhiExpression;
 import org.mapleir.ir.code.expr.VarExpression;
-import org.mapleir.ir.code.stmt.Statement;
 import org.mapleir.ir.code.stmt.copy.CopyPhiStatement;
 import org.mapleir.ir.code.stmt.copy.CopyVarStatement;
 import org.mapleir.ir.locals.Local;
@@ -98,22 +98,22 @@ public class SSABlockLivenessAnalyser implements Liveness<BasicBlock> {
 		// we have to iterate in reverse order because a definition will kill a use in the current block
 		// this is so that uses do not escape a block if its def is in the same block. this is basically
 		// simulating a statement graph analysis
-		ListIterator<Statement> it = b.listIterator(b.size());
+		ListIterator<Stmt> it = b.listIterator(b.size());
 		while (it.hasPrevious()) {
-			Statement stmt = it.previous();
+			Stmt stmt = it.previous();
 			int opcode = stmt.getOpcode();
 			if (opcode == Opcode.PHI_STORE) {
 				CopyPhiStatement copy = (CopyPhiStatement) stmt;
 				phiDef.get(b).add(copy.getVariable().getLocal());
 				PhiExpression phi = copy.getExpression();
-				for (Map.Entry<BasicBlock, Expression> e : phi.getArguments().entrySet()) {
+				for (Map.Entry<BasicBlock, Expr> e : phi.getArguments().entrySet()) {
 					BasicBlock exprSource = e.getKey();
-					Expression phiExpr = e.getValue();
+					Expr phiExpr = e.getValue();
 					GenericBitSet<Local> useSet = phiUse.get(b).getNonNull(exprSource);
 					if (phiExpr.getOpcode() == Opcode.LOCAL_LOAD) {
 						useSet.add(((VarExpression) phiExpr).getLocal());
 					} else
-						for (Statement child : phiExpr.enumerate()) {
+						for (Expr child : phiExpr.enumerateOnlyChildren()) {
 							if (child.getOpcode() == Opcode.LOCAL_LOAD) {
 								useSet.add(((VarExpression) child).getLocal());
 							}
@@ -126,12 +126,12 @@ public class SSABlockLivenessAnalyser implements Liveness<BasicBlock> {
 					def.get(b).add(l);
 					use.get(b).remove(l);
 
-					Expression e = copy.getExpression();
+					Expr e = copy.getExpression();
 					if (e.getOpcode() == Opcode.CATCH) {
 						use.get(b).add(l);
 					}
 				}
-				for (Statement c : stmt.enumerate()) {
+				for (Expr c : stmt.enumerateOnlyChildren()) {
 					if (c.getOpcode() == Opcode.LOCAL_LOAD) {
 						VarExpression v = (VarExpression) c;
 						use.get(b).add(v.getLocal());

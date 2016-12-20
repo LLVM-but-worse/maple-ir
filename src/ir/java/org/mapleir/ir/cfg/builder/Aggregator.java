@@ -6,13 +6,12 @@ import java.util.Arrays;
 import org.mapleir.ir.analysis.SSALocalAccess;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.code.Opcode;
-import org.mapleir.ir.code.expr.Expression;
+import org.mapleir.ir.code.Stmt;
 import org.mapleir.ir.code.expr.InitialisedObjectExpression;
 import org.mapleir.ir.code.expr.InvocationExpression;
 import org.mapleir.ir.code.expr.UninitialisedObjectExpression;
 import org.mapleir.ir.code.expr.VarExpression;
 import org.mapleir.ir.code.stmt.PopStatement;
-import org.mapleir.ir.code.stmt.Statement;
 import org.mapleir.ir.code.stmt.copy.AbstractCopyStatement;
 import org.mapleir.ir.code.stmt.copy.CopyVarStatement;
 import org.mapleir.ir.locals.VersionedLocal;
@@ -28,7 +27,7 @@ public class Aggregator extends OptimisationPass.Optimiser implements Opcode {
 	public int run(BasicBlock b) {
 		int changes = 0;
 		
-		for(Statement stmt : new ArrayList<>(b)) {
+		for(Stmt stmt : new ArrayList<>(b)) {
 			if (stmt.getOpcode() == POP) {
 				PopStatement pop = (PopStatement) stmt;
 				Expression expr = pop.getExpression();

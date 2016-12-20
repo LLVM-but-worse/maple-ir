@@ -2,8 +2,10 @@ package org.mapleir.ir.code.stmt;
 
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
+import org.mapleir.ir.code.CodeUnit;
+import org.mapleir.ir.code.Expr;
+import org.mapleir.ir.code.Stmt;
 import org.mapleir.ir.code.expr.ConstantExpression;
-import org.mapleir.ir.code.expr.Expression;
 import org.mapleir.stdlib.util.TabbedStringWriter;
 import org.mapleir.stdlib.util.TypeUtils;
 import org.objectweb.asm.MethodVisitor;
@@ -11,7 +13,7 @@ import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.util.Printer;
 
-public class ConditionalJumpStatement extends Statement {
+public class ConditionalJumpStatement extends Stmt {
 
 	public enum ComparisonType {
 		EQ("=="), NE("!="), LT("<"), GE(">="), GT(">"), LE("<="), ;
@@ -54,12 +56,12 @@ public class ConditionalJumpStatement extends Statement {
 		}
 	}
 
-	private Expression left;
-	private Expression right;
+	private Expr left;
+	private Expr right;
 	private BasicBlock trueSuccessor;
 	private ComparisonType type;
 
-	public ConditionalJumpStatement(Expression left, Expression right, BasicBlock trueSuccessor, ComparisonType type) {
+	public ConditionalJumpStatement(Expr left, Expr right, BasicBlock trueSuccessor, ComparisonType type) {
 		super(COND_JUMP);
 		setLeft(left);
 		setRight(right);
@@ -67,20 +69,20 @@ public class ConditionalJumpStatement extends Statement {
 		setType(type);
 	}
 
-	public Expression getLeft() {
+	public Expr getLeft() {
 		return left;
 	}
 
-	public void setLeft(Expression left) {
+	public void setLeft(Expr left) {
 		this.left = left;
 		overwrite(left, 0);
 	}
 
-	public Expression getRight() {
+	public Expr getRight() {
 		return right;
 	}
 
-	public void setRight(Expression right) {
+	public void setRight(Expr right) {
 		this.right = right;
 		overwrite(right, 1);
 	}
@@ -104,9 +106,9 @@ public class ConditionalJumpStatement extends Statement {
 	@Override
 	public void onChildUpdated(int ptr) {
 		if (ptr == 0) {
-			setLeft((Expression) read(ptr));
+			setLeft((Expr) read(ptr));
 		} else if (ptr == 1) {
-			setRight((Expression) read(ptr));
+			setRight((Expr) read(ptr));
 		}
 	}
 
@@ -214,17 +216,17 @@ public class ConditionalJumpStatement extends Statement {
 	}
 
 	@Override
-	public boolean isAffectedBy(Statement stmt) {
+	public boolean isAffectedBy(CodeUnit stmt) {
 		return left.isAffectedBy(stmt) || right.isAffectedBy(stmt);
 	}
 
 	@Override
-	public Statement copy() {
+	public ConditionalJumpStatement copy() {
 		return new ConditionalJumpStatement(left.copy(), right.copy(), trueSuccessor, type);
 	}
 
 	@Override
-	public boolean equivalent(Statement s) {
+	public boolean equivalent(CodeUnit s) {
 		if(s instanceof ConditionalJumpStatement) {
 			ConditionalJumpStatement jump = (ConditionalJumpStatement) s;
 			return type == jump.type && left.equivalent(jump.left) && right.equals(jump.right) && trueSuccessor.getNumericId() == jump.trueSuccessor.getNumericId();

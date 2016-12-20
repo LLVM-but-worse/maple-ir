@@ -7,7 +7,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import org.mapleir.ir.Test;
 import org.mapleir.ir.analysis.SSALocalAccess;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
@@ -70,26 +69,17 @@ public class ControlFlowGraphBuilder {
 	}
 	
 	private BuilderPass[] resolvePasses() {
-		SSAGenPass.SPLIT_BLOCK_COUNT = 0;
-//		if (!DO_SPLIT) {
-//			return new BuilderPass[] {
-//					new GenerationPass(this),
-//					new NaturalisationPass1(this),
-////					new SSAGenPass(this),
-////					new OptimisationPass(this)
-//			};
-//		}
 		return new BuilderPass[] {
 				new GenerationPass(this),
 				new NaturalisationPass1(this),
-//				new NaturalisationPass2(this),
+				// new NaturalisationPass2(this),
 				new SSAGenPass(this),
-//				new OptimisationPass(this),
-//				new DeadRangesPass(this)
+				// new OptimisationPass(this),
+				// new DeadRangesPass(this)
 		};
 	}
 	
-	private BuilderPass[] interlace(BuilderPass[] passes) {
+	/* private BuilderPass[] interlace(BuilderPass[] passes) {
 		if (Test.temp) {
 			BuilderPass[] res = new BuilderPass[passes.length * 2];
 			for (int i = 0; i < passes.length; i++) {
@@ -101,38 +91,15 @@ public class ControlFlowGraphBuilder {
 		} else {
 			return passes;
 		}
-	}
+	} */
 	
 	public static ControlFlowGraph build(MethodNode method) {
 		ControlFlowGraphBuilder builder = new ControlFlowGraphBuilder(method);
 		try {
 			for(BuilderPass p : builder.resolvePasses()) {
-//				System.out.println();
-//				System.out.println("BEFORE: " + p.getClass());
-//				System.out.println(builder.graph);
-//				System.out.println();
-//				System.out.println();
-				
-				p.run();
-				
-//				if(p instanceof SSAGenPass && !(p instanceof VerificationPass)) {
-//					System.out.println();
-//					System.out.println("AFTER " + p.getClass().getSimpleName() + ":");
-//					System.out.println(builder.graph);
-//					System.out.println();
-//					System.out.println();
-//				}
-				
-//				for (BasicBlock b : builder.graph.vertices())
-//					b.checkConsistency();
-
-//				BasicDotConfiguration<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> config = new BasicDotConfiguration<>(DotConfiguration.GraphType.DIRECTED);
-//				DotWriter<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> writer = new DotWriter<>(config, builder.graph);
-//				writer.removeAll().add(new ControlFlowGraphDecorator().setFlags(OPT_DEEP)).setName("post-" + p.getClass().getSimpleName()).export();
-			}
+				p.run();			}
 			return builder.graph;
 		} catch(RuntimeException e) {
-//			System.err.println(builder.graph);
 			throw e;
 		}
 	}
