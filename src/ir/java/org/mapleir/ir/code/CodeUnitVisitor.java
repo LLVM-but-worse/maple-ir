@@ -1,6 +1,6 @@
 package org.mapleir.ir.code;
 
-public abstract class StatementVisitor {
+public abstract class CodeUnitVisitor {
 
 	protected CodeUnit root;
 	private CodeUnit[] current;
@@ -8,7 +8,7 @@ public abstract class StatementVisitor {
 	private int depth;
 	private boolean broken;
 
-	public StatementVisitor(CodeUnit root) {
+	public CodeUnitVisitor(CodeUnit root) {
 		this.root = root;
 		current = new CodeUnit[2];
 		currentPtrs = new int[2];

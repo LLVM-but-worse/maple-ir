@@ -9,7 +9,7 @@ import org.mapleir.ir.analysis.SSALocalAccess;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.edge.TryCatchEdge;
 import org.mapleir.ir.code.Opcode;
-import org.mapleir.ir.code.StatementVisitor;
+import org.mapleir.ir.code.CodeUnitVisitor;
 import org.mapleir.ir.code.expr.*;
 import org.mapleir.ir.code.stmt.ArrayStoreStatement;
 import org.mapleir.ir.code.stmt.FieldStoreStatement;
@@ -44,7 +44,7 @@ public class Propagator extends OptimisationPass.Optimiser {
 		visitor = new FeedbackStatementVisitor(null);
 	}
 	
-	class FeedbackStatementVisitor extends StatementVisitor {
+	class FeedbackStatementVisitor extends CodeUnitVisitor {
 		
 		private boolean change = false;
 		
@@ -705,7 +705,7 @@ public class Propagator extends OptimisationPass.Optimiser {
 				return true;
 			}
 			
-			new StatementVisitor(rhs) {
+			new CodeUnitVisitor(rhs) {
 				@Override
 				public Statement visit(Statement stmt) {
 					if(stmt.getOpcode() == Opcode.FIELD_LOAD) {
