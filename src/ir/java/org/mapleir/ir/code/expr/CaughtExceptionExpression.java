@@ -1,12 +1,13 @@
 package org.mapleir.ir.code.expr;
 
 import org.mapleir.ir.cfg.ControlFlowGraph;
-import org.mapleir.ir.code.stmt.Statement;
+import org.mapleir.ir.code.CodeUnit;
+import org.mapleir.ir.code.Expr;
 import org.mapleir.stdlib.util.TabbedStringWriter;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Type;
 
-public class CaughtExceptionExpression extends Expression {
+public class CaughtExceptionExpression extends Expr {
 
 	private Type type;
 	
@@ -26,7 +27,7 @@ public class CaughtExceptionExpression extends Expression {
 	}
 
 	@Override
-	public Expression copy() {
+	public Expr copy() {
 		return new CaughtExceptionExpression(type);
 	}
 
@@ -61,12 +62,12 @@ public class CaughtExceptionExpression extends Expression {
 	}
 
 	@Override
-	public boolean isAffectedBy(Statement stmt) {
+	public boolean isAffectedBy(CodeUnit stmt) {
 		return true;
 	}
 
 	@Override
-	public boolean equivalent(Statement s) {
+	public boolean equivalent(CodeUnit s) {
 		if(s.getOpcode() == CATCH) {
 			CaughtExceptionExpression e = (CaughtExceptionExpression) s;
 			return type.equals(e.type);

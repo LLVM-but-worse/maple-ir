@@ -1,9 +1,9 @@
 package org.mapleir.ir.code.stmt.copy;
 
-import org.mapleir.ir.code.expr.Expression;
+import org.mapleir.ir.code.CodeUnit;
+import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.code.expr.PhiExpression;
 import org.mapleir.ir.code.expr.VarExpression;
-import org.mapleir.ir.code.stmt.Statement;
 
 public class CopyPhiStatement extends AbstractCopyStatement {
 
@@ -21,7 +21,7 @@ public class CopyPhiStatement extends AbstractCopyStatement {
 	}
 	
 	@Override
-	public void setExpression(Expression expression) {
+	public void setExpression(Expr expression) {
 		if(expression != null && !(expression instanceof PhiExpression)) {
 			throw new UnsupportedOperationException(expression.toString());
 		}
@@ -35,7 +35,7 @@ public class CopyPhiStatement extends AbstractCopyStatement {
 	}
 
 	@Override
-	public boolean equivalent(Statement s) {
+	public boolean equivalent(CodeUnit s) {
 		if(s instanceof CopyPhiStatement) {
 			CopyPhiStatement copy = (CopyPhiStatement) s;
 			return getExpression().equivalent(copy.getExpression()) && getVariable().equivalent(copy.getVariable());

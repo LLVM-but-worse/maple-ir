@@ -1,40 +1,41 @@
 package org.mapleir.ir.code.expr;
 
 import org.mapleir.ir.cfg.ControlFlowGraph;
-import org.mapleir.ir.code.stmt.Statement;
+import org.mapleir.ir.code.CodeUnit;
+import org.mapleir.ir.code.Expr;
 import org.mapleir.stdlib.util.TabbedStringWriter;
 import org.mapleir.stdlib.util.TypeUtils;
 import org.mapleir.stdlib.util.TypeUtils.ArrayType;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Type;
 
-public class ArrayLoadExpression extends Expression {
+public class ArrayLoadExpression extends Expr {
 	
-	private Expression array;
-	private Expression index;
+	private Expr array;
+	private Expr index;
 	private ArrayType type;
 
-	public ArrayLoadExpression(Expression array, Expression index, ArrayType type) {
+	public ArrayLoadExpression(Expr array, Expr index, ArrayType type) {
 		super(ARRAY_LOAD);
 		setArrayExpression(array);
 		setIndexExpression(index);
 		this.type = type;
 	}
 
-	public Expression getArrayExpression() {
+	public Expr getArrayExpression() {
 		return array;
 	}
 
-	public void setArrayExpression(Expression arrayExpression) {
+	public void setArrayExpression(Expr arrayExpression) {
 		array = arrayExpression;
 		overwrite(arrayExpression, 0);
 	}
 
-	public Expression getIndexExpression() {
+	public Expr getIndexExpression() {
 		return index;
 	}
 
-	public void setIndexExpression(Expression indexExpression) {
+	public void setIndexExpression(Expr indexExpression) {
 		index = indexExpression;
 		overwrite(indexExpression, 1);
 	}
@@ -48,7 +49,7 @@ public class ArrayLoadExpression extends Expression {
 	}
 
 	@Override
-	public Expression copy() {
+	public Expr copy() {
 		return new ArrayLoadExpression(array.copy(), index.copy(), type);
 	}
 
@@ -60,9 +61,9 @@ public class ArrayLoadExpression extends Expression {
 	@Override
 	public void onChildUpdated(int ptr) {
 		if (ptr == 0) {
-			setArrayExpression((Expression) read(0));
+			setArrayExpression((Expr) read(0));
 		} else if (ptr == 1) {
-			setIndexExpression((Expression) read(1));
+			setIndexExpression((Expr) read(1));
 		}
 	}
 
@@ -111,12 +112,12 @@ public class ArrayLoadExpression extends Expression {
 	}
 
 	@Override
-	public boolean isAffectedBy(Statement stmt) {
+	public boolean isAffectedBy(CodeUnit stmt) {
 		return stmt.canChangeLogic() || array.isAffectedBy(stmt) || index.isAffectedBy(stmt);
 	}
 
 	@Override
-	public boolean equivalent(Statement s) {
+	public boolean equivalent(CodeUnit s) {
 		if(s instanceof ArrayLoadExpression) {
 			ArrayLoadExpression load = (ArrayLoadExpression) s;
 			return array.equals(load.array) && index.equals(load.index);

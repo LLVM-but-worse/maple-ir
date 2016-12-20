@@ -1,20 +1,21 @@
 package org.mapleir.ir.code.expr;
 
 import org.mapleir.ir.cfg.ControlFlowGraph;
-import org.mapleir.ir.code.stmt.Statement;
+import org.mapleir.ir.code.CodeUnit;
+import org.mapleir.ir.code.Expr;
 import org.mapleir.stdlib.util.TabbedStringWriter;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 
-public class FieldLoadExpression extends Expression {
+public class FieldLoadExpression extends Expr {
 
-	private Expression instanceExpression;
+	private Expr instanceExpression;
 	private String owner;
 	private String name;
 	private String desc;
 
-	public FieldLoadExpression(Expression instanceExpression, String owner, String name, String desc) {
+	public FieldLoadExpression(Expr instanceExpression, String owner, String name, String desc) {
 		super(FIELD_LOAD);
 		setInstanceExpression(instanceExpression);
 		this.owner = owner;
@@ -22,11 +23,11 @@ public class FieldLoadExpression extends Expression {
 		this.desc = desc;
 	}
 
-	public Expression getInstanceExpression() {
+	public Expr getInstanceExpression() {
 		return instanceExpression;
 	}
 
-	public void setInstanceExpression(Expression instanceExpression) {
+	public void setInstanceExpression(Expr instanceExpression) {
 		this.instanceExpression = instanceExpression;
 		overwrite(instanceExpression, 0);
 	}
@@ -56,7 +57,7 @@ public class FieldLoadExpression extends Expression {
 	}
 
 	@Override
-	public Expression copy() {
+	public FieldLoadExpression copy() {
 		return new FieldLoadExpression(instanceExpression == null ? null : instanceExpression.copy(), owner, name, desc);
 	}
 
@@ -67,7 +68,7 @@ public class FieldLoadExpression extends Expression {
 
 	@Override
 	public void onChildUpdated(int ptr) {
-		setInstanceExpression((Expression) read(ptr));
+		setInstanceExpression((Expr) read(ptr));
 	}
 	
 	@Override
@@ -110,12 +111,12 @@ public class FieldLoadExpression extends Expression {
 	}
 
 	@Override
-	public boolean isAffectedBy(Statement stmt) {
+	public boolean isAffectedBy(CodeUnit stmt) {
 		return stmt.canChangeLogic() || (instanceExpression != null && instanceExpression.isAffectedBy(stmt));
 	}
 
 	@Override
-	public boolean equivalent(Statement s) {
+	public boolean equivalent(CodeUnit s) {
 		if(s instanceof FieldLoadExpression) {
 			FieldLoadExpression load = (FieldLoadExpression) s;
 			if(instanceExpression != null && load.instanceExpression == null) {

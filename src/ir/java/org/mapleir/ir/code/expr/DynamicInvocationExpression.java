@@ -1,7 +1,8 @@
 package org.mapleir.ir.code.expr;
 
 import org.mapleir.ir.cfg.ControlFlowGraph;
-import org.mapleir.ir.code.stmt.Statement;
+import org.mapleir.ir.code.CodeUnit;
+import org.mapleir.ir.code.Expr;
 import org.mapleir.stdlib.util.TabbedStringWriter;
 import org.objectweb.asm.Handle;
 import org.objectweb.asm.MethodVisitor;
@@ -21,15 +22,15 @@ import org.objectweb.asm.Type;
  *  the string arg is included as the method name with the insn.
  *  the last 3 are provided as bsmArgs.
  */
-public class DynamicInvocationExpression extends Expression {
+public class DynamicInvocationExpression extends Expr {
 
 	private Handle provider;
 	private Object[] providerArgs;
 	private String name;
 	private String desc;
-	private Expression[] args;
+	private Expr[] args;
 	
-	public DynamicInvocationExpression(Handle provider, Object[] providerArgs, String name, String desc, Expression[] args) {
+	public DynamicInvocationExpression(Handle provider, Object[] providerArgs, String name, String desc, Expr[] args) {
 		super(DYNAMIC_INVOKE);
 		
 		this.provider = provider;
@@ -59,11 +60,11 @@ public class DynamicInvocationExpression extends Expression {
 		return desc;
 	}
 	
-	public Expression[] getArgumentExpressions() {
+	public Expr[] getArgumentExpressions() {
 		return args;
 	}
 
-	public void updateArgument(int index, Expression arg) {
+	public void updateArgument(int index, Expr arg) {
 		if (index < 0 || (index) >= args.length) {
 			throw new ArrayIndexOutOfBoundsException();
 		}
@@ -72,7 +73,7 @@ public class DynamicInvocationExpression extends Expression {
 		overwrite(arg, index);
 	}
 
-	public void setArgumentExpressions(Expression[] _args) {
+	public void setArgumentExpressions(Expr[] _args) {
 		// TODO: genpass._dynamicinvoke
 //		if (callType != Opcodes.INVOKESTATIC && argumentExpressions.length <= 0) {
 //			throw new ArrayIndexOutOfBoundsException();
@@ -92,12 +93,12 @@ public class DynamicInvocationExpression extends Expression {
 	
 	@Override
 	public void onChildUpdated(int ptr) {
-		updateArgument(ptr, (Expression) read(ptr));
+		updateArgument(ptr, (Expr) read(ptr));
 	}
 
 	@Override
-	public Expression copy() {
-		Expression[] arguments = new Expression[args.length];
+	public Expr copy() {
+		Expr[] arguments = new Expr[args.length];
 		for (int i = 0; i < arguments.length; i++) {
 			arguments[i] = args[i].copy();
 		}
@@ -160,12 +161,12 @@ public class DynamicInvocationExpression extends Expression {
 	}
 
 	@Override
-	public boolean isAffectedBy(Statement stmt) {
+	public boolean isAffectedBy(CodeUnit stmt) {
 		if(stmt.canChangeLogic()) {
 			return true;
 		}
 		
-		for(Expression e : args) {
+		for(Expr e : args) {
 			if(e.isAffectedBy(stmt)) {
 				return true;
 			}
@@ -175,7 +176,7 @@ public class DynamicInvocationExpression extends Expression {
 	}
 
 	@Override
-	public boolean equivalent(Statement s) {
+	public boolean equivalent(CodeUnit s) {
 		if(s.getOpcode() == DYNAMIC_INVOKE) {
 			DynamicInvocationExpression o = (DynamicInvocationExpression) s;
 			if(!name.equals(o.name) || !provider.equals(o.provider) || !desc.equals(o.desc)) {
