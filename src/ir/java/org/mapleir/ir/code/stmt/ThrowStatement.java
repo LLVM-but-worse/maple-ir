@@ -1,32 +1,34 @@
 package org.mapleir.ir.code.stmt;
 
 import org.mapleir.ir.cfg.ControlFlowGraph;
-import org.mapleir.ir.code.expr.Expression;
+import org.mapleir.ir.code.CodeUnit;
+import org.mapleir.ir.code.Expr;
+import org.mapleir.ir.code.Stmt;
 import org.mapleir.stdlib.util.TabbedStringWriter;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
-public class ThrowStatement extends Statement {
+public class ThrowStatement extends Stmt {
 
-	private Expression expression;
+	private Expr expression;
 
-	public ThrowStatement(Expression expression) {
+	public ThrowStatement(Expr expression) {
 		super(THROW);
 		setExpression(expression);
 	}
 
-	public Expression getExpression() {
+	public Expr getExpression() {
 		return expression;
 	}
 
-	public void setExpression(Expression expression) {
+	public void setExpression(Expr expression) {
 		this.expression = expression;
 		overwrite(expression, 0);
 	}
 
 	@Override
 	public void onChildUpdated(int ptr) {
-		setExpression((Expression) read(ptr));
+		setExpression((Expr) read(ptr));
 	}
 
 	@Override
@@ -53,17 +55,17 @@ public class ThrowStatement extends Statement {
 	}
 
 	@Override
-	public boolean isAffectedBy(Statement stmt) {
+	public boolean isAffectedBy(CodeUnit stmt) {
 		return expression.isAffectedBy(stmt);
 	}
 
 	@Override
-	public Statement copy() {
+	public ThrowStatement copy() {
 		return new ThrowStatement(expression.copy());
 	}
 
 	@Override
-	public boolean equivalent(Statement s) {
+	public boolean equivalent(CodeUnit s) {
 		if(s instanceof ThrowStatement) {
 			ThrowStatement thr = (ThrowStatement) s;
 			return expression.equivalent(thr.expression);

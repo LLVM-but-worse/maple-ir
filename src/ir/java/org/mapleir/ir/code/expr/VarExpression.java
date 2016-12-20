@@ -1,7 +1,8 @@
 package org.mapleir.ir.code.expr;
 
 import org.mapleir.ir.cfg.ControlFlowGraph;
-import org.mapleir.ir.code.stmt.Statement;
+import org.mapleir.ir.code.CodeUnit;
+import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.code.stmt.copy.CopyVarStatement;
 import org.mapleir.ir.locals.Local;
 import org.mapleir.stdlib.util.TabbedStringWriter;
@@ -9,7 +10,7 @@ import org.mapleir.stdlib.util.TypeUtils;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Type;
 
-public class VarExpression extends Expression {
+public class VarExpression extends Expr {
 
 	private Local local;
 	private Type type;
@@ -74,7 +75,7 @@ public class VarExpression extends Expression {
 	}
 
 	@Override
-	public boolean isAffectedBy(Statement stmt) {
+	public boolean isAffectedBy(CodeUnit stmt) {
 		if(stmt instanceof CopyVarStatement) {
 			if(((CopyVarStatement) stmt).getVariable().getLocal() == local) {
 				return true;
@@ -84,7 +85,7 @@ public class VarExpression extends Expression {
 	}
 
 	@Override
-	public boolean equivalent(Statement s) {
+	public boolean equivalent(CodeUnit s) {
 		if(s instanceof VarExpression) {
 			VarExpression var = (VarExpression) s;
 			return local == var.local && type.equals(var.type);

@@ -3,7 +3,7 @@ package org.mapleir.ir.cfg;
 import java.util.Iterator;
 
 import org.mapleir.ir.cfg.edge.FlowEdge;
-import org.mapleir.ir.code.stmt.Statement;
+import org.mapleir.ir.code.Stmt;
 import org.mapleir.ir.locals.LocalsPool;
 import org.mapleir.stdlib.collections.graph.flow.ExceptionRange;
 import org.mapleir.stdlib.util.TabbedStringWriter;
@@ -50,14 +50,14 @@ public class ControlFlowGraph extends FastBlockGraph {
 		sw.print(String.format("===#Block %s(size=%d, ident=%s, flags=%s)===", b.getId(), b.size(), (b.getLabel() != null ? b.getLabel().hashCode() : "null"), Integer.toBinaryString(b.getFlags())));
 		sw.tab();
 		
-		Iterator<Statement> it = b.iterator();
+		Iterator<Stmt> it = b.iterator();
 		if(!it.hasNext()) {
 			sw.untab();
 		} else {
 			sw.print("\n");
 		}
 		while(it.hasNext()) {
-			Statement stmt = it.next();
+			Stmt stmt = it.next();
 //			sw.print(stmt.getId() + ". ");
 			sw.print(insn++ + ". ");
 			stmt.toString(sw);

@@ -2,12 +2,14 @@ package org.mapleir.ir.code.stmt;
 
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
+import org.mapleir.ir.code.CodeUnit;
+import org.mapleir.ir.code.Stmt;
 import org.mapleir.stdlib.util.TabbedStringWriter;
 import org.objectweb.asm.MethodVisitor;
 
 import com.sun.xml.internal.ws.org.objectweb.asm.Opcodes;
 
-public class UnconditionalJumpStatement extends Statement {
+public class UnconditionalJumpStatement extends Stmt {
 
 	private BasicBlock target;
 
@@ -49,17 +51,17 @@ public class UnconditionalJumpStatement extends Statement {
 	}
 
 	@Override
-	public boolean isAffectedBy(Statement stmt) {
+	public boolean isAffectedBy(CodeUnit stmt) {
 		return false;
 	}
 
 	@Override
-	public Statement copy() {
+	public Stmt copy() {
 		return new UnconditionalJumpStatement(target);
 	}
 
 	@Override
-	public boolean equivalent(Statement s) {
+	public boolean equivalent(CodeUnit s) {
 		if(s instanceof UnconditionalJumpStatement) {
 			UnconditionalJumpStatement jump = (UnconditionalJumpStatement) s;
 			return target.getNumericId() == jump.target.getNumericId();

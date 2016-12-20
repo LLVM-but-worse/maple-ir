@@ -475,9 +475,9 @@ public class Test {
 		JarContents<ClassNode> contents = dl.getJarContents();
 
 		System.out.println("davai");
-		long start = System.nanoTime();
 		
 		System.in.read();
+		long start = System.nanoTime();
 		
 		int index = 0;
 		for (ClassNode cn : contents.getClassContents()) {

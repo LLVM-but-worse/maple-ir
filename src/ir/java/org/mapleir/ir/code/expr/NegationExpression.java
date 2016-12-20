@@ -1,32 +1,33 @@
 package org.mapleir.ir.code.expr;
 
 import org.mapleir.ir.cfg.ControlFlowGraph;
-import org.mapleir.ir.code.stmt.Statement;
+import org.mapleir.ir.code.CodeUnit;
+import org.mapleir.ir.code.Expr;
 import org.mapleir.stdlib.util.TabbedStringWriter;
 import org.mapleir.stdlib.util.TypeUtils;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Type;
 
-public class NegationExpression extends Expression {
+public class NegationExpression extends Expr {
 
-	private Expression expression;
+	private Expr expression;
 
-	public NegationExpression(Expression expression) {
+	public NegationExpression(Expr expression) {
 		super(NEGATE);
 		setExpression(expression);
 	}
 
-	public Expression getExpression() {
+	public Expr getExpression() {
 		return expression;
 	}
 
-	public void setExpression(Expression expression) {
+	public void setExpression(Expr expression) {
 		this.expression = expression;
 		overwrite(expression, 0);
 	}
 
 	@Override
-	public Expression copy() {
+	public Expr copy() {
 		return new NegationExpression(expression.copy());
 	}
 
@@ -44,7 +45,7 @@ public class NegationExpression extends Expression {
 
 	@Override
 	public void onChildUpdated(int ptr) {
-		setExpression((Expression) read(ptr));
+		setExpression((Expr) read(ptr));
 	}
 	
 	@Override
@@ -84,12 +85,12 @@ public class NegationExpression extends Expression {
 	}
 
 	@Override
-	public boolean isAffectedBy(Statement stmt) {
+	public boolean isAffectedBy(CodeUnit stmt) {
 		return expression.isAffectedBy(stmt);
 	}
 
 	@Override
-	public boolean equivalent(Statement s) {
+	public boolean equivalent(CodeUnit s) {
 		return (s instanceof NegationExpression && expression.equivalent(((NegationExpression)s).expression));
 	}
 }
