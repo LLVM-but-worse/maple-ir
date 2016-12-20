@@ -8,7 +8,7 @@ import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.code.Opcode;
-import org.mapleir.ir.code.StatementVisitor;
+import org.mapleir.ir.code.CodeUnitVisitor;
 import org.mapleir.ir.code.Stmt;
 import org.mapleir.ir.code.expr.PhiExpression;
 import org.mapleir.ir.code.expr.VarExpression;
@@ -48,7 +48,7 @@ public class SSALocalAccess {
 				}
 				
 				if(!synth) {
-					new StatementVisitor(s) {
+					new CodeUnitVisitor(s) {
 						@Override
 						public Expr visit(Expr stmt) {
 							if(stmt instanceof VarExpression) {
@@ -60,7 +60,7 @@ public class SSALocalAccess {
 									if(e instanceof VarExpression)  {
 										useCount.getNonNull((VersionedLocal) ((VarExpression) e).getLocal()).incrementAndGet();
 									} else {
-										new StatementVisitor(e) {
+										new CodeUnitVisitor(e) {
 											@Override
 											public Expr visit(Expr stmt2) {
 												if(stmt2 instanceof VarExpression) {
