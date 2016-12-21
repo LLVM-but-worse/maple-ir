@@ -357,12 +357,12 @@ public class BoissinotDestructor {
 						Local rhs = ((VarExpression) copy.getExpression()).getLocal();
 						if (!isReservedRegister((VersionedLocal) rhs)) {
 							if (tryCoalesceCopyValue(lhs, rhs)) {
-								// System.out.println("COPYKILL(1) " + lhs + " == " + rhs);
+//								 System.out.println("COPYKILL(1) " + lhs + " == " + rhs);
 								it.remove();
 							}
 
 							if (tryCoalesceCopySharing(lhs, rhs)) {
-								// System.out.println("SHAREKILL(1) " + lhs + " == " + rhs);
+//								 System.out.println("SHAREKILL(1) " + lhs + " == " + rhs);
 								it.remove();
 							}
 						}
