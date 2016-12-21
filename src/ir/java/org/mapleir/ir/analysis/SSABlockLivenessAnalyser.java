@@ -20,6 +20,7 @@ import org.mapleir.ir.locals.LocalsPool;
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.ValueCreator;
 import org.mapleir.stdlib.collections.bitset.GenericBitSet;
+import org.mapleir.stdlib.collections.graph.GraphUtils;
 
 public class SSABlockLivenessAnalyser implements Liveness<BasicBlock> {
 	private final NullPermeableHashMap<BasicBlock, GenericBitSet<Local>> use;
@@ -127,8 +128,19 @@ public class SSABlockLivenessAnalyser implements Liveness<BasicBlock> {
 					use.get(b).remove(l);
 
 					Expr e = copy.getExpression();
+					/* We need to let svar0 be live in even if 
+					 * there is a catch() copy here as splitRanges 
+					 * relies on it. If we don't do this, svar0 will 
+					 * be considered to be dead into a handler block
+					 * even if it is technically live-in due to
+					 * natural flow. */
+					
+					// TODO: look into hasNaturalFlow before blindly
+					// adding it as live-in.
 					if (e.getOpcode() == Opcode.CATCH) {
-						use.get(b).add(l);
+						if(GraphUtils.hasNaturalPredecessors(cfg, b)) {
+							use.get(b).add(l);
+						}
 					}
 				}
 				for (Expr c : stmt.enumerateOnlyChildren()) {
