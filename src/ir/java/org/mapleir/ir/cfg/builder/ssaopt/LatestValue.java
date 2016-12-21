@@ -7,11 +7,12 @@ import java.util.Set;
 
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
+import org.mapleir.ir.code.CodeUnit;
+import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.code.Opcode;
-import org.mapleir.ir.code.expr.Expression;
+import org.mapleir.ir.code.Stmt;
 import org.mapleir.ir.code.expr.FieldLoadExpression;
 import org.mapleir.ir.code.expr.VarExpression;
-import org.mapleir.ir.code.stmt.Statement;
 import org.mapleir.ir.code.stmt.copy.AbstractCopyStatement;
 import org.mapleir.ir.locals.Local;
 
@@ -58,13 +59,13 @@ public class LatestValue {
 		constraints.addAll(v.constraints);
 	}
 	
-	public void makeConstraints(Expression e) {
-		for(Statement s : e.enumerate()) {
+	public void makeConstraints(Expr e) {
+		for(Expr s : e.enumerateWithSelf()) {
 			int op = s.getOpcode();
 			if(op == Opcode.FIELD_LOAD) {
 				FieldConstraint c = new FieldConstraint((FieldLoadExpression) s);
 				constraints.add(c);
-			} else if(ConstraintUtil.isInvoke(s)) {
+			} else if(ConstraintUtil.isInvoke(op)) {
 				constraints.add(new InvokeConstraint());
 			} else if(op == Opcode.ARRAY_LOAD) {
 				constraints.add(new ArrayConstraint());
@@ -72,8 +73,8 @@ public class LatestValue {
 		}
 	}
 	
-	private Set<Statement> findReachable(Statement from, Statement to) {
-		Set<Statement> res = new HashSet<>();
+	private Set<Stmt> findReachable(Stmt from, Stmt to) {
+		Set<Stmt> res = new HashSet<>();
 		BasicBlock f = from.getBlock();
 		BasicBlock t = to.getBlock();
 		
@@ -91,16 +92,16 @@ public class LatestValue {
 		return res;
 	}
 
-	public boolean canPropagate(AbstractCopyStatement def, Statement use, Statement tail, boolean debug) {
+	public boolean canPropagate(AbstractCopyStatement def, Stmt use, Expr tail, boolean debug) {
 		Local local = def.getVariable().getLocal();
 		
-		Set<Statement> path = findReachable(def, use);
+		Set<Stmt> path = findReachable(def, use);
 		path.remove(def);
 		path.add(use);
 		
-		for(Statement stmt : path) {
+		for(Stmt stmt : path) {
 			if(stmt != use) {
-				for(Statement s : stmt.enumerate()) {
+				for(CodeUnit s : stmt.enumerateWithSelf()) {
 					for(Constraint c : constraints) {
 						if(c.fails(s)) {
 							if(debug) {
@@ -114,7 +115,7 @@ public class LatestValue {
 				}
 			} else {
 				if(constraints.size() > 0) {
-					for(Statement s : stmt.execEnumerate()) {
+					for(CodeUnit s : stmt.enumerateExecutionOrder()) {
 						if(s == tail && (s.getOpcode() == Opcode.LOCAL_LOAD && ((VarExpression) s).getLocal() == local)) {
 							break;
 						} else {

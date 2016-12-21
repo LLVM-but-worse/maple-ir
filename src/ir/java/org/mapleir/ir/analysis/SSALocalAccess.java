@@ -6,12 +6,12 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
+import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.code.Opcode;
-import org.mapleir.ir.code.StatementVisitor;
-import org.mapleir.ir.code.expr.Expression;
+import org.mapleir.ir.code.CodeUnitVisitor;
+import org.mapleir.ir.code.Stmt;
 import org.mapleir.ir.code.expr.PhiExpression;
 import org.mapleir.ir.code.expr.VarExpression;
-import org.mapleir.ir.code.stmt.Statement;
 import org.mapleir.ir.code.stmt.copy.AbstractCopyStatement;
 import org.mapleir.ir.locals.VersionedLocal;
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
@@ -32,7 +32,7 @@ public class SSALocalAccess {
 		});
 		
 		for(BasicBlock b : cfg.vertices()) {
-			for(Statement s : b) {
+			for(Stmt s : b) {
 				boolean synth = false;
 				
 				int op = s.getOpcode();
@@ -48,21 +48,21 @@ public class SSALocalAccess {
 				}
 				
 				if(!synth) {
-					new StatementVisitor(s) {
+					new CodeUnitVisitor(s) {
 						@Override
-						public Statement visit(Statement stmt) {
+						public Expr visit(Expr stmt) {
 							if(stmt instanceof VarExpression) {
 								VersionedLocal l = (VersionedLocal) ((VarExpression) stmt).getLocal();
 								useCount.getNonNull(l).incrementAndGet();
 							} else if(stmt instanceof PhiExpression) {
 								PhiExpression phi = (PhiExpression) stmt;
-								for(Expression e : phi.getArguments().values()) {
+								for(Expr e : phi.getArguments().values()) {
 									if(e instanceof VarExpression)  {
 										useCount.getNonNull((VersionedLocal) ((VarExpression) e).getLocal()).incrementAndGet();
 									} else {
-										new StatementVisitor(e) {
+										new CodeUnitVisitor(e) {
 											@Override
-											public Statement visit(Statement stmt2) {
+											public Expr visit(Expr stmt2) {
 												if(stmt2 instanceof VarExpression) {
 													VersionedLocal l = (VersionedLocal) ((VarExpression) stmt2).getLocal();
 													useCount.getNonNull(l).incrementAndGet();

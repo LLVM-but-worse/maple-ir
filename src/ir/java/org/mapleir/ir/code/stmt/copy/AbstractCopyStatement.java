@@ -1,26 +1,27 @@
 package org.mapleir.ir.code.stmt.copy;
 
 import org.mapleir.ir.cfg.ControlFlowGraph;
-import org.mapleir.ir.code.expr.Expression;
+import org.mapleir.ir.code.CodeUnit;
+import org.mapleir.ir.code.Expr;
+import org.mapleir.ir.code.Stmt;
 import org.mapleir.ir.code.expr.VarExpression;
-import org.mapleir.ir.code.stmt.Statement;
 import org.mapleir.ir.locals.Local;
 import org.mapleir.stdlib.util.TabbedStringWriter;
 import org.mapleir.stdlib.util.TypeUtils;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Type;
 
-public abstract class AbstractCopyStatement extends Statement {
+public abstract class AbstractCopyStatement extends Stmt {
 
 	private final boolean synthetic;
-	private Expression expression;
+	private Expr expression;
 	private VarExpression variable;
 	
-	public AbstractCopyStatement(int opcode, VarExpression variable, Expression expression) {
+	public AbstractCopyStatement(int opcode, VarExpression variable, Expr expression) {
 		this(opcode, variable, expression, false);
 	}
 	
-	public AbstractCopyStatement(int opcode, VarExpression variable, Expression expression, boolean synthetic) {
+	public AbstractCopyStatement(int opcode, VarExpression variable, Expr expression, boolean synthetic) {
 		super(opcode);
 		
 		if (variable == null | expression == null)
@@ -47,11 +48,11 @@ public abstract class AbstractCopyStatement extends Statement {
 		variable = var;
 	}
 	
-	public Expression getExpression() {
+	public Expr getExpression() {
 		return expression;
 	}
 	
-	public void setExpression(Expression expression) {
+	public void setExpression(Expr expression) {
 		this.expression = expression;
 		if(!synthetic) {
 			overwrite(expression, 0);
@@ -69,7 +70,7 @@ public abstract class AbstractCopyStatement extends Statement {
 	@Override
 	public void onChildUpdated(int ptr) {
 		if(!synthetic) {
-			setExpression((Expression) read(ptr));
+			setExpression((Expr) read(ptr));
 		}
 	}
 
@@ -126,7 +127,7 @@ public abstract class AbstractCopyStatement extends Statement {
 	}
 
 	@Override
-	public boolean isAffectedBy(Statement stmt) {
+	public boolean isAffectedBy(CodeUnit stmt) {
 		return expression.isAffectedBy(stmt);
 	}
 
@@ -139,8 +140,8 @@ public abstract class AbstractCopyStatement extends Statement {
 	}
 
 	@Override
-	public abstract Statement copy();
+	public abstract AbstractCopyStatement copy();
 
 	@Override
-	public abstract boolean equivalent(Statement s);
+	public abstract boolean equivalent(CodeUnit s);
 }

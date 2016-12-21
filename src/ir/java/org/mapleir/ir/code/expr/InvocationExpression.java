@@ -1,22 +1,23 @@
 package org.mapleir.ir.code.expr;
 
 import org.mapleir.ir.cfg.ControlFlowGraph;
-import org.mapleir.ir.code.stmt.Statement;
+import org.mapleir.ir.code.CodeUnit;
+import org.mapleir.ir.code.Expr;
 import org.mapleir.stdlib.util.TabbedStringWriter;
 import org.mapleir.stdlib.util.TypeUtils;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 
-public class InvocationExpression extends Expression {
+public class InvocationExpression extends Expr {
 
 	private int callType;
-	private Expression[] argumentExpressions;
+	private Expr[] argumentExpressions;
 	private String owner;
 	private String name;
 	private String desc;
 
-	public InvocationExpression(int opcode, Expression[] argumentExpressions, String owner, String name, String desc) {
+	public InvocationExpression(int opcode, Expr[] argumentExpressions, String owner, String name, String desc) {
 		super(INVOKE);
 		callType = opcode;
 		this.argumentExpressions = argumentExpressions;
@@ -29,7 +30,7 @@ public class InvocationExpression extends Expression {
 		}
 	}
 	
-	public Expression getInstanceExpression() {
+	public Expr getInstanceExpression() {
 		if(callType == Opcodes.INVOKESTATIC) {
 			return null;
 		} else {
@@ -45,9 +46,9 @@ public class InvocationExpression extends Expression {
 		this.callType = callType;
 	}
 	
-	public Expression[] getParameterArguments() {
+	public Expr[] getParameterArguments() {
 		int i = (callType == Opcodes.INVOKESTATIC) ? 0 : -1;
-		Expression[] exprs = new Expression[argumentExpressions.length + i];
+		Expr[] exprs = new Expr[argumentExpressions.length + i];
 		i = Math.abs(i);
 		for(int j=0; j < exprs.length; j++) {
 			exprs[j] = argumentExpressions[j + i];
@@ -55,11 +56,11 @@ public class InvocationExpression extends Expression {
 		return exprs;
 	}
 
-	public Expression[] getArgumentExpressions() {
+	public Expr[] getArgumentExpressions() {
 		return argumentExpressions;
 	}
 
-	public void updateArgument(int index, Expression argument) {
+	public void updateArgument(int index, Expr argument) {
 		if (index < 0 || (index) >= argumentExpressions.length) {
 			throw new ArrayIndexOutOfBoundsException();
 		}
@@ -68,7 +69,7 @@ public class InvocationExpression extends Expression {
 		overwrite(argument, index);
 	}
 
-	public void setArgumentExpressions(Expression[] argumentExpressions) {
+	public void setArgumentExpressions(Expr[] argumentExpressions) {
 		if (callType != Opcodes.INVOKESTATIC && argumentExpressions.length <= 0) {
 			throw new ArrayIndexOutOfBoundsException();
 		}
@@ -110,8 +111,8 @@ public class InvocationExpression extends Expression {
 	}
 
 	@Override
-	public Expression copy() {
-		Expression[] arguments = new Expression[argumentExpressions.length];
+	public Expr copy() {
+		Expr[] arguments = new Expr[argumentExpressions.length];
 		for (int i = 0; i < arguments.length; i++) {
 			arguments[i] = argumentExpressions[i].copy();
 		}
@@ -125,7 +126,7 @@ public class InvocationExpression extends Expression {
 
 	@Override
 	public void onChildUpdated(int ptr) {
-		updateArgument(ptr, (Expression) read(ptr));
+		updateArgument(ptr, (Expr) read(ptr));
 	}
 
 	@Override
@@ -138,7 +139,7 @@ public class InvocationExpression extends Expression {
 		boolean requiresInstance = callType != Opcodes.INVOKESTATIC;
 		if (requiresInstance) {
 			int memberAccessPriority = Precedence.MEMBER_ACCESS.ordinal();
-			Expression instanceExpression = argumentExpressions[0];
+			Expr instanceExpression = argumentExpressions[0];
 			int instancePriority = instanceExpression.getPrecedence();
 			if (instancePriority > memberAccessPriority) {
 				printer.print('(');
@@ -196,12 +197,12 @@ public class InvocationExpression extends Expression {
 	}
 
 	@Override
-	public boolean isAffectedBy(Statement stmt) {
+	public boolean isAffectedBy(CodeUnit stmt) {
 		if(stmt.canChangeLogic()) {
 			return true;
 		}
 		
-		for(Expression e : argumentExpressions) {
+		for(Expr e : argumentExpressions) {
 			if(e.isAffectedBy(stmt)) {
 				return true;
 			}
@@ -211,7 +212,7 @@ public class InvocationExpression extends Expression {
 	}
 
 	@Override
-	public boolean equivalent(Statement s) {
+	public boolean equivalent(CodeUnit s) {
 		if(s instanceof InvocationExpression) {
 			InvocationExpression o = (InvocationExpression) s;
 			if(callType != o.callType || !name.equals(o.name) || !owner.equals(o.owner) || !desc.equals(o.desc)) {

@@ -1,34 +1,35 @@
 package org.mapleir.ir.code.expr;
 
 import org.mapleir.ir.cfg.ControlFlowGraph;
-import org.mapleir.ir.code.stmt.Statement;
+import org.mapleir.ir.code.CodeUnit;
+import org.mapleir.ir.code.Expr;
 import org.mapleir.stdlib.util.TabbedStringWriter;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 
-public class InstanceofExpression extends Expression {
+public class InstanceofExpression extends Expr {
 
-	private Expression expression;
+	private Expr expression;
 	private Type type;
 
-	public InstanceofExpression(Expression expression, Type type) {
+	public InstanceofExpression(Expr expression, Type type) {
 		super(INSTANCEOF);
 		setExpression(expression);
 		this.type = type;
 	}
 
-	public Expression getExpression() {
+	public Expr getExpression() {
 		return expression;
 	}
 
-	public void setExpression(Expression expression) {
+	public void setExpression(Expr expression) {
 		this.expression = expression;
 		overwrite(expression, 0);
 	}
 
 	@Override
-	public Expression copy() {
+	public Expr copy() {
 		return new InstanceofExpression(expression.copy(), type);
 	}
 
@@ -43,7 +44,7 @@ public class InstanceofExpression extends Expression {
 
 	@Override
 	public void onChildUpdated(int ptr) {
-		setExpression((Expression) read(0));
+		setExpression((Expr) read(0));
 	}
 	
 	@Override
@@ -81,12 +82,12 @@ public class InstanceofExpression extends Expression {
 	}
 
 	@Override
-	public boolean isAffectedBy(Statement stmt) {
+	public boolean isAffectedBy(CodeUnit stmt) {
 		return expression.isAffectedBy(stmt);
 	}
 
 	@Override
-	public boolean equivalent(Statement s) {
+	public boolean equivalent(CodeUnit s) {
 		if(s instanceof InstanceofExpression) {
 			InstanceofExpression e = (InstanceofExpression) s;
 			return expression.equivalent(e.expression) && type.equals(e.type);

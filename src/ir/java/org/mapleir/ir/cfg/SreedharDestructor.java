@@ -10,11 +10,11 @@ import java.util.Map.Entry;
 
 import org.mapleir.ir.analysis.SSABlockLivenessAnalyser;
 import org.mapleir.ir.analysis.SSADefUseMap;
+import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.code.Opcode;
-import org.mapleir.ir.code.expr.Expression;
+import org.mapleir.ir.code.Stmt;
 import org.mapleir.ir.code.expr.PhiExpression;
 import org.mapleir.ir.code.expr.VarExpression;
-import org.mapleir.ir.code.stmt.Statement;
 import org.mapleir.ir.code.stmt.copy.CopyPhiStatement;
 import org.mapleir.ir.code.stmt.copy.CopyVarStatement;
 import org.mapleir.ir.locals.Local;
@@ -84,7 +84,7 @@ public class SreedharDestructor {
 			Local phiTarget = copyPhi.getVariable().getLocal();
 			pccs.getNonNull(phiTarget).add(phiTarget);
 //			System.out.println("Initphi " + phiTarget);
-			for (Entry<BasicBlock, Expression> phiEntry : copyPhi.getExpression().getArguments().entrySet()) {
+			for (Entry<BasicBlock, Expr> phiEntry : copyPhi.getExpression().getArguments().entrySet()) {
 				if (phiEntry.getValue().getOpcode() != LOCAL_LOAD)
 					throw new IllegalArgumentException("Phi arg is not local; instead is " + phiEntry.getValue().getClass().getSimpleName());
 				Local phiSource = ((VarExpression) phiEntry.getValue()).getLocal();
@@ -116,15 +116,15 @@ public class SreedharDestructor {
 
 			// backwards traverse for dealing with variables that are defined and used in the same block
 			GenericBitSet<Local> intraLive = out.copy();
-			ListIterator<Statement> it = b.listIterator(b.size());
+			ListIterator<Stmt> it = b.listIterator(b.size());
 			while (it.hasPrevious()) {
-				Statement stmt = it.previous();
+				Stmt stmt = it.previous();
 				if (stmt instanceof CopyVarStatement) {
 					CopyVarStatement copy = (CopyVarStatement) stmt;
 					Local defLocal = copy.getVariable().getLocal();
 					intraLive.remove(defLocal);
 				}
-				for (Statement child : stmt.enumerate()) {
+				for (Expr child : stmt.enumerateOnlyChildren()) {
 					if (stmt.getOpcode() == LOCAL_LOAD) {
 						Local usedLocal = ((VarExpression) child).getLocal();
 						if (intraLive.add(usedLocal)) {
@@ -161,7 +161,7 @@ public class SreedharDestructor {
 			// Initialize phiResources set for convenience
 			final GenericBitSet<PhiResource> phiResources = phiResSetCreator.create();
 			phiResources.add(new PhiResource(defBlock, phiTarget, true));
-			for (Entry<BasicBlock, Expression> phiEntry : phi.getArguments().entrySet())
+			for (Entry<BasicBlock, Expr> phiEntry : phi.getArguments().entrySet())
 				phiResources.add(new PhiResource(phiEntry.getKey(), ((VarExpression) phiEntry.getValue()).getLocal(), false));
 
 			// Determine what copies are needed using the four cases.
@@ -176,7 +176,7 @@ public class SreedharDestructor {
 			for (PhiResource toResolve : candidateResourceSet) {
 				if (toResolve.isTarget)
 					resolvePhiTarget(toResolve, phiType);
-				else for (Entry<BasicBlock, Expression> phiArg : phi.getArguments().entrySet()) {
+				else for (Entry<BasicBlock, Expr> phiArg : phi.getArguments().entrySet()) {
 					VarExpression phiVar = (VarExpression) phiArg.getValue();
 					if (phiVar.getLocal() == toResolve.local)
 						phiVar.setLocal(resolvePhiSource(toResolve.local, phiArg.getKey(), phiType));
@@ -190,7 +190,7 @@ public class SreedharDestructor {
 			// Merge pccs for all locals in phi
 			final GenericBitSet<Local> phiLocals = locals.createBitSet();
 			phiLocals.add(copy.getVariable().getLocal());
-			for (Entry<BasicBlock, Expression> phiEntry : phi.getArguments().entrySet())
+			for (Entry<BasicBlock, Expr> phiEntry : phi.getArguments().entrySet())
 				phiLocals.add(((VarExpression) phiEntry.getValue()).getLocal());
 			for (Local phiLocal : phiLocals)
 				pccs.put(phiLocal, phiLocals);
@@ -346,8 +346,8 @@ public class SreedharDestructor {
 	// ============================================================================================================= //
 	private void coalesce() {
 		for (BasicBlock b : cfg.vertices()) {
-			for (Iterator<Statement> it = b.iterator(); it.hasNext(); ) {
-				Statement stmt = it.next();
+			for (Iterator<Stmt> it = b.iterator(); it.hasNext(); ) {
+				Stmt stmt = it.next();
 				if (stmt instanceof CopyVarStatement) {
 					CopyVarStatement copy = (CopyVarStatement) stmt;
 //					System.out.println("check " + copy);
@@ -462,8 +462,8 @@ public class SreedharDestructor {
 //		System.out.println();
 
 		for (BasicBlock b : cfg.vertices()) {
-			for (Iterator<Statement> it = b.iterator(); it.hasNext(); ) {
-				Statement stmt = it.next();
+			for (Iterator<Stmt> it = b.iterator(); it.hasNext(); ) {
+				Stmt stmt = it.next();
 
 				// We can now simply drop all phi statements.
 				if (stmt instanceof CopyPhiStatement) {
@@ -477,7 +477,7 @@ public class SreedharDestructor {
 					Local copyTarget = lhs.getLocal();
 					lhs.setLocal(remap.getOrDefault(copyTarget, copyTarget));
 				}
-				for (Statement child : stmt.enumerate()) {
+				for (Expr child : stmt.enumerateOnlyChildren()) {
 					if (child.getOpcode() == LOCAL_LOAD) {
 						VarExpression var = (VarExpression) child;
 						Local loadSource = var.getLocal();
