@@ -29,6 +29,8 @@
  */
 package org.objectweb.asm.tree;
 
+import java.io.File;
+import java.io.FileOutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -890,20 +892,20 @@ public class MethodNode extends MethodVisitor implements FastGraphVertex {
             	mv.visitMaxs(maxStack, maxLocals);
             } catch(RuntimeException e) {
             	System.err.println(this);
-//            	try {
-//            		ClassNode cn = owner;
-//                	MethodNode m = this;
-//                	cn.methods.clear();
-//        			cn.methods.add(m);
-//        			ClassWriter cw = new ClassWriter(0);
-//        			cn.accept(cw);
-//        			byte[] bs = cw.toByteArray();
-//        			FileOutputStream out = new FileOutputStream(new File("out/err.class"));
-//        			out.write(bs, 0, bs.length);
-//        			out.close();
-//            	} catch(Throwable e1) {
-//            		e1.printStackTrace();
-//            	}
+            	try {
+            		ClassNode cn = owner;
+                	MethodNode m = this;
+                	cn.methods.clear();
+        			cn.methods.add(m);
+        			ClassWriter cw = new ClassWriter(0);
+        			cn.accept(cw);
+        			byte[] bs = cw.toByteArray();
+        			FileOutputStream out = new FileOutputStream(new File("out/err.class"));
+        			out.write(bs, 0, bs.length);
+        			out.close();
+            	} catch(Throwable e1) {
+            		e1.printStackTrace();
+            	}
             	throw e;
             }
             visited = true;

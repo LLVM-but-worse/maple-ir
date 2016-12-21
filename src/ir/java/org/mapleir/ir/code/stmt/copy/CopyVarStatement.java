@@ -1,26 +1,26 @@
 package org.mapleir.ir.code.stmt.copy;
 
-import org.mapleir.ir.code.expr.Expression;
+import org.mapleir.ir.code.CodeUnit;
+import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.code.expr.VarExpression;
-import org.mapleir.ir.code.stmt.Statement;
 
 public class CopyVarStatement extends AbstractCopyStatement {
 
-	public CopyVarStatement(VarExpression variable, Expression expression) {
+	public CopyVarStatement(VarExpression variable, Expr expression) {
 		super(LOCAL_STORE, variable, expression);
 	}
 	
-	public CopyVarStatement(VarExpression variable, Expression expression, boolean synthetic) {
+	public CopyVarStatement(VarExpression variable, Expr expression, boolean synthetic) {
 		super(LOCAL_STORE, variable, expression, synthetic);
 	}
 
 	@Override
-	public Statement copy() {
+	public CopyVarStatement copy() {
 		return new CopyVarStatement(getVariable().copy(), getExpression().copy(), isSynthetic());
 	}
 
 	@Override
-	public boolean equivalent(Statement s) {
+	public boolean equivalent(CodeUnit s) {
 		if(s instanceof CopyVarStatement) {
 			CopyVarStatement copy = (CopyVarStatement) s;
 			return getExpression().equivalent(copy.getExpression()) && getVariable().equivalent(copy.getVariable());

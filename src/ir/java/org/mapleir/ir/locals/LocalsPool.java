@@ -7,9 +7,10 @@ import java.util.function.Predicate;
 
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
+import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.code.Opcode;
+import org.mapleir.ir.code.Stmt;
 import org.mapleir.ir.code.expr.VarExpression;
-import org.mapleir.ir.code.stmt.Statement;
 import org.mapleir.ir.code.stmt.copy.AbstractCopyStatement;
 import org.mapleir.ir.code.stmt.copy.CopyVarStatement;
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
@@ -154,7 +155,7 @@ public class LocalsPool implements ValueCreator<GenericBitSet<Local>> {
 		int min = 0;
 		Set<Local> safe = new HashSet<>();
 		for(BasicBlock b : cfg.vertices()) {
-			for(Statement stmt : b) {
+			for(Stmt stmt : b) {
 				if(stmt.getOpcode() == Opcode.LOCAL_STORE) {
 					CopyVarStatement cp = (CopyVarStatement) stmt;
 					VarExpression var = cp.getVariable();
@@ -162,14 +163,12 @@ public class LocalsPool implements ValueCreator<GenericBitSet<Local>> {
 					if(!cp.isSynthetic()) {
 						types.getNonNull(local).add(var.getType());
 					} else {
-//						min = Math.max(min, local.getIndex());
 						safe.add(local);
 					}
 					types.getNonNull(local).add(var.getType());
 				}
 				
-				// System.out.println("x: " + stmt);
-				for(Statement s : stmt.enumerate()) {
+				for(Expr s : stmt.enumerateOnlyChildren()) {
 					if(s.getOpcode() == Opcode.LOCAL_LOAD) {
 						VarExpression var = (VarExpression) s;
 						Local local = var.getLocal();
@@ -266,7 +265,7 @@ public class LocalsPool implements ValueCreator<GenericBitSet<Local>> {
 	
 	public static void remap(ControlFlowGraph cfg, Map<? extends Local, ? extends Local> remap) {
 		for(BasicBlock b : cfg.vertices()) {
-			for(Statement stmt : b) {
+			for(Stmt stmt : b) {
 				if(stmt.getOpcode() == Opcode.LOCAL_STORE) {
 					VarExpression v = ((CopyVarStatement) stmt).getVariable();
 					Local l = v.getLocal();
@@ -276,7 +275,7 @@ public class LocalsPool implements ValueCreator<GenericBitSet<Local>> {
 					}
 				}
 				
-				for(Statement s : stmt.enumerate()) {
+				for(Expr s : stmt.enumerateOnlyChildren()) {
 					if(s.getOpcode() == Opcode.LOCAL_LOAD) {
 						VarExpression v = (VarExpression) s;
 						Local l = v.getLocal();

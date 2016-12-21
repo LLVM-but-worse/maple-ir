@@ -727,4 +727,13 @@ public class GraphUtils {
 		});
 		return lst;
 	}
+	
+	public static boolean hasNaturalPredecessors(ControlFlowGraph cfg, BasicBlock b) {
+		for(FlowEdge<BasicBlock> e : cfg.getReverseEdges(b)) {
+			if(e.getType() != FlowEdges.TRYCATCH) {
+				return true;
+			}
+		}
+		return false;
+	}
 }

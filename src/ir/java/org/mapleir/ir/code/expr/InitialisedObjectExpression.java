@@ -1,21 +1,22 @@
 package org.mapleir.ir.code.expr;
 
 import org.mapleir.ir.cfg.ControlFlowGraph;
-import org.mapleir.ir.code.stmt.Statement;
+import org.mapleir.ir.code.CodeUnit;
+import org.mapleir.ir.code.Expr;
 import org.mapleir.stdlib.util.TabbedStringWriter;
 import org.mapleir.stdlib.util.TypeUtils;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 
-public class InitialisedObjectExpression extends Expression {
+public class InitialisedObjectExpression extends Expr {
 
 	private Type type;
 	private String owner;
 	private String desc;
-	private Expression[] argumentExpressions;
+	private Expr[] argumentExpressions;
 	
-	public InitialisedObjectExpression(Type type, String owner, String desc, Expression[] argumentExpressions) {
+	public InitialisedObjectExpression(Type type, String owner, String desc, Expr[] argumentExpressions) {
 		super(INIT_OBJ);
 		this.type = type;
 		this.owner = owner;
@@ -42,11 +43,11 @@ public class InitialisedObjectExpression extends Expression {
 		this.desc = desc;
 	}
 
-	public Expression[] getArgumentExpressions() {
+	public Expr[] getArgumentExpressions() {
 		return argumentExpressions;
 	}
 
-	public void setArguments(Expression[] argumentExpressions) {
+	public void setArguments(Expr[] argumentExpressions) {
 		this.argumentExpressions = argumentExpressions;
 	}
 
@@ -64,7 +65,7 @@ public class InitialisedObjectExpression extends Expression {
 		return Precedence.METHOD_INVOCATION;
 	}
 
-	public void updateArgument(int id, Expression argument) {
+	public void updateArgument(int id, Expr argument) {
 		if (id < 0 || (id) >= argumentExpressions.length) {
 			throw new ArrayIndexOutOfBoundsException();
 		}
@@ -75,12 +76,12 @@ public class InitialisedObjectExpression extends Expression {
 	
 	@Override
 	public void onChildUpdated(int ptr) {
-		updateArgument(ptr, (Expression)read(ptr));
+		updateArgument(ptr, (Expr)read(ptr));
 	}
 
 	@Override
-	public Expression copy() {
-		Expression[] args = new Expression[argumentExpressions.length];
+	public Expr copy() {
+		Expr[] args = new Expr[argumentExpressions.length];
 		for(int i=0; i < argumentExpressions.length; i++) {
 			args[i] = argumentExpressions[i].copy();
 		}
@@ -135,12 +136,12 @@ public class InitialisedObjectExpression extends Expression {
 	}
 
 	@Override
-	public boolean isAffectedBy(Statement stmt) {
+	public boolean isAffectedBy(CodeUnit stmt) {
 		if(stmt.canChangeLogic()) {
 			return true;
 		}
 		
-		for(Expression e : argumentExpressions) {
+		for(Expr e : argumentExpressions) {
 			if(e.isAffectedBy(stmt)) {
 				return true;
 			}
@@ -150,7 +151,7 @@ public class InitialisedObjectExpression extends Expression {
 	}
 
 	@Override
-	public boolean equivalent(Statement s) {
+	public boolean equivalent(CodeUnit s) {
 		if(s instanceof InitialisedObjectExpression) {
 			InitialisedObjectExpression o = (InitialisedObjectExpression) s;
 			if(!type.equals(o.type) || !owner.equals(o.owner) || !desc.equals(o.desc)) {
