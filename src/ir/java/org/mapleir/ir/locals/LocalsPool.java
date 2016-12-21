@@ -163,13 +163,11 @@ public class LocalsPool implements ValueCreator<GenericBitSet<Local>> {
 					if(!cp.isSynthetic()) {
 						types.getNonNull(local).add(var.getType());
 					} else {
-//						min = Math.max(min, local.getIndex());
 						safe.add(local);
 					}
 					types.getNonNull(local).add(var.getType());
 				}
 				
-				// System.out.println("x: " + stmt);
 				for(Expr s : stmt.enumerateOnlyChildren()) {
 					if(s.getOpcode() == Opcode.LOCAL_LOAD) {
 						VarExpression var = (VarExpression) s;
