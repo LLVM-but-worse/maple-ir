@@ -35,6 +35,7 @@ import org.mapleir.ir.code.stmt.UnconditionalJumpStatement;
 import org.mapleir.ir.code.stmt.copy.AbstractCopyStatement;
 import org.mapleir.ir.code.stmt.copy.CopyPhiStatement;
 import org.mapleir.ir.code.stmt.copy.CopyVarStatement;
+import org.mapleir.ir.locals.BasicLocal;
 import org.mapleir.ir.locals.Local;
 import org.mapleir.ir.locals.LocalsPool;
 import org.mapleir.ir.locals.VersionedLocal;
@@ -52,6 +53,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 
 	private static final boolean OPTIMISE = true;
 
+	private final BasicLocal svar0;
 	private final Map<VersionedLocal, Type> types;
 	private final Map<Local, Integer> counters;
 	private final Map<Local, Stack<Integer>> stacks;
@@ -74,6 +76,8 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 	public SSAGenPass(ControlFlowGraphBuilder builder) {
 		super(builder);
 
+		svar0 = builder.graph.getLocals().newLocal(0, true);
+		
 		types = new HashMap<>();
 		
 		counters = new HashMap<>();
@@ -365,9 +369,23 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 					 *   multiple lvar into any block      -> add phi
 					 *   
 					 *   svar0 into handler from exception 
-					 *    and non exception edge and       -> add phi
+					 *    and non exception edge and       -> add ephi(psi)
 					 */
-					if(handlers.contains(x) && l.isStack()) {
+					
+					if((l == svar0) && handlers.contains(x) /* == faster than contains. */) {
+						/* Note: this is quite subtle. Since there is a
+						 * copy, (svar0 = catch()) at the start of each
+						 * handler block, technically any natural flowing
+						 * svar0 definition is killed upon entry to the
+						 * block, so it is not considered live. One way to
+						 * check if the variable is live-in, therefore, is
+						 * by checking whether svar0 is live-out of the
+						 * catch() definition. We handle it here, since
+						 * the previous liveness check which is used for
+						 * pruned SSA will fail in this case. */
+						/* Ok fuck that that, it's considered live-in
+						 * even if there is a catch()::
+						 *  #see SSaBlockLivenessAnalyser.precomputeBlock*/
 						boolean naturalFlow = false;
 						for(FlowEdge<BasicBlock> e : builder.graph.getReverseEdges(x)) {
 							if(e.getType() != FlowEdges.TRYCATCH) {
@@ -390,13 +408,16 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 							}
 							
 							if(catcher == null) {
+								/* Handler but no catch copy?
+								 * This can't happen since svar0 is
+								 * the only reserved register for
+								 * catch copies, and this block cannot
+								 * be visited twice to insert a phi or
+								 * psi(ephi) node. */
 								throw new IllegalStateException(x.getId());
 							}
 							
-							if(catcher.getVariable().getLocal() != l) {
-								continue;
-							}
-							
+							// TODO: actually handle.
 							/* Map<BasicBlock, Expression> vls = new HashMap<>();
 							for(FlowEdge<BasicBlock> fe : builder.graph.getReverseEdges(x)) {
 								vls.put(fe.src, new VarExpression(newl, null));
@@ -408,10 +429,11 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 							CopyPhiStatement assign = new CopyPhiStatement(new VarExpression(l, null), phi);
 							
 							x.add(0, assign); */
-							
 							throw new UnsupportedOperationException(builder.method.toString());
 						}
-					} else if(builder.graph.getReverseEdges(x).size() > 1) {
+					}
+					
+					if(builder.graph.getReverseEdges(x).size() > 1) {
 						Map<BasicBlock, Expr> vls = new HashMap<>();
 						for(FlowEdge<BasicBlock> fe : builder.graph.getReverseEdges(x)) {
 							vls.put(fe.src, new VarExpression(newl, null));
