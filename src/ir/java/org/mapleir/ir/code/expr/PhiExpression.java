@@ -9,22 +9,23 @@ import java.util.Set;
 
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
-import org.mapleir.ir.code.stmt.Statement;
+import org.mapleir.ir.code.CodeUnit;
+import org.mapleir.ir.code.Expr;
 import org.mapleir.stdlib.util.TabbedStringWriter;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Type;
 
-public class PhiExpression extends Expression {
+public class PhiExpression extends Expr {
 
-	private final Map<BasicBlock, Expression> arguments;
+	private final Map<BasicBlock, Expr> arguments;
 	private Type type;
 	
-	protected PhiExpression(int opcode, Map<BasicBlock, Expression> arguments) {
+	protected PhiExpression(int opcode, Map<BasicBlock, Expr> arguments) {
 		super(opcode);
 		this.arguments = arguments;
 	}
 	
-	public PhiExpression(Map<BasicBlock, Expression> arguments) {
+	public PhiExpression(Map<BasicBlock, Expr> arguments) {
 		super(PHI);
 		this.arguments = arguments;
 	}
@@ -37,15 +38,15 @@ public class PhiExpression extends Expression {
 		return arguments.keySet();
 	}
 	
-	public Map<BasicBlock, Expression> getArguments() {
+	public Map<BasicBlock, Expr> getArguments() {
 		return arguments;
 	}
 	
-	public Expression getArgument(BasicBlock b) {
+	public Expr getArgument(BasicBlock b) {
 		return arguments.get(b);
 	}
 	
-	public void setArgument(BasicBlock b, Expression e) {
+	public void setArgument(BasicBlock b, Expr e) {
 		arguments.put(b, e);
 	}
 	
@@ -60,8 +61,8 @@ public class PhiExpression extends Expression {
 
 	@Override
 	public PhiExpression copy() {
-		Map<BasicBlock, Expression> map = new HashMap<>();
-		for(Entry<BasicBlock, Expression> e : arguments.entrySet()) {
+		Map<BasicBlock, Expr> map = new HashMap<>();
+		for(Entry<BasicBlock, Expr> e : arguments.entrySet()) {
 			map.put(e.getKey(), e.getValue().copy());
 		}
 		return new PhiExpression(map);
@@ -83,9 +84,9 @@ public class PhiExpression extends Expression {
 	@Override
 	public void toString(TabbedStringWriter printer) {
 		printer.print(getPhiType() + "{");
-		Iterator<Entry<BasicBlock, Expression>> it = arguments.entrySet().iterator();
+		Iterator<Entry<BasicBlock, Expr>> it = arguments.entrySet().iterator();
 		while(it.hasNext()) {
-			Entry<BasicBlock, Expression> e = it.next();
+			Entry<BasicBlock, Expr> e = it.next();
 			
 			printer.print(e.getKey().getId());
 			printer.print(":");
@@ -114,12 +115,12 @@ public class PhiExpression extends Expression {
 	}
 
 	@Override
-	public boolean isAffectedBy(Statement stmt) {
+	public boolean isAffectedBy(CodeUnit stmt) {
 		return false;
 	}
 
 	@Override
-	public boolean equivalent(Statement s) {
+	public boolean equivalent(CodeUnit s) {
 		if(s instanceof PhiExpression) {
 			PhiExpression phi = (PhiExpression) s;
 			
@@ -132,8 +133,8 @@ public class PhiExpression extends Expression {
 			}
 			
 			for(BasicBlock b : sources) {
-				Expression e1 = arguments.get(b);
-				Expression e2 = phi.arguments.get(b);
+				Expr e1 = arguments.get(b);
+				Expr e2 = phi.arguments.get(b);
 				if(e1 == null || e2 == null) {
 					return false;
 				}

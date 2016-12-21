@@ -1,24 +1,20 @@
 package org.mapleir.ir.cfg.builder.ssaopt;
 
+import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.code.Opcode;
-import org.mapleir.ir.code.stmt.Statement;
 
 public class ConstraintUtil implements Opcode {
 
-	public static boolean isInvoke(Statement e) {
-		int opcode = e.getOpcode();
+	public static boolean isInvoke(/*Expr e*/ int opcode) {
+		// int opcode = e.getOpcode();
 		/* INIT_OBJ contains a folded constructor call. */
 		return opcode == INVOKE || opcode == DYNAMIC_INVOKE || opcode == INIT_OBJ;
 	}
 
-	public static boolean isUncopyable(Statement stmt) {
-		if(isUncopyable0(stmt.getOpcode())) {
-			return true;
-		}
-		
-		for(Statement s : stmt.enumerate()) {
-			int opcode = s.getOpcode();
-			if(isUncopyable0(opcode)) {
+	public static boolean isUncopyable(Expr e) {
+		for(Expr c : e.enumerateWithSelf()) {
+			int op = c.getOpcode();
+			if(isUncopyable0(op)) {
 				return true;
 			}
 		}

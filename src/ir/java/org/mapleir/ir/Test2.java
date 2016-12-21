@@ -2,27 +2,22 @@ package org.mapleir.ir;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Set;
 
 import org.mapleir.byteio.CompleteResolvingJarDumper;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.BoissinotDestructor;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.cfg.builder.ControlFlowGraphBuilder;
+import org.mapleir.ir.code.CodeUnit;
+import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.code.Opcode;
+import org.mapleir.ir.code.Stmt;
 import org.mapleir.ir.code.expr.ConstantExpression;
-import org.mapleir.ir.code.expr.Expression;
 import org.mapleir.ir.code.expr.InitialisedObjectExpression;
 import org.mapleir.ir.code.expr.InvocationExpression;
 import org.mapleir.ir.code.expr.VarExpression;
-import org.mapleir.ir.code.stmt.Statement;
 import org.mapleir.ir.code.stmt.copy.AbstractCopyStatement;
 import org.mapleir.ir.code.stmt.copy.CopyVarStatement;
 import org.mapleir.ir.locals.LocalsPool;
@@ -31,6 +26,7 @@ import org.mapleir.stdlib.klass.ClassTree;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
+import org.topdank.banalysis.asm.insn.InstructionPrinter;
 import org.topdank.byteengineer.commons.data.JarContents;
 import org.topdank.byteengineer.commons.data.JarInfo;
 import org.topdank.byteio.in.SingleJarDownloader;
@@ -40,13 +36,22 @@ import jdk.internal.org.objectweb.asm.Type;
 
 public class Test2 {
 
-	private static int i = 0;
+	private static final Comparator<Integer> INTEGER_ORDERER = new Comparator<Integer>() {
+		@Override
+		public int compare(Integer o1, Integer o2) {
+			return Integer.compareUnsigned(o1, o2);
+		}
+	};
+	
+	private static int j = 0;
 	private static Map<MethodNode, ControlFlowGraph> cfgs;
-	private static Map<MethodNode, List<List<Expression>>> args;
+	private static Map<MethodNode, Set<Expr>> calls;
+	private static Map<MethodNode, List<List<Expr>>> args;
 	private static Map<MethodNode, int[]> paramIndices;
 	
 	public static void main(String[] _args) throws IOException {
 		cfgs = new HashMap<>();
+		calls = new HashMap<>();
 		args = new HashMap<>();
 		paramIndices = new HashMap<>();
 		
@@ -59,33 +64,72 @@ public class Test2 {
 		System.out.println("davai");
 		Set<MethodNode> entrySet = findEntries(tree);
 		long start = System.nanoTime();
-		for(MethodNode m : entrySet) {
-			build(tree, m);
+//		for(MethodNode m : entrySet) {
+//			build(tree, m);
+//		}
+		
+		for(ClassNode cn : tree.getClasses().values()) {
+			for(MethodNode m : cn.methods) {
+				if(m.toString().equals("dx.<clinit>()V")) {
+					build(tree, m);
+					
+					ControlFlowGraph cfg = cfgs.get(m);
+					LocalsPool pool = cfg.getLocals();
+//					svar0_1145
+//					for(Entry<VersionedLocal, Set<VarExpression>> u : pool.uses.entrySet()) {
+//						System.out.println(u.getKey() + " = " + u.getValue());
+//					}
+//					System.out.println(cfg);
+					BoissinotDestructor.leaveSSA(cfg);
+					cfg.getLocals().realloc(cfg);
+					ControlFlowGraphDumper.dump(cfg, m);
+					
+//					ControlFlowGraphBuilder.build(m);
+					InstructionPrinter.consolePrint(m);
+//					System.out.println(cfg);
+				}
+			}
 		}
+
+		JarDumper dumper = new CompleteResolvingJarDumper(contents);
+		dumper.dump(new File("out/osb.jar"));
+		
+		if("".equals("")) {
+			return;
+		}
+		
 		long time = System.nanoTime() - start;
-		System.out.println("processed " + i + " methods.");
+		System.out.println("processed " + j + " methods.");
 		System.out.println(" took: " + (double)((double)time/1_000_000_000L) + "s.");
 		System.out.println("checking for constant params");
+		
+		j = 0;
+		start = System.nanoTime();
 		
 		for(Entry<MethodNode, ControlFlowGraph> e : cfgs.entrySet()) {
 			MethodNode mn = e.getKey();
 			ControlFlowGraph cfg = e.getValue();
 			
-			if(!mn.toString().equals("co.p(DII)V")) {
-				continue;
-			}
+//			if(!mn.toString().equals("cz.bp(B)Z")) {
+//				continue;
+//			}
 //			System.out.println(mn + " isStat: " + ((mn.access & Opcodes.ACC_STATIC) != 0));
 //			System.out.println(cfg);
-			List<List<Expression>> argExprs = args.get(mn);
+			List<List<Expr>> argExprs = args.get(mn);
+
+			Set<Integer> dead = new TreeSet<>(INTEGER_ORDERER);
 			
 			for(int i=0; i < argExprs.size(); i++) {
-				List<Expression> l = argExprs.get(i);
+				List<Expr> l = argExprs.get(i);
 				ConstantExpression c = getConstantValue(l);
 				
 				if(c != null) {
-					System.out.printf("Constant value for %s @ arg%d of: %s    , agreement: %d.%n", mn, i, c, l.size());
+					j++;
+//					System.out.printf("Constant value for %s @ arg%d of: %s    , agreement: %d.%n", mn, i, c, l.size());
 //					System.out.println("   resIdx: " + resolveIndex(mn, i));
 					LocalsPool pool = cfg.getLocals();
+//					System.out.println(mn);
+//					System.out.println("  idxs: " + Arrays.toString(paramIndices.get(mn)) + " @ arg" + i);
 					VersionedLocal vl = pool.get(resolveIndex(mn, i), 0, false);
 					AbstractCopyStatement def = pool.defs.get(vl);
 					
@@ -93,17 +137,22 @@ public class Test2 {
 					
 					/* demote the def from a synthetic
 					 * copy to a normal one. */
-					CopyVarStatement copy = new CopyVarStatement(def.getVariable().copy(), c.copy());
+					VarExpression dv = def.getVariable().copy();
+					
+					VersionedLocal spill = pool.makeLatestVersion(vl);
+					dv.setLocal(spill);
+					
+					CopyVarStatement copy = new CopyVarStatement(dv, c.copy());
 					BasicBlock b = def.getBlock();
 					def.delete();
 					def = copy;
 					b.add(copy);
-//					int index = b.indexOf(copy);
-//					if(b.size() > 1 && !((CopyVarStatement) b.get(index - 1)).isSynthetic()) {
-//						System.err.println(cfg);
-//						throw new RuntimeException(mn.toString() + ", " + index + "::  " + b.get(index - 1));
-//					}
-					pool.defs.put(vl, copy);
+					
+					pool.defs.remove(vl);
+					pool.defs.put(spill, copy);
+					
+					Set<VarExpression> spillUses = new HashSet<>();
+					pool.uses.put(spill, spillUses);
 					
 					Iterator<VarExpression> it = pool.uses.get(vl).iterator();
 					while(it.hasNext()) {
@@ -113,32 +162,62 @@ public class Test2 {
 							/* the use is in a phi, we can't
 							 * remove the def. */
 							removeDef = false;
+							spillUses.add(v);
+							v.setLocal(spill);
 						} else {
-							Statement par = v.getParent();
+							CodeUnit par = v.getParent();
 							par.overwrite(c.copy(), par.indexOf(v));
-							it.remove();
 						}
 					}
+
+					pool.uses.remove(vl);
 					
 					if(removeDef) {
 						def.delete();
-						pool.defs.remove(vl);
-						pool.uses.remove(vl);
 					}
+					
+					dead.add(i);
 				} else if(isMultiVal(l)) {
-					System.out.printf("Multivalue param for %s @ arg%d:   %s.%n", mn, i, l);
+					// System.out.printf("Multivalue param for %s @ arg%d:   %s.%n", mn, i, l);
 				}
 			}
 			
-//			System.out.println(cfg);
-			
+
+//			System.out.println(mn + "  " + dead);
+			// System.out.println(cfg);
+
 			BoissinotDestructor.leaveSSA(cfg);
 			cfg.getLocals().realloc(cfg);
 			ControlFlowGraphDumper.dump(cfg, mn);
+			
+//			try {
+//			} catch(RuntimeException e1) {
+//				FileWriter fw = new FileWriter(new File("C:/Users/Bibl/Desktop/error.txt"));
+//				fw.write("method: " + mn.toString() + "\n");
+//				LocalsPool pool = cfg.getLocals();
+//				fw.write("\n\nuses::\n");
+//				for(Entry<VersionedLocal, Set<VarExpression>> s : pool.uses.entrySet()) {
+//					fw.write(s.getKey() +": " + s.getValue() + "\n");
+//				}
+//				fw.write("\n\ndefs::\n");
+//				for(Entry<VersionedLocal, AbstractCopyStatement> s : pool.defs.entrySet()) {
+//					fw.write(s.getKey() +": " + s.getValue() + "\n");
+//				}
+//				fw.write("\n\n\n\n\n\n");
+//				fw.write(cfg.toString());
+//				fw.close();
+//				e1.printStackTrace();
+//				return;
+//			}
 		}
 		
-		JarDumper dumper = new CompleteResolvingJarDumper(contents);
-		dumper.dump(new File("out/osb.jar"));
+		time = System.nanoTime() - start;
+		System.out.println("processed " + j + " dead params.");
+		System.out.println(" took: " + (double)((double)time/1_000_000_000L) + "s.");
+		System.out.println("rewriting jar.");
+		
+//		JarDumper dumper = new CompleteResolvingJarDumper(contents);
+//		dumper.dump(new File("out/osb.jar"));
 	}
 	
 	private static int resolveIndex(MethodNode m, int orderIdx) {
@@ -146,12 +225,12 @@ public class Test2 {
 		return idxs[orderIdx];
 	}
 	
-	private static boolean isMultiVal(List<Expression> exprs) {
+	private static boolean isMultiVal(List<Expr> exprs) {
 		if(exprs.size() <= 1) {
 			return false;
 		}
 		
-		for(Expression e : exprs) {
+		for(Expr e : exprs) {
 			if(e.getOpcode() != Opcode.CONST_LOAD) {
 				return false;
 			}
@@ -159,10 +238,10 @@ public class Test2 {
 		return true;
 	}
 	
-	private static ConstantExpression getConstantValue(List<Expression> exprs) {
+	private static ConstantExpression getConstantValue(List<Expr> exprs) {
 		ConstantExpression v = null;
 		
-		for(Expression e : exprs) {
+		for(Expr e : exprs) {
 			if(e.getOpcode() == Opcode.CONST_LOAD) {
 				ConstantExpression c = (ConstantExpression) e;
 				if(v == null) {
@@ -187,16 +266,20 @@ public class Test2 {
 			return;
 		}
 		
-		i++;
+		j++;
 		// System.out.printf("%s#%d: %s  [%d]%n", pre, i++, m, m.instructions.size());
 		
 		ControlFlowGraph cfg = ControlFlowGraphBuilder.build(m);
 		cfgs.put(m, cfg);
 //		System.out.println(cfg);
 		
+		if(m.toString().equals("dx.<clinit>()V")) {
+			return;
+		}
+		
 		
 		Type[] paramTypes = Type.getArgumentTypes(m.desc);
-		List<List<Expression>> lists = new ArrayList<>(paramTypes.length);
+		List<List<Expr>> lists = new ArrayList<>(paramTypes.length);
 		int[] idxs = new int[paramTypes.length];
 		int idx = 0;
 		if((m.access & Opcodes.ACC_STATIC) == 0) {
@@ -212,8 +295,8 @@ public class Test2 {
 		args.put(m, lists);
 		
 		for(BasicBlock b : cfg.vertices()) {
-			for(Statement stmt : b) {
-				for(Statement c : stmt.enumerate()) {
+			for(Stmt stmt : b) {
+				for(Expr c : stmt.enumerateOnlyChildren()) {
 					if(c.getOpcode() == Opcode.INVOKE) {
 						InvocationExpression invoke = (InvocationExpression) c;
 						
@@ -227,7 +310,7 @@ public class Test2 {
 							if(call != null) {
 								build(tree, call);
 
-								Expression[] params = invoke.getParameterArguments();
+								Expr[] params = invoke.getParameterArguments();
 								for(int i=0; i < params.length; i++) {
 									args.get(call).get(i).add(params[i]);
 								}
@@ -236,7 +319,7 @@ public class Test2 {
 							for(MethodNode vtarg : resolveVirtualCalls(tree, owner, name, desc)) {
 								build(tree, vtarg);
 								
-								Expression[] params = invoke.getParameterArguments();
+								Expr[] params = invoke.getParameterArguments();
 								for(int i=0; i < params.length; i++) {
 									args.get(vtarg).get(i).add(params[i]);
 								}
@@ -248,7 +331,7 @@ public class Test2 {
 						if(call != null) {
 							build(tree, call);
 							
-							Expression[] params = init.getArgumentExpressions();
+							Expr[] params = init.getArgumentExpressions();
 							for(int i=0; i < params.length; i++) {
 								args.get(call).get(i).add(params[i]);
 							}

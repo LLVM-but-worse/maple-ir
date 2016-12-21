@@ -3,14 +3,15 @@ package org.mapleir.ir.code.expr;
 import static org.objectweb.asm.Opcodes.*;
 
 import org.mapleir.ir.cfg.ControlFlowGraph;
-import org.mapleir.ir.code.stmt.Statement;
+import org.mapleir.ir.code.CodeUnit;
+import org.mapleir.ir.code.Expr;
 import org.mapleir.stdlib.util.TabbedStringWriter;
 import org.mapleir.stdlib.util.TypeUtils;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.util.Printer;
 
-public class ArithmeticExpression extends Expression {
+public class ArithmeticExpression extends Expr {
 
 	public enum Operator {
 		ADD("+"), SUB("-"), MUL("*"), DIV("/"), REM("%"), SHL("<<"), SHR(">>"), USHR(">>>"), OR("|"), AND("&"), XOR("^");
@@ -41,31 +42,31 @@ public class ArithmeticExpression extends Expression {
 		}
 	}
 
-	private Expression right;
-	private Expression left;
+	private Expr right;
+	private Expr left;
 	private Operator operator;
 
-	public ArithmeticExpression(Expression right, Expression left, Operator operator) {
+	public ArithmeticExpression(Expr right, Expr left, Operator operator) {
 		super(ARITHMETIC);
 		setLeft(left);
 		setRight(right);
 		this.operator = operator;
 	}
 
-	public Expression getLeft() {
+	public Expr getLeft() {
 		return left;
 	}
 
-	public void setLeft(Expression left) {
+	public void setLeft(Expr left) {
 		this.left = left;
 		overwrite(left, 0);
 	}
 
-	public Expression getRight() {
+	public Expr getRight() {
 		return right;
 	}
 
-	public void setRight(Expression right) {
+	public void setRight(Expr right) {
 		this.right = right;
 		overwrite(right, 1);
 	}
@@ -79,7 +80,7 @@ public class ArithmeticExpression extends Expression {
 	}
 
 	@Override
-	public Expression copy() {
+	public Expr copy() {
 		return new ArithmeticExpression(right.copy(), left.copy(), operator);
 	}
 
@@ -95,9 +96,9 @@ public class ArithmeticExpression extends Expression {
 	@Override
 	public void onChildUpdated(int ptr) {
 		if (ptr == 0) {
-			setLeft((Expression) read(ptr));
+			setLeft((Expr) read(ptr));
 		} else if (ptr == 1) {
-			setRight((Expression) read(ptr));
+			setRight((Expr) read(ptr));
 		}
 	}
 
@@ -215,12 +216,12 @@ public class ArithmeticExpression extends Expression {
 	}
 
 	@Override
-	public boolean isAffectedBy(Statement stmt) {
+	public boolean isAffectedBy(CodeUnit stmt) {
 		return left.isAffectedBy(stmt) || right.isAffectedBy(stmt);
 	}
 
 	@Override
-	public boolean equivalent(Statement s) {
+	public boolean equivalent(CodeUnit s) {
 		if(s instanceof ArithmeticExpression) {
 			ArithmeticExpression arith = (ArithmeticExpression) s;
 			return arith.operator == operator && left.equivalent(arith.left) && right.equivalent(arith.right);

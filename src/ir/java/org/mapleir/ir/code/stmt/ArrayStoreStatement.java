@@ -1,52 +1,54 @@
 package org.mapleir.ir.code.stmt;
 
 import org.mapleir.ir.cfg.ControlFlowGraph;
-import org.mapleir.ir.code.expr.Expression;
-import org.mapleir.ir.code.expr.Expression.Precedence;
+import org.mapleir.ir.code.CodeUnit;
+import org.mapleir.ir.code.Expr;
+import org.mapleir.ir.code.Expr.Precedence;
+import org.mapleir.ir.code.Stmt;
 import org.mapleir.stdlib.util.TabbedStringWriter;
 import org.mapleir.stdlib.util.TypeUtils;
 import org.mapleir.stdlib.util.TypeUtils.ArrayType;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Type;
 
-public class ArrayStoreStatement extends Statement {
+public class ArrayStoreStatement extends Stmt {
 
-	private Expression arrayExpression;
-	private Expression indexExpression;
-	private Expression valueExpression;
+	private Expr arrayExpression;
+	private Expr indexExpression;
+	private Expr valueExpression;
 	private ArrayType type;
-	
-	public ArrayStoreStatement(Expression arrayExpression, Expression indexExpression, Expression valueExpression, ArrayType type) {
+
+	public ArrayStoreStatement(Expr arrayExpression, Expr indexExpression, Expr valueExpression, ArrayType type) {
 		super(ARRAY_STORE);
 		setArrayExpression(arrayExpression);
 		setIndexExpression(indexExpression);
 		setValueExpression(valueExpression);
 		this.type = type;
 	}
-	
-	public Expression getArrayExpression() {
+
+	public Expr getArrayExpression() {
 		return arrayExpression;
 	}
 
-	public void setArrayExpression(Expression arrayExpression) {
+	public void setArrayExpression(Expr arrayExpression) {
 		this.arrayExpression = arrayExpression;
 		overwrite(arrayExpression, 0);
 	}
 
-	public Expression getIndexExpression() {
+	public Expr getIndexExpression() {
 		return indexExpression;
 	}
 
-	public void setIndexExpression(Expression indexExpression) {
+	public void setIndexExpression(Expr indexExpression) {
 		this.indexExpression = indexExpression;
 		overwrite(indexExpression, 1);
 	}
 
-	public Expression getValueExpression() {
+	public Expr getValueExpression() {
 		return valueExpression;
 	}
 
-	public void setValueExpression(Expression valueExpression) {
+	public void setValueExpression(Expr valueExpression) {
 		this.valueExpression = valueExpression;
 		overwrite(valueExpression, 2);
 	}
@@ -62,11 +64,11 @@ public class ArrayStoreStatement extends Statement {
 	@Override
 	public void onChildUpdated(int ptr) {
 		if (ptr == 0) {
-			setArrayExpression((Expression) read(0));
+			setArrayExpression((Expr) read(0));
 		} else if (ptr == 1) {
-			setIndexExpression((Expression) read(1));
+			setIndexExpression((Expr) read(1));
 		} else if (ptr == 2) {
-			setValueExpression((Expression) read(2));
+			setValueExpression((Expr) read(2));
 		}
 	}
 
@@ -114,24 +116,23 @@ public class ArrayStoreStatement extends Statement {
 	}
 
 	@Override
-	public boolean isAffectedBy(Statement stmt) {
-		return stmt.canChangeLogic() || 
-				arrayExpression.isAffectedBy(stmt) || 
-				indexExpression.isAffectedBy(stmt) || 
-				valueExpression.isAffectedBy(stmt);
+	public boolean isAffectedBy(CodeUnit stmt) {
+		return stmt.canChangeLogic() || arrayExpression.isAffectedBy(stmt) || indexExpression.isAffectedBy(stmt)
+				|| valueExpression.isAffectedBy(stmt);
 	}
 
 	@Override
-	public Statement copy() {
+	public ArrayStoreStatement copy() {
 		return new ArrayStoreStatement(arrayExpression.copy(), indexExpression.copy(), valueExpression.copy(), type);
 	}
 
 	@Override
-	public boolean equivalent(Statement s) {
-		if(s instanceof ArrayStoreStatement) {
+	public boolean equivalent(CodeUnit s) {
+		if (s instanceof ArrayStoreStatement) {
 			ArrayStoreStatement store = (ArrayStoreStatement) s;
-			return arrayExpression.equivalent(store.arrayExpression) && indexExpression.equivalent(store.indexExpression) &&
-					valueExpression.equivalent(store.valueExpression) && type.equals(store.type);
+			return arrayExpression.equivalent(store.arrayExpression)
+					&& indexExpression.equivalent(store.indexExpression)
+					&& valueExpression.equivalent(store.valueExpression) && type.equals(store.type);
 		}
 		return false;
 	}

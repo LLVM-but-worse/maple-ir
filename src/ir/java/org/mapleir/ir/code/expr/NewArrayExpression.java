@@ -1,7 +1,8 @@
 package org.mapleir.ir.code.expr;
 
 import org.mapleir.ir.cfg.ControlFlowGraph;
-import org.mapleir.ir.code.stmt.Statement;
+import org.mapleir.ir.code.CodeUnit;
+import org.mapleir.ir.code.Expr;
 import org.mapleir.stdlib.util.TabbedStringWriter;
 import org.mapleir.stdlib.util.TypeUtils;
 import org.objectweb.asm.MethodVisitor;
@@ -9,12 +10,12 @@ import org.objectweb.asm.Type;
 
 import com.sun.xml.internal.ws.org.objectweb.asm.Opcodes;
 
-public class NewArrayExpression extends Expression {
+public class NewArrayExpression extends Expr {
 
-	private Expression[] bounds;
+	private Expr[] bounds;
 	private Type type;
 
-	public NewArrayExpression(Expression[] bounds, Type type) {
+	public NewArrayExpression(Expr[] bounds, Type type) {
 		super(NEW_ARRAY);
 		this.bounds = bounds;
 		for (int i = 0; i < bounds.length; i++) {
@@ -23,11 +24,11 @@ public class NewArrayExpression extends Expression {
 		this.type = type;
 	}
 
-	public Expression[] getBounds() {
+	public Expr[] getBounds() {
 		return bounds;
 	}
 
-	public void setBounds(Expression[] bounds) {
+	public void setBounds(Expr[] bounds) {
 		if (type.getDimensions() < bounds.length || bounds.length <= 0)
 			throw new ArrayIndexOutOfBoundsException();
 
@@ -44,7 +45,7 @@ public class NewArrayExpression extends Expression {
 		}
 	}
 
-	public void updateLength(int dimension, Expression length, boolean overwrite) {
+	public void updateLength(int dimension, Expr length, boolean overwrite) {
 		if (dimension < 0 || dimension >= bounds.length)
 			throw new ArrayIndexOutOfBoundsException(dimension);
 
@@ -55,8 +56,8 @@ public class NewArrayExpression extends Expression {
 	}
 
 	@Override
-	public Expression copy() {
-		Expression[] bounds = new Expression[this.bounds.length];
+	public Expr copy() {
+		Expr[] bounds = new Expr[this.bounds.length];
 		for (int i = 0; i < bounds.length; i++)
 			bounds[i] = this.bounds[i].copy();
 		return new NewArrayExpression(bounds, type);
@@ -74,11 +75,11 @@ public class NewArrayExpression extends Expression {
 	@Override
 	public void onChildUpdated(int ptr) {
 		if(ptr >= 0 && ptr < bounds.length) {
-			Expression e;
+			Expr e;
 			if(children[ptr] == null) {
 				e = null;
 			} else {
-				e = (Expression) read(ptr);
+				e = (Expr) read(ptr);
 			}
 			updateLength(ptr, e, true);
 		}
@@ -129,7 +130,7 @@ public class NewArrayExpression extends Expression {
 
 	@Override
 	public boolean canChangeLogic() {
-		for(Expression e : bounds) {
+		for(Expr e : bounds) {
 			if(e.canChangeLogic()) {
 				return true;
 			}
@@ -138,8 +139,8 @@ public class NewArrayExpression extends Expression {
 	}
 
 	@Override
-	public boolean isAffectedBy(Statement stmt) {
-		for(Expression e : bounds) {
+	public boolean isAffectedBy(CodeUnit stmt) {
+		for(Expr e : bounds) {
 			if(e.isAffectedBy(stmt)) {
 				return true;
 			}
@@ -148,7 +149,7 @@ public class NewArrayExpression extends Expression {
 	}
 
 	@Override
-	public boolean equivalent(Statement s) {
+	public boolean equivalent(CodeUnit s) {
 		if(s instanceof NewArrayExpression) {
 			NewArrayExpression e = (NewArrayExpression) s;
 			if(e.bounds.length != bounds.length) {

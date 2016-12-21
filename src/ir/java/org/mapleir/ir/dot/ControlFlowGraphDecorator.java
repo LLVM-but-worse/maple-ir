@@ -9,7 +9,7 @@ import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.cfg.edge.FlowEdge;
 import org.mapleir.ir.cfg.edge.TryCatchEdge;
-import org.mapleir.ir.code.stmt.Statement;
+import org.mapleir.ir.code.Stmt;
 import org.mapleir.stdlib.collections.graph.dot.DotPropertyDecorator;
 import org.mapleir.stdlib.util.TabbedStringWriter;
 
@@ -59,11 +59,11 @@ public class ControlFlowGraphDecorator implements DotPropertyDecorator<ControlFl
 	}
 	
 	private void outputBlock(BasicBlock n, StringBuilder sb2) {
-		Iterator<Statement> it = n.iterator();
+		Iterator<Stmt> it = n.iterator();
 		TabbedStringWriter sw = new TabbedStringWriter();
 		// int insn = 0;
 		while(it.hasNext()) {
-			Statement stmt = it.next();
+			Stmt stmt = it.next();
 			sw.print(stmt.getId() + ". ");
 			stmt.toString(sw);
 			sw.print("\n");

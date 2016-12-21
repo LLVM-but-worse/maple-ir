@@ -9,11 +9,11 @@ import java.util.Set;
 
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
+import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.code.Opcode;
-import org.mapleir.ir.code.expr.Expression;
+import org.mapleir.ir.code.Stmt;
 import org.mapleir.ir.code.expr.PhiExpression;
 import org.mapleir.ir.code.expr.VarExpression;
-import org.mapleir.ir.code.stmt.Statement;
 import org.mapleir.ir.code.stmt.copy.AbstractCopyStatement;
 import org.mapleir.ir.code.stmt.copy.CopyPhiStatement;
 import org.mapleir.ir.locals.Local;
@@ -55,11 +55,11 @@ public class SSADefUseMap implements Opcode {
 		phiUses.clear();
 		Set<Local> usedLocals = new HashSet<>();
 		for(BasicBlock b : cfg.vertices()) {
-			for(Statement stmt : b) {
+			for(Stmt stmt : b) {
 				phiUses.getNonNull(b);
 
 				usedLocals.clear();
-				for (Statement s : stmt.enumerate())
+				for (Expr s : stmt.enumerateOnlyChildren())
 					if(s.getOpcode() == Opcode.LOCAL_LOAD)
 						usedLocals.add(((VarExpression) s).getLocal());
 
@@ -78,12 +78,12 @@ public class SSADefUseMap implements Opcode {
 		int index = 0;
 		Set<Local> usedLocals = new HashSet<>();
 		for (BasicBlock b : preorder) {
-			for (Statement stmt : b) {
+			for (Stmt stmt : b) {
 				phiUses.getNonNull(b);
 
 				usedLocals.clear();
-				for(Statement s : stmt.enumerate())
-					if(s instanceof VarExpression)
+				for(Expr s : stmt.enumerateOnlyChildren())
+					if(s.getOpcode() == Opcode.LOCAL_LOAD)
 						usedLocals.add(((VarExpression) s).getLocal());
 
 				buildIndex(b, stmt, index++, usedLocals);
@@ -92,7 +92,7 @@ public class SSADefUseMap implements Opcode {
 		}
 	}
 
-	protected void build(BasicBlock b, Statement stmt, Set<Local> usedLocals) {
+	protected void build(BasicBlock b, Stmt stmt, Set<Local> usedLocals) {
 		if(stmt instanceof AbstractCopyStatement) {
 			AbstractCopyStatement copy = (AbstractCopyStatement) stmt;
 			Local l = copy.getVariable().getLocal();
@@ -101,7 +101,7 @@ public class SSADefUseMap implements Opcode {
 			if(copy instanceof CopyPhiStatement) {
 				phiDefs.put(l, (CopyPhiStatement) copy);
 				PhiExpression phi = (PhiExpression) copy.getExpression();
-				for(Entry<BasicBlock, Expression> en : phi.getArguments().entrySet()) {
+				for(Entry<BasicBlock, Expr> en : phi.getArguments().entrySet()) {
 					Local ul = ((VarExpression) en.getValue()).getLocal();
 					uses.getNonNull(ul).add(en.getKey());
 					phiUses.get(b).add(ul);
@@ -114,14 +114,14 @@ public class SSADefUseMap implements Opcode {
 			uses.getNonNull(usedLocal).add(b);
 	}
 
-	protected void buildIndex(BasicBlock b, Statement stmt, int index, Set<Local> usedLocals) {
+	protected void buildIndex(BasicBlock b, Stmt stmt, int index, Set<Local> usedLocals) {
 		if (stmt instanceof AbstractCopyStatement) {
 			AbstractCopyStatement copy = (AbstractCopyStatement) stmt;
 			defIndex.put(copy.getVariable().getLocal(), index);
 
 			if (copy instanceof CopyPhiStatement) {
 				PhiExpression phi = ((CopyPhiStatement) copy).getExpression();
-				for (Entry<BasicBlock, Expression> en : phi.getArguments().entrySet()) {
+				for (Entry<BasicBlock, Expr> en : phi.getArguments().entrySet()) {
 					lastUseIndex.getNonNull(((VarExpression) en.getValue()).getLocal()).put(en.getKey(), en.getKey().size());
 //					lastUseIndex.get(ul).put(b, -1);
 				}
