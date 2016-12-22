@@ -24,7 +24,7 @@ public class InvocationExpression extends Expr {
 		this.owner = owner;
 		this.name = name;
 		this.desc = desc;
-
+		
 		for (int i = 0; i < argumentExpressions.length; i++) {
 			overwrite(argumentExpressions[i], i);
 		}
@@ -126,6 +126,8 @@ public class InvocationExpression extends Expr {
 
 	@Override
 	public void onChildUpdated(int ptr) {
+		
+		
 		updateArgument(ptr, (Expr) read(ptr));
 	}
 
@@ -162,6 +164,8 @@ public class InvocationExpression extends Expr {
 			}
 		}
 		printer.print(')');
+		
+//		printer.print("  ::     " + owner + "." + name + "  " + desc);
 	}
 
 	@Override
