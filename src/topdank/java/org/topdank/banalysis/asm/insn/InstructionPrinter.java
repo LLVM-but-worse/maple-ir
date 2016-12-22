@@ -215,8 +215,12 @@ public class InstructionPrinter {
 	 * @param lines To print
 	 */
 	public static void consolePrint(String[] lines) {
-		for(String line : lines) {
-			System.out.println(line);
+//		for(String line : lines) {
+//			System.out.println(line);
+//		}
+		
+		for(int i=0; i < lines.length; i++) {
+			System.out.println((i + 1) + ". " + lines[i]);
 		}
 	}
 	
