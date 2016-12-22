@@ -24,15 +24,13 @@ import org.mapleir.ir.locals.LocalsPool;
 import org.mapleir.ir.locals.VersionedLocal;
 import org.mapleir.stdlib.klass.ClassTree;
 import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
-import org.topdank.banalysis.asm.insn.InstructionPrinter;
 import org.topdank.byteengineer.commons.data.JarContents;
 import org.topdank.byteengineer.commons.data.JarInfo;
 import org.topdank.byteio.in.SingleJarDownloader;
 import org.topdank.byteio.out.JarDumper;
-
-import jdk.internal.org.objectweb.asm.Type;
 
 public class Test2 {
 
@@ -48,12 +46,14 @@ public class Test2 {
 	private static Map<MethodNode, Set<Expr>> calls;
 	private static Map<MethodNode, List<List<Expr>>> args;
 	private static Map<MethodNode, int[]> paramIndices;
+	private static Set<Expr> processed;
 	
 	public static void main(String[] _args) throws IOException {
 		cfgs = new HashMap<>();
 		calls = new HashMap<>();
 		args = new HashMap<>();
 		paramIndices = new HashMap<>();
+		processed = new HashSet<>();
 		
 		JarInfo jar = new JarInfo(new File("res/gamepack107.jar"));
 		SingleJarDownloader<ClassNode> dl = new SingleJarDownloader<>(jar);
@@ -64,39 +64,45 @@ public class Test2 {
 		System.out.println("davai");
 		Set<MethodNode> entrySet = findEntries(tree);
 		long start = System.nanoTime();
-//		for(MethodNode m : entrySet) {
-//			build(tree, m);
+		for(MethodNode m : entrySet) {
+			build(tree, m);
+		}
+		
+//		for(ClassNode cn : tree.getClasses().values()) {
+//			for(MethodNode m : cn.methods) {
+//				
+//				if(m.instructions.size() > 15000) {
+//					System.out.println("this: " + m);
+//				}
+//				
+//				if(m.toString().equals("dx.<clinit>()V")) {
+//					build(tree, m);
+//					
+//					ControlFlowGraph cfg = cfgs.get(m);
+//					LocalsPool pool = cfg.getLocals();
+////					svar0_1145
+////					for(Entry<VersionedLocal, Set<VarExpression>> u : pool.uses.entrySet()) {
+////						System.out.println(u.getKey() + " = " + u.getValue());
+////					}
+////					System.out.println(cfg);
+//					BoissinotDestructor.leaveSSA(cfg);
+//					cfg.getLocals().realloc(cfg);
+//					ControlFlowGraphDumper.dump(cfg, m);
+////					InstructionPrinter.consolePrint(m);
+//					
+////					ControlFlowGraphBuilder.build(m);
+////					System.out.println(cfg);
+//				}
+//			}
 //		}
-		
-		for(ClassNode cn : tree.getClasses().values()) {
-			for(MethodNode m : cn.methods) {
-				if(m.toString().equals("dx.<clinit>()V")) {
-					build(tree, m);
-					
-					ControlFlowGraph cfg = cfgs.get(m);
-					LocalsPool pool = cfg.getLocals();
-//					svar0_1145
-//					for(Entry<VersionedLocal, Set<VarExpression>> u : pool.uses.entrySet()) {
-//						System.out.println(u.getKey() + " = " + u.getValue());
-//					}
-//					System.out.println(cfg);
-					BoissinotDestructor.leaveSSA(cfg);
-					cfg.getLocals().realloc(cfg);
-					ControlFlowGraphDumper.dump(cfg, m);
-					
-//					ControlFlowGraphBuilder.build(m);
-					InstructionPrinter.consolePrint(m);
-//					System.out.println(cfg);
-				}
-			}
-		}
 
-		JarDumper dumper = new CompleteResolvingJarDumper(contents);
-		dumper.dump(new File("out/osb.jar"));
+//		JarDumper dumper = new CompleteResolvingJarDumper(contents);
+//		dumper.dump(new File("out/osb.jar"));
 		
-		if("".equals("")) {
-			return;
-		}
+				
+//		if("".equals("")) {
+//			return;
+//		}
 		
 		long time = System.nanoTime() - start;
 		System.out.println("processed " + j + " methods.");
@@ -110,7 +116,7 @@ public class Test2 {
 			MethodNode mn = e.getKey();
 			ControlFlowGraph cfg = e.getValue();
 			
-//			if(!mn.toString().equals("cz.bp(B)Z")) {
+//			if(!mn.toString().equals("cn.f(Ljava/lang/String;ZZI)V")) {
 //				continue;
 //			}
 //			System.out.println(mn + " isStat: " + ((mn.access & Opcodes.ACC_STATIC) != 0));
@@ -125,6 +131,7 @@ public class Test2 {
 				
 				if(c != null) {
 					j++;
+//					System.out.println(cfg);
 //					System.out.printf("Constant value for %s @ arg%d of: %s    , agreement: %d.%n", mn, i, c, l.size());
 //					System.out.println("   resIdx: " + resolveIndex(mn, i));
 					LocalsPool pool = cfg.getLocals();
@@ -177,11 +184,48 @@ public class Test2 {
 					}
 					
 					dead.add(i);
+//					System.out.println(cfg);
 				} else if(isMultiVal(l)) {
-					// System.out.printf("Multivalue param for %s @ arg%d:   %s.%n", mn, i, l);
+//					System.out.printf("Multivalue param for %s @ arg%d:   %s.%n", mn, i, l);
 				}
 			}
 			
+			if(dead.size() > 0) {
+				mn.desc = buildDesc(Type.getArgumentTypes(mn.desc), Type.getReturnType(mn.desc), dead);
+				
+				for(Expr call : calls.get(mn)) {
+					/* since the callgrapher finds all
+					 * the methods in a hierarchy and considers
+					 * it as a single invocation, a certain
+					 * invocation may be called mulitple times. */
+					if(processed.contains(call)) {
+						continue;
+					}
+					processed.add(call);
+					if(call.getOpcode() == Opcode.INIT_OBJ) {
+						InitialisedObjectExpression init = (InitialisedObjectExpression) call;
+
+						CodeUnit parent = init.getParent();
+//						System.out.println("init: " + init);
+						Expr[] newArgs = buildArgs(init.getArgumentExpressions(), 0, dead);
+						InitialisedObjectExpression init2 = new InitialisedObjectExpression(init.getType(), init.getOwner(), mn.desc, newArgs);
+
+						parent.overwrite(init2, parent.indexOf(init));
+					} else if(call.getOpcode() == Opcode.INVOKE) {
+						InvocationExpression invoke = (InvocationExpression) call;
+//						System.out.println("invoke: " + mn);
+
+						CodeUnit parent = invoke.getParent();
+						
+						Expr[] newArgs = buildArgs(invoke.getArgumentExpressions(), invoke.getCallType() == Opcodes.INVOKESTATIC ? 0 : -1, dead);
+						InvocationExpression invoke2 = new InvocationExpression(invoke.getCallType(), newArgs, invoke.getOwner(), invoke.getName(), mn.desc);
+						
+						parent.overwrite(invoke2, parent.indexOf(invoke));
+					} else {
+						throw new UnsupportedOperationException(call.toString());
+					}
+				}
+			}
 
 //			System.out.println(mn + "  " + dead);
 			// System.out.println(cfg);
@@ -216,8 +260,41 @@ public class Test2 {
 		System.out.println(" took: " + (double)((double)time/1_000_000_000L) + "s.");
 		System.out.println("rewriting jar.");
 		
-//		JarDumper dumper = new CompleteResolvingJarDumper(contents);
-//		dumper.dump(new File("out/osb.jar"));
+		JarDumper dumper = new CompleteResolvingJarDumper(contents);
+		dumper.dump(new File("out/osb.jar"));
+	}
+	
+	private static Expr[] buildArgs(Expr[] oldArgs, int off, Set<Integer> dead) {
+		Expr[] newArgs = new Expr[oldArgs.length - dead.size()];
+//		System.out.println("oldArgs: " + Arrays.toString(oldArgs));
+//		System.out.println("dead: " + dead);
+		
+		int j = newArgs.length - 1;
+		for(int i=oldArgs.length-1; i >= 0; i--) {
+			Expr e = oldArgs[i];
+//			System.out.println("   i: " + i + ",  expr: " + e);
+			if(!dead.contains(i + off)) {
+//				System.out.println("   isdead");
+				newArgs[j--] = e;
+			}
+			e.unlink();
+		}
+//		System.out.println();
+		
+		return newArgs;
+	}
+	
+	private static String buildDesc(Type[] preParams, Type ret, Set<Integer> dead) {
+		StringBuilder sb = new StringBuilder();
+		sb.append("(");
+		for(int i=0; i < preParams.length; i++) {
+			if(!dead.contains(i)) {
+				Type t = preParams[i];
+				sb.append(t.toString());
+			}
+		}
+		sb.append(")").append(ret.toString());
+		return sb.toString();
 	}
 	
 	private static int resolveIndex(MethodNode m, int orderIdx) {
@@ -264,18 +341,20 @@ public class Test2 {
 	private static void build(ClassTree tree, MethodNode m) {
 		if(cfgs.containsKey(m)) {
 			return;
+		} else if(tree.isJDKClass(m.owner)) {
+			return;
 		}
 		
 		j++;
-		// System.out.printf("%s#%d: %s  [%d]%n", pre, i++, m, m.instructions.size());
+//		System.out.printf("#%s  [%d]%n", m, m.instructions.size());
 		
 		ControlFlowGraph cfg = ControlFlowGraphBuilder.build(m);
 		cfgs.put(m, cfg);
 //		System.out.println(cfg);
 		
-		if(m.toString().equals("dx.<clinit>()V")) {
-			return;
-		}
+//		if(m.toString().equals("dx.<clinit>()V")) {
+//			return;
+//		}
 		
 		
 		Type[] paramTypes = Type.getArgumentTypes(m.desc);
@@ -293,6 +372,7 @@ public class Test2 {
 		}
 		paramIndices.put(m, idxs);
 		args.put(m, lists);
+		calls.put(m, new HashSet<>());
 		
 		for(BasicBlock b : cfg.vertices()) {
 			for(Stmt stmt : b) {
@@ -308,8 +388,12 @@ public class Test2 {
 						if(isStatic) {
 							MethodNode call = resolveStaticCall(tree, owner, name, desc);
 							if(call != null) {
+//								System.out.println(m + " scalls " + call);
+//								System.out.println("          invoke: " + invoke);
 								build(tree, call);
 
+								calls.get(call).add(invoke);
+								
 								Expr[] params = invoke.getParameterArguments();
 								for(int i=0; i < params.length; i++) {
 									args.get(call).get(i).add(params[i]);
@@ -317,11 +401,17 @@ public class Test2 {
 							}
 						} else {
 							for(MethodNode vtarg : resolveVirtualCalls(tree, owner, name, desc)) {
-								build(tree, vtarg);
-								
-								Expr[] params = invoke.getParameterArguments();
-								for(int i=0; i < params.length; i++) {
-									args.get(vtarg).get(i).add(params[i]);
+								if(vtarg != null) {
+//									System.out.println(m + " vcalls " + vtarg);
+//									System.out.println("           invoke: " + invoke);
+									build(tree, vtarg);
+									
+									calls.get(vtarg).add(invoke);
+									
+									Expr[] params = invoke.getParameterArguments();
+									for(int i=0; i < params.length; i++) {
+										args.get(vtarg).get(i).add(params[i]);
+									}
 								}
 							}
 						}
@@ -329,7 +419,10 @@ public class Test2 {
 						InitialisedObjectExpression init = (InitialisedObjectExpression) c;
 						MethodNode call = resolveVirtualInitCall(tree, init.getOwner(), init.getDesc());
 						if(call != null) {
+//							System.out.println(m + " icalls " + call);
 							build(tree, call);
+							
+							calls.get(call).add(init);
 							
 							Expr[] params = init.getArgumentExpressions();
 							for(int i=0; i < params.length; i++) {
@@ -366,7 +459,7 @@ public class Test2 {
 		}
 	}
 	
-	private static Set<MethodNode> resolveVirtualCalls(ClassTree tree, ClassNode cn, String name, String desc) {
+	private static MethodNode resolveVirtualCall(ClassTree tree, ClassNode cn, String name, String desc) {
 		Set<MethodNode> set = new HashSet<>();
 		for(MethodNode m : cn.methods) {
 			if((m.access & Opcodes.ACC_STATIC) == 0) {
@@ -375,7 +468,16 @@ public class Test2 {
 				}
 			}
 		}
-		return set;
+		
+		if(set.size() > 1) {
+			throw new IllegalStateException(cn.name + "." + name + " " + desc + " => " + set);
+		}
+		
+		if(set.size() == 1) {
+			return set.iterator().next();
+		} else {
+			return null;
+		}
 	}
 	
 	private static Set<MethodNode> resolveVirtualCalls(ClassTree tree, String owner, String name, String desc) {
@@ -384,15 +486,27 @@ public class Test2 {
 		ClassNode cn = tree.getClass(owner);
 		
 		if(cn != null) {
-			set.addAll(resolveVirtualCalls(tree, cn, name, desc));
+			MethodNode m = resolveVirtualCall(tree, cn, name, desc);
+			if(m != null) {
+				set.add(m);
+			}
 			
-			for(ClassNode superC : tree.getSupers(cn)) {
-				set.addAll(resolveVirtualCalls(tree, superC, name, desc));
+			for(ClassNode subC : tree.getSupers(cn)) {
+				m = resolveVirtualCall(tree, subC, name, desc);
+				if(m != null) {
+					set.add(m);
+				}
 			}
 			
 			for(ClassNode subC : tree.getDelegates(cn)) {
-				set.addAll(resolveVirtualCalls(tree, subC, name, desc));
+				m = resolveVirtualCall(tree, subC, name, desc);
+				if(m != null) {
+					set.add(m);
+				}
 			}
+			
+			return set;
+			// throw new IllegalStateException(cn.name + "." + name + " " + desc);
 		}
 		
 		return set;
