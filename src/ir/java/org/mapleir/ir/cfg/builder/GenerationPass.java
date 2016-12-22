@@ -37,6 +37,298 @@ import org.objectweb.asm.util.Printer;
 
 public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 
+	private static final boolean VERIFY = true;
+	
+	/* Format for stack configs:
+	 *  OPCODE:NUM_CONFIGS:CONF_0:CONF_2 ... :CONF_N
+	 *  
+	 * Each config has the following format:
+	 *  h_n: expected stack object height
+	 *     options: C, B, S, I, F, D, J, Z,O(sub class of Ljava/lang/Object;),
+	 *              N(null const), E(subclass of Ljava/lang/Exception;),
+	 *              *(anything), 1(1, 2 or 4 byte word), 2(8 byte word).
+	 *              O shadows N.
+	 *              All of the above with the exception of N(null) can
+	 *              be prepended with array dimension markers ([).
+	 *      object pointers count as 1 byte when considering 
+	 *       stack deltas.
+	 *  h_0| ... |h_n
+	 * where h_0 is the top element of the stack
+	 * and h_n is the n-1th element of the stack
+	 * from the top. 
+	 *  
+	 *  before>after where before and after
+	 *     are both stack configurations.
+	 *  
+	 * Example:
+	 *   1:1:*>I*    describes ACONST_NULL,
+	 *      => opcode = 1;
+	 *      => 1 configuration
+	 *      => no required pre stack configuration
+	 *      => top item ofpost stack is an int
+	 *  */
+	private static final String[] STACK_CONFIGS = new String[] {
+			"0:0",        // NOP
+			"1:1:*>N|*",  // ACONST_NULL
+			"2:1:*>I|*",  // ICONST_M1
+			"3:1:*>I|*",  // ICONST_0
+			"4:1:*>I|*",  // ICONST_1
+			"5:1:*>I|*",  // ICONST_2
+			"6:1:*>I|*",  // ICONST_3
+			"7:1:*>I|*",  // ICONST_4
+			"8:1:*>I|*",  // ICONST_5
+			"9:1:*>J|*",  // LCONST_0
+			"10:1:*>J|*", // LCONST_1
+			"11:1:*>F|*", // FCONST_0
+			"12:1:*>F|*", // FCONST_1
+			"13:1:*>F|*", // FCONST_2
+			"14:1:*>D|*", // DCONST_0
+			"15:1:*>D|*", // DCONST_1
+			"16:1:*>B|*", // BIPUSH
+			"17:1:*>S|*", // SIPUSH
+			"18:1:*>X|*", // LDC
+			
+			"21:1:*>I|*", // ILOAD
+			"22:1:*>J|*", // LLOAD
+			"23:1:*>F|*", // FLOAD
+			"24:1:*>D|*", // DLOAD
+			"25:1:*>X|*", // ALOAD
+			
+			"46:1:I|[I|*>I|*", // IALOAD
+			"47:1:I|[J|*>J|*", // LALOAD
+			"48:1:I|[F|*>F|*", // FALOAD
+			"49:1:I|[D|*>D|*", // DALOAD
+			"50:1:I|[X|*>X|*", // AALOAD
+			// B/S ALOAD are signed extended to
+			// int before value is pushed and
+			// CALOAD is zero extended, also as
+			// an int.
+			"51:1:I|[B|*>I|*", // BALOAD
+			"52:1:I|[C|*>I|*", // CALOAD
+			"53:1:I|[S|*>I|*", // SALOAD
+			
+			"54:1:I>*", // ISTORE
+			"55:1:J*>*", // LSTORE
+			"56:1:F*>*", // FSTORE
+			"57:1:D*>*", // DSTORE
+			"58:1:X*>*", // ASTORE
+			
+			"79:1:I|I|[I|*>*", // IASTORE
+			"80:1:J|I|[J|*>*", // LASTORE
+			"81:1:F|I|[F|*>*", // FASTORE
+			"82:1:D|I|[D|*>*", // DASTORE
+			"83:1:X|I|[X|*>*", // AASTORE
+			// B/C/S ASTORE values are ints
+			// and are truncated to byte/char/
+			// /short before being set in the
+			// array.
+			"84:1:I|I|[B|*>*", // BASTORE
+			"85:1:I|I|[C|*>*", // CASTORE
+			"86:1:I|I|[S|*>*", // SASTORE
+			
+			"87:1:1|*>*", // POP
+			"88:2:1|1|*>*:2|*>*", // POP2
+			// Stack operations are handled in
+			// their respective generation
+			// methods.
+			"89:0", // DUP
+			"90:0",   // DUP_X1
+			"91:0",   // DUP_X2
+			"92:0",   // DUP2
+			"93:0",   // DUP2_X1
+			"94:0",   // DUP2_X2
+			"95:0",    // SWAP
+			
+			// 96 - 131
+			"96:1:I|I|*>I|*", // IADD
+			"97:1:L|L|*>L|*", // LADD
+			"98:1:F|F|*>F|*", // FADD
+			"99:1:D|D|*>D|*", // DADD
+			"100:1:I|I|*>I|*", // ISUB
+			"101:1:L|L|*>L|*", // LSUB
+			"102:1:F|F|*>F|*", // FSUB
+			"103:1:D|D|*>D|*", // DSUB
+			"104:1:I|I|*>I|*", // IMUL
+			"105:1:L|L|*>L|*", // LMUL
+			"106:1:F|F|*>F|*", // FMUL
+			"107:1:D|D|*>D|*", // DMUL
+			"108:1:I|I|*>I|*", // IDIV
+			"109:1:L|L|*>L|*", // LDIV
+			"110:1:F|F|*>F|*", // FDIV
+			"111:1:D|D|*>D|*", // DDIV
+			"112:1:I|I|*>I|*", // IREM
+			"113:1:L|L|*>L|*", // LREM
+			"114:1:F|F|*>F|*", // FREM
+			"115:1:D|D|*>D|*", // DREM
+			"120:1:I|I|*>I|*", // ISHL
+			"121:1:L|L|*>L|*", // LSHL
+			"122:1:I|I|*>I|*", // ISHR
+			"123:1:L|L|*>L|*", // LSHR
+			"124:1:I|I|*>I|*", // IUSHR
+			"125:1:L|L|*>L|*", // LUSHR
+			"126:1:I|I|*>I|*", // IAND
+			"127:1:L|L|*>L|*", // LAND
+			"128:1:I|I|*>I|*", // IOR
+			"129:1:L|L|*>L|*", // LOR
+			"130:1:I|I|*>I|*", // IXOR
+			"131:1:L|L|*>L|*", // LXOR
+			"116:1:I|*>I|*", // INEG
+			"117:1:L|*>L|*", // LNEG
+			"118:1:F|*>F|*", // FNEG
+			"119:1:D|*>D|*", // DNEG
+
+			"132:1:*>*", // IINC
+			
+			// 133 - 147
+			"133:1:I|*>J|*", // I2L
+			"134:1:I|*>F|*", // I2F
+			"135:1:I|*>D|*", // I2D
+			"136:1:J|*>I|*", // L2I
+			"137:1:J|*>F|*", // L2F
+			"138:1:L|*>D|*", // L2D
+			"139:1:F|*>I|*", // F2I
+			"140:1:F|*>J|*", // F2L
+			"141:1:F|*>D|*", // F2D
+			"142:1:D|*>I|*", // D2I
+			"143:1:D|*>J|*", // D2L
+			"144:1:D|*>F|*", // D2F
+			"145:1:I|*>B|*", // I2B
+			"146:1:I|*>C|*", // I2C
+			"147:1:I|*>S|*", // I2S
+			
+			// 148 - 158
+			"148:1:J|J|*>I|*", // LCMP
+			"149:1:F|F|*>I|*", // FCMPL
+			"150:1:F|F|*>I|*", // FCMPG
+			"151:1:D|D|*>I|*", // DCMPL
+			"152:1:D|D|*>I|*", // DCMPG
+			"153:1:I|*>I|*", // IFEQ
+			"154:1:I|*>I|*", // IFNE
+			"155:1:I|*>I|*", // IFLT
+			"156:1:I|*>I|*", // IFGE
+			"157:1:I|*>I|*", // IFGT
+			"158:1:I|*>I|*", // IFLE
+			
+			"159:1:I|I|*>*", // IF_ICMPEQ
+			"160:1:I|I|*>*", // IF_ICMPNE
+			"161:1:I|I|*>*", // IF_ICMPLT
+			"162:1:I|I|*>*", // IF_ICMPGE
+			"163:1:I|I|*>*", // IF_ICMPGT
+			"164:1:I|I|*>*", // IF_ICMPLE
+			"165:1:X|X|*>*", // IF_ACMPEQ
+			"166:1:X|X|*>*", // IF_ACMPNE
+			
+			"167:0", // GOTO
+			// JSR and RET omitted (unsupported)
+			"170:1:I|*>*", // TABLESWITCH
+			"171:1:I|*>*", // LOOKUPSWITCH
+			
+			"172:1:I|*>", // IRETURN
+			"173:1:J|*>", // LRETURN
+			"174:1:F|*>", // FRETURN
+			"175:1:D|*>", // DRETURN
+			"176:1:X|*>", // ARETURN
+			"177:1:>", // RETURN
+			
+			"178:1:*>X|*", // GETSTATIC
+			"179:1:X|*>*", // PUTSTATIC
+			"180:1:O|*>X|*", // GETFIELD
+			"181:1:X|O|*>*", // PUTFIELD
+	};
+	
+	/* public static void main(String[] args) {
+		// 96 IADD - 115 DREM (2)
+		// 116-119 I,L,F,D NEG (1)
+		// 120-131 shift ops (2)
+
+		// N.B: These convert long to L instead of J.
+		gen_arith_configs(96, 115, 2);
+		gen_arith_configs(120, 131, 2);
+		gen_arith_configs(116, 119, 1);
+		gen_cast_configs(133, 147);
+		gen_cmp_configs(148, 158);
+	}
+	private static void gen_arith_configs(int f, int l, int s) {
+		for(int i=f; i <= l; i++) {
+			String n = Printer.OPCODES[i];
+			char t = Character.toUpperCase(n.charAt(0));
+			
+			String pre = "";
+			for(int j=0; j < s; j++) {
+				pre += t;
+				pre += "|";
+			}
+			pre += "*";
+			
+			String post = t + "|*";
+			
+			String p = String.format("\"%d:1:%s>%s\", // %s", i, pre, post, n);
+			System.out.println(p);;
+		}
+	}
+	private static void gen_cast_configs(int f, int l) {
+		for(int i=f; i <= l; i++) {
+			String n = Printer.OPCODES[i];
+			char ft = Character.toUpperCase(n.charAt(0));
+			char tt = Character.toUpperCase(n.charAt(2));
+			
+			String pre = ft + "|*";
+			String post = tt + "|*";
+			
+			String p = String.format("\"%d:1:%s>%s\", // %s", i, pre, post, n);
+			System.out.println(p);
+		}
+	}
+	private static void gen_cmp_configs(int f, int l) {
+		for(int i=f; i <= l; i++) {
+			String n = Printer.OPCODES[i];
+			char t = Character.toUpperCase(n.charAt(0));
+			
+			String pre = t + "";
+			if(n.contains("CMP")) {
+				pre += "|" + t;
+			}
+			pre += "|*";
+			
+			String post = "I|*";
+			
+			String p = String.format("\"%d:1:%s>%s\", // %s", i, pre, post, n);
+			System.out.println(p);
+		}
+	} */
+	
+	static abstract class VerifierToken {
+		static final Map<String, VerifierToken> cache = new HashMap<>();
+	}
+	
+	static class VerifierRule {
+		boolean pre_match_attempt(ExpressionStack stack) {
+			return false;
+		}
+		
+		boolean post_match_attempt(ExpressionStack stack) {
+			return false;
+		}
+	}
+	
+	private static void compile_configs(String[] configs) {
+		for(String c : configs) {
+			String[] ps = c.split(":");
+			
+			int op = Integer.parseInt(ps[0]);
+			String num_confs = ps[1];
+			
+			
+		}
+	}
+	
+	private static final Map<Integer, VerifierRule> vrules;
+	
+	static {
+		vrules = new HashMap<>();
+		compile_configs(STACK_CONFIGS);
+	}
+	
 	private static final int[] EMPTY_STACK_HEIGHTS = new int[]{};
 	private static final int[] SINGLE_RETURN_HEIGHTS = new int[]{1};
 	private static final int[] DOUBLE_RETURN_HEIGHTS = new int[]{2};
@@ -100,9 +392,6 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		entry(checkLabel());
 		
 		for(TryCatchBlockNode tc : builder.method.tryCatchBlocks) {
-//			System.out.println(tc.start);
-//			System.out.println(tc.end);
-//			System.out.println(tc.handler);
 			handler(tc);
 		}
 	}
