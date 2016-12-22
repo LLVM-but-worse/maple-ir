@@ -1,17 +1,11 @@
 package org.mapleir.stdlib.klass;
 
-import static org.mapleir.stdlib.klass.ClassHelper.convertToMap;
-import static org.mapleir.stdlib.klass.ClassHelper.copyOf;
+import static org.mapleir.stdlib.klass.ClassHelper.*;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
-import org.mapleir.stdlib.collections.SetCreator;
+import org.mapleir.stdlib.collections.ValueCreator;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
@@ -21,9 +15,15 @@ import org.objectweb.asm.tree.MethodNode;
  * @created 25 May 2015 (actually before this)
  */
 public class ClassTree implements Iterable<ClassNode> {
-	private static final SetCreator<ClassNode> SET_CREATOR = new SetCreator<ClassNode>();
+	private static final ValueCreator<Set<ClassNode>> SET_CREATOR = new ValueCreator<Set<ClassNode>>() {
+		@Override
+		public Set<ClassNode> create() {
+			return new LinkedHashSet<>();
+		}
+	};
 
 	private final Map<String, ClassNode>                          classes;
+	private final Map<String, ClassNode>                          jdkclasses;
 	private final NullPermeableHashMap<ClassNode, Set<ClassNode>> supers;
 	private final NullPermeableHashMap<ClassNode, Set<ClassNode>> delgates;
 
@@ -33,42 +33,63 @@ public class ClassTree implements Iterable<ClassNode> {
 
 	public ClassTree(Map<String, ClassNode> classes_) {
 		classes  = copyOf(classes_);
-		supers   = new NullPermeableHashMap<ClassNode, Set<ClassNode>>(SET_CREATOR);
-		delgates = new NullPermeableHashMap<ClassNode, Set<ClassNode>>(SET_CREATOR);
+		jdkclasses = new HashMap<>();
+		supers   = new NullPermeableHashMap<>(SET_CREATOR);
+		delgates = new NullPermeableHashMap<>(SET_CREATOR);
 
-		build(classes);
+		build();
+	}
+	
+	public boolean isJDKClass(ClassNode cn) {
+		return jdkclasses.containsKey(cn);
+	}
+	
+	public ClassNode findClass(String name) {
+		if(classes.containsKey(name)) {
+			return classes.get(name);
+		} else if(jdkclasses.containsKey(name)) {
+			return jdkclasses.get(name);
+		} else {
+			try {
+				ClassNode cn = ClassNodeUtil.create(name);
+				jdkclasses.put(cn.name, cn);
+				return cn;
+			} catch(Exception e) {
+			}
+		}
+		return null;
 	}
 
 	// TODO: optimise
-	public void build(Map<String, ClassNode> classes) {
+	public void build() {
 		for (ClassNode node : classes.values()) {
 			for (String iface : node.interfaces) {
-				ClassNode ifacecs = classes.get(iface);
+				ClassNode ifacecs = findClass(iface);
 				if (ifacecs == null)
 					continue;
 
 				getDelegates0(ifacecs).add(node);
 
-				Set<ClassNode> superinterfaces = new HashSet<ClassNode>();
+				Set<ClassNode> superinterfaces = new HashSet<>();
 				buildSubTree(classes, superinterfaces, ifacecs);
 
 				getSupers0(node).addAll(superinterfaces);
 			}
-			ClassNode currentSuper = classes.get(node.superName);
+			ClassNode currentSuper = findClass(node.superName);
 			while (currentSuper != null) {
 				getDelegates0(currentSuper).add(node);
 				getSupers0(node).add(currentSuper);
 				for (String iface : currentSuper.interfaces) {
-					ClassNode ifacecs = classes.get(iface);
+					ClassNode ifacecs = findClass(iface);
 					if (ifacecs == null)
 						continue;
 					getDelegates0(ifacecs).add(currentSuper);
-					Set<ClassNode> superinterfaces = new HashSet<ClassNode>();
+					Set<ClassNode> superinterfaces = new HashSet<>();
 					buildSubTree(classes, superinterfaces, ifacecs);
 					getSupers0(currentSuper).addAll(superinterfaces);
 					getSupers0(node).addAll(superinterfaces);
 				}
-				currentSuper = classes.get(currentSuper.superName);
+				currentSuper = findClass(currentSuper.superName);
 			}
 
 			getSupers0(node);
@@ -84,7 +105,7 @@ public class ClassTree implements Iterable<ClassNode> {
 
 			getDelegates0(ifacecs).add(node);
 
-			Set<ClassNode> superinterfaces = new HashSet<ClassNode>();
+			Set<ClassNode> superinterfaces = new HashSet<>();
 			buildSubTree(classes, superinterfaces, ifacecs);
 
 			getSupers0(node).addAll(superinterfaces);
@@ -98,7 +119,7 @@ public class ClassTree implements Iterable<ClassNode> {
 				if (ifacecs == null)
 					continue;
 				getDelegates0(ifacecs).add(currentSuper);
-				Set<ClassNode> superinterfaces = new HashSet<ClassNode>();
+				Set<ClassNode> superinterfaces = new HashSet<>();
 				buildSubTree(classes, superinterfaces, ifacecs);
 				getSupers0(currentSuper).addAll(superinterfaces);
 				getSupers0(node).addAll(superinterfaces);
@@ -139,7 +160,7 @@ public class ClassTree implements Iterable<ClassNode> {
 	}
 
 	public Set<MethodNode> getMethodsFromSuper(ClassNode node, String name, String desc, boolean isStatic) {
-		Set<MethodNode> methods = new HashSet<MethodNode>();
+		Set<MethodNode> methods = new HashSet<>();
 		for (ClassNode super_ : getSupers(node)) {
 			for (MethodNode mn : super_.methods) {
 				if (mn.name.equals(name) && mn.desc.equals(desc) && ((mn.access & Opcodes.ACC_STATIC) != 0) == isStatic) {
@@ -155,7 +176,7 @@ public class ClassTree implements Iterable<ClassNode> {
 	}
 
 	public Set<MethodNode> getMethodsFromDelegates(ClassNode node, String name, String desc, boolean isStatic) {
-		Set<MethodNode> methods = new HashSet<MethodNode>();
+		Set<MethodNode> methods = new HashSet<>();
 		for (ClassNode delegate : getDelegates(node)) {
 			for (MethodNode mn : delegate.methods) {
 				if (mn.name.equals(name) && mn.desc.equals(desc) && ((mn.access & Opcodes.ACC_STATIC) != 0) == isStatic) {
