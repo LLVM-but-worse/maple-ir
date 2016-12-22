@@ -97,7 +97,8 @@ public class ControlFlowGraphBuilder {
 		ControlFlowGraphBuilder builder = new ControlFlowGraphBuilder(method);
 		try {
 			for(BuilderPass p : builder.resolvePasses()) {
-				p.run();			}
+				p.run();			
+			}
 			return builder.graph;
 		} catch(RuntimeException e) {
 			throw e;
