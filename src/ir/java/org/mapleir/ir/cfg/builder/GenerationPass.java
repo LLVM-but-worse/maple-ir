@@ -44,10 +44,12 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 	 *  
 	 * Each config has the following format:
 	 *  h_n: expected stack object height
-	 *     options: C, B, S, I, F, D, J, Z,O(sub class of Ljava/lang/Object;),
+	 *     options: C, B, S, I, F, D, J, Z, O(subclass of Ljava/lang/Object;),
 	 *              N(null const), E(subclass of Ljava/lang/Exception;),
 	 *              *(anything), 1(1, 2 or 4 byte word), 2(8 byte word).
-	 *              O shadows N.
+	 *              O shadows N, X(any single stack obj).
+	 *              Prefixing a full type name, O or E with # 
+	 *              will match the exact class. 
 	 *              All of the above with the exception of N(null) can
 	 *              be prepended with array dimension markers ([).
 	 *      object pointers count as 1 byte when considering 
@@ -61,7 +63,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 	 *     are both stack configurations.
 	 *  
 	 * Example:
-	 *   1:1:*>I*    describes ACONST_NULL,
+	 *   1:1:*>I|*    describes ACONST_NULL,
 	 *      => opcode = 1;
 	 *      => 1 configuration
 	 *      => no required pre stack configuration
@@ -84,8 +86,11 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 			"13:1:*>F|*", // FCONST_2
 			"14:1:*>D|*", // DCONST_0
 			"15:1:*>D|*", // DCONST_1
-			"16:1:*>B|*", // BIPUSH
-			"17:1:*>S|*", // SIPUSH
+			
+			// B/S IPUSH is sign extended before
+			// being pushed... >:(
+			"16:1:*>I|*", // BIPUSH
+			"17:1:*>I|*", // SIPUSH
 			"18:1:*>X|*", // LDC
 			
 			"21:1:*>I|*", // ILOAD
@@ -141,39 +146,39 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 			
 			// 96 - 131
 			"96:1:I|I|*>I|*", // IADD
-			"97:1:L|L|*>L|*", // LADD
+			"97:1:J|J|*>J|*", // LADD
 			"98:1:F|F|*>F|*", // FADD
 			"99:1:D|D|*>D|*", // DADD
 			"100:1:I|I|*>I|*", // ISUB
-			"101:1:L|L|*>L|*", // LSUB
+			"101:1:J|J|*>J|*", // LSUB
 			"102:1:F|F|*>F|*", // FSUB
 			"103:1:D|D|*>D|*", // DSUB
 			"104:1:I|I|*>I|*", // IMUL
-			"105:1:L|L|*>L|*", // LMUL
+			"105:1:J|J|*>J|*", // LMUL
 			"106:1:F|F|*>F|*", // FMUL
 			"107:1:D|D|*>D|*", // DMUL
 			"108:1:I|I|*>I|*", // IDIV
-			"109:1:L|L|*>L|*", // LDIV
+			"109:1:J|J|*>J|*", // LDIV
 			"110:1:F|F|*>F|*", // FDIV
 			"111:1:D|D|*>D|*", // DDIV
 			"112:1:I|I|*>I|*", // IREM
-			"113:1:L|L|*>L|*", // LREM
+			"113:1:J|J|*>J|*", // LREM
 			"114:1:F|F|*>F|*", // FREM
 			"115:1:D|D|*>D|*", // DREM
 			"120:1:I|I|*>I|*", // ISHL
-			"121:1:L|L|*>L|*", // LSHL
+			"121:1:I|J|*>J|*", // LSHL
 			"122:1:I|I|*>I|*", // ISHR
-			"123:1:L|L|*>L|*", // LSHR
+			"123:1:I|J|*>J|*", // LSHR
 			"124:1:I|I|*>I|*", // IUSHR
-			"125:1:L|L|*>L|*", // LUSHR
+			"125:1:I|J|*>J|*", // LUSHR
 			"126:1:I|I|*>I|*", // IAND
-			"127:1:L|L|*>L|*", // LAND
+			"127:1:J|J|*>J|*", // LAND
 			"128:1:I|I|*>I|*", // IOR
-			"129:1:L|L|*>L|*", // LOR
+			"129:1:J|J|*>J|*", // LOR
 			"130:1:I|I|*>I|*", // IXOR
-			"131:1:L|L|*>L|*", // LXOR
+			"131:1:J|J|*>J|*", // LXOR
 			"116:1:I|*>I|*", // INEG
-			"117:1:L|*>L|*", // LNEG
+			"117:1:J|*>J|*", // LNEG
 			"118:1:F|*>F|*", // FNEG
 			"119:1:D|*>D|*", // DNEG
 
@@ -185,7 +190,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 			"135:1:I|*>D|*", // I2D
 			"136:1:J|*>I|*", // L2I
 			"137:1:J|*>F|*", // L2F
-			"138:1:L|*>D|*", // L2D
+			"138:1:J|*>D|*", // L2D
 			"139:1:F|*>I|*", // F2I
 			"140:1:F|*>J|*", // F2L
 			"141:1:F|*>D|*", // F2D
@@ -202,12 +207,12 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 			"150:1:F|F|*>I|*", // FCMPG
 			"151:1:D|D|*>I|*", // DCMPL
 			"152:1:D|D|*>I|*", // DCMPG
-			"153:1:I|*>I|*", // IFEQ
-			"154:1:I|*>I|*", // IFNE
-			"155:1:I|*>I|*", // IFLT
-			"156:1:I|*>I|*", // IFGE
-			"157:1:I|*>I|*", // IFGT
-			"158:1:I|*>I|*", // IFLE
+			"153:1:I|*>*", // IFEQ
+			"154:1:I|*>*", // IFNE
+			"155:1:I|*>*", // IFLT
+			"156:1:I|*>*", // IFGE
+			"157:1:I|*>*", // IFGT
+			"158:1:I|*>*", // IFLE
 			
 			"159:1:I|I|*>*", // IF_ICMPEQ
 			"160:1:I|I|*>*", // IF_ICMPNE
@@ -234,6 +239,9 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 			"179:1:X|*>*", // PUTSTATIC
 			"180:1:O|*>X|*", // GETFIELD
 			"181:1:X|O|*>*", // PUTFIELD
+			
+			// TODO: add dynamic getters for
+			//       variable length insns.
 	};
 	
 	/* public static void main(String[] args) {
@@ -297,17 +305,226 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		}
 	} */
 	
-	static abstract class VerifierToken {
+	static class VerifierToken {
 		static final Map<String, VerifierToken> cache = new HashMap<>();
+		
+		static final int CLASS_EMPTY = 0;
+		static final int CLASS_WORD_LEN = 1;
+		static final int CLASS_NULL = 2;
+		static final int CLASS_ANY_SINGLE = 3;
+		static final int CLASS_TYPE_SUB = 4;
+		static final int CLASS_TYPE_EXACT = 5;
+		static final int CLASS_ALL = 6;
+		
+		final Object tok;
+		final int dims;
+		final int tclass;
+		
+		VerifierToken(String t) {
+			Object tok = t;
+			int dims = 0;
+			int tclass = -1;
+			
+			int len = t.length();
+			if(len == 0) {
+				tclass = CLASS_EMPTY;
+			} else {
+				String actualType = t;
+				String arrayClean = t.replace("[", "");
+				dims = t.length() - arrayClean.length();
+				char c = arrayClean.charAt(0);
+				
+				boolean exact = (c == '#');
+				if(exact) {
+					// exact
+					c = arrayClean.charAt(1);
+					actualType = actualType.substring(1);
+				}
+				
+				switch(c) {
+					case '1':
+					case '2':
+						tok = Integer.parseInt(t);
+						tclass = CLASS_WORD_LEN;
+						break;
+					case 'N':
+						tclass = CLASS_NULL;
+						break;
+					case 'X':
+						tclass = CLASS_ANY_SINGLE;
+						break;
+					case 'C':
+					case 'B':
+					case 'S':
+					case 'I':
+					case 'F':
+					case 'D':
+					case 'J':
+					case 'Z':
+						tok = Type.getType(actualType);
+						tclass = CLASS_TYPE_EXACT;
+						break;
+					case '*':
+						tclass = CLASS_ALL;
+						break;
+				}
+				
+				if(tclass == -1) {
+					tok = Type.getType(actualType);
+					tclass = exact ? CLASS_TYPE_EXACT : CLASS_TYPE_SUB;
+				}
+			
+				if(tclass == -1) {
+					throw new UnsupportedOperationException(t);
+				}
+			}
+
+			this.tok = tok;
+			this.dims = dims;
+			this.tclass = tclass;
+		}
+		
+		boolean matches(Expr e) {
+			Type type = e.getType();
+			
+			if(tclass == CLASS_EMPTY) {
+				// We don't add these to the token list
+				// so it shouldn't appear here.
+				throw new UnsupportedOperationException();
+			} else if(tclass == CLASS_WORD_LEN) {
+				int s = size(type);
+				return s == (int)tok;
+			} else if(tclass == CLASS_NULL) {
+				if(e.getOpcode() == Opcode.CONST_LOAD) {
+					ConstantExpression c = (ConstantExpression) e;
+					return c.getConstant() == null;
+				} else {
+					return false;
+				}
+			} else if(tclass == CLASS_ANY_SINGLE) {
+				return true;
+			} else if(tclass == CLASS_ALL) {
+				// the matcher omits this token.
+				throw new UnsupportedOperationException();
+			} else if(tclass == CLASS_TYPE_EXACT) {
+				return type.equals(tok);
+			} else if(tclass == CLASS_TYPE_SUB) {
+				if(dims > 0) {
+					String arrayObjType = type.getInternalName();
+					arrayObjType = arrayObjType.replace("[", "");
+					
+					int tdims = type.getInternalName().length() - arrayObjType.length();
+					
+					if(tdims != dims) {
+						return false;
+					} else {
+						// String tokObjType = ((Type) tok).getInternalName().substring(dims);
+						// if(tokObjType.eq)
+						
+						// TODO: check if arrayObjType extends tokObjType.
+						return true;
+					}
+				} else {
+					return type.equals(tok);
+				}
+			} else {
+				throw new UnsupportedOperationException(e + ",  " + type + ",  " + tclass + ",   " + tok + ",   " + dims);
+			}
+		}
+		
+		static int size(Type t) {
+			String s = t.toString();
+			switch(s) {
+				case "D":
+				case "J":
+					return 2;
+				default:
+					return 1;
+			}
+		}
+		
+		static VerifierToken[] makeTokens(String stack) {
+			if(stack.isEmpty()) {
+				return new VerifierToken[0];
+			} else {
+				String[] ss = stack.split("\\|");
+				List<VerifierToken> lst = new ArrayList<>();
+				
+				for(int i=0; i < ss.length; i++) {
+					String s = ss[i];
+					
+					VerifierToken t = null;
+					if(cache.containsKey(s)) {
+						t = cache.get(s);
+					} else {
+						t = new VerifierToken(s);
+						cache.put(s, t);
+					}
+					
+					if(t.tclass != VerifierToken.CLASS_EMPTY) {
+						lst.add(t);
+					}
+				}
+				
+				return lst.toArray(new VerifierToken[ss.length]);
+			}
+		}
 	}
 	
 	static class VerifierRule {
-		boolean pre_match_attempt(ExpressionStack stack) {
-			return false;
+		final VerifierToken[] preTokens;
+		final VerifierToken[] postTokens;
+		
+		VerifierRule(VerifierToken[] preTokens, VerifierToken[] postTokens) {
+			this.preTokens = preTokens;
+			this.postTokens = postTokens;
+		}
+
+		boolean match_attempt(ExpressionStack stack, boolean pre) {
+			if(pre) {
+				return match_attempt(stack, preTokens);
+			} else {
+				return match_attempt(stack, postTokens);
+			}
 		}
 		
-		boolean post_match_attempt(ExpressionStack stack) {
-			return false;
+		boolean match_attempt(ExpressionStack stack, VerifierToken[] tokens) {
+			if(tokens.length == 0) {
+				if(stack.size() != 0) {
+					return false;
+				}
+			} else {
+				VerifierToken last = tokens[tokens.length - 1];
+				int expectedSize = tokens.length;
+				/* Since the all(*) matcher can only appear at the
+				 * end of the token sequence, if we have one, we
+				 * only check the first n-1 exprs of the stack where
+				 * n is the number of elements on the stack as the last
+				 * one will match 0 or more elements regardless.*/
+				if(last.tclass == VerifierToken.CLASS_ALL/* '*' */) {
+					expectedSize = expectedSize - 1;
+				}
+				
+				if(expectedSize > 0) {
+					for(int i=0; i < expectedSize; i++) {
+						VerifierToken t = tokens[i];
+
+						Expr e = null;
+
+						if(i >= stack.size()) {
+							return false;
+							// throw new IllegalStateException(String.format("Stack:%s, tokLen:%d, expSize:%d, sSize:%d, sHeight:%d, i:%d", stack, tokens.length, expectedSize, stack.size(), stack.height(), i));
+						} else {
+							e = stack.peek(i);
+						}
+						if(!t.matches(e)) {
+							return false;
+						}
+					}
+				}
+			}
+			
+			return true;
 		}
 	}
 	
@@ -316,15 +533,99 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 			String[] ps = c.split(":");
 			
 			int op = Integer.parseInt(ps[0]);
-			String num_confs = ps[1];
+			int num_confs = Integer.parseInt(ps[1]);
 			
+			if(ps.length != (2 + num_confs) /*header fields + confs*/) {
+				throw new UnsupportedOperationException("Cannot parse config: " + c);
+			}
 			
+			List<VerifierRule> compiledConfs = new ArrayList<>();
+			
+			for(int i=0; i < num_confs; i++) {
+				String conf = ps[2 + i];
+				
+				String[] cfs = conf.split(">");
+				
+				String pre, post;
+				if(cfs.length == 0) {
+					pre = "";
+					post = "";
+				} else if(cfs.length == 1) {
+					// decide which side is empty
+					if(conf.charAt(0) == '>') {
+						// first is empty
+						pre = "";
+						post = cfs[0];
+					} else {
+						// second is empty
+						pre = cfs[0];
+						post = "";
+					}
+				} else if(cfs.length == 2) {
+					pre = cfs[0];
+					post = cfs[1];
+				} else {
+					throw new UnsupportedOperationException("Malformed config @" + i + ":: " + c);
+				}
+
+				try {
+					VerifierToken[] preTokens = VerifierToken.makeTokens(pre);
+					VerifierToken[] postTokens = VerifierToken.makeTokens(post);
+					
+					VerifierRule rule = new VerifierRule(preTokens, postTokens);
+					compiledConfs.add(rule);
+				} catch(Exception e) {
+					throw new UnsupportedOperationException("Malformed config: " + conf + " in " + c, e);
+				}
+			}
+			
+			vrules.put(op, compiledConfs);
+			__vrules.put(op, Printer.OPCODES[op] + "/" + c);
 		}
 	}
 	
-	private static final Map<Integer, VerifierRule> vrules;
+	private static List<VerifierRule> find_verify_matches(int bIndex, int op, ExpressionStack stack) {
+		List<VerifierRule> rules = vrules.get(op);
+		
+		if(rules == null) {
+			System.err.println("Cannot verify " + Printer.OPCODES[op] + " (no rules).  Stack: " + stack);
+			return null;
+		}
+		
+		List<VerifierRule> possible = new ArrayList<>();
+		
+		for(VerifierRule r : rules) {
+			if(r.match_attempt(stack, true)) {
+				possible.add(r);
+			}
+		}
+		
+		if(possible.isEmpty() && !rules.isEmpty()) {
+			throw new IllegalStateException("Pre stack: " + stack + ", configs: " + __vrules.get(op) + " @" + bIndex);
+		}
+		
+		return possible;
+	}
+	
+	private static void confirm_rules(int bIndex, int opcode, List<VerifierRule> rules, ExpressionStack stack) {
+		List<VerifierRule> vr = vrules.get(opcode);
+		
+		if(vr.size() > 0) {
+			for(VerifierRule r : rules) {
+				if(r.match_attempt(stack, false)) {
+					return;
+				}
+			}
+			
+			throw new IllegalStateException("Post stack: " + stack + ", configs: " + __vrules.get(opcode) + " @" + bIndex);
+		}
+	}
+
+	private static final Map<Integer, String> __vrules;
+	private static final Map<Integer, List<VerifierRule>> vrules;
 	
 	static {
+		__vrules = new HashMap<>();
 		vrules = new HashMap<>();
 		compile_configs(STACK_CONFIGS);
 	}
@@ -608,6 +909,12 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		
 		// System.out.println("Executing " + Printer.OPCODES[opcode]);
 		// System.out.println(" PreStack: " + currentStack);
+		
+		List<VerifierRule> possibleRules = null;
+		
+		if(VERIFY) {
+			possibleRules = find_verify_matches(insns.indexOf(ain), opcode, currentStack);
+		}
 		
 		switch (opcode) {
 			case -1: {
@@ -940,6 +1247,12 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 			case IFLE:
 				_jump_cmp0(resolveTarget(((JumpInsnNode) ain).label), ComparisonType.getType(opcode));
 				break;
+		}
+		
+		if(VERIFY) {
+			if(possibleRules != null) {
+				confirm_rules(insns.indexOf(ain), opcode, possibleRules, currentStack);
+			}
 		}
 		
 
