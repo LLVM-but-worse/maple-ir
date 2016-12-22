@@ -149,7 +149,7 @@ public class ArithmeticExpression extends Expr {
 	public void toCode(MethodVisitor visitor, ControlFlowGraph cfg) {
 		Type leftType = null;
 		Type rightType = null;
-		if (operator == Operator.SHL || operator == Operator.SHR) {
+		if (operator == Operator.SHL || operator == Operator.SHR || operator == Operator.USHR) {
 			leftType = getType();
 			rightType = Type.INT_TYPE;
 		} else {
