@@ -37,7 +37,7 @@ import org.objectweb.asm.util.Printer;
 
 public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 
-	private static final boolean VERIFY = true;
+	private static final boolean VERIFY = false;
 	
 	/* Format for stack configs:
 	 *  OPCODE:NUM_CONFIGS:CONF_0:CONF_2 ... :CONF_N
