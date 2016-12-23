@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.mapleir.stdlib.IContext;
-import org.mapleir.stdlib.deob.IPhase;
+import org.mapleir.stdlib.deob.ICompilerPass;
 import org.mapleir.stdlib.klass.ClassTree;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.AbstractInsnNode;
@@ -16,7 +16,7 @@ import org.objectweb.asm.tree.FieldInsnNode;
 import org.objectweb.asm.tree.FieldNode;
 import org.objectweb.asm.tree.MethodNode;
 
-public class UnusedFieldsPhase implements IPhase, Opcodes {
+public class UnusedFieldsPhase implements ICompilerPass, Opcodes {
 	
 	public static final String KEY_ID = UnusedFieldsPhase.class.getCanonicalName();
 
@@ -26,7 +26,7 @@ public class UnusedFieldsPhase implements IPhase, Opcodes {
 	}
 
 	@Override
-	public void accept(IContext cxt, IPhase prev, List<IPhase> completed) {
+	public void accept(IContext cxt, ICompilerPass prev, List<ICompilerPass> completed) {
 		ClassTree tree = new ClassTree(cxt.getNodes());
 		Set<FieldNode> traced = new HashSet<FieldNode>();
 		int untraceable = 0, removed = 0;

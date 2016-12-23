@@ -41,7 +41,7 @@ public class ClassTree implements Iterable<ClassNode> {
 	}
 	
 	public boolean isJDKClass(ClassNode cn) {
-		return jdkclasses.containsKey(cn);
+		return jdkclasses.containsKey(cn.name);
 	}
 	
 	public ClassNode findClass(String name) {
@@ -71,7 +71,7 @@ public class ClassTree implements Iterable<ClassNode> {
 				getDelegates0(ifacecs).add(node);
 
 				Set<ClassNode> superinterfaces = new HashSet<>();
-				buildSubTree(classes, superinterfaces, ifacecs);
+				buildSubTree(superinterfaces, ifacecs);
 
 				getSupers0(node).addAll(superinterfaces);
 			}
@@ -85,7 +85,7 @@ public class ClassTree implements Iterable<ClassNode> {
 						continue;
 					getDelegates0(ifacecs).add(currentSuper);
 					Set<ClassNode> superinterfaces = new HashSet<>();
-					buildSubTree(classes, superinterfaces, ifacecs);
+					buildSubTree(superinterfaces, ifacecs);
 					getSupers0(currentSuper).addAll(superinterfaces);
 					getSupers0(node).addAll(superinterfaces);
 				}
@@ -98,39 +98,41 @@ public class ClassTree implements Iterable<ClassNode> {
 	}
 	
 	public void build(ClassNode node) {
+		if(!isJDKClass(node)) {
+			classes.put(node.name, node);
+		}
+		
 		for (String iface : node.interfaces) {
-			ClassNode ifacecs = classes.get(iface);
+			ClassNode ifacecs = findClass(iface);
 			if (ifacecs == null)
 				continue;
 
 			getDelegates0(ifacecs).add(node);
 
 			Set<ClassNode> superinterfaces = new HashSet<>();
-			buildSubTree(classes, superinterfaces, ifacecs);
+			buildSubTree(superinterfaces, ifacecs);
 
 			getSupers0(node).addAll(superinterfaces);
 		}
-		ClassNode currentSuper = classes.get(node.superName);
+		ClassNode currentSuper = findClass(node.superName);
 		while (currentSuper != null) {
 			getDelegates0(currentSuper).add(node);
 			getSupers0(node).add(currentSuper);
 			for (String iface : currentSuper.interfaces) {
-				ClassNode ifacecs = classes.get(iface);
+				ClassNode ifacecs = findClass(iface);
 				if (ifacecs == null)
 					continue;
 				getDelegates0(ifacecs).add(currentSuper);
 				Set<ClassNode> superinterfaces = new HashSet<>();
-				buildSubTree(classes, superinterfaces, ifacecs);
+				buildSubTree(superinterfaces, ifacecs);
 				getSupers0(currentSuper).addAll(superinterfaces);
 				getSupers0(node).addAll(superinterfaces);
 			}
-			currentSuper = classes.get(currentSuper.superName);
+			currentSuper = findClass(currentSuper.superName);
 		}
 
 		getSupers0(node);
 		getDelegates0(node);
-		
-		classes.put(node.name, node);
 	}
 	
 	public void output() {
@@ -142,13 +144,13 @@ public class ClassTree implements Iterable<ClassNode> {
 		}
 	}
 
-	private void buildSubTree(Map<String, ClassNode> classes, Collection<ClassNode> superinterfaces, ClassNode current) {
+	private void buildSubTree(Collection<ClassNode> superinterfaces, ClassNode current) {
 		superinterfaces.add(current);
 		for (String iface : current.interfaces) {
-			ClassNode cs = classes.get(iface);
+			ClassNode cs = findClass(iface);
 			if(cs != null) {
 				getDelegates0(cs).add(current);
-				buildSubTree(classes, superinterfaces, cs);
+				buildSubTree(superinterfaces, cs);
 			} else {
 				//System.out.println("Null interface -> " + iface);
 			}

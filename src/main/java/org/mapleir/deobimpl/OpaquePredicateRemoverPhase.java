@@ -11,7 +11,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import org.mapleir.stdlib.IContext;
-import org.mapleir.stdlib.deob.IPhase;
+import org.mapleir.stdlib.deob.ICompilerPass;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.commons.cfg.tree.NodeVisitor;
@@ -102,7 +102,7 @@ import org.objectweb.asm.tree.TypeInsnNode;
  * @author Bibl (don't ban me pls)
  * @created 30 May 2015
  */
-public class OpaquePredicateRemoverPhase implements IPhase, Opcodes {
+public class OpaquePredicateRemoverPhase implements ICompilerPass, Opcodes {
 
 	public static final String KEY_ID = OpaquePredicateRemoverPhase.class.getCanonicalName();
 	private static final TreeBuilder TREE_BUILDER = new TreeBuilder();
@@ -115,7 +115,7 @@ public class OpaquePredicateRemoverPhase implements IPhase, Opcodes {
 	}
 
 	@Override
-	public void accept(IContext cxt, IPhase prev, List<IPhase> completed) {
+	public void accept(IContext cxt, ICompilerPass prev, List<ICompilerPass> completed) {
 		int count = 0, mcount = 0;
 		int mdiscard = 0, typediscard = 0;
 

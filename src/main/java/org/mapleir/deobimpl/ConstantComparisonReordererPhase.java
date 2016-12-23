@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.mapleir.stdlib.IContext;
-import org.mapleir.stdlib.deob.IPhase;
+import org.mapleir.stdlib.deob.ICompilerPass;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.commons.cfg.tree.NodeVisitor;
 import org.objectweb.asm.commons.cfg.tree.node.AbstractNode;
@@ -30,7 +30,7 @@ import org.objectweb.asm.tree.MethodNode;
  * @author Bibl (don't ban me pls)
  * @created 31 May 2015
  */
-public class ConstantComparisonReordererPhase implements IPhase, Opcodes {
+public class ConstantComparisonReordererPhase implements ICompilerPass, Opcodes {
 	
 	public static final String KEY_ID = ConstantComparisonReordererPhase.class.getCanonicalName();
 	private static final TreeBuilder TREE_BUILDER = new TreeBuilder();
@@ -41,7 +41,7 @@ public class ConstantComparisonReordererPhase implements IPhase, Opcodes {
 	}
 
 	@Override
-	public void accept(IContext cxt, IPhase prev, List<IPhase> completed) {
+	public void accept(IContext cxt, ICompilerPass prev, List<ICompilerPass> completed) {
 		NodeVisitorImpl nv = new NodeVisitorImpl();
 		
 		for(ClassNode cn : cxt.getNodes().values()) {
