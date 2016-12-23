@@ -6,9 +6,7 @@ import java.util.*;
 
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.ValueCreator;
-import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.ClassNode;
-import org.objectweb.asm.tree.MethodNode;
 
 /**
  * @author Bibl (don't ban me pls)
@@ -22,8 +20,8 @@ public class ClassTree implements Iterable<ClassNode> {
 		}
 	};
 
-	private final Map<String, ClassNode>                          classes;
-	private final Map<String, ClassNode>                          jdkclasses;
+	private final Map<String, ClassNode> classes;
+	private final Map<String, ClassNode> jdkclasses;
 	private final NullPermeableHashMap<ClassNode, Set<ClassNode>> supers;
 	private final NullPermeableHashMap<ClassNode, Set<ClassNode>> delgates;
 
@@ -135,14 +133,14 @@ public class ClassTree implements Iterable<ClassNode> {
 		getDelegates0(node);
 	}
 	
-	public void output() {
+	/* public void output() {
 		if (classes.size() == delgates.size() && classes.size() == supers.size() && delgates.size() == supers.size()) {
 				System.out.println(String.format("Built tree for %d classes (%d del, %d sup).", classes.size(), delgates.size(), supers.size()));
 		} else {
 			System.out.println(String.format("WARNING: Built tree for %d classes (%d del, %d sup), may be erroneous.", classes.size(), delgates.size(),
 					supers.size()));
 		}
-	}
+	} */
 
 	private void buildSubTree(Collection<ClassNode> superinterfaces, ClassNode current) {
 		superinterfaces.add(current);
@@ -156,49 +154,6 @@ public class ClassTree implements Iterable<ClassNode> {
 			}
 		}
 	}
-
-	public Set<MethodNode> getMethodsFromSuper(MethodNode m) {
-		return getMethodsFromSuper(m.owner, m.name, m.desc, (m.access & Opcodes.ACC_STATIC) != 0);
-	}
-
-	public Set<MethodNode> getMethodsFromSuper(ClassNode node, String name, String desc, boolean isStatic) {
-		Set<MethodNode> methods = new HashSet<>();
-		for (ClassNode super_ : getSupers(node)) {
-			for (MethodNode mn : super_.methods) {
-				if (mn.name.equals(name) && mn.desc.equals(desc) && ((mn.access & Opcodes.ACC_STATIC) != 0) == isStatic) {
-					methods.add(mn);
-				}
-			}
-		}
-		return methods;
-	}
-
-	public Set<MethodNode> getMethodsFromDelegates(MethodNode m) {
-		return getMethodsFromDelegates(m.owner, m.name, m.desc, (m.access & Opcodes.ACC_STATIC) != 0);
-	}
-
-	public Set<MethodNode> getMethodsFromDelegates(ClassNode node, String name, String desc, boolean isStatic) {
-		Set<MethodNode> methods = new HashSet<>();
-		for (ClassNode delegate : getDelegates(node)) {
-			for (MethodNode mn : delegate.methods) {
-				if (mn.name.equals(name) && mn.desc.equals(desc) && ((mn.access & Opcodes.ACC_STATIC) != 0) == isStatic) {
-					methods.add(mn);
-				}
-			}
-		}
-		return methods;
-	}
-
-	public MethodNode getFirstMethodFromSuper(ClassNode node, String name, String desc, boolean isStatic) {
-		for (ClassNode super_ : getSupers(node)) {
-			for (MethodNode mn : super_.methods) {
-				if (mn.name.equals(name) && mn.desc.equals(desc) && ((mn.access & Opcodes.ACC_STATIC) != 0) == isStatic) {
-					return mn;
-				}
-			}
-		}
-		return null;
-	}
 	
 	public boolean containsKey(String name) {
 		return classes.containsKey(name);
@@ -206,28 +161,6 @@ public class ClassTree implements Iterable<ClassNode> {
 
 	public ClassNode getClass(String name) {
 		return classes.get(name);
-	}
-	
-	public MethodNode getMethodFromSuper(ClassTree tree, ClassNode cn, String name, String desc, boolean isStatic) {
-		for (ClassNode super_ : tree.getSupers(cn)) {
-			for (MethodNode mn : super_.methods) {
-				if (mn.name.equals(name) && mn.desc.equals(desc) && ((mn.access & Opcodes.ACC_STATIC) != 0) == isStatic) {
-					return mn;
-				}
-			}
-		}
-		return null;
-	}
-	
-	public boolean isInherited(ClassTree tree, ClassNode cn, String name, String desc, boolean isStatic) {
-		return getMethodFromSuper(tree, cn, name, desc, isStatic) != null;
-	}
-
-	public boolean isInherited(ClassTree tree, ClassNode owner, MethodNode mn) {
-		if(owner == null) {
-			throw new NullPointerException();
-		}
-		return mn.owner.name.equals(owner.name) && isInherited(tree, owner, mn.name, mn.desc, (mn.access & Opcodes.ACC_STATIC) != 0);
 	}
 
 	private Set<ClassNode> getSupers0(ClassNode cn) {
