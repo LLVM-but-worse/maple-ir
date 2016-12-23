@@ -11,7 +11,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import org.mapleir.stdlib.IContext;
-import org.mapleir.stdlib.deob.IPhase;
+import org.mapleir.stdlib.deob.ICompilerPass;
 import org.mapleir.stdlib.klass.ClassTree;
 import org.mapleir.stdlib.klass.InheritedMethodMap;
 import org.mapleir.stdlib.klass.MethodCache;
@@ -64,7 +64,7 @@ import org.objectweb.asm.tree.VarInsnNode;
  * @author Bibl (don't ban me pls)
  * @created 31 May 2015
  */
-public class EmptyParameterFixerPhase implements IPhase {
+public class EmptyParameterFixerPhase implements ICompilerPass {
 
 	public static final String KEY_ID = EmptyParameterFixerPhase.class.getCanonicalName();
 
@@ -79,7 +79,7 @@ public class EmptyParameterFixerPhase implements IPhase {
 	}
 
 	@Override
-	public void accept(IContext cxt, IPhase prev, List<IPhase> completed) {
+	public void accept(IContext cxt, ICompilerPass prev, List<ICompilerPass> completed) {
 		ClassTree tree = new ClassTree(cxt.getNodes());
 		
 		Map<MethodNode, String> map = new HashMap<MethodNode, String>();

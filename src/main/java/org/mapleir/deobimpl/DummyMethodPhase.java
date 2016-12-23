@@ -5,13 +5,13 @@ import java.util.List;
 import org.mapleir.stdlib.IContext;
 import org.mapleir.stdlib.call.CallGraph;
 import org.mapleir.stdlib.call.CallGraph.CallgraphAdapter;
-import org.mapleir.stdlib.deob.IPhase;
+import org.mapleir.stdlib.deob.ICompilerPass;
 import org.mapleir.stdlib.klass.ClassTree;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
 
-public class DummyMethodPhase implements IPhase {
+public class DummyMethodPhase implements ICompilerPass {
 
 	public static final String KEY_ID = DummyMethodPhase.class.getCanonicalName();
 	private CallGraph callgraph;
@@ -22,7 +22,7 @@ public class DummyMethodPhase implements IPhase {
 	}
 
 	@Override
-	public void accept(IContext cxt, IPhase prev, List<IPhase> completed) {
+	public void accept(IContext cxt, ICompilerPass prev, List<ICompilerPass> completed) {
 		callgraph = new CallGraph(new CallgraphAdapter() {
 			@Override
 			public boolean shouldMap(CallGraph graph, MethodNode m) {
