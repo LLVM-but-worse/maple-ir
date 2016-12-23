@@ -8,7 +8,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import org.mapleir.stdlib.IContext;
-import org.mapleir.stdlib.deob.IPhase;
+import org.mapleir.stdlib.deob.ICompilerPass;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.commons.cfg.tree.NodeVisitor;
 import org.objectweb.asm.commons.cfg.tree.node.AbstractNode;
@@ -25,7 +25,7 @@ import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.util.Printer;
 import org.topdank.banalysis.asm.insn.InstructionPrinter;
 
-public class ConstantOperationReordererPhase implements IPhase {
+public class ConstantOperationReordererPhase implements ICompilerPass {
 	
 	public static final String KEY_ID = ConstantOperationReordererPhase.class.getCanonicalName();
 	private static final TreeBuilder TREE_BUILDER = new TreeBuilder();
@@ -36,7 +36,7 @@ public class ConstantOperationReordererPhase implements IPhase {
 	}
 
 	@Override
-	public void accept(IContext cxt, IPhase prev, List<IPhase> completed) {
+	public void accept(IContext cxt, ICompilerPass prev, List<ICompilerPass> completed) {
 		NodeVisitorImpl nv = new NodeVisitorImpl();
 
 		Map<MethodNode, Set<ReorderActor>> actorMap = new HashMap<MethodNode, Set<ReorderActor>>();
