@@ -1,9 +1,16 @@
 package org.mapleir.stdlib;
 
-import org.mapleir.stdlib.collections.NodeTable;
-import org.objectweb.asm.tree.ClassNode;
+import java.util.Set;
+
+import org.mapleir.ir.cfg.ControlFlowGraph;
+import org.mapleir.stdlib.klass.ClassTree;
+import org.objectweb.asm.tree.MethodNode;
 
 public interface IContext {
 
-	NodeTable<ClassNode> getNodes();
+	ClassTree getClassTree();
+	
+	ControlFlowGraph getIR(MethodNode m);
+	
+	Set<MethodNode> getActiveMethods();
 }

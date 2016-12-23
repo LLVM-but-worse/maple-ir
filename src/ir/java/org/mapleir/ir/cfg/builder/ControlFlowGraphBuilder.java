@@ -7,7 +7,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import org.mapleir.ir.analysis.SSALocalAccess;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.cfg.edge.FlowEdge;
@@ -22,11 +21,10 @@ public class ControlFlowGraphBuilder {
 	protected final ControlFlowGraph graph;
 	protected final Set<Local> locals;
 	protected final NullPermeableHashMap<Local, Set<BasicBlock>> assigns;
-	protected SSALocalAccess localAccess;
 	protected int count = 0;
 	protected BasicBlock head;
 	
-	private ControlFlowGraphBuilder(MethodNode method) {
+	public ControlFlowGraphBuilder(MethodNode method) {
 		this.method = method;
 		graph = new ControlFlowGraph(method, method.maxLocals);
 		
@@ -68,7 +66,7 @@ public class ControlFlowGraphBuilder {
 		public abstract void run();
 	}
 	
-	private BuilderPass[] resolvePasses() {
+	protected BuilderPass[] resolvePasses() {
 		return new BuilderPass[] {
 				new GenerationPass(this),
 				new NaturalisationPass1(this),
@@ -79,27 +77,17 @@ public class ControlFlowGraphBuilder {
 		};
 	}
 	
-	/* private BuilderPass[] interlace(BuilderPass[] passes) {
-		if (Test.temp) {
-			BuilderPass[] res = new BuilderPass[passes.length * 2];
-			for (int i = 0; i < passes.length; i++) {
-				BuilderPass p = passes[i];
-				res[i * 2] = p;
-				res[(i * 2) + 1] = new VerificationPass(this, p.getClass().getSimpleName());
-			}
-			return res;
-		} else {
-			return passes;
+	public ControlFlowGraph buildImpl() {
+		for(BuilderPass p : resolvePasses()) {
+			p.run();			
 		}
-	} */
+		return graph;
+	}
 	
 	public static ControlFlowGraph build(MethodNode method) {
-		ControlFlowGraphBuilder builder = new ControlFlowGraphBuilder(method);
 		try {
-			for(BuilderPass p : builder.resolvePasses()) {
-				p.run();			
-			}
-			return builder.graph;
+			ControlFlowGraphBuilder builder = new ControlFlowGraphBuilder(method);
+			return builder.buildImpl();
 		} catch(RuntimeException e) {
 			throw e;
 		}
