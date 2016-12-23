@@ -14,15 +14,22 @@ import org.objectweb.asm.util.Printer;
 public class ArithmeticExpression extends Expr {
 
 	public enum Operator {
-		ADD("+"), SUB("-"), MUL("*"), DIV("/"), REM("%"), SHL("<<"), SHR(">>"), USHR(">>>"), OR("|"), AND("&"), XOR("^");
+		// TODO: verify bitwise order
+		ADD("+", false), SUB("-", true), MUL("*", false), DIV("/", true), REM("%", true), SHL("<<", true), SHR(">>", true), USHR(">>>", true), OR("|", true), AND("&", true), XOR("^", true);
 		private final String sign;
+		private final boolean order;
 
-		private Operator(String sign) {
+		private Operator(String sign, boolean order) {
 			this.sign = sign;
+			this.order = order;
 		}
 
 		public String getSign() {
 			return sign;
+		}
+		
+		public boolean doesOrderMatter() {
+			return order;
 		}
 		
 		public static Operator resolve(int bOpcode) {
