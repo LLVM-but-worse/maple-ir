@@ -85,10 +85,11 @@ public class ControlFlowGraphBuilder {
 	}
 	
 	public static ControlFlowGraph build(MethodNode method) {
+		ControlFlowGraphBuilder builder = new ControlFlowGraphBuilder(method);
 		try {
-			ControlFlowGraphBuilder builder = new ControlFlowGraphBuilder(method);
 			return builder.buildImpl();
 		} catch(RuntimeException e) {
+//			System.err.println(builder.graph);
 			throw e;
 		}
 	}

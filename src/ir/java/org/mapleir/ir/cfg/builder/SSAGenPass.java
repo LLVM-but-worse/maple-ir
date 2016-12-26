@@ -39,7 +39,6 @@ import org.mapleir.ir.locals.BasicLocal;
 import org.mapleir.ir.locals.Local;
 import org.mapleir.ir.locals.LocalsPool;
 import org.mapleir.ir.locals.VersionedLocal;
-import org.mapleir.stdlib.collections.KeyedValueCreator;
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.SetCreator;
 import org.mapleir.stdlib.collections.graph.GraphUtils;
@@ -92,7 +91,11 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		
 		latest = new HashMap<>();
 		deferred = new HashSet<>();
-		shadowed = new NullPermeableHashMap<>(k -> {
+		shadowed = createCongMap();
+	}
+	
+	private static NullPermeableHashMap<VersionedLocal, Set<VersionedLocal>> createCongMap() {
+		return new NullPermeableHashMap<>(k -> {
 			Set<VersionedLocal> set = new HashSet<>();
 			set.add(k);
 			return set;
@@ -715,6 +718,20 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		return (ssaL.isStack() && !vl.isStack()) || (ssaL.isStack() == vl.isStack());
 	}
 	
+	private void merge(VersionedLocal vla, VersionedLocal vlb) {
+		Set<VersionedLocal> cca = shadowed.getNonNull(vla);
+		Set<VersionedLocal> ccb = shadowed.getNonNull(vlb);
+		
+		cca.add(vlb);
+		ccb.add(vla);
+		
+		cca.addAll(ccb);
+		
+		for (VersionedLocal l : ccb) {
+			shadowed.put(l, cca);
+		}
+	}
+	
 	private void translateStmt(VarExpression var, boolean resolve, boolean isPhi) {
 		/* Here we only remap local variable loads
 		 * on the right hand side of a statement or
@@ -799,8 +816,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 //									newL = varDef;
 //								}	
 							} else {
-								shadowed.getNonNull(ssaL).add(realVal);
-								shadowed.getNonNull(realVal).add(ssaL);
+								merge(ssaL, realVal);
 							}
 						}
 						
@@ -1124,6 +1140,16 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		pool.uses.get(vl).remove(v);
 	}
 	
+//	private void mergemapCongruenceClasses() {
+//		NullPermeableHashMap<VersionedLocal, Set<VersionedLocal>> remap = createCongMap();
+//		
+//		for(Entry<VersionedLocal, Set<VersionedLocal>> e : shadowed.entrySet()) {
+//			for(VersionedLocal vl : e.getValue()) {
+//				if(remap.)
+//			}
+//		}
+//	}
+
 	private void resolveShadowedLocals() {
 		Set<VersionedLocal> visited = new HashSet<>();
 		
@@ -1176,8 +1202,10 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 				
 //				System.out.println("spillUses: " + spillUses);
 				
+//				System.out.println(set);
 				for(VersionedLocal vl : set) {
 					AbstractCopyStatement copy = pool.defs.get(vl);
+//					System.out.println(vl);
 					Expr ex = copy.getExpression();
 					if(vl != spill) {
 						if(ex.getOpcode() != Opcode.LOCAL_LOAD) {
@@ -1208,6 +1236,8 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 				}
 				
 //				System.out.println(String.format("set:%s, spill:%s", set, spill));
+//				System.out.println();
+				
 				if(orig.size() != 1) {
 					throw new UnsupportedOperationException(String.format("set:%s, spill:%s, orig:%s", set, spill, orig));
 				}
@@ -1248,23 +1278,9 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 						Expr rhs = def.getExpression();
 						
 						if(use.getParent() == null) {
-//							System.out.println(def);
-//							if(rhs.getOpcode() == Opcode.LOCAL_LOAD) {
-//								VarExpression v = (VarExpression) rhs;
-//								VersionedLocal vl2 = (VersionedLocal) v.getLocal();
-//								if(shouldPropagate(vl, vl2)) {
-//									v.setLocal(vl2);
-//									
-//									useSet.clear();
-//									pool.uses.get(vl2).add(v);
-//									
-//									i++;
-//								}
-//							}
+							//
 						} else {
 							if(val.canPropagate(def, use.getRootParent(), use, false)) {
-//								System.out.println("prop " + def + " to " + use.getRootParent());
-//								System.out.println("  kill " + def);
 								rhs.unlink();
 								def.delete();
 								pool.defs.remove(vl);
@@ -1280,8 +1296,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 						}
 					}
 				} else {
-//					System.out.println("rej: " + def);
-//					System.out.println("   " + useSet);
+//					// Rejected
 				}
 			}
 		
@@ -1298,10 +1313,6 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 	
 	@Override
 	public void run() {
-//		System.out.println(builder.graph);
-//		System.out.println();
-//		System.out.println();
-//		System.out.println();
 		pool = builder.graph.getLocals();
 		
 		graphSize = builder.graph.size() + 1;
@@ -1320,39 +1331,25 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		insertPhis();
 		rename();
 		
-		try {
+		
+//		try {
 			if(OPTIMISE) {
+				System.out.println("SSAGenPass.run()");
 				resolveShadowedLocals();
 				aggregateInitialisers();
 				
 				
 				int i;
 				do {
-//					System.out.println("SSAGenPass.run()");
 					i = 0;
 					i += processDeferredTranslations();
 					i += pruneStatements();
 				} while(i > 0);
 			}
-		} catch(Exception e) {
-			e.printStackTrace();
-		}
-		
-//		print();
-		
-		GraphUtils.disconnectHead(builder.graph, builder.head);
-	}
-	
-	private void print() {
-//		for(Entry<VersionedLocal, Set<VarExpression>> e : pool.uses.entrySet()) {
-//			System.out.println(e.getKey() + " ->  " + e.getValue());
+//		} catch(Exception e) {
+//			e.printStackTrace();
 //		}
+		
 		GraphUtils.disconnectHead(builder.graph, builder.head);
-
-		System.out.println(builder.graph);
-		System.out.println();
-		System.out.println();
-		System.out.println();
-		builder.head = GraphUtils.connectHead(builder.graph);
 	}
 }
