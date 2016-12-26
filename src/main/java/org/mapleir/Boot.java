@@ -2,6 +2,7 @@ package org.mapleir;
 
 import java.io.File;
 import java.io.IOException;
+import java.math.BigInteger;
 import java.util.*;
 import java.util.Map.Entry;
 
@@ -56,6 +57,31 @@ public class Boot {
 	
 	private static void section(String text) {
 		section0("...took %fs.%n", text);
+	}
+	
+	public static void main2(String[] args) {
+		BigInteger benc = BigInteger.valueOf(29);
+		int e1 = benc.intValue();
+		BigInteger bdec = BigInteger.valueOf(1332920885);
+		int d1 = bdec.intValue();
+		
+		BigInteger benc2 = BigInteger.valueOf(101);
+		int e2 = benc2.intValue();
+		BigInteger bdec2 = FieldRSADecryptionPass.inverse(benc2, false);
+		int d2 = bdec2.intValue();
+		
+		int k = 10;
+		int f1 = 6 * e1;
+		int f2 = 7 * e2;
+		
+		f1 = (f2 * (d2 * e1)) + (k * e1);
+		
+		System.out.println(f1 * d1);
+		
+		
+		if("".equals("")) {
+			return;
+		}
 	}
 	
 	public static void main(String[] args) throws IOException {
