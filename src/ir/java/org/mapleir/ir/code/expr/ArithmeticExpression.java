@@ -136,6 +136,7 @@ public class ArithmeticExpression extends Expr {
 
 	@Override
 	public void toString(TabbedStringWriter printer) {
+		printer.print("[");
 		int selfPriority = getPrecedence();
 		int leftPriority = left.getPrecedence();
 		int rightPriority = right.getPrecedence();
@@ -150,6 +151,7 @@ public class ArithmeticExpression extends Expr {
 		right.toString(printer);
 		if (rightPriority > selfPriority)
 			printer.print(')');
+		printer.print("]");
 	}
 
 	@Override

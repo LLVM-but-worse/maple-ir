@@ -9,32 +9,48 @@ import java.util.Set;
 
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
-import org.mapleir.ir.code.CodeUnit;
 import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.code.Opcode;
 import org.mapleir.ir.code.Stmt;
 import org.mapleir.ir.code.expr.ArithmeticExpression;
-import org.mapleir.ir.code.expr.ArithmeticExpression.Operator;
+import org.mapleir.ir.code.expr.CastExpression;
 import org.mapleir.ir.code.expr.ConstantExpression;
 import org.mapleir.ir.code.expr.FieldLoadExpression;
 import org.mapleir.ir.code.stmt.FieldStoreStatement;
+import org.mapleir.ir.locals.Local;
 import org.mapleir.stdlib.IContext;
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.SetCreator;
 import org.mapleir.stdlib.deob.ICompilerPass;
 import org.objectweb.asm.tree.MethodNode;
 
-public class FieldRSADecryptionPass implements ICompilerPass {
+public class FieldRSADecryptionPass implements ICompilerPass, Opcode {
 
 	@Override
 	public String getId() {
 		return "Field-Modulus-Pass";
 	}
+
+
+	Set<String> encrypted = new HashSet<>();
+	
+	NullPermeableHashMap<String, Set<Number>> encoders = new NullPermeableHashMap<>(new SetCreator<>());
+	NullPermeableHashMap<String, Set<Number>> decoders = new NullPermeableHashMap<>(new SetCreator<>());
+	
+	NullPermeableHashMap<String, Set<Number>> cget = new NullPermeableHashMap<>(new SetCreator<>());
+	NullPermeableHashMap<String, Set<Number>> cset = new NullPermeableHashMap<>(new SetCreator<>());
+	
+	static boolean field(Expr _e) {
+		for(Expr e : _e.enumerateWithSelf()) {
+			if(e.getOpcode() == FIELD_LOAD) {
+				return true;
+			}
+		}
+		return false;
+	}
 	
 	@Override
 	public void accept(IContext cxt, ICompilerPass prev, List<ICompilerPass> completed) {
-		NullPermeableHashMap<String, Set<Number>> encoders = new NullPermeableHashMap<>(new SetCreator<>());
-		NullPermeableHashMap<String, Set<Number>> decoders = new NullPermeableHashMap<>(new SetCreator<>());
 		
 		for(MethodNode m : cxt.getActiveMethods()) {
 			ControlFlowGraph cfg = cxt.getIR(m);
@@ -42,155 +58,77 @@ public class FieldRSADecryptionPass implements ICompilerPass {
 			for(BasicBlock b : cfg.vertices()) {
 				for(Stmt stmt : b) {
 					
+					boolean b1 = false;
+					
 					for(Expr e : stmt.enumerateOnlyChildren()) {
-						if(e.getOpcode() == Opcode.FIELD_LOAD) {
-							FieldLoadExpression fle = (FieldLoadExpression) e;
+						if(e.getOpcode() == ARITHMETIC) {
+							ArithmeticExpression a = (ArithmeticExpression) e;
 							
-							if(!isIntField(fle.getDesc())) {
-								continue;
-							}
-							
-//							if(key(fle).equals("dl.af I")) {
-								CodeUnit parent = fle.getParent();
-								
-								if(parent.getOpcode() == Opcode.ARITHMETIC) {
-									ArithmeticExpression ae = (ArithmeticExpression) parent;
-									Operator op = ae.getOperator();
-									
-									if(op == Operator.MUL || op == Operator.ADD || op == Operator.SUB) {
-										Expr r = ae.getRight();
+							if(a.getRight().getOpcode() == CONST_LOAD) {
+								if(isIntField(a.getType().toString())) {
+									Number n = getConstant(a, a.getType().toString().equals("J"));
+									if(n != null) {
+										System.out.println(a);
 										
-										if(r.getOpcode() == Opcode.CONST_LOAD) {
-											// Number cst = (Number) ((ConstantExpression) r).getConstant();
-											Number cst = getConstant(ae, fle.getDesc().equals("J"));
-											if(cst != null) {
-												decoders.getNonNull(key(fle)).add(cst);
-												
-												if(op == Operator.ADD || op == Operator.SUB) {
-													encoders.getNonNull(key(fle)).add(cst);
-												}
-											}
-										} else {
-											System.out.println("(1)Unhandled: " + parent + "  in " + m);
+										if(a.toString().equals("[svar1_1 * 339378275]")) {
+											Local v = cfg.getLocals().get(1, 1, true);
+											System.out.println(">>> " + cfg.getLocals().defs.get(v));
+											System.out.println(">> " + cfg.getLocals().uses.get(v));
+											System.out.println(m);
 										}
-									} else {
-										boolean li = fle.getDesc().equals("J");
-										if(containsConstant(ae) && large(getConstant0(ae, li), li)) {
-											System.out.println("(2)Unhandled: " + parent + "  in " + m);
-										}
+										b1 = true;
 									}
-								} else {
-									System.out.println("(3)Unhandled: " + parent + "  in " + m);
 								}
-//							}
+							}
 						}
 					}
 					
-					if(stmt.getOpcode() == Opcode.FIELD_STORE) {
-						FieldStoreStatement fs = (FieldStoreStatement) stmt;
-						if(!isIntField(fs.getDesc())) {
-							continue;
-						}
-//						if(key(fs).equals("dl.af I")) {
-							if(fs.getValueExpression().getOpcode() == Opcode.ARITHMETIC) {
-//								System.out.println(fs);
-//								System.out.println("   in " + m);
-								
-								ArithmeticExpression ae = (ArithmeticExpression) fs.getValueExpression();
-								Operator op = ae.getOperator();
-								
-								boolean yes = false;
+					if(b1) {
+						System.out.println(stmt);
 
-								Expr r = ae.getRight();
-								if(op == Operator.ADD) {
-									Expr l = ae.getLeft();
-									boolean fr = r.getOpcode() == Opcode.FIELD_LOAD;
-									boolean fl = l.getOpcode() == Opcode.FIELD_LOAD;
-									
-									if(fr || fl) {
-										FieldLoadExpression fle;
-										Expr other;
-										if(fr) {
-											fle = (FieldLoadExpression) r;
-											other = l;
-										} else {
-											fle = (FieldLoadExpression) l;
-											other = r;
-										}
-										
-										/* field += x;
-										 *   gets obfuscated to
-										 * field = field + (x * encoder) */
-										if(key(fle).equals(key(fs))) {
-											if(other.getOpcode() == Opcode.ARITHMETIC) {
-												ArithmeticExpression ae2 = (ArithmeticExpression) other;
-												if(ae2.getOperator() == Operator.MUL) {
-													Expr r2 = ae2.getRight();
-													if(r2.getOpcode() == Opcode.CONST_LOAD) {
-														// ConstantExpression c = (ConstantExpression) r2;
-														// Number cst = (Number) c.getConstant();
-														Number cst = getConstant(ae2, fs.getDesc().equals("J"));
-														if(cst != null) {
-															encoders.getNonNull(key(fs)).add(cst);
-															decoders.getNonNull(key(fs)).add(cst);
-															yes = true;
-														}
-													}
-												}
-											}
-										}
-									}
-								} else if(op == Operator.MUL) {
-									if(r.getOpcode() == Opcode.CONST_LOAD) {
-										// ConstantExpression c = (ConstantExpression) r;
-										// Number cst = (Number) c.getConstant();
-										Number cst = getConstant(ae, fs.getDesc().equals("J"));
-										if(cst != null) {
-											encoders.getNonNull(key(fs)).add(cst);
-											yes = true;
-										}
-									}
-								}
-								
-								if(!yes) {
-									System.out.println("(4)Unhandled: " + fs + "  in " + m);
-								}
-							} else {
-								System.out.println("(5)Unhandled: " + fs + "  in " + m);
-							}
-//						}
+						System.out.println();
+						System.out.println();
 					}
 				}
 			}
 		}
+		
 		Set<String> keys = new HashSet<>();
 		keys.addAll(encoders.keySet());
 		keys.addAll(decoders.keySet());
 				
-		for(String k : keys) {
-			boolean _longint = k.endsWith("J");
-			
-			Set<Number> encs = encoders.getNonNull(k);
-			Set<Number> decs = decoders.getNonNull(k);
-			
-			try {
-				Number[] pair = get_pair(encs, decs, _longint);
-				if(pair.length != 2) {
-					System.out.println("No pair for: " + k);
-					System.out.println(encs);
-					System.out.println(decs);
-				}
-			} catch(IllegalStateException e) {
-				System.err.println();
-				System.err.println(encs);
-				System.err.println(decs);
-				System.err.println(k);
-				throw e;
-			}
-//			if(k.equals("dl.af I")) {
-//				
+//		for(String k : keys) {
+//			boolean _longint = k.endsWith("J");
+//			
+//			Set<Number> encs = encoders.getNonNull(k);
+//			Set<Number> decs = decoders.getNonNull(k);
+//			
+//			try {
+//				Number[] pair = get_pair(encs, decs, _longint);
+//				if(pair.length != 2) {
+//					System.out.println("No pair for: " + k);
+//					System.out.println(encs);
+//					System.out.println(decs);
+//				}
+//			} catch(IllegalStateException e) {
+//				System.err.println();
+//				System.err.println(encs);
+//				System.err.println(decs);
+//				System.err.println(k);
+//				throw e;
 //			}
+////			if(k.equals("dl.af I")) {
+////				
+////			}
+//		}
+	}
+	
+	static Expr reduceCasts(Expr e) {
+		while(e.getOpcode() == CAST) {
+			CastExpression c = (CastExpression) e;
+			e = c.getExpression();
 		}
+		return e;
 	}
 	
 	static boolean isIntField(String desc) {
@@ -201,15 +139,15 @@ public class FieldRSADecryptionPass implements ICompilerPass {
 		Expr r = ae.getRight();
 		Expr l = ae.getLeft();
 		
-		boolean rc = r.getOpcode() == Opcode.CONST_LOAD;
-		boolean lc = l.getOpcode() == Opcode.CONST_LOAD;
+		boolean rc = r.getOpcode() == CONST_LOAD;
+		boolean lc = l.getOpcode() == CONST_LOAD;
 		
 		return rc || lc;
 	}
 
 	static Number getConstant(ArithmeticExpression ae, boolean _longint) {		
 		Number n = getConstant0(ae, _longint);
-		if(large(n, _longint)) {
+		if(n != null && large(n, _longint)) {
 			return n;
 		} else {
 			return null;
@@ -220,8 +158,8 @@ public class FieldRSADecryptionPass implements ICompilerPass {
 		Expr r = ae.getRight();
 		Expr l = ae.getLeft();
 		
-		boolean rc = r.getOpcode() == Opcode.CONST_LOAD;
-		boolean lc = l.getOpcode() == Opcode.CONST_LOAD;
+		boolean rc = r.getOpcode() == CONST_LOAD;
+		boolean lc = l.getOpcode() == CONST_LOAD;
 		
 		if(rc || lc) {
 			if(!lc) {
@@ -254,12 +192,14 @@ public class FieldRSADecryptionPass implements ICompilerPass {
 						throw new UnsupportedOperationException("Const expr? : " + ae);
 					}
 				} else {
-					throw new UnsupportedOperationException("Non multi const expr: " + ae);
+					// throw new UnsupportedOperationException("Non multi const expr: " + ae);
 				}
 			}
 		} else {
 			throw new UnsupportedOperationException("No consts: " + ae);
 		}
+		
+		return null;
 	}
 	
 	static String key(FieldStoreStatement fss) {
@@ -308,7 +248,7 @@ public class FieldRSADecryptionPass implements ICompilerPass {
 		}
 	}
 	
-	static Number[] get_pair(Collection<Number> encs, Collection<Number> decs, boolean _longint) {
+	public static Number[] get_pair(Collection<Number> encs, Collection<Number> decs, boolean _longint) {
 		List<Number> all = new ArrayList<>();
 		all.addAll(encs);
 		all.addAll(decs);
@@ -367,11 +307,15 @@ public class FieldRSADecryptionPass implements ICompilerPass {
 						assert_inv(c1, c2, _longint);
 					}
 				} else {
+					/* can't. */
 					return new Number[0];
 				}
 			}
 		}
 		
+		/* find out which one is the
+		 * encoder and which is the
+		 * decoder. */
 		boolean b1 = resolves(decs, c1, _longint);
 		boolean b2 = resolves(decs, c2, _longint);
 		
@@ -413,7 +357,7 @@ public class FieldRSADecryptionPass implements ICompilerPass {
 		}
 	}
 	
-	static BigInteger inverse(BigInteger v, boolean _longint) {
+	public static BigInteger inverse(BigInteger v, boolean _longint) {
 		return v.modInverse(BigInteger.ONE.shiftLeft(_longint ? 64 : 32));
 	}
 	
