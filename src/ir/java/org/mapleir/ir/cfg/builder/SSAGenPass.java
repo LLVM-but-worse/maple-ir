@@ -1273,23 +1273,9 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 						Expr rhs = def.getExpression();
 						
 						if(use.getParent() == null) {
-//							System.out.println(def);
-//							if(rhs.getOpcode() == Opcode.LOCAL_LOAD) {
-//								VarExpression v = (VarExpression) rhs;
-//								VersionedLocal vl2 = (VersionedLocal) v.getLocal();
-//								if(shouldPropagate(vl, vl2)) {
-//									v.setLocal(vl2);
-//									
-//									useSet.clear();
-//									pool.uses.get(vl2).add(v);
-//									
-//									i++;
-//								}
-//							}
+							//
 						} else {
 							if(val.canPropagate(def, use.getRootParent(), use, false)) {
-//								System.out.println("prop " + def + " to " + use.getRootParent());
-//								System.out.println("  kill " + def);
 								rhs.unlink();
 								def.delete();
 								pool.defs.remove(vl);
@@ -1305,8 +1291,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 						}
 					}
 				} else {
-//					System.out.println("rej: " + def);
-//					System.out.println("   " + useSet);
+//					// Rejected
 				}
 			}
 		
@@ -1341,12 +1326,6 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		insertPhis();
 		rename();
 		
-
-//		System.err.println();
-//		System.err.println();
-//		System.err.println(builder.graph);
-//		System.err.println();
-//		System.err.println();
 		
 //		try {
 			if(OPTIMISE) {
@@ -1368,17 +1347,4 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		
 		GraphUtils.disconnectHead(builder.graph, builder.head);
 	}
-	
-	/* private void print() {
-		for(Entry<VersionedLocal, Set<VarExpression>> e : pool.uses.entrySet()) {
-			System.out.println(e.getKey() + " ->  " + e.getValue());
-		}
-		GraphUtils.disconnectHead(builder.graph, builder.head);
-
-		System.out.println(builder.graph);
-		System.out.println();
-		System.out.println();
-		System.out.println();
-		builder.head = GraphUtils.connectHead(builder.graph);
-	} */
 }
