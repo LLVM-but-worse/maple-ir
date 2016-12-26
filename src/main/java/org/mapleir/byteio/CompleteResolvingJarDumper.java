@@ -84,10 +84,11 @@ public class CompleteResolvingJarDumper implements JarDumper {
 			// with ClassNodes rather than Classes.
 		    @Override
 			protected String getCommonSuperClass(String type1, String type2) {
-		    	ClassNode ccn = classTree.getClass(type1);
-		    	ClassNode dcn = classTree.getClass(type2);
+		    	ClassNode ccn = classTree.findClass(type1);
+		    	ClassNode dcn = classTree.findClass(type2);
 		    	
 		    	if(ccn == null) {
+//		    		return "java/lang/Object";
 		    		ClassNode c = ClassNodeUtil.create(type1);
 		    		if(c == null) {
 		    			return "java/lang/Object";
@@ -97,6 +98,8 @@ public class CompleteResolvingJarDumper implements JarDumper {
 		    	}
 		    	
 		    	if(dcn == null) {
+
+//		    		return "java/lang/Object";
 		    		ClassNode c = ClassNodeUtil.create(type2);
 		    		if(c == null) {
 		    			return "java/lang/Object";

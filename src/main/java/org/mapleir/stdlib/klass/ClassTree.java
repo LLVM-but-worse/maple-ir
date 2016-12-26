@@ -39,10 +39,14 @@ public class ClassTree implements Iterable<ClassNode> {
 	}
 	
 	public boolean isJDKClass(ClassNode cn) {
+		findClass(cn.name);
 		return jdkclasses.containsKey(cn.name);
 	}
 	
 	public ClassNode findClass(String name) {
+		if(name == null) {
+			return null;
+		}
 		if(classes.containsKey(name)) {
 			return classes.get(name);
 		} else if(jdkclasses.containsKey(name)) {
@@ -50,6 +54,10 @@ public class ClassTree implements Iterable<ClassNode> {
 		} else {
 			try {
 				ClassNode cn = ClassNodeUtil.create(name);
+				// create these sets
+				// TODO: maybe call build?
+				getSupers0(cn);
+				getDelegates0(cn);
 				jdkclasses.put(cn.name, cn);
 				return cn;
 			} catch(Exception e) {
