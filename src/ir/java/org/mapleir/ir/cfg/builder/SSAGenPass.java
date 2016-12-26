@@ -92,13 +92,10 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		
 		latest = new HashMap<>();
 		deferred = new HashSet<>();
-		shadowed = new NullPermeableHashMap<>(new KeyedValueCreator<VersionedLocal, Set<VersionedLocal>>() {
-			@Override
-			public Set<VersionedLocal> create(VersionedLocal k) {
-				Set<VersionedLocal> set = new HashSet<>();
-				set.add(k);
-				return set;
-			}
+		shadowed = new NullPermeableHashMap<>(k -> {
+			Set<VersionedLocal> set = new HashSet<>();
+			set.add(k);
+			return set;
 		});
 	}
 	
@@ -897,14 +894,11 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		LocalsPool handler = builder.graph.getLocals();
 		Local l = handler.get(index, isStack);
 		Stack<Integer> stack = stacks.get(l);
-		if(stack == null) {
+		if(stack == null || stack.isEmpty()) {
+			System.err.println(builder.method.owner.name + "#" + builder.method.name);
 			System.err.println(builder.graph);
 			System.err.println(stacks);
 			throw new NullPointerException(l.toString());
-		} else if(stack.isEmpty()) {
-			System.err.println(builder.graph);
-			System.err.println(stacks);
-			throw new IllegalStateException(l.toString());
 		}
 		
 		return handler.get(index, stack.peek()/*subscript*/, isStack);
