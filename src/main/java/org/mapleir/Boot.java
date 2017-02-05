@@ -59,24 +59,70 @@ public class Boot {
 		section0("...took %fs.%n", text);
 	}
 	
-	public static void main2(String[] args) {
-		BigInteger benc = BigInteger.valueOf(29);
-		int e1 = benc.intValue();
-		BigInteger bdec = BigInteger.valueOf(1332920885);
-		int d1 = bdec.intValue();
+	
+	static BigInteger inverse(BigInteger v) {
+		return v.modInverse(BigInteger.ONE.shiftLeft(32));
+	}
+	
+	public static void main55(String[] args) {
+		// for an int field.
+		Set<Number> encs = new HashSet<>();
+		encs.add(-1091305141);
+		Set<Number> decs = new HashSet<>();
+		decs.add(339378275);
+		decs.add(309047477);
 		
-		BigInteger benc2 = BigInteger.valueOf(101);
-		int e2 = benc2.intValue();
-		BigInteger bdec2 = FieldRSADecryptionPass.inverse(benc2, false);
-		int d2 = bdec2.intValue();
+		Number[] arr = FieldRSADecryptionPass.get_pair(encs, decs, false);
+		System.out.println(Arrays.toString(arr));
 		
-		int k = 10;
-		int f1 = 6 * e1;
-		int f2 = 7 * e2;
+		System.out.println(BigInteger.valueOf(-1091305141).divide(BigInteger.valueOf(339378275)).intValue());
+		System.out.println(BigInteger.valueOf(-1091305141).multiply(BigInteger.valueOf(339378275)).intValue());
+	}
+	
+	public static void main22(String[] args) throws Exception {
+		SingleJarDownloader<ClassNode> dl = new SingleJarDownloader<>(new JarInfo(new File("res/allatori.jar")));
+		dl.download();
 		
-		f1 = (f2 * (d2 * e1)) + (k * e1);
+		int i = 0;
+		for(ClassNode cn : dl.getJarContents().getClassContents()) {
+			for(MethodNode m : cn.methods) {
+				if(!m.toString().equals("com/allatori/IIIIiIIiIi.IIIIIIiIII(Lcom/allatori/IIIiiiIiii;)V"))
+					continue;
+				ControlFlowGraph cfg = ControlFlowGraphBuilder.build(m);
+//				System.out.println(i++ + ". " + m + " [" + m.instructions.size() + "]");
+//				BoissinotDestructor.leaveSSA(cfg);
+//				cfg.getLocals().realloc(cfg);
+//				ControlFlowGraphDumper.dump(cfg, m);
+			}
+		}
 		
-		System.out.println(f1 * d1);
+
+		JarDumper dumper = new CompleteResolvingJarDumper(dl.getJarContents());
+		dumper.dump(new File("out/osb.jar"));
+		
+//		BigInteger i = BigInteger.valueOf(-1021538271);
+//		System.out.println(i.intValue());
+//		BigInteger inv = FieldRSADecryptionPass.inverse(i, false);
+//		
+//		System.out.println(inv.intValue());
+//		System.out.println(inv.multiply(i).intValue());
+//		BigInteger benc = BigInteger.valueOf(29);
+//		int e1 = benc.intValue();
+//		BigInteger bdec = BigInteger.valueOf(1332920885);
+//		int d1 = bdec.intValue();
+//		
+//		BigInteger benc2 = BigInteger.valueOf(101);
+//		int e2 = benc2.intValue();
+//		BigInteger bdec2 = FieldRSADecryptionPass.inverse(benc2, false);
+//		int d2 = bdec2.intValue();
+//		
+//		int k = 10;
+//		int f1 = 6 * e1;
+//		int f2 = 7 * e2;
+//		
+//		f1 = (f2 * (d2 * e1)) + (k * e1);
+//		
+//		System.out.println(f1 * d1);
 		
 		
 		if("".equals("")) {
@@ -84,7 +130,11 @@ public class Boot {
 		}
 	}
 	
-	public static void main(String[] args) throws IOException {
+	public static void main(String[] args) {
+		System.out.println(String.format("e = %h", Math.E));
+	}
+	
+	public static void main4(String[] args) throws IOException {
 		cfgs = new HashMap<>();
 		sections = new LinkedList<>();
 		/* if(args.length < 1) {
@@ -98,6 +148,18 @@ public class Boot {
 		section("Preparing to run on " + f.getAbsolutePath());
 		SingleJarDownloader<ClassNode> dl = new SingleJarDownloader<>(new JarInfo(f));
 		dl.download();
+		
+//		for(ClassNode cn : dl.getJarContents().getClassContents()) {
+//			for(MethodNode m : cn.methods) {
+//				if(m.toString().startsWith("et.e(II)V")) {
+//					ControlFlowGraph cfg = ControlFlowGraphBuilder.build(m);
+//					System.out.println(cfg);
+//				}
+//			}
+//		}
+//		
+//		if("".equals(""))
+//			return;
 		
 		section("Building jar class hierarchy.");
 		ClassTree tree = new ClassTree(dl.getJarContents().getClassContents());
