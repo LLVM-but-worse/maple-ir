@@ -465,6 +465,11 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 			search(e, vis);
 		}
 		
+		updatePhiArgTypes(vis);
+	}
+	
+	private void updatePhiArgTypes(Set<BasicBlock> vis) {
+		// update types for phi args
 		for(BasicBlock b : order) {
 			for(Stmt s : b) {
 				if(s.getOpcode() != Opcode.PHI_STORE) {
