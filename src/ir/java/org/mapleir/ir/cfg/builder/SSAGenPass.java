@@ -1329,7 +1329,6 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		
 //		try {
 			if(OPTIMISE) {
-				System.out.println("SSAGenPass.run()");
 				resolveShadowedLocals();
 				aggregateInitialisers();
 				
