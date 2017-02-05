@@ -15,23 +15,23 @@ import org.objectweb.asm.MethodVisitor;
 public abstract class CodeUnit implements FastGraphVertex, Opcode {
 
 	public static final int FLAG_STMT = 0x01;
-	
+
 	private static int ID_COUNTER = 1;
 	protected final int id = ID_COUNTER++;
-	
+
 	protected final int opcode;
 	// bit 1 used as for expr/stmt
 	protected int flags;
 	private BasicBlock block;
-	
+
 	public Expr[] children;
 	private int ptr;
-	
+
 	public CodeUnit(int opcode) {
 		this.opcode = opcode;
 		children = new Expr[8];
 	}
-	
+
 	protected void setFlag(int flag, boolean val) {
 		if(val) {
 			flags |= flag;
@@ -39,58 +39,58 @@ public abstract class CodeUnit implements FastGraphVertex, Opcode {
 			flags ^= flag;
 		}
 	}
-	
+
 	public boolean isFlagSet(int f) {
 		return ((flags & f) != 0);
 	}
-	
+
 	@Override
 	public int getNumericId() {
 		return id;
 	}
-	
+
 	@Override
 	public String getId() {
 		return Long.toString(id);
 	}
-	
+
 	@Override
 	public int hashCode() {
 		return Long.hashCode(id);
 	}
-	
+
 	public final int getOpcode() {
 		return opcode;
 	}
-	
+
 	public final String getOpname() {
 		return Opcode.opname(opcode);
 	}
-	
+
 	public BasicBlock getBlock() {
 		return block;
 	}
-	
+
 	public void setBlock(BasicBlock block) {
 		this.block = block;
-		
+
 		//FIXME:
 		// i.e. removed, so invalidate this statement.
 		if(block == null) {
-//			if(Test.temp) {
-//				System.out.println("Statement.setBlock() " + this);
-//			}
-//			markDirty();
-//			setParent(null);
+			//			if(Test.temp) {
+			//				System.out.println("Statement.setBlock() " + this);
+			//			}
+			//			markDirty();
+			//			setParent(null);
 		}
-		
+
 		for(Expr s : children) {
 			if(s != null) {
 				s.setBlock(block);
 			}
 		}
 	}
-	
+
 	public int deepSize() {
 		int size = 1;
 		for (int i = 0; i < children.length; i++) {
@@ -100,7 +100,7 @@ public abstract class CodeUnit implements FastGraphVertex, Opcode {
 		}
 		return size;
 	}
-	
+
 	public int size() {
 		int size = 0;
 		for (int i = 0; i < children.length; i++) {
@@ -110,16 +110,16 @@ public abstract class CodeUnit implements FastGraphVertex, Opcode {
 		}
 		return size;
 	}
-	
+
 	public int capacity() {
 		return children.length;
 	}
-	
+
 	protected boolean shouldExpand() {
 		double max = children.length * 0.50;
 		return (double) size() > max;
 	}
-	
+
 	protected void expand() {
 		if (children.length >= Integer.MAX_VALUE)
 			throw new UnsupportedOperationException();
@@ -139,7 +139,7 @@ public abstract class CodeUnit implements FastGraphVertex, Opcode {
 		}
 		return -1;
 	}
-	
+
 	public Expr read() {
 		if (children[ptr] == null)
 			return null;
@@ -151,12 +151,12 @@ public abstract class CodeUnit implements FastGraphVertex, Opcode {
 			throw new ArrayIndexOutOfBoundsException(String.format("%s, ptr=%d, len=%d, addr=%d", this.getClass().getSimpleName(), ptr, children.length, newPtr));
 		return children[newPtr];
 	}
-	
+
 	public void write(Expr node) {
 		if(shouldExpand()) {
 			expand();
 		}
-		
+
 		if (children[ptr] == null) {
 			writeAt(ptr, node);
 			onChildUpdated(ptr++);
@@ -177,7 +177,7 @@ public abstract class CodeUnit implements FastGraphVertex, Opcode {
 			}
 		}
 	}
-	
+
 	private Expr writeAt(int index, Expr s) {
 		Expr prev = children[index];
 
@@ -185,7 +185,7 @@ public abstract class CodeUnit implements FastGraphVertex, Opcode {
 			prev.setParent(null);
 		}
 		children[index] = s;
-		
+
 		if(s != null) {
 			if(s.parent != null) {
 				throw new IllegalStateException(s + " already belongs to " + s.parent + " (new:" + (getRootParent0()) + ")");
@@ -193,10 +193,10 @@ public abstract class CodeUnit implements FastGraphVertex, Opcode {
 				s.setParent(this);
 			}
 		}
-		
+
 		return prev;
 	}
-	
+
 	public void delete() {
 		if(block == null) {
 			throw new IllegalStateException();
@@ -204,13 +204,13 @@ public abstract class CodeUnit implements FastGraphVertex, Opcode {
 		block.remove(this);
 		delete0();
 	}
-	
+
 	public void deleteAt(int _ptr) {
 		if (_ptr < 0 || _ptr >= children.length || (_ptr > 0 && children[_ptr - 1] == null))
 			throw new ArrayIndexOutOfBoundsException(String.format("ptr=%d, len=%d, addr=%d", ptr, children.length, _ptr));
 		if (children[_ptr] == null)
 			throw new UnsupportedOperationException("No statement at " + _ptr);
-		
+
 		if ((_ptr + 1) < children.length && children[_ptr + 1] == null) {
 			// ptr: s5 (4)
 			// len = 8
@@ -256,7 +256,7 @@ public abstract class CodeUnit implements FastGraphVertex, Opcode {
 			}
 		}
 	}
-	
+
 	protected void delete0() {
 		for(Expr c : children) {
 			if(c != null) {
@@ -264,18 +264,18 @@ public abstract class CodeUnit implements FastGraphVertex, Opcode {
 			}
 		}
 	}
-	
+
 	public Expr overwrite(Expr node) {
 		if(shouldExpand()) {
 			expand();
 		}
-		
+
 		if (children[ptr] != node) {
 			Expr prev = writeAt(ptr, node);
 			onChildUpdated(ptr);
 			return prev;
 		}
-		
+
 		return null;
 	}
 
@@ -283,20 +283,20 @@ public abstract class CodeUnit implements FastGraphVertex, Opcode {
 		if(shouldExpand()) {
 			expand();
 		}
-		
+
 		if (newPtr < 0 || newPtr >= children.length || (newPtr > 0 && children[newPtr - 1] == null))
 			throw new ArrayIndexOutOfBoundsException(String.format("ptr=%d, len=%d, addr=%d", ptr, children.length, newPtr));
-		
+
 		if (children[newPtr] != node) {
 			Expr prev = children[newPtr];
 			writeAt(newPtr, node);
 			onChildUpdated(newPtr);
 			return prev;
 		}
-		
+
 		return null;
 	}
-	
+
 	public List<Expr> getChildren() {
 		List<Expr> list = new ArrayList<>();
 		for (int i = 0; i < children.length; i++) {
@@ -316,63 +316,63 @@ public abstract class CodeUnit implements FastGraphVertex, Opcode {
 	public int getChildPointer() {
 		return ptr;
 	}
-	
+
 	// TODO:
-//	protected Set<CodeUnit> _enumerate() {
-//		Set<Statement> set = new HashSet<>();
-//		set.add(this);
-//		
-//		if(opcode == Opcode.PHI_STORE) {
-//			CopyPhiStatement phi = (CopyPhiStatement) this;
-//			for(Expression e : phi.getExpression().getArguments().values()) {
-//				set.addAll(e._enumerate());
-//			}
-//		} else {
-//			for(Statement c : children) {
-//				if(c != null) {
-//					set.addAll(c._enumerate());
-//				}
-//			}
-//		}
-//		
-//		return set;
-//	}
-//	
-//	public Iterable<Statement> enumerate() {
-//		return _enumerate();
-//	}
-//	
-//	protected void dfsStmt(List<Statement> list) {
-//		for(Statement c : children) {
-//			if(c != null) {
-//				c.dfsStmt(list);
-//			}
-//		}
-//		list.add(this);
-//	}
-//	
-//	public List<Statement> execEnumerate() {
-//		List<Statement> list = new ArrayList<>();
-//		dfsStmt(list);
-//		return list;
-//	}
-	
+	//	protected Set<CodeUnit> _enumerate() {
+	//		Set<Statement> set = new HashSet<>();
+	//		set.add(this);
+	//		
+	//		if(opcode == Opcode.PHI_STORE) {
+	//			CopyPhiStatement phi = (CopyPhiStatement) this;
+	//			for(Expression e : phi.getExpression().getArguments().values()) {
+	//				set.addAll(e._enumerate());
+	//			}
+	//		} else {
+	//			for(Statement c : children) {
+	//				if(c != null) {
+	//					set.addAll(c._enumerate());
+	//				}
+	//			}
+	//		}
+	//		
+	//		return set;
+	//	}
+	//	
+	//	public Iterable<Statement> enumerate() {
+	//		return _enumerate();
+	//	}
+	//	
+	//	protected void dfsStmt(List<Statement> list) {
+	//		for(Statement c : children) {
+	//			if(c != null) {
+	//				c.dfsStmt(list);
+	//			}
+	//		}
+	//		list.add(this);
+	//	}
+	//	
+	//	public List<Statement> execEnumerate() {
+	//		List<Statement> list = new ArrayList<>();
+	//		dfsStmt(list);
+	//		return list;
+	//	}
+
 	public abstract void onChildUpdated(int ptr);
-	
+
 	public abstract void toString(TabbedStringWriter printer);
-	
+
 	public abstract void toCode(MethodVisitor visitor, ControlFlowGraph cfg);
-	
+
 	public abstract boolean canChangeFlow();
-	
+
 	public abstract boolean canChangeLogic();
-	
+
 	public abstract boolean isAffectedBy(CodeUnit stmt);
-	
+
 	public abstract boolean equivalent(CodeUnit s);
 
 	public abstract CodeUnit copy();
-	
+
 	private Stmt getRootParent0() {
 		if((flags & FLAG_STMT) != 0) {
 			return (Stmt) this;
@@ -380,10 +380,10 @@ public abstract class CodeUnit implements FastGraphVertex, Opcode {
 			return ((Expr) this).getRootParent();
 		}
 	}
-	
+
 	protected Set<Expr> _enumerate() {
 		Set<Expr> set = new HashSet<>();
-		
+
 		if(opcode == Opcode.PHI_STORE) {
 			CopyPhiStatement phi = (CopyPhiStatement) this;
 			for(Expr e : phi.getExpression().getArguments().values()) {
@@ -398,14 +398,14 @@ public abstract class CodeUnit implements FastGraphVertex, Opcode {
 				}
 			}
 		}
-		
+
 		return set;
 	}
-	
+
 	public Iterable<Expr> enumerateOnlyChildren() {
 		return _enumerate();
 	}
-	
+
 	protected void dfsStmt(List<CodeUnit> list) {
 		for(Expr c : children) {
 			if(c != null) {
@@ -414,22 +414,22 @@ public abstract class CodeUnit implements FastGraphVertex, Opcode {
 		}
 		list.add(this);
 	}
-	
+
 	public List<CodeUnit> enumerateExecutionOrder() {
 		List<CodeUnit> list = new ArrayList<>();
 		dfsStmt(list);
 		return list;
-}
-	
-//	public Iterable<Statement> enumerate() {
-//		return _enumerate();
-//	}
-	
+	}
+
+	//	public Iterable<Statement> enumerate() {
+	//		return _enumerate();
+	//	}
+
 	@Override
 	public String toString() {
 		return print(this);
 	}
-	
+
 	public static String print(CodeUnit node) {
 		TabbedStringWriter printer = new TabbedStringWriter();
 		node.toString(printer);
