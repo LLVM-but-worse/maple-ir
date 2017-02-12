@@ -34,22 +34,22 @@ package org.objectweb.asm;
  * 
  * @author Eric Bruneton
  */
-class Handler {
+public class Handler {
 
     /**
      * Beginning of the exception handler's scope (inclusive).
      */
-    Label start;
+    public Label start;
 
     /**
      * End of the exception handler's scope (exclusive).
      */
-    Label end;
+    public Label end;
 
     /**
      * Beginning of the exception handler's code.
      */
-    Label handler;
+    public Label handler;
 
     /**
      * Internal name of the type of exceptions handled by this handler, or
@@ -66,7 +66,7 @@ class Handler {
     /**
      * Next exception handler block info.
      */
-    Handler next;
+    public Handler next;
 
     /**
      * Removes the range between start and end from the given exception

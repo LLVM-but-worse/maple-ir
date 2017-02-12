@@ -18,11 +18,11 @@ public class DominanceLivenessAnalyser {
 
 	public final ControlFlowGraph cfg;
 	private SSADefUseMap defuse;
-	public final ControlFlowGraph red_cfg;
-	public final ExtendedDfs<BasicBlock> cfg_dfs;
+	public final ControlFlowGraph reducedCfg;
+	public final ExtendedDfs<BasicBlock> cfgDfs;
 	public final NullPermeableHashMap<BasicBlock, GenericBitSet<BasicBlock>> backEdges;
-	public final GenericBitSet<BasicBlock> btargs;
-	public final SimpleDfs<BasicBlock> reduced_dfs;
+	public final GenericBitSet<BasicBlock> bTargs;
+	public final SimpleDfs<BasicBlock> reducedDfs;
 	public final TarjanDominanceComputor<BasicBlock> domc;
 
 	public DominanceLivenessAnalyser(ControlFlowGraph cfg, BasicBlock entry, SSADefUseMap defuse) {
@@ -33,16 +33,16 @@ public class DominanceLivenessAnalyser {
 		tq = new NullPermeableHashMap<>(cfg);
 		sdoms = new NullPermeableHashMap<>(cfg);
 
-		cfg_dfs = new ExtendedDfs<>(cfg, entry, ExtendedDfs.EDGES);
+		cfgDfs = new ExtendedDfs<>(cfg, entry, ExtendedDfs.EDGES);
 		backEdges = new NullPermeableHashMap<>(cfg);
-		btargs = cfg.createBitSet();
-		red_cfg = reduce(cfg, cfg_dfs.getEdges(ExtendedDfs.BACK));
-		reduced_dfs = new SimpleDfs<>(red_cfg, entry, true, true);
+		bTargs = cfg.createBitSet();
+		reducedCfg = reduce(cfg, cfgDfs.getEdges(ExtendedDfs.BACK));
+		reducedDfs = new SimpleDfs<>(reducedCfg, entry, true, true);
 
 		computeReducedReachability();
 		computeTargetReachability();
 
-		domc = new TarjanDominanceComputor<>(cfg, reduced_dfs.getPreOrder());
+		domc = new TarjanDominanceComputor<>(cfg, reducedDfs.getPreOrder());
 
 		computeStrictDominators();
 	}
@@ -60,7 +60,7 @@ public class DominanceLivenessAnalyser {
 	}
 
 	private void computeStrictDominators() {
-		for (BasicBlock b : reduced_dfs.getPostOrder()) {
+		for (BasicBlock b : reducedDfs.getPostOrder()) {
 			BasicBlock idom = domc.idom(b);
 			if (idom != null) {
 				GenericBitSet<BasicBlock> set = sdoms.getNonNull(idom);
@@ -71,16 +71,16 @@ public class DominanceLivenessAnalyser {
 	}
 
 	private void computeReducedReachability() {
-		for (BasicBlock b : reduced_dfs.getPostOrder()) {
+		for (BasicBlock b : reducedDfs.getPostOrder()) {
 			rv.getNonNull(b).add(b);
-			for (FlowEdge<BasicBlock> e : red_cfg.getReverseEdges(b)) {
+			for (FlowEdge<BasicBlock> e : reducedCfg.getReverseEdges(b)) {
 				rv.getNonNull(e.src).addAll(rv.get(b));
 			}
 		}
 	}
 
 	private void computeTargetReachability() {
-		for (BasicBlock b : reduced_dfs.getPreOrder()) {
+		for (BasicBlock b : reducedDfs.getPreOrder()) {
 			tq.getNonNull(b).add(b);
 
 			// Tup(t) = set of unreachable backedge targets from reachable sources
@@ -94,7 +94,7 @@ public class DominanceLivenessAnalyser {
 		ControlFlowGraph reducedCfg = cfg.copy();
 		for (FlowEdge<BasicBlock> e : back) {
 			reducedCfg.removeEdge(e.src, e);
-			btargs.add(e.dst);
+			bTargs.add(e.dst);
 			backEdges.getNonNull(e.src).add(e.dst);
 		}
 		return reducedCfg;
@@ -125,7 +125,7 @@ public class DominanceLivenessAnalyser {
 			return !uses.relativeComplement(defBlock).isEmpty() || defuse.phiUses.get(defBlock).contains(a);
 		}
 
-		boolean targ = !btargs.contains(q);
+		boolean targ = !bTargs.contains(q);
 
 		GenericBitSet<BasicBlock> sdomdef = sdoms.getNonNull(defBlock);
 		if (sdomdef.contains(q)) {

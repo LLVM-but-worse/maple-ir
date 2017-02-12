@@ -90,13 +90,14 @@ public class ComparisonExpression extends Expr {
 	public void toString(TabbedStringWriter printer) {
 		printer.print('(');
 		left.toString(printer);
-		printer.print(" == ");
+		printer.print(" CMP ");
 		right.toString(printer);
-		printer.print("? 0 : (");
-		right.toString(printer);
-		printer.print(" > ");
-		left.toString(printer);
-		printer.print("? 1 : -1))");
+		printer.print(")");
+//		printer.print("? 0 : (");
+//		right.toString(printer);
+//		printer.print(" > ");
+//		left.toString(printer);
+//		printer.print("? 1 : -1))");
 	}
 
 	@Override
