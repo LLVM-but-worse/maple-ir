@@ -32,7 +32,7 @@ public class InvocationResolver {
 			if(set.size() == 1) {
 				return set.iterator().next();
 			} else {
-				throw new IllegalStateException(set.toString());
+				throw new IllegalStateException(String.format("Looking for: %s.<init>%s, got: %s", owner, desc, set));
 			}
 		} else {
 			return null;

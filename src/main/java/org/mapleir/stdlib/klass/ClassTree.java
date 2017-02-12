@@ -197,4 +197,40 @@ public class ClassTree implements Iterable<ClassNode> {
 	public Iterator<ClassNode> iterator() {
 		return classes.values().iterator();
 	}
+	
+	public Set<ClassNode> getAllBranches(ClassNode cn, boolean exploreRuntime) {		
+		Set<ClassNode> set = new HashSet<>();
+		
+		Set<ClassNode> pending = new HashSet<>();
+		pending.add(cn);
+		
+		for(;;) {
+			int size = set.size();
+
+			Set<ClassNode> discovered = new HashSet<>();
+			for(ClassNode c : pending) {
+				for(ClassNode o : getSupers(c)) {
+					if(isJDKClass(o) && !exploreRuntime) {
+						continue;
+					}
+					discovered.add(o);
+				}
+				for(ClassNode o : getDelegates(c)) {
+					if(isJDKClass(o) && !exploreRuntime) {
+						continue;
+					}
+					discovered.add(o);
+				}
+			}
+			
+			set.addAll(pending);
+			pending = discovered;
+			
+			if(set.size() == size) {
+				break;
+			}
+		}
+		
+		return set;
+	}
 }
