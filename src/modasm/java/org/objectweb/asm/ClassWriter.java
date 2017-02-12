@@ -80,102 +80,102 @@ public class ClassWriter extends ClassVisitor {
     /**
      * The type of instructions without any argument.
      */
-    static final int NOARG_INSN = 0;
+    public static final int NOARG_INSN = 0;
 
     /**
      * The type of instructions with an signed byte argument.
      */
-    static final int SBYTE_INSN = 1;
+    public static final int SBYTE_INSN = 1;
 
     /**
      * The type of instructions with an signed short argument.
      */
-    static final int SHORT_INSN = 2;
+    public static final int SHORT_INSN = 2;
 
     /**
      * The type of instructions with a local variable index argument.
      */
-    static final int VAR_INSN = 3;
+    public static final int VAR_INSN = 3;
 
     /**
      * The type of instructions with an implicit local variable index argument.
      */
-    static final int IMPLVAR_INSN = 4;
+    public static final int IMPLVAR_INSN = 4;
 
     /**
      * The type of instructions with a type descriptor argument.
      */
-    static final int TYPE_INSN = 5;
+    public static final int TYPE_INSN = 5;
 
     /**
      * The type of field and method invocations instructions.
      */
-    static final int FIELDORMETH_INSN = 6;
+    public static final int FIELDORMETH_INSN = 6;
 
     /**
      * The type of the INVOKEINTERFACE/INVOKEDYNAMIC instruction.
      */
-    static final int ITFMETH_INSN = 7;
+    public static final int ITFMETH_INSN = 7;
 
     /**
      * The type of the INVOKEDYNAMIC instruction.
      */
-    static final int INDYMETH_INSN = 8;
+    public static final int INDYMETH_INSN = 8;
 
     /**
      * The type of instructions with a 2 bytes bytecode offset label.
      */
-    static final int LABEL_INSN = 9;
+    public static final int LABEL_INSN = 9;
 
     /**
      * The type of instructions with a 4 bytes bytecode offset label.
      */
-    static final int LABELW_INSN = 10;
+    public static final int LABELW_INSN = 10;
 
     /**
      * The type of the LDC instruction.
      */
-    static final int LDC_INSN = 11;
+    public static final int LDC_INSN = 11;
 
     /**
      * The type of the LDC_W and LDC2_W instructions.
      */
-    static final int LDCW_INSN = 12;
+    public static final int LDCW_INSN = 12;
 
     /**
      * The type of the IINC instruction.
      */
-    static final int IINC_INSN = 13;
+    public static final int IINC_INSN = 13;
 
     /**
      * The type of the TABLESWITCH instruction.
      */
-    static final int TABL_INSN = 14;
+    public static final int TABL_INSN = 14;
 
     /**
      * The type of the LOOKUPSWITCH instruction.
      */
-    static final int LOOK_INSN = 15;
+    public static final int LOOK_INSN = 15;
 
     /**
      * The type of the MULTIANEWARRAY instruction.
      */
-    static final int MANA_INSN = 16;
+    public static final int MANA_INSN = 16;
 
     /**
      * The type of the WIDE instruction.
      */
-    static final int WIDE_INSN = 17;
+    public static final int WIDE_INSN = 17;
 
     /**
      * The instruction types of all JVM opcodes.
      */
-    static final byte[] TYPE;
+    public static final byte[] TYPE;
 
     /**
      * The type of CONSTANT_Class constant pool items.
      */
-    static final int CLASS = 7;
+    public static final int CLASS = 7;
 
     /**
      * The type of CONSTANT_Fieldref constant pool items.
@@ -487,12 +487,12 @@ public class ClassWriter extends ClassVisitor {
      * <tt>true</tt> if the maximum stack size and number of local variables
      * must be automatically computed.
      */
-    private boolean computeMaxs;
+    public boolean computeMaxs;
 
     /**
      * <tt>true</tt> if the stack map frames must be recomputed from scratch.
      */
-    private boolean computeFrames;
+    public  boolean computeFrames;
 
     /**
      * <tt>true</tt> if the stack map tables of this class are invalid. The

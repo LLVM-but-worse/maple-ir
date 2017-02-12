@@ -68,6 +68,10 @@ public interface Opcode {
 		return OPNAMES[b1][b2 - 1];
 	}
 	
+	static int opclass(int op) {
+		return ((op >> 8) & 0xFF) << 8;
+	}
+	
 	int CLASS_STORE    = 0x100;
 	int LOCAL_STORE    = 0x101;
 	int ARRAY_STORE    = 0x102;

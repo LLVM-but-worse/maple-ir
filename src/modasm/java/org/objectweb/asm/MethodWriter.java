@@ -37,60 +37,60 @@ package org.objectweb.asm;
  * @author Eric Bruneton
  * @author Eugene Kuleshov
  */
-class MethodWriter extends MethodVisitor {
+public class MethodWriter extends MethodVisitor {
 
     /**
      * Pseudo access flag used to denote constructors.
      */
-    static final int ACC_CONSTRUCTOR = 0x80000;
+	 public static final int ACC_CONSTRUCTOR = 0x80000;
 
     /**
      * Frame has exactly the same locals as the previous stack map frame and
      * number of stack items is zero.
      */
-    static final int SAME_FRAME = 0; // to 63 (0-3f)
+    public static final int SAME_FRAME = 0; // to 63 (0-3f)
 
     /**
      * Frame has exactly the same locals as the previous stack map frame and
      * number of stack items is 1
      */
-    static final int SAME_LOCALS_1_STACK_ITEM_FRAME = 64; // to 127 (40-7f)
+    public static final int SAME_LOCALS_1_STACK_ITEM_FRAME = 64; // to 127 (40-7f)
 
     /**
      * Reserved for future use
      */
-    static final int RESERVED = 128;
+    public static final int RESERVED = 128;
 
     /**
      * Frame has exactly the same locals as the previous stack map frame and
      * number of stack items is 1. Offset is bigger then 63;
      */
-    static final int SAME_LOCALS_1_STACK_ITEM_FRAME_EXTENDED = 247; // f7
+    public static final int SAME_LOCALS_1_STACK_ITEM_FRAME_EXTENDED = 247; // f7
 
     /**
      * Frame where current locals are the same as the locals in the previous
      * frame, except that the k last locals are absent. The value of k is given
      * by the formula 251-frame_type.
      */
-    static final int CHOP_FRAME = 248; // to 250 (f8-fA)
+    public static final int CHOP_FRAME = 248; // to 250 (f8-fA)
 
     /**
      * Frame has exactly the same locals as the previous stack map frame and
      * number of stack items is zero. Offset is bigger then 63;
      */
-    static final int SAME_FRAME_EXTENDED = 251; // fb
+    public static final int SAME_FRAME_EXTENDED = 251; // fb
 
     /**
      * Frame where current locals are the same as the locals in the previous
      * frame, except that k additional locals are defined. The value of k is
      * given by the formula frame_type-251.
      */
-    static final int APPEND_FRAME = 252; // to 254 // fc-fe
+    public static final int APPEND_FRAME = 252; // to 254 // fc-fe
 
     /**
      * Full frame
      */
-    static final int FULL_FRAME = 255; // ff
+    public  static final int FULL_FRAME = 255; // ff
 
     /**
      * Indicates that the stack map frames must be recomputed from scratch. In
@@ -99,7 +99,7 @@ class MethodWriter extends MethodVisitor {
      * 
      * @see #compute
      */
-    private static final int FRAMES = 0;
+    public  static final int FRAMES = 0;
 
     /**
      * Indicates that the maximum stack size and number of local variables must
@@ -130,13 +130,13 @@ class MethodWriter extends MethodVisitor {
      * The index of the constant pool item that contains the name of this
      * method.
      */
-    private final int name;
+    final int name;
 
     /**
      * The index of the constant pool item that contains the descriptor of this
      * method.
      */
-    private final int desc;
+     final int desc;
 
     /**
      * The descriptor of this method.

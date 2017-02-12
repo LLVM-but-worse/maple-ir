@@ -11,7 +11,9 @@ import java.util.jar.JarOutputStream;
 import org.mapleir.stdlib.klass.ClassNodeUtil;
 import org.mapleir.stdlib.klass.ClassTree;
 import org.objectweb.asm.ClassWriter;
+import org.objectweb.asm.commons.CodeSizeEvaluator;
 import org.objectweb.asm.tree.ClassNode;
+import org.objectweb.asm.tree.MethodNode;
 import org.topdank.byteengineer.commons.data.JarContents;
 import org.topdank.byteengineer.commons.data.JarResource;
 import org.topdank.byteio.out.JarDumper;
@@ -132,6 +134,14 @@ public class CompleteResolvingJarDumper implements JarDumper {
 		        }
 		    }
 		};
+		
+		for(MethodNode m : cn.methods) {
+			CodeSizeEvaluator eval = new CodeSizeEvaluator(m);
+			eval.visitCode();
+			eval.visitEnd();
+			System.out.println(m + " @" + m.instructions.size() + ", " + eval.getMinSize() + "/" + eval.getMaxSize());
+		}
+		
 		cn.accept(writer);
 		out.write(writer.toByteArray());
 		return 1;

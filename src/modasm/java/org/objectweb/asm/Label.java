@@ -142,7 +142,7 @@ public class Label {
     /**
      * The position of this label in the code, if known.
      */
-    int position;
+    public int position;
 
     /**
      * Number of forward references to this label, times two.
@@ -374,7 +374,7 @@ public class Label {
     boolean resolve(final MethodWriter owner, final int position,
             final byte[] data) {
         boolean needUpdate = false;
-        this.status |= RESOLVED;
+        status |= RESOLVED;
         this.position = position;
         int i = 0;
         while (i < referenceCount) {
