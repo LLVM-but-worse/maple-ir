@@ -521,7 +521,6 @@ public class InsnList {
     }
 
     // this class is not generified because it will create bridges
-    @SuppressWarnings("rawtypes")
     private final class InsnListIterator implements ListIterator {
 
         AbstractInsnNode next;
@@ -621,10 +620,4 @@ public class InsnList {
             prev = (AbstractInsnNode) o;
         }
     }
-
-	public void reset() {
-		for(AbstractInsnNode ain : toArray()){
-			ain.method = null;
-		}
-	}
 }

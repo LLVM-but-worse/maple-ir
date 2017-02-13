@@ -55,13 +55,13 @@ public class Handler {
      * Internal name of the type of exceptions handled by this handler, or
      * <tt>null</tt> to catch any exceptions.
      */
-    String desc;
+    public String desc;
 
     /**
      * Constant pool index of the internal name of the type of exceptions
      * handled by this handler, or 0 to catch any exceptions.
      */
-    int type;
+    public int type;
 
     /**
      * Next exception handler block info.

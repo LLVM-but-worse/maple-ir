@@ -11,7 +11,7 @@ import java.util.jar.JarOutputStream;
 import org.mapleir.stdlib.klass.ClassNodeUtil;
 import org.mapleir.stdlib.klass.ClassTree;
 import org.objectweb.asm.ClassWriter;
-import org.objectweb.asm.commons.CodeSizeEvaluator;
+import org.objectweb.asm.commons.blocksplit.SplitMethodWriterDelegate;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.topdank.byteengineer.commons.data.JarContents;
@@ -76,7 +76,7 @@ public class CompleteResolvingJarDumper implements JarDumper {
 	public int dumpClass(JarOutputStream out, String name, ClassNode cn) throws IOException {
 		JarEntry entry = new JarEntry(cn.name + ".class");
 		out.putNextEntry(entry);
-		ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_FRAMES) {
+		ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_FRAMES, new SplitMethodWriterDelegate()) {
 			// this method in ClassWriter uses the systemclassloader as
 			// a stream location to load the super class, however, most of
 			// the time the class is loaded/read and parsed by us so it
@@ -136,10 +136,9 @@ public class CompleteResolvingJarDumper implements JarDumper {
 		};
 		
 		for(MethodNode m : cn.methods) {
-			CodeSizeEvaluator eval = new CodeSizeEvaluator(m);
-			eval.visitCode();
-			eval.visitEnd();
-			System.out.println(m + " @" + m.instructions.size() + ", " + eval.getMinSize() + "/" + eval.getMaxSize());
+			if(m.instructions.size() > 10000) {
+				System.out.println(m + " @" + m.instructions.size());
+			}
 		}
 		
 		cn.accept(writer);

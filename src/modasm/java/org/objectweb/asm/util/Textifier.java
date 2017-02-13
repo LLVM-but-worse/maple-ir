@@ -414,7 +414,7 @@ public class Textifier extends Printer {
         }
 
         buf.append(tab);
-        appendAccess(access & ~Opcodes.ACC_VOLATILE);
+        appendAccess(access);
         if ((access & Opcodes.ACC_NATIVE) != 0) {
             buf.append("native ");
         }
@@ -703,7 +703,7 @@ public class Textifier extends Printer {
         Textifier t = createTextifier();
         text.add(t.getText());
         text.add(visible ? ") // parameter " : ") // invisible, parameter ");
-        text.add(parameter);
+        text.add(new Integer(parameter));
         text.add("\n");
         return t;
     }

@@ -81,9 +81,4 @@ public class LineNumberNode extends AbstractInsnNode {
     public AbstractInsnNode clone(final Map<LabelNode, LabelNode> labels) {
         return new LineNumberNode(line, clone(start, labels));
     }
-    
-    @Override
-	public String toString() {
-    	return "[Line " + line + "]";
-    }
 }
