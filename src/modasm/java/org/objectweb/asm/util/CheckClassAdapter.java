@@ -269,26 +269,26 @@ public class CheckClassAdapter extends ClassVisitor {
         for (int j = 0; j < method.instructions.size(); ++j) {
             method.instructions.get(j).accept(mv);
 
-            StringBuilder sb = new StringBuilder();
+            StringBuffer s = new StringBuffer();
             Frame<BasicValue> f = frames[j];
             if (f == null) {
-                sb.append('?');
+                s.append('?');
             } else {
                 for (int k = 0; k < f.getLocals(); ++k) {
-                    sb.append(getShortName(f.getLocal(k).toString()))
+                    s.append(getShortName(f.getLocal(k).toString()))
                             .append(' ');
                 }
-                sb.append(" : ");
+                s.append(" : ");
                 for (int k = 0; k < f.getStackSize(); ++k) {
-                    sb.append(getShortName(f.getStack(k).toString()))
+                    s.append(getShortName(f.getStack(k).toString()))
                             .append(' ');
                 }
             }
-            while (sb.length() < method.maxStack + method.maxLocals + 1) {
-                sb.append(' ');
+            while (s.length() < method.maxStack + method.maxLocals + 1) {
+                s.append(' ');
             }
             pw.print(Integer.toString(j + 100000).substring(1));
-            pw.print(" " + sb + " : " + t.text.get(t.text.size() - 1));
+            pw.print(" " + s + " : " + t.text.get(t.text.size() - 1));
         }
         for (int j = 0; j < method.tryCatchBlocks.size(); ++j) {
             method.tryCatchBlocks.get(j).accept(mv);

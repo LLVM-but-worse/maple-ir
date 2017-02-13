@@ -53,6 +53,9 @@ public abstract class ClassVisitor {
      */
     protected ClassVisitor cv;
 
+    // TURBO:
+	protected ClassVisitor previousCv;
+
     /**
      * Constructs a new {@link ClassVisitor}.
      * 
@@ -80,6 +83,12 @@ public abstract class ClassVisitor {
         }
         this.api = api;
         this.cv = cv;
+        
+		if (cv != null) {
+			if (cv.previousCv != null)
+				throw new RuntimeException("class visitor participates in several delegation chains");
+			cv.previousCv = this;
+		}
     }
 
     /**
@@ -317,4 +326,14 @@ public abstract class ClassVisitor {
             cv.visitEnd();
         }
     }
+    
+    // TURBO:
+    
+	public ClassVisitor getFirstVisitor() {
+		ClassVisitor cv = this;
+		while (cv.previousCv != null) {
+			cv = cv.previousCv;
+		}
+		return cv;
+	}
 }

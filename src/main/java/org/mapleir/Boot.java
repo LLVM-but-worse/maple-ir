@@ -1,6 +1,8 @@
 package org.mapleir;
 
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.util.*;
@@ -8,25 +10,15 @@ import java.util.Map.Entry;
 
 import org.mapleir.byteio.CompleteResolvingJarDumper;
 import org.mapleir.deobimpl2.CallgraphPruningPass;
-import org.mapleir.deobimpl2.ConcreteStaticInvocationPass;
-import org.mapleir.deobimpl2.ConstantExpressionReorderPass;
-import org.mapleir.deobimpl2.ConstantParameterPass;
 import org.mapleir.deobimpl2.FieldRSADecryptionPass;
 import org.mapleir.deobimpl2.MethodRenamerPass;
 import org.mapleir.ir.ControlFlowGraphDumper;
-import org.mapleir.ir.analysis.FlowGraphUtils;
-import org.mapleir.ir.analysis.FlowGraphUtils.TCNode;
-import org.mapleir.ir.analysis.split.StrongComponent;
-import org.mapleir.ir.analysis.split.UDEdge;
-import org.mapleir.ir.analysis.split.UDNode;
-import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.BoissinotDestructor;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.cfg.builder.ControlFlowGraphBuilder;
 import org.mapleir.ir.code.Expr;
 import org.mapleir.stdlib.IContext;
 import org.mapleir.stdlib.call.CallTracer;
-import org.mapleir.stdlib.collections.graph.flow.ExceptionRange;
 import org.mapleir.stdlib.deob.ICompilerPass;
 import org.mapleir.stdlib.klass.ClassTree;
 import org.mapleir.stdlib.klass.InvocationResolver;
@@ -175,35 +167,35 @@ public class Boot {
 		SingleJarDownloader<ClassNode> dl = new SingleJarDownloader<>(new JarInfo(f));
 		dl.download();
 		
-		for(ClassNode cn : dl.getJarContents().getClassContents()) {
-			for(MethodNode m : cn.methods) {
-//				System.out.println(m + " @" + m.instructions.size());
-				if(m.toString().startsWith("cr.r(IIIIIIIILct;IZII)Z")) {
-					ControlFlowGraph cfg = ControlFlowGraphBuilder.build(m);
-					System.out.println(cfg);
-					
-					Set<UDEdge> terminalEdges = new HashSet<>();
-					UDNode start = FlowGraphUtils.computeUndigraph(cfg, terminalEdges);
-					
-					
-					List<UDNode> nodes = FlowGraphUtils.compute(start);
-					Map<BasicBlock, TCNode> map = new HashMap<>();
-					Set<StrongComponent> sccs = FlowGraphUtils.computeTransitiveClosures(cfg, map);
-					
-					Set<BasicBlock> handlers = new HashSet<>();
-					for(ExceptionRange<BasicBlock> er : cfg.getRanges()) {
-						handlers.add(er.getHandler());
-					}
-					Collection<TCNode> splitPoints = FlowGraphUtils.computeSplitPoints(map, handlers, terminalEdges);
-					
-					map.get(cfg.getEntries().iterator().next()).computeSplitPointSuccessors();
-					
-					System.out.println(splitPoints);
-				}
-			}
-		}
-		if("".equals(""))
-			return;
+//		for(ClassNode cn : dl.getJarContents().getClassContents()) {
+//			for(MethodNode m : cn.methods) {
+////				System.out.println(m + " @" + m.instructions.size());
+//				if(m.toString().startsWith("cr.r(IIIIIIIILct;IZII)Z")) {
+//					ControlFlowGraph cfg = ControlFlowGraphBuilder.build(m);
+//					System.out.println(cfg);
+//					
+//					Set<UDEdge> terminalEdges = new HashSet<>();
+//					UDNode start = FlowGraphUtils.computeUndigraph(cfg, terminalEdges);
+//					
+//					
+//					List<UDNode> nodes = FlowGraphUtils.compute(start);
+//					Map<BasicBlock, TCNode> map = new HashMap<>();
+//					Set<StrongComponent> sccs = FlowGraphUtils.computeTransitiveClosures(cfg, map);
+//					
+//					Set<BasicBlock> handlers = new HashSet<>();
+//					for(ExceptionRange<BasicBlock> er : cfg.getRanges()) {
+//						handlers.add(er.getHandler());
+//					}
+//					Collection<TCNode> splitPoints = FlowGraphUtils.computeSplitPoints(map, handlers, terminalEdges);
+//					
+//					map.get(cfg.getEntries().iterator().next()).computeSplitPointSuccessors();
+//					
+//					System.out.println(splitPoints);
+//				}
+//			}
+//		}
+//		if("".equals(""))
+//			return;
 		
 		section("Building jar class hierarchy.");
 		ClassTree tree = new ClassTree(dl.getJarContents().getClassContents());
@@ -255,6 +247,19 @@ public class Boot {
 		
 		runPasses(cxt, getTransformationPasses());
 			
+
+		for(Entry<MethodNode, ControlFlowGraph> e : cfgs.entrySet()) {
+			MethodNode mn = e.getKey();
+			ControlFlowGraph cfg = e.getValue();
+			
+			if(mn.toString().equals("a.akt(Lx;I)V")) {
+				BufferedWriter bw = new BufferedWriter(new FileWriter(new File("C:/Users/Bibl/Desktop/test224.txt")));
+				bw.write(cfg.toString());
+				bw.close();
+			}
+			
+		}
+		
 		section("Retranslating SSA IR to standard flavour.");
 		for(Entry<MethodNode, ControlFlowGraph> e : cfgs.entrySet()) {
 			MethodNode mn = e.getKey();
@@ -289,10 +294,10 @@ public class Boot {
 	private static ICompilerPass[] getTransformationPasses() {
 		return new ICompilerPass[] {
 				new CallgraphPruningPass(),
-				new ConcreteStaticInvocationPass(),
+//				new ConcreteStaticInvocationPass(),
 				new MethodRenamerPass(),
-				new ConstantParameterPass(),
-				new ConstantExpressionReorderPass(),
+//				new ConstantParameterPass(),
+//				new ConstantExpressionReorderPass(),
 //				new FieldRSADecryptionPass()
 		};
 	}
