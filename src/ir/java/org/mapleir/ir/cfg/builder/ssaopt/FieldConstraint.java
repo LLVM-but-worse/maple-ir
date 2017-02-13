@@ -3,7 +3,7 @@ package org.mapleir.ir.cfg.builder.ssaopt;
 import org.mapleir.ir.code.CodeUnit;
 import org.mapleir.ir.code.Opcode;
 import org.mapleir.ir.code.expr.FieldLoadExpr;
-import org.mapleir.ir.code.stmt.FieldStoreStatement;
+import org.mapleir.ir.code.stmt.FieldStoreStmt;
 
 public class FieldConstraint implements Constraint {
 	private final String key;
@@ -16,7 +16,7 @@ public class FieldConstraint implements Constraint {
 	public boolean fails(CodeUnit s) {
 		int op = s.getOpcode();
 		if(op == Opcode.FIELD_STORE) {
-			FieldStoreStatement store = (FieldStoreStatement) s;
+			FieldStoreStmt store = (FieldStoreStmt) s;
 			String key2 = store.getName() + "." + store.getDesc();
 			if(key2.equals(key)) {
 				return true;

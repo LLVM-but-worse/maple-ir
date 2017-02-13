@@ -27,14 +27,14 @@ import org.mapleir.ir.code.expr.InvocationExpr;
 import org.mapleir.ir.code.expr.PhiExpr;
 import org.mapleir.ir.code.expr.UninitialisedObjectExpr;
 import org.mapleir.ir.code.expr.VarExpr;
-import org.mapleir.ir.code.stmt.ConditionalJumpStatement;
-import org.mapleir.ir.code.stmt.PopStatement;
-import org.mapleir.ir.code.stmt.SwitchStatement;
-import org.mapleir.ir.code.stmt.ThrowStatement;
-import org.mapleir.ir.code.stmt.UnconditionalJumpStatement;
-import org.mapleir.ir.code.stmt.copy.AbstractCopyStatement;
-import org.mapleir.ir.code.stmt.copy.CopyPhiStatement;
-import org.mapleir.ir.code.stmt.copy.CopyVarStatement;
+import org.mapleir.ir.code.stmt.ConditionalJumpStmt;
+import org.mapleir.ir.code.stmt.PopStmt;
+import org.mapleir.ir.code.stmt.SwitchStmt;
+import org.mapleir.ir.code.stmt.ThrowStmt;
+import org.mapleir.ir.code.stmt.UnconditionalJumpStmt;
+import org.mapleir.ir.code.stmt.copy.AbstractCopyStmt;
+import org.mapleir.ir.code.stmt.copy.CopyPhiStmt;
+import org.mapleir.ir.code.stmt.copy.CopyVarStmt;
 import org.mapleir.ir.locals.BasicLocal;
 import org.mapleir.ir.locals.Local;
 import org.mapleir.ir.locals.LocalsPool;
@@ -130,7 +130,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 					throw new IllegalStateException("s");
 				
 				if (checkSplit && stmt.getOpcode() == Opcode.LOCAL_STORE) {
-					CopyVarStatement copy = (CopyVarStatement) stmt;
+					CopyVarStmt copy = (CopyVarStmt) stmt;
 					VarExpr v = copy.getVariable();
 					if (ls.contains(v.getLocal())) {
 						BasicBlock n = splitBlock(b, i);
@@ -140,8 +140,8 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 					}
 				} else {
 					// do not split if we have only seen simple or synthetic copies (catch copy is synthetic)
-					if (stmt instanceof CopyVarStatement) {
-						CopyVarStatement copy = (CopyVarStatement) stmt;
+					if (stmt instanceof CopyVarStmt) {
+						CopyVarStmt copy = (CopyVarStmt) stmt;
 						int opc = copy.getExpression().getOpcode();
 						if (!copy.isSynthetic() && opc != Opcode.LOCAL_LOAD && opc != Opcode.CATCH) {
 							checkSplit = true;
@@ -240,20 +240,20 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 				if (e instanceof ConditionalJumpEdge) {
 					if (op != Opcode.COND_JUMP)
 						throw new IllegalArgumentException("wrong flow instruction");
-					ConditionalJumpStatement j = (ConditionalJumpStatement) last;
+					ConditionalJumpStmt j = (ConditionalJumpStmt) last;
 //					assertTarget(last, j.getTrueSuccessor(), b);
 					if (j.getTrueSuccessor() == b)
 						j.setTrueSuccessor(newBlock);
 				} else if (e instanceof UnconditionalJumpEdge) {
 					if (op != Opcode.UNCOND_JUMP)
 						throw new IllegalArgumentException("wrong flow instruction");
-					UnconditionalJumpStatement j = (UnconditionalJumpStatement) last;
+					UnconditionalJumpStmt j = (UnconditionalJumpStmt) last;
 					assertTarget(j, j.getTarget(), b);
 					j.setTarget(newBlock);
 				} else if (e instanceof SwitchEdge) {
 					if (op != Opcode.SWITCH_JUMP)
 						throw new IllegalArgumentException("wrong flow instruction.");
-					SwitchStatement s = (SwitchStatement) last;
+					SwitchStmt s = (SwitchStmt) last;
 					for (Entry<Integer, BasicBlock> en : s.getTargets().entrySet()) {
 						BasicBlock t = en.getValue();
 						if (t == b) {
@@ -294,10 +294,10 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		Set<Local> assignedLocals = new HashSet<>();
 		for (Stmt stmt : b)
 			if (stmt.getOpcode() == Opcode.LOCAL_STORE)
-				assignedLocals.add(((CopyVarStatement) stmt).getVariable().getLocal());
+				assignedLocals.add(((CopyVarStmt) stmt).getVariable().getLocal());
 		for (Stmt stmt : newBlock) {
 			if (stmt.getOpcode() == Opcode.LOCAL_STORE) {
-				Local copyLocal = ((CopyVarStatement) stmt).getVariable().getLocal();
+				Local copyLocal = ((CopyVarStmt) stmt).getVariable().getLocal();
 				Set<BasicBlock> set = builder.assigns.get(copyLocal);
 				set.add(newBlock);
 				if (!assignedLocals.contains(copyLocal))
@@ -314,13 +314,13 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		// backwards iteration is faster
 		for (ListIterator<Stmt> it = b.listIterator(b.size()); it.hasPrevious(); ) {
 			Stmt stmt = it.previous();
-			if (stmt instanceof CopyVarStatement) {
-				CopyVarStatement copy = (CopyVarStatement) stmt;
+			if (stmt instanceof CopyVarStmt) {
+				CopyVarStmt copy = (CopyVarStmt) stmt;
 				int opc = copy.getExpression().getOpcode();
 				if (!copy.isSynthetic() && opc != Opcode.LOCAL_LOAD && opc != Opcode.CATCH)
 					return true;
 			} else if (stmt.canChangeFlow()) {
-				if (stmt instanceof ThrowStatement)
+				if (stmt instanceof ThrowStmt)
 					return true;
 				// no need to check child exprs as no complex subexprs can occur before propagation.
 			} else {
@@ -394,11 +394,11 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 							}
 						}
 						if(naturalFlow) {
-							CopyVarStatement catcher = null;
+							CopyVarStmt catcher = null;
 							
 							for(Stmt stmt : x) {
 								if(stmt.getOpcode() == Opcode.LOCAL_STORE) {
-									CopyVarStatement copy = (CopyVarStatement) stmt;
+									CopyVarStmt copy = (CopyVarStmt) stmt;
 									Expr e = copy.getExpression();
 									if(e.getOpcode() == Opcode.CATCH) {
 										catcher = copy;
@@ -426,7 +426,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 							catcher.delete();
 							
 							PhiExpr phi = new PhiExceptionExpr(vls);
-							CopyPhiStatement assign = new CopyPhiStatement(new VarExpr(l, null), phi);
+							CopyPhiStmt assign = new CopyPhiStmt(new VarExpr(l, null), phi);
 							
 							x.add(0, assign); */
 							throw new UnsupportedOperationException(builder.method.toString());
@@ -439,7 +439,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 							vls.put(fe.src, new VarExpr(newl, null));
 						}
 						PhiExpr phi = new PhiExpr(vls);
-						CopyPhiStatement assign = new CopyPhiStatement(new VarExpr(l, null), phi);
+						CopyPhiStmt assign = new CopyPhiStmt(new VarExpr(l, null), phi);
 						
 						x.add(0, assign);
 					}
@@ -476,7 +476,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 					break;
 				}
 				
-				CopyPhiStatement cps = (CopyPhiStatement) s;
+				CopyPhiStmt cps = (CopyPhiStmt) s;
 				
 				for(Entry<BasicBlock, Expr> e : cps.getExpression().getArguments().entrySet()) {
 					BasicBlock src = e.getKey();
@@ -486,7 +486,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 					VarExpr v = (VarExpr) e.getValue();
 					Local l = v.getLocal();
 					// what if the def is never reached?
-					AbstractCopyStatement def = pool.defs.get(l);
+					AbstractCopyStmt def = pool.defs.get(l);
 					v.setType(def.getType());
 				}
 			}
@@ -529,7 +529,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 	private void fixPhiArgs(BasicBlock b, BasicBlock succ) {
 		for(Stmt stmt : succ) {
 			if(stmt.getOpcode() == Opcode.PHI_STORE) {
-				CopyPhiStatement copy = (CopyPhiStatement) stmt;
+				CopyPhiStmt copy = (CopyPhiStmt) stmt;
 				PhiExpr phi = copy.getExpression();
 				Expr e = phi.getArgument(b);
 				
@@ -559,7 +559,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 	private void unstackDefs(BasicBlock b) {
 		for (Stmt s : b) {
 			if (s.getOpcode() == Opcode.PHI_STORE || s.getOpcode() == Opcode.LOCAL_STORE) {
-				AbstractCopyStatement cvs = (AbstractCopyStatement) s;
+				AbstractCopyStmt cvs = (AbstractCopyStmt) s;
 				Local l = cvs.getVariable().getLocal();
 				l = builder.graph.getLocals().get(l.getIndex(), l.isStack());
 				stacks.get(l).pop();
@@ -578,7 +578,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 				 * the starting statements of a block, if
 				 * that block contains phi statements).
 				 */
-				CopyPhiStatement copy = (CopyPhiStatement) stmt;
+				CopyPhiStmt copy = (CopyPhiStmt) stmt;
 				generate(copy);
 			} else {
 				/* Translates locals into their latest SSA
@@ -600,13 +600,13 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 				/* Generate the target local after
 				 * renaming the source pool.uses. 
 				 */
-				CopyVarStatement copy = (CopyVarStatement) stmt;
+				CopyVarStmt copy = (CopyVarStmt) stmt;
 				generate(copy);
 			}
 		}
 	}
 	
-	private VersionedLocal generate(AbstractCopyStatement copy) {
+	private VersionedLocal generate(AbstractCopyStmt copy) {
 		VarExpr v = copy.getVariable();
 		Local oldLocal = v.getLocal();
 		int index = oldLocal.getIndex();
@@ -632,7 +632,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		return ssaL;
 	}
 	
-	private void makeValue(AbstractCopyStatement copy, VersionedLocal ssaL) {
+	private void makeValue(AbstractCopyStmt copy, VersionedLocal ssaL) {
 		/* Attempts to find the 'value' of a local.
 		 * The value can be the following types:
 		 *   param - assigned by caller method
@@ -785,7 +785,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 				} else if(!isPhi && !variableVar) {
 					Expr e = null;
 					
-					AbstractCopyStatement def = pool.defs.get(ssaL);
+					AbstractCopyStmt def = pool.defs.get(ssaL);
 					Expr rval = (Expr) value.getSuggestedValue();
 					if(ConstraintUtil.isUncopyable(rval)) {
 						/* A variable might have a value
@@ -809,7 +809,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 							if(shouldPropagate(ssaL, realVal)) {
 								newL = realVal;
 //								System.out.println(" " + ssaL + "  with " + realVal);
-//								AbstractCopyStatement realValDef = pool.defs.get(realVal);
+//								AbstractCopyStmt realValDef = pool.defs.get(realVal);
 //								Expression realValDefE = realValDef.getExpression();
 //								if(realValDefE.getOpcode() == Opcode.LOCAL_LOAD) {
 //									VersionedLocal varDef = (VersionedLocal) ((VarExpr) realValDefE).getLocal();
@@ -933,7 +933,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		for(BasicBlock b : builder.graph.vertices()) {
 			for(Stmt stmt : new ArrayList<>(b)) {
 				if (stmt.getOpcode() == Opcode.POP) {
-					PopStatement pop = (PopStatement) stmt;
+					PopStmt pop = (PopStmt) stmt;
 					Expr expr = pop.getExpression();
 					if (expr.getOpcode() == Opcode.INVOKE) {
 						InvocationExpr invoke = (InvocationExpr) expr;
@@ -943,7 +943,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 								VarExpr var = (VarExpr) inst;
 								VersionedLocal local = (VersionedLocal) var.getLocal();
 
-								AbstractCopyStatement def = pool.defs.get(local);
+								AbstractCopyStmt def = pool.defs.get(local);
 
 								Expr rhs = def.getExpression();
 								if (rhs.getOpcode() == Opcode.UNINIT_OBJ) {
@@ -979,7 +979,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 									// add a copy statement before the pop (x = newExpr)
 //									System.out.println(Arrays.toString(newArgs));
 									InitialisedObjectExpr newExpr = new InitialisedObjectExpr(obj.getType(), invoke.getOwner(), invoke.getDesc(), newArgs);
-									CopyVarStatement newCvs = new CopyVarStatement(var, newExpr);
+									CopyVarStmt newCvs = new CopyVarStmt(var, newExpr);
 									pool.defs.put(local, newCvs);
 //									System.out.println("pre: " + pool.uses.get(local));
 									pool.uses.get(local).remove(v);
@@ -1032,7 +1032,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 			
 			VersionedLocal vl = e.getKey();
 			if(e.getValue().size() == 0) {
-				AbstractCopyStatement def = pool.defs.get(vl);
+				AbstractCopyStmt def = pool.defs.get(vl);
 				/* i.e. it has not been shadowed. */
 				if(def != null && def.getBlock() != null && prune(def)) {
 					if(vl != def.getVariable().getLocal()) {
@@ -1048,7 +1048,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		return i;
 	}
 	
-	private boolean prune(AbstractCopyStatement def) {
+	private boolean prune(AbstractCopyStmt def) {
 		if(def.isSynthetic()) {
 			return false;
 		}
@@ -1132,7 +1132,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		return lowest;
 	}
 	
-	private void removeSimpleCopy(AbstractCopyStatement copy) {
+	private void removeSimpleCopy(AbstractCopyStmt copy) {
 		VarExpr v = (VarExpr) copy.getExpression();
 		VersionedLocal vl = (VersionedLocal) v.getLocal();
 		copy.delete();
@@ -1196,7 +1196,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 				 * uses of the shadowed vars with the
 				 * spill. */
 				
-				Set<AbstractCopyStatement> orig = new HashSet<>();
+				Set<AbstractCopyStmt> orig = new HashSet<>();
 				
 				Set<VarExpr> spillUses = pool.uses.get(spill);
 				
@@ -1204,7 +1204,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 				
 //				System.out.println(set);
 				for(VersionedLocal vl : set) {
-					AbstractCopyStatement copy = pool.defs.get(vl);
+					AbstractCopyStmt copy = pool.defs.get(vl);
 //					System.out.println(vl);
 					Expr ex = copy.getExpression();
 					if(vl != spill) {
@@ -1242,7 +1242,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 					throw new UnsupportedOperationException(String.format("set:%s, spill:%s, orig:%s", set, spill, orig));
 				}
 				
-				AbstractCopyStatement copy = orig.iterator().next();
+				AbstractCopyStmt copy = orig.iterator().next();
 				copy.getVariable().setLocal(spill);
 				pool.defs.put(spill, copy);
 			}
@@ -1259,7 +1259,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 			VersionedLocal vl = e.getKey();
 			if(deferred.contains(vl) || vl.isStack()) {
 				Set<VarExpr> useSet = e.getValue();
-				AbstractCopyStatement def = pool.defs.get(vl);
+				AbstractCopyStmt def = pool.defs.get(vl);
 				if (def != null && useSet.size() == 1) {
 					/* In this case, the only place that the value
 					 * of this assignment will be used is at the use site.

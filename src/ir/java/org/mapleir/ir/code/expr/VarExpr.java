@@ -3,7 +3,7 @@ package org.mapleir.ir.code.expr;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.CodeUnit;
 import org.mapleir.ir.code.Expr;
-import org.mapleir.ir.code.stmt.copy.CopyVarStatement;
+import org.mapleir.ir.code.stmt.copy.CopyVarStmt;
 import org.mapleir.ir.locals.Local;
 import org.mapleir.stdlib.util.TabbedStringWriter;
 import org.mapleir.stdlib.util.TypeUtils;
@@ -76,8 +76,8 @@ public class VarExpr extends Expr {
 
 	@Override
 	public boolean isAffectedBy(CodeUnit stmt) {
-		if(stmt instanceof CopyVarStatement) {
-			if(((CopyVarStatement) stmt).getVariable().getLocal() == local) {
+		if(stmt instanceof CopyVarStmt) {
+			if(((CopyVarStmt) stmt).getVariable().getLocal() == local) {
 				return true;
 			}
 		}
