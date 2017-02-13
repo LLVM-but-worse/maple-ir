@@ -16,6 +16,10 @@
 
 package com.google.gson.internal;
 
+import java.io.EOFException;
+import java.io.IOException;
+import java.io.Writer;
+
 import com.google.gson.JsonElement;
 import com.google.gson.JsonIOException;
 import com.google.gson.JsonNull;
@@ -25,9 +29,6 @@ import com.google.gson.internal.bind.TypeAdapters;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
 import com.google.gson.stream.MalformedJsonException;
-import java.io.EOFException;
-import java.io.IOException;
-import java.io.Writer;
 
 /**
  * Reads and writes GSON parse trees over streams.
@@ -72,7 +73,6 @@ public final class Streams {
     TypeAdapters.JSON_ELEMENT.write(writer, element);
   }
 
-  @SuppressWarnings("resource")
   public static Writer writerForAppendable(Appendable appendable) {
     return appendable instanceof Writer ? (Writer) appendable : new AppendableWriter(appendable);
   }
@@ -106,13 +106,16 @@ public final class Streams {
      */
     static class CurrentWrite implements CharSequence {
       char[] chars;
-      public int length() {
+      @Override
+	public int length() {
         return chars.length;
       }
-      public char charAt(int i) {
+      @Override
+	public char charAt(int i) {
         return chars[i];
       }
-      public CharSequence subSequence(int start, int end) {
+      @Override
+	public CharSequence subSequence(int start, int end) {
         return new String(chars, start, end - start);
       }
     }

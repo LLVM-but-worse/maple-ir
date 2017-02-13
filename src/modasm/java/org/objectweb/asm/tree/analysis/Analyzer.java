@@ -36,16 +36,7 @@ import java.util.Map;
 
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
-import org.objectweb.asm.tree.AbstractInsnNode;
-import org.objectweb.asm.tree.IincInsnNode;
-import org.objectweb.asm.tree.InsnList;
-import org.objectweb.asm.tree.JumpInsnNode;
-import org.objectweb.asm.tree.LabelNode;
-import org.objectweb.asm.tree.LookupSwitchInsnNode;
-import org.objectweb.asm.tree.MethodNode;
-import org.objectweb.asm.tree.TableSwitchInsnNode;
-import org.objectweb.asm.tree.TryCatchBlockNode;
-import org.objectweb.asm.tree.VarInsnNode;
+import org.objectweb.asm.tree.*;
 
 /**
  * A semantic bytecode analyzer. <i>This class does not fully check that JSR and
@@ -102,7 +93,8 @@ public class Analyzer<V extends Value> implements Opcodes {
      * @throws AnalyzerException
      *             if a problem occurs during the analysis.
      */
-    public Frame<V>[] analyze(final String owner, final MethodNode m)
+    @SuppressWarnings("unchecked")
+	public Frame<V>[] analyze(final String owner, final MethodNode m)
             throws AnalyzerException {
         if ((m.access & (ACC_ABSTRACT | ACC_NATIVE)) != 0) {
             frames = (Frame<V>[]) new Frame<?>[0];
@@ -125,7 +117,7 @@ public class Analyzer<V extends Value> implements Opcodes {
             for (int j = begin; j < end; ++j) {
                 List<TryCatchBlockNode> insnHandlers = handlers[j];
                 if (insnHandlers == null) {
-                    insnHandlers = new ArrayList<TryCatchBlockNode>();
+                    insnHandlers = new ArrayList<>();
                     handlers[j] = insnHandlers;
                 }
                 insnHandlers.add(tcb);
@@ -134,8 +126,8 @@ public class Analyzer<V extends Value> implements Opcodes {
 
         // computes the subroutine for each instruction:
         Subroutine main = new Subroutine(null, m.maxLocals, null);
-        List<AbstractInsnNode> subroutineCalls = new ArrayList<AbstractInsnNode>();
-        Map<LabelNode, Subroutine> subroutineHeads = new HashMap<LabelNode, Subroutine>();
+        List<AbstractInsnNode> subroutineCalls = new ArrayList<>();
+        Map<LabelNode, Subroutine> subroutineHeads = new HashMap<>();
         findSubroutine(0, main, subroutineCalls);
         while (!subroutineCalls.isEmpty()) {
             JumpInsnNode jsr = (JumpInsnNode) subroutineCalls.remove(0);
@@ -419,7 +411,7 @@ public class Analyzer<V extends Value> implements Opcodes {
      * @return the created frame.
      */
     protected Frame<V> newFrame(final int nLocals, final int nStack) {
-        return new Frame<V>(nLocals, nStack);
+        return new Frame<>(nLocals, nStack);
     }
 
     /**
@@ -430,7 +422,7 @@ public class Analyzer<V extends Value> implements Opcodes {
      * @return the created frame.
      */
     protected Frame<V> newFrame(final Frame<? extends V> src) {
-        return new Frame<V>(src);
+        return new Frame<>(src);
     }
 
     /**

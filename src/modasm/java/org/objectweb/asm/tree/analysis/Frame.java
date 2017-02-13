@@ -83,7 +83,8 @@ public class Frame<V extends Value> {
      * @param nStack
      *            the maximum stack size of the frame.
      */
-    public Frame(final int nLocals, final int nStack) {
+    @SuppressWarnings("unchecked")
+	public Frame(final int nLocals, final int nStack) {
         this.values = (V[]) new Value[nLocals + nStack];
         this.locals = nLocals;
     }
@@ -605,7 +606,7 @@ public class Frame<V extends Value> {
         case Opcodes.INVOKESPECIAL:
         case Opcodes.INVOKESTATIC:
         case Opcodes.INVOKEINTERFACE: {
-            values = new ArrayList<V>();
+            values = new ArrayList<>();
             String desc = ((MethodInsnNode) insn).desc;
             for (int i = Type.getArgumentTypes(desc).length; i > 0; --i) {
                 values.add(0, pop());
@@ -621,7 +622,7 @@ public class Frame<V extends Value> {
             break;
         }
         case Opcodes.INVOKEDYNAMIC: {
-            values = new ArrayList<V>();
+            values = new ArrayList<>();
             String desc = ((InvokeDynamicInsnNode) insn).desc;
             for (int i = Type.getArgumentTypes(desc).length; i > 0; --i) {
                 values.add(0, pop());
@@ -653,7 +654,7 @@ public class Frame<V extends Value> {
             interpreter.unaryOperation(insn, pop());
             break;
         case Opcodes.MULTIANEWARRAY:
-            values = new ArrayList<V>();
+            values = new ArrayList<>();
             for (int i = ((MultiANewArrayInsnNode) insn).dims; i > 0; --i) {
                 values.add(0, pop());
             }
