@@ -40,6 +40,9 @@ package org.objectweb.asm;
  */
 public class ClassWriter extends ClassVisitor {
 
+	// TURBO:
+	public static int MAX_CODE_LENGTH = 65536;
+	
     /**
      * Flag to automatically compute the maximum stack size and the maximum
      * number of local variables of methods. If this flag is set, then the
@@ -69,12 +72,12 @@ public class ClassWriter extends ClassVisitor {
      * Pseudo access flag to distinguish between the synthetic attribute and the
      * synthetic access flag.
      */
-    static final int ACC_SYNTHETIC_ATTRIBUTE = 0x40000;
+    public static final int ACC_SYNTHETIC_ATTRIBUTE = 0x40000;
 
     /**
      * Factor to convert from ACC_SYNTHETIC_ATTRIBUTE to Opcode.ACC_SYNTHETIC.
      */
-    static final int TO_ACC_SYNTHETIC = ACC_SYNTHETIC_ATTRIBUTE
+    public static final int TO_ACC_SYNTHETIC = ACC_SYNTHETIC_ATTRIBUTE
             / Opcodes.ACC_SYNTHETIC;
 
     /**
@@ -180,81 +183,81 @@ public class ClassWriter extends ClassVisitor {
     /**
      * The type of CONSTANT_Fieldref constant pool items.
      */
-    static final int FIELD = 9;
+    public static final int FIELD = 9;
 
     /**
      * The type of CONSTANT_Methodref constant pool items.
      */
-    static final int METH = 10;
+    public static final int METH = 10;
 
     /**
      * The type of CONSTANT_InterfaceMethodref constant pool items.
      */
-    static final int IMETH = 11;
+    public static final int IMETH = 11;
 
     /**
      * The type of CONSTANT_String constant pool items.
      */
-    static final int STR = 8;
+    public static final int STR = 8;
 
     /**
      * The type of CONSTANT_Integer constant pool items.
      */
-    static final int INT = 3;
+    public static final int INT = 3;
 
     /**
      * The type of CONSTANT_Float constant pool items.
      */
-    static final int FLOAT = 4;
+    public static final int FLOAT = 4;
 
     /**
      * The type of CONSTANT_Long constant pool items.
      */
-    static final int LONG = 5;
+    public static final int LONG = 5;
 
     /**
      * The type of CONSTANT_Double constant pool items.
      */
-    static final int DOUBLE = 6;
+    public static final int DOUBLE = 6;
 
     /**
      * The type of CONSTANT_NameAndType constant pool items.
      */
-    static final int NAME_TYPE = 12;
+    public static final int NAME_TYPE = 12;
 
     /**
      * The type of CONSTANT_Utf8 constant pool items.
      */
-    static final int UTF8 = 1;
+    public static final int UTF8 = 1;
 
     /**
      * The type of CONSTANT_MethodType constant pool items.
      */
-    static final int MTYPE = 16;
+    public static final int MTYPE = 16;
 
     /**
      * The type of CONSTANT_MethodHandle constant pool items.
      */
-    static final int HANDLE = 15;
+    public static final int HANDLE = 15;
 
     /**
      * The type of CONSTANT_InvokeDynamic constant pool items.
      */
-    static final int INDY = 18;
+    public static final int INDY = 18;
 
     /**
      * The base value for all CONSTANT_MethodHandle constant pool items.
      * Internally, ASM store the 9 variations of CONSTANT_MethodHandle into 9
      * different items.
      */
-    static final int HANDLE_BASE = 20;
+    public static final int HANDLE_BASE = 20;
 
     /**
      * Normal type Item stored in the ClassWriter {@link ClassWriter#typeTable},
      * instead of the constant pool, in order to avoid clashes with normal
      * constant pool items in the ClassWriter constant pool's hash table.
      */
-    static final int TYPE_NORMAL = 30;
+    public static final int TYPE_NORMAL = 30;
 
     /**
      * Uninitialized type Item stored in the ClassWriter
@@ -262,20 +265,20 @@ public class ClassWriter extends ClassVisitor {
      * avoid clashes with normal constant pool items in the ClassWriter constant
      * pool's hash table.
      */
-    static final int TYPE_UNINIT = 31;
+    public static final int TYPE_UNINIT = 31;
 
     /**
      * Merged type Item stored in the ClassWriter {@link ClassWriter#typeTable},
      * instead of the constant pool, in order to avoid clashes with normal
      * constant pool items in the ClassWriter constant pool's hash table.
      */
-    static final int TYPE_MERGED = 32;
+    public static final int TYPE_MERGED = 32;
 
     /**
      * The type of BootstrapMethods items. These items are stored in a special
      * class attribute named BootstrapMethods and not in the constant pool.
      */
-    static final int BSM = 33;
+    public static final int BSM = 33;
 
     /**
      * The class reader from which this class writer was constructed, if any.
@@ -343,56 +346,56 @@ public class ClassWriter extends ClassVisitor {
     /**
      * Number of elements in the {@link #typeTable} array.
      */
-    private short typeCount;
+    public short typeCount;
 
     /**
      * The access flags of this class.
      */
-    private int access;
+    public int access;
 
     /**
      * The constant pool item that contains the internal name of this class.
      */
-    private int name;
+    public int name;
 
     /**
      * The internal name of this class.
      */
-    String thisName;
+    public String thisName;
 
     /**
      * The constant pool item that contains the signature of this class.
      */
-    private int signature;
+    public int signature;
 
     /**
      * The constant pool item that contains the internal name of the super class
      * of this class.
      */
-    private int superName;
+    public int superName;
 
     /**
      * Number of interfaces implemented or extended by this class or interface.
      */
-    private int interfaceCount;
+    public int interfaceCount;
 
     /**
      * The interfaces implemented or extended by this class or interface. More
      * precisely, this array contains the indexes of the constant pool items
      * that contain the internal names of these interfaces.
      */
-    private int[] interfaces;
+    public int[] interfaces;
 
     /**
      * The index of the constant pool item that contains the name of the source
      * file from which this class was compiled.
      */
-    private int sourceFile;
+    public int sourceFile;
 
     /**
      * The SourceDebug attribute of this class.
      */
-    private ByteVector sourceDebug;
+    public ByteVector sourceDebug;
 
     /**
      * The constant pool item that contains the name of the enclosing class of
@@ -444,12 +447,12 @@ public class ClassWriter extends ClassVisitor {
     /**
      * The number of entries in the BootstrapMethods attribute.
      */
-    int bootstrapMethodsCount;
+    public int bootstrapMethodsCount;
 
     /**
      * The BootstrapMethods attribute.
      */
-    ByteVector bootstrapMethods;
+    public ByteVector bootstrapMethods;
 
     /**
      * The fields of this class. These fields are stored in a linked list of
@@ -492,7 +495,7 @@ public class ClassWriter extends ClassVisitor {
     /**
      * <tt>true</tt> if the stack map frames must be recomputed from scratch.
      */
-    public  boolean computeFrames;
+    public boolean computeFrames;
 
     /**
      * <tt>true</tt> if the stack map tables of this class are invalid. The
@@ -503,6 +506,12 @@ public class ClassWriter extends ClassVisitor {
      * stack map tables when this option is used).
      */
     boolean invalidFrames;
+
+    // TURBO:
+	public MethodWriterDelegate tooLargeDelegate;
+
+	public boolean registerMethodWriter = true;
+
 
     // ------------------------------------------------------------------------
     // Static initializer
@@ -604,7 +613,8 @@ public class ClassWriter extends ClassVisitor {
      *            of this class. See {@link #COMPUTE_MAXS},
      *            {@link #COMPUTE_FRAMES}.
      */
-    public ClassWriter(final int flags) {
+    // TURBO:
+    public ClassWriter(final int flags, MethodWriterDelegate tooLargeDelegate) {
         super(Opcodes.ASM5);
         index = 1;
         pool = new ByteVector();
@@ -616,6 +626,7 @@ public class ClassWriter extends ClassVisitor {
         key4 = new Item();
         computeMaxs = (flags & COMPUTE_MAXS) != 0;
         computeFrames = (flags & COMPUTE_FRAMES) != 0;
+		this.tooLargeDelegate = tooLargeDelegate;
     }
 
     /**
@@ -650,12 +661,23 @@ public class ClassWriter extends ClassVisitor {
      *            these methods</i>. See {@link #COMPUTE_MAXS},
      *            {@link #COMPUTE_FRAMES}.
      */
-    public ClassWriter(final ClassReader classReader, final int flags) {
-        this(flags);
+	// TURBO:
+    public ClassWriter(final ClassReader classReader, final int flags, MethodWriterDelegate tooLargeDelegate) {
+		this(flags, tooLargeDelegate);
         classReader.copyPool(this);
         cr = classReader;
     }
 
+    // TURBO:
+	public ClassWriter(final ClassReader classReader, final int flags) {
+		this(classReader, flags, null);
+	}
+
+    // TURBO:
+	public ClassWriter(final int flags) {
+		this(flags, null);
+	}
+	
     // ------------------------------------------------------------------------
     // Implementation of the ClassVisitor abstract class
     // ------------------------------------------------------------------------
@@ -756,29 +778,11 @@ public class ClassWriter extends ClassVisitor {
         if (innerClasses == null) {
             innerClasses = new ByteVector();
         }
-        // Sec. 4.7.6 of the JVMS states "Every CONSTANT_Class_info entry in the
-        // constant_pool table which represents a class or interface C that is
-        // not a package member must have exactly one corresponding entry in the
-        // classes array". To avoid duplicates we keep track in the intVal field
-        // of the Item of each CONSTANT_Class_info entry C whether an inner
-        // class entry has already been added for C (this field is unused for
-        // class entries, and changing its value does not change the hashcode
-        // and equality tests). If so we store the index of this inner class
-        // entry (plus one) in intVal. This hack allows duplicate detection in
-        // O(1) time.
-        Item nameItem = newClassItem(name);
-        if (nameItem.intVal == 0) {
-            ++innerClassesCount;
-            innerClasses.putShort(nameItem.index);
-            innerClasses.putShort(outerName == null ? 0 : newClass(outerName));
-            innerClasses.putShort(innerName == null ? 0 : newUTF8(innerName));
-            innerClasses.putShort(access);
-            nameItem.intVal = innerClassesCount;
-        } else {
-            // Compare the inner classes entry nameItem.intVal - 1 with the
-            // arguments of this method and throw an exception if there is a
-            // difference?
-        }
+        ++innerClassesCount;
+        innerClasses.putShort(name == null ? 0 : newClass(name));
+        innerClasses.putShort(outerName == null ? 0 : newClass(outerName));
+        innerClasses.putShort(innerName == null ? 0 : newUTF8(innerName));
+        innerClasses.putShort(access);
     }
 
     @Override
@@ -790,8 +794,8 @@ public class ClassWriter extends ClassVisitor {
     @Override
     public final MethodVisitor visitMethod(final int access, final String name,
             final String desc, final String signature, final String[] exceptions) {
-        return new MethodWriter(this, access, name, desc, signature,
-                exceptions, computeMaxs, computeFrames);
+        return new MethodWriter(this, access, name, desc, signature, exceptions, computeMaxs, computeFrames,
+				registerMethodWriter, tooLargeDelegate);
     }
 
     @Override
@@ -977,23 +981,27 @@ public class ClassWriter extends ClassVisitor {
         if (attrs != null) {
             attrs.put(this, null, 0, -1, -1, out);
         }
+        // TURBO:
         if (invalidFrames) {
-            anns = null;
-            ianns = null;
-            attrs = null;
-            innerClassesCount = 0;
-            innerClasses = null;
-            bootstrapMethodsCount = 0;
-            bootstrapMethods = null;
-            firstField = null;
-            lastField = null;
-            firstMethod = null;
-            lastMethod = null;
-            computeMaxs = false;
-            computeFrames = true;
-            invalidFrames = false;
-            new ClassReader(out.data).accept(this, ClassReader.SKIP_FRAMES);
-            return toByteArray();
+			ClassWriter cw = new InvalidFramesClassWriter(this);
+			new ClassReader(out.data).accept(cw, ClassReader.SKIP_FRAMES);
+			return cw.toByteArray();
+//            anns = null;
+//            ianns = null;
+//            attrs = null;
+//            innerClassesCount = 0;
+//            innerClasses = null;
+//            bootstrapMethodsCount = 0;
+//            bootstrapMethods = null;
+//            firstField = null;
+//            lastField = null;
+//            firstMethod = null;
+//            lastMethod = null;
+//            computeMaxs = false;
+//            computeFrames = true;
+//            invalidFrames = false;
+//            new ClassReader(out.data).accept(this, ClassReader.SKIP_FRAMES);
+//            return toByteArray();
         }
         return out.data;
     }
@@ -1772,5 +1780,19 @@ public class ClassWriter extends ClassVisitor {
      */
     private void put112(final int b1, final int b2, final int s) {
         pool.put11(b1, b2).putShort(s);
+    }
+    
+    class InvalidFramesClassWriter extends ClassWriter {
+    	private ClassWriter inner;
+
+    	public InvalidFramesClassWriter(ClassWriter inner) {
+    		super(COMPUTE_FRAMES);
+    		this.inner = inner;
+    	}
+
+    	@Override
+    	protected String getCommonSuperClass(final String type1, final String type2) {
+    		return inner.getCommonSuperClass(type1, type2);
+    	}
     }
 }

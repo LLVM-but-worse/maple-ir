@@ -43,13 +43,12 @@ import org.objectweb.asm.MethodVisitor;
  */
 public abstract class AbstractInsnNode {
 
-	public MethodNode method;
     /**
      * The type of {@link InsnNode} instructions.
      */
     public static final int INSN = 0;
 
-    /**Jump
+    /**
      * The type of {@link IntInsnNode} instructions.
      */
     public static final int INT_INSN = 1;
@@ -167,7 +166,7 @@ public abstract class AbstractInsnNode {
      * value of -1 indicates that this instruction does not belong to any
      * {@link InsnList}.
      */
-    public int index;
+    int index;
 
     /**
      * Constructs a new {@link AbstractInsnNode}.
@@ -180,10 +179,6 @@ public abstract class AbstractInsnNode {
         this.index = -1;
     }
 
-    public void setOpcode(int op) {
-    	opcode = op;
-    }
-    
     /**
      * Returns the opcode of this instruction.
      * 

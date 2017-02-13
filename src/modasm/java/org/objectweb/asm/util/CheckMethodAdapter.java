@@ -39,15 +39,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.objectweb.asm.AnnotationVisitor;
-import org.objectweb.asm.Attribute;
-import org.objectweb.asm.Handle;
-import org.objectweb.asm.Label;
-import org.objectweb.asm.MethodVisitor;
-import org.objectweb.asm.Opcodes;
-import org.objectweb.asm.Type;
-import org.objectweb.asm.TypePath;
-import org.objectweb.asm.TypeReference;
+import org.objectweb.asm.*;
 import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.tree.analysis.Analyzer;
 import org.objectweb.asm.tree.analysis.BasicValue;
@@ -417,8 +409,8 @@ public class CheckMethodAdapter extends MethodVisitor {
             final Map<Label, Integer> labels) {
         super(api, mv);
         this.labels = labels;
-        this.usedLabels = new HashSet<Label>();
-        this.handlers = new ArrayList<Label>();
+        usedLabels = new HashSet<>();
+        handlers = new ArrayList<>();
     }
 
     /**
@@ -444,7 +436,7 @@ public class CheckMethodAdapter extends MethodVisitor {
         this(new MethodNode(Opcodes.ASM5, null, access, name, desc, null, null) {
             @Override
             public void visitEnd() {
-                Analyzer<BasicValue> a = new Analyzer<BasicValue>(
+                Analyzer<BasicValue> a = new Analyzer<>(
                         new BasicVerifier());
                 try {
                     a.analyze("dummy", this);
@@ -773,7 +765,7 @@ public class CheckMethodAdapter extends MethodVisitor {
         if (labels.get(label) != null) {
             throw new IllegalArgumentException("Already visited label");
         }
-        labels.put(label, insnCount);
+        labels.put(label, new Integer(insnCount));
         super.visitLabel(label);
     }
 
@@ -1001,7 +993,7 @@ public class CheckMethodAdapter extends MethodVisitor {
         endCode = true;
         for (Label l : usedLabels) {
             if (labels.get(l) == null) {
-                throw new IllegalStateException(String.format("Undefined label used: %s.%n", l.toString()));
+                throw new IllegalStateException("Undefined label used");
             }
         }
         for (int i = 0; i < handlers.size();) {

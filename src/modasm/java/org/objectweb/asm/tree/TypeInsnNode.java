@@ -32,7 +32,6 @@ package org.objectweb.asm.tree;
 import java.util.Map;
 
 import org.objectweb.asm.MethodVisitor;
-import org.objectweb.asm.util.Printer;
 
 /**
  * A node that represents a type instruction. A type instruction is an
@@ -70,8 +69,7 @@ public class TypeInsnNode extends AbstractInsnNode {
      *            the new instruction opcode. This opcode must be NEW,
      *            ANEWARRAY, CHECKCAST or INSTANCEOF.
      */
-    @Override
-	public void setOpcode(final int opcode) {
+    public void setOpcode(final int opcode) {
         this.opcode = opcode;
     }
 
@@ -89,10 +87,5 @@ public class TypeInsnNode extends AbstractInsnNode {
     @Override
     public AbstractInsnNode clone(final Map<LabelNode, LabelNode> labels) {
         return new TypeInsnNode(opcode, desc).cloneAnnotations(this);
-    }
-    
-    @Override
-	public String toString() {
-    	return Printer.OPCODES[opcode()] + " " + desc;
     }
 }

@@ -146,19 +146,19 @@ public final class SAXAnnotationAdapter extends AnnotationVisitor {
             if (value instanceof byte[]) {
                 byte[] b = (byte[]) value;
                 for (int i = 0; i < b.length; i++) {
-                    av.visit(null, b[i]);
+                    av.visit(null, new Byte(b[i]));
                 }
 
             } else if (value instanceof char[]) {
                 char[] b = (char[]) value;
                 for (int i = 0; i < b.length; i++) {
-                    av.visit(null, b[i]);
+                    av.visit(null, new Character(b[i]));
                 }
 
             } else if (value instanceof short[]) {
                 short[] b = (short[]) value;
                 for (int i = 0; i < b.length; i++) {
-                    av.visit(null, b[i]);
+                    av.visit(null, new Short(b[i]));
                 }
 
             } else if (value instanceof boolean[]) {
@@ -170,25 +170,25 @@ public final class SAXAnnotationAdapter extends AnnotationVisitor {
             } else if (value instanceof int[]) {
                 int[] b = (int[]) value;
                 for (int i = 0; i < b.length; i++) {
-                    av.visit(null, b[i]);
+                    av.visit(null, new Integer(b[i]));
                 }
 
             } else if (value instanceof long[]) {
                 long[] b = (long[]) value;
                 for (int i = 0; i < b.length; i++) {
-                    av.visit(null, b[i]);
+                    av.visit(null, new Long(b[i]));
                 }
 
             } else if (value instanceof float[]) {
                 float[] b = (float[]) value;
                 for (int i = 0; i < b.length; i++) {
-                    av.visit(null, b[i]);
+                    av.visit(null, new Float(b[i]));
                 }
 
             } else if (value instanceof double[]) {
                 double[] b = (double[]) value;
                 for (int i = 0; i < b.length; i++) {
-                    av.visit(null, b[i]);
+                    av.visit(null, new Double(b[i]));
                 }
 
             }

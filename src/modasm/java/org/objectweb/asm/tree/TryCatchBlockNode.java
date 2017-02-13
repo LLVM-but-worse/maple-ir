@@ -150,9 +150,4 @@ public class TryCatchBlockNode {
                     an.desc, false));
         }
     }
-
-	@Override
-	public String toString() {
-		return "TryCatchBlockNode [type=" + type + "]";
-	}
 }
