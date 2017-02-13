@@ -32,7 +32,6 @@ package org.objectweb.asm.tree;
 import java.util.Map;
 
 import org.objectweb.asm.MethodVisitor;
-import org.objectweb.asm.util.Printer;
 
 /**
  * A node that represents a zero operand instruction.
@@ -85,10 +84,5 @@ public class InsnNode extends AbstractInsnNode {
     @Override
     public AbstractInsnNode clone(final Map<LabelNode, LabelNode> labels) {
         return new InsnNode(opcode).cloneAnnotations(this);
-    }
-    
-    @Override
-	public String toString() {
-    	return "INSNNODE: " + Printer.OPCODES[opcode];
     }
 }

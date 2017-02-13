@@ -25,6 +25,7 @@ import org.mapleir.stdlib.IContext;
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.SetCreator;
 import org.mapleir.stdlib.deob.ICompilerPass;
+import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.FieldNode;
 import org.objectweb.asm.tree.MethodNode;
@@ -271,10 +272,10 @@ public class FieldRSADecryptionPass implements ICompilerPass, Opcode {
 
 
 										
-										if(!__eq(res, 1, p[0].getClass().equals(Long.class))) {
-											System.out.println(cst + " -> " + res);
-											System.out.println("  expr: " + fl.getRootParent());
-										}
+//										if(!__eq(res, 1, p[0].getClass().equals(Long.class))) {
+//											System.out.println(cst + " -> " + res);
+//											System.out.println("  expr: " + fl.getRootParent());
+//										}
 										
 										ce.setConstant(res);
 
@@ -285,6 +286,42 @@ public class FieldRSADecryptionPass implements ICompilerPass, Opcode {
 
 								ArithmeticExpression ae = new ArithmeticExpression(new ConstantExpression(p[0]), fl.copy(), Operator.MUL);
 								par.overwrite(ae, par.indexOf(fl));
+							}
+						}
+					}
+				}
+			}
+		}
+		
+		for(ClassNode cn : cxt.getClassTree().getClasses().values()) {
+			for(MethodNode m : cn.methods) {
+				ControlFlowGraph cfg = cxt.getIR(m);
+				
+				for(BasicBlock b : cfg.vertices()) {
+					for(Stmt stmt : b) {
+						for(Expr e : stmt.enumerateOnlyChildren()) {
+							if(e.getOpcode() == Opcode.ARITHMETIC) {
+								ArithmeticExpression ae = (ArithmeticExpression) e;
+								if(ae.getRight().getOpcode() == Opcode.CONST_LOAD) {
+									ConstantExpression c = (ConstantExpression) ae.getRight();
+									Object o = c.getConstant();
+									
+									if(o instanceof Long || o instanceof Integer) {
+										Number n = (Number) o;
+										if(__eq(n, 1, ae.getType().equals(Type.LONG_TYPE))) {
+											Expr l = ae.getLeft();
+											l.unlink();
+											
+											CodeUnit aePar = ae.getParent();
+											aePar.overwrite(l, aePar.indexOf(ae));
+										} else if(__eq(n, 0, ae.getType().equals(Type.LONG_TYPE))) {
+											c.unlink();
+											
+											CodeUnit aePar = ae.getParent();
+											aePar.overwrite(c, aePar.indexOf(ae));
+										}
+									}
+								}
 							}
 						}
 					}

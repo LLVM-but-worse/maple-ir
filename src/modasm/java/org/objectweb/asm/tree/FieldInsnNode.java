@@ -107,17 +107,4 @@ public class FieldInsnNode extends AbstractInsnNode {
         return new FieldInsnNode(opcode, owner, name, desc)
                 .cloneAnnotations(this);
     }
-    
-    public String key(){
-    	return owner + "." + name + " " + desc;
-    }
-    
-    @Override
-	public String toString(){
-    	return key();
-    }
-
-	public String halfKey() {
-    	return name + " " + desc;
-	}
 }

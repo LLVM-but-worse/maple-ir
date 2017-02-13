@@ -708,7 +708,7 @@ public class InstructionAdapter extends MethodVisitor {
         } else if (cst >= Short.MIN_VALUE && cst <= Short.MAX_VALUE) {
             mv.visitIntInsn(Opcodes.SIPUSH, cst);
         } else {
-            mv.visitLdcInsn(cst);
+            mv.visitLdcInsn(new Integer(cst));
         }
     }
 
@@ -716,7 +716,7 @@ public class InstructionAdapter extends MethodVisitor {
         if (cst == 0L || cst == 1L) {
             mv.visitInsn(Opcodes.LCONST_0 + (int) cst);
         } else {
-            mv.visitLdcInsn(cst);
+            mv.visitLdcInsn(new Long(cst));
         }
     }
 
@@ -725,7 +725,7 @@ public class InstructionAdapter extends MethodVisitor {
         if (bits == 0L || bits == 0x3f800000 || bits == 0x40000000) { // 0..2
             mv.visitInsn(Opcodes.FCONST_0 + (int) cst);
         } else {
-            mv.visitLdcInsn(cst);
+            mv.visitLdcInsn(new Float(cst));
         }
     }
 
@@ -734,7 +734,7 @@ public class InstructionAdapter extends MethodVisitor {
         if (bits == 0L || bits == 0x3ff0000000000000L) { // +0.0d and 1.0d
             mv.visitInsn(Opcodes.DCONST_0 + (int) cst);
         } else {
-            mv.visitLdcInsn(cst);
+            mv.visitLdcInsn(new Double(cst));
         }
     }
 
@@ -1060,7 +1060,7 @@ public class InstructionAdapter extends MethodVisitor {
     @Deprecated
     public void invokestatic(final String owner, final String name,
             final String desc) {
-        if (api >= Opcodes.ASM5) {
+        if (api < Opcodes.ASM5) {
             invokestatic(owner, name, desc, false);
             return;
         }

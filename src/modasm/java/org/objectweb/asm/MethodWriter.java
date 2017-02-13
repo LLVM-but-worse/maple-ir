@@ -42,8 +42,8 @@ public class MethodWriter extends MethodVisitor {
     /**
      * Pseudo access flag used to denote constructors.
      */
-	 public static final int ACC_CONSTRUCTOR = 0x80000;
-
+    public static final int ACC_CONSTRUCTOR = 0x80000;
+    
     /**
      * Frame has exactly the same locals as the previous stack map frame and
      * number of stack items is zero.
@@ -90,7 +90,7 @@ public class MethodWriter extends MethodVisitor {
     /**
      * Full frame
      */
-    public  static final int FULL_FRAME = 255; // ff
+    public static final int FULL_FRAME = 255; // ff
 
     /**
      * Indicates that the stack map frames must be recomputed from scratch. In
@@ -99,7 +99,7 @@ public class MethodWriter extends MethodVisitor {
      * 
      * @see #compute
      */
-    public  static final int FRAMES = 0;
+    private static final int FRAMES = 0;
 
     /**
      * Indicates that the maximum stack size and number of local variables must
@@ -130,13 +130,13 @@ public class MethodWriter extends MethodVisitor {
      * The index of the constant pool item that contains the name of this
      * method.
      */
-    final int name;
+    private final int name;
 
     /**
      * The index of the constant pool item that contains the descriptor of this
      * method.
      */
-     final int desc;
+    private final int desc;
 
     /**
      * The descriptor of this method.
@@ -421,6 +421,10 @@ public class MethodWriter extends MethodVisitor {
      * block plus <tt>stackSize</tt>.
      */
     private int maxStackSize;
+    
+
+    // TURBO:
+	private MethodWriterDelegate tooLargeDelegate;
 
     // ------------------------------------------------------------------------
     // Constructor
@@ -449,17 +453,18 @@ public class MethodWriter extends MethodVisitor {
      *            <tt>true</tt> if the stack map tables must be recomputed from
      *            scratch.
      */
-    MethodWriter(final ClassWriter cw, final int access, final String name,
-            final String desc, final String signature,
-            final String[] exceptions, final boolean computeMaxs,
-            final boolean computeFrames) {
+	public MethodWriter(final ClassWriter cw, final int access, final String name, final String desc,
+			final String signature, final String[] exceptions, final boolean computeMaxs, final boolean computeFrames,
+			final boolean register, final MethodWriterDelegate tooLargeDelegate) {
         super(Opcodes.ASM5);
-        if (cw.firstMethod == null) {
-            cw.firstMethod = this;
-        } else {
-            cw.lastMethod.mv = this;
-        }
-        cw.lastMethod = this;
+		if (register) {
+			if (cw.firstMethod == null) {
+				cw.firstMethod = this;
+			} else {
+				cw.lastMethod.mv = this;
+			}
+			cw.lastMethod = this;
+		}
         this.cw = cw;
         this.access = access;
         if ("<init>".equals(name)) {
@@ -492,6 +497,11 @@ public class MethodWriter extends MethodVisitor {
             labels.status |= Label.PUSHED;
             visitLabel(labels);
         }
+        
+		this.tooLargeDelegate = tooLargeDelegate;
+		if (tooLargeDelegate != null) {
+			tooLargeDelegate.newMethod();
+		}
     }
 
     // ------------------------------------------------------------------------
@@ -1352,6 +1362,10 @@ public class MethodWriter extends MethodVisitor {
                 maxLocals = n;
             }
         }
+        
+		if (tooLargeDelegate != null) {
+			tooLargeDelegate.noteLocalVariable(name, desc, signature, start, end, index);
+		}
     }
 
     @Override
@@ -1397,18 +1411,14 @@ public class MethodWriter extends MethodVisitor {
         ++lineNumberCount;
         lineNumber.putShort(start.position);
         lineNumber.putShort(line);
+        
+		if (tooLargeDelegate != null) {
+			tooLargeDelegate.noteLineNumber(line, start);
+		}
     }
 
     @Override
     public void visitMaxs(final int maxStack, final int maxLocals) {
-        if (resize) {
-            // replaces the temporary jump opcodes introduced by Label.resolve.
-            if (ClassReader.RESIZE) {
-                resizeInstructions();
-            } else {
-                throw new RuntimeException("Method code too large!");
-            }
-        }
         if (ClassReader.FRAMES && compute == FRAMES) {
             // completes the control flow graph with exception handler blocks
             Handler handler = firstHandler;
@@ -1423,7 +1433,7 @@ public class MethodWriter extends MethodVisitor {
                 // h is an exception handler
                 h.status |= Label.TARGET;
                 // adds 'h' as a successor of labels between 'start' and 'end'
-                while (l != e && l != null) {
+                while (l != e) {
                     // creates an edge to 'h'
                     Edge b = new Edge();
                     b.info = kind;
@@ -1437,7 +1447,6 @@ public class MethodWriter extends MethodVisitor {
                 handler = handler.next;
             }
 
-            
             // creates and visits the first (implicit) frame
             Frame f = labels.frame;
             Type[] args = Type.getArgumentTypes(descriptor);
@@ -1471,12 +1480,8 @@ public class MethodWriter extends MethodVisitor {
                 }
                 // updates the successors of the current basic block
                 Edge e = l.successors;
-//                System.out.println("l: " + l.hashCode() +"  at " + l.position);
                 while (e != null) {
                     Label n = e.successor.getFirst();
-//                    if(n.frame == null) {
-//                    	System.out.println("frame at " + n.hashCode() + " " + n.position);
-//                    }
                     boolean change = f.merge(cw, n.frame, e.info);
                     if (change && n.next == null) {
                         // if n has changed and is not already in the 'changed'
@@ -1652,9 +1657,83 @@ public class MethodWriter extends MethodVisitor {
         }
     }
 
+    // TURBO:
     @Override
     public void visitEnd() {
+		if (classReaderOffset != 0) {
+			return;
+		}
+		if (code.length > ClassWriter.MAX_CODE_LENGTH) {
+			splitVisitEnd();
+		} else {
+			if (resize) {
+
+				if (ClassReader.RESIZE) {
+					if (!resizeInstructions()) {
+
+						splitVisitEnd();
+					} else {
+						tooLargeDelegate = null;
+					}
+				} else {
+					throw new RuntimeException("Method code too large!");
+				}
+			} else {
+				tooLargeDelegate = null;
+			}
+		}
     }
+
+    // TURBO:
+	private void splitVisitEnd() {
+		MethodWriterDelegate d = tooLargeDelegate;
+		if (d == null) {
+			throw new RuntimeException("Method code too large!");
+		}
+		d.cw = cw;
+		d.access = access;
+		d.name = name;
+		d.desc = desc;
+		d.descriptor = descriptor;
+		d.signature = signature;
+		d.classReaderOffset = classReaderOffset;
+		d.classReaderLength = classReaderLength;
+		d.exceptionCount = exceptionCount;
+		d.exceptions = exceptions;
+		d.anns = anns;
+		d.ianns = ianns;
+		d.panns = panns;
+		d.ipanns = ipanns;
+		d.synthetics = synthetics;
+		d.attrs = attrs;
+		d.code = code;
+		d.maxStack = maxStack;
+		d.maxLocals = maxLocals;
+		d.currentLocals = currentLocals;
+		d.frameCount = frameCount;
+		d.stackMap = stackMap;
+		d.previousFrameOffset = previousFrameOffset;
+		d.previousFrame = previousFrame;
+		d.frame = frame;
+		d.handlerCount = handlerCount;
+		d.firstHandler = firstHandler;
+		d.lastHandler = lastHandler;
+		d.localVarCount = localVarCount;
+		d.localVar = localVar;
+		d.localVarTypeCount = localVarTypeCount;
+		d.localVarType = localVarType;
+		d.lineNumberCount = lineNumberCount;
+		d.lineNumber = lineNumber;
+		d.cattrs = cattrs;
+		d.resize = resize;
+		d.subroutines = subroutines;
+		d.labels = labels;
+		d.maxStackSize = maxStackSize;
+		d.pool = cw.pool;
+		d.poolSize = cw.index;
+		d.version = cw.version;
+		d.visitEnd();
+	}
 
     // ------------------------------------------------------------------------
     // Utility methods: control flow analysis algorithm
@@ -1877,6 +1956,9 @@ public class MethodWriter extends MethodVisitor {
         } else {
             delta = frame[0] - previousFrame[0] - 1;
         }
+		if (delta > 0xffff && tooLargeDelegate != null) {
+			tooLargeDelegate.noteTooLargeStackMapDelta(stackMap.length, delta);
+		}
         if (cstackSize == 0) {
             k = clocalsSize - localsSize;
             switch (k) {
@@ -1971,43 +2053,43 @@ public class MethodWriter extends MethodVisitor {
                     stackMap.putByte(v);
                 }
             } else {
-                StringBuilder sb = new StringBuilder();
+                StringBuffer buf = new StringBuffer();
                 d >>= 28;
                 while (d-- > 0) {
-                    sb.append('[');
+                    buf.append('[');
                 }
                 if ((t & Frame.BASE_KIND) == Frame.OBJECT) {
-                    sb.append('L');
-                    sb.append(cw.typeTable[t & Frame.BASE_VALUE].strVal1);
-                    sb.append(';');
+                    buf.append('L');
+                    buf.append(cw.typeTable[t & Frame.BASE_VALUE].strVal1);
+                    buf.append(';');
                 } else {
                     switch (t & 0xF) {
                     case 1:
-                        sb.append('I');
+                        buf.append('I');
                         break;
                     case 2:
-                        sb.append('F');
+                        buf.append('F');
                         break;
                     case 3:
-                        sb.append('D');
+                        buf.append('D');
                         break;
                     case 9:
-                        sb.append('Z');
+                        buf.append('Z');
                         break;
                     case 10:
-                        sb.append('B');
+                        buf.append('B');
                         break;
                     case 11:
-                        sb.append('C');
+                        buf.append('C');
                         break;
                     case 12:
-                        sb.append('S');
+                        buf.append('S');
                         break;
                     default:
-                        sb.append('J');
+                        buf.append('J');
                     }
                 }
-                stackMap.putByte(7).putShort(cw.newClass(sb.toString()));
+                stackMap.putByte(7).putShort(cw.newClass(buf.toString()));
             }
         }
     }
@@ -2022,6 +2104,23 @@ public class MethodWriter extends MethodVisitor {
         }
     }
 
+    // TURBO:
+    // FIXME: all annos
+	public void setAnnotations(ByteVector annd, AnnotationWriter anns, AnnotationWriter ianns, AnnotationWriter[] panns,
+			AnnotationWriter[] ipanns, int synthetics) {
+		this.annd = annd;
+		this.anns = anns;
+		this.ianns = ianns;
+		this.panns = panns;
+		this.ipanns = ipanns;
+		this.synthetics = synthetics;
+	}
+
+	public void setNonstandardAttributes(Attribute attrs, Attribute cattrs) {
+		this.attrs = attrs;
+		this.cattrs = cattrs;
+	}
+	
     // ------------------------------------------------------------------------
     // Utility methods: dump bytecode array
     // ------------------------------------------------------------------------
@@ -2031,15 +2130,28 @@ public class MethodWriter extends MethodVisitor {
      * 
      * @return the size of the bytecode of this method.
      */
-    final int getSize() {
+    public final int getSize() {
         if (classReaderOffset != 0) {
             return 6 + classReaderLength;
         }
+        // TURBO:
+		if (tooLargeDelegate != null) {
+			return tooLargeDelegate.getSize();
+		}
+//        if (resize) {
+//            // replaces the temporary jump opcodes introduced by Label.resolve.
+//            if (ClassReader.RESIZE) {
+//                resizeInstructions();
+//            } else {
+//                throw new RuntimeException("Method code too large!");
+//            }
+//        }
         int size = 8;
         if (code.length > 0) {
-            if (code.length > 65536) {
-                throw new RuntimeException("Method code too large!");
-            }
+            // TURBO:
+//            if (code.length > 65536) {
+//                throw new RuntimeException("Method code too large!");
+//            }
             cw.newUTF8("Code");
             size += 18 + code.length + 8 * handlerCount;
             if (localVar != null) {
@@ -2143,7 +2255,12 @@ public class MethodWriter extends MethodVisitor {
      *            the byte vector into which the bytecode of this method must be
      *            copied.
      */
-    final void put(final ByteVector out) {
+    public final void put(final ByteVector out) {
+		if (tooLargeDelegate != null) {
+			tooLargeDelegate.put(out);
+			return;
+		}
+		
         final int FACTOR = ClassWriter.TO_ACC_SYNTHETIC;
         int mask = ACC_CONSTRUCTOR | Opcodes.ACC_DEPRECATED
                 | ClassWriter.ACC_SYNTHETIC_ATTRIBUTE
@@ -2352,6 +2469,15 @@ public class MethodWriter extends MethodVisitor {
             attrs.put(cw, null, 0, -1, -1, out);
         }
     }
+    
+    // TURBO:
+	public final ByteVector getCode() {
+		return code;
+	}
+
+	public final Handler getFirstHandler() {
+		return firstHandler;
+	}
 
     // ------------------------------------------------------------------------
     // Utility methods: instruction resizing (used to handle GOTO_W and JSR_W)
@@ -2374,7 +2500,7 @@ public class MethodWriter extends MethodVisitor {
      * to construct the method are no longer valid after this method has been
      * called.
      */
-    private void resizeInstructions() {
+    private boolean resizeInstructions() {
         byte[] b = code.data; // bytecode of the method
         int u, v, label; // indexes in b
         int i, j; // loop indexes
@@ -2409,6 +2535,9 @@ public class MethodWriter extends MethodVisitor {
         int newOffset; // future offset of a jump instruction
 
         resize = new boolean[code.length];
+        
+        // TURBO:
+		int newSize;
 
         // 3 = loop again, 2 = loop ended, 1 = last pass, 0 = done
         int state = 3;
@@ -2417,6 +2546,7 @@ public class MethodWriter extends MethodVisitor {
                 state = 2;
             }
             u = 0;
+			newSize = code.length;
             while (u < b.length) {
                 int opcode = b[u] & 0xFF; // opcode of current instruction
                 int insert = 0; // bytes to be added after this instruction
@@ -2528,6 +2658,7 @@ public class MethodWriter extends MethodVisitor {
                     break;
                 }
                 if (insert != 0) {
+					newSize += insert;
                     // adds a new (u, insert) entry in the allIndexes and
                     // allSizes arrays
                     int[] newIndexes = new int[allIndexes.length + 1];
@@ -2548,6 +2679,10 @@ public class MethodWriter extends MethodVisitor {
                 --state;
             }
         } while (state != 0);
+        
+        // TURBO:
+		if (newSize > ClassWriter.MAX_CODE_LENGTH)
+			return false;
 
         // 2nd step:
         // copies the bytecode of the method into a new bytevector, updates the
@@ -2691,52 +2826,49 @@ public class MethodWriter extends MethodVisitor {
             }
         }
 
-        // updates the stack map frame labels
-        if (compute == FRAMES) {
-            Label l = labels;
-            while (l != null) {
-                /*
-                 * Detects the labels that are just after an IF instruction that
-                 * has been resized with the IFNOT GOTO_W pattern. These labels
-                 * are now the target of a jump instruction (the IFNOT
-                 * instruction). Note that we need the original label position
-                 * here. getNewOffset must therefore never have been called for
-                 * this label.
-                 */
-                u = l.position - 3;
-                if (u >= 0 && resize[u]) {
-                    l.status |= Label.TARGET;
-                }
-                getNewOffset(allIndexes, allSizes, l);
-                l = l.successor;
-            }
-            // Update the offsets in the uninitialized types
-            if (cw.typeTable != null) {
-                for (i = 0; i < cw.typeTable.length; ++i) {
-                    Item item = cw.typeTable[i];
-                    if (item != null && item.type == ClassWriter.TYPE_UNINIT) {
-                        item.intVal = getNewOffset(allIndexes, allSizes, 0,
-                                item.intVal);
+        // recomputes the stack map frames
+        if (frameCount > 0) {
+            if (compute == FRAMES) {
+                frameCount = 0;
+                stackMap = null;
+                previousFrame = null;
+                frame = null;
+                Frame f = new Frame();
+                f.owner = labels;
+                Type[] args = Type.getArgumentTypes(descriptor);
+                f.initInputFrame(cw, access, args, maxLocals);
+                visitFrame(f);
+                Label l = labels;
+                while (l != null) {
+                    /*
+                     * here we need the original label position. getNewOffset
+                     * must therefore never have been called for this label.
+                     */
+                    u = l.position - 3;
+                    if ((l.status & Label.STORE) != 0 || (u >= 0 && resize[u])) {
+                        getNewOffset(allIndexes, allSizes, l);
+                        // TODO update offsets in UNINITIALIZED values
+                        visitFrame(l.frame);
                     }
+                    l = l.successor;
                 }
+            } else {
+                /*
+                 * Resizing an existing stack map frame table is really hard.
+                 * Not only the table must be parsed to update the offets, but
+                 * new frames may be needed for jump instructions that were
+                 * inserted by this method. And updating the offsets or
+                 * inserting frames can change the format of the following
+                 * frames, in case of packed frames. In practice the whole table
+                 * must be recomputed. For this the frames are marked as
+                 * potentially invalid. This will cause the whole class to be
+                 * reread and rewritten with the COMPUTE_FRAMES option (see the
+                 * ClassWriter.toByteArray method). This is not very efficient
+                 * but is much easier and requires much less code than any other
+                 * method I can think of.
+                 */
+                cw.invalidFrames = true;
             }
-            // The stack map frames are not serialized yet, so we don't need
-            // to update them. They will be serialized in visitMaxs.
-        } else if (frameCount > 0) {
-            /*
-             * Resizing an existing stack map frame table is really hard. Not
-             * only the table must be parsed to update the offets, but new
-             * frames may be needed for jump instructions that were inserted by
-             * this method. And updating the offsets or inserting frames can
-             * change the format of the following frames, in case of packed
-             * frames. In practice the whole table must be recomputed. For this
-             * the frames are marked as potentially invalid. This will cause the
-             * whole class to be reread and rewritten with the COMPUTE_FRAMES
-             * option (see the ClassWriter.toByteArray method). This is not very
-             * efficient but is much easier and requires much less code than any
-             * other method I can think of.
-             */
-            cw.invalidFrames = true;
         }
         // updates the exception handler block labels
         Handler h = firstHandler;
@@ -2791,6 +2923,9 @@ public class MethodWriter extends MethodVisitor {
 
         // replaces old bytecodes with new ones
         code = newCode;
+        
+        
+		return true;
     }
 
     /**
@@ -2917,4 +3052,10 @@ public class MethodWriter extends MethodVisitor {
             label.status |= Label.RESIZED;
         }
     }
+    
+	void noteTooLargeOffset(Label label, int reference) {
+		if (tooLargeDelegate != null) {
+			tooLargeDelegate.noteTooLargeOffset(label, reference);
+		}
+	}
 }
