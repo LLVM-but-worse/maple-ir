@@ -1,6 +1,5 @@
 package org.mapleir.stdlib.klass;
 
-import java.lang.reflect.Modifier;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -59,20 +58,6 @@ public class InvocationResolver {
 		} else {
 			return null;
 		}
-	}
-	
-	private Set<MethodNode> getVirtualMethods(Set<ClassNode> classes, String name, String desc) {
-		Set<MethodNode> set = new HashSet<>();
-		for(ClassNode cn : classes) {
-			for(MethodNode m : cn.methods) {
-				if(!Modifier.isStatic(m.access)) {
-					if(m.name.equals(name) && m.desc.equals(desc)) {
-						set.add(m);
-					}
-				}
-			}
-		}
-		return set;
 	}
 	
 	public Set<MethodNode> resolveVirtualCalls(String owner, String name, String desc) {

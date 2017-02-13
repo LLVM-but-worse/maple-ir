@@ -322,7 +322,8 @@ public class MethodNode extends MethodVisitor implements FastGraphVertex {
         parameters.add(new ParameterNode(name, access));
     }
 
-    @Override
+    @SuppressWarnings("serial")
+	@Override
     public AnnotationVisitor visitAnnotationDefault() {
         return new AnnotationNode(new ArrayList<Object>(0) {
             @Override
@@ -369,7 +370,8 @@ public class MethodNode extends MethodVisitor implements FastGraphVertex {
         return an;
     }
 
-    @Override
+    @SuppressWarnings("unchecked")
+	@Override
     public AnnotationVisitor visitParameterAnnotation(final int parameter,
             final String desc, final boolean visible) {
         AnnotationNode an = new AnnotationNode(desc);
