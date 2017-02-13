@@ -7,8 +7,8 @@ import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.code.Opcode;
 import org.mapleir.ir.code.Stmt;
-import org.mapleir.ir.code.expr.ArithmeticExpression;
-import org.mapleir.ir.code.expr.ArithmeticExpression.Operator;
+import org.mapleir.ir.code.expr.ArithmeticExpr;
+import org.mapleir.ir.code.expr.ArithmeticExpr.Operator;
 import org.mapleir.ir.code.stmt.ConditionalJumpStatement;
 import org.mapleir.ir.code.stmt.ConditionalJumpStatement.ComparisonType;
 import org.mapleir.stdlib.IContext;
@@ -56,7 +56,7 @@ public class ConstantExpressionReorderPass implements ICompilerPass, Opcode {
 				
 				for(Expr e : stmt.enumerateOnlyChildren()) {
 					if(e.getOpcode() == ARITHMETIC) {
-						ArithmeticExpression arith = (ArithmeticExpression) e;
+						ArithmeticExpr arith = (ArithmeticExpr) e;
 						Expr r = arith.getRight();
 						Expr l = arith.getLeft();
 						

@@ -2,13 +2,13 @@ package org.mapleir.ir.cfg.builder.ssaopt;
 
 import org.mapleir.ir.code.CodeUnit;
 import org.mapleir.ir.code.Opcode;
-import org.mapleir.ir.code.expr.FieldLoadExpression;
+import org.mapleir.ir.code.expr.FieldLoadExpr;
 import org.mapleir.ir.code.stmt.FieldStoreStatement;
 
 public class FieldConstraint implements Constraint {
 	private final String key;
 	
-	public FieldConstraint(FieldLoadExpression le) {
+	public FieldConstraint(FieldLoadExpr le) {
 		key = le.getName() + "." + le.getDesc();
 	}
 	

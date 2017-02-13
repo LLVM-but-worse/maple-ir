@@ -5,7 +5,7 @@ import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.CodeUnit;
 import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.code.Stmt;
-import org.mapleir.ir.code.expr.ConstantExpression;
+import org.mapleir.ir.code.expr.ConstantExpr;
 import org.mapleir.stdlib.util.TabbedStringWriter;
 import org.mapleir.stdlib.util.TypeUtils;
 import org.objectweb.asm.MethodVisitor;
@@ -18,6 +18,7 @@ public class ConditionalJumpStatement extends Stmt {
 	public enum ComparisonType {
 		EQ("=="), NE("!="), LT("<"), GE(">="), GT(">"), LE("<="), ;
 
+		
 		private final String sign;
 
 		private ComparisonType(String sign) {
@@ -130,7 +131,7 @@ public class ConditionalJumpStatement extends Stmt {
 		Type opType = TypeUtils.resolveBinOpType(left.getType(), right.getType());
 
 		if (TypeUtils.isObjectRef(opType)) {
-			boolean isNull = right instanceof ConstantExpression && ((ConstantExpression) right).getConstant() == null;
+			boolean isNull = right instanceof ConstantExpr && ((ConstantExpr) right).getConstant() == null;
 			if (type != ComparisonType.EQ && type != ComparisonType.NE) {
 				throw new IllegalArgumentException(type.toString());
 			}
@@ -143,8 +144,8 @@ public class ConditionalJumpStatement extends Stmt {
 				visitor.visitJumpInsn(type == ComparisonType.EQ ? Opcodes.IF_ACMPEQ : Opcodes.IF_ACMPNE, trueSuccessor.getLabel());
 			}
 		} else if (opType == Type.INT_TYPE) {
-			boolean canShorten = right instanceof ConstantExpression && ((ConstantExpression) right).getConstant() instanceof Number
-					&& ((Number) ((ConstantExpression) right).getConstant()).intValue() == 0;
+			boolean canShorten = right instanceof ConstantExpr && ((ConstantExpr) right).getConstant() instanceof Number
+					&& ((Number) ((ConstantExpr) right).getConstant()).intValue() == 0;
 
 			left.toCode(visitor, cfg);
 			int[] cast = TypeUtils.getPrimitiveCastOpcodes(left.getType(), opType);

@@ -10,8 +10,8 @@ import org.mapleir.ir.code.CodeUnit;
 import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.code.Opcode;
 import org.mapleir.ir.code.Stmt;
-import org.mapleir.ir.code.expr.PhiExpression;
-import org.mapleir.ir.code.expr.VarExpression;
+import org.mapleir.ir.code.expr.PhiExpr;
+import org.mapleir.ir.code.expr.VarExpr;
 import org.mapleir.ir.code.stmt.copy.AbstractCopyStatement;
 import org.mapleir.ir.code.stmt.copy.CopyPhiStatement;
 import org.mapleir.ir.code.stmt.copy.CopyVarStatement;
@@ -119,8 +119,8 @@ public class BoissinotDestructor {
 						int opcode = expr.getOpcode();
 						if (opcode == Opcode.CONST_LOAD || opcode == Opcode.CATCH) {
 							VersionedLocal vl = locals.makeLatestVersion(locals.get(0, false));
-							CopyVarStatement cvs = new CopyVarStatement(new VarExpression(vl, expr.getType()), expr);
-							e.setValue(new VarExpression(vl, expr.getType()));
+							CopyVarStatement cvs = new CopyVarStatement(new VarExpr(vl, expr.getType()), expr);
+							e.setValue(new VarExpr(vl, expr.getType()));
 
 							insertEnd(e.getKey(), cvs);
 						} else if (opcode != Opcode.LOCAL_LOAD) {
@@ -159,14 +159,14 @@ public class BoissinotDestructor {
 			}
 
 			CopyPhiStatement copy = (CopyPhiStatement) stmt;
-			PhiExpression phi = copy.getExpression();
+			PhiExpr phi = copy.getExpression();
 
 			// for every xi arg of the phi from pred Li, add it to the worklist
 			// so that we can parallelise the copy when we insert it.
 			for (Entry<BasicBlock, Expr> e : phi.getArguments().entrySet()) {
 				BasicBlock h = e.getKey();
 				// these are validated in init().
-				VarExpression v = (VarExpression) e.getValue();
+				VarExpr v = (VarExpr) e.getValue();
 				PhiRes r = new PhiRes(copy.getVariable().getLocal(), phi, h, v.getLocal(), v.getType());
 				wl.getNonNull(h).add(r);
 			}
@@ -197,7 +197,7 @@ public class BoissinotDestructor {
 
 				// we consider phi args to be used in the pred instead of the block
 				// where the phi is, so we need to update the def/use maps here.
-				r.phi.setArgument(r.pred, new VarExpression(zi, r.type));
+				r.phi.setArgument(r.pred, new VarExpr(zi, r.type));
 			}
 
 			insertEnd(p, copy);
@@ -282,7 +282,7 @@ public class BoissinotDestructor {
 					Local b = copy.getVariable().getLocal();
 
 					if (!copy.isSynthetic() && e.getOpcode() == Opcode.LOCAL_LOAD) {
-						LinkedHashSet<Local> vc = values.get(((VarExpression) e).getLocal());
+						LinkedHashSet<Local> vc = values.get(((VarExpr) e).getLocal());
 						vc.add(b);
 						values.put(b, vc);
 					} else {
@@ -312,14 +312,14 @@ public class BoissinotDestructor {
 			BasicBlock b = e.getValue().getBlock();
 			// since we are now in csaa, phi locals never interfere and are in the same congruence class.
 			// therefore we can coalesce them all together and drop phis. with this, we leave cssa.
-			PhiExpression phi = e.getValue().getExpression();
+			PhiExpr phi = e.getValue().getExpression();
 
 			CongruenceClass pcc = new CongruenceClass();
 			pcc.add(l);
 			congruenceClasses.put(l, pcc);
 
 			for (Expr ex : phi.getArguments().values()) {
-				VarExpression v = (VarExpression) ex;
+				VarExpr v = (VarExpr) ex;
 				Local argL = v.getLocal();
 				pcc.add(argL);
 				congruenceClasses.put(argL, pcc);
@@ -352,9 +352,9 @@ public class BoissinotDestructor {
 				Stmt stmt = it.next();
 				if (stmt instanceof CopyVarStatement) {
 					CopyVarStatement copy = (CopyVarStatement) stmt;
-					if (!copy.isSynthetic() && copy.getExpression() instanceof VarExpression) {
+					if (!copy.isSynthetic() && copy.getExpression() instanceof VarExpr) {
 						Local lhs = copy.getVariable().getLocal();
-						Local rhs = ((VarExpression) copy.getExpression()).getLocal();
+						Local rhs = ((VarExpr) copy.getExpression()).getLocal();
 						if (!isReservedRegister((VersionedLocal) rhs)) {
 							if (tryCoalesceCopyValue(lhs, rhs)) {
 //								 System.out.println("COPYKILL(1) " + lhs + " == " + rhs);
@@ -489,7 +489,7 @@ public class BoissinotDestructor {
 				for (Stmt stmt : used) {
 					for (Expr s : stmt.enumerateOnlyChildren()) {
 						if (s.getOpcode() == Opcode.LOCAL_LOAD) {
-							VarExpression v = (VarExpression) s;
+							VarExpr v = (VarExpr) s;
 							v.setLocal(remap.getOrDefault(v.getLocal(), v.getLocal()));
 						}
 					}
@@ -515,10 +515,10 @@ public class BoissinotDestructor {
 						it.remove();
 				} else if (stmt instanceof CopyVarStatement) {
 					AbstractCopyStatement copy = (AbstractCopyStatement) stmt;
-					VarExpression v = copy.getVariable();
+					VarExpr v = copy.getVariable();
 					v.setLocal(remap.getOrDefault(v.getLocal(), v.getLocal()));
 					if (!copy.isSynthetic() && copy.getExpression().getOpcode() == Opcode.LOCAL_LOAD)
-						if (((VarExpression) copy.getExpression()).getLocal() == v.getLocal())
+						if (((VarExpr) copy.getExpression()).getLocal() == v.getLocal())
 							it.remove();
 				} else if (stmt instanceof CopyPhiStatement) {
 					throw new IllegalArgumentException("Phi copy still in block?");
@@ -693,8 +693,8 @@ public class BoissinotDestructor {
 				throw new IllegalArgumentException("pcvs is empty");
 			else if (pcvs.pairs.size() == 1) { // constant sequentialize for trivial parallel copies
 				CopyPair pair = pcvs.pairs.get(0);
-				CopyVarStatement newCopy = new CopyVarStatement(new VarExpression(pair.targ, pair.type),
-						new VarExpression(pair.source, pair.type));
+				CopyVarStatement newCopy = new CopyVarStatement(new VarExpr(pair.targ, pair.type),
+						new VarExpr(pair.source, pair.type));
 				b.set(index + indexOffset, newCopy);
 			} else {
 				List<CopyVarStatement> sequentialized = pcvs.sequentialize(spill);
@@ -708,12 +708,12 @@ public class BoissinotDestructor {
 
 	private class PhiRes {
 		final Local target;
-		final PhiExpression phi;
+		final PhiExpr phi;
 		final BasicBlock pred;
 		final Local l;
 		final Type type;
 
-		PhiRes(Local target, PhiExpression phi, BasicBlock src, Local l, Type type) {
+		PhiRes(Local target, PhiExpr phi, BasicBlock src, Local l, Type type) {
 			this.target = target;
 			this.phi = phi;
 			pred = src;
@@ -827,8 +827,8 @@ public class BoissinotDestructor {
 					if ((!types.containsKey(b) && b != spill) || (!types.containsKey(c) && c != spill))
 						throw new IllegalStateException("this shouldn't happen " + b + " " + c);
 
-					VarExpression varB = new VarExpression(b, types.get(b)); // generate the copy b = c
-					VarExpression varC = new VarExpression(c, types.get(b));
+					VarExpr varB = new VarExpr(b, types.get(b)); // generate the copy b = c
+					VarExpr varC = new VarExpr(c, types.get(b));
 					result.add(new CopyVarStatement(varB, varC));
 
 					loc.put(a, b);
@@ -843,8 +843,8 @@ public class BoissinotDestructor {
 				if (b != loc.get(pred.get(b))) {
 					if (!types.containsKey(b))
 						throw new IllegalStateException("this shouldn't happen");
-					VarExpression varN = new VarExpression(spill, types.get(b)); // generate the copy n = b
-					VarExpression varB = new VarExpression(b, types.get(b));
+					VarExpr varN = new VarExpr(spill, types.get(b)); // generate the copy n = b
+					VarExpr varB = new VarExpr(b, types.get(b));
 					result.add(new CopyVarStatement(varN, varB));
 					loc.put(b, spill);
 					ready.push(b);
