@@ -12,14 +12,14 @@ import org.mapleir.ir.code.CodeUnitVisitor;
 import org.mapleir.ir.code.Stmt;
 import org.mapleir.ir.code.expr.PhiExpr;
 import org.mapleir.ir.code.expr.VarExpr;
-import org.mapleir.ir.code.stmt.copy.AbstractCopyStatement;
+import org.mapleir.ir.code.stmt.copy.AbstractCopyStmt;
 import org.mapleir.ir.locals.VersionedLocal;
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.ValueCreator;
 
 public class SSALocalAccess {
 
-	public final Map<VersionedLocal, AbstractCopyStatement> defs;
+	public final Map<VersionedLocal, AbstractCopyStmt> defs;
 	public final NullPermeableHashMap<VersionedLocal, AtomicInteger> useCount;
 	
 	public SSALocalAccess(ControlFlowGraph cfg) {
@@ -37,7 +37,7 @@ public class SSALocalAccess {
 				
 				int op = s.getOpcode();
 				if(op == Opcode.LOCAL_STORE || op == Opcode.PHI_STORE) {
-					AbstractCopyStatement d = (AbstractCopyStatement) s;
+					AbstractCopyStmt d = (AbstractCopyStmt) s;
 					VersionedLocal local = (VersionedLocal) d.getVariable().getLocal();
 					defs.put(local, d);
 					// sometimes locals can be dead even without any transforms.

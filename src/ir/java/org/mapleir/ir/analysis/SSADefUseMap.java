@@ -14,8 +14,8 @@ import org.mapleir.ir.code.Opcode;
 import org.mapleir.ir.code.Stmt;
 import org.mapleir.ir.code.expr.PhiExpr;
 import org.mapleir.ir.code.expr.VarExpr;
-import org.mapleir.ir.code.stmt.copy.AbstractCopyStatement;
-import org.mapleir.ir.code.stmt.copy.CopyPhiStatement;
+import org.mapleir.ir.code.stmt.copy.AbstractCopyStmt;
+import org.mapleir.ir.code.stmt.copy.CopyPhiStmt;
 import org.mapleir.ir.locals.Local;
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.ValueCreator;
@@ -26,7 +26,7 @@ public class SSADefUseMap implements Opcode {
 	private final ControlFlowGraph cfg;
 	public final Map<Local, BasicBlock> defs;
 	public final NullPermeableHashMap<Local, GenericBitSet<BasicBlock>> uses;
-	public final Map<Local, CopyPhiStatement> phiDefs;
+	public final Map<Local, CopyPhiStmt> phiDefs;
 	public final NullPermeableHashMap<BasicBlock, GenericBitSet<Local>> phiUses;
 
 	public final NullPermeableHashMap<Local, HashMap<BasicBlock, Integer>> lastUseIndex;
@@ -93,13 +93,13 @@ public class SSADefUseMap implements Opcode {
 	}
 
 	protected void build(BasicBlock b, Stmt stmt, Set<Local> usedLocals) {
-		if(stmt instanceof AbstractCopyStatement) {
-			AbstractCopyStatement copy = (AbstractCopyStatement) stmt;
+		if(stmt instanceof AbstractCopyStmt) {
+			AbstractCopyStmt copy = (AbstractCopyStmt) stmt;
 			Local l = copy.getVariable().getLocal();
 			defs.put(l, b);
 
-			if(copy instanceof CopyPhiStatement) {
-				phiDefs.put(l, (CopyPhiStatement) copy);
+			if(copy instanceof CopyPhiStmt) {
+				phiDefs.put(l, (CopyPhiStmt) copy);
 				PhiExpr phi = (PhiExpr) copy.getExpression();
 				for(Entry<BasicBlock, Expr> en : phi.getArguments().entrySet()) {
 					Local ul = ((VarExpr) en.getValue()).getLocal();
@@ -115,12 +115,12 @@ public class SSADefUseMap implements Opcode {
 	}
 
 	protected void buildIndex(BasicBlock b, Stmt stmt, int index, Set<Local> usedLocals) {
-		if (stmt instanceof AbstractCopyStatement) {
-			AbstractCopyStatement copy = (AbstractCopyStatement) stmt;
+		if (stmt instanceof AbstractCopyStmt) {
+			AbstractCopyStmt copy = (AbstractCopyStmt) stmt;
 			defIndex.put(copy.getVariable().getLocal(), index);
 
-			if (copy instanceof CopyPhiStatement) {
-				PhiExpr phi = ((CopyPhiStatement) copy).getExpression();
+			if (copy instanceof CopyPhiStmt) {
+				PhiExpr phi = ((CopyPhiStmt) copy).getExpression();
 				for (Entry<BasicBlock, Expr> en : phi.getArguments().entrySet()) {
 					lastUseIndex.getNonNull(((VarExpr) en.getValue()).getLocal()).put(en.getKey(), en.getKey().size());
 //					lastUseIndex.get(ul).put(b, -1);

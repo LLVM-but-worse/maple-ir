@@ -20,7 +20,7 @@ import org.mapleir.ir.code.expr.ArithmeticExpr;
 import org.mapleir.ir.code.expr.ArithmeticExpr.Operator;
 import org.mapleir.ir.code.expr.ConstantExpr;
 import org.mapleir.ir.code.expr.FieldLoadExpr;
-import org.mapleir.ir.code.stmt.FieldStoreStatement;
+import org.mapleir.ir.code.stmt.FieldStoreStmt;
 import org.mapleir.stdlib.IContext;
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.SetCreator;
@@ -127,7 +127,7 @@ public class FieldRSADecryptionPass implements ICompilerPass, Opcode {
 					
 					
 					if(stmt.getOpcode() == FIELD_STORE) {
-						FieldStoreStatement fss = (FieldStoreStatement) stmt;
+						FieldStoreStmt fss = (FieldStoreStmt) stmt;
 						Expr val = fss.getValueExpression();
 						
 						if(bcheck1(val)) {
@@ -166,12 +166,12 @@ public class FieldRSADecryptionPass implements ICompilerPass, Opcode {
 				
 				for(Stmt stmt : b) {
 					if(stmt.getOpcode() == FIELD_STORE) {
-						if(key((FieldStoreStatement) stmt).equals("co.k I")) {
+						if(key((FieldStoreStmt) stmt).equals("co.k I")) {
 //							System.out.println("HERE1: " + stmt);
 //							
 //							System.out.println(cfg);
 						}
-						handleFss((FieldStoreStatement) stmt);
+						handleFss((FieldStoreStmt) stmt);
 					}
 					
 					for(Expr e : stmt.enumerateOnlyChildren()) {
@@ -239,7 +239,7 @@ public class FieldRSADecryptionPass implements ICompilerPass, Opcode {
 				for(BasicBlock b : cfg.vertices()) {
 					for(Stmt stmt : b) {
 						if(stmt.getOpcode() == Opcode.FIELD_STORE) {
-							FieldStoreStatement fs = (FieldStoreStatement) stmt;
+							FieldStoreStmt fs = (FieldStoreStmt) stmt;
 							Number[] p = pairs.get(key(fs)); // [enc, dec]
 							
 							if(p != null) {
@@ -379,7 +379,7 @@ public class FieldRSADecryptionPass implements ICompilerPass, Opcode {
 					return true;
 				}
 			} else if(u.getOpcode() == FIELD_STORE) {
-				FieldStoreStatement fse = (FieldStoreStatement) u;
+				FieldStoreStmt fse = (FieldStoreStmt) u;
 				if(!key(fse).equals(key)) {
 					return true;
 				}
@@ -412,7 +412,7 @@ public class FieldRSADecryptionPass implements ICompilerPass, Opcode {
 		}
 	}
 	
-	private void handleFss(FieldStoreStatement fss) {
+	private void handleFss(FieldStoreStmt fss) {
 		if(!isIntField(fss.getDesc())) {
 			return;
 		}
@@ -452,7 +452,7 @@ public class FieldRSADecryptionPass implements ICompilerPass, Opcode {
 		return desc.equals("I") || desc.equals("J");
 	}
 	
-	String key(FieldStoreStatement fss) {
+	String key(FieldStoreStmt fss) {
 		return lookupField(cxt, fss.getOwner(), fss.getName(), fss.getDesc(), fss.getInstanceExpression() == null);
 	}
 	

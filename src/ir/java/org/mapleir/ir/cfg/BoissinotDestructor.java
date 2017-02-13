@@ -12,9 +12,9 @@ import org.mapleir.ir.code.Opcode;
 import org.mapleir.ir.code.Stmt;
 import org.mapleir.ir.code.expr.PhiExpr;
 import org.mapleir.ir.code.expr.VarExpr;
-import org.mapleir.ir.code.stmt.copy.AbstractCopyStatement;
-import org.mapleir.ir.code.stmt.copy.CopyPhiStatement;
-import org.mapleir.ir.code.stmt.copy.CopyVarStatement;
+import org.mapleir.ir.code.stmt.copy.AbstractCopyStmt;
+import org.mapleir.ir.code.stmt.copy.CopyPhiStmt;
+import org.mapleir.ir.code.stmt.copy.CopyVarStmt;
 import org.mapleir.ir.locals.Local;
 import org.mapleir.ir.locals.LocalsPool;
 import org.mapleir.ir.locals.VersionedLocal;
@@ -113,13 +113,13 @@ public class BoissinotDestructor {
 		for (BasicBlock b : cfg.vertices()) {
 			for (Stmt stmt : new ArrayList<>(b)) {
 				if (stmt.getOpcode() == Opcode.PHI_STORE) {
-					CopyPhiStatement copy = (CopyPhiStatement) stmt;
+					CopyPhiStmt copy = (CopyPhiStmt) stmt;
 					for (Entry<BasicBlock, Expr> e : copy.getExpression().getArguments().entrySet()) {
 						Expr expr = e.getValue();
 						int opcode = expr.getOpcode();
 						if (opcode == Opcode.CONST_LOAD || opcode == Opcode.CATCH) {
 							VersionedLocal vl = locals.makeLatestVersion(locals.get(0, false));
-							CopyVarStatement cvs = new CopyVarStatement(new VarExpr(vl, expr.getType()), expr);
+							CopyVarStmt cvs = new CopyVarStmt(new VarExpr(vl, expr.getType()), expr);
 							e.setValue(new VarExpr(vl, expr.getType()));
 
 							insertEnd(e.getKey(), cvs);
@@ -142,7 +142,7 @@ public class BoissinotDestructor {
 
 	private void copyPhiOperands(BasicBlock b) {
 		NullPermeableHashMap<BasicBlock, List<PhiRes>> wl = new NullPermeableHashMap<>(new ListCreator<>());
-		ParallelCopyVarStatement dst_copy = new ParallelCopyVarStatement();
+		ParallelCopyVarStmt dst_copy = new ParallelCopyVarStmt();
 
 		// given a phi: L0: x0 = phi(L1:x1, L2:x2)
 		// insert the copies:
@@ -158,7 +158,7 @@ public class BoissinotDestructor {
 				break;
 			}
 
-			CopyPhiStatement copy = (CopyPhiStatement) stmt;
+			CopyPhiStmt copy = (CopyPhiStmt) stmt;
 			PhiExpr phi = copy.getExpression();
 
 			// for every xi arg of the phi from pred Li, add it to the worklist
@@ -185,7 +185,7 @@ public class BoissinotDestructor {
 
 		for (Entry<BasicBlock, List<PhiRes>> e : wl.entrySet()) {
 			BasicBlock p = e.getKey();
-			ParallelCopyVarStatement copy = new ParallelCopyVarStatement();
+			ParallelCopyVarStmt copy = new ParallelCopyVarStmt();
 
 			for (PhiRes r : e.getValue()) {
 				// for each xi source in a phi, create a new variable zi, and insert the copy
@@ -240,8 +240,8 @@ public class BoissinotDestructor {
 		SSADefUseMap defuse = new SSADefUseMap(cfg) {
 			@Override
 			protected void build(BasicBlock b, Stmt stmt, Set<Local> usedLocals) {
-				if (stmt instanceof ParallelCopyVarStatement) {
-					ParallelCopyVarStatement copy = (ParallelCopyVarStatement) stmt;
+				if (stmt instanceof ParallelCopyVarStmt) {
+					ParallelCopyVarStmt copy = (ParallelCopyVarStmt) stmt;
 					for (CopyPair pair : copy.pairs) {
 						defs.put(pair.targ, b);
 						uses.getNonNull(pair.source).add(b);
@@ -253,8 +253,8 @@ public class BoissinotDestructor {
 
 			@Override
 			protected void buildIndex(BasicBlock b, Stmt stmt, int index, Set<Local> usedLocals) {
-				if (stmt instanceof ParallelCopyVarStatement) {
-					ParallelCopyVarStatement copy = (ParallelCopyVarStatement) stmt;
+				if (stmt instanceof ParallelCopyVarStmt) {
+					ParallelCopyVarStmt copy = (ParallelCopyVarStmt) stmt;
 					for (CopyPair pair : copy.pairs) {
 						defIndex.put(pair.targ, index);
 						lastUseIndex.getNonNull(pair.source).put(b, index);
@@ -277,7 +277,7 @@ public class BoissinotDestructor {
 			for (Stmt stmt : bl) {
 				int opcode = stmt.getOpcode();
 				if (opcode == Opcode.LOCAL_STORE) {
-					CopyVarStatement copy = (CopyVarStatement) stmt;
+					CopyVarStmt copy = (CopyVarStmt) stmt;
 					Expr e = copy.getExpression();
 					Local b = copy.getVariable().getLocal();
 
@@ -289,10 +289,10 @@ public class BoissinotDestructor {
 						values.getNonNull(b);
 					}
 				} else if (opcode == Opcode.PHI_STORE) {
-					CopyPhiStatement copy = (CopyPhiStatement) stmt;
+					CopyPhiStmt copy = (CopyPhiStmt) stmt;
 					values.getNonNull(copy.getVariable().getLocal());
 				} else if (opcode == -1) {
-					ParallelCopyVarStatement copy = (ParallelCopyVarStatement) stmt;
+					ParallelCopyVarStmt copy = (ParallelCopyVarStmt) stmt;
 					for (CopyPair p : copy.pairs) {
 						LinkedHashSet<Local> valueClass = values.getNonNull(p.source);
 						valueClass.add(p.targ);
@@ -307,7 +307,7 @@ public class BoissinotDestructor {
 	private void coalescePhis() {
 		GenericBitSet<BasicBlock> processed = cfg.createBitSet();
 
-		for (Entry<Local, CopyPhiStatement> e : defuse.phiDefs.entrySet()) {
+		for (Entry<Local, CopyPhiStmt> e : defuse.phiDefs.entrySet()) {
 			Local l = e.getKey();
 			BasicBlock b = e.getValue().getBlock();
 			// since we are now in csaa, phi locals never interfere and are in the same congruence class.
@@ -350,8 +350,8 @@ public class BoissinotDestructor {
 		for (BasicBlock b : dom_dfs.getPreOrder()) {
 			for (Iterator<Stmt> it = b.iterator(); it.hasNext();) {
 				Stmt stmt = it.next();
-				if (stmt instanceof CopyVarStatement) {
-					CopyVarStatement copy = (CopyVarStatement) stmt;
+				if (stmt instanceof CopyVarStmt) {
+					CopyVarStmt copy = (CopyVarStmt) stmt;
 					if (!copy.isSynthetic() && copy.getExpression() instanceof VarExpr) {
 						Local lhs = copy.getVariable().getLocal();
 						Local rhs = ((VarExpr) copy.getExpression()).getLocal();
@@ -367,10 +367,10 @@ public class BoissinotDestructor {
 							}
 						}
 					}
-				} else if (stmt instanceof ParallelCopyVarStatement) {
+				} else if (stmt instanceof ParallelCopyVarStmt) {
 					// we need to do it for each one. if all of the copies are
 					// removed then remove the pcvs
-					ParallelCopyVarStatement copy = (ParallelCopyVarStatement) stmt;
+					ParallelCopyVarStmt copy = (ParallelCopyVarStmt) stmt;
 					for (Iterator<CopyPair> pairIter = copy.pairs.listIterator(); pairIter.hasNext();) {
 						CopyPair pair = pairIter.next();
 						Local lhs = pair.targ, rhs = pair.source;
@@ -502,8 +502,8 @@ public class BoissinotDestructor {
 
 			for (Iterator<Stmt> it = b.iterator(); it.hasNext();) {
 				Stmt stmt = it.next();
-				if (stmt instanceof ParallelCopyVarStatement) {
-					ParallelCopyVarStatement copy = (ParallelCopyVarStatement) stmt;
+				if (stmt instanceof ParallelCopyVarStmt) {
+					ParallelCopyVarStmt copy = (ParallelCopyVarStmt) stmt;
 					for (Iterator<CopyPair> it2 = copy.pairs.iterator(); it2.hasNext();) {
 						CopyPair p = it2.next();
 						p.source = remap.getOrDefault(p.source, p.source);
@@ -513,14 +513,14 @@ public class BoissinotDestructor {
 					}
 					if (copy.pairs.isEmpty())
 						it.remove();
-				} else if (stmt instanceof CopyVarStatement) {
-					AbstractCopyStatement copy = (AbstractCopyStatement) stmt;
+				} else if (stmt instanceof CopyVarStmt) {
+					AbstractCopyStmt copy = (AbstractCopyStmt) stmt;
 					VarExpr v = copy.getVariable();
 					v.setLocal(remap.getOrDefault(v.getLocal(), v.getLocal()));
 					if (!copy.isSynthetic() && copy.getExpression().getOpcode() == Opcode.LOCAL_LOAD)
 						if (((VarExpr) copy.getExpression()).getLocal() == v.getLocal())
 							it.remove();
-				} else if (stmt instanceof CopyPhiStatement) {
+				} else if (stmt instanceof CopyPhiStmt) {
 					throw new IllegalArgumentException("Phi copy still in block?");
 				}
 			}
@@ -675,31 +675,31 @@ public class BoissinotDestructor {
 
 	private void sequentialize(BasicBlock b) {
 		// TODO: just rebuild the instruction list
-		LinkedHashMap<ParallelCopyVarStatement, Integer> p = new LinkedHashMap<>();
+		LinkedHashMap<ParallelCopyVarStmt, Integer> p = new LinkedHashMap<>();
 		for (int i = 0; i < b.size(); i++) {
 			Stmt stmt = b.get(i);
-			if (stmt instanceof ParallelCopyVarStatement)
-				p.put((ParallelCopyVarStatement) stmt, i);
+			if (stmt instanceof ParallelCopyVarStmt)
+				p.put((ParallelCopyVarStmt) stmt, i);
 		}
 
 		if (p.isEmpty())
 			return;
 		int indexOffset = 0;
 		Local spill = locals.makeLatestVersion(p.entrySet().iterator().next().getKey().pairs.get(0).targ);
-		for (Entry<ParallelCopyVarStatement, Integer> e : p.entrySet()) {
-			ParallelCopyVarStatement pcvs = e.getKey();
+		for (Entry<ParallelCopyVarStmt, Integer> e : p.entrySet()) {
+			ParallelCopyVarStmt pcvs = e.getKey();
 			int index = e.getValue();
 			if (pcvs.pairs.size() == 0)
 				throw new IllegalArgumentException("pcvs is empty");
 			else if (pcvs.pairs.size() == 1) { // constant sequentialize for trivial parallel copies
 				CopyPair pair = pcvs.pairs.get(0);
-				CopyVarStatement newCopy = new CopyVarStatement(new VarExpr(pair.targ, pair.type),
+				CopyVarStmt newCopy = new CopyVarStmt(new VarExpr(pair.targ, pair.type),
 						new VarExpr(pair.source, pair.type));
 				b.set(index + indexOffset, newCopy);
 			} else {
-				List<CopyVarStatement> sequentialized = pcvs.sequentialize(spill);
+				List<CopyVarStmt> sequentialized = pcvs.sequentialize(spill);
 				b.remove(index + indexOffset--);
-				for (CopyVarStatement cvs : sequentialized) { // warning: O(N^2) operation
+				for (CopyVarStmt cvs : sequentialized) { // warning: O(N^2) operation
 					b.add(index + ++indexOffset, cvs);
 				}
 			}
@@ -744,15 +744,15 @@ public class BoissinotDestructor {
 		}
 	}
 
-	private class ParallelCopyVarStatement extends Stmt {
+	private class ParallelCopyVarStmt extends Stmt {
 		final List<CopyPair> pairs;
 
-		ParallelCopyVarStatement() {
+		ParallelCopyVarStmt() {
 			super(-1);
 			pairs = new ArrayList<>();
 		}
 
-		ParallelCopyVarStatement(List<CopyPair> pairs) {
+		ParallelCopyVarStmt(List<CopyPair> pairs) {
 			super(-1);
 			this.pairs = pairs;
 		}
@@ -790,7 +790,7 @@ public class BoissinotDestructor {
 			printer.print(")");
 		}
 
-		private List<CopyVarStatement> sequentialize(Local spill) {
+		private List<CopyVarStmt> sequentialize(Local spill) {
 			Stack<Local> ready = new Stack<>();
 			Stack<Local> to_do = new Stack<>();
 			Map<Local, Local> loc = new HashMap<>();
@@ -818,7 +818,7 @@ public class BoissinotDestructor {
 					ready.push(pair.targ);
 			}
 
-			List<CopyVarStatement> result = new ArrayList<>();
+			List<CopyVarStmt> result = new ArrayList<>();
 			while (!to_do.isEmpty()) {
 				while (!ready.isEmpty()) {
 					Local b = ready.pop(); // pick a free location
@@ -829,7 +829,7 @@ public class BoissinotDestructor {
 
 					VarExpr varB = new VarExpr(b, types.get(b)); // generate the copy b = c
 					VarExpr varC = new VarExpr(c, types.get(b));
-					result.add(new CopyVarStatement(varB, varC));
+					result.add(new CopyVarStmt(varB, varC));
 
 					loc.put(a, b);
 					if (a == c && pred.get(a) != null) {
@@ -845,7 +845,7 @@ public class BoissinotDestructor {
 						throw new IllegalStateException("this shouldn't happen");
 					VarExpr varN = new VarExpr(spill, types.get(b)); // generate the copy n = b
 					VarExpr varB = new VarExpr(b, types.get(b));
-					result.add(new CopyVarStatement(varN, varB));
+					result.add(new CopyVarStmt(varN, varB));
 					loc.put(b, spill);
 					ready.push(b);
 				}
@@ -875,13 +875,13 @@ public class BoissinotDestructor {
 		}
 
 		@Override
-		public ParallelCopyVarStatement copy() {
-			return new ParallelCopyVarStatement(new ArrayList<>(pairs));
+		public ParallelCopyVarStmt copy() {
+			return new ParallelCopyVarStmt(new ArrayList<>(pairs));
 		}
 
 		@Override
 		public boolean equivalent(CodeUnit s) {
-			return s instanceof ParallelCopyVarStatement && ((ParallelCopyVarStatement) s).pairs.equals(pairs);
+			return s instanceof ParallelCopyVarStmt && ((ParallelCopyVarStmt) s).pairs.equals(pairs);
 		}
 	}
 

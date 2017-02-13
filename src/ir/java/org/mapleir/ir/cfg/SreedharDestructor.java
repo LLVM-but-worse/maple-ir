@@ -15,8 +15,8 @@ import org.mapleir.ir.code.Opcode;
 import org.mapleir.ir.code.Stmt;
 import org.mapleir.ir.code.expr.PhiExpr;
 import org.mapleir.ir.code.expr.VarExpr;
-import org.mapleir.ir.code.stmt.copy.CopyPhiStatement;
-import org.mapleir.ir.code.stmt.copy.CopyVarStatement;
+import org.mapleir.ir.code.stmt.copy.CopyPhiStmt;
+import org.mapleir.ir.code.stmt.copy.CopyVarStmt;
 import org.mapleir.ir.locals.Local;
 import org.mapleir.ir.locals.LocalsPool;
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
@@ -80,7 +80,7 @@ public class SreedharDestructor {
 	// ============================================================================================================= //
 	private void init() {
 		// init pccs
-		for (CopyPhiStatement copyPhi : defuse.phiDefs.values()) {
+		for (CopyPhiStmt copyPhi : defuse.phiDefs.values()) {
 			Local phiTarget = copyPhi.getVariable().getLocal();
 			pccs.getNonNull(phiTarget).add(phiTarget);
 //			System.out.println("Initphi " + phiTarget);
@@ -119,8 +119,8 @@ public class SreedharDestructor {
 			ListIterator<Stmt> it = b.listIterator(b.size());
 			while (it.hasPrevious()) {
 				Stmt stmt = it.previous();
-				if (stmt instanceof CopyVarStatement) {
-					CopyVarStatement copy = (CopyVarStatement) stmt;
+				if (stmt instanceof CopyVarStmt) {
+					CopyVarStmt copy = (CopyVarStmt) stmt;
 					Local defLocal = copy.getVariable().getLocal();
 					intraLive.remove(defLocal);
 				}
@@ -148,11 +148,11 @@ public class SreedharDestructor {
 	// ============================================================================================================= //
 	private void csaa_iii() {
 		// iterate over each phi expression
-		for (Entry<Local, CopyPhiStatement> entry : defuse.phiDefs.entrySet()) {
+		for (Entry<Local, CopyPhiStmt> entry : defuse.phiDefs.entrySet()) {
 //			System.out.println("process phi " + entry.getValue());
 
 			Local phiTarget = entry.getKey(); // x0
-			CopyPhiStatement copy = entry.getValue();
+			CopyPhiStmt copy = entry.getValue();
 			BasicBlock defBlock = defuse.defs.get(phiTarget); // l0
 			PhiExpr phi = copy.getExpression();
 			candidateResourceSet.clear();
@@ -295,12 +295,12 @@ public class SreedharDestructor {
 		Local spill = locals.makeLatestVersion(xi);
 		int i;
 		for (i = 0; i < li.size() && li.get(i).getOpcode() == Opcode.PHI_STORE; i++) {
-			CopyPhiStatement copyPhi = (CopyPhiStatement) li.get(i);
+			CopyPhiStmt copyPhi = (CopyPhiStmt) li.get(i);
 			VarExpr copyTarget = copyPhi.getVariable();
 			if (copyTarget.getLocal() == xi)
 				copyTarget.setLocal(spill);
 		}
-		li.add(i, new CopyVarStatement(new VarExpr(xi, type), new VarExpr(spill, type)));
+		li.add(i, new CopyVarStmt(new VarExpr(xi, type), new VarExpr(spill, type)));
 		return spill;
 	}
 
@@ -315,7 +315,7 @@ public class SreedharDestructor {
 		for (BasicBlock lj : succsCache.getNonNull(lk)) {
 			if (!liveness.in(lj).contains(xi)) removeFromOut: {
 				for (int i = 0; i < lj.size() && lj.get(i).getOpcode() == Opcode.PHI_STORE; i++)
-					if (((VarExpr) ((CopyPhiStatement) lj.get(i)).getExpression().getArguments().get(lk)).getLocal() == xi)
+					if (((VarExpr) ((CopyPhiStmt) lj.get(i)).getExpression().getArguments().get(lk)).getLocal() == xi)
 						break removeFromOut;
 				liveOut.remove(xi); // poor man's for-else loop
 			}
@@ -331,7 +331,7 @@ public class SreedharDestructor {
 
 	private Local insertEnd(Local xi, BasicBlock lk, Type type) {
 		Local spill = locals.makeLatestVersion(xi);
-		CopyVarStatement newCopy = new CopyVarStatement(new VarExpr(spill, type), new VarExpr(xi, type));
+		CopyVarStmt newCopy = new CopyVarStmt(new VarExpr(spill, type), new VarExpr(xi, type));
 		if(lk.isEmpty())
 			lk.add(newCopy);
 		else if(!lk.get(lk.size() - 1).canChangeFlow())
@@ -348,8 +348,8 @@ public class SreedharDestructor {
 		for (BasicBlock b : cfg.vertices()) {
 			for (Iterator<Stmt> it = b.iterator(); it.hasNext(); ) {
 				Stmt stmt = it.next();
-				if (stmt instanceof CopyVarStatement) {
-					CopyVarStatement copy = (CopyVarStatement) stmt;
+				if (stmt instanceof CopyVarStmt) {
+					CopyVarStmt copy = (CopyVarStmt) stmt;
 //					System.out.println("check " + copy);
 					if (checkCoalesce(copy)) {
 //						System.out.println("  coalescing");
@@ -374,7 +374,7 @@ public class SreedharDestructor {
 //		System.out.println();
 	}
 
-	private boolean checkCoalesce(CopyVarStatement copy) {
+	private boolean checkCoalesce(CopyVarStmt copy) {
 		// Only coalesce simple copies x=y.
 		if (copy.isSynthetic() || copy.getExpression().getOpcode() != LOCAL_LOAD)
 			return false;
@@ -466,14 +466,14 @@ public class SreedharDestructor {
 				Stmt stmt = it.next();
 
 				// We can now simply drop all phi statements.
-				if (stmt instanceof CopyPhiStatement) {
+				if (stmt instanceof CopyPhiStmt) {
 					it.remove();
 					continue;
 				}
 
 				// Apply remappings
-				if (stmt instanceof CopyVarStatement) {
-					VarExpr lhs = ((CopyVarStatement) stmt).getVariable();
+				if (stmt instanceof CopyVarStmt) {
+					VarExpr lhs = ((CopyVarStmt) stmt).getVariable();
 					Local copyTarget = lhs.getLocal();
 					lhs.setLocal(remap.getOrDefault(copyTarget, copyTarget));
 				}

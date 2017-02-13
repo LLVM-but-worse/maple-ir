@@ -11,8 +11,8 @@ import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.code.Opcode;
 import org.mapleir.ir.code.Stmt;
 import org.mapleir.ir.code.expr.VarExpr;
-import org.mapleir.ir.code.stmt.copy.AbstractCopyStatement;
-import org.mapleir.ir.code.stmt.copy.CopyVarStatement;
+import org.mapleir.ir.code.stmt.copy.AbstractCopyStmt;
+import org.mapleir.ir.code.stmt.copy.CopyVarStmt;
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.SetCreator;
 import org.mapleir.stdlib.collections.ValueCreator;
@@ -29,7 +29,7 @@ public class LocalsPool implements ValueCreator<GenericBitSet<Local>> {
 	private final Map<BasicLocal, VersionedLocal> latest;
 	private final BitSetIndexer<Local> indexer;
 	
-	public final Map<VersionedLocal, AbstractCopyStatement> defs;
+	public final Map<VersionedLocal, AbstractCopyStmt> defs;
 	public final Map<VersionedLocal, Set<VarExpr>> uses;
 	
 	public LocalsPool(int base) {
@@ -157,7 +157,7 @@ public class LocalsPool implements ValueCreator<GenericBitSet<Local>> {
 		for(BasicBlock b : cfg.vertices()) {
 			for(Stmt stmt : b) {
 				if(stmt.getOpcode() == Opcode.LOCAL_STORE) {
-					CopyVarStatement cp = (CopyVarStatement) stmt;
+					CopyVarStmt cp = (CopyVarStmt) stmt;
 					VarExpr var = cp.getVariable();
 					Local local = var.getLocal();
 					if(!cp.isSynthetic()) {
@@ -267,7 +267,7 @@ public class LocalsPool implements ValueCreator<GenericBitSet<Local>> {
 		for(BasicBlock b : cfg.vertices()) {
 			for(Stmt stmt : b) {
 				if(stmt.getOpcode() == Opcode.LOCAL_STORE) {
-					VarExpr v = ((CopyVarStatement) stmt).getVariable();
+					VarExpr v = ((CopyVarStmt) stmt).getVariable();
 					Local l = v.getLocal();
 					if(remap.containsKey(l)) {
 						Local l2 = remap.get(l);

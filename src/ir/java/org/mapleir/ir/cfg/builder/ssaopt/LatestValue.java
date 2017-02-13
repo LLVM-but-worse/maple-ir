@@ -13,7 +13,7 @@ import org.mapleir.ir.code.Opcode;
 import org.mapleir.ir.code.Stmt;
 import org.mapleir.ir.code.expr.FieldLoadExpr;
 import org.mapleir.ir.code.expr.VarExpr;
-import org.mapleir.ir.code.stmt.copy.AbstractCopyStatement;
+import org.mapleir.ir.code.stmt.copy.AbstractCopyStmt;
 import org.mapleir.ir.locals.Local;
 
 public class LatestValue {
@@ -92,7 +92,7 @@ public class LatestValue {
 		return res;
 	}
 
-	public boolean canPropagate(AbstractCopyStatement def, Stmt use, Expr tail, boolean debug) {
+	public boolean canPropagate(AbstractCopyStmt def, Stmt use, Expr tail, boolean debug) {
 		Local local = def.getVariable().getLocal();
 		
 		Set<Stmt> path = findReachable(def, use);
