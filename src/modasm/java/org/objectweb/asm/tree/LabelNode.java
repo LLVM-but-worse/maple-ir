@@ -75,9 +75,4 @@ public class LabelNode extends AbstractInsnNode {
     public void resetLabel() {
         label = null;
     }
-    
-    @Override
-	public String toString() {
-    	return "[Label " + hashCode() + "]";
-    }
 }

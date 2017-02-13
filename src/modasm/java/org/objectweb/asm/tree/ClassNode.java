@@ -32,9 +32,7 @@ package org.objectweb.asm.tree;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 import org.objectweb.asm.AnnotationVisitor;
 import org.objectweb.asm.Attribute;
@@ -186,8 +184,6 @@ public class ClassNode extends ClassVisitor {
      */
     public List<MethodNode> methods;
 
-    public Set<String> references;
-    
     /**
      * Constructs a new {@link ClassNode}. <i>Subclasses must not use this
      * constructor</i>. Instead, they must use the {@link #ClassNode(int)}
@@ -199,8 +195,7 @@ public class ClassNode extends ClassVisitor {
     public ClassNode() {
         this(Opcodes.ASM5);
         if (getClass() != ClassNode.class) {
-        	// fuk off useless shit
-            //throw new IllegalStateException();
+            throw new IllegalStateException();
         }
     }
 
@@ -213,11 +208,10 @@ public class ClassNode extends ClassVisitor {
      */
     public ClassNode(final int api) {
         super(api);
-        this.interfaces = new ArrayList<String>();
-        this.innerClasses = new ArrayList<InnerClassNode>();
-        this.fields = new ArrayList<FieldNode>();
-        this.methods = new ArrayList<MethodNode>();
-        references =  new HashSet<String>();
+        interfaces = new ArrayList<>();
+        innerClasses = new ArrayList<>();
+        fields = new ArrayList<>();
+        methods = new ArrayList<>();
     }
 
     // ------------------------------------------------------------------------
@@ -258,12 +252,12 @@ public class ClassNode extends ClassVisitor {
         AnnotationNode an = new AnnotationNode(desc);
         if (visible) {
             if (visibleAnnotations == null) {
-                visibleAnnotations = new ArrayList<AnnotationNode>(1);
+                visibleAnnotations = new ArrayList<>(1);
             }
             visibleAnnotations.add(an);
         } else {
             if (invisibleAnnotations == null) {
-                invisibleAnnotations = new ArrayList<AnnotationNode>(1);
+                invisibleAnnotations = new ArrayList<>(1);
             }
             invisibleAnnotations.add(an);
         }
@@ -276,12 +270,12 @@ public class ClassNode extends ClassVisitor {
         TypeAnnotationNode an = new TypeAnnotationNode(typeRef, typePath, desc);
         if (visible) {
             if (visibleTypeAnnotations == null) {
-                visibleTypeAnnotations = new ArrayList<TypeAnnotationNode>(1);
+                visibleTypeAnnotations = new ArrayList<>(1);
             }
             visibleTypeAnnotations.add(an);
         } else {
             if (invisibleTypeAnnotations == null) {
-                invisibleTypeAnnotations = new ArrayList<TypeAnnotationNode>(1);
+                invisibleTypeAnnotations = new ArrayList<>(1);
             }
             invisibleTypeAnnotations.add(an);
         }
@@ -291,7 +285,7 @@ public class ClassNode extends ClassVisitor {
     @Override
     public void visitAttribute(final Attribute attr) {
         if (attrs == null) {
-            attrs = new ArrayList<Attribute>(1);
+            attrs = new ArrayList<>(1);
         }
         attrs.add(attr);
     }
@@ -422,156 +416,11 @@ public class ClassNode extends ClassVisitor {
         cv.visitEnd();
     }
     
-    public List<String> constructors() {
-		List<String> constructors = new ArrayList<>();
-		for (MethodNode mn : methods) {
-			if (mn.name.equals("<init>"))
-				constructors.add(mn.desc);
-		}
-		return constructors;
-	}
-
-	public MethodNode getMethodByName(String name) {
-		for (MethodNode mn : methods) {
-			if (mn.name.equals(name))
-				return mn;
-		}
-		return null;
-	}
-
-	public FieldNode getField(String field, String desc, boolean ignoreStatic) {
-		for (FieldNode fn : fields) {
-			if (ignoreStatic && (fn.access & Opcodes.ACC_STATIC) == Opcodes.ACC_STATIC)
-				continue;
-			if ((field == null || fn.name.equals(field)) && (desc == null || desc.equals(fn.desc)))
-				return fn;
-		}
-		return null;
-	}
-
-	public FieldNode getField(String field, String desc) {
-		return getField(field, desc, true);
-	}
-
-	public FieldNode getPublicField(String field, String desc, boolean ignoreStatic) {
-		for (FieldNode fn : fields) {
-			if ((fn.access & Opcodes.ACC_PUBLIC) != Opcodes.ACC_PUBLIC)
-				continue;
-			if (ignoreStatic && (fn.access & Opcodes.ACC_STATIC) == Opcodes.ACC_STATIC)
-				continue;
-			if ((field == null || fn.name.equals(field)) && (desc == null || desc.equals(fn.desc)))
-				return fn;
-		}
-		return null;
-	}
-
-	public FieldNode getPublicField(String field, String desc) {
-		return getPublicField(field, desc, true);
-	}
-
 	public MethodNode getMethod(String method, String desc, boolean isStatic) {
 		for (MethodNode mn : methods) {
 			if (mn.name.equals(method) && (desc == null || desc.equals(mn.desc)) && Modifier.isStatic(mn.access) == isStatic)
 				return mn;
 		}
 		return null;
-	}
-
-	public MethodNode getMethod(String desc) {
-		for (MethodNode mn : methods) {
-			if (desc.endsWith(mn.desc))
-				return mn;
-		}
-		return null;
-	}
-
-	public int methodCount(String desc, boolean ignoreStatic) {
-		int count = 0;
-		for (MethodNode mn : methods) {
-			if (ignoreStatic && (mn.access & Opcodes.ACC_STATIC) == Opcodes.ACC_STATIC) {
-				continue;
-			}
-			if (mn.desc.equals(desc)) {
-				count++;
-			}
-		}
-		return count;
-	}
-
-	public int methodCount(String desc) {
-		return methodCount(desc, true);
-	}
-
-	public int fieldCount(String desc, boolean ignoreStatic) {
-		int count = 0;
-		for (FieldNode fn : fields) {
-			if (ignoreStatic && (fn.access & Opcodes.ACC_STATIC) == Opcodes.ACC_STATIC)
-				continue;
-			if (fn.desc.equals(desc))
-				count++;
-		}
-		return count;
-	}
-
-	public int fieldCount(String desc) {
-		return fieldCount(desc, true);
-	}
-
-	public int cstCount(String desc) {
-		int count = 0;
-		for(FieldNode f : fields) {
-			if(Modifier.isStatic(f.access) && f.desc.equals(desc))
-				count++;
-		}
-		return count;
-	}
-	
-	public int getAbnormalFieldCount(boolean ignoreStatic) {
-		int count = 0;
-		for (FieldNode fn : fields) {
-			if (ignoreStatic && (fn.access & Opcodes.ACC_STATIC) == Opcodes.ACC_STATIC)
-				continue;
-			if (fn.desc.contains("L") && fn.desc.endsWith(";") && !fn.desc.contains("java"))
-				count++;
-		}
-		return count;
-	}
-
-	public int getAbnormalFieldCount() {
-		return getAbnormalFieldCount(true);
-	}
-
-	public int getFieldTypeCount(boolean ignoreStatic) {
-		List<String> types = new ArrayList<>();
-		for (FieldNode fn : fields) {
-			if (ignoreStatic && (fn.access & Opcodes.ACC_STATIC) == Opcodes.ACC_STATIC)
-				continue;
-			if (!types.contains(fn.desc))
-				types.add(fn.desc);
-		}
-		return types.size();
-	}
-
-	public int getFieldTypeCount() {
-		return getFieldTypeCount(true);
-	}
-
-	public boolean ownerless() {
-		return superName.equals("java/lang/Object");
-	}
-	
-	public int countNonStatic() {
-		int n = 0;
-		for(FieldNode f : fields) {
-			if(!Modifier.isStatic(f.access)) {
-				n++;
-			}
-		}
-		return n;
-	}
-	
-	@Override
-	public String toString(){
-		return name;
 	}
 }

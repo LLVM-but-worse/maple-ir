@@ -29,15 +29,12 @@
  */
 package org.objectweb.asm.tree;
 
-import java.io.File;
-import java.io.FileOutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
 import org.mapleir.stdlib.collections.graph.FastGraphVertex;
 import org.objectweb.asm.*;
-import org.objectweb.asm.commons.cfg.query.InsnQuery;
 
 /**
  * A node that represents a method.
@@ -51,7 +48,7 @@ public class MethodNode extends MethodVisitor implements FastGraphVertex {
     // maple-ir end //
 
 	public ClassNode owner;
-	
+    private String cachedKey;
     /**
      * The method's access flags (see {@link Opcodes}). This field also
      * indicates if the method is synthetic and/or deprecated.
@@ -213,10 +210,6 @@ public class MethodNode extends MethodVisitor implements FastGraphVertex {
      */
     private boolean visited;
 
-    public Handle handle;
-    
-    private String cachedKey;
-    
     /**
      * Constructs an uninitialized {@link MethodNode}. <i>Subclasses must not
      * use this constructor</i>. Instead, they must use the
@@ -243,8 +236,6 @@ public class MethodNode extends MethodVisitor implements FastGraphVertex {
         super(api);
         this.owner = owner;
         instructions = new InsnList();
-        if(this.owner != null)
-            handle = new Handle(0, owner.name, name, desc);
     }
 
     /**
@@ -317,8 +308,6 @@ public class MethodNode extends MethodVisitor implements FastGraphVertex {
             this.exceptions.addAll(Arrays.asList(exceptions));
         }
         instructions = new InsnList();
-        if(this.owner != null)
-            handle = new Handle(0, owner.name, name, desc);
     }
 
     // ------------------------------------------------------------------------
@@ -334,7 +323,6 @@ public class MethodNode extends MethodVisitor implements FastGraphVertex {
     }
 
     @Override
-    @SuppressWarnings("serial")
     public AnnotationVisitor visitAnnotationDefault() {
         return new AnnotationNode(new ArrayList<Object>(0) {
             @Override
@@ -382,7 +370,6 @@ public class MethodNode extends MethodVisitor implements FastGraphVertex {
     }
 
     @Override
-    @SuppressWarnings("unchecked")
     public AnnotationVisitor visitParameterAnnotation(final int parameter,
             final String desc, final boolean visible) {
         AnnotationNode an = new AnnotationNode(desc);
@@ -432,38 +419,28 @@ public class MethodNode extends MethodVisitor implements FastGraphVertex {
 
     @Override
     public void visitInsn(final int opcode) {
-    	InsnNode in = new InsnNode(opcode);
-    	in.method = this;
-        instructions.add(in);
+        instructions.add(new InsnNode(opcode));
     }
 
     @Override
     public void visitIntInsn(final int opcode, final int operand) {
-    	IntInsnNode iin = new IntInsnNode(opcode, operand);
-    	iin.method = this;
-        instructions.add(iin);
+        instructions.add(new IntInsnNode(opcode, operand));
     }
 
     @Override
     public void visitVarInsn(final int opcode, final int var) {
-    	VarInsnNode vin = new VarInsnNode(opcode, var);
-    	vin.method = this;
-        instructions.add(vin);
+        instructions.add(new VarInsnNode(opcode, var));
     }
 
     @Override
     public void visitTypeInsn(final int opcode, final String type) {
-    	TypeInsnNode tin = new TypeInsnNode(opcode, type);
-    	tin.method = this;
-        instructions.add(tin);
+        instructions.add(new TypeInsnNode(opcode, type));
     }
 
     @Override
     public void visitFieldInsn(final int opcode, final String owner,
             final String name, final String desc) {
-    	FieldInsnNode fin = new FieldInsnNode(opcode, owner, name, desc);
-    	fin.method = this;
-        instructions.add(fin);
+        instructions.add(new FieldInsnNode(opcode, owner, name, desc));
     }
 
     @Deprecated
@@ -474,12 +451,7 @@ public class MethodNode extends MethodVisitor implements FastGraphVertex {
             super.visitMethodInsn(opcode, owner, name, desc);
             return;
         }
-        MethodInsnNode min = new MethodInsnNode(opcode, owner, name, desc);
-        min.method = this;
-        if(this.owner != null) {
-        	this.owner.references.add(min.key());
-        }
-        instructions.add(min);
+        instructions.add(new MethodInsnNode(opcode, owner, name, desc));
     }
 
     @Override
@@ -489,27 +461,18 @@ public class MethodNode extends MethodVisitor implements FastGraphVertex {
             super.visitMethodInsn(opcode, owner, name, desc, itf);
             return;
         }
-        MethodInsnNode min = new MethodInsnNode(opcode, owner, name, desc, itf);
-        min.method = this;
-        if(this.owner != null) {
-        	this.owner.references.add(min.key());
-        }
-        instructions.add(min);
+        instructions.add(new MethodInsnNode(opcode, owner, name, desc, itf));
     }
 
     @Override
     public void visitInvokeDynamicInsn(String name, String desc, Handle bsm,
             Object... bsmArgs) {
-    	InvokeDynamicInsnNode d = new InvokeDynamicInsnNode(name, desc, bsm, bsmArgs);
-    	d.method = this;
-        instructions.add(d);
+        instructions.add(new InvokeDynamicInsnNode(name, desc, bsm, bsmArgs));
     }
 
     @Override
     public void visitJumpInsn(final int opcode, final Label label) {
-    	JumpInsnNode jin = new JumpInsnNode(opcode, getLabelNode(label));
-    	jin.method = this;
-        instructions.add(jin);
+        instructions.add(new JumpInsnNode(opcode, getLabelNode(label)));
     }
 
     @Override
@@ -519,41 +482,31 @@ public class MethodNode extends MethodVisitor implements FastGraphVertex {
 
     @Override
     public void visitLdcInsn(final Object cst) {
-    	LdcInsnNode ldc = new LdcInsnNode(cst);
-    	ldc.method = this;
-        instructions.add(ldc);
+        instructions.add(new LdcInsnNode(cst));
     }
 
     @Override
     public void visitIincInsn(final int var, final int increment) {
-    	IincInsnNode in = new IincInsnNode(var, increment);
-    	in.method = this;
-        instructions.add(in);
+        instructions.add(new IincInsnNode(var, increment));
     }
 
     @Override
     public void visitTableSwitchInsn(final int min, final int max,
             final Label dflt, final Label... labels) {
-    	TableSwitchInsnNode in = new TableSwitchInsnNode(min, max, getLabelNode(dflt),
-                getLabelNodes(labels));
-    	in.method = this;
-        instructions.add(in);
+        instructions.add(new TableSwitchInsnNode(min, max, getLabelNode(dflt),
+                getLabelNodes(labels)));
     }
 
     @Override
     public void visitLookupSwitchInsn(final Label dflt, final int[] keys,
             final Label[] labels) {
-    	LookupSwitchInsnNode in = new LookupSwitchInsnNode(getLabelNode(dflt), keys,
-                getLabelNodes(labels));
-    	in.method = this;
-        instructions.add(in);
+        instructions.add(new LookupSwitchInsnNode(getLabelNode(dflt), keys,
+                getLabelNodes(labels)));
     }
 
     @Override
     public void visitMultiANewArrayInsn(final String desc, final int dims) {
-       MultiANewArrayInsnNode in = new MultiANewArrayInsnNode(desc, dims);
-       in.method = this;
-       instructions.add(in);
+        instructions.add(new MultiANewArrayInsnNode(desc, dims));
     }
 
     @Override
@@ -644,9 +597,7 @@ public class MethodNode extends MethodVisitor implements FastGraphVertex {
 
     @Override
     public void visitLineNumber(final int line, final Label start) {
-    	LineNumberNode lin = new LineNumberNode(line, getLabelNode(start));
-        lin.method = this;
-    	instructions.add(lin);
+        instructions.add(new LineNumberNode(line, getLabelNode(start)));
     }
 
     @Override
@@ -772,15 +723,10 @@ public class MethodNode extends MethodVisitor implements FastGraphVertex {
         MethodVisitor mv = cv.visitMethod(access, name, desc, signature,
                 exceptions);
         if (mv != null) {
-            try {
-            	accept(mv);
-            } catch(NullPointerException e) {
-            	e.printStackTrace();
-            	System.exit(1);
-            }
+            accept(mv);
         }
     }
-    
+
     /**
      * Makes the given method visitor visit this method.
      * 
@@ -850,11 +796,9 @@ public class MethodNode extends MethodVisitor implements FastGraphVertex {
                 an.accept(mv.visitParameterAnnotation(i, an.desc, false));
             }
         }
-        
         if (visited) {
             instructions.resetLabels();
         }
-        
         n = attrs == null ? 0 : attrs.size();
         for (i = 0; i < n; ++i) {
             mv.visitAttribute(attrs.get(i));
@@ -887,91 +831,12 @@ public class MethodNode extends MethodVisitor implements FastGraphVertex {
                 invisibleLocalVariableAnnotations.get(i).accept(mv, false);
             }
             // visits maxs
-            try {
-//				InstructionPrinter.consolePrint(this);
-            	mv.visitMaxs(maxStack, maxLocals);
-            } catch(RuntimeException e) {
-            	System.err.println(this);
-            	try {
-            		ClassNode cn = owner;
-                	MethodNode m = this;
-                	cn.methods.clear();
-        			cn.methods.add(m);
-        			ClassWriter cw = new ClassWriter(0);
-        			cn.accept(cw);
-        			byte[] bs = cw.toByteArray();
-        			FileOutputStream out = new FileOutputStream(new File("out/err.class"));
-        			out.write(bs, 0, bs.length);
-        			out.close();
-            	} catch(Throwable e1) {
-            		e1.printStackTrace();
-            	}
-            	throw e;
-            }
+            mv.visitMaxs(maxStack, maxLocals);
             visited = true;
         }
         mv.visitEnd();
     }
     
-	/**
-	 * Gets the amount of times the given opcodes has been matched
-	 *
-	 * @param opcode
-	 *            The opcode to match
-	 * @return The amount of times the given opcode has been matched.
-	 */
-	public int count(int opcode) {
-		int count = 0;
-		for (AbstractInsnNode ain : instructions.toArray()) {
-			if (ain.opcode() == opcode)
-				count++;
-		}
-		return count;
-	}
-
-	/**
-	 * Gets the amount of times the given query has been matched
-	 *
-	 * @param entry
-	 *            The query to match
-	 * @return The amount of times the given query has been matched.
-	 */
-	public int count(InsnQuery entry) {
-		int count = 0;
-		for (AbstractInsnNode ain : instructions.toArray()) {
-			if (entry.matches(ain))
-				count++;
-		}
-		return count;
-	}
-
-	public int parameters() {
-		String params = desc.split("\\(")[1].split("\\)")[0];
-		if (params.isEmpty())
-			return 0;
-		int index = 0, count = 0;
-		loop: while (index < params.length()) {
-			if (params.charAt(index) == 'L') {
-				for (int i = 0; i < params.length() - index; i++) {
-					if (params.charAt(i + index) == ';') {
-						index += i;
-						count++;
-						continue loop;
-					}
-				}
-				return 0;
-			} else {
-				index++;
-				count++;
-			}
-		}
-		return count;
-	}
-
-	public boolean referenced(ClassNode cn) {
-		return cn.references.contains(owner.name + "." + name + desc);
-	}
-
 	public void cacheKey(){
 		cachedKey = key();
 	}

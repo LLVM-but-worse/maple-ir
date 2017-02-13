@@ -27,62 +27,15 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.objectweb.asm.tree;
+package org.objectweb.asm.commons.blocksplit;
 
-import java.util.Map;
-
-import org.objectweb.asm.MethodVisitor;
-
-/**
- * A node that represents an instruction with a single int operand.
- * 
- * @author Eric Bruneton
- */
-public class IntInsnNode extends AbstractInsnNode {
-
+public interface INameGenerator {
     /**
-     * The operand of this instruction.
+     * Generate a unique name for a class member
+     *
+     * @param mainMembernName a name for the member this unique name is derived from
+     * @param id a locally unique identifier
+     * @returns a unique name for a class member
      */
-    public int operand;
-
-    /**
-     * Constructs a new {@link IntInsnNode}.
-     * 
-     * @param opcode
-     *            the opcode of the instruction to be constructed. This opcode
-     *            must be BIPUSH, SIPUSH or NEWARRAY.
-     * @param operand
-     *            the operand of the instruction to be constructed.
-     */
-    public IntInsnNode(final int opcode, final int operand) {
-        super(opcode);
-        this.operand = operand;
-    }
-
-    /**
-     * Sets the opcode of this instruction.
-     * 
-     * @param opcode
-     *            the new instruction opcode. This opcode must be BIPUSH, SIPUSH
-     *            or NEWARRAY.
-     */
-    public void setOpcode(final int opcode) {
-        this.opcode = opcode;
-    }
-
-    @Override
-    public int type() {
-        return INT_INSN;
-    }
-
-    @Override
-    public void accept(final MethodVisitor mv) {
-        mv.visitIntInsn(opcode, operand);
-        acceptAnnotations(mv);
-    }
-
-    @Override
-    public AbstractInsnNode clone(final Map<LabelNode, LabelNode> labels) {
-        return new IntInsnNode(opcode, operand).cloneAnnotations(this);
-    }
+    String generateName(String mainMemberName, int id);
 }

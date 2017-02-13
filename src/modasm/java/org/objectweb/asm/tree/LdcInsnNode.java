@@ -76,9 +76,4 @@ public class LdcInsnNode extends AbstractInsnNode {
     public AbstractInsnNode clone(final Map<LabelNode, LabelNode> labels) {
         return new LdcInsnNode(cst).cloneAnnotations(this);
     }
-    
-    @Override
-	public String toString() {
-    	return "LDC: " + cst;
-    }
 }

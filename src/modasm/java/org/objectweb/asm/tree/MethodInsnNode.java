@@ -131,24 +131,10 @@ public class MethodInsnNode extends AbstractInsnNode {
     @Override
     public void accept(final MethodVisitor mv) {
         mv.visitMethodInsn(opcode, owner, name, desc, itf);
-        acceptAnnotations(mv);
     }
 
     @Override
     public AbstractInsnNode clone(final Map<LabelNode, LabelNode> labels) {
         return new MethodInsnNode(opcode, owner, name, desc, itf);
-    }
-    
-    public String key(){
-    	return owner + "." + name + desc;
-    }
-    
-    public String halfKey(){
-    	return name + desc;
-    }
-    
-    @Override
-	public String toString(){
-    	return key();
     }
 }

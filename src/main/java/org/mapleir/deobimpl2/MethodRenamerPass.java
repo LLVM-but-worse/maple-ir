@@ -114,7 +114,7 @@ public class MethodRenamerPass implements ICompilerPass {
 										}
 									} else {
 										if(!tree.isJDKClass(tree.findClass(invoke.getOwner()))) {
-											System.err.println("Can't resolve(v) " + invoke);
+											System.err.println("Can't resolve(v) " + invoke + ", owner: " + invoke.getOwner());
 										}
 									}
 								}

@@ -199,7 +199,7 @@ public class Type {
      * @param len
      *            the length of this descriptor.
      */
-    public Type(final int sort, final char[] buf, final int off, final int len) {
+    private Type(final int sort, final char[] buf, final int off, final int len) {
         this.sort = sort;
         this.buf = buf;
         this.off = off;
@@ -556,11 +556,11 @@ public class Type {
         case DOUBLE:
             return "double";
         case ARRAY:
-            StringBuilder sb = new StringBuilder(getElementType().getClassName());
+            StringBuffer b = new StringBuffer(getElementType().getClassName());
             for (int i = getDimensions(); i > 0; --i) {
-                sb.append("[]");
+                b.append("[]");
             }
-            return sb.toString();
+            return b.toString();
         case OBJECT:
             return new String(buf, off, len).replace('/', '.');
         default:
@@ -893,16 +893,4 @@ public class Type {
     public String toString() {
         return getDescriptor();
     }
-    
-    public char[] getBuf() {
-    	return buf;
-    }
-
-	public int getOff() {
-		return off;
-	}
-
-	public int getLen() {
-		return len;
-	}
 }

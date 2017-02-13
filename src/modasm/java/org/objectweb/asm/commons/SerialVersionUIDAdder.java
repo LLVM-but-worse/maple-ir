@@ -210,9 +210,7 @@ public class SerialVersionUIDAdder extends ClassVisitor {
         if (computeSVUID) {
             this.name = name;
             this.access = access;
-            this.interfaces = new String[interfaces.length];
-            System.arraycopy(interfaces, 0, this.interfaces, 0,
-                    interfaces.length);
+            this.interfaces = Arrays.copyOf(interfaces, interfaces.length);
         }
 
         super.visit(version, access, name, signature, superName, interfaces);
@@ -337,7 +335,8 @@ public class SerialVersionUIDAdder extends ClassVisitor {
 
     protected void addSVUID(long svuid) {
         FieldVisitor fv = super.visitField(Opcodes.ACC_FINAL
-                + Opcodes.ACC_STATIC, "serialVersionUID", "J", null, svuid);
+                + Opcodes.ACC_STATIC, "serialVersionUID", "J", null, new Long(
+                svuid));
         if (fv != null) {
             fv.visitEnd();
         }
