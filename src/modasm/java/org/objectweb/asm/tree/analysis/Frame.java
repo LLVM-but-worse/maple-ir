@@ -83,7 +83,6 @@ public class Frame<V extends Value> {
      * @param nStack
      *            the maximum stack size of the frame.
      */
-    @SuppressWarnings("unchecked")
     public Frame(final int nLocals, final int nStack) {
         this.values = (V[]) new Value[nLocals + nStack];
         this.locals = nLocals;
@@ -100,10 +99,6 @@ public class Frame<V extends Value> {
         init(src);
     }
 
-    public V[] getValues() {
-    	return values;
-    }
-    
     /**
      * Copies the state of the given frame into this frame.
      * 
@@ -588,10 +583,9 @@ public class Frame<V extends Value> {
             interpreter.returnOperation(insn, value1, returnValue);
             break;
         case Opcodes.RETURN:
-        	//FIXME: solution for this
-//            if (returnValue != null) {
-//                throw new AnalyzerException(insn, "Incompatible return type");
-//            }
+            if (returnValue != null) {
+                throw new AnalyzerException(insn, "Incompatible return type");
+            }
             break;
         case Opcodes.GETSTATIC:
             push(interpreter.newOperation(insn));
@@ -731,14 +725,14 @@ public class Frame<V extends Value> {
      */
     @Override
     public String toString() {
-        StringBuilder sb = new StringBuilder();
+        StringBuffer b = new StringBuffer();
         for (int i = 0; i < getLocals(); ++i) {
-            sb.append(getLocal(i));
+            b.append(getLocal(i));
         }
-        sb.append(' ');
+        b.append(' ');
         for (int i = 0; i < getStackSize(); ++i) {
-            sb.append(getStack(i).toString());
+            b.append(getStack(i).toString());
         }
-        return sb.toString();
+        return b.toString();
     }
 }

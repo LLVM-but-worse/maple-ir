@@ -39,7 +39,7 @@ import org.objectweb.asm.Opcodes;
  * <ul>
  * <li><i>ClassSignature</i> = ( <tt>visitFormalTypeParameter</tt>
  * <tt>visitClassBound</tt>? <tt>visitInterfaceBound</tt>* )* (
- * <tt>visitSuperclass</tt> <tt>visitInterface</tt>* )</li>
+ * <tt>visitSuperClass</tt> <tt>visitInterface</tt>* )</li>
  * <li><i>MethodSignature</i> = ( <tt>visitFormalTypeParameter</tt>
  * <tt>visitClassBound</tt>? <tt>visitInterfaceBound</tt>* )* (
  * <tt>visitParameterType</tt>* <tt>visitReturnType</tt>

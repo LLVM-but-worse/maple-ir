@@ -80,9 +80,4 @@ public class IincInsnNode extends AbstractInsnNode {
     public AbstractInsnNode clone(final Map<LabelNode, LabelNode> labels) {
         return new IincInsnNode(var, incr).cloneAnnotations(this);
     }
-    
-    @Override
-	public String toString() {
-    	return "IINC #" + var + " " + incr;
-    }
 }

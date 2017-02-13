@@ -102,7 +102,6 @@ public class Analyzer<V extends Value> implements Opcodes {
      * @throws AnalyzerException
      *             if a problem occurs during the analysis.
      */
-    @SuppressWarnings("unchecked")
     public Frame<V>[] analyze(final String owner, final MethodNode m)
             throws AnalyzerException {
         if ((m.access & (ACC_ABSTRACT | ACC_NATIVE)) != 0) {
@@ -197,7 +196,6 @@ public class Analyzer<V extends Value> implements Opcodes {
                     merge(insn + 1, f, subroutine);
                     newControlFlowEdge(insn, insn + 1);
                 } else {
-                	// System.out.println("exec " + Printer.OPCODES[insnOpcode]);
                     current.init(f).execute(insnNode, interpreter);
                     subroutine = subroutine == null ? null : subroutine.copy();
 
@@ -323,7 +321,6 @@ public class Analyzer<V extends Value> implements Opcodes {
                     calls.add(node);
                 } else {
                     JumpInsnNode jnode = (JumpInsnNode) node;
-                    // System.out.println("finding at pos " + jnode.label.hashCode() + ", " + insns.indexOf(jnode) + ", " + Printer.OPCODES[jnode.opcode()] + ", " + System.identityHashCode(jnode));
                     findSubroutine(insns.indexOf(jnode.label), sub, calls);
                 }
             } else if (node instanceof TableSwitchInsnNode) {
