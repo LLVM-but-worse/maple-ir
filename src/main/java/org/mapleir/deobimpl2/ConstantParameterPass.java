@@ -14,8 +14,8 @@ import org.mapleir.ir.code.expr.ConstantExpr;
 import org.mapleir.ir.code.expr.InitialisedObjectExpr;
 import org.mapleir.ir.code.expr.InvocationExpr;
 import org.mapleir.ir.code.expr.VarExpr;
-import org.mapleir.ir.code.stmt.copy.AbstractCopyStatement;
-import org.mapleir.ir.code.stmt.copy.CopyVarStatement;
+import org.mapleir.ir.code.stmt.copy.AbstractCopyStmt;
+import org.mapleir.ir.code.stmt.copy.CopyVarStmt;
 import org.mapleir.ir.locals.LocalsPool;
 import org.mapleir.ir.locals.VersionedLocal;
 import org.mapleir.stdlib.IContext;
@@ -128,7 +128,7 @@ public class ConstantParameterPass implements ICompilerPass, Opcode {
 					LocalsPool pool = cfg.getLocals();
 					int argLocalIndex = paramIndices.get(mn)[i];
 					VersionedLocal argLocal = pool.get(argLocalIndex, 0, false);
-					AbstractCopyStatement argDef = pool.defs.get(argLocal);
+					AbstractCopyStmt argDef = pool.defs.get(argLocal);
 					
 					boolean removeDef = true;
 					
@@ -139,7 +139,7 @@ public class ConstantParameterPass implements ICompilerPass, Opcode {
 					VersionedLocal spill = pool.makeLatestVersion(argLocal);
 					dv.setLocal(spill);
 					
-					CopyVarStatement copy = new CopyVarStatement(dv, c.copy());
+					CopyVarStmt copy = new CopyVarStmt(dv, c.copy());
 					BasicBlock b = argDef.getBlock();
 					argDef.delete();
 					argDef = copy;

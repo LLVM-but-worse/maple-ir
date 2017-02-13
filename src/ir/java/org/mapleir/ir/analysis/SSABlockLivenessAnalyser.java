@@ -13,8 +13,8 @@ import org.mapleir.ir.code.Opcode;
 import org.mapleir.ir.code.Stmt;
 import org.mapleir.ir.code.expr.PhiExpr;
 import org.mapleir.ir.code.expr.VarExpr;
-import org.mapleir.ir.code.stmt.copy.CopyPhiStatement;
-import org.mapleir.ir.code.stmt.copy.CopyVarStatement;
+import org.mapleir.ir.code.stmt.copy.CopyPhiStmt;
+import org.mapleir.ir.code.stmt.copy.CopyVarStmt;
 import org.mapleir.ir.locals.Local;
 import org.mapleir.ir.locals.LocalsPool;
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
@@ -104,7 +104,7 @@ public class SSABlockLivenessAnalyser implements Liveness<BasicBlock> {
 			Stmt stmt = it.previous();
 			int opcode = stmt.getOpcode();
 			if (opcode == Opcode.PHI_STORE) {
-				CopyPhiStatement copy = (CopyPhiStatement) stmt;
+				CopyPhiStmt copy = (CopyPhiStmt) stmt;
 				phiDef.get(b).add(copy.getVariable().getLocal());
 				PhiExpr phi = copy.getExpression();
 				for (Map.Entry<BasicBlock, Expr> e : phi.getArguments().entrySet()) {
@@ -122,7 +122,7 @@ public class SSABlockLivenessAnalyser implements Liveness<BasicBlock> {
 				}
 			} else {
 				if (opcode == Opcode.LOCAL_STORE) {
-					CopyVarStatement copy = (CopyVarStatement) stmt;
+					CopyVarStmt copy = (CopyVarStmt) stmt;
 					Local l = copy.getVariable().getLocal();
 					def.get(b).add(l);
 					use.get(b).remove(l);

@@ -21,9 +21,9 @@ import org.mapleir.ir.code.expr.*;
 import org.mapleir.ir.code.expr.ArithmeticExpr.Operator;
 import org.mapleir.ir.code.expr.ComparisonExpr.ValueComparisonType;
 import org.mapleir.ir.code.stmt.*;
-import org.mapleir.ir.code.stmt.ConditionalJumpStatement.ComparisonType;
-import org.mapleir.ir.code.stmt.MonitorStatement.MonitorMode;
-import org.mapleir.ir.code.stmt.copy.CopyVarStatement;
+import org.mapleir.ir.code.stmt.ConditionalJumpStmt.ComparisonType;
+import org.mapleir.ir.code.stmt.MonitorStmt.MonitorMode;
+import org.mapleir.ir.code.stmt.copy.CopyVarStmt;
 import org.mapleir.ir.locals.Local;
 import org.mapleir.stdlib.collections.graph.GraphUtils;
 import org.mapleir.stdlib.collections.graph.flow.ExceptionRange;
@@ -745,7 +745,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		CaughtExceptionExpr expr = new CaughtExceptionExpr(tc.type);
 		Type type = expr.getType();
 		VarExpr var = _var_expr(0, type, true);
-		CopyVarStatement stmt = copy(var, expr, handler);
+		CopyVarStmt stmt = copy(var, expr, handler);
 		handler.add(stmt);
 		
 		stack.push(load_stack(0, type));
@@ -772,13 +772,13 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 	
 	private void addEntry(int index, Type type, BasicBlock b) {
 		VarExpr var = _var_expr(index, type, false);
-		CopyVarStatement stmt = selfDefine(var);
+		CopyVarStmt stmt = selfDefine(var);
 		builder.assigns.getNonNull(var.getLocal()).add(b);
 		b.add(stmt);
 	}
 	
-	protected CopyVarStatement selfDefine(VarExpr var) {
-		return new CopyVarStatement(var, var, true);
+	protected CopyVarStmt selfDefine(VarExpr var) {
+		return new CopyVarStmt(var, var, true);
 	}
 	
 	protected void queue(LabelNode label) {
@@ -1280,7 +1280,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 	protected void _return(Type type) {
 		if (type == Type.VOID_TYPE) {
 			currentStack.assertHeights(EMPTY_STACK_HEIGHTS);
-			addStmt(new ReturnStatement());
+			addStmt(new ReturnStmt());
 		} else {
 			save_stack(false);
 			if(type.getSize() == 2) {
@@ -1288,19 +1288,19 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 			} else {
 				currentStack.assertHeights(SINGLE_RETURN_HEIGHTS);
 			}
-			addStmt(new ReturnStatement(type, pop()));
+			addStmt(new ReturnStmt(type, pop()));
 		}
 	}
 
 	protected void _throw() {
 		save_stack(false);
 		currentStack.assertHeights(SINGLE_RETURN_HEIGHTS);
-		addStmt(new ThrowStatement(pop()));
+		addStmt(new ThrowStmt(pop()));
 	}
 
 	protected void _monitor(MonitorMode mode) {
 		save_stack(false);
-		addStmt(new MonitorStatement(pop(), mode));
+		addStmt(new MonitorStmt(pop(), mode));
 	}
 
 	protected void _arithmetic(Operator op) {
@@ -1339,13 +1339,13 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		Expr value = pop();
 		Expr index = pop();
 		Expr array = pop();
-		addStmt(new ArrayStoreStatement(array, index, value, type));
+		addStmt(new ArrayStoreStmt(array, index, value, type));
 	}
 	
 	protected void _pop(int amt) {
 		for(int i=0; i < amt; ) {
 			Expr top = pop();
-			addStmt(new PopStatement(top));
+			addStmt(new PopStmt(top));
 			i += top.getType().getSize();
 		}
 	}
@@ -1719,7 +1719,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		
 		DynamicInvocationExpr expr = new DynamicInvocationExpr(provider, pArgs, name, desc, args);
 		if(expr.getType() == Type.VOID_TYPE) {
-			addStmt(new PopStatement(expr));
+			addStmt(new PopStmt(expr));
 		} else {
 			int index = currentStack.height();
 			Type type = assign_stack(index, expr);
@@ -1738,7 +1738,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		}
 		InvocationExpr callExpr = new InvocationExpr(op, args, owner, name, desc);
 		if(callExpr.getType() == Type.VOID_TYPE) {
-			addStmt(new PopStatement(callExpr));
+			addStmt(new PopStmt(callExpr));
 		} else {
 			int index = currentStack.height();
 			Type type = assign_stack(index, callExpr);
@@ -1756,7 +1756,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		
 		update_target_stack(currentBlock, dflt, currentStack);
 		
-		addStmt(new SwitchStatement(expr, targets, dflt));
+		addStmt(new SwitchStmt(expr, targets, dflt));
 	}
 
 	protected void _store_field(int opcode, String owner, String name, String desc) {
@@ -1764,10 +1764,10 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		if(opcode == PUTFIELD) {
 			Expr val = pop();
 			Expr inst = pop();
-			addStmt(new FieldStoreStatement(inst, val, owner, name, desc));
+			addStmt(new FieldStoreStmt(inst, val, owner, name, desc));
 		} else if(opcode == PUTSTATIC) {
 			Expr val = pop();
-			addStmt(new FieldStoreStatement(null, val, owner, name, desc));
+			addStmt(new FieldStoreStmt(null, val, owner, name, desc));
 		} else {
 			throw new UnsupportedOperationException(Printer.OPCODES[opcode] + " " + owner + "." + name + "   " + desc);
 		}
@@ -1810,13 +1810,13 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		addStmt(copy(var, inc));
 	}
 	
-	protected CopyVarStatement copy(VarExpr v, Expr e) {
+	protected CopyVarStmt copy(VarExpr v, Expr e) {
 		return copy(v, e, currentBlock);
 	}
 	
-	protected CopyVarStatement copy(VarExpr v, Expr e, BasicBlock b) {
+	protected CopyVarStmt copy(VarExpr v, Expr e, BasicBlock b) {
 		builder.assigns.getNonNull(v.getLocal()).add(b);
-		return new CopyVarStatement(v.getParent() != null? v.copy() : v, e.getParent() != null? e.copy() : e);
+		return new CopyVarStmt(v.getParent() != null? v.copy() : v, e.getParent() != null? e.copy() : e);
 	}
 	
 	protected VarExpr _var_expr(int index, Type type, boolean isStack) {
@@ -1835,7 +1835,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		}
 		Type type = expr.getType();
 		VarExpr var = _var_expr(index, type, true);
-		CopyVarStatement stmt = copy(var, expr);
+		CopyVarStmt stmt = copy(var, expr);
 		addStmt(stmt);
 		return type;
 	}
@@ -1846,7 +1846,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 	
 	protected void _jump_cmp(BasicBlock target, ComparisonType type, Expr left, Expr right) {
 		update_target_stack(currentBlock, target, currentStack);
-		addStmt(new ConditionalJumpStatement(left, right, target, type));
+		addStmt(new ConditionalJumpStmt(left, right, target, type));
 	}
 	
 	protected void _jump_cmp(BasicBlock target, ComparisonType type) {
@@ -1874,7 +1874,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 
 	protected void _jump_uncond(BasicBlock target) {
 		update_target_stack(currentBlock, target, currentStack);
-		addStmt(new UnconditionalJumpStatement(target));
+		addStmt(new UnconditionalJumpStmt(target));
 	}
 	
 	protected Expr _pop(Expr e) {

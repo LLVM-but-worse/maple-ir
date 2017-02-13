@@ -9,8 +9,8 @@ import org.mapleir.ir.code.Opcode;
 import org.mapleir.ir.code.Stmt;
 import org.mapleir.ir.code.expr.ArithmeticExpr;
 import org.mapleir.ir.code.expr.ArithmeticExpr.Operator;
-import org.mapleir.ir.code.stmt.ConditionalJumpStatement;
-import org.mapleir.ir.code.stmt.ConditionalJumpStatement.ComparisonType;
+import org.mapleir.ir.code.stmt.ConditionalJumpStmt;
+import org.mapleir.ir.code.stmt.ConditionalJumpStmt.ComparisonType;
 import org.mapleir.stdlib.IContext;
 import org.mapleir.stdlib.deob.ICompilerPass;
 import org.objectweb.asm.tree.MethodNode;
@@ -38,7 +38,7 @@ public class ConstantExpressionReorderPass implements ICompilerPass, Opcode {
 		for(BasicBlock b : ir.vertices()) {
 			for(Stmt stmt : b) {
 				if(stmt.getOpcode() == COND_JUMP) {
-					ConditionalJumpStatement cjs = (ConditionalJumpStatement) stmt;
+					ConditionalJumpStmt cjs = (ConditionalJumpStmt) stmt;
 					Expr r = cjs.getRight();
 					Expr l = cjs.getLeft();
 					
