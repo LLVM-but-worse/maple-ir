@@ -12,8 +12,8 @@ import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.code.Opcode;
 import org.mapleir.ir.code.Stmt;
-import org.mapleir.ir.code.expr.PhiExpression;
-import org.mapleir.ir.code.expr.VarExpression;
+import org.mapleir.ir.code.expr.PhiExpr;
+import org.mapleir.ir.code.expr.VarExpr;
 import org.mapleir.ir.code.stmt.copy.AbstractCopyStatement;
 import org.mapleir.ir.code.stmt.copy.CopyPhiStatement;
 import org.mapleir.ir.locals.Local;
@@ -61,7 +61,7 @@ public class SSADefUseMap implements Opcode {
 				usedLocals.clear();
 				for (Expr s : stmt.enumerateOnlyChildren())
 					if(s.getOpcode() == Opcode.LOCAL_LOAD)
-						usedLocals.add(((VarExpression) s).getLocal());
+						usedLocals.add(((VarExpr) s).getLocal());
 
 				build(b, stmt, usedLocals);
 			}
@@ -84,7 +84,7 @@ public class SSADefUseMap implements Opcode {
 				usedLocals.clear();
 				for(Expr s : stmt.enumerateOnlyChildren())
 					if(s.getOpcode() == Opcode.LOCAL_LOAD)
-						usedLocals.add(((VarExpression) s).getLocal());
+						usedLocals.add(((VarExpr) s).getLocal());
 
 				buildIndex(b, stmt, index++, usedLocals);
 				build(b, stmt, usedLocals);
@@ -100,9 +100,9 @@ public class SSADefUseMap implements Opcode {
 
 			if(copy instanceof CopyPhiStatement) {
 				phiDefs.put(l, (CopyPhiStatement) copy);
-				PhiExpression phi = (PhiExpression) copy.getExpression();
+				PhiExpr phi = (PhiExpr) copy.getExpression();
 				for(Entry<BasicBlock, Expr> en : phi.getArguments().entrySet()) {
-					Local ul = ((VarExpression) en.getValue()).getLocal();
+					Local ul = ((VarExpr) en.getValue()).getLocal();
 					uses.getNonNull(ul).add(en.getKey());
 					phiUses.get(b).add(ul);
 				}
@@ -120,9 +120,9 @@ public class SSADefUseMap implements Opcode {
 			defIndex.put(copy.getVariable().getLocal(), index);
 
 			if (copy instanceof CopyPhiStatement) {
-				PhiExpression phi = ((CopyPhiStatement) copy).getExpression();
+				PhiExpr phi = ((CopyPhiStatement) copy).getExpression();
 				for (Entry<BasicBlock, Expr> en : phi.getArguments().entrySet()) {
-					lastUseIndex.getNonNull(((VarExpression) en.getValue()).getLocal()).put(en.getKey(), en.getKey().size());
+					lastUseIndex.getNonNull(((VarExpr) en.getValue()).getLocal()).put(en.getKey(), en.getKey().size());
 //					lastUseIndex.get(ul).put(b, -1);
 				}
 				return;

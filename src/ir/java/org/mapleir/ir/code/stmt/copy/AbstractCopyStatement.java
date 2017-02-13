@@ -4,7 +4,7 @@ import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.CodeUnit;
 import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.code.Stmt;
-import org.mapleir.ir.code.expr.VarExpression;
+import org.mapleir.ir.code.expr.VarExpr;
 import org.mapleir.ir.locals.Local;
 import org.mapleir.stdlib.util.TabbedStringWriter;
 import org.mapleir.stdlib.util.TypeUtils;
@@ -15,13 +15,13 @@ public abstract class AbstractCopyStatement extends Stmt {
 
 	private final boolean synthetic;
 	private Expr expression;
-	private VarExpression variable;
+	private VarExpr variable;
 	
-	public AbstractCopyStatement(int opcode, VarExpression variable, Expr expression) {
+	public AbstractCopyStatement(int opcode, VarExpr variable, Expr expression) {
 		this(opcode, variable, expression, false);
 	}
 	
-	public AbstractCopyStatement(int opcode, VarExpression variable, Expr expression, boolean synthetic) {
+	public AbstractCopyStatement(int opcode, VarExpr variable, Expr expression, boolean synthetic) {
 		super(opcode);
 		
 		if (variable == null | expression == null)
@@ -40,11 +40,11 @@ public abstract class AbstractCopyStatement extends Stmt {
 		return synthetic;
 	}
 
-	public VarExpression getVariable() {
+	public VarExpr getVariable() {
 		return variable;
 	}
 
-	public void setVariable(VarExpression var) {
+	public void setVariable(VarExpr var) {
 		variable = var;
 	}
 	
@@ -91,8 +91,8 @@ public abstract class AbstractCopyStatement extends Stmt {
 	@Override
 	// todo: this probably needs a refactoring
 	public void toCode(MethodVisitor visitor, ControlFlowGraph cfg) {
-		if(expression instanceof VarExpression) {
-			if(((VarExpression) expression).getLocal() == variable.getLocal()) {
+		if(expression instanceof VarExpr) {
+			if(((VarExpr) expression).getLocal() == variable.getLocal()) {
 				return;
 			}
 		}
@@ -132,8 +132,8 @@ public abstract class AbstractCopyStatement extends Stmt {
 	}
 
 	public boolean isRedundant() {
-		if(!synthetic && expression instanceof VarExpression) {
-			return ((VarExpression) expression).getLocal() == variable.getLocal();
+		if(!synthetic && expression instanceof VarExpr) {
+			return ((VarExpr) expression).getLocal() == variable.getLocal();
 		} else {
 			return false;
 		}

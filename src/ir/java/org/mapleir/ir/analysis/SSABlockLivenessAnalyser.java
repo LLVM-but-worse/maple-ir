@@ -11,8 +11,8 @@ import org.mapleir.ir.cfg.edge.FlowEdge;
 import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.code.Opcode;
 import org.mapleir.ir.code.Stmt;
-import org.mapleir.ir.code.expr.PhiExpression;
-import org.mapleir.ir.code.expr.VarExpression;
+import org.mapleir.ir.code.expr.PhiExpr;
+import org.mapleir.ir.code.expr.VarExpr;
 import org.mapleir.ir.code.stmt.copy.CopyPhiStatement;
 import org.mapleir.ir.code.stmt.copy.CopyVarStatement;
 import org.mapleir.ir.locals.Local;
@@ -106,17 +106,17 @@ public class SSABlockLivenessAnalyser implements Liveness<BasicBlock> {
 			if (opcode == Opcode.PHI_STORE) {
 				CopyPhiStatement copy = (CopyPhiStatement) stmt;
 				phiDef.get(b).add(copy.getVariable().getLocal());
-				PhiExpression phi = copy.getExpression();
+				PhiExpr phi = copy.getExpression();
 				for (Map.Entry<BasicBlock, Expr> e : phi.getArguments().entrySet()) {
 					BasicBlock exprSource = e.getKey();
 					Expr phiExpr = e.getValue();
 					GenericBitSet<Local> useSet = phiUse.get(b).getNonNull(exprSource);
 					if (phiExpr.getOpcode() == Opcode.LOCAL_LOAD) {
-						useSet.add(((VarExpression) phiExpr).getLocal());
+						useSet.add(((VarExpr) phiExpr).getLocal());
 					} else
 						for (Expr child : phiExpr.enumerateOnlyChildren()) {
 							if (child.getOpcode() == Opcode.LOCAL_LOAD) {
-								useSet.add(((VarExpression) child).getLocal());
+								useSet.add(((VarExpr) child).getLocal());
 							}
 						}
 				}
@@ -145,7 +145,7 @@ public class SSABlockLivenessAnalyser implements Liveness<BasicBlock> {
 				}
 				for (Expr c : stmt.enumerateOnlyChildren()) {
 					if (c.getOpcode() == Opcode.LOCAL_LOAD) {
-						VarExpression v = (VarExpression) c;
+						VarExpr v = (VarExpr) c;
 						use.get(b).add(v.getLocal());
 					}
 				}

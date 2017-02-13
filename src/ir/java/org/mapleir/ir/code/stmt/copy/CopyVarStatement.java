@@ -2,15 +2,15 @@ package org.mapleir.ir.code.stmt.copy;
 
 import org.mapleir.ir.code.CodeUnit;
 import org.mapleir.ir.code.Expr;
-import org.mapleir.ir.code.expr.VarExpression;
+import org.mapleir.ir.code.expr.VarExpr;
 
 public class CopyVarStatement extends AbstractCopyStatement {
 
-	public CopyVarStatement(VarExpression variable, Expr expression) {
+	public CopyVarStatement(VarExpr variable, Expr expression) {
 		super(LOCAL_STORE, variable, expression);
 	}
 	
-	public CopyVarStatement(VarExpression variable, Expr expression, boolean synthetic) {
+	public CopyVarStatement(VarExpr variable, Expr expression, boolean synthetic) {
 		super(LOCAL_STORE, variable, expression, synthetic);
 	}
 
