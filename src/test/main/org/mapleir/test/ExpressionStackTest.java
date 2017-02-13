@@ -5,8 +5,8 @@ import static org.junit.Assert.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.Test;
+import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.code.ExpressionStack;
-import org.mapleir.ir.code.expr.Expression;
 import org.mapleir.ir.code.expr.VarExpression;
 import org.mapleir.ir.locals.BasicLocal;
 import org.mapleir.ir.locals.Local;
@@ -56,7 +56,7 @@ public class ExpressionStackTest {
 		assertEquals(8, s.capacity());
 		
 		for(int j=0; j < s.capacity(); j++) {
-			Expression e = s.getAt(j);
+			Expr e = s.getAt(j);
 			if(e != null) {
 				fail("floater");
 			}
@@ -66,7 +66,7 @@ public class ExpressionStackTest {
 		assertEquals(8, s.capacity());
 	}
 	
-	private static Expression makeExpr(int size) {
+	private static Expr makeExpr(int size) {
 		Type type = size == 1 ? Type.INT_TYPE : Type.DOUBLE_TYPE;
 		return new VarExpression(TEST_LOCAL, type);
 	}

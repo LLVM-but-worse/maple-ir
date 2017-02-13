@@ -6,8 +6,6 @@ import org.mapleir.ir.cfg.FastBlockGraph;
 import org.mapleir.ir.cfg.edge.ImmediateEdge;
 import org.mapleir.stdlib.collections.bitset.GenericBitSet;
 
-import java.util.Set;
-
 public class BitsetTest {
 	public static void main(String[] args) {
 		new BitsetTest().test();

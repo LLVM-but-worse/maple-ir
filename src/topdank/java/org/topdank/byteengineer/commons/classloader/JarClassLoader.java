@@ -16,7 +16,6 @@ import sun.misc.URLClassPath;
  *
  * @author Bibl
  */
-@SuppressWarnings("restriction")
 public class JarClassLoader extends ClassLoader {
 
 	private final ClassLoader myParent;
@@ -50,8 +49,8 @@ public class JarClassLoader extends ClassLoader {
 			_parent = getClass().getClassLoader();
 		myParent = _parent;
 
-		cache = new HashMap<String, Class<?>>();
-		fastNodeCache = new HashMap<String, ClassNode>();
+		cache = new HashMap<>();
+		fastNodeCache = new HashMap<>();
 		ucp = new URLClassPath(new URL[0]);
 		add(contents);
 
