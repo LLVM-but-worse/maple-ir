@@ -11,8 +11,8 @@ import org.mapleir.ir.code.CodeUnit;
 import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.code.Opcode;
 import org.mapleir.ir.code.Stmt;
-import org.mapleir.ir.code.expr.FieldLoadExpression;
-import org.mapleir.ir.code.expr.VarExpression;
+import org.mapleir.ir.code.expr.FieldLoadExpr;
+import org.mapleir.ir.code.expr.VarExpr;
 import org.mapleir.ir.code.stmt.copy.AbstractCopyStatement;
 import org.mapleir.ir.locals.Local;
 
@@ -63,7 +63,7 @@ public class LatestValue {
 		for(Expr s : e.enumerateWithSelf()) {
 			int op = s.getOpcode();
 			if(op == Opcode.FIELD_LOAD) {
-				FieldConstraint c = new FieldConstraint((FieldLoadExpression) s);
+				FieldConstraint c = new FieldConstraint((FieldLoadExpr) s);
 				constraints.add(c);
 			} else if(ConstraintUtil.isInvoke(op)) {
 				constraints.add(new InvokeConstraint());
@@ -116,7 +116,7 @@ public class LatestValue {
 			} else {
 				if(constraints.size() > 0) {
 					for(CodeUnit s : stmt.enumerateExecutionOrder()) {
-						if(s == tail && (s.getOpcode() == Opcode.LOCAL_LOAD && ((VarExpression) s).getLocal() == local)) {
+						if(s == tail && (s.getOpcode() == Opcode.LOCAL_LOAD && ((VarExpr) s).getLocal() == local)) {
 							break;
 						} else {
 							for(Constraint c : constraints) {

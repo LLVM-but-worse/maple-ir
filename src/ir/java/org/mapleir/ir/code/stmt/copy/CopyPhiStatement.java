@@ -2,27 +2,27 @@ package org.mapleir.ir.code.stmt.copy;
 
 import org.mapleir.ir.code.CodeUnit;
 import org.mapleir.ir.code.Expr;
-import org.mapleir.ir.code.expr.PhiExpression;
-import org.mapleir.ir.code.expr.VarExpression;
+import org.mapleir.ir.code.expr.PhiExpr;
+import org.mapleir.ir.code.expr.VarExpr;
 
 public class CopyPhiStatement extends AbstractCopyStatement {
 
-	public CopyPhiStatement(VarExpression variable, PhiExpression expression) {
+	public CopyPhiStatement(VarExpr variable, PhiExpr expression) {
 		super(PHI_STORE, variable, expression);
 	}
 
-	public CopyPhiStatement(VarExpression variable, PhiExpression expression, boolean synthetic) {
+	public CopyPhiStatement(VarExpr variable, PhiExpr expression, boolean synthetic) {
 		super(PHI_STORE, variable, expression, synthetic);
 	}
 	
 	@Override
-	public PhiExpression getExpression() {
-		return (PhiExpression) super.getExpression();
+	public PhiExpr getExpression() {
+		return (PhiExpr) super.getExpression();
 	}
 	
 	@Override
 	public void setExpression(Expr expression) {
-		if(expression != null && !(expression instanceof PhiExpression)) {
+		if(expression != null && !(expression instanceof PhiExpr)) {
 			throw new UnsupportedOperationException(expression.toString());
 		}
 		
