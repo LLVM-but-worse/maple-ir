@@ -74,11 +74,15 @@ public class ControlFlowGraph extends FastBlockGraph {
 		sw.tab();
 		
 		for(FlowEdge<BasicBlock> e : cfg.getEdges(b)) {
-			sw.print("\n-> " + e.toString());
+//			if(e.getType() != FlowEdges.TRYCATCH) {
+				sw.print("\n-> " + e.toString());
+//			}
 		}
 
 		for(FlowEdge<BasicBlock> p : cfg.getReverseEdges(b)) {
-			sw.print("\n<- " + p.toString());
+//			if(p.getType() != FlowEdges.TRYCATCH) {
+				sw.print("\n<- " + p.toString());
+//			}
 		}
 
 		sw.untab();

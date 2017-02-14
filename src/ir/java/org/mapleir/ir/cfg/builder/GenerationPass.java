@@ -834,7 +834,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 				if(jin.opcode() == JSR) {
 					throw new UnsupportedOperationException("jsr " + builder.method);
 				} else if(jin.opcode() == GOTO) {
-					builder.graph.addEdge(block, new UnconditionalJumpEdge<>(block, target, jin.opcode()));
+					builder.graph.addEdge(block, new UnconditionalJumpEdge<>(block, target));
 				} else {
 					builder.graph.addEdge(block, new ConditionalJumpEdge<>(block, target, jin.opcode()));
 					int nextIndex = codeIndex + 1;

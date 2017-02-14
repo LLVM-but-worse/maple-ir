@@ -25,7 +25,6 @@ import org.mapleir.stdlib.IContext;
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.SetCreator;
 import org.mapleir.stdlib.deob.ICompilerPass;
-import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.FieldNode;
 import org.objectweb.asm.tree.MethodNode;
@@ -293,41 +292,41 @@ public class FieldRSADecryptionPass implements ICompilerPass, Opcode {
 			}
 		}
 		
-		for(ClassNode cn : cxt.getClassTree().getClasses().values()) {
-			for(MethodNode m : cn.methods) {
-				ControlFlowGraph cfg = cxt.getIR(m);
-				
-				for(BasicBlock b : cfg.vertices()) {
-					for(Stmt stmt : b) {
-						for(Expr e : stmt.enumerateOnlyChildren()) {
-							if(e.getOpcode() == Opcode.ARITHMETIC) {
-								ArithmeticExpr ae = (ArithmeticExpr) e;
-								if(ae.getRight().getOpcode() == Opcode.CONST_LOAD) {
-									ConstantExpr c = (ConstantExpr) ae.getRight();
-									Object o = c.getConstant();
-									
-									if(o instanceof Long || o instanceof Integer) {
-										Number n = (Number) o;
-										if(__eq(n, 1, ae.getType().equals(Type.LONG_TYPE))) {
-											Expr l = ae.getLeft();
-											l.unlink();
-											
-											CodeUnit aePar = ae.getParent();
-											aePar.overwrite(l, aePar.indexOf(ae));
-										} else if(__eq(n, 0, ae.getType().equals(Type.LONG_TYPE))) {
-											c.unlink();
-											
-											CodeUnit aePar = ae.getParent();
-											aePar.overwrite(c, aePar.indexOf(ae));
-										}
-									}
-								}
-							}
-						}
-					}
-				}
-			}
-		}
+//		for(ClassNode cn : cxt.getClassTree().getClasses().values()) {
+//			for(MethodNode m : cn.methods) {
+//				ControlFlowGraph cfg = cxt.getIR(m);
+//				
+//				for(BasicBlock b : cfg.vertices()) {
+//					for(Stmt stmt : b) {
+//						for(Expr e : stmt.enumerateOnlyChildren()) {
+//							if(e.getOpcode() == Opcode.ARITHMETIC) {
+//								ArithmeticExpr ae = (ArithmeticExpr) e;
+//								if(ae.getRight().getOpcode() == Opcode.CONST_LOAD) {
+//									ConstantExpr c = (ConstantExpr) ae.getRight();
+//									Object o = c.getConstant();
+//									
+//									if(o instanceof Long || o instanceof Integer) {
+//										Number n = (Number) o;
+//										if(__eq(n, 1, ae.getType().equals(Type.LONG_TYPE))) {
+//											Expr l = ae.getLeft();
+//											l.unlink();
+//											
+//											CodeUnit aePar = ae.getParent();
+//											aePar.overwrite(l, aePar.indexOf(ae));
+//										} else if(__eq(n, 0, ae.getType().equals(Type.LONG_TYPE))) {
+//											c.unlink();
+//											
+//											CodeUnit aePar = ae.getParent();
+//											aePar.overwrite(c, aePar.indexOf(ae));
+//										}
+//									}
+//								}
+//							}
+//						}
+//					}
+//				}
+//			}
+//		}
 	}
 	
 	private List<CodeUnit> getInsns(CodeUnit u, Set<CodeUnit> vis) {
