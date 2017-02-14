@@ -683,8 +683,9 @@ public class GraphUtils {
 	}
 	*/
 	
+	public static final int FAKEHEAD_ID = Integer.MAX_VALUE -1;
 	public static BasicBlock connectHead(ControlFlowGraph cfg) {
-		BasicBlock head = new BasicBlock(cfg, Integer.MAX_VALUE -1, null) {
+		BasicBlock head = new BasicBlock(cfg, FAKEHEAD_ID, null) {
 			@Override
 			public String getId() {
 				return "fakehead";
