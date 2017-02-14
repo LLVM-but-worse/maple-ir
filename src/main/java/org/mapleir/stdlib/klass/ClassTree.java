@@ -3,6 +3,7 @@ package org.mapleir.stdlib.klass;
 import static org.mapleir.stdlib.klass.ClassHelper.*;
 
 import java.util.*;
+import java.util.Map.Entry;
 
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.ValueCreator;
@@ -25,6 +26,21 @@ public class ClassTree implements Iterable<ClassNode> {
 	private final NullPermeableHashMap<ClassNode, Set<ClassNode>> supers;
 	private final NullPermeableHashMap<ClassNode, Set<ClassNode>> delgates;
 
+	public void rebuildTable() {
+		Set<ClassNode> cset = new HashSet<>(classes.values());
+		
+		classes.clear();
+		for(ClassNode cn : cset) {
+			classes.put(cn.name, cn);
+		}
+		
+		for(Entry<String, ClassNode> e : jdkclasses.entrySet()) {
+			if(!e.getValue().name.equals(e.getKey())) {
+				throw new IllegalStateException(e.getValue() + ", " + e.getKey());
+			}
+		}
+	}
+	
 	public ClassTree(Collection<ClassNode> classes) {
 		this(convertToMap(classes));
 	}
