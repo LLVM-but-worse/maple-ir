@@ -63,7 +63,7 @@ public class MethodRenamerPass implements ICompilerPass {
 								remapped.put(o, newName);
 							}
 						} else {
-							// System.out.println("Can't rename: " + methods);
+							System.out.println("  can't rename: " + methods);
 						}
 					}
 				}
@@ -81,6 +81,11 @@ public class MethodRenamerPass implements ICompilerPass {
 							
 							if(e.getOpcode() == Opcode.INVOKE) {
 								InvocationExpression invoke = (InvocationExpression) e;
+								
+								if(invoke.getOwner().startsWith("[")) {
+									System.err.println("  ignore array object invoke: " + invoke + ", owner: " + invoke.getOwner());
+									continue;
+								}
 
 								if(invoke.getInstanceExpression() == null) {
 									MethodNode site = resolver.resolveStaticCall(invoke.getOwner(), invoke.getName(), invoke.getDesc());
@@ -89,13 +94,13 @@ public class MethodRenamerPass implements ICompilerPass {
 										if(remapped.containsKey(site)) {
 											invoke.setName(remapped.get(site));
 										} else {
-											if(!tree.isJDKClass(tree.findClass(invoke.getOwner()))) {
-												System.err.println("Invalid site(s): " + invoke);
+											if(mustMark(tree, invoke.getOwner())) {
+												System.err.println("  invalid site(s): " + invoke);
 											}
 										}
 									} else {
-										if(!tree.isJDKClass(tree.findClass(invoke.getOwner()))) {
-											System.err.println("Can't resolve(s) " + invoke);
+										if(mustMark(tree, invoke.getOwner())) {
+											System.err.println("  can't resolve(s) " + invoke);
 										}
 									}
 								} else {
@@ -109,12 +114,12 @@ public class MethodRenamerPass implements ICompilerPass {
 											invoke.setName(remapped.get(site));
 										} else {
 											if(!site.name.equals("<init>") && canRename(cxt, sites)) {
-												System.err.println("Invalid site(v): " + invoke + ", " + sites);
+												System.err.println("  invalid site(v): " + invoke + ", " + sites);
 											}
 										}
 									} else {
-										if(!tree.isJDKClass(tree.findClass(invoke.getOwner()))) {
-											System.err.println("Can't resolve(v) " + invoke + ", owner: " + invoke.getOwner());
+										if(mustMark(tree, invoke.getOwner())) {
+											System.err.println("  can't resolve(v) " + invoke + ", owner: " + invoke.getOwner());
 										}
 									}
 								}
@@ -133,6 +138,11 @@ public class MethodRenamerPass implements ICompilerPass {
 		}
 		
 		System.out.printf("  Rename %d/%d methods.%n", remapped.size(), totalMethods);
+	}
+	
+	private boolean mustMark(ClassTree tree, String owner) {
+		ClassNode cn = tree.findClass(owner);
+		return cn == null || !tree.isJDKClass(cn);
 	}
 	
 	private boolean canRename(IContext cxt, Set<MethodNode> methods) {
