@@ -5,5 +5,5 @@ public interface BitSetIndexer<N> {
 	
 	N get(int index);
 	
-	boolean isIndexed(Object o);
+	boolean isIndexed(N o);
 }
