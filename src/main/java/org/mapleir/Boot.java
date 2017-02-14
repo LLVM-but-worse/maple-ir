@@ -8,9 +8,7 @@ import java.util.*;
 import java.util.Map.Entry;
 
 import org.mapleir.byteio.CompleteResolvingJarDumper;
-import org.mapleir.deobimpl2.ClassRenamerPass;
-import org.mapleir.deobimpl2.FieldRenamerPass;
-import org.mapleir.deobimpl2.MethodRenamerPass;
+import org.mapleir.deobimpl2.*;
 import org.mapleir.ir.ControlFlowGraphDumper;
 import org.mapleir.ir.cfg.BoissinotDestructor;
 import org.mapleir.ir.cfg.ControlFlowGraph;
@@ -59,7 +57,7 @@ public class Boot {
 		section0("...took %fs.%n", text);
 	}
 	
-	public static void main(String[] args) throws IOException {
+	public static void main2(String[] args) throws IOException {
 		cfgs = new HashMap<>();
 		sections = new LinkedList<>();
 		/* if(args.length < 1) {
@@ -160,7 +158,7 @@ public class Boot {
 		section("Finished.");
 	}
 	
-	public static void main1(String[] args) throws IOException {
+	public static void main(String[] args) throws IOException {
 		cfgs = new HashMap<>();
 		sections = new LinkedList<>();
 		/* if(args.length < 1) {
@@ -271,13 +269,14 @@ public class Boot {
 	
 	private static ICompilerPass[] getTransformationPasses() {
 		return new ICompilerPass[] {
-//				new CallgraphPruningPass(),
-//				new ConcreteStaticInvocationPass(),
+				new CallgraphPruningPass(),
+				new ConcreteStaticInvocationPass(),
 				new MethodRenamerPass(),
 				new ClassRenamerPass(),
-				new FieldRenamerPass()
-//				new ConstantParameterPass(),
-//				new ConstantExpressionReorderPass(),
+				new FieldRenamerPass(),
+				new ConstantParameterPass(),
+				new ConstantExpressionReorderPass(),
+				new ConstantExpressionEvaluatorPass()
 //				new FieldRSADecryptionPass()
 		};
 	}
