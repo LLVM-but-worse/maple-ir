@@ -43,7 +43,7 @@ public class MethodRenamerPass implements ICompilerPass {
 				if(remapped.containsKey(m)) {
 					continue;
 				}
-
+				
 				if(Modifier.isStatic(m.access)) {
 					if(!m.name.equals("<clinit>")) {
 						String newName = RenamingUtil.createName(i++);
@@ -72,6 +72,28 @@ public class MethodRenamerPass implements ICompilerPass {
 		}
 		
 		for(ClassNode cn : tree.getClasses().values()) {
+			{
+				if(cn.outerMethod != null) {
+//					ClassNode owner = tree.getClass(cn.outerClass);
+					System.out.println("Outer: " + cn.outerClass + "." + cn.outerMethod + " " + cn.outerMethodDesc);
+					cn.outerClass = null;
+					cn.outerMethod = null;
+					cn.outerMethodDesc = null;
+					//					System.out.println(owner.name);
+//					do {
+//						for(MethodNode m : owner.methods) {
+//							System.out.println(m);
+//							if(m.name.equals(cn.outerMethod) && m.desc.equals(cn.outerMethodDesc)) {
+//								System.out.println("m: " + m);
+//							}
+//						}
+//						owner = tree.getClass(owner.superName);
+//						System.out.println(cn.superName);
+//						System.out.println(owner);
+//					} while(owner != null);
+				}
+			}
+			
 			for(MethodNode m : cn.methods) {
 				
 				ControlFlowGraph cfg = cxt.getIR(m);
