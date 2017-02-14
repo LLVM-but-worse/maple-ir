@@ -38,6 +38,12 @@ public class GenericBitSet<N> implements Set<N> {
 	@Override
 	public boolean add(N n) {
 		boolean ret = !contains(n);
+		if (n != null && indexer.getIndex(n) > 100000) {
+			System.err.println("Probable bitset memory leak");
+			System.err.println(indexer.getIndex(n) + " " + n.getClass().getName());
+			System.err.println(indexer.getClass().getName());
+			new Throwable().printStackTrace();
+		}
 		bitset.set(indexer.getIndex(n));
 		return ret;
 	}
@@ -158,7 +164,7 @@ public class GenericBitSet<N> implements Set<N> {
 
     @Override @SuppressWarnings("unchecked")
 	public boolean contains(Object o) {
-        return indexer.isIndexed(o) && bitset.get(indexer.getIndex((N) o));
+        return indexer.isIndexed((N) o) && bitset.get(indexer.getIndex((N) o));
     }
 
 	@Override
