@@ -307,4 +307,9 @@ public class FieldNode extends FieldVisitor {
         }
         fv.visitEnd();
     }
+    
+    @Override
+	public String toString() {
+    	return owner.name + "." + name + " " + desc;
+    }
 }
