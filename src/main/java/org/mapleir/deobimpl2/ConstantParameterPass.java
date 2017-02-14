@@ -364,7 +364,7 @@ public class ConstantParameterPass implements ICompilerPass, Opcode {
 
 			CodeUnit parent = init.getParent();
 			Expr[] newArgs = buildArgs(init.getArgumentExpressions(), 0, dead);
-			InitialisedObjectExpr init2 = new InitialisedObjectExpr(init.getType(), init.getOwner(), to.desc, newArgs);
+			InitialisedObjectExpr init2 = new InitialisedObjectExpr(init.getOwner(), to.desc, newArgs);
 
 			parent.overwrite(init2, parent.indexOf(init));
 		} else if(call.getOpcode() == Opcode.INVOKE) {

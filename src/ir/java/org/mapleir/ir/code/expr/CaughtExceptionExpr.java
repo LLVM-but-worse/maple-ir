@@ -30,6 +30,10 @@ public class CaughtExceptionExpr extends Expr {
 	public Expr copy() {
 		return new CaughtExceptionExpr(type);
 	}
+	
+	public void setType(Type type) {
+		this.type = type;
+	}
 
 	@Override
 	public Type getType() {
