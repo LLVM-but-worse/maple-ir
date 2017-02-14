@@ -19,7 +19,11 @@ import org.mapleir.ir.code.stmt.copy.AbstractCopyStmt;
 import org.mapleir.stdlib.IContext;
 import org.mapleir.stdlib.deob.ICompilerPass;
 import org.objectweb.asm.Type;
-import org.objectweb.asm.tree.*;
+import org.objectweb.asm.tree.ClassNode;
+import org.objectweb.asm.tree.FieldNode;
+import org.objectweb.asm.tree.LocalVariableNode;
+import org.objectweb.asm.tree.MethodNode;
+import org.objectweb.asm.tree.TryCatchBlockNode;
 
 public class ClassRenamerPass implements ICompilerPass {
 
@@ -227,49 +231,6 @@ public class ClassRenamerPass implements ICompilerPass {
 									v.setType(Type.getType(newType));
 								}
 							}
-						}
-					}
-				}
-				
-				for(AbstractInsnNode ain : m.instructions.toArray()) {
-					
-					unsupported(ain.invisibleTypeAnnotations);
-					unsupported(ain.visibleTypeAnnotations);
-					
-					switch(ain.type()) {
-						case AbstractInsnNode.FIELD_INSN: {
-							FieldInsnNode fin = (FieldInsnNode) ain;
-							
-							{
-								Type type = Type.getType(fin.desc);
-								String newType = resolveType(type, remapping);
-								
-								if(newType != null) {
-									fin.desc = newType;
-								}
-							}
-							
-							fin.owner = remapping.getOrDefault(fin.owner, fin.owner);
-							break;
-						}
-						case AbstractInsnNode.METHOD_INSN: {
-							MethodInsnNode min = (MethodInsnNode) ain;
-							
-							min.desc = resolveMethod(min.desc, remapping);
-							min.owner = remapping.getOrDefault(min.owner, min.owner);
-							break;
-						}
-						case AbstractInsnNode.INVOKE_DYNAMIC_INSN: {
-							throw new UnsupportedOperationException();
-						}
-						case AbstractInsnNode.TYPE_INSN: {
-							TypeInsnNode tin = (TypeInsnNode) ain;
-							tin.desc = remapping.getOrDefault(tin.desc, tin.desc);
-							break;
-						}
-						case AbstractInsnNode.MULTIANEWARRAY_INSN: {
-							// MultiANewArrayInsnNode main = (MultiANewArrayInsnNode) ain;
-							throw new UnsupportedOperationException();
 						}
 					}
 				}
