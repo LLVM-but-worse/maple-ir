@@ -10,13 +10,17 @@ import org.mapleir.stdlib.collections.bitset.GenericBitSet;
 import org.mapleir.stdlib.collections.graph.FastDirectedGraph;
 import org.mapleir.stdlib.collections.graph.FastGraphVertex;
 
+import static org.mapleir.stdlib.collections.graph.GraphUtils.FAKEHEAD_ID;
+
 public abstract class FlowGraph<N extends FastGraphVertex, E extends FlowEdge<N>> extends FastDirectedGraph<N, E> implements ValueCreator<GenericBitSet<N>> {
 
 	protected final List<ExceptionRange<N>> ranges;
 	protected final Set<N> entries;
 	protected final Map<String, N> vertexIds;
-	protected BitSetIndexer<N> indexer;
-	protected Map<Integer, N> indexMap;
+	
+	protected final BitSetIndexer<N> indexer;
+	protected final Map<Integer, N> indexMap;
+	protected final BitSet indexedSet;
 	
 	public FlowGraph() {
 		ranges = new ArrayList<>();
@@ -25,6 +29,7 @@ public abstract class FlowGraph<N extends FastGraphVertex, E extends FlowEdge<N>
 
 		indexer = new FastGraphVertexBitSetIndexer();
 		indexMap = new HashMap<>();
+		indexedSet = new BitSet();
 	}
 	
 	public FlowGraph(FlowGraph<N, E> g) {
@@ -34,17 +39,18 @@ public abstract class FlowGraph<N extends FastGraphVertex, E extends FlowEdge<N>
 		entries = new HashSet<>(g.entries);
 		vertexIds = new HashMap<>(g.vertexIds);
 
-		indexMap = new HashMap<>(g.indexMap);
 		indexer = g.indexer;
+		indexMap = new HashMap<>(g.indexMap);
+		indexedSet = g.indexedSet;
 	}
 	
 	public N getBlock(String id) {
 		return vertexIds.get(id);
 	}
 
-	public N getBlock(int index) {
-		return indexMap.get(index);
-	}
+//	public N getBlock(int index) {
+//		return indexMap.get(index);
+//	}
 	
 	public Set<N> getEntries() {
 		return entries;
@@ -69,20 +75,27 @@ public abstract class FlowGraph<N extends FastGraphVertex, E extends FlowEdge<N>
 		super.clear();
 		vertexIds.clear();
 		indexMap.clear();
+		indexedSet.clear();
 	}
 	
 	@Override
 	public void addVertex(N v) {
 		vertexIds.put(v.getId(), v);
 		super.addVertex(v);
-		indexMap.put(v.getNumericId(), v);
+		
+		int index = translateBlockIndex(v.getNumericId());
+		indexMap.put(index, v);
+		indexedSet.set(index, true);
 	}	
 	
 	@Override
 	public void addEdge(N v, E e) {
 		vertexIds.put(v.getId(), v);
 		super.addEdge(v, e);
-		indexMap.put(v.getNumericId(), v);
+		
+		int index = translateBlockIndex(v.getNumericId());
+		indexMap.put(index, v);
+		indexedSet.set(index, true);
 	}
 	
 	@Override
@@ -108,7 +121,9 @@ public abstract class FlowGraph<N extends FastGraphVertex, E extends FlowEdge<N>
 		vertexIds.remove(v.getId());
 		super.removeVertex(v);
 
-		indexMap.remove(v.getNumericId());
+		int index = translateBlockIndex(v.getNumericId());
+		indexMap.remove(index);
+		indexedSet.set(index, false);
 	}
 	
 	public Set<N> wanderAllTrails(N from, N to, boolean forward) {
@@ -179,7 +194,7 @@ public abstract class FlowGraph<N extends FastGraphVertex, E extends FlowEdge<N>
 	private class FastGraphVertexBitSetIndexer implements BitSetIndexer<N> {
 		@Override
 		public int getIndex(N basicBlock) {
-			return basicBlock.getNumericId();
+			return translateBlockIndex(basicBlock.getNumericId());
 		}
 
 		@Override
@@ -188,8 +203,12 @@ public abstract class FlowGraph<N extends FastGraphVertex, E extends FlowEdge<N>
 		}
 
 		@Override
-		public boolean isIndexed(Object o) {
-			return vertices().contains(o);
+		public boolean isIndexed(N basicBlock) {
+			return basicBlock != null && indexedSet.get(getIndex(basicBlock));
 		}
+	}
+	
+	private static int translateBlockIndex(int i) {
+		return i == FAKEHEAD_ID ? 0 : ++i;
 	}
 }

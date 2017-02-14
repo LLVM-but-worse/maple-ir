@@ -33,7 +33,7 @@ public class IncrementalBitSetIndexer<N> implements BitSetIndexer<N> {
 	}
 	
 	@Override
-	public boolean isIndexed(Object o) {
+	public boolean isIndexed(N o) {
 		return map.containsKey(o);
 	}
 }
