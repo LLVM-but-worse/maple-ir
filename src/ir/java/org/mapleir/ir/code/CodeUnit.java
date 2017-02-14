@@ -7,7 +7,7 @@ import java.util.Set;
 
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
-import org.mapleir.ir.code.stmt.copy.CopyPhiStatement;
+import org.mapleir.ir.code.stmt.copy.CopyPhiStmt;
 import org.mapleir.stdlib.collections.graph.FastGraphVertex;
 import org.mapleir.stdlib.util.TabbedStringWriter;
 import org.objectweb.asm.MethodVisitor;
@@ -323,7 +323,7 @@ public abstract class CodeUnit implements FastGraphVertex, Opcode {
 	//		set.add(this);
 	//		
 	//		if(opcode == Opcode.PHI_STORE) {
-	//			CopyPhiStatement phi = (CopyPhiStatement) this;
+	//			CopyPhiStmt phi = (CopyPhiStmt) this;
 	//			for(Expression e : phi.getExpression().getArguments().values()) {
 	//				set.addAll(e._enumerate());
 	//			}
@@ -385,7 +385,7 @@ public abstract class CodeUnit implements FastGraphVertex, Opcode {
 		Set<Expr> set = new HashSet<>();
 
 		if(opcode == Opcode.PHI_STORE) {
-			CopyPhiStatement phi = (CopyPhiStatement) this;
+			CopyPhiStmt phi = (CopyPhiStmt) this;
 			for(Expr e : phi.getExpression().getArguments().values()) {
 				set.add(e);
 				set.addAll(e._enumerate());

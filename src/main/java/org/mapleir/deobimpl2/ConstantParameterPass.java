@@ -10,12 +10,12 @@ import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.CodeUnit;
 import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.code.Opcode;
-import org.mapleir.ir.code.expr.ConstantExpression;
-import org.mapleir.ir.code.expr.InitialisedObjectExpression;
-import org.mapleir.ir.code.expr.InvocationExpression;
-import org.mapleir.ir.code.expr.VarExpression;
-import org.mapleir.ir.code.stmt.copy.AbstractCopyStatement;
-import org.mapleir.ir.code.stmt.copy.CopyVarStatement;
+import org.mapleir.ir.code.expr.ConstantExpr;
+import org.mapleir.ir.code.expr.InitialisedObjectExpr;
+import org.mapleir.ir.code.expr.InvocationExpr;
+import org.mapleir.ir.code.expr.VarExpr;
+import org.mapleir.ir.code.stmt.copy.AbstractCopyStmt;
+import org.mapleir.ir.code.stmt.copy.CopyVarStmt;
 import org.mapleir.ir.locals.LocalsPool;
 import org.mapleir.ir.locals.VersionedLocal;
 import org.mapleir.stdlib.IContext;
@@ -93,9 +93,9 @@ public class ConstantParameterPass implements ICompilerPass, Opcode {
 				Expr[] params;
 				
 				if(e.getOpcode() == INVOKE) {
-					params = ((InvocationExpression) e).getParameterArguments();
+					params = ((InvocationExpr) e).getParameterArguments();
 				} else if(e.getOpcode() == INIT_OBJ) {
-					params = ((InitialisedObjectExpression) e).getArgumentExpressions();
+					params = ((InitialisedObjectExpr) e).getArgumentExpressions();
 				} else {
 					throw new UnsupportedOperationException(String.format("%s -> %s (%s)", caller, callee, e));
 				}
@@ -122,24 +122,24 @@ public class ConstantParameterPass implements ICompilerPass, Opcode {
 						
 			for(int i=0; i < argExprs.size(); i++) {
 				List<Expr> l = argExprs.get(i);
-				ConstantExpression c = getConstantValue(l);
+				ConstantExpr c = getConstantValue(l);
 				
 				if(c != null) {
 					LocalsPool pool = cfg.getLocals();
 					int argLocalIndex = paramIndices.get(mn)[i];
 					VersionedLocal argLocal = pool.get(argLocalIndex, 0, false);
-					AbstractCopyStatement argDef = pool.defs.get(argLocal);
+					AbstractCopyStmt argDef = pool.defs.get(argLocal);
 					
 					boolean removeDef = true;
 					
 					/* demote the def from a synthetic
 					 * copy to a normal one. */
-					VarExpression dv = argDef.getVariable().copy();
+					VarExpr dv = argDef.getVariable().copy();
 					
 					VersionedLocal spill = pool.makeLatestVersion(argLocal);
 					dv.setLocal(spill);
 					
-					CopyVarStatement copy = new CopyVarStatement(dv, c.copy());
+					CopyVarStmt copy = new CopyVarStmt(dv, c.copy());
 					BasicBlock b = argDef.getBlock();
 					argDef.delete();
 					argDef = copy;
@@ -148,12 +148,12 @@ public class ConstantParameterPass implements ICompilerPass, Opcode {
 					pool.defs.remove(argLocal);
 					pool.defs.put(spill, copy);
 					
-					Set<VarExpression> spillUses = new HashSet<>();
+					Set<VarExpr> spillUses = new HashSet<>();
 					pool.uses.put(spill, spillUses);
 					
-					Iterator<VarExpression> it = pool.uses.get(argLocal).iterator();
+					Iterator<VarExpr> it = pool.uses.get(argLocal).iterator();
 					while(it.hasNext()) {
-						VarExpression v = it.next();
+						VarExpr v = it.next();
 						
 						if(v.getParent() == null) {
 							/* the use is in a phi, we can't
@@ -360,20 +360,20 @@ public class ConstantParameterPass implements ICompilerPass, Opcode {
 	
 	private void patchCall(MethodNode to, Expr call, Set<Integer> dead) {
 		if(call.getOpcode() == Opcode.INIT_OBJ) {
-			InitialisedObjectExpression init = (InitialisedObjectExpression) call;
+			InitialisedObjectExpr init = (InitialisedObjectExpr) call;
 
 			CodeUnit parent = init.getParent();
 			Expr[] newArgs = buildArgs(init.getArgumentExpressions(), 0, dead);
-			InitialisedObjectExpression init2 = new InitialisedObjectExpression(init.getType(), init.getOwner(), to.desc, newArgs);
+			InitialisedObjectExpr init2 = new InitialisedObjectExpr(init.getType(), init.getOwner(), to.desc, newArgs);
 
 			parent.overwrite(init2, parent.indexOf(init));
 		} else if(call.getOpcode() == Opcode.INVOKE) {
-			InvocationExpression invoke = (InvocationExpression) call;
+			InvocationExpr invoke = (InvocationExpr) call;
 
 			CodeUnit parent = invoke.getParent();
 			
 			Expr[] newArgs = buildArgs(invoke.getArgumentExpressions(), invoke.getCallType() == Opcodes.INVOKESTATIC ? 0 : -1, dead);
-			InvocationExpression invoke2 = new InvocationExpression(invoke.getCallType(), newArgs, invoke.getOwner(), invoke.getName(), to.desc);
+			InvocationExpr invoke2 = new InvocationExpr(invoke.getCallType(), newArgs, invoke.getOwner(), invoke.getName(), to.desc);
 			
 			parent.overwrite(invoke2, parent.indexOf(invoke));
 		} else {
@@ -473,12 +473,12 @@ public class ConstantParameterPass implements ICompilerPass, Opcode {
 		return true;
 	}
 	
-	private static ConstantExpression getConstantValue(List<Expr> exprs) {
-		ConstantExpression v = null;
+	private static ConstantExpr getConstantValue(List<Expr> exprs) {
+		ConstantExpr v = null;
 		
 		for(Expr e : exprs) {
 			if(e.getOpcode() == Opcode.CONST_LOAD) {
-				ConstantExpression c = (ConstantExpression) e;
+				ConstantExpr c = (ConstantExpr) e;
 				if(v == null) {
 					v = c;
 				} else {
