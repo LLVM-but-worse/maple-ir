@@ -7,14 +7,19 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.mapleir.ir.cfg.BasicBlock;
+import org.mapleir.ir.cfg.ControlFlowGraph;
+import org.mapleir.ir.code.Expr;
+import org.mapleir.ir.code.Opcode;
+import org.mapleir.ir.code.Stmt;
+import org.mapleir.ir.code.expr.*;
+import org.mapleir.ir.code.stmt.FieldStoreStmt;
+import org.mapleir.ir.code.stmt.ReturnStmt;
+import org.mapleir.ir.code.stmt.copy.AbstractCopyStmt;
 import org.mapleir.stdlib.IContext;
 import org.mapleir.stdlib.deob.ICompilerPass;
 import org.objectweb.asm.Type;
-import org.objectweb.asm.tree.ClassNode;
-import org.objectweb.asm.tree.FieldNode;
-import org.objectweb.asm.tree.LocalVariableNode;
-import org.objectweb.asm.tree.MethodNode;
-import org.objectweb.asm.tree.TryCatchBlockNode;
+import org.objectweb.asm.tree.*;
 
 public class ClassRenamerPass implements ICompilerPass {
 
@@ -78,40 +83,7 @@ public class ClassRenamerPass implements ICompilerPass {
 			}
 			
 			for(MethodNode m : cn.methods) {
-				{
-					Type[] args = Type.getArgumentTypes(m.desc);
-					
-					StringBuilder sb = new StringBuilder();
-					sb.append("(");
-					
-					for(int i=0; i < args.length; i++) {
-						Type arg = args[i];
-						String newArg = resolveType(arg, remapping);
-						
-						if(newArg == null) {
-							newArg = arg.getDescriptor();
-						}
-						
-						sb.append(newArg);
-					}
-					
-					sb.append(")");
-					
-					Type ret = Type.getReturnType(m.desc);
-					
-					String newRet = null;
-					if(!ret.getDescriptor().equals("V")) {
-						newRet = resolveType(ret, remapping);
-					}
-
-					if(newRet == null) {
-						newRet = ret.getDescriptor();
-					}
-					
-					sb.append(newRet);
-					
-					m.desc = sb.toString();
-				}
+				m.desc = resolveMethod(m.desc, remapping);
 				
 				unsupported(m.signature);
 				
@@ -139,6 +111,7 @@ public class ClassRenamerPass implements ICompilerPass {
 				}
 
 				if(m.localVariables != null) {
+					m.localVariables.clear();
 					for(LocalVariableNode lvn : m.localVariables) {
 						String newDesc = resolveType(Type.getType(lvn.desc), remapping);
 						if(newDesc != null) {
@@ -151,8 +124,194 @@ public class ClassRenamerPass implements ICompilerPass {
 				
 				unsupported(m.visibleLocalVariableAnnotations);
 				unsupported(m.invisibleLocalVariableAnnotations);
+				
+				
+				ControlFlowGraph cfg = cxt.getIR(m);
+				
+				for(BasicBlock b : cfg.vertices()) {
+					for(Stmt stmt : b) {
+						
+						if(stmt.getOpcode() == Opcode.FIELD_STORE) {
+							FieldStoreStmt fs = (FieldStoreStmt) stmt;
+							String owner = fs.getOwner();
+							fs.setOwner(remapping.getOrDefault(owner, owner));
+							
+							{
+								Type type = Type.getType(fs.getDesc());
+								String newType = resolveType(type, remapping);
+								
+								if(newType != null) {
+									fs.setDesc(newType);
+								}
+							}
+						} else if(stmt.getOpcode() == Opcode.RETURN) {
+							ReturnStmt ret = (ReturnStmt) stmt;
+							String newType = resolveType(ret.getType(), remapping);
+							
+							if(newType != null) {
+								ret.setType(Type.getType(newType));
+							}
+						} else if(stmt instanceof AbstractCopyStmt) {
+							AbstractCopyStmt copy = (AbstractCopyStmt) stmt;
+							
+							VarExpr v = (VarExpr) copy.getVariable();
+							
+							String newType = resolveType(v.getType(), remapping);
+							if(newType != null) {
+								v.setType(Type.getType(newType));
+							}
+						}
+						
+						for(Expr e : stmt.enumerateOnlyChildren()) {
+							if(e.getOpcode() == Opcode.CAST) {
+								CastExpr cast = (CastExpr) e;
+								String newType = resolveType(cast.getType(), remapping);
+								
+								if(newType != null) {
+									cast.setType(Type.getType(newType));
+								}
+							} else if(e.getOpcode() == Opcode.CATCH) {
+								CaughtExceptionExpr caught = (CaughtExceptionExpr) e;
+								String newType = resolveType(caught.getType(), remapping);
+
+								if(newType != null) {
+									caught.setType(Type.getType(newType));
+								}
+							} else if(e.getOpcode() == Opcode.DYNAMIC_INVOKE) {
+								throw new UnsupportedOperationException();
+							} else if(e.getOpcode() == Opcode.INVOKE) {
+								InvocationExpr invoke = (InvocationExpr) e;
+								
+								invoke.setOwner(remapping.getOrDefault(invoke.getOwner(), invoke.getOwner()));
+								invoke.setDesc(resolveMethod(invoke.getDesc(), remapping));
+							} else if(e.getOpcode() == Opcode.FIELD_LOAD) {
+								FieldLoadExpr fl = (FieldLoadExpr) e;
+								
+								fl.setOwner(remapping.getOrDefault(fl.getOwner(), fl.getOwner()));
+
+								String newType = resolveType(fl.getType(), remapping);
+								if(newType != null) {
+									fl.setDesc(newType);
+								}
+							} else if(e.getOpcode() == Opcode.INIT_OBJ) {
+								InitialisedObjectExpr init = (InitialisedObjectExpr) e;
+								
+								init.setOwner(remapping.getOrDefault(init.getOwner(), init.getOwner()));
+								init.setDesc(resolveMethod(init.getDesc(), remapping));
+							} else if(e.getOpcode() == Opcode.INSTANCEOF) {
+								InstanceofExpr inst = (InstanceofExpr) e;
+								
+								String newType = resolveType(inst.getCheckType(), remapping);
+								if(newType != null) {
+									inst.setCheckType(Type.getType(newType));
+								}
+							} else if(e.getOpcode() == Opcode.NEW_ARRAY) {
+								NewArrayExpr na = (NewArrayExpr) e;
+								
+								String newType = resolveType(na.getType(), remapping);
+								if(newType != null) {
+									na.setType(Type.getType(newType));
+								}
+							} else if(e.getOpcode() == Opcode.UNINIT_OBJ) {
+								UninitialisedObjectExpr uninit = (UninitialisedObjectExpr) e;
+								
+								String newType = resolveType(uninit.getType(), remapping);
+								if(newType != null) {
+									uninit.setType(Type.getType(newType));
+								}
+							} else if(e.getOpcode() == Opcode.LOCAL_LOAD) {
+								VarExpr v = (VarExpr) e;
+								
+								String newType = resolveType(v.getType(), remapping);
+								if(newType != null) {
+									v.setType(Type.getType(newType));
+								}
+							}
+						}
+					}
+				}
+				
+				for(AbstractInsnNode ain : m.instructions.toArray()) {
+					
+					unsupported(ain.invisibleTypeAnnotations);
+					unsupported(ain.visibleTypeAnnotations);
+					
+					switch(ain.type()) {
+						case AbstractInsnNode.FIELD_INSN: {
+							FieldInsnNode fin = (FieldInsnNode) ain;
+							
+							{
+								Type type = Type.getType(fin.desc);
+								String newType = resolveType(type, remapping);
+								
+								if(newType != null) {
+									fin.desc = newType;
+								}
+							}
+							
+							fin.owner = remapping.getOrDefault(fin.owner, fin.owner);
+							break;
+						}
+						case AbstractInsnNode.METHOD_INSN: {
+							MethodInsnNode min = (MethodInsnNode) ain;
+							
+							min.desc = resolveMethod(min.desc, remapping);
+							min.owner = remapping.getOrDefault(min.owner, min.owner);
+							break;
+						}
+						case AbstractInsnNode.INVOKE_DYNAMIC_INSN: {
+							throw new UnsupportedOperationException();
+						}
+						case AbstractInsnNode.TYPE_INSN: {
+							TypeInsnNode tin = (TypeInsnNode) ain;
+							tin.desc = remapping.getOrDefault(tin.desc, tin.desc);
+							break;
+						}
+						case AbstractInsnNode.MULTIANEWARRAY_INSN: {
+							// MultiANewArrayInsnNode main = (MultiANewArrayInsnNode) ain;
+							throw new UnsupportedOperationException();
+						}
+					}
+				}
 			}
 		}
+		
+		cxt.getClassTree().rebuildTable();
+	}
+	
+	private String resolveMethod(String desc, Map<String, String> remapping) {
+		Type[] args = Type.getArgumentTypes(desc);
+		
+		StringBuilder sb = new StringBuilder();
+		sb.append("(");
+		
+		for(int i=0; i < args.length; i++) {
+			Type arg = args[i];
+			String newArg = resolveType(arg, remapping);
+			
+			if(newArg == null) {
+				newArg = arg.getDescriptor();
+			}
+			
+			sb.append(newArg);
+		}
+		
+		sb.append(")");
+		
+		Type ret = Type.getReturnType(desc);
+		
+		String newRet = null;
+		if(!ret.getDescriptor().equals("V")) {
+			newRet = resolveType(ret, remapping);
+		}
+
+		if(newRet == null) {
+			newRet = ret.getDescriptor();
+		}
+		
+		sb.append(newRet);
+		
+		return sb.toString();
 	}
 	
 	private String resolveType(Type t, Map<String, String> remapping) {
