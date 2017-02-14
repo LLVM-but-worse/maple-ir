@@ -38,7 +38,11 @@ public class InstanceofExpr extends Expr {
 		return Type.BOOLEAN_TYPE;
 	}
 
-	public void setType(Type type) {
+	public Type getCheckType() {
+		return type;
+	}
+	
+	public void setCheckType(Type type) {
 		this.type = type;
 	}
 
