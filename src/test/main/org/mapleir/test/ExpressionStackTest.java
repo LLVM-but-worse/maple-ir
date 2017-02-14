@@ -7,7 +7,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.Test;
 import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.code.ExpressionStack;
-import org.mapleir.ir.code.expr.VarExpression;
+import org.mapleir.ir.code.expr.VarExpr;
 import org.mapleir.ir.locals.BasicLocal;
 import org.mapleir.ir.locals.Local;
 import org.objectweb.asm.Type;
@@ -68,6 +68,6 @@ public class ExpressionStackTest {
 	
 	private static Expr makeExpr(int size) {
 		Type type = size == 1 ? Type.INT_TYPE : Type.DOUBLE_TYPE;
-		return new VarExpression(TEST_LOCAL, type);
+		return new VarExpr(TEST_LOCAL, type);
 	}
 }

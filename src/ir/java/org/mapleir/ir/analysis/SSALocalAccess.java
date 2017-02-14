@@ -10,16 +10,16 @@ import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.code.Opcode;
 import org.mapleir.ir.code.CodeUnitVisitor;
 import org.mapleir.ir.code.Stmt;
-import org.mapleir.ir.code.expr.PhiExpression;
-import org.mapleir.ir.code.expr.VarExpression;
-import org.mapleir.ir.code.stmt.copy.AbstractCopyStatement;
+import org.mapleir.ir.code.expr.PhiExpr;
+import org.mapleir.ir.code.expr.VarExpr;
+import org.mapleir.ir.code.stmt.copy.AbstractCopyStmt;
 import org.mapleir.ir.locals.VersionedLocal;
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.ValueCreator;
 
 public class SSALocalAccess {
 
-	public final Map<VersionedLocal, AbstractCopyStatement> defs;
+	public final Map<VersionedLocal, AbstractCopyStmt> defs;
 	public final NullPermeableHashMap<VersionedLocal, AtomicInteger> useCount;
 	
 	public SSALocalAccess(ControlFlowGraph cfg) {
@@ -37,7 +37,7 @@ public class SSALocalAccess {
 				
 				int op = s.getOpcode();
 				if(op == Opcode.LOCAL_STORE || op == Opcode.PHI_STORE) {
-					AbstractCopyStatement d = (AbstractCopyStatement) s;
+					AbstractCopyStmt d = (AbstractCopyStmt) s;
 					VersionedLocal local = (VersionedLocal) d.getVariable().getLocal();
 					defs.put(local, d);
 					// sometimes locals can be dead even without any transforms.
@@ -51,20 +51,20 @@ public class SSALocalAccess {
 					new CodeUnitVisitor(s) {
 						@Override
 						public Expr visit(Expr stmt) {
-							if(stmt instanceof VarExpression) {
-								VersionedLocal l = (VersionedLocal) ((VarExpression) stmt).getLocal();
+							if(stmt instanceof VarExpr) {
+								VersionedLocal l = (VersionedLocal) ((VarExpr) stmt).getLocal();
 								useCount.getNonNull(l).incrementAndGet();
-							} else if(stmt instanceof PhiExpression) {
-								PhiExpression phi = (PhiExpression) stmt;
+							} else if(stmt instanceof PhiExpr) {
+								PhiExpr phi = (PhiExpr) stmt;
 								for(Expr e : phi.getArguments().values()) {
-									if(e instanceof VarExpression)  {
-										useCount.getNonNull((VersionedLocal) ((VarExpression) e).getLocal()).incrementAndGet();
+									if(e instanceof VarExpr)  {
+										useCount.getNonNull((VersionedLocal) ((VarExpr) e).getLocal()).incrementAndGet();
 									} else {
 										new CodeUnitVisitor(e) {
 											@Override
 											public Expr visit(Expr stmt2) {
-												if(stmt2 instanceof VarExpression) {
-													VersionedLocal l = (VersionedLocal) ((VarExpression) stmt2).getLocal();
+												if(stmt2 instanceof VarExpr) {
+													VersionedLocal l = (VersionedLocal) ((VarExpr) stmt2).getLocal();
 													useCount.getNonNull(l).incrementAndGet();
 												}
 												return stmt2;

@@ -16,11 +16,11 @@ import org.mapleir.ir.code.CodeUnit;
 import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.code.Opcode;
 import org.mapleir.ir.code.Stmt;
-import org.mapleir.ir.code.expr.ArithmeticExpression;
-import org.mapleir.ir.code.expr.ArithmeticExpression.Operator;
-import org.mapleir.ir.code.expr.ConstantExpression;
-import org.mapleir.ir.code.expr.FieldLoadExpression;
-import org.mapleir.ir.code.stmt.FieldStoreStatement;
+import org.mapleir.ir.code.expr.ArithmeticExpr;
+import org.mapleir.ir.code.expr.ArithmeticExpr.Operator;
+import org.mapleir.ir.code.expr.ConstantExpr;
+import org.mapleir.ir.code.expr.FieldLoadExpr;
+import org.mapleir.ir.code.stmt.FieldStoreStmt;
 import org.mapleir.stdlib.IContext;
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.SetCreator;
@@ -100,14 +100,14 @@ public class FieldRSADecryptionPass implements ICompilerPass, Opcode {
 					
 					for(Expr c : stmt.enumerateOnlyChildren()) {
 						if(c.getOpcode() == ARITHMETIC) {
-							ArithmeticExpression arith = (ArithmeticExpression) c;
+							ArithmeticExpr arith = (ArithmeticExpr) c;
 							if(arith.getOperator() == Operator.MUL) {
 								Expr l = arith.getLeft();
 								Expr r = arith.getRight();
 								
 								if(r.getOpcode() == CONST_LOAD && l.getOpcode() == FIELD_LOAD) {
-									FieldLoadExpression fle = (FieldLoadExpression) l;
-									ConstantExpression constt = (ConstantExpression) r;
+									FieldLoadExpr fle = (FieldLoadExpr) l;
+									ConstantExpr constt = (ConstantExpr) r;
 									
 									Number n = (Number) constt.getConstant();
 									
@@ -127,12 +127,12 @@ public class FieldRSADecryptionPass implements ICompilerPass, Opcode {
 					
 					
 					if(stmt.getOpcode() == FIELD_STORE) {
-						FieldStoreStatement fss = (FieldStoreStatement) stmt;
+						FieldStoreStmt fss = (FieldStoreStmt) stmt;
 						Expr val = fss.getValueExpression();
 						
 						if(bcheck1(val)) {
 							if(val.getOpcode() == CONST_LOAD) {
-								ConstantExpression c = (ConstantExpression) val;
+								ConstantExpr c = (ConstantExpr) val;
 								if(c.getConstant() instanceof Integer || c.getConstant() instanceof Long) {
 									Number n = (Number) c.getConstant();
 									if(large(n, c.getConstant() instanceof Long)) {
@@ -143,9 +143,9 @@ public class FieldRSADecryptionPass implements ICompilerPass, Opcode {
 							continue;
 						}
 						
-						ArithmeticExpression ar = (ArithmeticExpression) val;
+						ArithmeticExpr ar = (ArithmeticExpr) val;
 						if(ar.getRight().getOpcode() == CONST_LOAD) {
-							ConstantExpression c = (ConstantExpression) ar.getRight();
+							ConstantExpr c = (ConstantExpr) ar.getRight();
 							Number n = (Number) c.getConstant();
 							boolean isLong = c.getConstant() instanceof Long;
 							if(__eq(n, 1, isLong) || __eq(n, 0, isLong)) {
@@ -166,21 +166,21 @@ public class FieldRSADecryptionPass implements ICompilerPass, Opcode {
 				
 				for(Stmt stmt : b) {
 					if(stmt.getOpcode() == FIELD_STORE) {
-						if(key((FieldStoreStatement) stmt).equals("co.k I")) {
+						if(key((FieldStoreStmt) stmt).equals("co.k I")) {
 //							System.out.println("HERE1: " + stmt);
 //							
 //							System.out.println(cfg);
 						}
-						handleFss((FieldStoreStatement) stmt);
+						handleFss((FieldStoreStmt) stmt);
 					}
 					
 					for(Expr e : stmt.enumerateOnlyChildren()) {
 						if(e.getOpcode() == FIELD_LOAD) {
-							if(key((FieldLoadExpression) e).equals("co.k I")) {
+							if(key((FieldLoadExpr) e).equals("co.k I")) {
 //								System.out.println("HERE2: " + stmt);
 							}
 							
-							handleFle(stmt, (FieldLoadExpression) e);
+							handleFle(stmt, (FieldLoadExpr) e);
 						}
 					}
 				}
@@ -239,14 +239,14 @@ public class FieldRSADecryptionPass implements ICompilerPass, Opcode {
 				for(BasicBlock b : cfg.vertices()) {
 					for(Stmt stmt : b) {
 						if(stmt.getOpcode() == Opcode.FIELD_STORE) {
-							FieldStoreStatement fs = (FieldStoreStatement) stmt;
+							FieldStoreStmt fs = (FieldStoreStmt) stmt;
 							Number[] p = pairs.get(key(fs)); // [enc, dec]
 							
 							if(p != null) {
 								Expr e = fs.getValueExpression();
 								e.unlink();
 								
-								ArithmeticExpression ae = new ArithmeticExpression(new ConstantExpression(p[1]), e, Operator.MUL);
+								ArithmeticExpr ae = new ArithmeticExpr(new ConstantExpr(p[1]), e, Operator.MUL);
 								fs.setValueExpression(ae);
 							}
 						}
@@ -255,7 +255,7 @@ public class FieldRSADecryptionPass implements ICompilerPass, Opcode {
 							if(e.getOpcode() == FIELD_LOAD) {
 								CodeUnit par = e.getParent();
 								
-								FieldLoadExpression fl = (FieldLoadExpression) e;
+								FieldLoadExpr fl = (FieldLoadExpr) e;
 
 								Number[] p = pairs.get(key(fl)); // [enc, dec]
 
@@ -264,9 +264,9 @@ public class FieldRSADecryptionPass implements ICompilerPass, Opcode {
 								}
 
 								if(par.getOpcode() == ARITHMETIC) {
-									ArithmeticExpression ae = (ArithmeticExpression) par;
+									ArithmeticExpr ae = (ArithmeticExpr) par;
 									if(ae.getRight().getOpcode() == CONST_LOAD) {
-										ConstantExpression ce = (ConstantExpression) ae.getRight();
+										ConstantExpr ce = (ConstantExpr) ae.getRight();
 										Number cst = (Number) ce.getConstant();
 										Number res = __mul(cst, p[0], p[0].getClass().equals(Long.class));
 
@@ -284,7 +284,7 @@ public class FieldRSADecryptionPass implements ICompilerPass, Opcode {
 									}
 								}
 
-								ArithmeticExpression ae = new ArithmeticExpression(new ConstantExpression(p[0]), fl.copy(), Operator.MUL);
+								ArithmeticExpr ae = new ArithmeticExpr(new ConstantExpr(p[0]), fl.copy(), Operator.MUL);
 								par.overwrite(ae, par.indexOf(fl));
 							}
 						}
@@ -301,9 +301,9 @@ public class FieldRSADecryptionPass implements ICompilerPass, Opcode {
 					for(Stmt stmt : b) {
 						for(Expr e : stmt.enumerateOnlyChildren()) {
 							if(e.getOpcode() == Opcode.ARITHMETIC) {
-								ArithmeticExpression ae = (ArithmeticExpression) e;
+								ArithmeticExpr ae = (ArithmeticExpr) e;
 								if(ae.getRight().getOpcode() == Opcode.CONST_LOAD) {
-									ConstantExpression c = (ConstantExpression) ae.getRight();
+									ConstantExpr c = (ConstantExpr) ae.getRight();
 									Object o = c.getConstant();
 									
 									if(o instanceof Long || o instanceof Integer) {
@@ -374,12 +374,12 @@ public class FieldRSADecryptionPass implements ICompilerPass, Opcode {
 	private boolean containsOther(List<CodeUnit> list, String key) {
 		for(CodeUnit u : list) {
 			if(u.getOpcode() == FIELD_LOAD) {
-				FieldLoadExpression fle = (FieldLoadExpression) u;
+				FieldLoadExpr fle = (FieldLoadExpr) u;
 				if(!key(fle).equals(key)) {
 					return true;
 				}
 			} else if(u.getOpcode() == FIELD_STORE) {
-				FieldStoreStatement fse = (FieldStoreStatement) u;
+				FieldStoreStmt fse = (FieldStoreStmt) u;
 				if(!key(fse).equals(key)) {
 					return true;
 				}
@@ -388,7 +388,7 @@ public class FieldRSADecryptionPass implements ICompilerPass, Opcode {
 		return false;
 	}
 	
-	private void handleFle(Stmt stmt, FieldLoadExpression fle) {
+	private void handleFle(Stmt stmt, FieldLoadExpr fle) {
 		if(!isIntField(fle.getDesc())) {
 			return;
 		}
@@ -397,7 +397,7 @@ public class FieldRSADecryptionPass implements ICompilerPass, Opcode {
 		
 		for(CodeUnit u : list) {
 			if(u.getOpcode() == CONST_LOAD) {
-				ConstantExpression c = (ConstantExpression) u;
+				ConstantExpr c = (ConstantExpr) u;
 				Object cst = c.getConstant();
 				if(cst instanceof Integer || cst instanceof Long) {
 					if(large((Number)cst, cst instanceof Long)) {
@@ -412,7 +412,7 @@ public class FieldRSADecryptionPass implements ICompilerPass, Opcode {
 		}
 	}
 	
-	private void handleFss(FieldStoreStatement fss) {
+	private void handleFss(FieldStoreStmt fss) {
 		if(!isIntField(fss.getDesc())) {
 			return;
 		}
@@ -422,7 +422,7 @@ public class FieldRSADecryptionPass implements ICompilerPass, Opcode {
 		
 		for(CodeUnit u : list) {
 			if(u.getOpcode() == CONST_LOAD) {
-				ConstantExpression c = (ConstantExpression) u;
+				ConstantExpr c = (ConstantExpr) u;
 				Object cst = c.getConstant();
 				if(cst instanceof Integer || cst instanceof Long) {
 					if(large((Number)cst, cst instanceof Long)) {
@@ -439,7 +439,7 @@ public class FieldRSADecryptionPass implements ICompilerPass, Opcode {
 	
 	static boolean bcheck1(Expr e) {
 		if(e.getOpcode() == ARITHMETIC) {
-			ArithmeticExpression ar = (ArithmeticExpression) e;
+			ArithmeticExpr ar = (ArithmeticExpr) e;
 			Operator op = ar.getOperator();
 			
 			return op != Operator.MUL && op != Operator.ADD;
@@ -452,11 +452,11 @@ public class FieldRSADecryptionPass implements ICompilerPass, Opcode {
 		return desc.equals("I") || desc.equals("J");
 	}
 	
-	String key(FieldStoreStatement fss) {
+	String key(FieldStoreStmt fss) {
 		return lookupField(cxt, fss.getOwner(), fss.getName(), fss.getDesc(), fss.getInstanceExpression() == null);
 	}
 	
-	String key(FieldLoadExpression fle) {
+	String key(FieldLoadExpr fle) {
 		return lookupField(cxt, fle.getOwner(), fle.getName(), fle.getDesc(), fle.getInstanceExpression() == null);
 	}
 	

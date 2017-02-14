@@ -5,8 +5,8 @@ import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.code.Opcode;
 import org.mapleir.ir.code.Stmt;
-import org.mapleir.ir.code.expr.InitialisedObjectExpression;
-import org.mapleir.ir.code.expr.InvocationExpression;
+import org.mapleir.ir.code.expr.InitialisedObjectExpr;
+import org.mapleir.ir.code.expr.InvocationExpr;
 import org.mapleir.stdlib.IContext;
 import org.mapleir.stdlib.call.CallTracer;
 import org.objectweb.asm.Opcodes;
@@ -31,7 +31,7 @@ public class IRCallTracer extends CallTracer {
 			for(Stmt stmt : b) {
 				for(Expr c : stmt.enumerateOnlyChildren()) {
 					if(c.getOpcode() == Opcode.INVOKE) {
-						InvocationExpression invoke = (InvocationExpression) c;
+						InvocationExpr invoke = (InvocationExpr) c;
 						
 						boolean isStatic = (invoke.getCallType() == Opcodes.INVOKESTATIC);
 						String owner = invoke.getOwner();
@@ -53,7 +53,7 @@ public class IRCallTracer extends CallTracer {
 							}
 						}
 					} else if(c.getOpcode() == Opcode.INIT_OBJ) {
-						InitialisedObjectExpression init = (InitialisedObjectExpression) c;
+						InitialisedObjectExpr init = (InitialisedObjectExpr) c;
 						MethodNode call = resolver.resolveVirtualInitCall(init.getOwner(), init.getDesc());
 						if(call != null) {
 							trace(call);
