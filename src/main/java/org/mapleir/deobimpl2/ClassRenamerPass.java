@@ -55,7 +55,7 @@ public class ClassRenamerPass implements ICompilerPass {
 			unsupported(cn.signature);
 			// unsupported(cn.sourceFile);
 			// unsupported(cn.sourceDebug);
-			unsupported(cn.outerClass);
+			cn.outerClass = remapping.getOrDefault(cn.outerClass, cn.outerClass);
 			unsupported(cn.outerMethod);
 			unsupported(cn.outerMethodDesc);
 
