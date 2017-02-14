@@ -109,4 +109,9 @@ public class LocalVariableNode {
         mv.visitLocalVariable(name, desc, signature, start.getLabel(),
                 end.getLabel(), index);
     }
+    
+    @Override
+	public String toString() {
+    	return "{ @" + index + ": " + name + " (desc: " + desc + ", sig: " + signature + ") }";
+    }
 }
