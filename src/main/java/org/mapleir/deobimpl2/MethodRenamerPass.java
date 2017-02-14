@@ -124,6 +124,8 @@ public class MethodRenamerPass implements ICompilerPass {
 										}
 									}
 								}
+							} else if(e.getOpcode() == Opcode.DYNAMIC_INVOKE) {
+								throw new UnsupportedOperationException();
 							}
 						}
 					}
