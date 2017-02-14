@@ -90,6 +90,7 @@ public class NewArrayExpr extends Expr {
 		return Precedence.ARRAY_ACCESS;
 	}
 
+	// TODO: redo type to element type.
 	@Override
 	public void toString(TabbedStringWriter printer) {
 		printer.print("new " + type.getElementType().getClassName());

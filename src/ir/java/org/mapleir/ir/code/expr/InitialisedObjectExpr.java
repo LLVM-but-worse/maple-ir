@@ -11,14 +11,12 @@ import org.objectweb.asm.Type;
 
 public class InitialisedObjectExpr extends Expr {
 
-	private Type type;
 	private String owner;
 	private String desc;
 	private Expr[] argumentExpressions;
 	
-	public InitialisedObjectExpr(Type type, String owner, String desc, Expr[] argumentExpressions) {
+	public InitialisedObjectExpr(String owner, String desc, Expr[] argumentExpressions) {
 		super(INIT_OBJ);
-		this.type = type;
 		this.owner = owner;
 		this.desc = desc;
 		this.argumentExpressions = argumentExpressions;
@@ -51,13 +49,9 @@ public class InitialisedObjectExpr extends Expr {
 		this.argumentExpressions = argumentExpressions;
 	}
 
-	public void setType(Type type) {
-		this.type = type;
-	}
-
 	@Override
 	public Type getType() {
-		return type;
+		return Type.getType(owner);
 	}
 	
 	@Override
@@ -85,13 +79,13 @@ public class InitialisedObjectExpr extends Expr {
 		for(int i=0; i < argumentExpressions.length; i++) {
 			args[i] = argumentExpressions[i].copy();
 		}
-		return new InitialisedObjectExpr(type, owner, desc, args);
+		return new InitialisedObjectExpr(owner, desc, args);
 	}
 
 	@Override
 	public void toString(TabbedStringWriter printer) {
 		printer.print("new ");
-		printer.print(type.getInternalName().replace('/', '.'));
+		printer.print(owner);
 		printer.print('(');
 		for (int i = 0; i < argumentExpressions.length; i++) {
 			boolean needsComma = (i + 1) < argumentExpressions.length;
@@ -112,7 +106,7 @@ public class InitialisedObjectExpr extends Expr {
 			argTypes[0] = Type.getType("L" + owner + ";");
 		}
 		
-		visitor.visitTypeInsn(Opcodes.NEW, type.getInternalName());
+		visitor.visitTypeInsn(Opcodes.NEW, owner);
 		visitor.visitInsn(Opcodes.DUP);
 		for (int i = 0; i < argumentExpressions.length; i++) {
 			argumentExpressions[i].toCode(visitor, cfg);
@@ -154,7 +148,7 @@ public class InitialisedObjectExpr extends Expr {
 	public boolean equivalent(CodeUnit s) {
 		if(s instanceof InitialisedObjectExpr) {
 			InitialisedObjectExpr o = (InitialisedObjectExpr) s;
-			if(!type.equals(o.type) || !owner.equals(o.owner) || !desc.equals(o.desc)) {
+			if(!owner.equals(o.owner) || !desc.equals(o.desc)) {
 				return false;
 			}
 			if(argumentExpressions.length != o.argumentExpressions.length) {

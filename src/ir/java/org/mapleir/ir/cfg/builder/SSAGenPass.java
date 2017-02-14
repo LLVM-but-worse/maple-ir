@@ -978,7 +978,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 									
 									// add a copy statement before the pop (x = newExpr)
 //									System.out.println(Arrays.toString(newArgs));
-									InitialisedObjectExpr newExpr = new InitialisedObjectExpr(obj.getType(), invoke.getOwner(), invoke.getDesc(), newArgs);
+									InitialisedObjectExpr newExpr = new InitialisedObjectExpr(invoke.getOwner(), invoke.getDesc(), newArgs);
 									CopyVarStmt newCvs = new CopyVarStmt(var, newExpr);
 									pool.defs.put(local, newCvs);
 //									System.out.println("pre: " + pool.uses.get(local));
@@ -1004,7 +1004,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 								}
 								
 								Expr[] newArgs = Arrays.copyOf(args, args.length);
-								InitialisedObjectExpr newExpr = new InitialisedObjectExpr(obj.getType(), invoke.getOwner(), invoke.getDesc(), newArgs);
+								InitialisedObjectExpr newExpr = new InitialisedObjectExpr(invoke.getOwner(), invoke.getDesc(), newArgs);
 								// replace pop contents
 								// no changes to defs or uses
 								
