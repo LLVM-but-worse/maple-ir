@@ -90,13 +90,6 @@ public class ConstantExpressionEvaluatorPass implements ICompilerPass, Opcode {
 									if(branchVal) {
 										// always true, jump to true successor
 										
-
-										if(m.toString().equals("ev.awd(Lgx;)V")) {
-											if(k++ > 0) {
-//												continue;
-											}
-										}
-										
 										for(FlowEdge<BasicBlock> fe : new HashSet<>(cfg.getEdges(b))) {
 											if(fe.getType() == FlowEdges.COND) {
 												if(fe.dst != cond.getTrueSuccessor()) {
@@ -104,8 +97,11 @@ public class ConstantExpressionEvaluatorPass implements ICompilerPass, Opcode {
 												}
 												
 												cfg.removeEdge(b, fe);
+//												cfg.addEdge(b, fe.clone(fe.src, fe.dst));
 											} else if(fe.getType() == FlowEdges.IMMEDIATE) {
 												cfg.removeEdge(b, fe);
+											} else if(fe.getType() != FlowEdges.TRYCATCH) {
+												throw new IllegalStateException(fe.toString());
 											}
 										}
 
@@ -113,15 +109,7 @@ public class ConstantExpressionEvaluatorPass implements ICompilerPass, Opcode {
 										b.set(i, newJump);
 										UnconditionalJumpEdge<BasicBlock> uje = new UnconditionalJumpEdge<>(b, cond.getTrueSuccessor());
 										cfg.addEdge(b, uje);
-
-
-										for(FlowEdge<BasicBlock> fe : new HashSet<>(cfg.getEdges(b))) {
-											if(cfg.getReverseEdges(fe.dst).size() == 0) {
-												cfg.removeVertex(fe.dst);
-												
-												
-											}
-										}
+										
 									} else {
 										// false branch, i.e. fallthrough,
 										// remove the jump.

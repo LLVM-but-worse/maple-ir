@@ -278,6 +278,7 @@ public class Boot {
 				new ConstantExpressionReorderPass(),
 				new FieldRSADecryptionPass(),
 				new ConstantExpressionEvaluatorPass(),
+				new DeadCodeEliminationPass()
 		};
 	}
 	
