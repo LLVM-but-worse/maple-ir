@@ -85,8 +85,9 @@ public class DominanceLivenessAnalyser {
 
 			// Tup(t) = set of unreachable backedge targets from reachable sources
 			GenericBitSet<BasicBlock> tup = backEdges.getNonNull(b).relativeComplement(rv.get(b));
-			for (BasicBlock w : tup)
+			for (BasicBlock w : tup) {
 				tq.get(b).addAll(tq.get(w));
+			}
 		}
 	}
 

@@ -17,7 +17,7 @@ public interface FlowEdges {
 			case IMMEDIATE:
 				return new ImmediateEdge<>(src, dst);
 			case UNCOND:
-				return new UnconditionalJumpEdge<>(src, dst, ((UnconditionalJumpEdge<?>)e).opcode);
+				return new UnconditionalJumpEdge<>(src, dst);
 			case COND:
 				return new ConditionalJumpEdge<>(src, dst, ((ConditionalJumpEdge<?>)e).opcode);
 			case TRYCATCH:

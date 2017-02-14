@@ -3,11 +3,15 @@ package org.mapleir.deobimpl2;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
+import org.mapleir.ir.cfg.edge.FlowEdge;
+import org.mapleir.ir.cfg.edge.FlowEdges;
+import org.mapleir.ir.cfg.edge.UnconditionalJumpEdge;
 import org.mapleir.ir.code.CodeUnit;
 import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.code.Opcode;
@@ -15,9 +19,14 @@ import org.mapleir.ir.code.Stmt;
 import org.mapleir.ir.code.expr.ArithmeticExpr;
 import org.mapleir.ir.code.expr.ArithmeticExpr.Operator;
 import org.mapleir.ir.code.expr.CastExpr;
+import org.mapleir.ir.code.expr.ComparisonExpr;
+import org.mapleir.ir.code.expr.ComparisonExpr.ValueComparisonType;
 import org.mapleir.ir.code.expr.ConstantExpr;
 import org.mapleir.ir.code.expr.NegationExpr;
 import org.mapleir.ir.code.expr.VarExpr;
+import org.mapleir.ir.code.stmt.ConditionalJumpStmt;
+import org.mapleir.ir.code.stmt.ConditionalJumpStmt.ComparisonType;
+import org.mapleir.ir.code.stmt.UnconditionalJumpStmt;
 import org.mapleir.ir.code.stmt.copy.AbstractCopyStmt;
 import org.mapleir.ir.locals.Local;
 import org.mapleir.ir.locals.LocalsPool;
@@ -30,6 +39,8 @@ import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.InsnList;
 import org.objectweb.asm.tree.InsnNode;
+import org.objectweb.asm.tree.JumpInsnNode;
+import org.objectweb.asm.tree.LabelNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.tree.VarInsnNode;
 
@@ -43,16 +54,98 @@ public class ConstantExpressionEvaluatorPass implements ICompilerPass, Opcode {
 		bridges = new HashMap<>();
 	}
 	
+	int k = 0;
+	
 	@Override
 	public void accept(IContext cxt, ICompilerPass prev, List<ICompilerPass> completed) {
+		int j = 0;
+		
 		for(ClassNode cn : cxt.getClassTree().getClasses().values()) {
 			for(MethodNode m : cn.methods) {
 				
 				ControlFlowGraph cfg = cxt.getIR(m);
 				LocalsPool pool = cfg.getLocals();
 				
-				for(BasicBlock b : cfg.vertices()) {
-					for(Stmt stmt : b) {
+				for(BasicBlock b : new HashSet<>(cfg.vertices())) {
+					for(int i=0; i < b.size(); i++) {
+						Stmt stmt = b.get(i);
+						
+						if(stmt.getOpcode() == COND_JUMP) {
+							ConditionalJumpStmt cond = (ConditionalJumpStmt) stmt;
+							
+							Expr l = cond.getLeft();
+							Expr r = cond.getRight();
+							
+							Expr le = eval(pool, l);
+							Expr re = eval(pool, r);
+							
+							if(le != null && re != null) {
+								ConstantExpr lc = (ConstantExpr) le;
+								ConstantExpr rc = (ConstantExpr) re;
+								
+								if(isPrimitive(lc.getType()) && isPrimitive(rc.getType())) {
+									Bridge bridge = getConditionalEvalBridge(lc.getType(), rc.getType(), cond.getComparisonType());
+									boolean branchVal = (boolean) bridge.eval(lc.getConstant(), rc.getConstant());
+									
+									if(branchVal) {
+										// always true, jump to true successor
+										
+
+										if(m.toString().equals("ev.awd(Lgx;)V")) {
+											if(k++ > 0) {
+//												continue;
+											}
+										}
+										
+										for(FlowEdge<BasicBlock> fe : new HashSet<>(cfg.getEdges(b))) {
+											if(fe.getType() == FlowEdges.COND) {
+												if(fe.dst != cond.getTrueSuccessor()) {
+													throw new IllegalStateException(fe + ", " + cond);
+												}
+												
+												cfg.removeEdge(b, fe);
+											} else if(fe.getType() == FlowEdges.IMMEDIATE) {
+												cfg.removeEdge(b, fe);
+											}
+										}
+
+										UnconditionalJumpStmt newJump = new UnconditionalJumpStmt(cond.getTrueSuccessor());
+										b.set(i, newJump);
+										UnconditionalJumpEdge<BasicBlock> uje = new UnconditionalJumpEdge<>(b, cond.getTrueSuccessor());
+										cfg.addEdge(b, uje);
+
+
+										for(FlowEdge<BasicBlock> fe : new HashSet<>(cfg.getEdges(b))) {
+											if(cfg.getReverseEdges(fe.dst).size() == 0) {
+												cfg.removeVertex(fe.dst);
+												
+												
+											}
+										}
+									} else {
+										// false branch, i.e. fallthrough,
+										// remove the jump.
+										
+//										Iterator<FlowEdge<BasicBlock>> it = cfg.getEdges(b).iterator();
+//										while(it.hasNext()) {
+//											FlowEdge<BasicBlock> fe = it.next();
+//											if(fe.getType() == FlowEdges.COND) {
+//												if(fe.dst != cond.getTrueSuccessor()) {
+//													throw new IllegalStateException(fe + ", " + cond);
+//												}
+//												
+//												it.remove();
+//											} else if(fe.getType() == FlowEdges.IMMEDIATE) {
+//												it.remove();
+//											}
+//										}
+//										
+//										b.remove(stmt);
+									}
+								}
+							}
+						}
+						
 						for(Expr e : stmt.enumerateOnlyChildren()) {
 							CodeUnit par = e.getParent();
 							if(par != null) {
@@ -60,7 +153,12 @@ public class ConstantExpressionEvaluatorPass implements ICompilerPass, Opcode {
 								if(e.getOpcode() != CONST_LOAD) {
 									Expr val = eval(pool, e);
 									if(val != null) {
-										par.overwrite(val, par.indexOf(e));
+										
+										if(!val.equivalent(e)) {
+											par.overwrite(val, par.indexOf(e));
+											
+											j++;
+										}
 									}
 								}
 							}
@@ -69,6 +167,8 @@ public class ConstantExpressionEvaluatorPass implements ICompilerPass, Opcode {
 				}
 			}
 		}
+		
+		System.out.printf("  evaluated %d constant expressions.%n", j);
 	}
 	
 	private Expr eval(LocalsPool pool, Expr e) {
@@ -148,21 +248,127 @@ public class ConstantExpressionEvaluatorPass implements ICompilerPass, Opcode {
 				ConstantExpr cr = new ConstantExpr(b.eval(ce.getConstant()));
 				return cr;
 			}
+		} else if(e.getOpcode() == COMPARE) {
+			ComparisonExpr comp = (ComparisonExpr) e;
+			
+			Expr l = comp.getLeft();
+			Expr r = comp.getRight();
+			
+			Expr le = eval(pool, l);
+			Expr re = eval(pool, r);
+			
+			if(le != null && re != null) {
+				ConstantExpr lc = (ConstantExpr) le;
+				ConstantExpr rc = (ConstantExpr) re;
+				
+				Bridge b = getComparisonBridge(lc.getType(), rc.getType(), comp.getComparisonType());
+				
+				System.out.println(b.method);
+				System.out.println(comp + " -> " + b.eval(lc.getConstant(), rc.getConstant()));
+				ConstantExpr cr = new ConstantExpr((int)b.eval(lc.getConstant(), rc.getConstant()));
+				return cr;
+			}
 		}
 		
 		return null;
 	}
 	
-	private boolean isPrimitive(Type t) {
-		switch(t.getSort()) {
-			case Type.VOID:
-			case Type.ARRAY:
-			case Type.OBJECT:
-			case Type.METHOD:
-				return false;
-			default:
-				return true;
+	private void cast(InsnList insns, Type from, Type to) {
+		int[] cast = TypeUtils.getPrimitiveCastOpcodes(from, to);
+		for (int i = 0; i < cast.length; i++) {
+			insns.add(new InsnNode(cast[i]));
 		}
+	}
+	
+	private void branchReturn(InsnList insns, LabelNode trueSuccessor) {
+		// return false
+		insns.add(new InsnNode(Opcodes.ICONST_0));
+		insns.add(new InsnNode(Opcodes.IRETURN));
+		insns.add(trueSuccessor);
+		// return true
+		insns.add(new InsnNode(Opcodes.ICONST_1));
+		insns.add(new InsnNode(Opcodes.IRETURN));
+	}
+	
+	private Bridge getConditionalEvalBridge(Type lt, Type rt, ComparisonType type) {
+		Type opType = TypeUtils.resolveBinOpType(lt, rt);
+		String name = lt.getClassName() + type.name() + rt.getClassName() + "OPTYPE" + opType.getClassName() + "RETbool";
+
+		String desc = "(" + lt.getDescriptor() + rt.getDescriptor() + ")Z";
+
+		if(bridges.containsKey(name)) {
+			return bridges.get(name);
+		}
+		
+
+		MethodNode m = makeBase(name, desc);
+		{
+			InsnList insns = new InsnList();
+			
+			insns.add(new VarInsnNode(TypeUtils.getVariableLoadOpcode(lt), 0));
+			cast(insns, lt, opType);
+			insns.add(new VarInsnNode(TypeUtils.getVariableLoadOpcode(rt), rt.getSize()));
+			cast(insns, rt, opType);
+			
+
+			LabelNode trueSuccessor = new LabelNode();
+			
+			if (opType == Type.INT_TYPE) {
+				insns.add(new JumpInsnNode(Opcodes.IF_ICMPEQ + type.ordinal(), trueSuccessor));
+			} else if (opType == Type.LONG_TYPE) {
+				insns.add(new InsnNode(Opcodes.LCMP));
+				insns.add(new JumpInsnNode(Opcodes.IFEQ + type.ordinal(), trueSuccessor));
+			} else if (opType == Type.FLOAT_TYPE) {
+				insns.add(new InsnNode((type == ComparisonType.LT || type == ComparisonType.LE) ? Opcodes.FCMPL : Opcodes.FCMPG));
+				insns.add(new JumpInsnNode(Opcodes.IFEQ + type.ordinal(), trueSuccessor));
+			} else if (opType == Type.DOUBLE_TYPE) {
+				insns.add(new InsnNode((type == ComparisonType.LT || type == ComparisonType.LE) ? Opcodes.DCMPL : Opcodes.DCMPG));
+				insns.add(new JumpInsnNode(Opcodes.IFEQ + type.ordinal(), trueSuccessor));
+			} else {
+				throw new IllegalArgumentException(opType.toString());
+			}
+			
+			branchReturn(insns, trueSuccessor);
+			
+			m.instructions = insns;
+		}
+		
+		return buildBridge(m);
+	}
+	
+	private Bridge getComparisonBridge(Type lt, Type rt, ValueComparisonType type) {
+		String name = lt.getClassName() + type.name() + rt.getClassName() + "RET" + rt.getClassName();
+
+		if(bridges.containsKey(name)) {
+			return bridges.get(name);
+		}
+		
+		int op;
+		String desc = ("(" + lt.getDescriptor() + rt.getDescriptor() + ")" + rt.getDescriptor());
+		
+		MethodNode m = makeBase(name, desc);
+		
+		if (lt == Type.LONG_TYPE || rt == Type.LONG_TYPE) {
+			op = Opcodes.LCMP;
+		} else if (lt == Type.FLOAT_TYPE || rt == Type.FLOAT_TYPE) {
+			op = type == ValueComparisonType.GT ? Opcodes.FCMPG : Opcodes.FCMPL;
+		} else if (lt == Type.DOUBLE_TYPE || rt == Type.DOUBLE_TYPE) {
+			op = type == ValueComparisonType.GT ? Opcodes.DCMPG : Opcodes.DCMPL;
+		} else {
+			throw new IllegalArgumentException();
+		}
+		
+		{
+			InsnList insns = new InsnList();
+			insns.add(new VarInsnNode(TypeUtils.getVariableLoadOpcode(lt), 0));
+			insns.add(new VarInsnNode(TypeUtils.getVariableLoadOpcode(rt), rt.getSize() /*D,J=2, else 1*/));
+			insns.add(new InsnNode(op));
+			insns.add(new InsnNode(Opcodes.IRETURN));
+			
+			m.instructions = insns;
+		}
+		
+		return buildBridge(m);
 	}
 	
 	private Bridge getCastBridge(Type from, Type to) {
@@ -171,47 +377,19 @@ public class ConstantExpressionEvaluatorPass implements ICompilerPass, Opcode {
 		if(bridges.containsKey(name)) {
 			return bridges.get(name);
 		}
-		
-		ClassNode owner = new ClassNode();
-		owner.version = Opcodes.V1_7;
-		owner.name = name;
-		owner.superName = "java/lang/Object";
-		owner.access = Opcodes.ACC_PUBLIC;
-		
+
 		String desc = ("(" + from.getDescriptor() + ")" + to.getDescriptor());
-		MethodNode m = new MethodNode(owner, Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC, "eval", desc, null, null);
+		MethodNode m = makeBase(name, desc);
 		
 		InsnList insns = new InsnList();
 		{
 			insns.add(new VarInsnNode(TypeUtils.getVariableLoadOpcode(from), 0));
-			
-			int[] cast = TypeUtils.getPrimitiveCastOpcodes(from, to);
-			for (int i = 0; i < cast.length; i++) {
-				insns.add(new InsnNode(cast[i]));
-			}
-			
+			cast(insns, from, to);
 			insns.add(new InsnNode(TypeUtils.getReturnOpcode(to)));
 			m.instructions = insns;
 		}
 		
-		owner.methods.add(m);
-		
-		ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
-		owner.accept(cw);
-		
-		byte[] bytes = cw.toByteArray();
-		Class<?> clazz = classLoader.make(name, bytes);
-		
-		for(Method method : clazz.getDeclaredMethods()) {
-			if(method.getName().equals("eval")) {
-				Bridge b = new Bridge(method);
-				
-				bridges.put(name, b);
-				return b;
-			}
-		}
-		
-		throw new UnsupportedOperationException();
+		return buildBridge(m);
 	}
 	
 	private Bridge getNegationBridge(Type t) {
@@ -221,14 +399,8 @@ public class ConstantExpressionEvaluatorPass implements ICompilerPass, Opcode {
 			return bridges.get(name);
 		}
 		
-		ClassNode owner = new ClassNode();
-		owner.version = Opcodes.V1_7;
-		owner.name = name;
-		owner.superName = "java/lang/Object";
-		owner.access = Opcodes.ACC_PUBLIC;
-		
 		String desc = ("(" + t.getDescriptor() + ")" + t.getDescriptor());
-		MethodNode m = new MethodNode(owner, Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC, "eval", desc, null, null);
+		MethodNode m = makeBase(name, desc);
 		
 		InsnList insns = new InsnList();
 		{
@@ -238,24 +410,7 @@ public class ConstantExpressionEvaluatorPass implements ICompilerPass, Opcode {
 			m.instructions = insns;
 		}
 		
-		owner.methods.add(m);
-		
-		ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
-		owner.accept(cw);
-		
-		byte[] bytes = cw.toByteArray();
-		Class<?> clazz = classLoader.make(name, bytes);
-		
-		for(Method method : clazz.getDeclaredMethods()) {
-			if(method.getName().equals("eval")) {
-				Bridge b = new Bridge(method);
-				
-				bridges.put(name, b);
-				return b;
-			}
-		}
-		
-		throw new UnsupportedOperationException();
+		return buildBridge(m);
 	}
 	
 	private Bridge getArithmeticBridge(Type t1, Type t2, Type rt, Operator op) {
@@ -265,14 +420,8 @@ public class ConstantExpressionEvaluatorPass implements ICompilerPass, Opcode {
 			return bridges.get(name);
 		}
 		
-		ClassNode owner = new ClassNode();
-		owner.version = Opcodes.V1_7;
-		owner.name = name;
-		owner.superName = "java/lang/Object";
-		owner.access = Opcodes.ACC_PUBLIC;
-		
 		String desc = ("(" + t1.getDescriptor() + t2.getDescriptor() + ")" + rt.getDescriptor());
-		MethodNode m = new MethodNode(owner, Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC, "eval", desc, null, null);
+		MethodNode m = makeBase(name, desc);
 		
 		InsnList insns = new InsnList();
 		{
@@ -286,16 +435,10 @@ public class ConstantExpressionEvaluatorPass implements ICompilerPass, Opcode {
 			}
 			
 			insns.add(new VarInsnNode(TypeUtils.getVariableLoadOpcode(t1), 0));
-			int[] lCast = TypeUtils.getPrimitiveCastOpcodes(t1, leftType);
-			for (int i = 0; i < lCast.length; i++) {
-				insns.add(new InsnNode(lCast[i]));
-			}
+			cast(insns, t1, leftType);
 
-			insns.add(new VarInsnNode(TypeUtils.getVariableLoadOpcode(t2), 1));
-			int[] rCast = TypeUtils.getPrimitiveCastOpcodes(t2, rightType);
-			for (int i = 0; i < rCast.length; i++) {
-				insns.add(new InsnNode(rCast[i]));
-			}
+			insns.add(new VarInsnNode(TypeUtils.getVariableLoadOpcode(t2), t2.getSize() /*D,J=2, else 1*/));
+			cast(insns, t2, rightType);
 			
 			int opcode;
 			switch (op) {
@@ -342,19 +485,46 @@ public class ConstantExpressionEvaluatorPass implements ICompilerPass, Opcode {
 			m.instructions = insns;
 		}
 		
-		owner.methods.add(m);
+		return buildBridge(m);
+	}
+	
+	private boolean isPrimitive(Type t) {
+		switch(t.getSort()) {
+			case Type.VOID:
+			case Type.ARRAY:
+			case Type.OBJECT:
+			case Type.METHOD:
+				return false;
+			default:
+				return true;
+		}
+	}
+
+	private MethodNode makeBase(String name, String desc) {
+		ClassNode owner = new ClassNode();
+		owner.version = Opcodes.V1_7;
+		owner.name = name;
+		owner.superName = "java/lang/Object";
+		owner.access = Opcodes.ACC_PUBLIC;
 		
+		MethodNode m = new MethodNode(owner, Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC, "eval", desc, null, null);
+		owner.methods.add(m);
+		return m;
+	}
+	
+	private Bridge buildBridge(MethodNode m) {
 		ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
+		ClassNode owner = m.owner;
 		owner.accept(cw);
 		
 		byte[] bytes = cw.toByteArray();
-		Class<?> clazz = classLoader.make(name, bytes);
+		Class<?> clazz = classLoader.make(owner.name, bytes);
 		
 		for(Method method : clazz.getDeclaredMethods()) {
 			if(method.getName().equals("eval")) {
 				Bridge b = new Bridge(method);
 				
-				bridges.put(name, b);
+				bridges.put(owner.name, b);
 				return b;
 			}
 		}

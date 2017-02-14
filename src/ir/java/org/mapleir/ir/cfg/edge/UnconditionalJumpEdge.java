@@ -1,11 +1,12 @@
 package org.mapleir.ir.cfg.edge;
 
 import org.mapleir.stdlib.collections.graph.FastGraphVertex;
+import org.objectweb.asm.Opcodes;
 
 public class UnconditionalJumpEdge<N extends FastGraphVertex> extends JumpEdge<N> {
 	
-	public UnconditionalJumpEdge(N src, N dst, int opcode) {
-		super(UNCOND, src, dst, opcode);
+	public UnconditionalJumpEdge(N src, N dst) {
+		super(UNCOND, src, dst, Opcodes.GOTO);
 	}
 
 	@Override
@@ -20,6 +21,6 @@ public class UnconditionalJumpEdge<N extends FastGraphVertex> extends JumpEdge<N
 	
 	@Override
 	public UnconditionalJumpEdge<N> clone(N src, N dst) {
-		return new UnconditionalJumpEdge<>(src, dst, opcode);
+		return new UnconditionalJumpEdge<>(src, dst);
 	}
 }
