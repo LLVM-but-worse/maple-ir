@@ -29,15 +29,16 @@ public class MethodRenamerPass implements ICompilerPass {
 		InvocationResolver resolver = cxt.getInvocationResolver();
 		
 		Map<MethodNode, String> remapped = new HashMap<>();
-		
-		/* 703 is aaa. */
-		int i = 703;
-		
+
 		int totalMethods = 0;
 		
 		for(ClassNode cn : tree.getClasses().values()) {
 			totalMethods += cn.methods.size();
-			
+		}
+		
+		int i = RenamingUtil.computeMinimum(totalMethods);
+		
+		for(ClassNode cn : tree.getClasses().values()) {
 			for(MethodNode m : cn.methods) {
 				if(remapped.containsKey(m)) {
 					continue;
@@ -45,7 +46,7 @@ public class MethodRenamerPass implements ICompilerPass {
 
 				if(Modifier.isStatic(m.access)) {
 					if(!m.name.equals("<clinit>")) {
-						String newName = createName(i++);
+						String newName = RenamingUtil.createName(i++);
 						remapped.put(m, newName);
 					}
 				} else {
@@ -54,7 +55,7 @@ public class MethodRenamerPass implements ICompilerPass {
 						Set<MethodNode> methods = getVirtualMethods(cxt, classes, m.name, m.desc);
 						
 						if(canRename(cxt, methods)) {
-							String newName = createName(i++);
+							String newName = RenamingUtil.createName(i++);
 							
 							for(MethodNode o : methods) {
 								if(remapped.containsKey(o)) {
@@ -167,14 +168,5 @@ public class MethodRenamerPass implements ICompilerPass {
 			}
 		}
 		return set;
-	}
-	
-	private static String createName(int n) {
-		char[] buf = new char[(int) Math.floor(Math.log(25 * (n + 1)) / Math.log(26))];
-		for (int i = buf.length - 1; i >= 0; i--) {
-			buf[i] = (char) ('a' + (--n) % 26);
-			n /= 26;
-		}
-		return new String(buf);
 	}
 }
