@@ -32,8 +32,13 @@ public class BoissinotDestructor {
 	// private boolean DO_SHARE_COALESCE = true;
 	
 	public static void leaveSSA(ControlFlowGraph cfg) {
-		if(cfg.getMethod().toString().equals("ev.awd(Lgx;)V")) {
-//			System.out.println(cfg);
+		if(cfg.getMethod().toString().equals("dr.asa(Ljava/lang/String;Ljava/lang/String;I)Ljava/io/File;")) {
+			System.out.println(cfg);
+			try {
+				new BoissinotDestructor(cfg);
+			} catch(RuntimeException e) {
+				throw new RuntimeException(cfg.getMethod().toString(), e);
+			}
 			
 //			DotConfiguration<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> config = new BasicDotConfiguration<>(GraphType.DIRECTED);
 //			DotWriter<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> writer = new DotWriter<>(config, cfg);
@@ -41,7 +46,6 @@ public class BoissinotDestructor {
 //			writer.setName("n2").export();
 		}
 //		System.out.println(cfg.getMethod());
-		new BoissinotDestructor(cfg);
 	}
 
 	private final ControlFlowGraph cfg;
