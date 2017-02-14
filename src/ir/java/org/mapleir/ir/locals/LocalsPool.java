@@ -10,9 +10,9 @@ import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.code.Opcode;
 import org.mapleir.ir.code.Stmt;
-import org.mapleir.ir.code.expr.VarExpression;
-import org.mapleir.ir.code.stmt.copy.AbstractCopyStatement;
-import org.mapleir.ir.code.stmt.copy.CopyVarStatement;
+import org.mapleir.ir.code.expr.VarExpr;
+import org.mapleir.ir.code.stmt.copy.AbstractCopyStmt;
+import org.mapleir.ir.code.stmt.copy.CopyVarStmt;
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.SetCreator;
 import org.mapleir.stdlib.collections.ValueCreator;
@@ -29,8 +29,8 @@ public class LocalsPool implements ValueCreator<GenericBitSet<Local>> {
 	private final Map<BasicLocal, VersionedLocal> latest;
 	private final BitSetIndexer<Local> indexer;
 	
-	public final Map<VersionedLocal, AbstractCopyStatement> defs;
-	public final Map<VersionedLocal, Set<VarExpression>> uses;
+	public final Map<VersionedLocal, AbstractCopyStmt> defs;
+	public final Map<VersionedLocal, Set<VarExpr>> uses;
 	
 	public LocalsPool(int base) {
 		this.base = new AtomicInteger(base);
@@ -157,8 +157,8 @@ public class LocalsPool implements ValueCreator<GenericBitSet<Local>> {
 		for(BasicBlock b : cfg.vertices()) {
 			for(Stmt stmt : b) {
 				if(stmt.getOpcode() == Opcode.LOCAL_STORE) {
-					CopyVarStatement cp = (CopyVarStatement) stmt;
-					VarExpression var = cp.getVariable();
+					CopyVarStmt cp = (CopyVarStmt) stmt;
+					VarExpr var = cp.getVariable();
 					Local local = var.getLocal();
 					if(!cp.isSynthetic()) {
 						types.getNonNull(local).add(var.getType());
@@ -170,7 +170,7 @@ public class LocalsPool implements ValueCreator<GenericBitSet<Local>> {
 				
 				for(Expr s : stmt.enumerateOnlyChildren()) {
 					if(s.getOpcode() == Opcode.LOCAL_LOAD) {
-						VarExpression var = (VarExpression) s;
+						VarExpr var = (VarExpr) s;
 						Local local = var.getLocal();
 						types.getNonNull(local).add(var.getType());
 					}
@@ -267,7 +267,7 @@ public class LocalsPool implements ValueCreator<GenericBitSet<Local>> {
 		for(BasicBlock b : cfg.vertices()) {
 			for(Stmt stmt : b) {
 				if(stmt.getOpcode() == Opcode.LOCAL_STORE) {
-					VarExpression v = ((CopyVarStatement) stmt).getVariable();
+					VarExpr v = ((CopyVarStmt) stmt).getVariable();
 					Local l = v.getLocal();
 					if(remap.containsKey(l)) {
 						Local l2 = remap.get(l);
@@ -277,7 +277,7 @@ public class LocalsPool implements ValueCreator<GenericBitSet<Local>> {
 				
 				for(Expr s : stmt.enumerateOnlyChildren()) {
 					if(s.getOpcode() == Opcode.LOCAL_LOAD) {
-						VarExpression v = (VarExpression) s;
+						VarExpr v = (VarExpr) s;
 						Local l = v.getLocal();
 						if(remap.containsKey(l)) {
 							v.setLocal(remap.get(l));

@@ -55,7 +55,7 @@ public class GraphUtils {
 			} else {
 				if (currentHeader == null) {
 					throw new IllegalStateException();
-				} else if (!(stmt instanceof PhiExpression)) {
+				} else if (!(stmt instanceof PhiExpr)) {
 					currentHeader.getStatements().add(stmt);
 					map.put(stmt, currentHeader);
 				}
