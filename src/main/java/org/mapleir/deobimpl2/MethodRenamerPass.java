@@ -162,7 +162,7 @@ public class MethodRenamerPass implements ICompilerPass {
 			e.getKey().name = e.getValue();
 		}
 		
-		System.out.printf("  Rename %d/%d methods.%n", remapped.size(), totalMethods);
+		System.out.printf("  Remapped %d/%d methods.%n", remapped.size(), totalMethods);
 	}
 	
 	private boolean mustMark(ClassTree tree, String owner) {
