@@ -8,6 +8,7 @@ import java.util.*;
 import java.util.Map.Entry;
 
 import org.mapleir.byteio.CompleteResolvingJarDumper;
+import org.mapleir.deobimpl2.ClassRenamerPass;
 import org.mapleir.deobimpl2.MethodRenamerPass;
 import org.mapleir.ir.ControlFlowGraphDumper;
 import org.mapleir.ir.cfg.BoissinotDestructor;
@@ -56,7 +57,6 @@ public class Boot {
 	private static void section(String text) {
 		section0("...took %fs.%n", text);
 	}
-	
 	
 	public static void main(String[] args) throws IOException {
 		cfgs = new HashMap<>();
@@ -273,6 +273,7 @@ public class Boot {
 //				new CallgraphPruningPass(),
 //				new ConcreteStaticInvocationPass(),
 				new MethodRenamerPass(),
+				new ClassRenamerPass()
 //				new ConstantParameterPass(),
 //				new ConstantExpressionReorderPass(),
 //				new FieldRSADecryptionPass()
