@@ -423,4 +423,9 @@ public class ClassNode extends ClassVisitor {
 		}
 		return null;
 	}
+	
+	@Override
+	public String toString() {
+		return name;
+	}
 }
