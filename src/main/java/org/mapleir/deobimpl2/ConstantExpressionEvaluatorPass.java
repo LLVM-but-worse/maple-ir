@@ -33,7 +33,6 @@ import org.mapleir.ir.code.stmt.copy.AbstractCopyStmt;
 import org.mapleir.ir.locals.Local;
 import org.mapleir.ir.locals.LocalsPool;
 import org.mapleir.stdlib.IContext;
-import org.mapleir.stdlib.collections.graph.GraphUtils;
 import org.mapleir.stdlib.deob.ICompilerPass;
 import org.mapleir.stdlib.util.TypeUtils;
 import org.objectweb.asm.ClassWriter;
@@ -71,9 +70,9 @@ public class ConstantExpressionEvaluatorPass implements ICompilerPass, Opcode {
 				
 
 				if(m.toString().equals("dr.asa(Ljava/lang/String;Ljava/lang/String;I)Ljava/io/File;")) {
-					System.out.println(cfg);
-					System.out.println(m.cachedKey());
-					GraphUtils.verifyCfg(cfg);
+//					System.out.println(cfg);
+//					System.out.println(m.cachedKey());
+//					GraphUtils.verifyCfg(cfg);
 				}
 				
 				bf: for(BasicBlock b : new HashSet<>(cfg.vertices())) {
@@ -103,14 +102,14 @@ public class ConstantExpressionEvaluatorPass implements ICompilerPass, Opcode {
 									if(branchVal) {
 										// always true, jump to true successor
 										
-										if(k++ >= 4) {
-//											
-//											System.out.println("cfg:");
-//											
-//											System.out.println(cfg);
-//											
-											break bf;
-										}
+//										if(k++ >= 4) {
+////											
+////											System.out.println("cfg:");
+////											
+////											System.out.println(cfg);
+////											
+//											break bf;
+//										}
 										
 										ImmediateEdge<BasicBlock> im = null;
 										ConditionalJumpEdge<BasicBlock> cje = null;
