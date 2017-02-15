@@ -16,6 +16,39 @@ import org.objectweb.asm.tree.MethodNode;
 
 public class DeadCodeEliminationPass implements ICompilerPass {
 
+	public static int process(ControlFlowGraph cfg) {
+		int i = 0;
+		
+		for(;;) {
+			boolean c = false;
+			
+			Iterator<BasicBlock> it = new HashSet<>(cfg.vertices()).iterator();
+			while(it.hasNext()) {
+				BasicBlock b = it.next();
+				
+				if(cfg.getReverseEdges(b).size() == 0 && !cfg.getEntries().contains(b)) {
+					
+					for(FlowEdge<BasicBlock> fe : cfg.getEdges(b)) {
+						if(fe.getType() == FlowEdges.TRYCATCH) {
+							TryCatchEdge<BasicBlock> tce = (TryCatchEdge<BasicBlock>) fe;
+							tce.erange.removeVertex(b);
+						}
+					}
+					
+					cfg.removeVertex(b);
+				
+					i++;
+					c = true;
+				}
+			}
+			
+			if(!c)
+				break;
+		}
+		
+		return i;
+	}
+	
 	@Override
 	public void accept(IContext cxt, ICompilerPass prev, List<ICompilerPass> completed) {
 		int i = 0;
@@ -26,32 +59,7 @@ public class DeadCodeEliminationPass implements ICompilerPass {
 				
 				/* dead blocks */
 				
-				for(;;) {
-					boolean c = false;
-					
-					Iterator<BasicBlock> it = new HashSet<>(cfg.vertices()).iterator();
-					while(it.hasNext()) {
-						BasicBlock b = it.next();
-						
-						if(cfg.getReverseEdges(b).size() == 0 && !cfg.getEntries().contains(b)) {
-							
-							for(FlowEdge<BasicBlock> fe : cfg.getEdges(b)) {
-								if(fe.getType() == FlowEdges.TRYCATCH) {
-									TryCatchEdge<BasicBlock> tce = (TryCatchEdge<BasicBlock>) fe;
-									tce.erange.removeVertex(b);
-								}
-							}
-							
-							cfg.removeVertex(b);
-						
-							i++;
-							c = true;
-						}
-					}
-					
-					if(!c)
-						break;
-				}
+				i += process(cfg);
 			}
 		}
 		
