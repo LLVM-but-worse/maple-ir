@@ -33,6 +33,7 @@ import org.mapleir.ir.code.stmt.copy.AbstractCopyStmt;
 import org.mapleir.ir.locals.Local;
 import org.mapleir.ir.locals.LocalsPool;
 import org.mapleir.stdlib.IContext;
+import org.mapleir.stdlib.collections.graph.GraphUtils;
 import org.mapleir.stdlib.deob.ICompilerPass;
 import org.mapleir.stdlib.util.TypeUtils;
 import org.objectweb.asm.ClassWriter;
@@ -131,11 +132,16 @@ public class ConstantExpressionEvaluatorPass implements ICompilerPass, Opcode {
 											}
 										}
 
+										System.out.println(cond);
+										System.out.println();
 										UnconditionalJumpStmt newJump = new UnconditionalJumpStmt(cond.getTrueSuccessor());
 										b.set(i, newJump);
 										UnconditionalJumpEdge<BasicBlock> uje = new UnconditionalJumpEdge<>(b, cond.getTrueSuccessor());
 										cfg.addEdge(b, uje);
 										
+										DeadCodeEliminationPass.process(cfg);
+										
+										GraphUtils.verifyCfg(cfg);
 									} else {
 										// false branch, i.e. fallthrough,
 										// remove the jump.
