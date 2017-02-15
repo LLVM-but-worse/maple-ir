@@ -48,7 +48,7 @@ public class ControlFlowGraph extends FastBlockGraph {
 	public static void blockToString(TabbedStringWriter sw, ControlFlowGraph cfg, BasicBlock b, int insn) {
 		// sw.print("===#Block " + b.getId() + "(size=" + (b.size()) + ")===");
 		sw.print(String.format("===#Block %s(size=%d, ident=%s, flags=%s)===", b.getId(), b.size(),
-				(b.getLabelNode() != null && b.getLabel() != null ? b.getLabel().hashCode() : "null"), Integer.toBinaryString(b.getFlags())));
+				/*(b.getLabelNode() != null && b.getLabel() != null ? b.getLabel().hashCode() : "null")*/ "x", Integer.toBinaryString(b.getFlags())));
 		sw.tab();
 		
 		Iterator<Stmt> it = b.iterator();
