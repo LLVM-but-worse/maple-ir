@@ -34,21 +34,21 @@ public class BoissinotDestructor {
 	public static void leaveSSA(ControlFlowGraph cfg) {
 		if(cfg.getMethod().toString().equals("dr.asa(Ljava/lang/String;Ljava/lang/String;I)Ljava/io/File;")) {
 //			System.out.println(cfg);
-			try {
-
-//				System.out.println(cfg);
-				GraphUtils.debug = true;
-				GraphUtils.verifyCfg(cfg);
-				new BoissinotDestructor(cfg);
-			} catch(RuntimeException e) {
-				throw new RuntimeException(cfg.getMethod().toString(), e);
-			}
+//			try {
+//
+////				System.out.println(cfg);
+//				GraphUtils.debug = true;
+//				GraphUtils.verifyCfg(cfg);
+//			} catch(RuntimeException e) {
+//				throw new RuntimeException(cfg.getMethod().toString(), e);
+//			}
 			
 //			DotConfiguration<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> config = new BasicDotConfiguration<>(GraphType.DIRECTED);
 //			DotWriter<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> writer = new DotWriter<>(config, cfg);
 //			writer.add(new ControlFlowGraphDecorator().setFlags(ControlFlowGraphDecorator.OPT_HIDE_HANDLER_EDGES));
 //			writer.setName("n2").export();
 		}
+		new BoissinotDestructor(cfg);
 //		System.out.println(cfg.getMethod());
 	}
 
