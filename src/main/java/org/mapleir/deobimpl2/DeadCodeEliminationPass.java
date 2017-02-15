@@ -6,6 +6,9 @@ import java.util.List;
 
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
+import org.mapleir.ir.cfg.edge.FlowEdge;
+import org.mapleir.ir.cfg.edge.FlowEdges;
+import org.mapleir.ir.cfg.edge.TryCatchEdge;
 import org.mapleir.stdlib.IContext;
 import org.mapleir.stdlib.deob.ICompilerPass;
 import org.objectweb.asm.tree.ClassNode;
@@ -23,15 +26,31 @@ public class DeadCodeEliminationPass implements ICompilerPass {
 				
 				/* dead blocks */
 				
-				Iterator<BasicBlock> it = new HashSet<>(cfg.vertices()).iterator();
-				while(it.hasNext()) {
-					BasicBlock b = it.next();
+				for(;;) {
+					boolean c = false;
 					
-					if(cfg.getReverseEdges(b).size() == 0 && !cfg.getEntries().contains(b)) {
-						cfg.removeVertex(b);
-					
-						i++;
+					Iterator<BasicBlock> it = new HashSet<>(cfg.vertices()).iterator();
+					while(it.hasNext()) {
+						BasicBlock b = it.next();
+						
+						if(cfg.getReverseEdges(b).size() == 0 && !cfg.getEntries().contains(b)) {
+							
+							for(FlowEdge<BasicBlock> fe : cfg.getEdges(b)) {
+								if(fe.getType() == FlowEdges.TRYCATCH) {
+									TryCatchEdge<BasicBlock> tce = (TryCatchEdge<BasicBlock>) fe;
+									tce.erange.removeVertex(b);
+								}
+							}
+							
+							cfg.removeVertex(b);
+						
+							i++;
+							c = true;
+						}
 					}
+					
+					if(!c)
+						break;
 				}
 			}
 		}

@@ -16,6 +16,7 @@ import org.mapleir.ir.cfg.builder.ControlFlowGraphBuilder;
 import org.mapleir.ir.code.Expr;
 import org.mapleir.stdlib.IContext;
 import org.mapleir.stdlib.call.CallTracer;
+import org.mapleir.stdlib.collections.graph.GraphUtils;
 import org.mapleir.stdlib.deob.ICompilerPass;
 import org.mapleir.stdlib.klass.ClassTree;
 import org.mapleir.stdlib.klass.InvocationResolver;
@@ -129,17 +130,17 @@ public class Boot {
 		runPasses(cxt, getTransformationPasses());
 			
 
-		for(Entry<MethodNode, ControlFlowGraph> e : cfgs.entrySet()) {
-			MethodNode mn = e.getKey();
-			ControlFlowGraph cfg = e.getValue();
-			
-			if(mn.toString().equals("a.akt(Lx;I)V")) {
-				BufferedWriter bw = new BufferedWriter(new FileWriter(new File("C:/Users/Bibl/Desktop/test224.txt")));
-				bw.write(cfg.toString());
-				bw.close();
-			}
-			
-		}
+//		for(Entry<MethodNode, ControlFlowGraph> e : cfgs.entrySet()) {
+//			MethodNode mn = e.getKey();
+//			ControlFlowGraph cfg = e.getValue();
+//			
+//			if(mn.toString().equals("a.akt(Lx;I)V")) {
+//				BufferedWriter bw = new BufferedWriter(new FileWriter(new File("C:/Users/Bibl/Desktop/test224.txt")));
+//				bw.write(cfg.toString());
+//				bw.close();
+//			}
+//			
+//		}
 		
 		section("Retranslating SSA IR to standard flavour.");
 		for(Entry<MethodNode, ControlFlowGraph> e : cfgs.entrySet()) {
@@ -192,6 +193,10 @@ public class Boot {
 				} else {
 					ControlFlowGraph cfg = ControlFlowGraphBuilder.build(m);
 					cfgs.put(m, cfg);
+					m.cacheKey();
+					if(m.toString().equals("u.e(Ljava/lang/String;Ljava/lang/String;II)Ljava/io/File;")) {
+						GraphUtils.verifyCfg(cfg);
+					}
 					return cfg;
 				}
 			}
@@ -273,10 +278,10 @@ public class Boot {
 				new ConcreteStaticInvocationPass(),
 				new MethodRenamerPass(),
 				new ClassRenamerPass(),
-				new FieldRenamerPass(),
+//				new FieldRenamerPass(),
 				new ConstantParameterPass(),
 				new ConstantExpressionReorderPass(),
-				new FieldRSADecryptionPass(),
+//				new FieldRSADecryptionPass(),
 				new ConstantExpressionEvaluatorPass(),
 				new DeadCodeEliminationPass()
 		};
