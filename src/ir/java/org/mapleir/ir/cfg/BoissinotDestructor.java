@@ -33,8 +33,12 @@ public class BoissinotDestructor {
 	
 	public static void leaveSSA(ControlFlowGraph cfg) {
 		if(cfg.getMethod().toString().equals("dr.asa(Ljava/lang/String;Ljava/lang/String;I)Ljava/io/File;")) {
-			System.out.println(cfg);
+//			System.out.println(cfg);
 			try {
+
+//				System.out.println(cfg);
+				GraphUtils.debug = true;
+				GraphUtils.verifyCfg(cfg);
 				new BoissinotDestructor(cfg);
 			} catch(RuntimeException e) {
 				throw new RuntimeException(cfg.getMethod().toString(), e);

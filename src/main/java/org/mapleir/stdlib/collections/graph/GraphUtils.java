@@ -15,6 +15,8 @@ import org.mapleir.ir.cfg.edge.DummyEdge;
 import org.mapleir.ir.cfg.edge.FlowEdge;
 import org.mapleir.ir.cfg.edge.FlowEdges;
 import org.mapleir.ir.cfg.edge.ImmediateEdge;
+import org.mapleir.ir.cfg.edge.TryCatchEdge;
+import org.mapleir.stdlib.collections.graph.flow.ExceptionRange;
 
 public class GraphUtils {
 
@@ -683,6 +685,8 @@ public class GraphUtils {
 	}
 	*/
 	
+	public static boolean debug = false;
+	
 	public static final int FAKEHEAD_ID = Integer.MAX_VALUE -1;
 	public static BasicBlock connectHead(ControlFlowGraph cfg) {
 		BasicBlock head = new BasicBlock(cfg, FAKEHEAD_ID, null) {
@@ -736,5 +740,75 @@ public class GraphUtils {
 			}
 		}
 		return false;
+	}
+	
+	public static void verifyCfg(ControlFlowGraph cfg) {
+		for(BasicBlock b : cfg.vertices()) {
+			
+			if(cfg.getReverseEdges(b).size() == 0 && !cfg.getEntries().contains(b)) {
+				throw new IllegalStateException("dead incoming: " + b);
+			}
+			
+			for(FlowEdge<BasicBlock> fe : cfg.getEdges(b)) {
+				if(fe.src != b) {
+					throw new RuntimeException(fe + " from " + b);
+				}
+				
+				BasicBlock dst = fe.dst;
+				
+				if(!cfg.containsVertex(dst) || !cfg.containsReverseVertex(dst)) {
+					throw new RuntimeException(fe + "; dst invalid: " + cfg.containsVertex(dst) + " : " + cfg.containsReverseVertex(dst));
+				}
+				
+				boolean found = cfg.getReverseEdges(dst).contains(fe);
+				
+				if(!found) {
+					throw new RuntimeException("no reverse: " + fe);
+				}
+				
+				if(fe.getType() == FlowEdges.TRYCATCH) {
+					TryCatchEdge<BasicBlock> tce = (TryCatchEdge<BasicBlock>) fe;
+					if(!tce.erange.containsVertex(b)) {
+						throw new RuntimeException("no contains: " + b + " in " + tce.erange + " for " + tce);
+					}		
+				}
+			}
+		}
+
+		for(ExceptionRange<BasicBlock> er : cfg.getRanges()) {
+			if(er.get().size() == 0) {
+				throw new RuntimeException("empty range: " + er);
+			}
+			
+			if(!cfg.containsVertex(er.getHandler()) || !cfg.containsReverseVertex(er.getHandler())) {
+				throw new RuntimeException("invalid handler: " + er.getHandler() + " in " + er);
+			}
+			
+			for(BasicBlock b : er.get()) {
+				if(!cfg.containsVertex(b) || !cfg.containsReverseVertex(b)) {
+					throw new RuntimeException("invalid b: " + b + " to " + er);
+				}
+				
+				boolean found = false;
+				
+				for(FlowEdge<BasicBlock> fe : cfg.getEdges(b)) {
+					if(fe.getType() == FlowEdges.TRYCATCH) {
+						TryCatchEdge<BasicBlock> tce = (TryCatchEdge<BasicBlock>) fe;
+						
+						if(tce.erange == er) {
+							if(tce.dst != er.getHandler()) {
+								throw new RuntimeException("false tce: " + tce + ", er: " + er);
+							} else {
+								found = true;
+							}
+						}
+					}
+				}
+				
+				if(!found) {
+					throw new RuntimeException("mismatch: " + b + " to " + er +" ; " + cfg.getEdges(b));
+				}
+			}
+		}
 	}
 }
