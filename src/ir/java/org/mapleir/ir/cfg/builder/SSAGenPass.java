@@ -222,7 +222,16 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 			FlowEdge<BasicBlock> c;
 			if (e instanceof TryCatchEdge) { // b is ehandler
 				TryCatchEdge<BasicBlock> tce = (TryCatchEdge<BasicBlock>) e;
-				if (tce.erange.getHandler() != newBlock || tce.dst != tce.erange.getHandler()) {
+				if (tce.dst != tce.erange.getHandler()) {
+					System.err.println(cfg.getMethod().owner.name + "#" + cfg.getMethod().name);
+					System.err.println(cfg);
+					System.err.println("Very odd split case. please investigate");
+					System.err.println("Offending postsplit block: " + b);
+					System.err.println("Offending newblock: " + newBlock);
+					System.err.println("Offending edge: " + tce);
+					System.err.println("Offending erange: " + tce.erange);
+				}
+				if (tce.erange.getHandler() != newBlock) {
 					tce.erange.setHandler(newBlock);
 					cfg.addEdge(tce.src, tce.clone(tce.src, null));
 					cfg.removeEdge(tce.src, tce);
@@ -282,8 +291,11 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		if (!checkCloneHandler(b)) {
 			// remove unnecessary handler edges if this block is now all simple copies, synth copies, or simple jumps.
 			for (FlowEdge<BasicBlock> e : new HashSet<>(cfg.getEdges(b))) {
-				if (e instanceof TryCatchEdge)
-					cfg.removeEdge(b, e);
+				if (e instanceof TryCatchEdge) {
+					TryCatchEdge<BasicBlock> tce = (TryCatchEdge<BasicBlock>) e;
+					tce.erange.removeVertex(b);
+					cfg.removeEdge(b, tce);
+				}
 			}
 		}
 		
