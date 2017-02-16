@@ -4,11 +4,15 @@ import java.util.List;
 
 import org.mapleir.stdlib.IContext;
 
-public interface ICompilerPass {
+public interface IPass {
 	
 	default String getId() {
 		return getClass().getSimpleName();
 	}
 	
-	void accept(IContext cxt, ICompilerPass prev, List<ICompilerPass> completed);
+	default boolean isIncremental() {
+		return true;
+	}
+
+	int accept(IContext cxt, IPass prev, List<IPass> completed);
 }

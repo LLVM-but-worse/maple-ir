@@ -17,7 +17,7 @@ import org.mapleir.ir.code.stmt.FieldStoreStmt;
 import org.mapleir.ir.code.stmt.ReturnStmt;
 import org.mapleir.ir.code.stmt.copy.AbstractCopyStmt;
 import org.mapleir.stdlib.IContext;
-import org.mapleir.stdlib.deob.ICompilerPass;
+import org.mapleir.stdlib.deob.IPass;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.FieldNode;
@@ -25,10 +25,15 @@ import org.objectweb.asm.tree.LocalVariableNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.tree.TryCatchBlockNode;
 
-public class ClassRenamerPass implements ICompilerPass {
+public class ClassRenamerPass implements IPass {
 
 	@Override
-	public void accept(IContext cxt, ICompilerPass prev, List<ICompilerPass> completed) {
+	public boolean isIncremental() {
+		return false;
+	}
+	
+	@Override
+	public int accept(IContext cxt, IPass prev, List<IPass> completed) {
 		Collection<ClassNode> classes = cxt.getClassTree().getClasses().values();
 
 		int n = RenamingUtil.computeMinimum(classes.size());
@@ -239,6 +244,8 @@ public class ClassRenamerPass implements ICompilerPass {
 		}
 		
 		cxt.getClassTree().rebuildTable();
+		
+		return classes.size();
 	}
 	
 	private String resolveMethod(String desc, Map<String, String> remapping) {
@@ -302,6 +309,7 @@ public class ClassRenamerPass implements ICompilerPass {
 		
 		return null;
 	}
+	
 	private String makeArrayDescriptor(String className, int dims) {
 		StringBuilder sb = new StringBuilder();
 		for(int i=0; i < dims; i++) {
