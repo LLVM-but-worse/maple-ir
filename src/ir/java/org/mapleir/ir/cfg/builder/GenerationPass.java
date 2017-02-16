@@ -59,6 +59,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 	private final BitSet finished;
 	private final LinkedList<LabelNode> queue;
 	private final Set<LabelNode> marks;
+	private final Map<BasicBlock, ExpressionStack> inputStacks;
 	
 	private BitSet stacks;
 	protected BasicBlock currentBlock;
@@ -77,6 +78,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		queue = new LinkedList<>();
 		stacks = new BitSet();
 		marks = new HashSet<>();
+		inputStacks = new HashMap<>();
 		
 		insns = builder.method.instructions;
 	}
@@ -94,6 +96,18 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 			block = makeBlock(label);
 		}
 		return block;
+	}
+	
+	protected void setInputStack(BasicBlock b, ExpressionStack s) {
+		if(inputStacks.containsKey(b)) {
+			throw new UnsupportedOperationException(b.getId() + " already has inputstack: " + inputStacks.get(b) + " vs. " + s);
+		}
+		
+		inputStacks.put(b, s);
+	}
+	
+	protected ExpressionStack getInputStackFor(BasicBlock b) {
+		return inputStacks.get(b);
 	}
 	
 	private void init() {
@@ -125,12 +139,12 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		
 		builder.graph.addVertex(entry);
 		builder.graph.getEntries().add(entry);
-		entry.setInputStack(new ExpressionStack(16));
+		setInputStack(entry, new ExpressionStack(16));
 		defineInputs(builder.method, entry);
 		insns.insertBefore(firstLabel, l);
 		
 		BasicBlock b = makeBlock(firstLabel);
-		b.setInputStack(new ExpressionStack(16));
+		setInputStack(b, new ExpressionStack(16));
 		queue(firstLabel);
 		
 		builder.graph.addEdge(entry, new ImmediateEdge<>(entry, b));
@@ -141,14 +155,14 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		BasicBlock handler = resolveTarget(label);
 		marks.add(tc.start);
 		marks.add(tc.end);
-		if(handler.getInputStack() != null) {
+		if(getInputStackFor(handler) != null) {
 //			System.err.println(handler.getInputStack());
 //			System.err.println("Double handler: " + handler.getId() + " " + tc);
 			return;
 		}
 		
 		ExpressionStack stack = new ExpressionStack(16);
-		handler.setInputStack(stack);
+		setInputStack(handler, stack);
 		
 		CaughtExceptionExpr expr = new CaughtExceptionExpr(tc.type);
 		Type type = expr.getType();
@@ -196,7 +210,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 	}
 	
 	protected void preprocess(BasicBlock b) {
-		ExpressionStack stack = b.getInputStack().copy();
+		ExpressionStack stack = getInputStackFor(b).copy();
 		stacks.set(b.getNumericId());
 		
 		currentBlock = b;
@@ -1393,11 +1407,11 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		if (!stacks.get(target.getNumericId())) {
 			// unfinalised block found.
 			// System.out.println("Setting target stack of " + target.getId() + " to " + stack);
-			target.setInputStack(stack.copy());
+			setInputStack(target, stack.copy());
 			stacks.set(target.getNumericId());
 
 			queue(target.getLabelNode());
-		} else if (!can_succeed(target.getInputStack(), stack)) {
+		} else if (!can_succeed(getInputStackFor(target), stack)) {
 			// if the targets input stack is finalised and
 			// the new stack cannot merge into it, then there
 			// is an error in the bytecode (verifier error).
@@ -1407,7 +1421,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 			// writer.removeAll().add(new ControlFlowGraphDecorator().setFlags(ControlFlowGraphDecorator.OPT_DEEP)).setName("6996").export();
 			
 			System.err.println("Current: " + stack + " in " + b.getId());
-			System.err.println("Target : " + target.getInputStack() + " in " + target.getId());
+			System.err.println("Target : " + getInputStackFor(target) + " in " + target.getId());
 			System.err.println(builder.graph);
 			throw new IllegalStateException("Stack coherency mismatch into #" + target.getId());
 		}
