@@ -6,7 +6,10 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 
+import org.mapleir.deobimpl2.ConstantParameterPass.SemiConstantParameter;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.cfg.edge.FlowEdge;
@@ -58,6 +61,14 @@ public class ConstantExpressionEvaluatorPass implements ICompilerPass, Opcode {
 	public void accept(IContext cxt, ICompilerPass prev, List<ICompilerPass> completed) {
 		int j = 0;
 		
+		AtomicReference<ConstantParameterPass> pass = new AtomicReference<>();
+		
+		for(ICompilerPass c : completed) {
+			if(c instanceof ConstantParameterPass) {
+				pass.set((ConstantParameterPass) c);
+			}
+		}
+		
 		for(ClassNode cn : cxt.getClassTree().getClasses().values()) {
 			for(MethodNode m : cn.methods) {
 				
@@ -74,65 +85,50 @@ public class ConstantExpressionEvaluatorPass implements ICompilerPass, Opcode {
 							Expr l = cond.getLeft();
 							Expr r = cond.getRight();
 							
-							Expr le = eval(pool, l);
-							Expr re = eval(pool, r);
+							if(!isPrimitive(l.getType()) || !isPrimitive(r.getType())) {
+								continue;
+							}
 							
-							if(le != null && re != null) {
-								ConstantExpr lc = (ConstantExpr) le;
-								ConstantExpr rc = (ConstantExpr) re;
-								
-								if(isPrimitive(lc.getType()) && isPrimitive(rc.getType())) {
-									Bridge bridge = getConditionalEvalBridge(lc.getType(), rc.getType(), cond.getComparisonType());
-									boolean branchVal = (boolean) bridge.eval(lc.getConstant(), rc.getConstant());
-									
-//									if(!m.toString().equals("dr.asa(Ljava/lang/String;Ljava/lang/String;I)Ljava/io/File;")) {
-//										continue;
-//									}
-									
-									if(branchVal) {
-										// always true, jump to true successor
-										
-										for(FlowEdge<BasicBlock> fe : new HashSet<>(cfg.getEdges(b))) {
-											if(fe.getType() == FlowEdges.COND) {
-												if(fe.dst != cond.getTrueSuccessor()) {
-													throw new IllegalStateException(fe + ", " + cond);
-												}
-												
-												cfg.removeEdge(b, fe);
-												DeadCodeEliminationPass.safeKill(fe);
-											} else if(fe.getType() == FlowEdges.IMMEDIATE) {
-												DeadCodeEliminationPass.safeKill(fe);
-												cfg.removeEdge(b, fe);
-											} else if(fe.getType() != FlowEdges.TRYCATCH) {
-												throw new IllegalStateException(fe.toString());
-											}
-										}
+							LocalValueResolver resolver = new LocalValueResolver() {
+								@Override
+								public Set<Expr> getValues(Local l) {
+									AbstractCopyStmt copy = pool.defs.get(l);
 
-										UnconditionalJumpStmt newJump = new UnconditionalJumpStmt(cond.getTrueSuccessor());
-										b.set(i, newJump);
-										UnconditionalJumpEdge<BasicBlock> uje = new UnconditionalJumpEdge<>(b, cond.getTrueSuccessor());
-										cfg.addEdge(b, uje);
-									} else {
-										// false branch, i.e. fallthrough,
-										// remove the jump.
+									ConstantParameterPass cp = pass.get();
+									if(cp != null) {
+										Set<Expr> set = new HashSet<>();
 										
-//										Iterator<FlowEdge<BasicBlock>> it = cfg.getEdges(b).iterator();
-//										while(it.hasNext()) {
-//											FlowEdge<BasicBlock> fe = it.next();
-//											if(fe.getType() == FlowEdges.COND) {
-//												if(fe.dst != cond.getTrueSuccessor()) {
-//													throw new IllegalStateException(fe + ", " + cond);
-//												}
-//												
-//												it.remove();
-//											} else if(fe.getType() == FlowEdges.IMMEDIATE) {
-//												it.remove();
-//											}
-//										}
-//										
-//										b.remove(stmt);
+										if(copy.isSynthetic()) {
+											VarExpr vE = (VarExpr) copy.getExpression();
+											if(vE.getLocal() != l) {
+												throw new IllegalStateException(copy + " : " + l);
+											}
+											Set<SemiConstantParameter> set2 = cp.getSemiConstantValues(m);
+											
+											if(set2 != null) {
+												for(SemiConstantParameter param : set2) {
+													if(param.lvtIndex == l.getIndex()) {
+														set.addAll(param.inputs);
+													}
+												}
+											}
+										} else {
+											set.add(copy.getExpression());
+										}
+										
+										return set;
+									} else {
+										Set<Expr> set = new HashSet<>();
+										set.add(copy.getExpression());
+										return set;
 									}
 								}
+							};
+							Set<ConstantExpr> lSet = evalPossibleValues(resolver, l);
+							Set<ConstantExpr> rSet = evalPossibleValues(resolver, r);
+							
+							if(isValidSet(lSet) && isValidSet(rSet)) {
+								predictBranch(cfg, b, cond, i, lSet, rSet);
 							}
 						}
 						
@@ -150,6 +146,17 @@ public class ConstantExpressionEvaluatorPass implements ICompilerPass, Opcode {
 											j++;
 										}
 									}
+								} else if(e.getOpcode() == ARITHMETIC) {
+									ArithmeticExpr ae = (ArithmeticExpr) e;
+									
+									Expr e2 = simplify(pool, ae);
+									
+									if(e2 != null) {
+										par.overwrite(e2, par.indexOf(e));
+										
+										j++;
+									}
+									
 								}
 							}
 						}
@@ -159,6 +166,112 @@ public class ConstantExpressionEvaluatorPass implements ICompilerPass, Opcode {
 		}
 		
 		System.out.printf("  evaluated %d constant expressions.%n", j);
+	}
+	
+	private Expr simplify(LocalsPool pool, ArithmeticExpr e) {
+		Expr r = e.getRight();
+		
+		Expr re = eval(pool, r);
+		
+		if(re instanceof ConstantExpr) {
+			ConstantExpr ce =(ConstantExpr) re;
+			
+			Object o = ce.getConstant();
+			
+			if(o instanceof Integer || o instanceof Long) {
+				if(FieldRSADecryptionPass.__eq((Number) o, 1, o instanceof Long)) {
+					return e.getLeft().copy();
+				} else if(FieldRSADecryptionPass.__eq((Number) o, 0, o instanceof Long)) {
+					return new ConstantExpr(0);
+				}
+			}
+		}
+		
+		return null;
+		
+		
+	}
+	
+	private void predictBranch(ControlFlowGraph cfg, BasicBlock b, ConditionalJumpStmt cond, int insnIndex, Set<ConstantExpr> leftSet, Set<ConstantExpr> rightSet) {
+		Boolean val = null;
+		
+		for(ConstantExpr lc : leftSet) {
+			for(ConstantExpr rc : rightSet) {
+				if(isPrimitive(lc.getType()) && isPrimitive(rc.getType())) {
+					Bridge bridge = getConditionalEvalBridge(lc.getType(), rc.getType(), cond.getComparisonType());
+					boolean branchVal = (boolean) bridge.eval(lc.getConstant(), rc.getConstant());
+					
+					if(val != null) {
+						if(val.booleanValue() != branchVal) {
+							return;
+						}
+					} else {
+						val = branchVal;
+					}
+				} else {
+					System.err.println("something::");
+					System.err.println("  " + cond);
+					System.err.println("  leftset: " + leftSet);
+					System.err.println("  rightSet: " + rightSet);
+					return;
+				}
+			}
+		}
+		
+		if(val != null) {
+			if(leftSet.size() > 1 || rightSet.size() > 1) {
+				System.out.println("Strong elim:: predict=" + val.toString());
+				System.out.println("  " + cond);
+				System.out.println("  leftset: " + leftSet);
+				System.out.println("  rightSet: " + rightSet);
+			}
+			eliminateBranch(cfg, b, cond, insnIndex, val);
+		}
+	}
+	
+	private void eliminateBranch(ControlFlowGraph cfg, BasicBlock b, ConditionalJumpStmt cond, int insnIndex, boolean val) {
+		if(val) {
+			// always true, jump to true successor
+			for(FlowEdge<BasicBlock> fe : new HashSet<>(cfg.getEdges(b))) {
+				if(fe.getType() == FlowEdges.COND) {
+					if(fe.dst != cond.getTrueSuccessor()) {
+						throw new IllegalStateException(fe + ", " + cond);
+					}
+					
+					cfg.removeEdge(b, fe);
+					DeadCodeEliminationPass.safeKill(fe);
+				} else if(fe.getType() == FlowEdges.IMMEDIATE) {
+					DeadCodeEliminationPass.safeKill(fe);
+					cfg.removeEdge(b, fe);
+				} else if(fe.getType() != FlowEdges.TRYCATCH) {
+					throw new IllegalStateException(fe.toString());
+				}
+			}
+
+			UnconditionalJumpStmt newJump = new UnconditionalJumpStmt(cond.getTrueSuccessor());
+			b.set(insnIndex, newJump);
+			UnconditionalJumpEdge<BasicBlock> uje = new UnconditionalJumpEdge<>(b, cond.getTrueSuccessor());
+			cfg.addEdge(b, uje);
+		} else {
+			// always false, keep immediate (fallthrough) and
+			// remove the conditional branch.
+
+//			for (FlowEdge<BasicBlock> fe : new HashSet<>(cfg.getEdges(b))) {
+//				if (fe.getType() == FlowEdges.COND) {
+//					if (fe.dst != cond.getTrueSuccessor()) {
+//						throw new IllegalStateException(fe + ", " + cond);
+//					}
+//
+//					cfg.removeEdge(b, fe);
+//					DeadCodeEliminationPass.safeKill(fe);
+//				} else if (fe.getType() == FlowEdges.IMMEDIATE) {
+//				} else if (fe.getType() != FlowEdges.TRYCATCH) {
+//					throw new IllegalStateException(fe.toString());
+//				}
+//
+//				b.remove(cond);
+//			}
+		}
 	}
 	
 	private Expr eval(LocalsPool pool, Expr e) {
@@ -261,6 +374,164 @@ public class ConstantExpressionEvaluatorPass implements ICompilerPass, Opcode {
 		}
 		
 		return null;
+	}
+	
+	private boolean isValidSet(Set<?> set) {
+		return set != null && set.size() > 0;
+	}
+	
+	private <T> Set<T> returnCleanSet(Set<T> set) {
+		if(set != null && set.size() > 0) {
+			return set;
+		} else {
+			return null;
+		}
+	}
+	
+	private Set<ConstantExpr> evalPossibleValues(LocalValueResolver resolver, Expr e) {
+		if(e.getOpcode() == CONST_LOAD) {
+			Set<ConstantExpr> set = new HashSet<>();
+			set.add((ConstantExpr) e);
+			return set;
+		} else if(e.getOpcode() == ARITHMETIC) {
+			ArithmeticExpr ae = (ArithmeticExpr) e;
+			Expr l = ae.getLeft();
+			Expr r = ae.getRight();
+			
+			Set<ConstantExpr> le = evalPossibleValues(resolver, l);
+			Set<ConstantExpr> re = evalPossibleValues(resolver, r);
+			
+			if(isValidSet(le) && isValidSet(re)) {
+				Set<ConstantExpr> results = new HashSet<>();
+				
+				for(ConstantExpr lc : le) {
+					for(ConstantExpr rc : re) {
+						Bridge b = getArithmeticBridge(lc.getType(), rc.getType(), ae.getType(), ae.getOperator());
+						results.add(new ConstantExpr(b.eval(lc.getConstant(), rc.getConstant())));
+					}
+				}
+				
+				return returnCleanSet(results);
+			}
+		} else if(e.getOpcode() == NEGATE) {
+			NegationExpr neg = (NegationExpr) e;
+			Set<ConstantExpr> vals = evalPossibleValues(resolver, neg.getExpression());
+			
+			if(isValidSet(vals)) {
+				Set<ConstantExpr> results = new HashSet<>();
+				
+				for(ConstantExpr c : vals) {
+					Bridge b = getNegationBridge(c.getType());
+					results.add(new ConstantExpr(b.eval(c.getConstant())));
+				}
+				
+				return returnCleanSet(results);
+			}
+		} else if(e.getOpcode() == LOCAL_LOAD) {
+			VarExpr v = (VarExpr) e;
+			Local l = v.getLocal();
+			
+			Set<Expr> defExprs = resolver.getValues(l);
+
+			if(isValidSet(defExprs)) {
+				Set<ConstantExpr> vals = new HashSet<>();
+				
+				for(Expr defE : defExprs) {
+					if(defE.getOpcode() == LOCAL_LOAD) {
+						VarExpr v2 = (VarExpr) defE;
+						
+						// synthetic copies lhs = rhs;
+						if(v2.getLocal() == l) {
+							continue;
+						}
+					}
+					
+					Set<ConstantExpr> set2 = evalPossibleValues(resolver, defE);
+					if(isValidSet(set2)) {
+						vals.addAll(set2);
+					}
+				}
+				
+				return returnCleanSet(vals);
+			}
+		} else if(e.getOpcode() == CAST) {
+			CastExpr cast = (CastExpr) e;
+			Set<ConstantExpr> set = evalPossibleValues(resolver, cast.getExpression());
+			
+			if(isValidSet(set)) {
+				Set<ConstantExpr> results = new HashSet<>();
+				
+				for(ConstantExpr ce : set) {
+					if(!ce.getType().equals(cast.getExpression().getType())) {
+						throw new IllegalStateException(ce.getType() + " : " + cast.getExpression().getType());
+					}
+					Type from = ce.getType();
+					Type to = cast.getType();
+					
+					boolean p1 = isPrimitive(from);
+					boolean p2 = isPrimitive(to);
+					
+					if(p1 != p2) {
+						throw new IllegalStateException(from + " to " + to);
+					}
+					
+					if(!p1 && !p2) {
+						return null;
+					}
+					
+					Bridge b = getCastBridge(from, to);
+					
+					results.add(new ConstantExpr(b.eval(ce.getConstant())));
+				}
+				
+				return returnCleanSet(results);
+			}
+		} else if(e.getOpcode() == COMPARE) {
+//			throw new UnsupportedOperationException("todo lmao");
+//			ComparisonExpr comp = (ComparisonExpr) e;
+			
+//			Expr l = comp.getLeft();
+//			Expr r = comp.getRight();
+//			
+//			Expr le = eval(pool, l);
+//			Expr re = eval(pool, r);
+//			
+//			if(le != null && re != null) {
+//				ConstantExpr lc = (ConstantExpr) le;
+//				ConstantExpr rc = (ConstantExpr) re;
+//				
+//				Bridge b = getComparisonBridge(lc.getType(), rc.getType(), comp.getComparisonType());
+//				
+//				System.out.println(b.method);
+//				System.out.println(comp + " -> " + b.eval(lc.getConstant(), rc.getConstant()));
+//				ConstantExpr cr = new ConstantExpr((int)b.eval(lc.getConstant(), rc.getConstant()));
+//				return cr;
+//			}
+		}
+		
+		return null;
+	}
+	
+	static interface LocalValueResolver {
+		Set<Expr> getValues(Local l);
+	}
+	
+	static class PooledLocalValueResolver implements LocalValueResolver {
+		
+		final LocalsPool pool;
+		
+		PooledLocalValueResolver(LocalsPool pool) {
+			this.pool = pool;
+		}
+		
+		@Override
+		public Set<Expr> getValues(Local l) {
+			AbstractCopyStmt copy = pool.defs.get(l);
+			
+			Set<Expr> set = new HashSet<>();
+			set.add(copy.getExpression());
+			return set;
+		}
 	}
 	
 	private void cast(InsnList insns, Type from, Type to) {

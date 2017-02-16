@@ -37,6 +37,7 @@ public class ClassRenamerPass implements ICompilerPass {
 		for(ClassNode cn : classes) {
 			String s = RenamingUtil.createName(n++);
 			remapping.put(cn.name, s);
+			System.out.println(cn.name + " -> " + s);
 			cn.name = s;
 		}
 		
