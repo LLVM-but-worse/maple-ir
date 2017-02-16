@@ -9,10 +9,8 @@ import java.util.Map;
 
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
-import org.mapleir.ir.cfg.edge.ConditionalJumpEdge;
 import org.mapleir.ir.cfg.edge.FlowEdge;
 import org.mapleir.ir.cfg.edge.FlowEdges;
-import org.mapleir.ir.cfg.edge.ImmediateEdge;
 import org.mapleir.ir.cfg.edge.UnconditionalJumpEdge;
 import org.mapleir.ir.code.CodeUnit;
 import org.mapleir.ir.code.Expr;
@@ -33,7 +31,6 @@ import org.mapleir.ir.code.stmt.copy.AbstractCopyStmt;
 import org.mapleir.ir.locals.Local;
 import org.mapleir.ir.locals.LocalsPool;
 import org.mapleir.stdlib.IContext;
-import org.mapleir.stdlib.collections.graph.GraphUtils;
 import org.mapleir.stdlib.deob.ICompilerPass;
 import org.mapleir.stdlib.util.TypeUtils;
 import org.objectweb.asm.ClassWriter;
@@ -57,8 +54,6 @@ public class ConstantExpressionEvaluatorPass implements ICompilerPass, Opcode {
 		bridges = new HashMap<>();
 	}
 	
-	int k = 0;
-	
 	@Override
 	public void accept(IContext cxt, ICompilerPass prev, List<ICompilerPass> completed) {
 		int j = 0;
@@ -69,14 +64,7 @@ public class ConstantExpressionEvaluatorPass implements ICompilerPass, Opcode {
 				ControlFlowGraph cfg = cxt.getIR(m);
 				LocalsPool pool = cfg.getLocals();
 				
-
-				if(m.toString().equals("dr.asa(Ljava/lang/String;Ljava/lang/String;I)Ljava/io/File;")) {
-//					System.out.println(cfg);
-//					System.out.println(m.cachedKey());
-//					GraphUtils.verifyCfg(cfg);
-				}
-				
-				bf: for(BasicBlock b : new HashSet<>(cfg.vertices())) {
+				for(BasicBlock b : new HashSet<>(cfg.vertices())) {
 					for(int i=0; i < b.size(); i++) {
 						Stmt stmt = b.get(i);
 						
@@ -97,23 +85,12 @@ public class ConstantExpressionEvaluatorPass implements ICompilerPass, Opcode {
 									Bridge bridge = getConditionalEvalBridge(lc.getType(), rc.getType(), cond.getComparisonType());
 									boolean branchVal = (boolean) bridge.eval(lc.getConstant(), rc.getConstant());
 									
-									if(!m.toString().equals("dr.asa(Ljava/lang/String;Ljava/lang/String;I)Ljava/io/File;")) {
-										continue;
-									}
+//									if(!m.toString().equals("dr.asa(Ljava/lang/String;Ljava/lang/String;I)Ljava/io/File;")) {
+//										continue;
+//									}
+									
 									if(branchVal) {
 										// always true, jump to true successor
-										
-//										if(k++ >= 4) {
-////											
-////											System.out.println("cfg:");
-////											
-////											System.out.println(cfg);
-////											
-//											break bf;
-//										}
-										
-										ImmediateEdge<BasicBlock> im = null;
-										ConditionalJumpEdge<BasicBlock> cje = null;
 										
 										for(FlowEdge<BasicBlock> fe : new HashSet<>(cfg.getEdges(b))) {
 											if(fe.getType() == FlowEdges.COND) {
@@ -122,26 +99,19 @@ public class ConstantExpressionEvaluatorPass implements ICompilerPass, Opcode {
 												}
 												
 												cfg.removeEdge(b, fe);
-												cje = (ConditionalJumpEdge<BasicBlock>) fe;
-//												cfg.addEdge(b, fe.clone(fe.src, fe.dst));
+												DeadCodeEliminationPass.safeKill(fe);
 											} else if(fe.getType() == FlowEdges.IMMEDIATE) {
+												DeadCodeEliminationPass.safeKill(fe);
 												cfg.removeEdge(b, fe);
-												im = (ImmediateEdge<BasicBlock>) fe;
 											} else if(fe.getType() != FlowEdges.TRYCATCH) {
 												throw new IllegalStateException(fe.toString());
 											}
 										}
 
-										System.out.println(cond);
-										System.out.println();
 										UnconditionalJumpStmt newJump = new UnconditionalJumpStmt(cond.getTrueSuccessor());
 										b.set(i, newJump);
 										UnconditionalJumpEdge<BasicBlock> uje = new UnconditionalJumpEdge<>(b, cond.getTrueSuccessor());
 										cfg.addEdge(b, uje);
-										
-										DeadCodeEliminationPass.process(cfg);
-										
-										GraphUtils.verifyCfg(cfg);
 									} else {
 										// false branch, i.e. fallthrough,
 										// remove the jump.
