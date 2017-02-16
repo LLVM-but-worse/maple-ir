@@ -12,7 +12,6 @@ import java.util.function.Predicate;
 import org.mapleir.ir.cfg.edge.FlowEdge;
 import org.mapleir.ir.cfg.edge.ImmediateEdge;
 import org.mapleir.ir.cfg.edge.TryCatchEdge;
-import org.mapleir.ir.code.ExpressionStack;
 import org.mapleir.ir.code.Stmt;
 import org.mapleir.stdlib.collections.graph.FastGraphVertex;
 import org.mapleir.stdlib.collections.graph.flow.ExceptionRange;
@@ -27,7 +26,6 @@ public class BasicBlock implements FastGraphVertex, Comparable<BasicBlock>, List
 	private final ControlFlowGraph cfg;
 	private LabelNode label;
 	private final List<Stmt> statements;
-	private ExpressionStack inputStack;
 	private int flags = 0;
 	// private Map<ExceptionRange<BasicBlock>, Integer> ranges;
 	
@@ -219,14 +217,6 @@ public class BasicBlock implements FastGraphVertex, Comparable<BasicBlock>, List
 			dst.add(s);
 			s.setBlock(dst);
 		}
-	}
-	
-	public ExpressionStack getInputStack() {
-		return inputStack;
-	}
-	
-	public void setInputStack(ExpressionStack inputStack) {
-		this.inputStack = inputStack;
 	}
 
 	@Override
