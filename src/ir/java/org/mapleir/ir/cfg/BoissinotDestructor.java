@@ -308,7 +308,7 @@ public class BoissinotDestructor {
 				} else if (opcode == Opcode.PHI_STORE) {
 					CopyPhiStmt copy = (CopyPhiStmt) stmt;
 					values.getNonNull(copy.getVariable().getLocal());
-				} else if (opcode == -1) {
+				} else if (opcode == ParallelCopyVarStmt.PARALLEL_STORE) {
 					ParallelCopyVarStmt copy = (ParallelCopyVarStmt) stmt;
 					for (CopyPair p : copy.pairs) {
 						LinkedHashSet<Local> valueClass = values.getNonNull(p.source);
@@ -762,15 +762,16 @@ public class BoissinotDestructor {
 	}
 
 	private class ParallelCopyVarStmt extends Stmt {
+		public static final int PARALLEL_STORE = CLASS_RESERVED | CLASS_STORE | 0x1;
 		final List<CopyPair> pairs;
 
 		ParallelCopyVarStmt() {
-			super(-1);
+			super(PARALLEL_STORE);
 			pairs = new ArrayList<>();
 		}
 
 		ParallelCopyVarStmt(List<CopyPair> pairs) {
-			super(-1);
+			super(PARALLEL_STORE);
 			this.pairs = pairs;
 		}
 
