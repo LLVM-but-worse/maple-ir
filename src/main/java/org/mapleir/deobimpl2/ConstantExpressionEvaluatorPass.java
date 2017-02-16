@@ -34,7 +34,7 @@ import org.mapleir.ir.code.stmt.copy.AbstractCopyStmt;
 import org.mapleir.ir.locals.Local;
 import org.mapleir.ir.locals.LocalsPool;
 import org.mapleir.stdlib.IContext;
-import org.mapleir.stdlib.deob.ICompilerPass;
+import org.mapleir.stdlib.deob.IPass;
 import org.mapleir.stdlib.util.TypeUtils;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Opcodes;
@@ -47,7 +47,7 @@ import org.objectweb.asm.tree.LabelNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.tree.VarInsnNode;
 
-public class ConstantExpressionEvaluatorPass implements ICompilerPass, Opcode {
+public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 
 	private final BridgeClassLoader classLoader;
 	private final Map<String, Bridge> bridges;
@@ -58,114 +58,151 @@ public class ConstantExpressionEvaluatorPass implements ICompilerPass, Opcode {
 	}
 	
 	@Override
-	public void accept(IContext cxt, ICompilerPass prev, List<ICompilerPass> completed) {
+	public int accept(IContext cxt, IPass prev, List<IPass> completed) {
 		int j = 0;
 		
 		AtomicReference<ConstantParameterPass> pass = new AtomicReference<>();
 		
-		for(ICompilerPass c : completed) {
+		for(IPass c : completed) {
 			if(c instanceof ConstantParameterPass) {
 				pass.set((ConstantParameterPass) c);
 			}
 		}
 		
-		for(ClassNode cn : cxt.getClassTree().getClasses().values()) {
-			for(MethodNode m : cn.methods) {
-				
-				ControlFlowGraph cfg = cxt.getIR(m);
-				LocalsPool pool = cfg.getLocals();
-				
-				for(BasicBlock b : new HashSet<>(cfg.vertices())) {
-					for(int i=0; i < b.size(); i++) {
-						Stmt stmt = b.get(i);
-						
-						if(stmt.getOpcode() == COND_JUMP) {
-							ConditionalJumpStmt cond = (ConditionalJumpStmt) stmt;
+		for(;;) {
+			int js = j;
+			
+			for(ClassNode cn : cxt.getClassTree().getClasses().values()) {
+				for(MethodNode m : cn.methods) {
+					
+					ControlFlowGraph cfg = cxt.getIR(m);
+					LocalsPool pool = cfg.getLocals();
+					
+					for(BasicBlock b : new HashSet<>(cfg.vertices())) {
+						for(int i=0; i < b.size(); i++) {
+							Stmt stmt = b.get(i);
 							
-							Expr l = cond.getLeft();
-							Expr r = cond.getRight();
-							
-							if(!isPrimitive(l.getType()) || !isPrimitive(r.getType())) {
-								continue;
+							if(stmt.getOpcode() == COND_JUMP) {
+								ConditionalJumpStmt cond = (ConditionalJumpStmt) stmt;
+								
+								Expr l = cond.getLeft();
+								Expr r = cond.getRight();
+								
+								if(!isPrimitive(l.getType()) || !isPrimitive(r.getType())) {
+									continue;
+								}
+								
+								LocalValueResolver resolver = new LocalValueResolver() {
+									@Override
+									public Set<Expr> getValues(Local l) {
+										AbstractCopyStmt copy = pool.defs.get(l);
+
+										ConstantParameterPass cp = pass.get();
+										if(cp != null) {
+											Set<Expr> set = new HashSet<>();
+											
+											if(copy.isSynthetic()) {
+												VarExpr vE = (VarExpr) copy.getExpression();
+												if(vE.getLocal() != l) {
+													throw new IllegalStateException(copy + " : " + l);
+												}
+												Set<SemiConstantParameter> set2 = cp.getSemiConstantValues(m);
+												
+												if(set2 != null) {
+													for(SemiConstantParameter param : set2) {
+														if(param.lvtIndex == l.getIndex()) {
+															set.addAll(param.inputs);
+														}
+													}
+												}
+											} else {
+												set.add(copy.getExpression());
+											}
+											
+											return set;
+										} else {
+											Set<Expr> set = new HashSet<>();
+											set.add(copy.getExpression());
+											return set;
+										}
+									}
+								};
+								Set<ConstantExpr> lSet = evalPossibleValues(resolver, l);
+								Set<ConstantExpr> rSet = evalPossibleValues(resolver, r);
+								
+								if(isValidSet(lSet) && isValidSet(rSet)) {
+									predictBranch(cfg, b, cond, i, lSet, rSet);
+								}
 							}
 							
-							LocalValueResolver resolver = new LocalValueResolver() {
-								@Override
-								public Set<Expr> getValues(Local l) {
-									AbstractCopyStmt copy = pool.defs.get(l);
-
-									ConstantParameterPass cp = pass.get();
-									if(cp != null) {
-										Set<Expr> set = new HashSet<>();
-										
-										if(copy.isSynthetic()) {
-											VarExpr vE = (VarExpr) copy.getExpression();
-											if(vE.getLocal() != l) {
-												throw new IllegalStateException(copy + " : " + l);
-											}
-											Set<SemiConstantParameter> set2 = cp.getSemiConstantValues(m);
+							for(Expr e : stmt.enumerateOnlyChildren()) {
+								CodeUnit par = e.getParent();
+								if(par != null) {
+									/* no point evaluating constants */
+									if(e.getOpcode() != CONST_LOAD) {
+										Expr val = eval(pool, e);
+										if(val != null) {
 											
-											if(set2 != null) {
-												for(SemiConstantParameter param : set2) {
-													if(param.lvtIndex == l.getIndex()) {
-														set.addAll(param.inputs);
+											if(!val.equivalent(e)) {
+												par.overwrite(val, par.indexOf(e));
+												
+												j++;
+											}
+										}
+										
+										if(e.getOpcode() == ARITHMETIC && e.getParent() != null) {
+											ArithmeticExpr ae = (ArithmeticExpr) e;
+											Operator op = ae.getOperator();
+											
+											Expr e2 = simplify(pool, ae);
+											
+											if(e2 != null) {
+												par.overwrite(e2, par.indexOf(e));
+												
+												j++;
+											} else if (op == Operator.MUL) {
+												/* (x * c) * k
+												 * to
+												 * (x * ck)
+												 */
+												Expr l = ae.getLeft();
+												Expr r = ae.getRight();
+												
+												if(l.getOpcode() == ARITHMETIC) {
+													ArithmeticExpr xcExpr = (ArithmeticExpr) l;
+			
+													if(xcExpr.getOperator() == Operator.MUL) {
+														Expr r2 = xcExpr.getRight();
+														Expr c = eval(pool, r2);
+														Expr k = eval(pool, r);
+														if(c != null && k != null) {
+															Bridge bridge = getArithmeticBridge(c.getType(), k.getType(), c.getType(), Operator.MUL);
+															Object v = bridge.eval(((ConstantExpr) c).getConstant(), ((ConstantExpr) k).getConstant());
+															
+															ArithmeticExpr newAe = new ArithmeticExpr(new ConstantExpr(v), xcExpr.getLeft().copy(), Operator.MUL);
+															ae.getParent().overwrite(newAe, ae.getParent().indexOf(ae));
+															j++;
+														}
 													}
 												}
 											}
-										} else {
-											set.add(copy.getExpression());
-										}
-										
-										return set;
-									} else {
-										Set<Expr> set = new HashSet<>();
-										set.add(copy.getExpression());
-										return set;
-									}
-								}
-							};
-							Set<ConstantExpr> lSet = evalPossibleValues(resolver, l);
-							Set<ConstantExpr> rSet = evalPossibleValues(resolver, r);
-							
-							if(isValidSet(lSet) && isValidSet(rSet)) {
-								predictBranch(cfg, b, cond, i, lSet, rSet);
-							}
-						}
-						
-						for(Expr e : stmt.enumerateOnlyChildren()) {
-							CodeUnit par = e.getParent();
-							if(par != null) {
-								/* no point evaluating constants */
-								if(e.getOpcode() != CONST_LOAD) {
-									Expr val = eval(pool, e);
-									if(val != null) {
-										
-										if(!val.equivalent(e)) {
-											par.overwrite(val, par.indexOf(e));
-											
-											j++;
 										}
 									}
-								} else if(e.getOpcode() == ARITHMETIC) {
-									ArithmeticExpr ae = (ArithmeticExpr) e;
-									
-									Expr e2 = simplify(pool, ae);
-									
-									if(e2 != null) {
-										par.overwrite(e2, par.indexOf(e));
-										
-										j++;
-									}
-									
 								}
 							}
 						}
 					}
 				}
 			}
+			
+			if(js == j) {
+				break;
+			}
 		}
 		
 		System.out.printf("  evaluated %d constant expressions.%n", j);
+		
+		return j;
 	}
 	
 	private Expr simplify(LocalsPool pool, ArithmeticExpr e) {
@@ -188,8 +225,6 @@ public class ConstantExpressionEvaluatorPass implements ICompilerPass, Opcode {
 		}
 		
 		return null;
-		
-		
 	}
 	
 	private void predictBranch(ControlFlowGraph cfg, BasicBlock b, ConditionalJumpStmt cond, int insnIndex, Set<ConstantExpr> leftSet, Set<ConstantExpr> rightSet) {
@@ -220,10 +255,10 @@ public class ConstantExpressionEvaluatorPass implements ICompilerPass, Opcode {
 		
 		if(val != null) {
 			if(leftSet.size() > 1 || rightSet.size() > 1) {
-				System.out.println("Strong elim:: predict=" + val.toString());
-				System.out.println("  " + cond);
-				System.out.println("  leftset: " + leftSet);
-				System.out.println("  rightSet: " + rightSet);
+//				System.out.println("Strong elim:: predict=" + val.toString());
+//				System.out.println("  " + cond);
+//				System.out.println("  leftset: " + leftSet);
+//				System.out.println("  rightSet: " + rightSet);
 			}
 			eliminateBranch(cfg, b, cond, insnIndex, val);
 		}

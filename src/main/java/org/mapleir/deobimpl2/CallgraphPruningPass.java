@@ -5,11 +5,11 @@ import java.util.ListIterator;
 import java.util.Set;
 
 import org.mapleir.stdlib.IContext;
-import org.mapleir.stdlib.deob.ICompilerPass;
+import org.mapleir.stdlib.deob.IPass;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
 
-public class CallgraphPruningPass implements ICompilerPass {
+public class CallgraphPruningPass implements IPass {
 
 	@Override
 	public String getId() {
@@ -17,7 +17,7 @@ public class CallgraphPruningPass implements ICompilerPass {
 	}
 	
 	@Override
-	public void accept(IContext cxt, ICompilerPass prev, List<ICompilerPass> completed) {
+	public int accept(IContext cxt, IPass prev, List<IPass> completed) {
 		Set<MethodNode> active = cxt.getActiveMethods();
 		
 		int i = 0;
@@ -34,5 +34,12 @@ public class CallgraphPruningPass implements ICompilerPass {
 		}
 		
 		System.out.println("Removed " + i + " dead methods.");
+		
+		return i;
+	}
+	
+	@Override
+	public boolean isIncremental() {
+		return false;
 	}
 }

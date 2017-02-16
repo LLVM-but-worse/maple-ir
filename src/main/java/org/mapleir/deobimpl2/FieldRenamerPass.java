@@ -15,16 +15,21 @@ import org.mapleir.ir.code.Stmt;
 import org.mapleir.ir.code.expr.FieldLoadExpr;
 import org.mapleir.ir.code.stmt.FieldStoreStmt;
 import org.mapleir.stdlib.IContext;
-import org.mapleir.stdlib.deob.ICompilerPass;
+import org.mapleir.stdlib.deob.IPass;
 import org.mapleir.stdlib.klass.ClassTree;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.FieldNode;
 import org.objectweb.asm.tree.MethodNode;
 
-public class FieldRenamerPass implements ICompilerPass {
+public class FieldRenamerPass implements IPass {
 
 	@Override
-	public void accept(IContext cxt, ICompilerPass prev, List<ICompilerPass> completed) {
+	public boolean isIncremental() {
+		return false;
+	}
+	
+	@Override
+	public int accept(IContext cxt, IPass prev, List<IPass> completed) {
 		ClassTree tree = cxt.getClassTree();
 		
 		Map<FieldNode, String> remapped = new HashMap<>();
@@ -96,6 +101,8 @@ public class FieldRenamerPass implements ICompilerPass {
 		}
 		
 		System.out.printf("  Renamed %d fields.%n", remapped.size());
+		
+		return remapped.size();
 	}
 	
 	private boolean mustMark(ClassTree tree, String owner) {
