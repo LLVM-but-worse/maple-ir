@@ -18,7 +18,7 @@ import org.mapleir.ir.code.stmt.copy.CopyVarStmt;
 import org.mapleir.ir.locals.LocalsPool;
 import org.mapleir.ir.locals.VersionedLocal;
 import org.mapleir.stdlib.IContext;
-import org.mapleir.stdlib.deob.ICompilerPass;
+import org.mapleir.stdlib.deob.IPass;
 import org.mapleir.stdlib.klass.ClassTree;
 import org.mapleir.stdlib.klass.InvocationResolver;
 import org.objectweb.asm.Opcodes;
@@ -26,7 +26,7 @@ import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
 
-public class ConstantParameterPass implements ICompilerPass, Opcode {
+public class ConstantParameterPass implements IPass, Opcode {
 	
 	private static final Comparator<Integer> INTEGER_ORDERER = new Comparator<Integer>() {
 		@Override
@@ -75,6 +75,7 @@ public class ConstantParameterPass implements ICompilerPass, Opcode {
 	
 	
 	private void inlineConstant(ControlFlowGraph cfg, MethodNode mn, int parameterIndex, ConstantExpr c) {
+		System.out.println(mn.toString() + " -> " + parameterIndex);
 		LocalsPool pool = cfg.getLocals();
 		int argLocalIndex = paramIndices.get(mn)[parameterIndex];
 		
@@ -85,6 +86,17 @@ public class ConstantParameterPass implements ICompilerPass, Opcode {
 		
 		/* demote the def from a synthetic
 		 * copy to a normal one. */
+		try {
+			argDef.getVariable().copy();
+		} catch(RuntimeException e) {
+			System.err.println(cfg);
+			System.err.println(Modifier.isStatic(mn.access));
+			System.err.println(argLocal + " : " + argDef);
+			System.err.println("Param index: " + parameterIndex);
+			System.err.println("Arg index: " + argLocalIndex);
+			System.err.println(c);
+			throw e;
+		}
 		VarExpr dv = argDef.getVariable().copy();
 		
 		VersionedLocal spill = pool.makeLatestVersion(argLocal);
@@ -131,11 +143,14 @@ public class ConstantParameterPass implements ICompilerPass, Opcode {
 	}
 	
 	@Override
-	public void accept(IContext cxt, ICompilerPass prev, List<ICompilerPass> completed) {
+	public int accept(IContext cxt, IPass prev, List<IPass> completed) {
 		calls.clear();
 		constantParameterIndices.clear();
+		semiConstantParameters.clear();
 		processedExprs.clear();
 		processMethods.clear();
+		cantfix.clear();
+		paramIndices.clear();
 		
 		Map<MethodNode, List<List<Expr>>> parameterInputs = new HashMap<>();
 		
@@ -259,6 +274,8 @@ public class ConstantParameterPass implements ICompilerPass, Opcode {
 		}
 		
 		System.out.printf("Removed %d constant paramters.%n", killedTotal);
+		
+		return killedTotal;
 	}
 	
 	private int fixDeadParameters(IContext cxt, MethodNode mn) {

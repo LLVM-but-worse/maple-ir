@@ -9,11 +9,11 @@ import org.mapleir.ir.cfg.edge.FlowEdge;
 import org.mapleir.ir.code.Stmt;
 import org.mapleir.ir.code.stmt.copy.CopyPhiStmt;
 import org.mapleir.stdlib.IContext;
-import org.mapleir.stdlib.deob.ICompilerPass;
+import org.mapleir.stdlib.deob.IPass;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
 
-public class DeadCodeEliminationPass implements ICompilerPass {
+public class DeadCodeEliminationPass implements IPass {
 
 	public static void safeKill(FlowEdge<BasicBlock> fe) {
 		for (Stmt stmt : fe.dst) {
@@ -51,7 +51,7 @@ public class DeadCodeEliminationPass implements ICompilerPass {
 	}
 
 	@Override
-	public void accept(IContext cxt, ICompilerPass prev, List<ICompilerPass> completed) {
+	public int accept(IContext cxt, IPass prev, List<IPass> completed) {
 		int i = 0;
 
 		for (ClassNode cn : cxt.getClassTree().getClasses().values()) {
@@ -65,5 +65,7 @@ public class DeadCodeEliminationPass implements ICompilerPass {
 		}
 
 		System.out.printf("  removed %d dead blocks.%n", i);
+		
+		return i;
 	}
 }

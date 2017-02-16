@@ -4,8 +4,14 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import org.mapleir.byteio.CompleteResolvingJarDumper;
 import org.mapleir.deobimpl2.*;
@@ -17,7 +23,8 @@ import org.mapleir.ir.code.Expr;
 import org.mapleir.stdlib.IContext;
 import org.mapleir.stdlib.call.CallTracer;
 import org.mapleir.stdlib.collections.graph.GraphUtils;
-import org.mapleir.stdlib.deob.ICompilerPass;
+import org.mapleir.stdlib.deob.IPass;
+import org.mapleir.stdlib.deob.PassGroup;
 import org.mapleir.stdlib.klass.ClassTree;
 import org.mapleir.stdlib.klass.InvocationResolver;
 import org.objectweb.asm.tree.ClassNode;
@@ -39,7 +46,27 @@ public class Boot {
 		return (double)delta / 1_000_000_000L;
 	}
 	
-	private static void section0(String endText, String sectionText) {
+	public static void section0(String endText, String sectionText, boolean quiet) {
+		if(sections.isEmpty()) {
+			lap();
+			if(!quiet)
+				System.out.println(sectionText);
+		} else {
+			/* remove last section. */
+			sections.pop();
+			if(!quiet) {
+				System.out.printf(endText, lap());
+				System.out.println("\n" + sectionText);
+			} else {
+				lap();
+			}
+		}
+
+		/* push the new one. */
+		sections.push(sectionText);
+	}
+	
+	public static void section0(String endText, String sectionText) {
 		if(sections.isEmpty()) {
 			lap();
 			System.out.println(sectionText);
@@ -127,7 +154,11 @@ public class Boot {
 		
 		section0("...generated " + cfgs.size() + " cfgs in %fs.%n", "Preparing to transform.");
 		
-		runPasses(cxt, getTransformationPasses());
+		PassGroup masterGroup = new PassGroup("MasterController");
+		for(IPass p : getTransformationPasses()) {
+			masterGroup.add(p);
+		}
+		run(cxt, masterGroup);
 			
 
 //		for(Entry<MethodNode, ControlFlowGraph> e : cfgs.entrySet()) {
@@ -226,7 +257,11 @@ public class Boot {
 		
 		section0("...generated " + cfgs.size() + " cfgs in %fs.%n", "Preparing to transform.");
 		
-		runPasses(cxt, getTransformationPasses());
+		PassGroup masterGroup = new PassGroup("MasterController");
+		for(IPass p : getTransformationPasses()) {
+			masterGroup.add(p);
+		}
+		run(cxt, masterGroup);
 			
 
 		for(Entry<MethodNode, ControlFlowGraph> e : cfgs.entrySet()) {
@@ -258,32 +293,24 @@ public class Boot {
 		section("Finished.");
 	}
 	
-	private static void runPasses(IContext cxt, ICompilerPass[] passes) {
-		List<ICompilerPass> completed = new ArrayList<>();
-		ICompilerPass last = null;
-		
-		for(int i=0; i < passes.length; i++) {
-			ICompilerPass p = passes[i];
-			section0("...took %fs." + (i == 0 ? "%n" : ""), "Running " + p.getId());
-			p.accept(cxt, last, completed);
-			
-			completed.add(p);
-			last = p;
-		}
+	private static void run(IContext cxt, PassGroup group) {
+		group.accept(cxt, null, new ArrayList<>());
 	}
 	
-	private static ICompilerPass[] getTransformationPasses() {
-		return new ICompilerPass[] {
+	private static IPass[] getTransformationPasses() {
+		return new IPass[] {
 				new CallgraphPruningPass(),
 				new ConcreteStaticInvocationPass(),
 				new MethodRenamerPass(),
 //				new ClassRenamerPass(),
 //				new FieldRenamerPass(),
-				new ConstantParameterPass(),
-				new ConstantExpressionReorderPass(),
-				new FieldRSADecryptionPass(),
-				new ConstantExpressionEvaluatorPass(),
-				new DeadCodeEliminationPass()
+				new PassGroup(null)
+					.add(new ConstantParameterPass())
+					.add(new ConstantExpressionReorderPass())
+					.add(new FieldRSADecryptionPass())
+					.add(new ConstantExpressionEvaluatorPass())
+					.add(new DeadCodeEliminationPass())
+				
 		};
 	}
 	

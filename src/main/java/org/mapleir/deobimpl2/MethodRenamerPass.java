@@ -15,16 +15,21 @@ import org.mapleir.ir.code.Opcode;
 import org.mapleir.ir.code.Stmt;
 import org.mapleir.ir.code.expr.InvocationExpr;
 import org.mapleir.stdlib.IContext;
-import org.mapleir.stdlib.deob.ICompilerPass;
+import org.mapleir.stdlib.deob.IPass;
 import org.mapleir.stdlib.klass.ClassTree;
 import org.mapleir.stdlib.klass.InvocationResolver;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
 
-public class MethodRenamerPass implements ICompilerPass {
+public class MethodRenamerPass implements IPass {
 
 	@Override
-	public void accept(IContext cxt, ICompilerPass prev, List<ICompilerPass> completed) {
+	public boolean isIncremental() {
+		return false;
+	}
+	
+	@Override
+	public int accept(IContext cxt, IPass prev, List<IPass> completed) {
 		ClassTree tree = cxt.getClassTree();
 		InvocationResolver resolver = cxt.getInvocationResolver();
 		
@@ -163,6 +168,8 @@ public class MethodRenamerPass implements ICompilerPass {
 		}
 		
 		System.out.printf("  Remapped %d/%d methods.%n", remapped.size(), totalMethods);
+		
+		return remapped.size();
 	}
 	
 	private boolean mustMark(ClassTree tree, String owner) {

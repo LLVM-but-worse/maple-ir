@@ -24,12 +24,12 @@ import org.mapleir.ir.code.stmt.FieldStoreStmt;
 import org.mapleir.stdlib.IContext;
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.SetCreator;
-import org.mapleir.stdlib.deob.ICompilerPass;
+import org.mapleir.stdlib.deob.IPass;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.FieldNode;
 import org.objectweb.asm.tree.MethodNode;
 
-public class FieldRSADecryptionPass implements ICompilerPass, Opcode {
+public class FieldRSADecryptionPass implements IPass, Opcode {
 
 	private final Map<String, String> fieldLookupCache;
 	private final NullPermeableHashMap<String, Set<Number>> constants;
@@ -47,6 +47,11 @@ public class FieldRSADecryptionPass implements ICompilerPass, Opcode {
 		cdecs            = newMap();
 		cencs            = newMap();
 		pairs            = new HashMap<>();
+	}
+	
+	@Override
+	public boolean isIncremental() {
+		return false;
 	}
 	
 	private static String key(String owner, String name, String desc) {
@@ -88,7 +93,7 @@ public class FieldRSADecryptionPass implements ICompilerPass, Opcode {
 	}
 	
 	@Override
-	public void accept(IContext cxt, ICompilerPass prev, List<ICompilerPass> completed) {
+	public int accept(IContext cxt, IPass prev, List<IPass> completed) {
 		this.cxt = cxt;
 		
 		for(MethodNode m : cxt.getActiveMethods()) {
@@ -227,7 +232,12 @@ public class FieldRSADecryptionPass implements ICompilerPass, Opcode {
 			}
 		}
 		
+		System.out.printf("  identified %n field encoder/decoder pairs.%n", pairs.size());
+		
 		transform(cxt);
+		
+		
+		return pairs.size();
 	}
 	
 	private void transform(IContext cxt) {
@@ -237,6 +247,7 @@ public class FieldRSADecryptionPass implements ICompilerPass, Opcode {
 				
 				for(BasicBlock b : cfg.vertices()) {
 					for(Stmt stmt : b) {
+//						String fsKey = "";
 						if(stmt.getOpcode() == Opcode.FIELD_STORE) {
 							FieldStoreStmt fs = (FieldStoreStmt) stmt;
 							Number[] p = pairs.get(key(fs)); // [enc, dec]
@@ -247,6 +258,8 @@ public class FieldRSADecryptionPass implements ICompilerPass, Opcode {
 								
 								ArithmeticExpr ae = new ArithmeticExpr(new ConstantExpr(p[1]), e, Operator.MUL);
 								fs.setValueExpression(ae);
+								
+//								fsKey = key(fs);
 							}
 						}
 						
@@ -261,6 +274,10 @@ public class FieldRSADecryptionPass implements ICompilerPass, Opcode {
 								if(p == null) {
 									continue;
 								}
+								
+//								if(key(fl).equals(fsKey)) {
+//									continue;
+//								}
 
 								if(par.getOpcode() == ARITHMETIC) {
 									ArithmeticExpr ae = (ArithmeticExpr) par;

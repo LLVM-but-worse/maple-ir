@@ -9,15 +9,20 @@ import org.mapleir.ir.code.Opcode;
 import org.mapleir.ir.code.Stmt;
 import org.mapleir.ir.code.expr.InvocationExpr;
 import org.mapleir.stdlib.IContext;
-import org.mapleir.stdlib.deob.ICompilerPass;
+import org.mapleir.stdlib.deob.IPass;
 import org.mapleir.stdlib.klass.InvocationResolver;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
 
-public class ConcreteStaticInvocationPass implements ICompilerPass {
+public class ConcreteStaticInvocationPass implements IPass {
 
 	@Override
-	public void accept(IContext cxt, ICompilerPass prev, List<ICompilerPass> completed) {
+	public boolean isIncremental() {
+		return false;
+	}
+	
+	@Override
+	public int accept(IContext cxt, IPass prev, List<IPass> completed) {
 		int fixed = 0;
 		
 		InvocationResolver resolver = cxt.getInvocationResolver();
@@ -50,5 +55,7 @@ public class ConcreteStaticInvocationPass implements ICompilerPass {
 		}
 		
 		System.out.printf("  corrected %d dodgy static calls.%n", fixed);
+		
+		return fixed;
 	}
 }

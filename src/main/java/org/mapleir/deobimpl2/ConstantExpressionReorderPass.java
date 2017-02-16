@@ -12,10 +12,10 @@ import org.mapleir.ir.code.expr.ArithmeticExpr.Operator;
 import org.mapleir.ir.code.stmt.ConditionalJumpStmt;
 import org.mapleir.ir.code.stmt.ConditionalJumpStmt.ComparisonType;
 import org.mapleir.stdlib.IContext;
-import org.mapleir.stdlib.deob.ICompilerPass;
+import org.mapleir.stdlib.deob.IPass;
 import org.objectweb.asm.tree.MethodNode;
 
-public class ConstantExpressionReorderPass implements ICompilerPass, Opcode {
+public class ConstantExpressionReorderPass implements IPass, Opcode {
 
 	@Override
 	public String getId() {
@@ -23,13 +23,14 @@ public class ConstantExpressionReorderPass implements ICompilerPass, Opcode {
 	}
 	
 	@Override
-	public void accept(IContext cxt, ICompilerPass prev, List<ICompilerPass> completed) {
+	public int accept(IContext cxt, IPass prev, List<IPass> completed) {
 		int i = 0;
 		for(MethodNode m : cxt.getActiveMethods()) {
 			ControlFlowGraph ir = cxt.getIR(m);
 			i += transform(ir);
 		}
 		System.out.println("  swapped " + i + " constant expression orders.");
+		return i;
 	}
 	
 	private int transform(ControlFlowGraph ir) {
