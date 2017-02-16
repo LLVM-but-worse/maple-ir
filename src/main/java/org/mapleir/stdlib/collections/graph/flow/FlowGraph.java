@@ -111,9 +111,11 @@ public abstract class FlowGraph<N extends FastGraphVertex, E extends FlowEdge<N>
 		ListIterator<ExceptionRange<N>> it = ranges.listIterator();
 		while(it.hasNext()) {
 			ExceptionRange<N> r = it.next();
-			r.removeVertex(v);
-			if(r.get().isEmpty()) {
-				it.remove();
+			if (r.containsVertex(v)) {
+				r.removeVertex(v);
+				if (r.get().isEmpty()) {
+					it.remove();
+				}
 			}
 		}
 		
