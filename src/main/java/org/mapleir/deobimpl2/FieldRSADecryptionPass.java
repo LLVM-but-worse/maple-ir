@@ -467,7 +467,7 @@ public class FieldRSADecryptionPass implements ICompilerPass, Opcode {
 		}
 	}
 	
-	static boolean __eq(Number n1, Number n2, boolean _longint) {
+	public static boolean __eq(Number n1, Number n2, boolean _longint) {
 		if(_longint) {
 			return n1.longValue() == n2.longValue();
 		} else {

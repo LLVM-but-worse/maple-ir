@@ -247,8 +247,8 @@ public class Boot {
 			ControlFlowGraph cfg = e.getValue();
 			
 			BoissinotDestructor.leaveSSA(cfg);
-//			cfg.getLocals().realloc(cfg);
-//			ControlFlowGraphDumper.dump(cfg, mn);
+			cfg.getLocals().realloc(cfg);
+			ControlFlowGraphDumper.dump(cfg, mn);
 		}
 		
 		section("Rewriting jar.");
@@ -277,11 +277,11 @@ public class Boot {
 				new CallgraphPruningPass(),
 				new ConcreteStaticInvocationPass(),
 				new MethodRenamerPass(),
-				new ClassRenamerPass(),
+//				new ClassRenamerPass(),
 //				new FieldRenamerPass(),
 				new ConstantParameterPass(),
 				new ConstantExpressionReorderPass(),
-//				new FieldRSADecryptionPass(),
+				new FieldRSADecryptionPass(),
 				new ConstantExpressionEvaluatorPass(),
 				new DeadCodeEliminationPass()
 		};

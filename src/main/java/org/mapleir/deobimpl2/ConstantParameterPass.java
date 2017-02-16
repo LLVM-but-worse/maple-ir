@@ -2,7 +2,6 @@ package org.mapleir.deobimpl2;
 
 import java.lang.reflect.Modifier;
 import java.util.*;
-import java.util.Map.Entry;
 
 import org.mapleir.IRCallTracer;
 import org.mapleir.ir.cfg.BasicBlock;
@@ -35,19 +34,34 @@ public class ConstantParameterPass implements ICompilerPass, Opcode {
 			return Integer.compareUnsigned(o1, o2);
 		}
 	};
+
+	public static class SemiConstantParameter {
+		final int lvtIndex;
+		final Set<ConstantExpr> inputs;
+		
+		SemiConstantParameter(int lvtIndex, Set<ConstantExpr> inputs) {
+			this.lvtIndex = lvtIndex;
+			this.inputs = inputs;
+		}
+	}
 	
 	private final Map<MethodNode, Set<Expr>> calls;
-	private final Map<MethodNode, Set<Integer>> dead;
+	/** Sets which contain the indices of constant value parameters of a method. */
+	private final Map<MethodNode, Set<Integer>> constantParameterIndices;
+	private final Map<MethodNode, Set<SemiConstantParameter>> semiConstantParameters;
 	private final Set<MethodNode> processMethods;
 	private final Set<MethodNode> cantfix;
 	private final Set<Expr> processedExprs;
+	private final Map<MethodNode, int[]> paramIndices;
 	
 	public ConstantParameterPass() {
 		calls = new HashMap<>();
-		dead  = new HashMap<>();
+		constantParameterIndices  = new HashMap<>();
+		semiConstantParameters  = new HashMap<>();
 		processMethods = new HashSet<>();
 		cantfix = new HashSet<>();
 		processedExprs = new HashSet<>();
+		paramIndices = new HashMap<>();
 	}
 	
 	@Override
@@ -55,21 +69,85 @@ public class ConstantParameterPass implements ICompilerPass, Opcode {
 		return "Argument-Prune";
 	}
 	
+	public Set<SemiConstantParameter> getSemiConstantValues(MethodNode m) {
+		return semiConstantParameters.get(m);
+	}
+	
+	
+	private void inlineConstant(ControlFlowGraph cfg, MethodNode mn, int parameterIndex, ConstantExpr c) {
+		LocalsPool pool = cfg.getLocals();
+		int argLocalIndex = paramIndices.get(mn)[parameterIndex];
+		
+		VersionedLocal argLocal = pool.get(argLocalIndex, 0, false);
+		AbstractCopyStmt argDef = pool.defs.get(argLocal);
+		
+		boolean removeDef = true;
+		
+		/* demote the def from a synthetic
+		 * copy to a normal one. */
+		VarExpr dv = argDef.getVariable().copy();
+		
+		VersionedLocal spill = pool.makeLatestVersion(argLocal);
+		dv.setLocal(spill);
+		
+		CopyVarStmt copy = new CopyVarStmt(dv, c.copy());
+		BasicBlock b = argDef.getBlock();
+		argDef.delete();
+		argDef = copy;
+		b.add(copy);
+		
+		pool.defs.remove(argLocal);
+		pool.defs.put(spill, copy);
+		
+		Set<VarExpr> spillUses = new HashSet<>();
+		pool.uses.put(spill, spillUses);
+		
+		/* Replace each use of the parameter variable with
+		 * the constant. */
+		Iterator<VarExpr> it = pool.uses.get(argLocal).iterator();
+		while(it.hasNext()) {
+			VarExpr v = it.next();
+			
+			if(v.getParent() == null) {
+				/* the use is in a phi, we can't
+				 * remove the def. */
+				removeDef = false;
+				spillUses.add(v);
+				v.setLocal(spill);
+			} else {
+				CodeUnit par = v.getParent();
+				par.overwrite(c.copy(), par.indexOf(v));
+			}
+		}
+
+		/* Remove the use set of the previous local
+		 * since we've replaced it with a new 'spill'
+		 * variable. */
+		pool.uses.remove(argLocal);
+		
+		if(removeDef) {
+			argDef.delete();
+		}
+	}
+	
 	@Override
 	public void accept(IContext cxt, ICompilerPass prev, List<ICompilerPass> completed) {
 		calls.clear();
-		dead.clear();
+		constantParameterIndices.clear();
 		processedExprs.clear();
 		processMethods.clear();
 		
-		Map<MethodNode, List<List<Expr>>> args = new HashMap<>();
-		Map<MethodNode, int[]> paramIndices = new HashMap<>();
+		Map<MethodNode, List<List<Expr>>> parameterInputs = new HashMap<>();
 		
 		IRCallTracer tracer = new IRCallTracer(cxt) {
 			@Override
 			protected void visitMethod(MethodNode m) {
 				Type[] paramTypes = Type.getArgumentTypes(m.desc);
 				List<List<Expr>> lists = new ArrayList<>(paramTypes.length);
+				
+				/* Create a mapping between the actual variable table
+				 * indices and the parameter indices in the method
+				 * descriptor. */
 				int[] idxs = new int[paramTypes.length];
 				int idx = 0;
 				if((m.access & Opcodes.ACC_STATIC) == 0) {
@@ -82,7 +160,8 @@ public class ConstantParameterPass implements ICompilerPass, Opcode {
 					idx += paramTypes[i].getSize();
 				}
 				paramIndices.put(m, idxs);
-				args.put(m, lists);
+				
+				parameterInputs.put(m, lists);
 				calls.put(m, new HashSet<>());
 			}
 			
@@ -101,7 +180,7 @@ public class ConstantParameterPass implements ICompilerPass, Opcode {
 				}
 				
 				for(int i=0; i < params.length; i++) {
-					args.get(callee).get(i).add(params[i]);
+					parameterInputs.get(callee).get(i).add(params[i]);
 				}
 			}
 		};
@@ -111,95 +190,63 @@ public class ConstantParameterPass implements ICompilerPass, Opcode {
 			tracer.trace(mn);
 		}
 		
-		int kp = 0;
-		
-		for(MethodNode mn : cxt.getActiveMethods()) {
-			ControlFlowGraph cfg = cxt.getIR(mn);
+		for(MethodNode method : cxt.getActiveMethods()) {
+			ControlFlowGraph cfg = cxt.getIR(method);
 			
-			List<List<Expr>> argExprs = args.get(mn);
+			List<List<Expr>> argExprs = parameterInputs.get(method);
 
-			Set<Integer> deadParams = new TreeSet<>(INTEGER_ORDERER);
-						
-			for(int i=0; i < argExprs.size(); i++) {
-				List<Expr> l = argExprs.get(i);
-				ConstantExpr c = getConstantValue(l);
+			Set<Integer> constantParameterIndexSet = new TreeSet<>(INTEGER_ORDERER);
+			Set<SemiConstantParameter> semiConstantParameterSet = new HashSet<>();
+			
+			for(int parameterIndex=0; parameterIndex < argExprs.size(); parameterIndex++) {
+				List<Expr> allParameterInputs = argExprs.get(parameterIndex);
+				ConstantExpr constantVal = getConstantValue(allParameterInputs);
 				
-				if(c != null) {
-					LocalsPool pool = cfg.getLocals();
-					int argLocalIndex = paramIndices.get(mn)[i];
-					VersionedLocal argLocal = pool.get(argLocalIndex, 0, false);
-					AbstractCopyStmt argDef = pool.defs.get(argLocal);
-					
-					boolean removeDef = true;
-					
-					/* demote the def from a synthetic
-					 * copy to a normal one. */
-					VarExpr dv = argDef.getVariable().copy();
-					
-					VersionedLocal spill = pool.makeLatestVersion(argLocal);
-					dv.setLocal(spill);
-					
-					CopyVarStmt copy = new CopyVarStmt(dv, c.copy());
-					BasicBlock b = argDef.getBlock();
-					argDef.delete();
-					argDef = copy;
-					b.add(copy);
-					
-					pool.defs.remove(argLocal);
-					pool.defs.put(spill, copy);
-					
-					Set<VarExpr> spillUses = new HashSet<>();
-					pool.uses.put(spill, spillUses);
-					
-					Iterator<VarExpr> it = pool.uses.get(argLocal).iterator();
-					while(it.hasNext()) {
-						VarExpr v = it.next();
-						
-						if(v.getParent() == null) {
-							/* the use is in a phi, we can't
-							 * remove the def. */
-							removeDef = false;
-							spillUses.add(v);
-							v.setLocal(spill);
-						} else {
-							CodeUnit par = v.getParent();
-							par.overwrite(c.copy(), par.indexOf(v));
-						}
+				if(constantVal != null) {
+					/* We have found that the parameter at index 'i' for this
+					 * exact method is always constant, so we will inline it
+					 * into the method body. This does not affect the super
+					 * and subclass methods at all, since we haven't changed
+					 * the method descriptors yet.
+					 * 
+					 * I decided to do this because (1) we can legally do this,
+					 * (2) even if the other methods render a descriptor
+					 * change impossible, we will have (presumably) reduced the
+					 * complexity of the method and (3) we would need to store
+					 * this constant for later to handle it if we didn't do it
+					 * here. */
+					inlineConstant(cfg, method, parameterIndex, constantVal);
+					constantParameterIndexSet.add(parameterIndex);
+				} else if(isSemiConstantSet(allParameterInputs)) {
+					// System.out.printf("Multivalue param for %s @ arg%d:   %s.%n", mn, i, l);
+					Set<ConstantExpr> valSet = new HashSet<>();
+					for(Expr e : allParameterInputs) {
+						valSet.add((ConstantExpr) e);
 					}
-
-					pool.uses.remove(argLocal);
-					
-					if(removeDef) {
-						argDef.delete();
-					}
-					
-					deadParams.add(i);
-				} else if(isMultiVal(l)) {
-//					System.out.printf("Multivalue param for %s @ arg%d:   %s.%n", mn, i, l);
+					SemiConstantParameter param = new SemiConstantParameter(parameterIndex, valSet);
+					semiConstantParameterSet.add(param);
 				}
 			}
 
-			if(deadParams.size() > 0) {
-				dead.put(mn, deadParams);
+			if(constantParameterIndexSet.size() > 0) {
+				constantParameterIndices.put(method, constantParameterIndexSet);
+			}
+			
+			if(constantParameterIndexSet.size() > 0) {
+				semiConstantParameters.put(method, semiConstantParameterSet);
 			}
 		}
+		
+		int killedTotal = 0;
 				
 		for(;;) {
-			int s = kp;
+			int killedBeforePass = killedTotal;
 			
-			Iterator<Entry<MethodNode, Set<Integer>>> it = dead.entrySet().iterator();
-			while(it.hasNext()) {
-				Entry<MethodNode, Set<Integer>> e = it.next();
-				
-				MethodNode mn = e.getKey();
-				
-				int k = fixDeadParameters(cxt, mn);
-				if(k > 0) {
-					kp += k;
-				}
+			for(MethodNode mn : constantParameterIndices.keySet()) {
+				killedTotal += fixDeadParameters(cxt, mn);
 			}
 			
-			if(s == kp) {
+			if(killedBeforePass == killedTotal) {
 				break;
 			}
 		}
@@ -208,10 +255,10 @@ public class ConstantParameterPass implements ICompilerPass, Opcode {
 		
 		System.out.println("  can't fix:");
 		for(MethodNode m : cantfix) {
-			System.out.println("    " + m + ":: " + dead.get(m));
+			System.out.println("    " + m + ":: " + constantParameterIndices.get(m));
 		}
 		
-		System.out.printf("Removed %d constant paramters.%n", kp);
+		System.out.printf("Removed %d constant paramters.%n", killedTotal);
 	}
 	
 	private int fixDeadParameters(IContext cxt, MethodNode mn) {
@@ -227,14 +274,6 @@ public class ConstantParameterPass implements ICompilerPass, Opcode {
 		if(!Modifier.isStatic(mn.access) && !mn.name.equals("<init>")) {
 			chain = getVirtualChain(cxt, mn.owner, mn.name, mn.desc);
 			
-//			{
-//				Set<ClassNode> cc = tree.getAllBranches(mn.owner, false);
-//				
-//				System.out.println();
-//				System.out.println("Start: " + mn + " -> " + chain);
-//				System.out.println(" cc:: " + cc);
-//			}
-			
 			if(!isActiveChain(chain)) {
 				cantfix.addAll(chain);
 				
@@ -246,7 +285,7 @@ public class ConstantParameterPass implements ICompilerPass, Opcode {
 				System.out.println("  inactive chain: " + chain);
 				
 				for(MethodNode m : chain) {
-					System.out.println("  m: " + m + ", ds: " + dead.get(m));
+					System.out.println("  m: " + m + ", ds: " + constantParameterIndices.get(m));
 				}
 				
 				for(MethodNode m : chain) {
@@ -268,24 +307,22 @@ public class ConstantParameterPass implements ICompilerPass, Opcode {
 			/* find the common dead indices. */
 			deadSet = new HashSet<>();
 			for(MethodNode m : chain) {
-				Set<Integer> set = dead.get(m);
+				Set<Integer> set = constantParameterIndices.get(m);
 				if(set != null) {
 					deadSet.addAll(set);
 				}
 			}
 
 			for(MethodNode m : chain) {
-				Set<Integer> set = dead.get(m);
+				Set<Integer> set = constantParameterIndices.get(m);
 				if(set != null) {
 					deadSet.retainAll(set);
 				}
 			}
-			
 		} else {
-			deadSet = dead.get(mn);
+			deadSet = constantParameterIndices.get(mn);
 		}
 		
-//		System.out.println("Remap: " + mn.owner.name + "." + mn.name + " " + mn.desc + " -> " + buildDesc(Type.getArgumentTypes(mn.desc), Type.getReturnType(mn.desc), deadSet));
 		String newDesc = buildDesc(Type.getArgumentTypes(mn.desc), Type.getReturnType(mn.desc), deadSet);
 		
 		InvocationResolver resolver = cxt.getInvocationResolver();
@@ -432,7 +469,7 @@ public class ConstantParameterPass implements ICompilerPass, Opcode {
 			Iterator<MethodNode> it = chain2.iterator();
 			while(it.hasNext()) {
 				MethodNode m = it.next();
-				if(dead.get(m) == null) {
+				if(constantParameterIndices.get(m) == null) {
 					it.remove();
 				}
 			}
@@ -450,17 +487,17 @@ public class ConstantParameterPass implements ICompilerPass, Opcode {
 			 * considered inactive. */
 			Set<Integer> ret = new HashSet<>();
 			
-			ret.addAll(dead.get(it.next()));
+			ret.addAll(constantParameterIndices.get(it.next()));
 			
 			while(it.hasNext()) {
-				ret.retainAll(dead.get(it.next()));
+				ret.retainAll(constantParameterIndices.get(it.next()));
 			}
 			
 			return ret.size() > 0;
 		}
 	}
 	
-	private static boolean isMultiVal(List<Expr> exprs) {
+	private static boolean isSemiConstantSet(List<Expr> exprs) {
 		if(exprs.size() <= 1) {
 			return false;
 		}
