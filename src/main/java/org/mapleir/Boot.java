@@ -14,7 +14,10 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import org.mapleir.byteio.CompleteResolvingJarDumper;
-import org.mapleir.deobimpl2.*;
+import org.mapleir.deobimpl2.CallgraphPruningPass;
+import org.mapleir.deobimpl2.ConcreteStaticInvocationPass;
+import org.mapleir.deobimpl2.ConstantParameterPass2;
+import org.mapleir.deobimpl2.MethodRenamerPass;
 import org.mapleir.ir.ControlFlowGraphDumper;
 import org.mapleir.ir.cfg.BoissinotDestructor;
 import org.mapleir.ir.cfg.ControlFlowGraph;
@@ -22,7 +25,6 @@ import org.mapleir.ir.cfg.builder.ControlFlowGraphBuilder;
 import org.mapleir.ir.code.Expr;
 import org.mapleir.stdlib.IContext;
 import org.mapleir.stdlib.call.CallTracer;
-import org.mapleir.stdlib.collections.graph.GraphUtils;
 import org.mapleir.stdlib.deob.IPass;
 import org.mapleir.stdlib.deob.PassGroup;
 import org.mapleir.stdlib.klass.ClassTree;
@@ -224,10 +226,6 @@ public class Boot {
 				} else {
 					ControlFlowGraph cfg = ControlFlowGraphBuilder.build(m);
 					cfgs.put(m, cfg);
-					m.cacheKey();
-					if(m.toString().equals("u.e(Ljava/lang/String;Ljava/lang/String;II)Ljava/io/File;")) {
-						GraphUtils.verifyCfg(cfg);
-					}
 					return cfg;
 				}
 			}
@@ -302,14 +300,15 @@ public class Boot {
 				new CallgraphPruningPass(),
 				new ConcreteStaticInvocationPass(),
 				new MethodRenamerPass(),
+				new ConstantParameterPass2()
 //				new ClassRenamerPass(),
 //				new FieldRenamerPass(),
-				new PassGroup(null)
-					.add(new ConstantParameterPass())
-					.add(new ConstantExpressionReorderPass())
-					.add(new FieldRSADecryptionPass())
-					.add(new ConstantExpressionEvaluatorPass())
-					.add(new DeadCodeEliminationPass())
+//				new PassGroup(null)
+//					.add(new ConstantParameterPass())
+//					.add(new ConstantExpressionReorderPass())
+//					.add(new FieldRSADecryptionPass())
+//					.add(new ConstantExpressionEvaluatorPass())
+//					.add(new DeadCodeEliminationPass())
 				
 		};
 	}
