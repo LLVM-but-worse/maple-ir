@@ -1,9 +1,5 @@
 package org.mapleir.deobimpl2;
 
-import java.lang.reflect.Modifier;
-import java.util.*;
-import java.util.Map.Entry;
-
 import org.mapleir.IRCallTracer;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
@@ -17,7 +13,6 @@ import org.mapleir.ir.code.expr.InvocationExpr;
 import org.mapleir.ir.code.expr.VarExpr;
 import org.mapleir.ir.code.stmt.copy.AbstractCopyStmt;
 import org.mapleir.ir.code.stmt.copy.CopyVarStmt;
-import org.mapleir.ir.locals.Local;
 import org.mapleir.ir.locals.LocalsPool;
 import org.mapleir.ir.locals.VersionedLocal;
 import org.mapleir.stdlib.IContext;
@@ -30,6 +25,18 @@ import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
+
+import java.lang.reflect.Modifier;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
 
 public class ConstantParameterPass2 implements IPass, Opcode {
 
@@ -84,7 +91,8 @@ public class ConstantParameterPass2 implements IPass, Opcode {
 				boolean isStatic = (m.access & Opcodes.ACC_STATIC) != 0;
 				
 				int paramCount = Type.getArgumentTypes(m.desc).length;
-				int synthCount = paramCount + (isStatic ? 0 : 1);
+				int off = (isStatic ? 0 : 1);
+				int synthCount = paramCount + off;
 				List<List<Expr>> lists = new ArrayList<>(synthCount);
 				
 				/* Create a mapping between the actual variable table
@@ -97,24 +105,17 @@ public class ConstantParameterPass2 implements IPass, Opcode {
 				
 				/* static:
 				 *  first arg = 0
-				 * 
+				 *
 				 * non-static:
 				 *  this = 0
 				 *  first arg = 1*/
-				int paramIndex = 0;
-				int off = (isStatic ? 0 : 1);
 //				int idx = 0;
+				int paramIndex = 0;
 				for(Stmt stmt : entry) {
 					if(stmt.getOpcode() == LOCAL_STORE) {
 						CopyVarStmt cvs = (CopyVarStmt) stmt;
 						if(cvs.isSynthetic()) {
-							Local l = cvs.getVariable().getLocal();
-							
-							if(l.getIndex() == 0 && !isStatic) {
-//								continue;
-							}
-							
-							idxs[paramIndex++ + off] = l.getIndex();
+							idxs[paramIndex++] = cvs.getVariable().getLocal().getIndex();
 //							if(l.getIndex() == 0 && paramIndex != 0) {
 //								throw new IllegalStateException(l + " @" + paramIndex);
 //							} else if(l.getIndex() == 0 && paramIndex == 0) {
@@ -122,7 +123,7 @@ public class ConstantParameterPass2 implements IPass, Opcode {
 //									continue;
 //								}
 //							}
-//							
+//
 //							try {
 //								idxs[paramIndex + off] = l.getIndex();
 //							} catch(RuntimeException e) {
@@ -134,7 +135,6 @@ public class ConstantParameterPass2 implements IPass, Opcode {
 							continue;
 						}
 					}
-					
 					break;
 				}
 				
@@ -314,7 +314,7 @@ public class ConstantParameterPass2 implements IPass, Opcode {
 		InvocationResolver resolver = cxt.getInvocationResolver();
 		
 		if(Modifier.isStatic(mn.access)) {
-			MethodNode conflict = resolver.resolveStaticCall(mn.owner.name, mn.name, newDesc);
+			MethodNode conflict = resolver.findStaticCall(mn.owner.name, mn.name, newDesc);
 			if(conflict != null) {
 				System.out.printf("  can't remap(s) %s because of %s.%n", mn, conflict);
 				cantfix.add(mn);
@@ -322,7 +322,7 @@ public class ConstantParameterPass2 implements IPass, Opcode {
 			}
 		} else {
 			if(mn.name.equals("<init>")) {
-				MethodNode conflict = resolver.resolveVirtualCall(mn.owner, mn.name, newDesc);
+				MethodNode conflict = resolver.findVirtualCall(mn.owner, mn.name, newDesc);
 				if(conflict != null) {
 					System.out.printf("  can't remap(i) %s because of %s.%n", mn, conflict);
 					cantfix.add(mn);
@@ -439,7 +439,7 @@ public class ConstantParameterPass2 implements IPass, Opcode {
 	private Set<MethodNode> getVirtualChain(IContext cxt, ClassNode cn, String name, String desc) {		
 		Set<MethodNode> set = new HashSet<>();
 		for(ClassNode c : cxt.getClassTree().getAllBranches(cn, false)) {
-			MethodNode mr = cxt.getInvocationResolver().resolveVirtualCall(c, name, desc);
+			MethodNode mr = cxt.getInvocationResolver().findVirtualCall(c, name, desc);
 			if(mr != null) {
 				set.add(mr);
 			}
@@ -493,6 +493,7 @@ public class ConstantParameterPass2 implements IPass, Opcode {
 			System.err.println("Param index: " + parameterIndex);
 			System.err.println("Arg index: " + argLocalIndex);
 			System.err.println(c);
+			e.printStackTrace();
 			throw e;
 		}
 		VarExpr dv = argDef.getVariable().copy();

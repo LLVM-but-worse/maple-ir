@@ -1,8 +1,5 @@
 package org.mapleir.deobimpl2;
 
-import java.lang.reflect.Modifier;
-import java.util.*;
-
 import org.mapleir.IRCallTracer;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
@@ -29,6 +26,17 @@ import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
+
+import java.lang.reflect.Modifier;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
 
 public class ConstantParameterPass implements IPass, Opcode {
 	
@@ -413,7 +421,7 @@ public class ConstantParameterPass implements IPass, Opcode {
 		InvocationResolver resolver = cxt.getInvocationResolver();
 		
 		if(Modifier.isStatic(mn.access)) {
-			MethodNode conflict = resolver.resolveStaticCall(mn.owner.name, mn.name, newDesc);
+			MethodNode conflict = resolver.findStaticCall(mn.owner.name, mn.name, newDesc);
 			if(conflict != null) {
 				// System.out.printf("  can't remap(s) %s because of %s.%n", mn, conflict);
 				cantfix.add(mn);
@@ -421,7 +429,7 @@ public class ConstantParameterPass implements IPass, Opcode {
 			}
 		} else {
 			if(mn.name.equals("<init>")) {
-				MethodNode conflict = resolver.resolveVirtualCall(mn.owner, mn.name, newDesc);
+				MethodNode conflict = resolver.findVirtualCall(mn.owner, mn.name, newDesc);
 				if(conflict != null) {
 					// System.out.printf("  can't remap(i) %s because of %s.%n", mn, conflict);
 					cantfix.add(mn);
@@ -551,7 +559,7 @@ public class ConstantParameterPass implements IPass, Opcode {
 	private Set<MethodNode> getVirtualChain(IContext cxt, ClassNode cn, String name, String desc) {		
 		Set<MethodNode> set = new HashSet<>();
 		for(ClassNode c : cxt.getClassTree().getAllBranches(cn, false)) {
-			MethodNode mr = cxt.getInvocationResolver().resolveVirtualCall(c, name, desc);
+			MethodNode mr = cxt.getInvocationResolver().findVirtualCall(c, name, desc);
 			if(mr != null) {
 				set.add(mr);
 			}

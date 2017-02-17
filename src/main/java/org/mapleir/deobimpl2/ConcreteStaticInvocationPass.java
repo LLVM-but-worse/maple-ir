@@ -1,7 +1,5 @@
 package org.mapleir.deobimpl2;
 
-import java.util.List;
-
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.Expr;
@@ -13,6 +11,8 @@ import org.mapleir.stdlib.deob.IPass;
 import org.mapleir.stdlib.klass.InvocationResolver;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
+
+import java.util.List;
 
 public class ConcreteStaticInvocationPass implements IPass {
 
@@ -38,7 +38,7 @@ public class ConcreteStaticInvocationPass implements IPass {
 								InvocationExpr invoke = (InvocationExpr) e;
 								
 								if(invoke.getInstanceExpression() == null) {
-									MethodNode invoked = resolver.resolveStaticCall(invoke.getOwner(), invoke.getName(), invoke.getDesc());
+									MethodNode invoked = resolver.findStaticCall(invoke.getOwner(), invoke.getName(), invoke.getDesc());
 									
 									if(invoked != null) {
 										if(!invoked.owner.name.equals(invoke.getOwner())) {

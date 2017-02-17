@@ -1,25 +1,28 @@
 package org.mapleir.stdlib.klass;
 
-import static org.mapleir.stdlib.klass.ClassHelper.*;
-
-import java.util.*;
-import java.util.Map.Entry;
-
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.ValueCreator;
 import org.objectweb.asm.tree.ClassNode;
+
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashSet;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+
+import static org.mapleir.stdlib.klass.ClassHelper.convertToMap;
+import static org.mapleir.stdlib.klass.ClassHelper.copyOf;
 
 /**
  * @author Bibl (don't ban me pls)
  * @created 25 May 2015 (actually before this)
  */
 public class ClassTree implements Iterable<ClassNode> {
-	private static final ValueCreator<Set<ClassNode>> SET_CREATOR = new ValueCreator<Set<ClassNode>>() {
-		@Override
-		public Set<ClassNode> create() {
-			return new LinkedHashSet<>();
-		}
-	};
+	private static final ValueCreator<Set<ClassNode>> SET_CREATOR = LinkedHashSet::new;
 
 	private final Map<String, ClassNode> classes;
 	private final Map<String, ClassNode> jdkclasses;
@@ -214,6 +217,7 @@ public class ClassTree implements Iterable<ClassNode> {
 		return classes.values().iterator();
 	}
 	
+	// gets all connected classes, both up and down
 	public Set<ClassNode> getAllBranches(ClassNode cn, boolean exploreRuntime) {		
 		Set<ClassNode> set = new HashSet<>();
 		
@@ -248,5 +252,24 @@ public class ClassTree implements Iterable<ClassNode> {
 		}
 		
 		return set;
+	}
+	
+	// gets connected leaves in class tree going down.
+	public Set<ClassNode> getLeafDelegates(ClassNode cn, boolean exploreRuntime) {
+		Set<ClassNode> results = new HashSet<>();
+		LinkedHashSet<ClassNode> todo = new LinkedHashSet<>();
+		todo.add(cn);
+		while (!todo.isEmpty()) {
+			Iterator<ClassNode> it = todo.iterator();
+			ClassNode cur = it.next();
+			it.remove();
+			
+			Set<ClassNode> children = getDelegates(cur);
+			if (children.isEmpty())
+				results.add(cur);
+			else for (ClassNode o : children)
+				todo.add(o);
+		}
+		return results;
 	}
 }
