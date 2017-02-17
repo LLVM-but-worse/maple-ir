@@ -9,15 +9,19 @@ import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.CodeUnit;
 import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.code.Opcode;
+import org.mapleir.ir.code.Stmt;
 import org.mapleir.ir.code.expr.ConstantExpr;
 import org.mapleir.ir.code.expr.InitialisedObjectExpr;
 import org.mapleir.ir.code.expr.InvocationExpr;
 import org.mapleir.ir.code.expr.VarExpr;
 import org.mapleir.ir.code.stmt.copy.AbstractCopyStmt;
 import org.mapleir.ir.code.stmt.copy.CopyVarStmt;
+import org.mapleir.ir.locals.Local;
 import org.mapleir.ir.locals.LocalsPool;
 import org.mapleir.ir.locals.VersionedLocal;
 import org.mapleir.stdlib.IContext;
+import org.mapleir.stdlib.collections.NullPermeableHashMap;
+import org.mapleir.stdlib.collections.ValueCreator;
 import org.mapleir.stdlib.deob.IPass;
 import org.mapleir.stdlib.klass.ClassTree;
 import org.mapleir.stdlib.klass.InvocationResolver;
@@ -53,6 +57,7 @@ public class ConstantParameterPass implements IPass, Opcode {
 	private final Set<MethodNode> cantfix;
 	private final Set<Expr> processedExprs;
 	private final Map<MethodNode, int[]> paramIndices;
+	private final NullPermeableHashMap<MethodNode, Map<Integer, ConstantExpr>> constantParameters;
 	
 	public ConstantParameterPass() {
 		calls = new HashMap<>();
@@ -62,6 +67,12 @@ public class ConstantParameterPass implements IPass, Opcode {
 		cantfix = new HashSet<>();
 		processedExprs = new HashSet<>();
 		paramIndices = new HashMap<>();
+		constantParameters = new NullPermeableHashMap<>(new ValueCreator<Map<Integer, ConstantExpr>>() {
+			@Override
+			public Map<Integer, ConstantExpr> create() {
+				return new HashMap<>();
+			}
+		});
 	}
 	
 	@Override
@@ -75,7 +86,6 @@ public class ConstantParameterPass implements IPass, Opcode {
 	
 	
 	private void inlineConstant(ControlFlowGraph cfg, MethodNode mn, int parameterIndex, ConstantExpr c) {
-		System.out.println(mn.toString() + " -> " + parameterIndex);
 		LocalsPool pool = cfg.getLocals();
 		int argLocalIndex = paramIndices.get(mn)[parameterIndex];
 		
@@ -151,29 +161,82 @@ public class ConstantParameterPass implements IPass, Opcode {
 		processMethods.clear();
 		cantfix.clear();
 		paramIndices.clear();
-		
+		constantParameters.clear();
+				
 		Map<MethodNode, List<List<Expr>>> parameterInputs = new HashMap<>();
 		
 		IRCallTracer tracer = new IRCallTracer(cxt) {
 			@Override
 			protected void visitMethod(MethodNode m) {
-				Type[] paramTypes = Type.getArgumentTypes(m.desc);
-				List<List<Expr>> lists = new ArrayList<>(paramTypes.length);
+				
+				if(tree.isJDKClass(m.owner)) {
+					return;
+				}
+				
+				boolean isStatic = (m.access & Opcodes.ACC_STATIC) != 0;
+				
+				int paramCount = Type.getArgumentTypes(m.desc).length;
+				int copyCount = paramCount + (isStatic ? 0 : 1);
+				List<List<Expr>> lists = new ArrayList<>(copyCount);
 				
 				/* Create a mapping between the actual variable table
 				 * indices and the parameter indices in the method
 				 * descriptor. */
-				int[] idxs = new int[paramTypes.length];
-				int idx = 0;
+				int[] idxs = new int[copyCount];
+				/* int idx = 0;
 				if((m.access & Opcodes.ACC_STATIC) == 0) {
 					idx++;
+				} */
+				ControlFlowGraph cfg = cxt.getIR(m);
+				BasicBlock entry = cfg.getEntries().iterator().next();
+				
+				/* static:
+				 *  first arg = 0
+				 * 
+				 * non-static:
+				 *  this = 0
+				 *  first arg = 1*/
+				int paramIndex = 0;
+				for(Stmt stmt : entry) {
+					if(stmt.getOpcode() == LOCAL_STORE) {
+						CopyVarStmt cvs = (CopyVarStmt) stmt;
+						if(cvs.isSynthetic()) {
+							Local l = cvs.getVariable().getLocal();
+							
+							if(l.getIndex() == 0 && paramIndex != 0) {
+								throw new IllegalStateException(l + " @" + paramIndex);
+							} else if(l.getIndex() == 0 && paramIndex == 0) {
+								if(!isStatic) {
+									// System.out.println("non static skip: " + l);
+									continue;
+								}
+							}
+							
+							try {
+								idxs[paramIndex++] = l.getIndex();
+							} catch(RuntimeException e) {
+								System.out.println(m + " static: " + isStatic);
+								System.out.println(l + " @" + paramIndex);
+								System.err.println(cfg);
+								throw e;
+							}
+							continue;
+						}
+					}
+					
+					break;
 				}
-				for(int i=0; i < paramTypes.length; i++) {
+				
+				for(int j=0; j < paramCount; j++) {
+					lists.add(new ArrayList<>());
+				}
+				
+				/* for(int i=0; i < paramTypes.length; i++) {
 					lists.add(new ArrayList<>());
 
 					idxs[i] = idx;
 					idx += paramTypes[i].getSize();
-				}
+				} */
 				paramIndices.put(m, idxs);
 				
 				parameterInputs.put(m, lists);
@@ -182,6 +245,10 @@ public class ConstantParameterPass implements IPass, Opcode {
 			
 			@Override
 			protected void processedInvocation(MethodNode caller, MethodNode callee, Expr e) {
+				if(tree.isJDKClass(callee.owner)) {
+					return;
+				}
+				
 				calls.get(callee).add(e);
 				
 				Expr[] params;
@@ -230,7 +297,8 @@ public class ConstantParameterPass implements IPass, Opcode {
 					 * complexity of the method and (3) we would need to store
 					 * this constant for later to handle it if we didn't do it
 					 * here. */
-					inlineConstant(cfg, method, parameterIndex, constantVal);
+					// inlineConstant(cfg, method, parameterIndex, constantVal);
+					constantParameters.getNonNull(method).put(parameterIndex, constantVal);
 					constantParameterIndexSet.add(parameterIndex);
 				} else if(isSemiConstantSet(allParameterInputs)) {
 					// System.out.printf("Multivalue param for %s @ arg%d:   %s.%n", mn, i, l);
@@ -283,7 +351,7 @@ public class ConstantParameterPass implements IPass, Opcode {
 			return 0;
 		}
 		
-		Set<Integer> deadSet;
+		Set<Integer> deadIndices;
 		Set<MethodNode> chain = null;
 		
 		ClassTree tree = cxt.getClassTree();
@@ -322,25 +390,25 @@ public class ConstantParameterPass implements IPass, Opcode {
 			}
 			
 			/* find the common dead indices. */
-			deadSet = new HashSet<>();
+			deadIndices = new HashSet<>();
 			for(MethodNode m : chain) {
 				Set<Integer> set = constantParameterIndices.get(m);
 				if(set != null) {
-					deadSet.addAll(set);
+					deadIndices.addAll(set);
 				}
 			}
 
 			for(MethodNode m : chain) {
 				Set<Integer> set = constantParameterIndices.get(m);
 				if(set != null) {
-					deadSet.retainAll(set);
+					deadIndices.retainAll(set);
 				}
 			}
 		} else {
-			deadSet = constantParameterIndices.get(mn);
+			deadIndices = constantParameterIndices.get(mn);
 		}
 		
-		String newDesc = buildDesc(Type.getArgumentTypes(mn.desc), Type.getReturnType(mn.desc), deadSet);
+		String newDesc = buildDesc(Type.getArgumentTypes(mn.desc), Type.getReturnType(mn.desc), deadIndices);
 		
 		InvocationResolver resolver = cxt.getInvocationResolver();
 		
@@ -362,8 +430,8 @@ public class ConstantParameterPass implements IPass, Opcode {
 			} else {
 				Set<MethodNode> conflicts = getVirtualChain(cxt, mn.owner, mn.name, newDesc);
 				if(conflicts.size() == 0) {
-					remapMethods(chain, newDesc, deadSet);
-					return deadSet.size();
+					remapMethods(chain, newDesc, deadIndices);
+					return deadIndices.size();
 				} else {
 					// System.out.printf("  can't remap(v) %s because of %s.%n", mn, conflicts);
 					cantfix.addAll(chain);
@@ -372,11 +440,28 @@ public class ConstantParameterPass implements IPass, Opcode {
 			}
 		}
 		
-		remapMethod(mn, newDesc, deadSet);
-		return deadSet.size();
+		remapMethod(mn, newDesc, deadIndices);
+		return deadIndices.size();
 	}
 	
 	private void remapMethods(Set<MethodNode> methods, String newDesc, Set<Integer> deadSet) {
+		Map<Integer, ConstantExpr> prev = null;
+
+		for(MethodNode mn : methods) {
+			Map<Integer, ConstantExpr> map = constantParameters.get(mn);
+			
+			if(prev != null) {
+				if(!prev.equals(map)) {
+					System.err.println("p: " + prev);
+					System.out.println("m: " + map);
+					throw new RuntimeException();
+				}
+			} else {
+				prev = map;
+			}
+		}
+		
+		
 		for(MethodNode mn : methods) {
 //			System.out.println(" 2. descmap: " + mn + " to " + newDesc);
 			mn.desc = newDesc;
