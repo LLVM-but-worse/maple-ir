@@ -88,6 +88,9 @@ public class ConstantParameterPass2 implements IPass, Opcode {
 					return;
 				}
 				
+				if (m.toString().equals("ek.<init>(III)V")) {
+					System.out.println("int3");
+				}
 				boolean isStatic = (m.access & Opcodes.ACC_STATIC) != 0;
 				
 				int paramCount = Type.getArgumentTypes(m.desc).length;
@@ -115,7 +118,13 @@ public class ConstantParameterPass2 implements IPass, Opcode {
 					if(stmt.getOpcode() == LOCAL_STORE) {
 						CopyVarStmt cvs = (CopyVarStmt) stmt;
 						if(cvs.isSynthetic()) {
-							idxs[paramIndex++] = cvs.getVariable().getLocal().getIndex();
+							int varIndex = cvs.getVariable().getLocal().getIndex();
+							if (!isStatic && varIndex == 0)
+								continue;
+							if (m.toString().equals("ek.<init>(III)V")) {
+								System.out.println(paramIndex + "=" + cvs.getVariable());
+							}
+							idxs[paramIndex++] = varIndex;
 //							if(l.getIndex() == 0 && paramIndex != 0) {
 //								throw new IllegalStateException(l + " @" + paramIndex);
 //							} else if(l.getIndex() == 0 && paramIndex == 0) {
@@ -136,12 +145,6 @@ public class ConstantParameterPass2 implements IPass, Opcode {
 						}
 					}
 					break;
-				}
-				
-				if(!isStatic) {
-					int[] newidxs = new int[idxs.length + 1];
-					System.arraycopy(idxs, 0, newidxs, 1, idxs.length);
-					idxs = newidxs;
 				}
 				
 				for(int j=0; j < paramCount; j++) {
@@ -461,7 +464,8 @@ public class ConstantParameterPass2 implements IPass, Opcode {
 	}
 	
 	private void inlineConstant(ControlFlowGraph cfg, MethodNode mn, int parameterIndex, ConstantExpr c) {
-		System.out.println(mn + " " + Modifier.isStatic(mn.access) + " @" + parameterIndex);
+		boolean isStatic = Modifier.isStatic(mn.access);
+		System.out.println(mn + " " + isStatic + " @" + parameterIndex);
 		System.out.println("  c: " + c);
 		
 		Type[] params = Type.getArgumentTypes(mn.desc);
@@ -473,11 +477,12 @@ public class ConstantParameterPass2 implements IPass, Opcode {
 		
 		if(!argDef.getType().equals(params[parameterIndex])) {
 			System.err.println(cfg);
-			System.err.println(mn.desc +" @" +parameterIndex +"   (" + Modifier.isStatic(mn.access) + ")");
+			System.err.println(mn.desc +" @" +parameterIndex +"   (" + isStatic + ")");
 			System.err.println("  argindex: " + argLocalIndex);
 			System.err.println("  " + Arrays.toString(params));
 			System.err.println("  " + argDef);
 			System.err.println("  " + Arrays.toString(paramIndices.get(mn)));
+			System.err.println("  " + argDef.getType() + " vs " + params[parameterIndex]);
 			throw new RuntimeException();
 		}
 		boolean removeDef = true;
@@ -488,7 +493,7 @@ public class ConstantParameterPass2 implements IPass, Opcode {
 			argDef.getVariable().copy();
 		} catch(RuntimeException e) {
 			System.err.println(cfg);
-			System.err.println(Modifier.isStatic(mn.access));
+			System.err.println(isStatic);
 			System.err.println(argLocal + " : " + argDef);
 			System.err.println("Param index: " + parameterIndex);
 			System.err.println("Arg index: " + argLocalIndex);
