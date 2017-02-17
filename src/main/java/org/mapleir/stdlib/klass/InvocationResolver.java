@@ -1,12 +1,12 @@
 package org.mapleir.stdlib.klass;
 
-import java.lang.reflect.Modifier;
-import java.util.HashSet;
-import java.util.Set;
-
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
+
+import java.lang.reflect.Modifier;
+import java.util.HashSet;
+import java.util.Set;
 
 public class InvocationResolver {
 
@@ -40,25 +40,18 @@ public class InvocationResolver {
 		}
 	}
 	
-	public MethodNode resolveVirtualCall(ClassNode cn, String name, String desc) {
-		Set<MethodNode> set = new HashSet<>();
+	public MethodNode findVirtualCall(ClassNode cn, String name, String desc) {
+		MethodNode result = null;
 		for(MethodNode m : cn.methods) {
 			if((m.access & Opcodes.ACC_STATIC) == 0) {
 				if(m.name.equals(name) && m.desc.equals(desc)) {
-					set.add(m);
+					if (result != null)
+						throw new IllegalStateException(cn.name + "." + name + " " + desc + " => " + result + "," + m);
+					result = m;
 				}
 			}
 		}
-		
-		if(set.size() > 1) {
-			throw new IllegalStateException(cn.name + "." + name + " " + desc + " => " + set);
-		}
-		
-		if(set.size() == 1) {
-			return set.iterator().next();
-		} else {
-			return null;
-		}
+		return result;
 	}
 	
 	private Set<MethodNode> getVirtualMethods(Set<ClassNode> classes, String name, String desc) {
@@ -77,7 +70,6 @@ public class InvocationResolver {
 	
 	public Set<MethodNode> resolveVirtualCalls(String owner, String name, String desc) {
 		Set<MethodNode> set = new HashSet<>();
-		
 		ClassNode cn = tree.getClass(owner);
 		
 		if(cn != null) {
@@ -109,26 +101,23 @@ public class InvocationResolver {
 		return set;
 	}
 	
-	public MethodNode resolveStaticCall(String owner, String name, String desc) {
-		Set<MethodNode> set = new HashSet<>();
-		
+	public MethodNode findStaticCall(String owner, String name, String desc) {
 		ClassNode cn = tree.getClass(owner);
-		
+		MethodNode mn = null;
 		if(cn != null) {
 			for(MethodNode m : cn.methods) {
 				if((m.access & Opcodes.ACC_STATIC) != 0) {
 					if(m.name.equals(name) && m.desc.equals(desc)) {
-						set.add(m);
+						if (mn != null)
+							throw new IllegalStateException(owner + "." + name + " " + desc + ",   " + mn + "," + m);
+						mn = m;
 					}
 				}
 			}
-			
-			if(set.size() == 0) {
-				return resolveStaticCall(cn.superName, name, desc);
-			} else if(set.size() == 1) {
-				return set.iterator().next();
+			if(mn == null) {
+				return findStaticCall(cn.superName, name, desc);
 			} else {
-				throw new IllegalStateException(owner + "." + name + " " + desc + ",   " + set.toString());
+				return mn;
 			}
 		} else {
 			return null;

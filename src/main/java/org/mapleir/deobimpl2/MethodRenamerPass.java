@@ -1,13 +1,5 @@
 package org.mapleir.deobimpl2;
 
-import java.lang.reflect.Modifier;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.Expr;
@@ -20,6 +12,14 @@ import org.mapleir.stdlib.klass.ClassTree;
 import org.mapleir.stdlib.klass.InvocationResolver;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
+
+import java.lang.reflect.Modifier;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
 
 public class MethodRenamerPass implements IPass {
 
@@ -116,7 +116,7 @@ public class MethodRenamerPass implements IPass {
 								}
 								
 								if(invoke.getInstanceExpression() == null) {
-									MethodNode site = resolver.resolveStaticCall(invoke.getOwner(), invoke.getName(), invoke.getDesc());
+									MethodNode site = resolver.findStaticCall(invoke.getOwner(), invoke.getName(), invoke.getDesc());
 									
 									if(site != null) {
 										if(remapped.containsKey(site)) {
