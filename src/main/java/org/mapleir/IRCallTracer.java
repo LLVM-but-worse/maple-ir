@@ -39,7 +39,7 @@ public class IRCallTracer extends CallTracer {
 						String desc = invoke.getDesc();
 						
 						if(isStatic) {
-							MethodNode call = resolver.resolveStaticCall(owner, name, desc);
+							MethodNode call = resolver.findStaticCall(owner, name, desc);
 							if(call != null) {
 								trace(call);
 								processedInvocation(m, call, invoke);
