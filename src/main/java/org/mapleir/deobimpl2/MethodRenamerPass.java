@@ -132,8 +132,9 @@ public class MethodRenamerPass implements IPass {
 										}
 									}
 								} else {
-									Set<MethodNode> sites = resolver.resolveVirtualCalls(invoke.getOwner(), invoke.getName(), invoke.getDesc());
-									
+//									 Set<MethodNode> sites = resolver.resolveVirtualCalls(invoke.getOwner(), invoke.getName(), invoke.getDesc());
+									Set<ClassNode> classes = tree.getAllBranches(cn, true);
+									Set<MethodNode> sites = getVirtualMethods(cxt, classes, invoke.getName(), invoke.getDesc());
 									if(sites.size() > 0) {
 										/* all of the sites must be linked by the same name,
 										 * so we can use any to find the new name. */
@@ -148,6 +149,7 @@ public class MethodRenamerPass implements IPass {
 									} else {
 										if(mustMark(tree, invoke.getOwner())) {
 											System.err.println("  can't resolve(v) " + invoke + ", owner: " + invoke.getOwner());
+											System.err.println("  classes: " + classes);
 										}
 									}
 								}
