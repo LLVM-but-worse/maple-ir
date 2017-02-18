@@ -6,6 +6,7 @@ import org.mapleir.deobimpl2.DeadCodeEliminationPass;
 import org.mapleir.stdlib.deob.PassGroup;
 
 import testcases.CheckReturn;
+import testcases.FlaggedMethod;
 
 public class ConditionalBranch1 {
 
@@ -61,6 +62,25 @@ public class ConditionalBranch1 {
 		}
 	}
 	
+	static class A4 {
+		@FlaggedMethod
+		int m4(int x, int y) {
+			return x * 2 + y * 5;
+		}
+	}
+	
+	static class B4 extends A4 {
+		@FlaggedMethod
+		@Override
+		int m4(int x, int y) {
+			if(x == 0) {
+				return x;
+			} else {
+				return y;
+			}
+		}
+	}
+	
 	@CheckReturn
 	static int test1() {
 		A a = new A();
@@ -94,8 +114,28 @@ public class ConditionalBranch1 {
 		return d.m3(0, 1);
 	}
 	
+	static B4 a4 = new B4();
+	
+	@CheckReturn
+	static int test6() {
+		A4 a = a4;
+		return a.m4(0, 1);
+	}
+	
+	@CheckReturn
+	static int test7() {
+		B4 b = a4;
+		return b.m4(1, 5);
+	}
+	
 	public static Class<?>[] getClasses() {
-		return new Class<?>[] {ConditionalBranch1.class, A.class, A2.class, B2.class, A3.class, B3.class, D3.class};
+		return new Class<?>[] {
+				ConditionalBranch1.class, 
+				A.class, 
+				A2.class, B2.class, 
+				A3.class, B3.class, D3.class,
+				A4.class, B4.class 
+		};
 	}
 	
 	public static PassGroup getPasses() {
