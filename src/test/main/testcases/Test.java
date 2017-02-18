@@ -101,7 +101,7 @@ public class Test {
 					List<AnnotationNode> annos = m.visibleAnnotations;
 					
 					for(AnnotationNode n : annos) {
-						if(n.desc.equals("Ltestcases/TestMethod;")) {
+						if(n.desc.equals("Ltestcases/FlaggedMethod;")) {
 							System.out.println();
 							System.out.println();
 							System.out.printf("%s, static=%b.%n", m, Modifier.isStatic(m.access));
