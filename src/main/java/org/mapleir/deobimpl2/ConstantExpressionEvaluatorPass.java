@@ -1,14 +1,5 @@
 package org.mapleir.deobimpl2;
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicReference;
-
 import org.mapleir.deobimpl2.ConstantParameterPass.SemiConstantParameter;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
@@ -46,6 +37,15 @@ import org.objectweb.asm.tree.JumpInsnNode;
 import org.objectweb.asm.tree.LabelNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.tree.VarInsnNode;
+
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 
@@ -403,7 +403,7 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 				
 				System.out.println(b.method);
 				System.out.println(comp + " -> " + b.eval(lc.getConstant(), rc.getConstant()));
-				ConstantExpr cr = new ConstantExpr((int)b.eval(lc.getConstant(), rc.getConstant()));
+				ConstantExpr cr = new ConstantExpr(b.eval(lc.getConstant(), rc.getConstant()));
 				return cr;
 			}
 		}
@@ -603,7 +603,7 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 			
 			insns.add(new VarInsnNode(TypeUtils.getVariableLoadOpcode(lt), 0));
 			cast(insns, lt, opType);
-			insns.add(new VarInsnNode(TypeUtils.getVariableLoadOpcode(rt), rt.getSize()));
+			insns.add(new VarInsnNode(TypeUtils.getVariableLoadOpcode(rt), lt.getSize()));
 			cast(insns, rt, opType);
 			
 
@@ -633,31 +633,32 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 	}
 	
 	private Bridge getComparisonBridge(Type lt, Type rt, ValueComparisonType type) {
-		String name = lt.getClassName() + type.name() + rt.getClassName() + "RET" + rt.getClassName();
-
+		String name = lt.getClassName() + type.name() + rt.getClassName() + "RETint";
 		if(bridges.containsKey(name)) {
 			return bridges.get(name);
 		}
 		
-		int op;
-		String desc = ("(" + lt.getDescriptor() + rt.getDescriptor() + ")" + rt.getDescriptor());
-		
+		String desc = "(" + lt.getDescriptor() + rt.getDescriptor() + ")I";
 		MethodNode m = makeBase(name, desc);
-		
-		if (lt == Type.LONG_TYPE || rt == Type.LONG_TYPE) {
-			op = Opcodes.LCMP;
-		} else if (lt == Type.FLOAT_TYPE || rt == Type.FLOAT_TYPE) {
-			op = type == ValueComparisonType.GT ? Opcodes.FCMPG : Opcodes.FCMPL;
-		} else if (lt == Type.DOUBLE_TYPE || rt == Type.DOUBLE_TYPE) {
-			op = type == ValueComparisonType.GT ? Opcodes.DCMPG : Opcodes.DCMPL;
-		} else {
-			throw new IllegalArgumentException();
-		}
-		
 		{
+			Type opType = TypeUtils.resolveBinOpType(lt, rt);
+			
 			InsnList insns = new InsnList();
 			insns.add(new VarInsnNode(TypeUtils.getVariableLoadOpcode(lt), 0));
-			insns.add(new VarInsnNode(TypeUtils.getVariableLoadOpcode(rt), rt.getSize() /*D,J=2, else 1*/));
+			cast(insns, lt, opType);
+			insns.add(new VarInsnNode(TypeUtils.getVariableLoadOpcode(rt), lt.getSize()));
+			cast(insns, rt, opType);
+		
+			int op;
+			if (opType == Type.DOUBLE_TYPE) {
+				op = type == ValueComparisonType.GT ? Opcodes.DCMPG : Opcodes.DCMPL;
+			} else if (opType == Type.FLOAT_TYPE) {
+				op = type == ValueComparisonType.GT ? Opcodes.FCMPG : Opcodes.FCMPL;
+			} else if (opType == Type.LONG_TYPE) {
+				op = Opcodes.LCMP;
+			} else {
+				throw new IllegalArgumentException();
+			}
 			insns.add(new InsnNode(op));
 			insns.add(new InsnNode(Opcodes.IRETURN));
 			
