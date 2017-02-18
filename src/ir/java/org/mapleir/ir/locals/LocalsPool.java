@@ -1,10 +1,5 @@
 package org.mapleir.ir.locals;
 
-import java.util.*;
-import java.util.Map.Entry;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Predicate;
-
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.Expr;
@@ -22,6 +17,19 @@ import org.mapleir.stdlib.collections.bitset.IncrementalBitSetIndexer;
 import org.mapleir.stdlib.util.TypeUtils;
 import org.objectweb.asm.Type;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Predicate;
+
 public class LocalsPool implements ValueCreator<GenericBitSet<Local>> {
 
 	private final AtomicInteger base;
@@ -30,7 +38,7 @@ public class LocalsPool implements ValueCreator<GenericBitSet<Local>> {
 	private final BitSetIndexer<Local> indexer;
 	
 	public final Map<VersionedLocal, AbstractCopyStmt> defs;
-	public final Map<VersionedLocal, Set<VarExpr>> uses;
+	public final NullPermeableHashMap<VersionedLocal, Set<VarExpr>> uses;
 	
 	public LocalsPool(int base) {
 		this.base = new AtomicInteger(base);
@@ -39,7 +47,7 @@ public class LocalsPool implements ValueCreator<GenericBitSet<Local>> {
 		indexer = new IncrementalBitSetIndexer<>();
 		
 		defs = new HashMap<>();
-		uses = new HashMap<>();
+		uses = new NullPermeableHashMap<>(SetCreator.getInstance());
 	}
 	
 	public Set<Local> getAll(Predicate<Local> p)  {
