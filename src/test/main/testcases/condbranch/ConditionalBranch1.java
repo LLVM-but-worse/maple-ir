@@ -5,13 +5,13 @@ import org.mapleir.deobimpl2.ConstantParameterPass2;
 import org.mapleir.deobimpl2.DeadCodeEliminationPass;
 import org.mapleir.stdlib.deob.PassGroup;
 
-import testcases.Test;
-import testcases.TestMethod;
+import testcases.CheckReturn;
+import testcases.FlaggedMethod;
 
 public class ConditionalBranch1 {
 
 	static class A {
-		@TestMethod
+		@FlaggedMethod
 		int m1(int x, int y) {
 			if(x == 0) {
 				return x;
@@ -28,7 +28,7 @@ public class ConditionalBranch1 {
 	}
 	
 	static class A2 {
-		@TestMethod
+		@FlaggedMethod
 		int m2(int x, int y) {
 			if(x == 0) {
 				return x;
@@ -44,16 +44,20 @@ public class ConditionalBranch1 {
 		}
 	}
 	
-	static void test() {
+	@CheckReturn
+	static int test1() {
 		B b1 = new B();
-		b1.m1(1, 2);
-		
-		B b2 = new B();
-		b2.m1(1, 1);
+		return b1.m1(1, 2);
 	}
 	
-	public static String[] getClasses() {
-		return Test.getNames(ConditionalBranch1.class, A.class, B.class);
+	@CheckReturn
+	static int test2() {
+		B b2 = new B();
+		return b2.m1(1, 1);
+	}
+	
+	public static Class<?>[] getClasses() {
+		return new Class<?>[] {ConditionalBranch1.class, A.class, B.class};
 	}
 	
 	public static PassGroup getPasses() {
