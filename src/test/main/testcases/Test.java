@@ -133,26 +133,38 @@ public class Test {
 			p.postResult = m.invoke(null, new Object[]{});
 			
 			if(p.preResult.equals(p.postResult)) {
-				System.err.flush();
-				System.out.printf("  %s.%s passed (val=%s).%n", p.owner, p.name, p.preResult);
+				System.out.printf("  %s.%s passed (val=%s)%n", p.owner, p.name, p.preResult);
 			} else {
-				System.out.flush();
-				System.err.printf("  %s.%s failed (pre=%s, post=%s).%n", p.owner, p.name, p.preResult, p.postResult);
+				System.err.printf("  %s.%s failed (pre=%s, post=%s)%n", p.owner, p.name, p.preResult, p.postResult);
 			}
 		}
 	}
 	
 	private static ClassLoader createLoader(Collection<ClassNode> classes) {
+		Map<String, ClassNode> map = new HashMap<>();
+		for(ClassNode cn : classes) {
+			map.put(cn.name, cn);
+		}
+		
 		return new ClassLoader() {
-			{
-				for(ClassNode cn : classes) {
-					ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
-					cn.accept(cw);
-					
-					byte[] bs = cw.toByteArray();
-					
-					defineClass(cn.name.replaceAll("/", "."), bs, 0, bs.length);
+			@Override
+			public Class<?> findClass(String name) throws ClassNotFoundException {
+				String bname = name.replace(".", "/");
+				
+				if(map.containsKey(bname)) {
+					return define(map.get(bname), name);
+				} else {
+					return super.findClass(name);
 				}
+			}
+			
+			private Class<?> define(ClassNode cn, String name) {
+				ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
+				cn.accept(cw);
+				
+				byte[] bs = cw.toByteArray();
+				
+				return defineClass(name, bs, 0, bs.length);
 			}
 		};
 	}
