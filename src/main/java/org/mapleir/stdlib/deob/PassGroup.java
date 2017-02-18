@@ -1,10 +1,10 @@
 package org.mapleir.stdlib.deob;
 
-import org.mapleir.Boot;
-import org.mapleir.stdlib.IContext;
-
 import java.util.ArrayList;
 import java.util.List;
+
+import org.mapleir.Boot;
+import org.mapleir.stdlib.IContext;
 
 public class PassGroup implements IPass {
 
@@ -42,7 +42,7 @@ public class PassGroup implements IPass {
 		for(;;) {
 			completed.clear();
 			last = null;
-			int pdelta = delta;
+			// int pdelta = delta;
 			delta = 0;
 			
 			if(name != null) {
@@ -57,7 +57,11 @@ public class PassGroup implements IPass {
 					continue;
 				}
 				
-				Boot.section0("...took %fs." + (i == 0 ? "%n" : ""), "Running " + p.getId());
+				if(Boot.logging) {
+					Boot.section0("...took %fs." + (i == 0 ? "%n" : ""), "Running " + p.getId());
+				} else {
+					System.out.println("Running " + p.getId());
+				}
 				lastDelta = p.accept(cxt, last, completed);
 				
 				completed.add(p);
@@ -67,9 +71,11 @@ public class PassGroup implements IPass {
 				delta += lastDelta;
 			}
 			
-			if(delta == pdelta) {
+			if(delta == 0) {
 				break;
 			}
+			System.out.println();
+			System.out.println();
 		}
 		
 		return 0;
