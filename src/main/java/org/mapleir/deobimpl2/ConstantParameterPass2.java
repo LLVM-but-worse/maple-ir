@@ -88,9 +88,6 @@ public class ConstantParameterPass2 implements IPass, Opcode {
 					return;
 				}
 				
-				if (m.toString().equals("ek.<init>(III)V")) {
-					System.out.println("int3");
-				}
 				boolean isStatic = (m.access & Opcodes.ACC_STATIC) != 0;
 				
 				int paramCount = Type.getArgumentTypes(m.desc).length;
@@ -121,9 +118,6 @@ public class ConstantParameterPass2 implements IPass, Opcode {
 							int varIndex = cvs.getVariable().getLocal().getIndex();
 							if (!isStatic && varIndex == 0)
 								continue;
-							if (m.toString().equals("ek.<init>(III)V")) {
-								System.out.println(paramIndex + "=" + cvs.getVariable());
-							}
 							idxs[paramIndex++] = varIndex;
 //							if(l.getIndex() == 0 && paramIndex != 0) {
 //								throw new IllegalStateException(l + " @" + paramIndex);
@@ -270,6 +264,7 @@ public class ConstantParameterPass2 implements IPass, Opcode {
 		}
 		
 		
+		int killedTotal = 0;
 		for(Entry<MethodNode, NullPermeableHashMap<Integer, Set<ConstantExpr>>> e : upconsts.entrySet()) {
 			MethodNode m = e.getKey();
 			ControlFlowGraph cfg = cxt.getIR(m);
@@ -280,11 +275,12 @@ public class ConstantParameterPass2 implements IPass, Opcode {
 					throw new RuntimeException();
 				}
 				
-				inlineConstant(cfg, m, e2.getKey(), e2.getValue().iterator().next());
+				String newDesc = buildDesc(Type.getArgumentTypes(m.desc), Type.getReturnType(m.desc), e.getValue().keySet());
+				boolean killSynth = checkConflicts(cxt, m, newDesc);
+				inlineConstant(cfg, m, e2.getKey(), e2.getValue().iterator().next(), killSynth);
 			}
 		}
 		
-		int killedTotal = 0;
 		
 		for(;;) {
 			int killedBeforePass = killedTotal;
@@ -311,41 +307,50 @@ public class ConstantParameterPass2 implements IPass, Opcode {
 		
 		String newDesc = buildDesc(Type.getArgumentTypes(mn.desc), Type.getReturnType(mn.desc), deadIndices);
 		
-		System.out.println(mn + " -> " + newDesc);
+//		System.out.println(mn + " -> " + newDesc);
 		
-		
+		boolean isStatic = Modifier.isStatic(mn.access);
+		if (checkConflicts(cxt, mn, newDesc)) {
+			if (!isStatic && !mn.name.equals("<init>")) {
+				remapMethods(chain, newDesc, deadIndices);
+			} else {
+				remapMethod(mn, newDesc, deadIndices);
+			}
+			return deadIndices.size();
+		} else {
+			if (!isStatic && !mn.name.equals("<init>")) {
+				cantfix.addAll(chain);
+			} else {
+				cantfix.add(mn);
+			}
+			return 0;
+		}
+	}
+	
+	private boolean checkConflicts(IContext cxt, MethodNode mn, String newDesc) {
 		InvocationResolver resolver = cxt.getInvocationResolver();
-		
 		if(Modifier.isStatic(mn.access)) {
 			MethodNode conflict = resolver.findStaticCall(mn.owner.name, mn.name, newDesc);
 			if(conflict != null) {
-				System.out.printf("  can't remap(s) %s because of %s.%n", mn, conflict);
-				cantfix.add(mn);
-				return 0;
+//				System.out.printf("  can't remap(s) %s because of %s.%n", mn, conflict);
+				return false;
 			}
 		} else {
 			if(mn.name.equals("<init>")) {
 				MethodNode conflict = resolver.findVirtualCall(mn.owner, mn.name, newDesc);
 				if(conflict != null) {
-					System.out.printf("  can't remap(i) %s because of %s.%n", mn, conflict);
-					cantfix.add(mn);
-					return 0;
+//					System.out.printf("  can't remap(i) %s because of %s.%n", mn, conflict);
+					return false;
 				}
 			} else {
 				Set<MethodNode> conflicts = getVirtualChain(cxt, mn.owner, mn.name, newDesc);
-				if(conflicts.size() == 0) {
-					remapMethods(chain, newDesc, deadIndices);
-					return deadIndices.size();
-				} else {
-					System.out.printf("  can't remap(v) %s because of %s.%n", mn, conflicts);
-					cantfix.addAll(chain);
-					return 0;
+				if(conflicts.size() > 0) {
+//					System.out.printf("  can't remap(v) %s because of %s.%n", mn, conflicts);
+					return false;
 				}
 			}
 		}
-		
-		remapMethod(mn, newDesc, deadIndices);
-		return deadIndices.size();
+		return true;
 	}
 	
 	private void remapMethods(Set<MethodNode> methods, String newDesc, Set<Integer> deadSet) {
@@ -367,7 +372,7 @@ public class ConstantParameterPass2 implements IPass, Opcode {
 		
 		
 		for(MethodNode mn : methods) {
-			System.out.println(" 2. descmap: " + mn + " to " + newDesc);
+//			System.out.println(" 2. descmap: " + mn + " to " + newDesc);
 			mn.desc = newDesc;
 			processMethods.add(mn);
 			
@@ -383,7 +388,7 @@ public class ConstantParameterPass2 implements IPass, Opcode {
 	}
 	
 	private void remapMethod(MethodNode mn, String newDesc, Set<Integer> dead) {
-		System.out.println(" 1. descmap: " + mn + " to " + newDesc);
+//		System.out.println(" 1. descmap: " + mn + " to " + newDesc);
 		mn.desc = newDesc;
 		processMethods.add(mn);
 		
@@ -463,10 +468,10 @@ public class ConstantParameterPass2 implements IPass, Opcode {
 		return sb.toString();
 	}
 	
-	private void inlineConstant(ControlFlowGraph cfg, MethodNode mn, int parameterIndex, ConstantExpr c) {
+	private void inlineConstant(ControlFlowGraph cfg, MethodNode mn, int parameterIndex, ConstantExpr c, boolean killSynth) {
 		boolean isStatic = Modifier.isStatic(mn.access);
-		System.out.println(mn + " " + isStatic + " @" + parameterIndex);
-		System.out.println("  c: " + c);
+//		System.out.println(mn + " " + isStatic + " @" + parameterIndex);
+//		System.out.println("  c: " + c);
 		
 		Type[] params = Type.getArgumentTypes(mn.desc);
 		LocalsPool pool = cfg.getLocals();
@@ -508,11 +513,12 @@ public class ConstantParameterPass2 implements IPass, Opcode {
 		
 		CopyVarStmt copy = new CopyVarStmt(dv, c.copy());
 		BasicBlock b = argDef.getBlock();
-		argDef.delete();
+		if (killSynth) {
+			argDef.delete();
+			pool.defs.remove(argLocal);
+		}
 		argDef = copy;
 		b.add(copy);
-		
-		pool.defs.remove(argLocal);
 		pool.defs.put(spill, copy);
 		
 		Set<VarExpr> spillUses = new HashSet<>();
@@ -520,7 +526,7 @@ public class ConstantParameterPass2 implements IPass, Opcode {
 		
 		/* Replace each use of the parameter variable with
 		 * the constant. */
-		Iterator<VarExpr> it = pool.uses.get(argLocal).iterator();
+		Iterator<VarExpr> it = pool.uses.getNonNull(argLocal).iterator();
 		while(it.hasNext()) {
 			VarExpr v = it.next();
 			

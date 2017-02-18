@@ -1,10 +1,10 @@
 package org.mapleir.stdlib.deob;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import org.mapleir.Boot;
 import org.mapleir.stdlib.IContext;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class PassGroup implements IPass {
 
@@ -46,7 +46,7 @@ public class PassGroup implements IPass {
 			delta = 0;
 			
 			if(name != null) {
-				System.out.println("Running %s group.%n");
+				System.out.printf("Running %s group.%n", name);
 			}
 			
 			for(int i=0; i < passed.length; i++) {
