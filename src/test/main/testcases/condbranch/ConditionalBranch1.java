@@ -21,12 +21,6 @@ public class ConditionalBranch1 {
 		}
 	}
 	
-	static class B extends A {
-//		int m1() {
-//			return 5;
-//		}
-	}
-	
 	static class A2 {
 		@FlaggedMethod
 		int m2(int x, int y) {
@@ -46,18 +40,18 @@ public class ConditionalBranch1 {
 	
 	@CheckReturn
 	static int test1() {
-		B b1 = new B();
-		return b1.m1(1, 2);
+		A a = new A();
+		return a.m1(1, 2);
 	}
 	
 	@CheckReturn
 	static int test2() {
-		B b2 = new B();
-		return b2.m1(1, 1);
+		B2 b2 = new B2();
+		return b2.m2(1, 1);
 	}
 	
 	public static Class<?>[] getClasses() {
-		return new Class<?>[] {ConditionalBranch1.class, A.class, B.class};
+		return new Class<?>[] {ConditionalBranch1.class, A.class, A2.class, B2.class};
 	}
 	
 	public static PassGroup getPasses() {
