@@ -1,9 +1,11 @@
 package org.mapleir.stdlib.klass.library;
 
-import java.io.IOException;
-
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.tree.ClassNode;
+
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 
 public class InstalledRuntimeClassSource extends LibraryClassSource {
 
@@ -11,16 +13,25 @@ public class InstalledRuntimeClassSource extends LibraryClassSource {
 		super(parent);
 	}
 	
+	private static Map<String, Boolean> containsCache = new HashMap<>();
+	
 	@Override
 	public boolean contains(String name) {
+		Boolean cached = containsCache.get(name);
+		if (cached != null)
+			return cached;
+		
 		if(super.contains(name)) {
+			containsCache.put(name, true);
 			return true;
 		}
 		
 		try {
 			Class.forName(name.replace("/", "."));
+			containsCache.put(name, true);
 			return true;
 		} catch (ClassNotFoundException e) {
+			containsCache.put(name, false);
 			return false;
 		}
 	}
