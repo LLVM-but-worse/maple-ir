@@ -86,6 +86,12 @@ public class ApplicationClassSource extends ClassSource {
 			return false;
 		}
 		
+		/* quick check to see if it's app class instead. 
+		 * (prevents attempted loading by runtime lib). */
+		if(contains(name)) {
+			return false;
+		}
+		
 		for(LibraryClassSource cs : libraries) {
 			if(cs.contains(name)) {
 				return true;
