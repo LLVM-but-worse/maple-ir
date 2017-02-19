@@ -195,7 +195,46 @@ public class Boot {
 //		section("Finished.");
 //	}
 	
+	static class A {
+		void call() {
+			System.out.println("xd");
+		}
+	}
+	
+	static abstract class B extends A {
+		@Override
+		abstract void call();
+	}
+	
+	static class C extends B {
+
+		@Override
+		void call() {
+			// FIXME: need to check if we can
+			// produce bytecode to call A.call() from
+			// here.
+		}
+	}
+	
+	
 	public static void main(String[] args) throws Exception {
+		/* Class<?>[] cs = new Class<?>[] {A1.class, A2.class, A.class, B1.class, C1.class, D.class, E.class, B2.class, C2.class};
+		Set<ClassNode> classes = new HashSet<>();
+		for(Class<?> c : cs) {
+			ClassReader cr = new ClassReader(c.getName());
+			ClassNode cn = new ClassNode();
+			cr.accept(cn, 0);
+			classes.add(cn);
+		}
+		
+		ApplicationClassSource source = new ApplicationClassSource("main", classes);
+		InvocationResolver res = new InvocationResolver(source);
+		
+		System.out.println(res.resolveVirtualCalls("org/mapleir/Boot$A", "call", "()V"));
+		
+		if("".equals(""))
+			return;*/
+		
 		cfgs = new HashMap<>();
 		sections = new LinkedList<>();
 		logging = true;
@@ -205,7 +244,7 @@ public class Boot {
 			return;
 		} */
 		
-		File f = locateRevFile(129);
+		File f = locateRevFile(133);
 		
 		section("Preparing to run on " + f.getAbsolutePath());
 		SingleJarDownloader<ClassNode> dl = new SingleJarDownloader<>(new JarInfo(f));

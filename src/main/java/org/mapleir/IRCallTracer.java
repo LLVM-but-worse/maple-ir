@@ -1,5 +1,7 @@
 package org.mapleir;
 
+import java.util.Set;
+
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.Expr;
@@ -45,10 +47,30 @@ public class IRCallTracer extends CallTracer {
 								processedInvocation(m, call, invoke);
 							}
 						} else {
-							for(MethodNode vtarg : resolver.resolveVirtualCalls(owner, name, desc)) {
-								if(vtarg != null) {
-									trace(vtarg);
-									processedInvocation(m, vtarg, invoke);
+							if(name.equals("<init>")) {
+								MethodNode call = resolver.resolveVirtualInitCall(owner, desc);
+								if(call != null) {
+									trace(call);
+									processedInvocation(m, call, invoke);
+								} else {
+									System.err.printf("(warn): can't resolve constructor: %s.<init> %s.%n", owner, desc);
+								}
+							} else {
+//								if(owner.equals("java/lang/Object") && name.equals("equals")) {
+//									System.err.println(cfg);
+//									throw new RuntimeException("current context: " + m);
+//								}
+								Set<MethodNode> targets = resolver.resolveVirtualCalls(owner, name, desc);
+								if(targets.size() > 0) {
+									for(MethodNode vtarg : targets) {
+										trace(vtarg);
+										processedInvocation(m, vtarg, invoke);
+									}
+								} else {
+									if(!owner.contains("java")) {
+										System.err.printf("(warn): can't resolve vcall: %s.%s %s.%n", owner, name, desc);
+										System.err.println("  call from " + m);
+									}
 								}
 							}
 						}
@@ -58,6 +80,8 @@ public class IRCallTracer extends CallTracer {
 						if(call != null) {
 							trace(call);
 							processedInvocation(m, call, init);
+						} else {
+							System.err.printf("(warn): can't resolve constructor: %s.<init> %s.%n", init.getOwner(), init.getDesc());
 						}
 					}
 				}
