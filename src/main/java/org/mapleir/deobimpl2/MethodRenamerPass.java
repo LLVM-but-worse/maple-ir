@@ -1,5 +1,6 @@
 package org.mapleir.deobimpl2;
 
+import org.mapleir.deobimpl2.util.RenamingUtil;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.Expr;
@@ -24,7 +25,7 @@ import java.util.Set;
 public class MethodRenamerPass implements IPass {
 
 	@Override
-	public boolean isIncremental() {
+	public boolean isSingletonPass() {
 		return false;
 	}
 	

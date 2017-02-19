@@ -53,7 +53,7 @@ public class PassGroup implements IPass {
 				IPass p = passes.get(i);
 				
 				/* run once. */
-				if(passed[i] && !p.isIncremental()) {
+				if(passed[i] && !p.isSingletonPass()) {
 					continue;
 				}
 				
@@ -82,7 +82,7 @@ public class PassGroup implements IPass {
 	}
 	
 	@Override
-	public boolean isIncremental() {
+	public boolean isSingletonPass() {
 		return false;
 	}
 }

@@ -438,7 +438,7 @@ public class ConstantParameterPass2 implements IPass, Opcode {
 	
 	private Set<MethodNode> getVirtualChain(IContext cxt, ClassNode cn, String name, String desc) {		
 		Set<MethodNode> set = new HashSet<>();
-		for(ClassNode c : cxt.getClassTree().getAllBranches(cn, false)) {
+		for(ClassNode c : cxt.getClassTree().getVirtualReachableBranches(cn, false)) {
 			MethodNode mr = cxt.getInvocationResolver().findVirtualCall(c, name, desc);
 			if(mr != null) {
 				set.add(mr);
@@ -569,15 +569,12 @@ public class ConstantParameterPass2 implements IPass, Opcode {
 		return false;
 	}
 	
-	private void makeUpChain(IContext cxt, MethodNode m1, Map<MethodNode, Set<MethodNode>> chainMap) {
-		InvocationResolver resolver = cxt.getInvocationResolver();
-		
+	private void makeUpChain(IContext cxt, MethodNode m1, Map<MethodNode, Set<MethodNode>> chainMap) {		
 		Set<MethodNode> chain = new HashSet<>();
 		chain.add(m1);
 		
 		if(!Modifier.isStatic(m1.access)) {
 			if(!m1.name.equals("<init>")) {
-				// chain.addAll(resolver.resolveVirtualCalls(m1.owner.name, m1.name, m1.desc));
 				chain.addAll(getVirtualChain(cxt, m1.owner, m1.name, m1.desc));
 			}
 		}
