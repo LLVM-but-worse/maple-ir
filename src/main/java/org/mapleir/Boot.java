@@ -227,7 +227,6 @@ public class Boot {
 				if(cfgs.containsKey(m)) {
 					return cfgs.get(m);
 				} else {
-					System.out.println(m);
 					ControlFlowGraph cfg = ControlFlowGraphBuilder.build(m);
 					cfgs.put(m, cfg);
 					return cfg;
@@ -314,7 +313,7 @@ public class Boot {
 //				new FieldRenamerPass(),
 				new ConstantExpressionReorderPass(),
 				new FieldRSADecryptionPass(),
-				new PassGroup("testtt")
+				new PassGroup("Interprocedural Optimisations")
 					.add(new ConstantParameterPass2())
 					.add(new ConstantExpressionEvaluatorPass())
 					.add(new DeadCodeEliminationPass())
