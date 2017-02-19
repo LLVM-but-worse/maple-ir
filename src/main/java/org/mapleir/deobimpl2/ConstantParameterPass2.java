@@ -32,13 +32,6 @@ import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
 
 public class ConstantParameterPass2 implements IPass, Opcode {
-
-	private static final Comparator<Integer> INTEGER_ORDERER = new Comparator<Integer>() {
-		@Override
-		public int compare(Integer o1, Integer o2) {
-			return Integer.compareUnsigned(o1, o2);
-		}
-	};
 	
 	private final Map<MethodNode, Set<Expr>> calls;
 	private final Map<MethodNode, int[]> paramIndices;
@@ -176,7 +169,7 @@ public class ConstantParameterPass2 implements IPass, Opcode {
 			}
 		};
 		
-
+		
 		Map<MethodNode, Set<MethodNode>> chainMap = new HashMap<>();
 		
 		for(MethodNode mn : cxt.getActiveMethods()) {
@@ -282,7 +275,7 @@ public class ConstantParameterPass2 implements IPass, Opcode {
 			
 			for(Entry<MethodNode, NullPermeableHashMap<Integer, Set<ConstantExpr>>> e : upconsts.entrySet()) {
 				MethodNode mn = e.getKey();
-				killedTotal += fixDeadParameters(cxt, mn, getVirtualChain(cxt, mn.owner, mn.name, mn.desc), e.getValue().keySet());	
+				killedTotal += fixDeadParameters(cxt, mn, getVirtualChain(cxt, mn.owner, mn.name, mn.desc), e.getValue().keySet());
 			}
 			
 			if(killedBeforePass == killedTotal) {
@@ -299,7 +292,7 @@ public class ConstantParameterPass2 implements IPass, Opcode {
 		if(processMethods.contains(mn)) {
 			return 0;
 		}
-		
+
 		String newDesc = buildDesc(Type.getArgumentTypes(mn.desc), Type.getReturnType(mn.desc), deadIndices);
 		
 //		System.out.println(mn + " -> " + newDesc);
@@ -307,17 +300,20 @@ public class ConstantParameterPass2 implements IPass, Opcode {
 		boolean isStatic = Modifier.isStatic(mn.access);
 		if (checkConflicts(cxt, mn, newDesc)) {
 			if (!isStatic && !mn.name.equals("<init>")) {
+				chain.add(mn);
 				remapMethods(chain, newDesc, deadIndices);
 			} else {
 				remapMethod(mn, newDesc, deadIndices);
 			}
 			return deadIndices.size();
 		} else {
-			if (!isStatic && !mn.name.equals("<init>")) {
+//			if (!isStatic && !mn.name.equals("<init>")) {
+//				cantfix.addAll(chain);
+//			}
+			if(chain != null) {
 				cantfix.addAll(chain);
-			} else {
-				cantfix.add(mn);
 			}
+			cantfix.add(mn);
 			return 0;
 		}
 	}
@@ -546,32 +542,7 @@ public class ConstantParameterPass2 implements IPass, Opcode {
 			argDef.delete();
 		}
 	}
-	
-	private <T> boolean  containsAny(Set<T> _master, Set<T> _other) {
-		if(_master == null || _other == null || _master.size() == 0 || _other.size() == 0) {
-			return false;
-		}
 		
-		Set<T> master;
-		Set<T> other;
-		
-		/* loop over the smallest */
-		if(_master.size() < _other.size()) {
-			other = _master;
-			master = _other;
-		} else {
-			master = _other;
-			other = _master;
-		}
-		
-		for(T t : other) {
-			if(master.contains(t)) {
-				return true;
-			}
-		}
-		return false;
-	}
-	
 	private void makeUpChain(IContext cxt, MethodNode m1, Map<MethodNode, Set<MethodNode>> chainMap) {		
 		Set<MethodNode> chain = new HashSet<>();
 		chain.add(m1);
