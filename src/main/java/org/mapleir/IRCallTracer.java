@@ -14,7 +14,7 @@ import org.objectweb.asm.tree.MethodNode;
 
 public class IRCallTracer extends CallTracer {
 
-	private final IContext context;
+	protected final IContext context;
 	
 	public IRCallTracer(IContext context) {
 		super(context.getClassTree(), context.getInvocationResolver());

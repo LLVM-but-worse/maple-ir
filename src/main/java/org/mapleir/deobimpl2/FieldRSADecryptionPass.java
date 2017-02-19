@@ -50,7 +50,7 @@ public class FieldRSADecryptionPass implements IPass, Opcode {
 	}
 	
 	@Override
-	public boolean isIncremental() {
+	public boolean isSingletonPass() {
 		return false;
 	}
 	

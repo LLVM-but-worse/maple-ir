@@ -1,4 +1,4 @@
-package org.mapleir.deobimpl2;
+package org.mapleir.deobimpl2.util;
 
 public class RenamingUtil {
 

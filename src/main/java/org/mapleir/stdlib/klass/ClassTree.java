@@ -1,21 +1,13 @@
 package org.mapleir.stdlib.klass;
 
+import static org.mapleir.stdlib.klass.ClassHelper.*;
+
+import java.util.*;
+import java.util.Map.Entry;
+
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.ValueCreator;
 import org.objectweb.asm.tree.ClassNode;
-
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedHashSet;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-
-import static org.mapleir.stdlib.klass.ClassHelper.convertToMap;
-import static org.mapleir.stdlib.klass.ClassHelper.copyOf;
 
 /**
  * @author Bibl (don't ban me pls)
@@ -215,6 +207,15 @@ public class ClassTree implements Iterable<ClassNode> {
 	@Override
 	public Iterator<ClassNode> iterator() {
 		return classes.values().iterator();
+	}
+	
+	public Set<ClassNode> getVirtualReachableBranches(ClassNode cn, boolean exploreRuntime) {
+		Set<ClassNode> set = new HashSet<>();
+		
+		set.addAll(getSupers(cn));
+		set.addAll(getDelegates(cn));
+		
+		return set;
 	}
 	
 	// gets all connected classes, both up and down
