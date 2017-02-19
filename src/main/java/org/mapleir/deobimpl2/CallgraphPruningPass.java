@@ -22,7 +22,7 @@ public class CallgraphPruningPass implements IPass {
 		
 		int i = 0;
 		
-		for(ClassNode cn : cxt.getClassTree().getClasses().values()) {
+		for(ClassNode cn : cxt.getApplication().iterate()) {
 			ListIterator<MethodNode> lit = cn.methods.listIterator();
 			while(lit.hasNext()) {
 				MethodNode m = lit.next();

@@ -1,5 +1,8 @@
 package org.mapleir.deobimpl2;
 
+import java.lang.reflect.Modifier;
+import java.util.*;
+
 import org.mapleir.IRCallTracer;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
@@ -20,23 +23,12 @@ import org.mapleir.stdlib.IContext;
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.ValueCreator;
 import org.mapleir.stdlib.deob.IPass;
-import org.mapleir.stdlib.klass.ClassTree;
 import org.mapleir.stdlib.klass.InvocationResolver;
+import org.mapleir.stdlib.klass.library.ApplicationClassSource;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
-
-import java.lang.reflect.Modifier;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeSet;
 
 public class ConstantParameterPass implements IPass, Opcode {
 	
@@ -170,14 +162,15 @@ public class ConstantParameterPass implements IPass, Opcode {
 		cantfix.clear();
 		paramIndices.clear();
 		constantParameters.clear();
-				
+		
+		ApplicationClassSource source = cxt.getApplication();
+		
 		Map<MethodNode, List<List<Expr>>> parameterInputs = new HashMap<>();
 		
 		IRCallTracer tracer = new IRCallTracer(cxt) {
 			@Override
 			protected void visitMethod(MethodNode m) {
-				
-				if(tree.isJDKClass(m.owner)) {
+				if(source.isLibraryClass(m.owner.name)) {
 					return;
 				}
 				
@@ -253,7 +246,7 @@ public class ConstantParameterPass implements IPass, Opcode {
 			
 			@Override
 			protected void processedInvocation(MethodNode caller, MethodNode callee, Expr e) {
-				if(tree.isJDKClass(callee.owner)) {
+				if(source.isLibraryClass(callee.owner.name)) {
 					return;
 				}
 				
@@ -281,8 +274,6 @@ public class ConstantParameterPass implements IPass, Opcode {
 		}
 		
 		for(MethodNode method : cxt.getActiveMethods()) {
-			ControlFlowGraph cfg = cxt.getIR(method);
-			
 			List<List<Expr>> argExprs = parameterInputs.get(method);
 
 			Set<Integer> constantParameterIndexSet = new TreeSet<>(INTEGER_ORDERER);
@@ -361,9 +352,7 @@ public class ConstantParameterPass implements IPass, Opcode {
 		
 		Set<Integer> deadIndices;
 		Set<MethodNode> chain = null;
-		
-		ClassTree tree = cxt.getClassTree();
-		
+				
 		if(!Modifier.isStatic(mn.access) && !mn.name.equals("<init>")) {
 			chain = getVirtualChain(cxt, mn.owner, mn.name, mn.desc);
 			
@@ -372,7 +361,7 @@ public class ConstantParameterPass implements IPass, Opcode {
 				
 				System.out.println();
 				System.out.println("@" + mn);
-				Set<ClassNode> cc = tree.getAllBranches(mn.owner, false);
+				Set<ClassNode> cc = cxt.getApplication().getStructures().getAllBranches(mn.owner, false);
 				
 				System.out.println(" class chain: " + cc);
 				System.out.println("  inactive chain: " + chain);
@@ -558,7 +547,7 @@ public class ConstantParameterPass implements IPass, Opcode {
 	
 	private Set<MethodNode> getVirtualChain(IContext cxt, ClassNode cn, String name, String desc) {		
 		Set<MethodNode> set = new HashSet<>();
-		for(ClassNode c : cxt.getClassTree().getAllBranches(cn, false)) {
+		for(ClassNode c : cxt.getApplication().getStructures().getAllBranches(cn, false)) {
 			MethodNode mr = cxt.getInvocationResolver().findVirtualCall(c, name, desc);
 			if(mr != null) {
 				set.add(mr);

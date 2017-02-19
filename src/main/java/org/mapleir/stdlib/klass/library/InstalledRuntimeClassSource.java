@@ -32,6 +32,10 @@ public class InstalledRuntimeClassSource extends LibraryClassSource {
 			return node;
 		}
 		
+		if(name.startsWith("[")) {
+			return findClass0("java/lang/Object");
+		}
+		
 		try {
 			ClassReader cr = new ClassReader(name);
 			ClassNode cn = new ClassNode();
@@ -42,7 +46,7 @@ public class InstalledRuntimeClassSource extends LibraryClassSource {
 			return node;
 		} catch(IOException e) {
 			// TODO: logger
-			System.err.println(e.getMessage());
+			System.err.println(e.getMessage() + ": " + name);
 			return null;
 		}
 	}

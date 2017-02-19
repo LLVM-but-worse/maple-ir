@@ -7,7 +7,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.mapleir.stdlib.klass.ClassTree;
+import org.mapleir.stdlib.klass.library.ApplicationClassSource;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.ClassNode;
@@ -574,12 +574,12 @@ public class TypeUtils {
 	 * 2. intersect search results to show things in common
 	 * 3. it's ordered. first in the list is nearest, end of the list is the furthest.
 	 */
-	public static List<Type> getCommonType(Type a, Type b, ClassTree tree) {
-		ClassNode an = tree.getClass(a.getClassName());
-		ClassNode bn = tree.getClass(b.getClassName());
+	public static List<Type> getCommonType(Type a, Type b, ApplicationClassSource source) {
+		ClassNode an = source.findClassNode(a.getClassName());
+		ClassNode bn = source.findClassNode(b.getClassName());
 		
-		Set<ClassNode> ancestorsa = getClassesBfs(an, tree);
-		Set<ClassNode> ancestorsb = getClassesBfs(bn, tree);
+		Set<ClassNode> ancestorsa = getClassesBfs(an, source);
+		Set<ClassNode> ancestorsb = getClassesBfs(bn, source);
 		
 		// ancestorsa ∩ ancestorsb
 		ancestorsa.retainAll(ancestorsb);
@@ -593,7 +593,7 @@ public class TypeUtils {
 		return types;
 	}
 	
-	private static Set<ClassNode> getClassesBfs(ClassNode cn, ClassTree tree) {
+	private static Set<ClassNode> getClassesBfs(ClassNode cn, ApplicationClassSource source) {
 		// need to be linked hash set (preserves order)
 		Set<ClassNode> classes = new LinkedHashSet<>();
 		Set<ClassNode> up = new LinkedHashSet<>();
@@ -606,14 +606,14 @@ public class TypeUtils {
 			Set<ClassNode> cur = new LinkedHashSet<>(up);
 			up.clear();
 			for (ClassNode each : cur) {
-				ClassNode spr = tree.getClass(each.superName);
+				ClassNode spr = source.findClassNode(each.superName);
 				
 				if (spr != null && !spr.name.equals("Object")) {
 					up.add(spr);
 				}
 				
 				for (String itfn : spr.interfaces) {
-					ClassNode itf = tree.getClass(itfn);
+					ClassNode itf = source.findClassNode(itfn);
 					up.add(itf);
 				}
 			}

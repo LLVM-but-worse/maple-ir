@@ -13,6 +13,7 @@ public class ApplicationClassSource extends ClassSource {
 
 	private final String name;
 	private final Collection<LibraryClassSource> libraries;
+	private ClassStructures structures;
 	
 	public ApplicationClassSource(String name, Collection<ClassNode> classes) {
 		this(name, ClassHelper.convertToMap(classes));
@@ -22,14 +23,42 @@ public class ApplicationClassSource extends ClassSource {
 		super(nodeMap);
 		this.name = (name == null ? "unknown" : name);
 		libraries = new ArrayList<>();
+		structures = new ClassStructures(this);
+	}
+	
+	public ClassStructures getStructures() {
+		return structures;
+	}
+	
+	@Override
+	public void rebuildTable() {
+		// rebuild app table
+		super.rebuildTable();
+		// rebuild lib tables
+		for(LibraryClassSource lib : libraries) {
+			lib.rebuildTable();
+		}
 	}
 	
 	public void addLibraries(LibraryClassSource... libs) {
 		for(LibraryClassSource cs : libs) {
 			if(!libraries.contains(cs)) {
 				libraries.add(cs);
-				// TODO: need to rebuild hierarchy data.
 			}
+		}
+		structures = new ClassStructures(this);
+	}
+	
+	public ClassNode findClassNode(String name) {
+		LocateableClassNode n = findClass(name);
+		
+		if(n != null) {
+			ClassNode cn = n.node;
+			structures.getSupers0(cn);
+			structures.getDelegates0(cn);
+			return cn;
+		} else {
+			return null;
 		}
 	}
 	

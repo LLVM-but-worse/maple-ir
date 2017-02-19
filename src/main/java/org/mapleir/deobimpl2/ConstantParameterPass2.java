@@ -25,6 +25,7 @@ import org.mapleir.stdlib.collections.SetCreator;
 import org.mapleir.stdlib.collections.ValueCreator;
 import org.mapleir.stdlib.deob.IPass;
 import org.mapleir.stdlib.klass.InvocationResolver;
+import org.mapleir.stdlib.klass.library.ApplicationClassSource;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.ClassNode;
@@ -69,6 +70,8 @@ public class ConstantParameterPass2 implements IPass, Opcode {
 		processedExprs.clear();
 		cantfix.clear();
 		
+		ApplicationClassSource source = cxt.getApplication();
+		
 		NullPermeableHashMap<MethodNode, Set<Integer>> nonConstant = new NullPermeableHashMap<>(new SetCreator<>());
 		
 		Map<MethodNode, List<List<Expr>>> parameterInputs = new HashMap<>();
@@ -76,7 +79,7 @@ public class ConstantParameterPass2 implements IPass, Opcode {
 		IRCallTracer tracer = new IRCallTracer(cxt) {
 			@Override
 			protected void visitMethod(MethodNode m) {
-				if(tree.isJDKClass(m.owner)) {
+				if(source.isLibraryClass(m.owner.name)) {
 					return;
 				}
 				
@@ -151,7 +154,7 @@ public class ConstantParameterPass2 implements IPass, Opcode {
 			
 			@Override
 			protected void processedInvocation(MethodNode caller, MethodNode callee, Expr e) {
-				if(tree.isJDKClass(callee.owner)) {
+				if(source.isLibraryClass(callee.owner.name)) {
 					return;
 				}
 				
@@ -438,7 +441,7 @@ public class ConstantParameterPass2 implements IPass, Opcode {
 	
 	private Set<MethodNode> getVirtualChain(IContext cxt, ClassNode cn, String name, String desc) {		
 		Set<MethodNode> set = new HashSet<>();
-		for(ClassNode c : cxt.getClassTree().getVirtualReachableBranches(cn, false)) {
+		for(ClassNode c : cxt.getApplication().getStructures().getVirtualReachableBranches(cn)) {
 			MethodNode mr = cxt.getInvocationResolver().findVirtualCall(c, name, desc);
 			if(mr != null) {
 				set.add(mr);
