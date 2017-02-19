@@ -69,13 +69,144 @@ public class InvocationResolver {
 		return set;
 	}
 	
+	private MethodNode findMethod(ClassNode cn, String name, String desc) {
+		MethodNode findM = null;
+		
+		for(MethodNode m : cn.methods) {
+			if(!Modifier.isStatic(m.access) && !Modifier.isAbstract(m.access)) {
+				if(m.name.equals(name) && m.desc.equals(desc)) {
+					
+					if(findM != null) {
+						throw new IllegalStateException(String.format("%s contains %s and %s", cn.name, findM, m));
+					}
+					
+					findM = m;
+				}
+			}
+		}
+		
+		return findM;
+	}
+	
 	public Set<MethodNode> resolveVirtualCalls(String owner, String name, String desc) {
 		Set<MethodNode> set = new HashSet<>();
 		ClassNode cn = app.findClassNode(owner);
 		
 		if(cn != null) {
-			Set<ClassNode> classes = app.getStructures().getAllBranches(cn, true);
-			set.addAll(getVirtualMethods(classes, name, desc));
+			
+			/* Due to type uncertainties, we do not know the
+			 * exact type of the object that this call was
+			 * invoked on. We do, however, know that the
+			 * minimum type it must be is either a subclass
+			 * of this class, i.e.
+			 * 
+			 * C extends B, B extends A,
+			 * A obj = new A, B or C();
+			 * obj.invoke();
+			 * 
+			 * In this scenario, the call to A.invoke() could
+			 * be a call to A.invoke(), B.invoke() or c.invoke().
+			 * So we include all of these cases at the start.
+			 * 
+			 * Alternatively to being a subclass, it could
+			 * be a call in the class A or the closest
+			 * superclass method to it, i.e.
+			 * 
+			 * C extends B, B extends A1 implements A2, A3,
+			 * B obj = new B or C();
+			 * obj.invoke();
+			 * 
+			 * Here we know that obj cannot be an exact 
+			 * object of class A, however:
+			 *  if obj is an instance of class B or C and class
+			 *  B and C do not define the invoke() method, we 
+			 *  may be attempting to call A1, A2 or A3.invoke()
+			 *  so we must look up the class hierarchy to find
+			 *  the closest possible invocation site.
+			 */
+			
+			MethodNode m;
+			
+//			if(owner.equals("bk")) {
+//				for(ClassNode cnode : app.iterate()) {
+//					if(cnode.superName.equals("bk")) {
+//						System.out.println("extends; " + cnode);
+//					}
+//				}
+//				System.out.println("dels: " +  app.getStructures().getDelegates(cn));
+//			}
+			
+			for(ClassNode c : app.getStructures().getDelegates(cn)) {
+				m = findMethod(c, name, desc);
+				
+				if(m != null) {
+					set.add(m);
+				}
+			}
+			
+			m = null;
+			
+			Set<ClassNode> lvl = new HashSet<>();
+			lvl.add(cn);
+			for(;;) {
+				if(lvl.size() == 0) {
+					break;
+				}
+				
+				Set<MethodNode> lvlSites = new HashSet<>();
+				for(ClassNode c : lvl) {
+					m = findMethod(c, name, desc);
+					if(m != null) {
+						lvlSites.add(m);
+					}
+				}
+				
+				if(lvlSites.size() > 1) {
+					System.out.printf("(warn) resolved %s.%s %s to %s.%n", owner, name, desc, lvlSites);
+				}
+				
+				/* we've found the method in the current
+				 * class; there's not point exploring up
+				 * the class hierarchy since the superclass
+				 * methods are all shadowed by this call site.
+				 */
+				if(lvlSites.size() > 0) {
+					set.addAll(lvlSites);
+					break;
+				}
+				
+				// TODO: use queues here instead.
+				Set<ClassNode> newLvl = new HashSet<>();
+				for(ClassNode c : lvl) {
+					ClassNode sup = app.findClassNode(c.superName);
+					if(sup != null) {
+						newLvl.add(sup);
+					}
+					
+					for(String iface : c.interfaces) {
+						ClassNode ifaceN = app.findClassNode(iface);
+						
+						if(ifaceN != null) {
+							newLvl.add(ifaceN);
+						}
+					}
+				}
+				
+				lvl.clear();
+				lvl = newLvl;
+			}
+			
+			
+//			Set<ClassNode> classes = app.getStructures().getAllBranches(cn, true);
+//			Set<ClassNode> classes = new HashSet<>();
+//			System.out.println("vcall: " + owner + "." + name + " " + desc);
+//			System.out.println(" owner: " + cn);
+//			classes.add(cn);
+//			classes.addAll(app.getStructures().getSupers(cn));
+//			classes.addAll(app.getStructures().getDelegates(cn));
+//			System.out.println(" set: " + classes);
+//			set.addAll(getVirtualMethods(classes, name, desc));
+//			System.out.println("  calls: " + set);
 //			MethodNode m = resolveVirtualCall(cn, name, desc);
 //			if(m != null) {
 //				set.add(m);
@@ -94,6 +225,10 @@ public class InvocationResolver {
 //					set.add(m);
 //				}
 //			}
+			
+			// if(set.size() == 0) {
+			// 	throw new UnsupportedOperationException(String.format("No call sites for %s.%s %s", owner, name, desc));
+			// }
 			
 			return set;
 			// throw new IllegalStateException(cn.name + "." + name + " " + desc);
