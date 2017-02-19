@@ -89,7 +89,7 @@ public class DeadCodeEliminationPass implements IPass {
 		i = 0;
 		j = 0;
 		
-		for (ClassNode cn : cxt.getClassTree().getClasses().values()) {
+		for (ClassNode cn : cxt.getApplication().iterate()) {
 			for (MethodNode m : cn.methods) {
 				ControlFlowGraph cfg = cxt.getIR(m);
 

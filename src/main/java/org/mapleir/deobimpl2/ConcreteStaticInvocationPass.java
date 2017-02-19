@@ -1,5 +1,7 @@
 package org.mapleir.deobimpl2;
 
+import java.util.List;
+
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.Expr;
@@ -11,8 +13,6 @@ import org.mapleir.stdlib.deob.IPass;
 import org.mapleir.stdlib.klass.InvocationResolver;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
-
-import java.util.List;
 
 public class ConcreteStaticInvocationPass implements IPass {
 
@@ -27,7 +27,7 @@ public class ConcreteStaticInvocationPass implements IPass {
 		
 		InvocationResolver resolver = cxt.getInvocationResolver();
 		
-		for(ClassNode cn : cxt.getClassTree().getClasses().values()) {
+		for(ClassNode cn : cxt.getApplication().iterate()) {
 			for(MethodNode mn : cn.methods) {
 				ControlFlowGraph cfg = cxt.getIR(mn);
 				

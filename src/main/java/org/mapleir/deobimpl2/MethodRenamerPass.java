@@ -1,5 +1,13 @@
 package org.mapleir.deobimpl2;
 
+import java.lang.reflect.Modifier;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+
 import org.mapleir.deobimpl2.util.RenamingUtil;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
@@ -9,18 +17,10 @@ import org.mapleir.ir.code.Stmt;
 import org.mapleir.ir.code.expr.InvocationExpr;
 import org.mapleir.stdlib.IContext;
 import org.mapleir.stdlib.deob.IPass;
-import org.mapleir.stdlib.klass.ClassTree;
 import org.mapleir.stdlib.klass.InvocationResolver;
+import org.mapleir.stdlib.klass.library.ApplicationClassSource;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
-
-import java.lang.reflect.Modifier;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
 
 public class MethodRenamerPass implements IPass {
 
@@ -31,20 +31,20 @@ public class MethodRenamerPass implements IPass {
 	
 	@Override
 	public int accept(IContext cxt, IPass prev, List<IPass> completed) {
-		ClassTree tree = cxt.getClassTree();
+		ApplicationClassSource source = cxt.getApplication();
 		InvocationResolver resolver = cxt.getInvocationResolver();
 		
 		Map<MethodNode, String> remapped = new HashMap<>();
 
 		int totalMethods = 0;
 		
-		for(ClassNode cn : tree.getClasses().values()) {
+		for(ClassNode cn : source.iterate()) {
 			totalMethods += cn.methods.size();
 		}
 		
 		int i = RenamingUtil.computeMinimum(totalMethods);
 		
-		for(ClassNode cn : tree.getClasses().values()) {
+		for(ClassNode cn : source.iterate()) {
 			for(MethodNode m : cn.methods) {
 				if(remapped.containsKey(m)) {
 					continue;
@@ -57,7 +57,7 @@ public class MethodRenamerPass implements IPass {
 					}
 				} else {
 					if(!m.name.equals("<init>")) {
-						Set<ClassNode> classes = tree.getAllBranches(m.owner, true);
+						Set<ClassNode> classes = source.getStructures().getAllBranches(m.owner, true);
 						Set<MethodNode> methods = getVirtualMethods(cxt, classes, m.name, m.desc);
 						
 						if(canRename(cxt, methods)) {
@@ -77,7 +77,7 @@ public class MethodRenamerPass implements IPass {
 			}
 		}
 		
-		for(ClassNode cn : tree.getClasses().values()) {
+		for(ClassNode cn : source.iterate()) {
 			{
 				if(cn.outerMethod != null) {
 //					ClassNode owner = tree.getClass(cn.outerClass);
@@ -123,18 +123,18 @@ public class MethodRenamerPass implements IPass {
 										if(remapped.containsKey(site)) {
 											invoke.setName(remapped.get(site));
 										} else {
-											if(mustMark(tree, invoke.getOwner())) {
+											if(mustMark(source, invoke.getOwner())) {
 												System.err.println("  invalid site(s): " + invoke);
 											}
 										}
 									} else {
-										if(mustMark(tree, invoke.getOwner())) {
+										if(mustMark(source, invoke.getOwner())) {
 											System.err.println("  can't resolve(s) " + invoke);
 										}
 									}
 								} else {
 //									 Set<MethodNode> sites = resolver.resolveVirtualCalls(invoke.getOwner(), invoke.getName(), invoke.getDesc());
-									Set<ClassNode> classes = tree.getAllBranches(cn, true);
+									Set<ClassNode> classes = source.getStructures().getAllBranches(cn, true);
 									Set<MethodNode> sites = getVirtualMethods(cxt, classes, invoke.getName(), invoke.getDesc());
 									if(sites.size() > 0) {
 										/* all of the sites must be linked by the same name,
@@ -148,7 +148,7 @@ public class MethodRenamerPass implements IPass {
 											}
 										}
 									} else {
-										if(mustMark(tree, invoke.getOwner())) {
+										if(mustMark(source, invoke.getOwner())) {
 											System.err.println("  can't resolve(v) " + invoke + ", owner: " + invoke.getOwner());
 											System.err.println("  classes: " + classes);
 										}
@@ -175,14 +175,14 @@ public class MethodRenamerPass implements IPass {
 		return remapped.size();
 	}
 	
-	private boolean mustMark(ClassTree tree, String owner) {
-		ClassNode cn = tree.findClass(owner);
-		return cn == null || !tree.isJDKClass(cn);
+	private boolean mustMark(ApplicationClassSource tree, String owner) {
+		ClassNode cn = tree.findClassNode(owner);
+		return cn == null || !tree.isLibraryClass(owner);
 	}
 	
 	private boolean canRename(IContext cxt, Set<MethodNode> methods) {
 		for(MethodNode m : methods) {
-			if(cxt.getClassTree().isJDKClass(m.owner)) {
+			if(cxt.getApplication().isLibraryClass(m.owner.name)) {
 				/* inherited from runtime class */
 				return false;
 			}

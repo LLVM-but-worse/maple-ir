@@ -2,8 +2,10 @@ package org.mapleir.stdlib.klass.library;
 
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Set;
 
 import org.mapleir.stdlib.klass.ClassHelper;
 import org.objectweb.asm.tree.ClassNode;
@@ -45,6 +47,16 @@ public abstract class ClassSource {
 	
 	protected static void throwNoParent() {
 		throw new UnsupportedOperationException("Null parent.");
+	}
+	
+	protected void rebuildTable() {
+		Set<ClassNode> cset = new HashSet<>();
+		cset.addAll(nodeMap.values());
+		nodeMap.clear();
+		
+		for(ClassNode cn : cset) {
+			nodeMap.put(cn.name, cn);
+		}
 	}
 	
 	public Iterable<ClassNode> iterate() {
