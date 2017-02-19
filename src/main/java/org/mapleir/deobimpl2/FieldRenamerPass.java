@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import org.mapleir.deobimpl2.util.RenamingUtil;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.Expr;
@@ -24,7 +25,7 @@ import org.objectweb.asm.tree.MethodNode;
 public class FieldRenamerPass implements IPass {
 
 	@Override
-	public boolean isIncremental() {
+	public boolean isSingletonPass() {
 		return false;
 	}
 	

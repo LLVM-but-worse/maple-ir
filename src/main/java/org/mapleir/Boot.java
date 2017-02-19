@@ -26,6 +26,8 @@ import org.mapleir.stdlib.deob.IPass;
 import org.mapleir.stdlib.deob.PassGroup;
 import org.mapleir.stdlib.klass.ClassTree;
 import org.mapleir.stdlib.klass.InvocationResolver;
+import org.mapleir.stdlib.klass.library.ApplicationClassSource;
+import org.mapleir.stdlib.klass.library.InstalledRuntimeClassSource;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.topdank.byteengineer.commons.data.JarInfo;
@@ -132,6 +134,11 @@ public class Boot {
 			public InvocationResolver getInvocationResolver() {
 				return resolver;
 			}
+
+			@Override
+			public ApplicationClassSource getApplication() {
+				throw new UnsupportedOperationException();
+			}
 		};
 		
 		section("Expanding callgraph and generating cfgs.");
@@ -206,6 +213,10 @@ public class Boot {
 		SingleJarDownloader<ClassNode> dl = new SingleJarDownloader<>(new JarInfo(f));
 		dl.download();
 		
+		ApplicationClassSource app = new ApplicationClassSource(f.getName().substring(0, f.getName().length() - 4), dl.getJarContents().getClassContents());
+		InstalledRuntimeClassSource jre = new InstalledRuntimeClassSource(app);
+		app.addLibraries(jre);
+		
 		section("Building jar class hierarchy.");
 		ClassTree tree = new ClassTree(dl.getJarContents().getClassContents());
 		
@@ -237,6 +248,11 @@ public class Boot {
 			@Override
 			public InvocationResolver getInvocationResolver() {
 				return resolver;
+			}
+
+			@Override
+			public ApplicationClassSource getApplication() {
+				return app;
 			}
 		};
 		
@@ -302,10 +318,10 @@ public class Boot {
 //				new ConstantParameterPass2()
 //				new ClassRenamerPass(),
 //				new FieldRenamerPass(),
+				new ConstantExpressionReorderPass(),
+				new FieldRSADecryptionPass(),
 				new PassGroup("testtt")
 					.add(new ConstantParameterPass2())
-					.add(new ConstantExpressionReorderPass())
-					.add(new FieldRSADecryptionPass())
 					.add(new ConstantExpressionEvaluatorPass())
 					.add(new DeadCodeEliminationPass())
 				
@@ -320,7 +336,7 @@ public class Boot {
 		Set<MethodNode> set = new HashSet<>();
 		for(ClassNode cn : tree.getClasses().values())  {
 			for(MethodNode m : cn.methods) {
-				if(m.name.length() > 2) {
+				if(m.name.length() > 2 && !m.name.equals("<init>")) {
 					set.add(m);
 				}
 			}

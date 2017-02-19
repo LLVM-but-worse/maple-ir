@@ -10,7 +10,7 @@ public interface IPass {
 		return getClass().getSimpleName();
 	}
 	
-	default boolean isIncremental() {
+	default boolean isSingletonPass() {
 		return true;
 	}
 
