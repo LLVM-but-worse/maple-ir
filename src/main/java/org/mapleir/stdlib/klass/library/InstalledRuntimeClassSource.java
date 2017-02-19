@@ -57,7 +57,7 @@ public class InstalledRuntimeClassSource extends LibraryClassSource {
 		try {
 			ClassReader cr = new ClassReader(name);
 			ClassNode cn = new ClassNode();
-			cr.accept(cn, 0);
+			cr.accept(cn, ClassReader.SKIP_CODE);
 			/* cache it. */
 			nodeMap.put(cn.name, cn);
 			
