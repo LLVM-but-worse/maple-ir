@@ -19,6 +19,8 @@ import org.mapleir.ir.code.stmt.ReturnStmt;
 import org.mapleir.ir.code.stmt.copy.AbstractCopyStmt;
 import org.mapleir.stdlib.IContext;
 import org.mapleir.stdlib.deob.IPass;
+import org.mapleir.stdlib.klass.ClassHelper;
+import org.mapleir.stdlib.klass.library.ApplicationClassSource;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.FieldNode;
@@ -35,7 +37,8 @@ public class ClassRenamerPass implements IPass {
 	
 	@Override
 	public int accept(IContext cxt, IPass prev, List<IPass> completed) {
-		Collection<ClassNode> classes = cxt.getClassTree().getClasses().values();
+		ApplicationClassSource source = cxt.getApplication();
+		Collection<ClassNode> classes = ClassHelper.collate(source.iterator());
 
 		int n = RenamingUtil.computeMinimum(classes.size());
 		Map<String, String> remapping = new HashMap<>();
@@ -244,7 +247,7 @@ public class ClassRenamerPass implements IPass {
 			}
 		}
 		
-		cxt.getClassTree().rebuildTable();
+		source.rebuildTable();
 		
 		return classes.size();
 	}

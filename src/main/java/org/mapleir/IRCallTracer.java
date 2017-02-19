@@ -17,7 +17,7 @@ public class IRCallTracer extends CallTracer {
 	protected final IContext context;
 	
 	public IRCallTracer(IContext context) {
-		super(context.getClassTree(), context.getInvocationResolver());
+		super(context.getApplication(), context.getInvocationResolver());
 		this.context = context;
 	}
 

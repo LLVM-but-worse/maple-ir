@@ -9,7 +9,7 @@ import java.util.jar.JarEntry;
 import java.util.jar.JarOutputStream;
 
 import org.mapleir.stdlib.klass.ClassNodeUtil;
-import org.mapleir.stdlib.klass.ClassTree;
+import org.mapleir.stdlib.klass.library.ApplicationClassSource;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.commons.blocksplit.SplitMethodWriterDelegate;
 import org.objectweb.asm.tree.ClassNode;
@@ -27,15 +27,15 @@ import org.topdank.byteio.util.Debug;
 public class CompleteResolvingJarDumper implements JarDumper {
 
 	private final JarContents<?> contents;
-	private final ClassTree classTree;
+	private final ApplicationClassSource source;
 	/**
 	 * Creates a new JarDumper.
 	 *
 	 * @param contents Contents of jar.
 	 */
-	public CompleteResolvingJarDumper(JarContents<ClassNode> contents) {
+	public CompleteResolvingJarDumper(JarContents<ClassNode> contents, ApplicationClassSource source) {
 		this.contents = contents;
-		classTree = new ClassTree(contents.getClassContents());
+		this.source = source;
 	}
 
 	/**
@@ -86,8 +86,8 @@ public class CompleteResolvingJarDumper implements JarDumper {
 			// with ClassNodes rather than Classes.
 		    @Override
 			protected String getCommonSuperClass(String type1, String type2) {
-		    	ClassNode ccn = classTree.findClass(type1);
-		    	ClassNode dcn = classTree.findClass(type2);
+		    	ClassNode ccn = source.findClassNode(type1);
+		    	ClassNode dcn = source.findClassNode(type2);
 		    	
 		    	if(ccn == null) {
 //		    		return "java/lang/Object";
@@ -95,8 +95,9 @@ public class CompleteResolvingJarDumper implements JarDumper {
 		    		if(c == null) {
 		    			return "java/lang/Object";
 		    		}
-		    		classTree.build(c);
-		    		return getCommonSuperClass(type1, type2);
+		    		throw new UnsupportedOperationException(c.toString());
+		    		// classTree.build(c);
+		    		// return getCommonSuperClass(type1, type2);
 		    	}
 		    	
 		    	if(dcn == null) {
@@ -106,12 +107,13 @@ public class CompleteResolvingJarDumper implements JarDumper {
 		    		if(c == null) {
 		    			return "java/lang/Object";
 		    		}
-		    		classTree.build(c);
-		    		return getCommonSuperClass(type1, type2);
+		    		throw new UnsupportedOperationException(c.toString());
+		    		// classTree.build(c);
+		    		// return getCommonSuperClass(type1, type2);
 		    	}
 		    	
-		        Set<ClassNode> c = classTree.getSupers(ccn);
-		        Set<ClassNode> d = classTree.getSupers(dcn);
+		        Set<ClassNode> c = source.getStructures().getSupers(ccn);
+		        Set<ClassNode> d = source.getStructures().getSupers(dcn);
 		        
 		        if(c.contains(dcn))
 		        	return type1;
@@ -124,11 +126,11 @@ public class CompleteResolvingJarDumper implements JarDumper {
 		        	return "java/lang/Object";
 		        } else {
 		        	do {
-		        		ClassNode nccn = classTree.getClass(ccn.superName);
+		        		ClassNode nccn = source.findClassNode(ccn.superName);
 		        		if(nccn == null)
 		        			break;
 		        		ccn = nccn;
-		        		c = classTree.getSupers(ccn);
+		        		c = source.getStructures().getSupers(ccn);
 		        	} while(!c.contains(dcn));
 		        	return ccn.name;
 		        }

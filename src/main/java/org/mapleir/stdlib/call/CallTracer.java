@@ -4,18 +4,18 @@ import java.util.HashSet;
 import java.util.Set;
 
 import org.mapleir.ir.code.Expr;
-import org.mapleir.stdlib.klass.ClassTree;
 import org.mapleir.stdlib.klass.InvocationResolver;
+import org.mapleir.stdlib.klass.library.ApplicationClassSource;
 import org.objectweb.asm.tree.MethodNode;
 
 public abstract class CallTracer {
 
-	protected final ClassTree tree;
+	protected final ApplicationClassSource tree;
 	protected final InvocationResolver resolver;
 	
 	private final Set<MethodNode> visited;
 	
-	public CallTracer(ClassTree tree, InvocationResolver resolver) {
+	public CallTracer(ApplicationClassSource tree, InvocationResolver resolver) {
 		this.tree = tree;
 		this.resolver = resolver;
 		
@@ -29,7 +29,7 @@ public abstract class CallTracer {
 			visited.add(m);
 			visitMethod(m);
 			
-			if(tree.isJDKClass(m.owner)) {
+			if(tree.isLibraryClass(m.owner.name)) {
 				return;
 			}
 		}

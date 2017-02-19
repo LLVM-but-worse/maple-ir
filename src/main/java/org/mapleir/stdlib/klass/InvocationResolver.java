@@ -1,25 +1,26 @@
 package org.mapleir.stdlib.klass;
 
-import org.objectweb.asm.Opcodes;
-import org.objectweb.asm.tree.ClassNode;
-import org.objectweb.asm.tree.MethodNode;
-
 import java.lang.reflect.Modifier;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.mapleir.stdlib.klass.library.ApplicationClassSource;
+import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.tree.ClassNode;
+import org.objectweb.asm.tree.MethodNode;
+
 public class InvocationResolver {
 
-	private final ClassTree tree;
+	private final ApplicationClassSource app;
 	
-	public InvocationResolver(ClassTree tree) {
-		this.tree = tree;
+	public InvocationResolver(ApplicationClassSource app) {
+		this.app = app;
 	}
 	
 	public MethodNode resolveVirtualInitCall(String owner, String desc) {
 		Set<MethodNode> set = new HashSet<>();
 		
-		ClassNode cn = tree.getClass(owner);
+		ClassNode cn = app.findClassNode(owner);
 		
 		if(cn != null) {
 			for(MethodNode m : cn.methods) {
@@ -70,10 +71,10 @@ public class InvocationResolver {
 	
 	public Set<MethodNode> resolveVirtualCalls(String owner, String name, String desc) {
 		Set<MethodNode> set = new HashSet<>();
-		ClassNode cn = tree.getClass(owner);
+		ClassNode cn = app.findClassNode(owner);
 		
 		if(cn != null) {
-			Set<ClassNode> classes = tree.getAllBranches(cn, true);
+			Set<ClassNode> classes = app.getStructures().getAllBranches(cn, true);
 			set.addAll(getVirtualMethods(classes, name, desc));
 //			MethodNode m = resolveVirtualCall(cn, name, desc);
 //			if(m != null) {
@@ -102,7 +103,7 @@ public class InvocationResolver {
 	}
 	
 	public MethodNode findStaticCall(String owner, String name, String desc) {
-		ClassNode cn = tree.getClass(owner);
+		ClassNode cn = app.findClassNode(owner);
 		MethodNode mn = null;
 		if(cn != null) {
 			for(MethodNode m : cn.methods) {

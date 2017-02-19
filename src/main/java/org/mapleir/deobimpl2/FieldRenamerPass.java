@@ -17,7 +17,7 @@ import org.mapleir.ir.code.expr.FieldLoadExpr;
 import org.mapleir.ir.code.stmt.FieldStoreStmt;
 import org.mapleir.stdlib.IContext;
 import org.mapleir.stdlib.deob.IPass;
-import org.mapleir.stdlib.klass.ClassTree;
+import org.mapleir.stdlib.klass.library.ApplicationClassSource;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.FieldNode;
 import org.objectweb.asm.tree.MethodNode;
@@ -30,25 +30,25 @@ public class FieldRenamerPass implements IPass {
 	}
 	
 	@Override
-	public int accept(IContext cxt, IPass prev, List<IPass> completed) {
-		ClassTree tree = cxt.getClassTree();
-		
+	public int accept(IContext cxt, IPass prev, List<IPass> completed) {		
 		Map<FieldNode, String> remapped = new HashMap<>();
 
 //		int totalFields = 0;
 		
 //		int i = RenamingUtil.computeMinimum(totalFields);
 		
+		ApplicationClassSource source = cxt.getApplication();
+		
 		int i = RenamingUtil.numeric("aaaaa");
 		
-		for(ClassNode cn : tree.getClasses().values()) {
+		for(ClassNode cn : source.iterate()) {
 //			totalFields += cn.fields.size();
 			for(FieldNode fn : cn.fields) {
 				remapped.put(fn, RenamingUtil.createName(i++));
 			}
 		}
 		
-		for(ClassNode cn : tree.getClasses().values()) {
+		for(ClassNode cn : source.iterate()) {
 			for(MethodNode m : cn.methods) {
 				ControlFlowGraph cfg = cxt.getIR(m);
 				
@@ -58,16 +58,16 @@ public class FieldRenamerPass implements IPass {
 						if(stmt.getOpcode() == Opcode.FIELD_STORE) {
 							FieldStoreStmt fs = (FieldStoreStmt) stmt;
 							
-							FieldNode f = findField(tree, fs.getOwner(), fs.getName(), fs.getDesc(), fs.getInstanceExpression() == null);
+							FieldNode f = findField(source, fs.getOwner(), fs.getName(), fs.getDesc(), fs.getInstanceExpression() == null);
 							
 							if(f != null) {
 								if(remapped.containsKey(f)) {
 									fs.setName(remapped.get(f));
-								} else if(mustMark(tree, f.owner.name)) {
+								} else if(mustMark(source, f.owner.name)) {
 									System.err.println("  no remap for " + f + ", owner: " + f.owner.name);
 								}
 							} else {
-								if(mustMark(tree, fs.getOwner())) {
+								if(mustMark(source, fs.getOwner())) {
 									System.err.println("  can't resolve field(set): " + fs.getOwner() + "." + fs.getName() + " " + fs.getDesc() + ", " + (fs.getInstanceExpression() == null));
 								}
 							}
@@ -77,16 +77,16 @@ public class FieldRenamerPass implements IPass {
 							if(e.getOpcode() == Opcode.FIELD_LOAD) {
 								FieldLoadExpr fl = (FieldLoadExpr) e;
 								
-								FieldNode f = findField(tree, fl.getOwner(), fl.getName(), fl.getDesc(), fl.getInstanceExpression() == null);
+								FieldNode f = findField(source, fl.getOwner(), fl.getName(), fl.getDesc(), fl.getInstanceExpression() == null);
 								
 								if(f != null) {
 									if(remapped.containsKey(f)) {
 										fl.setName(remapped.get(f));
-									} else if(mustMark(tree, f.owner.name)) {
+									} else if(mustMark(source, f.owner.name)) {
 										System.err.println("  no remap for " + f + ", owner: " + f.owner.name);
 									}
 								} else {
-									if(mustMark(tree, fl.getOwner())) {
+									if(mustMark(source, fl.getOwner())) {
 										System.err.println("  can't resolve field(get): " + fl.getOwner() + "." + fl.getName() + " " + fl.getDesc() + ", " + (fl.getInstanceExpression() == null));
 									}
 								}
@@ -106,26 +106,26 @@ public class FieldRenamerPass implements IPass {
 		return remapped.size();
 	}
 	
-	private boolean mustMark(ClassTree tree, String owner) {
-		ClassNode cn = tree.findClass(owner);
-		return cn == null || !tree.isJDKClass(cn);
+	private boolean mustMark(ApplicationClassSource source, String owner) {
+		ClassNode cn = source.findClassNode(owner);
+		return cn == null || !source.isLibraryClass(owner);
 	}
 	
-	private FieldNode findField(ClassTree tree, String owner, String name, String desc, boolean isStatic) {
+	private FieldNode findField(ApplicationClassSource source, String owner, String name, String desc, boolean isStatic) {
 		if(isStatic) {
-			return findStaticField(tree, owner, name, desc);
+			return findStaticField(source, owner, name, desc);
 		} else {
-			return findVirtualField(tree, owner, name, desc);
+			return findVirtualField(source, owner, name, desc);
 		}
 	}
 	
-	private FieldNode findStaticField(ClassTree tree, String owner, String name, String desc) {
-		ClassNode cn0 = tree.getClass(owner);
+	private FieldNode findStaticField(ApplicationClassSource source, String owner, String name, String desc) {
+		ClassNode cn0 = source.findClassNode(owner);
 		if(cn0 == null) {
 			return null;
 		}
 		
-		Set<ClassNode> cset = tree.getAllBranches(cn0, true);
+		Set<ClassNode> cset = source.getStructures().getAllBranches(cn0, true);
 		
 		for(ClassNode cn : cset) {
 			for(FieldNode f : cn.fields) {
@@ -138,8 +138,8 @@ public class FieldRenamerPass implements IPass {
 		return null;
 	}
 	
-	private FieldNode findVirtualField(ClassTree tree, String owner, String name, String desc) {
-		ClassNode cn = tree.getClass(owner);
+	private FieldNode findVirtualField(ApplicationClassSource source, String owner, String name, String desc) {
+		ClassNode cn = source.findClassNode(owner);
 		
 		if(cn != null) {
 			do {
@@ -149,7 +149,7 @@ public class FieldRenamerPass implements IPass {
 					}
 				}
 				
-				cn = tree.findClass(cn.superName);
+				cn = source.findClassNode(cn.superName);
 			} while(cn != null);
 		}
 		

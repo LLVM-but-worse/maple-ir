@@ -68,7 +68,7 @@ public class FieldRSADecryptionPass implements IPass, Opcode {
 	}
 	
 	private String lookupField0(IContext cxt, String oldKey, String owner, String name, String desc, boolean isStatic) {		
-		ClassNode cn = cxt.getClassTree().getClass(owner);
+		ClassNode cn = cxt.getApplication().findClassNode(owner);
 		
 		if(cn == null) {
 			String newKey = key(owner, name, desc);
@@ -241,7 +241,7 @@ public class FieldRSADecryptionPass implements IPass, Opcode {
 	}
 	
 	private void transform(IContext cxt) {
-		for(ClassNode cn : cxt.getClassTree().getClasses().values()) {
+		for(ClassNode cn : cxt.getApplication().iterate()) {
 			for(MethodNode m : cn.methods) {
 				ControlFlowGraph cfg = cxt.getIR(m);
 				
