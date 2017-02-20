@@ -359,8 +359,15 @@ public class ConstantParameterPass2 implements IPass, Opcode {
 		for(MethodNode mn : methods) {
 			Map<Integer, ConstantExpr> map = constantParameters.get(mn);
 			
-			if(prev != null) {
-				if(map != null && !prev.equals(map)) {
+			if(prev != null && map != null) {
+				check: {
+					if (prev.size() == map.size()) {
+						for (Entry<Integer, ConstantExpr> e : map.entrySet()) {
+							if (prev.get(e.getKey()) != e.getValue())
+								break;
+						}
+						break check;
+					}
 					System.err.println("p: " + prev);
 					System.err.println("m: " + map);
 					throw new RuntimeException();
