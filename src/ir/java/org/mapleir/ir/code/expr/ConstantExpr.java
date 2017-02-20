@@ -83,13 +83,13 @@ public class ConstantExpr extends Expr {
 		if (cst == null) {
 			printer.print("null");
 		} else if (cst instanceof Integer) {
-			printer.print(((Integer) cst).intValue() + "");
+			printer.print(cst + "");
 		} else if (cst instanceof Long) {
-			printer.print(((Long) cst).longValue() + "L");
+			printer.print(cst + "L");
 		} else if (cst instanceof Float) {
-			printer.print(((Float) cst).floatValue() + "F");
+			printer.print(cst + "F");
 		} else if (cst instanceof Double) {
-			printer.print(((Double) cst).doubleValue() + "D");
+			printer.print(cst + "D");
 		} else if (cst instanceof String) {
 			printer.print("\"" + cst + "\"");
 		} else if (cst instanceof Type) {
@@ -105,11 +105,11 @@ public class ConstantExpr extends Expr {
 			printer.print("handleOf(" + cst + ")");
 		} else if (cst instanceof Boolean) {
 			// synthetic values
-			printer.print(((Boolean) cst).booleanValue() + "");
+			printer.print(cst + "");
 		} else if (cst instanceof Character) {
 			// TODO , normal character printing
 			printer.print('\'');
-			printer.print(((Character) cst).charValue());
+			printer.print((char) cst);
 			printer.print('\'');
 		} else {
 			throw new IllegalStateException();
@@ -121,7 +121,7 @@ public class ConstantExpr extends Expr {
 		if (cst == null) {
 			visitor.visitInsn(Opcodes.ACONST_NULL);
 		} else if (cst instanceof Integer) {
-			int value = ((Integer) cst).intValue();
+			int value = (int) cst;
 			if (value >= -1 && value <= 5) {
 				visitor.visitInsn(Opcodes.ICONST_M1 + (value + 1));
 			} else if (value >= Byte.MIN_VALUE && value <= Byte.MAX_VALUE) {
@@ -132,21 +132,21 @@ public class ConstantExpr extends Expr {
 				visitor.visitLdcInsn(value);
 			}
 		} else if (cst instanceof Long) {
-			long value = ((Long) cst).longValue();
+			long value = (long) cst;
 			if (value == 0L || value == 1L) {
 				visitor.visitInsn(value == 0L ? Opcodes.LCONST_0 : Opcodes.LCONST_1);
 			} else {
 				visitor.visitLdcInsn(value);
 			}
 		} else if (cst instanceof Float) {
-			float value = ((Float) cst).floatValue();
+			float value = (float) cst;
 			if (value == 0F || value == 1F || value == 2F) {
 				visitor.visitInsn(Opcodes.FCONST_0 + (int) value);
 			} else {
 				visitor.visitLdcInsn(value);
 			}
 		} else if (cst instanceof Double) {
-			double value = ((Double) cst).doubleValue();
+			double value = (double) cst;
 			if (value == 0D || value == 1D) {
 				visitor.visitInsn(value == 0 ? Opcodes.DCONST_0 : Opcodes.DCONST_1);
 			} else {
@@ -157,10 +157,10 @@ public class ConstantExpr extends Expr {
 		}
 		// synthethic values
 		else if (cst instanceof Boolean) {
-			boolean value = ((Boolean) cst).booleanValue();
+			boolean value = (boolean) cst;
 			visitor.visitInsn(value ? Opcodes.ICONST_1 : Opcodes.ICONST_0);
 		} else if (cst instanceof Character) {
-			char value = ((Character) cst).charValue();
+			char value = (char) cst;
 			if (value >= -1 && value <= 5) {
 				visitor.visitInsn(Opcodes.ICONST_M1 + (value + 1));
 			} else if (value >= Byte.MIN_VALUE && value <= Byte.MAX_VALUE) {

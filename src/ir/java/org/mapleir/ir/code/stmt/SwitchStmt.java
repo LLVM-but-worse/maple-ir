@@ -1,8 +1,5 @@
 package org.mapleir.ir.code.stmt;
 
-import java.util.*;
-import java.util.Map.Entry;
-
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.CodeUnit;
@@ -13,6 +10,16 @@ import org.mapleir.stdlib.util.TypeUtils;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Type;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
 
 public class SwitchStmt extends Stmt {
 
@@ -55,7 +62,7 @@ public class SwitchStmt extends Stmt {
 	@Override
 	public void onChildUpdated(int ptr) {
 		if (ptr == 0) {
-			setExpression((Expr) read(ptr));
+			setExpression(read(ptr));
 		}
 	}
 	

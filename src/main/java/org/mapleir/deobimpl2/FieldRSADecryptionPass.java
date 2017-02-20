@@ -1,15 +1,5 @@
 package org.mapleir.deobimpl2;
 
-import java.lang.reflect.Modifier;
-import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.CodeUnit;
@@ -28,6 +18,16 @@ import org.mapleir.stdlib.deob.IPass;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.FieldNode;
 import org.objectweb.asm.tree.MethodNode;
+
+import java.lang.reflect.Modifier;
+import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 public class FieldRSADecryptionPass implements IPass, Opcode {
 
@@ -478,9 +478,9 @@ public class FieldRSADecryptionPass implements IPass, Opcode {
 	
 	static Number __mul(Number n1, Number n2, boolean _longint) {
 		if(_longint) {
-			return (long) n1.longValue() * n2.longValue();
+			return n1.longValue() * n2.longValue();
 		} else {
-			return (int) n1.intValue() * n2.intValue();
+			return n1.intValue() * n2.intValue();
 		}
 	}
 	
@@ -502,12 +502,12 @@ public class FieldRSADecryptionPass implements IPass, Opcode {
 	
 	static void assert_inv(Number s1, Number s2, boolean _longint) {
 		if(_longint) {
-			long r = (long) s1.longValue() * (long)s2.longValue();
+			long r = s1.longValue() * s2.longValue();
 			if(r != 1L) {
 				throw new IllegalStateException(String.format("s1 * s2 != 1 (s1:%s, s2:%s, r:%d)", s1, s2, r));
 			}
 		} else {
-			int r = (int) s1.intValue() * s2.intValue();
+			int r = s1.intValue() * s2.intValue();
 			if(r != 1) {
 				throw new IllegalStateException(String.format("s1 * s2 != 1 (s1:%s, s2:%s, r:%d)", s1, s2, r));
 			}
@@ -641,9 +641,9 @@ public class FieldRSADecryptionPass implements IPass, Opcode {
 	
 	static Number invert(Number smallest, Number c, boolean _longint) {
 		if(_longint) {
-			return (long) inverse(asBigInt(smallest, _longint), _longint).longValue() * c.longValue();
+			return inverse(asBigInt(smallest, _longint), _longint).longValue() * c.longValue();
 		} else {
-			return (int) inverse(asBigInt(smallest, _longint), _longint).intValue() * c.intValue();
+			return inverse(asBigInt(smallest, _longint), _longint).intValue() * c.intValue();
 		}
 	}
 	

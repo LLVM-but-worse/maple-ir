@@ -604,21 +604,11 @@ public class ConstantParameterPass2 implements IPass, Opcode {
 	@SuppressWarnings("serial")
 	public static class IndexMap<N> extends NullPermeableHashMap<MethodNode, NullPermeableHashMap<Integer, N>> {
 		IndexMap() {
-			super(new ValueCreator<NullPermeableHashMap<Integer, N>>() {
-				@Override
-				public NullPermeableHashMap<Integer, N> create() {
-					return new NullPermeableHashMap<>();
-				}
-			});
+			super(NullPermeableHashMap::new);
 		}
 		
 		IndexMap(ValueCreator<N> c) {
-			super(new ValueCreator<NullPermeableHashMap<Integer, N>>() {
-				@Override
-				public NullPermeableHashMap<Integer, N> create() {
-					return new NullPermeableHashMap<>(c);
-				}
-			});
+			super(() -> new NullPermeableHashMap<>(c));
 		}
 	}
 }

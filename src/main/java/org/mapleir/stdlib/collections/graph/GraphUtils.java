@@ -1,14 +1,5 @@
 package org.mapleir.stdlib.collections.graph;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Set;
-
-//import org.mapleir.ir.analysis.StatementGraph;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.cfg.edge.DummyEdge;
@@ -17,6 +8,15 @@ import org.mapleir.ir.cfg.edge.FlowEdges;
 import org.mapleir.ir.cfg.edge.ImmediateEdge;
 import org.mapleir.ir.cfg.edge.TryCatchEdge;
 import org.mapleir.stdlib.collections.graph.flow.ExceptionRange;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Comparator;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
+
+//import org.mapleir.ir.analysis.StatementGraph;
 
 public class GraphUtils {
 
@@ -719,12 +719,12 @@ public class GraphUtils {
 	public static <N extends FastGraphVertex> List<FlowEdge<N>> weigh(Set<FlowEdge<N>> edges) {
 		List<FlowEdge<N>> lst = new ArrayList<>();
 		lst.addAll(edges);
-		Collections.sort(lst, new Comparator<FlowEdge<N>>() {
+		lst.sort(new Comparator<FlowEdge<N>>() {
 			@Override
 			public int compare(FlowEdge<N> o1, FlowEdge<N> o2) {
-				if(o1.getType() == FlowEdges.DUMMY) {
+				if (o1.getType() == FlowEdges.DUMMY) {
 					return 1;
-				} else if(o2.getType() == FlowEdges.DUMMY) {
+				} else if (o2.getType() == FlowEdges.DUMMY) {
 					return -1;
 				}
 				return 0;

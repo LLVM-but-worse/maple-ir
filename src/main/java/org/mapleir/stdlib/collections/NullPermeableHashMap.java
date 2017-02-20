@@ -26,11 +26,6 @@ public class NullPermeableHashMap<K, V> extends HashMap<K, V> {
 	}
 	
 	public V getNonNull(K k) {
-		V val = get(k);
-		if (val == null) {
-			val = creator.create(k);
-			put(k, val);
-		} 
-		return val;
+		return computeIfAbsent(k, creator::create);
 	}
 }

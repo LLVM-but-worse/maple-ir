@@ -1,10 +1,10 @@
 package org.mapleir.stdlib.klass;
 
+import org.objectweb.asm.tree.MethodNode;
+
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
-
-import org.objectweb.asm.tree.MethodNode;
 
 /**
  * @author Bibl (don't ban me pls)
@@ -25,7 +25,7 @@ public class ChainData {
 		this.supers.remove(m);
 		this.delegates.remove(m);
 		
-		aggregates     = new HashSet<MethodNode>();
+		aggregates     = new HashSet<>();
 		aggregates.addAll(supers);
 		aggregates.addAll(delegates);
 	}

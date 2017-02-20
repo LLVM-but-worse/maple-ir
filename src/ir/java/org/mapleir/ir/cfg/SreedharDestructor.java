@@ -1,13 +1,5 @@
 package org.mapleir.ir.cfg;
 
-import static org.mapleir.ir.code.Opcode.LOCAL_LOAD;
-
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.ListIterator;
-import java.util.Map;
-import java.util.Map.Entry;
-
 import org.mapleir.ir.analysis.SSABlockLivenessAnalyser;
 import org.mapleir.ir.analysis.SSADefUseMap;
 import org.mapleir.ir.code.Expr;
@@ -25,6 +17,14 @@ import org.mapleir.stdlib.collections.bitset.BitSetIndexer;
 import org.mapleir.stdlib.collections.bitset.GenericBitSet;
 import org.mapleir.stdlib.collections.bitset.IncrementalBitSetIndexer;
 import org.objectweb.asm.Type;
+
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.ListIterator;
+import java.util.Map;
+import java.util.Map.Entry;
+
+import static org.mapleir.ir.code.Opcode.LOCAL_LOAD;
 
 public class SreedharDestructor {
 
@@ -532,7 +532,7 @@ public class SreedharDestructor {
 		}
 	}
 
-	private class PhiResBitSetFactory implements ValueCreator<GenericBitSet<SreedharDestructor.PhiResource>> {
+	private class PhiResBitSetFactory implements ValueCreator<GenericBitSet<PhiResource>> {
 		private final BitSetIndexer<PhiResource> phiResIndexer;
 
 		PhiResBitSetFactory() {

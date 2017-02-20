@@ -17,15 +17,10 @@ public class NullPermeableLinkedHashMap<K, V> extends LinkedHashMap<K, V> {
 	}
 
 	public NullPermeableLinkedHashMap() {
-		this(new NullCreator<V>());
+		this(new NullCreator<>());
 	}
 
 	public V getNotNull(K k) {
-		V val = get(k);
-		if (val == null) {
-			val = creator.create();
-			put(k, val);
-		} 
-		return val;
+		return computeIfAbsent(k, creator::create);
 	}
 }

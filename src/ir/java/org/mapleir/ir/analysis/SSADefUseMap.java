@@ -1,12 +1,5 @@
 package org.mapleir.ir.analysis;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.Expr;
@@ -18,8 +11,14 @@ import org.mapleir.ir.code.stmt.copy.AbstractCopyStmt;
 import org.mapleir.ir.code.stmt.copy.CopyPhiStmt;
 import org.mapleir.ir.locals.Local;
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
-import org.mapleir.stdlib.collections.ValueCreator;
 import org.mapleir.stdlib.collections.bitset.GenericBitSet;
+
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
 
 public class SSADefUseMap implements Opcode {
 	
@@ -39,12 +38,7 @@ public class SSADefUseMap implements Opcode {
 		phiDefs = new HashMap<>();
 		phiUses = new NullPermeableHashMap<>(cfg.getLocals());
 
-		lastUseIndex = new NullPermeableHashMap<>(new ValueCreator<HashMap<BasicBlock, Integer>>() {
-			@Override
-			public HashMap<BasicBlock, Integer> create() {
-				return new HashMap<>();
-			}
-		});
+		lastUseIndex = new NullPermeableHashMap<>(HashMap::new);
 		defIndex = new HashMap<>();
 	}
 
