@@ -1,8 +1,5 @@
 package org.mapleir.deobimpl2;
 
-import java.lang.reflect.Modifier;
-import java.util.*;
-
 import org.mapleir.IRCallTracer;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
@@ -21,7 +18,6 @@ import org.mapleir.ir.locals.LocalsPool;
 import org.mapleir.ir.locals.VersionedLocal;
 import org.mapleir.stdlib.IContext;
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
-import org.mapleir.stdlib.collections.ValueCreator;
 import org.mapleir.stdlib.deob.IPass;
 import org.mapleir.stdlib.klass.InvocationResolver;
 import org.mapleir.stdlib.klass.library.ApplicationClassSource;
@@ -30,14 +26,20 @@ import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
 
+import java.lang.reflect.Modifier;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
+
 public class ConstantParameterPass implements IPass, Opcode {
 	
-	private static final Comparator<Integer> INTEGER_ORDERER = new Comparator<Integer>() {
-		@Override
-		public int compare(Integer o1, Integer o2) {
-			return Integer.compareUnsigned(o1, o2);
-		}
-	};
+	private static final Comparator<Integer> INTEGER_ORDERER = Integer::compareUnsigned;
 
 	public static class SemiConstantParameter {
 		final int lvtIndex;
@@ -67,12 +69,7 @@ public class ConstantParameterPass implements IPass, Opcode {
 		cantfix = new HashSet<>();
 		processedExprs = new HashSet<>();
 		paramIndices = new HashMap<>();
-		constantParameters = new NullPermeableHashMap<>(new ValueCreator<Map<Integer, ConstantExpr>>() {
-			@Override
-			public Map<Integer, ConstantExpr> create() {
-				return new HashMap<>();
-			}
-		});
+		constantParameters = new NullPermeableHashMap<>(HashMap::new);
 	}
 	
 	@Override

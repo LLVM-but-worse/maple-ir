@@ -1,7 +1,5 @@
 package org.mapleir.ir.code.expr;
 
-import static org.objectweb.asm.Opcodes.*;
-
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.CodeUnit;
 import org.mapleir.ir.code.Expr;
@@ -10,6 +8,12 @@ import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.util.Printer;
+
+import static org.objectweb.asm.Opcodes.DCMPG;
+import static org.objectweb.asm.Opcodes.DCMPL;
+import static org.objectweb.asm.Opcodes.FCMPG;
+import static org.objectweb.asm.Opcodes.FCMPL;
+import static org.objectweb.asm.Opcodes.LCMP;
 
 public class ComparisonExpr extends Expr {
 
@@ -75,9 +79,9 @@ public class ComparisonExpr extends Expr {
 	@Override
 	public void onChildUpdated(int ptr) {
 		if (ptr == 0) {
-			setLeft((Expr) read(ptr));
+			setLeft(read(ptr));
 		} else if (ptr == 1) {
-			setRight((Expr) read(ptr));
+			setRight(read(ptr));
 		}
 	}
 	

@@ -47,7 +47,7 @@ public class LocalsPool implements ValueCreator<GenericBitSet<Local>> {
 		indexer = new IncrementalBitSetIndexer<>();
 		
 		defs = new HashMap<>();
-		uses = new NullPermeableHashMap<>(SetCreator.getInstance());
+		uses = new NullPermeableHashMap<>(HashSet::new);
 	}
 	
 	public Set<Local> getAll(Predicate<Local> p)  {
@@ -238,15 +238,15 @@ public class LocalsPool implements ValueCreator<GenericBitSet<Local>> {
 		// lvars then svars, ordered of course,
 		List<Local> wl = new ArrayList<>(stypes.keySet());
 //		System.out.println("safe: " + safe);
-		Collections.sort(wl, new Comparator<Local>() {
+		wl.sort(new Comparator<Local>() {
 			@Override
 			public int compare(Local o1, Local o2) {
 				boolean s1 = safe.contains(o1);
 				boolean s2 = safe.contains(o2);
 				
-				if(s1 && !s2) {
+				if (s1 && !s2) {
 					return -1;
-				} else if(!s1 && s2) {
+				} else if (!s1 && s2) {
 					return 1;
 				} else {
 					return o1.compareTo(o2);

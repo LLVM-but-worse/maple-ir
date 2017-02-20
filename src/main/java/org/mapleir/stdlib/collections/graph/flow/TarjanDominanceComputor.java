@@ -1,15 +1,21 @@
 package org.mapleir.stdlib.collections.graph.flow;
 
-import java.util.*;
-import java.util.Map.Entry;
-
 import org.mapleir.ir.cfg.edge.FlowEdge;
 import org.mapleir.ir.cfg.edge.ImmediateEdge;
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
-import org.mapleir.stdlib.collections.ValueCreator;
 import org.mapleir.stdlib.collections.graph.FastGraph;
 import org.mapleir.stdlib.collections.graph.FastGraphEdge;
 import org.mapleir.stdlib.collections.graph.FastGraphVertex;
+
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.Stack;
 
 public class TarjanDominanceComputor<N extends FastGraphVertex> {
 	private final FlowGraph<N, ?> graph;
@@ -32,10 +38,10 @@ public class TarjanDominanceComputor<N extends FastGraphVertex> {
 		propagationMap = new HashMap<>();
 		ancestors = new HashMap<>();
 		idoms = new HashMap<>();
-		semiDoms = new NullPermeableHashMap<>((ValueCreator<Set<N>>) HashSet::new);
-		domChildren = new NullPermeableHashMap<>((ValueCreator<Set<N>>) HashSet::new);
-		frontiers = new NullPermeableHashMap<>((ValueCreator<Set<N>>) HashSet::new);
-		iteratedFrontiers = new NullPermeableHashMap<>((ValueCreator<Set<N>>) HashSet::new);
+		semiDoms = new NullPermeableHashMap<>(HashSet::new);
+		domChildren = new NullPermeableHashMap<>(HashSet::new);
+		frontiers = new NullPermeableHashMap<>(HashSet::new);
+		iteratedFrontiers = new NullPermeableHashMap<>(HashSet::new);
 		
 		computePreOrder();
 		computeDominators();

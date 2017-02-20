@@ -1,11 +1,11 @@
 package org.mapleir.stdlib.klass;
 
+import org.objectweb.asm.tree.ClassNode;
+import org.topdank.banalysis.filter.Filter;
+
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
-
-import org.objectweb.asm.tree.ClassNode;
-import org.topdank.banalysis.filter.Filter;
 
 /**
  * @author Bibl (don't ban me pls)
@@ -18,7 +18,7 @@ public abstract class ReverseDataCache<T> {
 
 	public ReverseDataCache(Filter<T> filter) {
 		this.filter = filter;
-		map = new HashMap<T, String>();
+		map = new HashMap<>();
 	}
 
 	public ReverseDataCache(Filter<T> filter, Collection<ClassNode> classes) {
@@ -59,7 +59,7 @@ public abstract class ReverseDataCache<T> {
 	}
 
 	public static String makeKey(String owner, String name, String desc) {
-		return new StringBuilder(owner).append(".").append(name).append(desc).toString();
+		return owner + "." + name + desc;
 	}
 
 	public String get(T t) {

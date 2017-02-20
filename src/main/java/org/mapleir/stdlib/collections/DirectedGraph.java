@@ -26,7 +26,7 @@ public class DirectedGraph<V, E> extends LinkedHashMap<V, Set<E>> implements Ite
 	public boolean addVertex(V vertex) {
 		if (super.containsKey(vertex))
 			return false;
-		super.put(vertex, new HashSet<E>());
+		super.put(vertex, new HashSet<>());
 		return true;
 	}
 
@@ -47,7 +47,7 @@ public class DirectedGraph<V, E> extends LinkedHashMap<V, Set<E>> implements Ite
 	}
 
 	public Set<E> getHashEdgesOf(V vertex) {
-		return new HashSet<E>(super.get(vertex));
+		return new HashSet<>(super.get(vertex));
 	}
 	
 	public void merge(DirectedGraph<V, E> graph) {

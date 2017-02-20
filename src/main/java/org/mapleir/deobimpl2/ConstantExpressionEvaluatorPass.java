@@ -1,14 +1,5 @@
 package org.mapleir.deobimpl2;
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicReference;
-
 import org.mapleir.deobimpl2.ConstantParameterPass.SemiConstantParameter;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
@@ -46,6 +37,15 @@ import org.objectweb.asm.tree.JumpInsnNode;
 import org.objectweb.asm.tree.LabelNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.tree.VarInsnNode;
+
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 
@@ -237,7 +237,7 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 					boolean branchVal = (boolean) bridge.eval(lc.getConstant(), rc.getConstant());
 					
 					if(val != null) {
-						if(val.booleanValue() != branchVal) {
+						if(val != branchVal) {
 							return;
 						}
 					} else {

@@ -1,5 +1,6 @@
 package org.mapleir.ir.code.expr;
 
+import com.sun.xml.internal.ws.org.objectweb.asm.Opcodes;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.CodeUnit;
 import org.mapleir.ir.code.Expr;
@@ -7,8 +8,6 @@ import org.mapleir.stdlib.util.TabbedStringWriter;
 import org.mapleir.stdlib.util.TypeUtils;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Type;
-
-import com.sun.xml.internal.ws.org.objectweb.asm.Opcodes;
 
 public class NewArrayExpr extends Expr {
 
@@ -79,7 +78,7 @@ public class NewArrayExpr extends Expr {
 			if(children[ptr] == null) {
 				e = null;
 			} else {
-				e = (Expr) read(ptr);
+				e = read(ptr);
 			}
 			updateLength(ptr, e, true);
 		}

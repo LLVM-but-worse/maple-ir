@@ -93,7 +93,7 @@ public class DynamicInvocationExpr extends Expr {
 	
 	@Override
 	public void onChildUpdated(int ptr) {
-		updateArgument(ptr, (Expr) read(ptr));
+		updateArgument(ptr, read(ptr));
 	}
 
 	@Override

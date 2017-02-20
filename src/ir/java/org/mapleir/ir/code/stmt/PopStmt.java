@@ -29,7 +29,7 @@ public class PopStmt extends Stmt {
 
 	@Override
 	public void onChildUpdated(int ptr) {
-		setExpression((Expr)read(ptr));
+		setExpression(read(ptr));
 	}
 
 	@Override

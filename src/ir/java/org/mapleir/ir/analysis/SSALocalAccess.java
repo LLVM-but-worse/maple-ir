@@ -1,21 +1,20 @@
 package org.mapleir.ir.analysis;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
-
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
+import org.mapleir.ir.code.CodeUnitVisitor;
 import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.code.Opcode;
-import org.mapleir.ir.code.CodeUnitVisitor;
 import org.mapleir.ir.code.Stmt;
 import org.mapleir.ir.code.expr.PhiExpr;
 import org.mapleir.ir.code.expr.VarExpr;
 import org.mapleir.ir.code.stmt.copy.AbstractCopyStmt;
 import org.mapleir.ir.locals.VersionedLocal;
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
-import org.mapleir.stdlib.collections.ValueCreator;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class SSALocalAccess {
 
@@ -24,12 +23,7 @@ public class SSALocalAccess {
 	
 	public SSALocalAccess(ControlFlowGraph cfg) {
 		defs = new HashMap<>();
-		useCount = new NullPermeableHashMap<>(new ValueCreator<AtomicInteger>() {
-			@Override
-			public AtomicInteger create() {
-				return new AtomicInteger();
-			}
-		});
+		useCount = new NullPermeableHashMap<>(AtomicInteger::new);
 		
 		for(BasicBlock b : cfg.vertices()) {
 			for(Stmt s : b) {
