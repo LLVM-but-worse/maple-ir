@@ -70,7 +70,7 @@ public abstract class AbstractCopyStmt extends Stmt {
 	@Override
 	public void onChildUpdated(int ptr) {
 		if(!synthetic) {
-			setExpression((Expr) read(ptr));
+			setExpression(read(ptr));
 		}
 	}
 

@@ -86,11 +86,11 @@ public class FieldStoreStmt extends Stmt {
 	@Override
 	public void onChildUpdated(int ptr) {
 		if (instanceExpression != null && ptr == 0) {
-			setInstanceExpression((Expr) read(0));
+			setInstanceExpression(read(0));
 		} else if (instanceExpression == null && ptr == 0) {
-			setValueExpression((Expr) read(0));
+			setValueExpression(read(0));
 		} else if (ptr == 1) {
-			setValueExpression((Expr) read(1));
+			setValueExpression(read(1));
 		}
 	}
 

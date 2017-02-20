@@ -1,7 +1,5 @@
 package org.mapleir.ir.code.expr;
 
-import static org.objectweb.asm.Opcodes.*;
-
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.CodeUnit;
 import org.mapleir.ir.code.Expr;
@@ -10,6 +8,17 @@ import org.mapleir.stdlib.util.TypeUtils;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.util.Printer;
+
+import static org.objectweb.asm.Opcodes.DREM;
+import static org.objectweb.asm.Opcodes.IADD;
+import static org.objectweb.asm.Opcodes.IAND;
+import static org.objectweb.asm.Opcodes.IOR;
+import static org.objectweb.asm.Opcodes.ISHL;
+import static org.objectweb.asm.Opcodes.IXOR;
+import static org.objectweb.asm.Opcodes.LAND;
+import static org.objectweb.asm.Opcodes.LOR;
+import static org.objectweb.asm.Opcodes.LUSHR;
+import static org.objectweb.asm.Opcodes.LXOR;
 
 public class ArithmeticExpr extends Expr {
 
@@ -103,9 +112,9 @@ public class ArithmeticExpr extends Expr {
 	@Override
 	public void onChildUpdated(int ptr) {
 		if (ptr == 0) {
-			setLeft((Expr) read(ptr));
+			setLeft(read(ptr));
 		} else if (ptr == 1) {
-			setRight((Expr) read(ptr));
+			setRight(read(ptr));
 		}
 	}
 

@@ -68,7 +68,7 @@ public class FieldLoadExpr extends Expr {
 
 	@Override
 	public void onChildUpdated(int ptr) {
-		setInstanceExpression((Expr) read(ptr));
+		setInstanceExpression(read(ptr));
 	}
 	
 	@Override

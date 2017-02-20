@@ -64,11 +64,11 @@ public class ArrayStoreStmt extends Stmt {
 	@Override
 	public void onChildUpdated(int ptr) {
 		if (ptr == 0) {
-			setArrayExpression((Expr) read(0));
+			setArrayExpression(read(0));
 		} else if (ptr == 1) {
-			setIndexExpression((Expr) read(1));
+			setIndexExpression(read(1));
 		} else if (ptr == 2) {
-			setValueExpression((Expr) read(2));
+			setValueExpression(read(2));
 		}
 	}
 

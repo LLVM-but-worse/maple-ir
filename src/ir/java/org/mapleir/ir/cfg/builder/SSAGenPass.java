@@ -1,8 +1,5 @@
 package org.mapleir.ir.cfg.builder;
 
-import java.util.*;
-import java.util.Map.Entry;
-
 import org.mapleir.ir.analysis.Liveness;
 import org.mapleir.ir.analysis.SSABlockLivenessAnalyser;
 import org.mapleir.ir.analysis.SimpleDfs;
@@ -47,6 +44,20 @@ import org.mapleir.stdlib.collections.graph.flow.TarjanDominanceComputor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.LabelNode;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.ListIterator;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.Stack;
 
 public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 
@@ -518,12 +529,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 			succs.add(succE);
 		}
 		
-		Collections.sort(succs, new Comparator<FlowEdge<BasicBlock>>() {
-			@Override
-			public int compare(FlowEdge<BasicBlock> o1, FlowEdge<BasicBlock> o2) {
-				return o1.dst.compareTo(o2.dst);
-			}
-		});
+		succs.sort(Comparator.comparing(o -> o.dst));
 		
 		for(FlowEdge<BasicBlock> succE : succs) {
 			BasicBlock succ = succE.dst;
@@ -708,7 +714,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		for(Expr c : e.enumerateWithSelf()) {
 			if(c.getOpcode() == Opcode.LOCAL_LOAD) {
 				VarExpr ve = (VarExpr) c;
-				pool.uses.get((VersionedLocal) ve.getLocal()).add(ve);
+				pool.uses.get(ve.getLocal()).add(ve);
 			}
 		}
 	}

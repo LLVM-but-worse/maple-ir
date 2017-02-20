@@ -50,9 +50,7 @@ public class InvocationExpr extends Expr {
 		int i = (callType == Opcodes.INVOKESTATIC) ? 0 : -1;
 		Expr[] exprs = new Expr[argumentExpressions.length + i];
 		i = Math.abs(i);
-		for(int j=0; j < exprs.length; j++) {
-			exprs[j] = argumentExpressions[j + i];
-		}
+		System.arraycopy(argumentExpressions, i, exprs, 0, exprs.length);
 		return exprs;
 	}
 
@@ -128,7 +126,7 @@ public class InvocationExpr extends Expr {
 	public void onChildUpdated(int ptr) {
 		
 		
-		updateArgument(ptr, (Expr) read(ptr));
+		updateArgument(ptr, read(ptr));
 	}
 
 	@Override

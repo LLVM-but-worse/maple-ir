@@ -17,7 +17,7 @@ public abstract class DataCache<T> {
 
 	public DataCache(Filter<T> filter) {
 		this.filter = filter;
-		map = new HashMap<String, T>();
+		map = new HashMap<>();
 	}
 
 	public DataCache(Filter<T> filter, Collection<ClassNode> classes) {
@@ -75,7 +75,7 @@ public abstract class DataCache<T> {
 	}
 
 	public static String makeKey(String owner, String name, String desc) {
-		return new StringBuilder(owner).append(".").append(name).append(desc).toString();
+		return owner + "." + name + desc;
 	}
 
 	public T get(String owner, String name, String desc) {
