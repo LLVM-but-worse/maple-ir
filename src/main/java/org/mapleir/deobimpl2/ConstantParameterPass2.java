@@ -1,5 +1,9 @@
 package org.mapleir.deobimpl2;
 
+import java.lang.reflect.Modifier;
+import java.util.*;
+import java.util.Map.Entry;
+
 import org.mapleir.IRCallTracer;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
@@ -26,17 +30,6 @@ import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
-
-import java.lang.reflect.Modifier;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
 
 public class ConstantParameterPass2 implements IPass, Opcode {
 	
@@ -489,6 +482,7 @@ public class ConstantParameterPass2 implements IPass, Opcode {
 		
 		if(!argDef.getType().equals(params[parameterIndex])) {
 			System.err.println(cfg);
+			System.err.println(mn);
 			System.err.println(mn.desc +" @" +parameterIndex +"   (" + isStatic + ")");
 			System.err.println("  argindex: " + argLocalIndex);
 			System.err.println("  " + Arrays.toString(params));
