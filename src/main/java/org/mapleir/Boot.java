@@ -1,19 +1,12 @@
 package org.mapleir;
 
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
-import java.util.ArrayList;
-import java.util.Deque;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-
 import org.mapleir.byteio.CompleteResolvingJarDumper;
-import org.mapleir.deobimpl2.*;
+import org.mapleir.deobimpl2.CallgraphPruningPass;
+import org.mapleir.deobimpl2.ConcreteStaticInvocationPass;
+import org.mapleir.deobimpl2.ConstantExpressionReorderPass;
+import org.mapleir.deobimpl2.ConstantParameterPass2;
+import org.mapleir.deobimpl2.FieldRSADecryptionPass;
+import org.mapleir.deobimpl2.MethodRenamerPass;
 import org.mapleir.ir.ControlFlowGraphDumper;
 import org.mapleir.ir.cfg.BoissinotDestructor;
 import org.mapleir.ir.cfg.ControlFlowGraph;
@@ -31,6 +24,18 @@ import org.objectweb.asm.tree.MethodNode;
 import org.topdank.byteengineer.commons.data.JarInfo;
 import org.topdank.byteio.in.SingleJarDownloader;
 import org.topdank.byteio.out.JarDumper;
+
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
+import java.util.ArrayList;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
 
 public class Boot {
 
@@ -372,8 +377,8 @@ public class Boot {
 				new FieldRSADecryptionPass(),
 				new PassGroup("Interprocedural Optimisations")
 					.add(new ConstantParameterPass2())
-					.add(new ConstantExpressionEvaluatorPass())
-					.add(new DeadCodeEliminationPass())
+//					.add(new ConstantExpressionEvaluatorPass())
+//					.add(new DeadCodeEliminationPass())
 				
 		};
 	}
