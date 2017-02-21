@@ -276,9 +276,6 @@ public class ConstantParameterPass2 implements IPass, Opcode {
 					}
 					deadParams.put(deadParam.getKey(), deadParam.getValue().iterator().next());
 				}
-				if (mn.toString().equals("m.aps(ILgh;IIIZI)V")) {
-					System.out.println("Trap");
-				}
 				killedTotal += fixDeadParameters(cxt, mn, getVirtualChain(cxt, mn.owner, mn.name, mn.desc), deadParams);
 			}
 			
@@ -533,8 +530,6 @@ public class ConstantParameterPass2 implements IPass, Opcode {
 		Iterator<VarExpr> it = pool.uses.getNonNull(argLocal).iterator();
 		while(it.hasNext()) {
 			VarExpr v = it.next();
-			System.out.println(mn + " " + v);
-			
 			if(v.getParent() == null) {
 				/* the use is in a phi, we can't
 				 * remove the def. */
@@ -543,7 +538,7 @@ public class ConstantParameterPass2 implements IPass, Opcode {
 				v.setLocal(spill);
 			} else {
 				CodeUnit par = v.getParent();
-				System.out.println("  Fixed use " + par + " to " + c.copy());
+//				System.out.println("  Fixed use " + par + " to " + c.copy());
 				par.overwrite(c.copy(), par.indexOf(v));
 			}
 		}
