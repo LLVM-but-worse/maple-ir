@@ -24,6 +24,7 @@ import org.mapleir.ir.code.stmt.UnconditionalJumpStmt;
 import org.mapleir.ir.code.stmt.copy.AbstractCopyStmt;
 import org.mapleir.ir.locals.Local;
 import org.mapleir.ir.locals.LocalsPool;
+import org.mapleir.ir.locals.VersionedLocal;
 import org.mapleir.stdlib.IContext;
 import org.mapleir.stdlib.deob.IPass;
 import org.mapleir.stdlib.util.TypeUtils;
@@ -142,14 +143,13 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 									if(e.getOpcode() != CONST_LOAD) {
 										Expr val = eval(pool, e);
 										if(val != null) {
-											
 											if(!val.equivalent(e)) {
-												par.overwrite(val, par.indexOf(e));
-												
+												overwrite(par, e, val, pool);
 												j++;
 											}
 										}
 										
+										// TODO: fix this hack for nested exprs
 										if(e.getOpcode() == ARITHMETIC && e.getParent() != null) {
 											ArithmeticExpr ae = (ArithmeticExpr) e;
 											Operator op = ae.getOperator();
@@ -157,8 +157,7 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 											Expr e2 = simplify(pool, ae);
 											
 											if(e2 != null) {
-												par.overwrite(e2, par.indexOf(e));
-												
+												overwrite(par, e, e2, pool);
 												j++;
 											} else if (op == Operator.MUL) {
 												/* (x * c) * k
@@ -180,7 +179,7 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 															Object v = bridge.eval(((ConstantExpr) c).getConstant(), ((ConstantExpr) k).getConstant());
 															
 															ArithmeticExpr newAe = new ArithmeticExpr(new ConstantExpr(v), xcExpr.getLeft().copy(), Operator.MUL);
-															ae.getParent().overwrite(newAe, ae.getParent().indexOf(ae));
+															overwrite(ae.getParent(), ae, newAe, pool);
 															j++;
 														}
 													}
@@ -203,6 +202,29 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 		System.out.printf("  evaluated %d constant expressions.%n", j);
 		
 		return j;
+	}
+	
+	private void overwrite(CodeUnit parent, Expr from, Expr to, LocalsPool pool) {
+		updateDefuse(from, to, pool);
+		parent.overwrite(from, parent.indexOf(to));
+	}
+	
+	private void updateDefuse(Expr from, Expr to, LocalsPool pool) {
+		// remove uses in from
+		for(Expr e : from.enumerateOnlyChildren()) {
+			if (e instanceof VarExpr) {
+				VersionedLocal l = (VersionedLocal) ((VarExpr) e).getLocal();
+				pool.uses.getNonNull(l).remove(e);
+			}
+		}
+		
+		// add uses in to
+		for(Expr e : to.enumerateOnlyChildren()) {
+			if (e instanceof VarExpr) {
+				VarExpr var = (VarExpr) e;
+				pool.uses.getNonNull((VersionedLocal) var.getLocal()).add(var);
+			}
+		}
 	}
 	
 	private Expr simplify(LocalsPool pool, ArithmeticExpr e) {
