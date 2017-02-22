@@ -3,6 +3,7 @@ package org.mapleir;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.HashMap;
@@ -11,9 +12,10 @@ import java.util.LinkedList;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.jar.JarOutputStream;
 
 import org.mapleir.byteio.CompleteResolvingJarDumper;
-import org.mapleir.deobimpl2.*;
+import org.mapleir.deobimpl2.CallgraphPruningPass;
 import org.mapleir.ir.ControlFlowGraphDumper;
 import org.mapleir.ir.cfg.BoissinotDestructor;
 import org.mapleir.ir.cfg.ControlFlowGraph;
@@ -350,7 +352,16 @@ public class Boot {
 		}
 		
 		section("Rewriting jar.");
-		JarDumper dumper = new CompleteResolvingJarDumper(dl.getJarContents(), app);
+		JarDumper dumper = new CompleteResolvingJarDumper(dl.getJarContents(), app) {
+			@Override
+			public int dumpResource(JarOutputStream out, String name, byte[] file) throws IOException {
+				if(name.startsWith("META-INF")) {
+					System.out.println(" ignore " + name);
+					return 0;
+				}
+				return super.dumpResource(out, name, file);
+			}
+		};
 		dumper.dump(new File("out/osb.jar"));
 		
 		section("Finished.");
@@ -363,22 +374,22 @@ public class Boot {
 	private static IPass[] getTransformationPasses() {
 		return new IPass[] {
 				new CallgraphPruningPass(),
-				new ConcreteStaticInvocationPass(),
-				new MethodRenamerPass(),
+//				new ConcreteStaticInvocationPass(),
+//				new MethodRenamerPass(),
 //				new ConstantParameterPass2()
 //				new ClassRenamerPass(),
 //				new FieldRenamerPass(),
-				new ConstantExpressionReorderPass(),
-				new FieldRSADecryptionPass(),
-				new PassGroup("Interprocedural Optimisations")
-					.add(new ConstantParameterPass2())
-					.add(new ConstantExpressionEvaluatorPass())
-					.add(new DeadCodeEliminationPass())
+//				new ConstantExpressionReorderPass(),
+//				new FieldRSADecryptionPass(),
+//				new PassGroup("Interprocedural Optimisations")
+//					.add(new ConstantParameterPass2())
+//					.add(new ConstantExpressionEvaluatorPass())
+//					.add(new DeadCodeEliminationPass())
 				
 		};
 	}
 	
-	private static File locateRevFile(int rev) {
+	static File locateRevFile(int rev) {
 		return new File("res/gamepack" + rev + ".jar");
 	}
 	
