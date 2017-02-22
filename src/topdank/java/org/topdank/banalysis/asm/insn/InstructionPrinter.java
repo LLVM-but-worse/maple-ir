@@ -58,7 +58,20 @@ public class InstructionPrinter {
 	 */
 	public ArrayList<String> createPrint() {
 		ArrayList<String> info = new ArrayList<>();
-		ListIterator<?> it = mNode.instructions.iterator();
+		
+
+		ListIterator<AbstractInsnNode> it = mNode.instructions.iterator();
+		while (it.hasNext()) {
+			AbstractInsnNode ain = it.next();
+			if(ain instanceof LabelNode) {
+				resolveLabel(((LabelNode) ain));
+			}
+		}
+		for(TryCatchBlockNode tcbn : mNode.tryCatchBlocks) {
+			info.add("start: L" + resolveLabel(tcbn.start) + ", end: L" + resolveLabel(tcbn.end) + ", handler: L" + resolveLabel(tcbn.handler) + ", type: " + tcbn.type);
+		}
+		
+		it = mNode.instructions.iterator();
 		while (it.hasNext()) {
 			AbstractInsnNode ain = (AbstractInsnNode) it.next();
 			String line = "";
@@ -151,7 +164,7 @@ public class InstructionPrinter {
 	}
 	
 	protected String printLabelnode(LabelNode label) {
-		return "L" + resolveLabel(label) + " " + label.getLabel().hashCode();
+		return "L" + resolveLabel(label) + ": " + label.getLabel().hashCode();
 	}
 	
 	protected String printTypeInsnNode(TypeInsnNode tin) {
