@@ -35,9 +35,9 @@ import org.mapleir.stdlib.klass.library.ApplicationClassSource;
 import org.mapleir.stdlib.klass.library.InstalledRuntimeClassSource;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.commons.blocksplit.SplitMethodWriterDelegate;
-import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
+import org.topdank.banalysis.asm.insn.InstructionPrinter;
 import org.topdank.byteengineer.commons.data.JarInfo;
 import org.topdank.byteio.in.SingleJarDownloader;
 
@@ -48,147 +48,122 @@ public class Boot2 {
 	
 //		File f = Boot.locateRevFile(133);
 
-		
-		int j = 0;
-		mainFor: for(;;) {
-			File f = new File("res/gamepack133.jar");
-//			System.out.printf("Running from %s%n", f.getAbsolutePath());
-			
-			SingleJarDownloader<ClassNode> dl = new SingleJarDownloader<>(new JarInfo(f));
-			dl.download();
-			
-			ApplicationClassSource app = new ApplicationClassSource(f.getName().substring(0, f.getName().length() - 4), dl.getJarContents().getClassContents());
-			InstalledRuntimeClassSource jre = new InstalledRuntimeClassSource(app);
-			app.addLibraries(jre);
-			
-			// System.out.println("@ " + j);
-			for(ClassNode cn : app.iterate()) {
-				if(!cn.name.equals("client"))
-					continue;
-//				for(MethodNode m : cn.methods) {}
-				
-				if(cn.methods.size() <= j) {
-					System.out.println("over");
-					break mainFor;
-				}
-				MethodNode m = cn.methods.get(j++);
-				System.out.println("transform: " +m + " @" + m.instructions.size());
-				ControlFlowGraph cfg = ControlFlowGraphBuilder.build(m);
-				BoissinotDestructor.leaveSSA(cfg);
-				cfg.getLocals().realloc(cfg);
-				ControlFlowGraphDumper.dump(cfg, m);
-				
-				if(m.instructions.size() > 0) {
-					
-//					if(m.desc.contains("bd")) {
-//						InsnList list = new InsnList();
-//						list.add(new org.objectweb.asm.tree.FieldInsnNode(Opcodes.GETSTATIC, "java/lang/System", "out", "Ljava/io/PrintStream;"));
-//						list.add(new LdcInsnNode("Invoking " + m.toString()));
-//						list.add(new MethodInsnNode(Opcodes.INVOKEVIRTUAL, "java/io/PrintStream", "println", "(Ljava/lang/String;)V", false));
-//						
-//						m.instructions.insertBefore(m.instructions.getFirst(), list);
-//					}
-					for(AbstractInsnNode ain : m.instructions.toArray()) {
-//						if(ain.opcode() == Opcodes.CHECKCAST) {
-//							TypeInsnNode tin = (TypeInsnNode) ain;
-//							
-//							if(tin.desc.equals("bd")) {
-//								InsnList list = new InsnList();
-//								list.add(new org.objectweb.asm.tree.FieldInsnNode(Opcodes.GETSTATIC, "java/lang/System", "out", "Ljava/io/PrintStream;"));
-//								list.add(new LdcInsnNode("Invoking " + m.toString()));
-//								list.add(new MethodInsnNode(Opcodes.INVOKEVIRTUAL, "java/io/PrintStream", "println", "(Ljava/lang/String;)V", false));
-//								
-//								m.instructions.insertBefore(tin, list);
-//							}
-//						}
-					}
-				}
-			
-			}
-			
-			// System.out.printf("Linked runtime%n");
-			
-			ClassLoader cl = new ClassLoader() {
-				@Override
-				public Class<?> findClass(String name) throws ClassNotFoundException {
-					if(name == null) {
-						throw new IllegalArgumentException();
-					}
-					
-					String bname = name.replace(".", "/");
-					ClassNode node = app.findClassNode(bname);
-					
-					if(node != null) {
-//						System.out.println("Defining " + bname);
-						
-						ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_FRAMES, new SplitMethodWriterDelegate()) {
-						    @Override
-							protected String getCommonSuperClass(String type1, String type2) {
-						    	ClassNode ccn = app.findClassNode(type1);
-						    	ClassNode dcn = app.findClassNode(type2);
-						    	
-						    	if(ccn == null) {
-						    		ClassNode c = ClassNodeUtil.create(type1);
-						    		if(c == null) {
-						    			return "java/lang/Object";
-						    		}
-						    		throw new UnsupportedOperationException(c.toString());
-						    	}
-						    	
-						    	if(dcn == null) {
-						    		ClassNode c = ClassNodeUtil.create(type2);
-						    		if(c == null) {
-						    			return "java/lang/Object";
-						    		}
-						    		throw new UnsupportedOperationException(c.toString());
-						    	}
-						    	
-						        Set<ClassNode> c = app.getStructures().getSupers(ccn);
-						        Set<ClassNode> d = app.getStructures().getSupers(dcn);
-						        
-						        if(c.contains(dcn))
-						        	return type1;
-						        
-						        if(d.contains(ccn))
-						        	return type2;
-						        
-						        if(Modifier.isInterface(ccn.access) || Modifier.isInterface(dcn.access)) {
-						        	// enums as well?
-						        	return "java/lang/Object";
-						        } else {
-						        	do {
-						        		ClassNode nccn = app.findClassNode(ccn.superName);
-						        		if(nccn == null)
-						        			break;
-						        		ccn = nccn;
-						        		c = app.getStructures().getSupers(ccn);
-						        	} while(!c.contains(dcn));
-						        	return ccn.name;
-						        }
-						    }
-						};
-						
-						node.accept(writer);
-						byte[] bytes = writer.toByteArray();
-						
-						return defineClass(name, bytes, 0, bytes.length);
-					}
-					
-					return super.findClass(name);
-				}
-			};
 
-//			System.out.printf("Loading client%n");
-			try {
-				Class<?> client = cl.loadClass("client");
-				Applet applet = (Applet) client.newInstance();
-				System.out.println("success");
-				// break mainFor;
-			} catch(RuntimeException | Error e) {
-				System.out.println("exception thrown: " + e.getMessage());
-				j++;
+		File f = new File("res/gamepack133.jar");
+//		System.out.printf("Running from %s%n", f.getAbsolutePath());
+		
+		SingleJarDownloader<ClassNode> dl = new SingleJarDownloader<>(new JarInfo(f));
+		dl.download();
+		
+		ApplicationClassSource app = new ApplicationClassSource(f.getName().substring(0, f.getName().length() - 4), dl.getJarContents().getClassContents());
+		InstalledRuntimeClassSource jre = new InstalledRuntimeClassSource(app);
+		app.addLibraries(jre);
+		
+		// System.out.println("@ " + j);
+		for(ClassNode cn : app.iterate()) {
+			if(!cn.name.equals("client"))
+				continue;
+			for(MethodNode m : cn.methods) {
+				if(!m.toString().equals("client.o(Ljava/lang/String;Ljava/lang/String;ZI)Lbu;"))
+					continue;
+//				if(m.toString().equals("client.ro()V")) {
+
+//					System.out.println("transform: " +m + " @" + m.instructions.size());
+					ControlFlowGraph cfg = ControlFlowGraphBuilder.build(m);
+					BoissinotDestructor.leaveSSA(cfg);
+					cfg.getLocals().realloc(cfg);
+					System.out.println(cfg);
+					ControlFlowGraphDumper.dump(cfg, m);
+					
+					InstructionPrinter.consolePrint(m);
+//				}
 			}
+		
 		}
+		
+		// System.out.printf("Linked runtime%n");
+		
+		ClassLoader cl = new ClassLoader() {
+			@Override
+			public Class<?> findClass(String name) throws ClassNotFoundException {
+				if(name == null) {
+					throw new IllegalArgumentException();
+				}
+				
+				String bname = name.replace(".", "/");
+				ClassNode node = app.findClassNode(bname);
+				
+				if(node != null) {
+//					System.out.println("Defining " + bname);
+					
+					ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_FRAMES, new SplitMethodWriterDelegate()) {
+					    @Override
+						protected String getCommonSuperClass(String type1, String type2) {
+					    	ClassNode ccn = app.findClassNode(type1);
+					    	ClassNode dcn = app.findClassNode(type2);
+					    	
+					    	if(ccn == null) {
+					    		ClassNode c = ClassNodeUtil.create(type1);
+					    		if(c == null) {
+					    			return "java/lang/Object";
+					    		}
+					    		throw new UnsupportedOperationException(c.toString());
+					    	}
+					    	
+					    	if(dcn == null) {
+					    		ClassNode c = ClassNodeUtil.create(type2);
+					    		if(c == null) {
+					    			return "java/lang/Object";
+					    		}
+					    		throw new UnsupportedOperationException(c.toString());
+					    	}
+					    	
+					        Set<ClassNode> c = app.getStructures().getSupers(ccn);
+					        Set<ClassNode> d = app.getStructures().getSupers(dcn);
+					        
+					        if(c.contains(dcn))
+					        	return type1;
+					        
+					        if(d.contains(ccn))
+					        	return type2;
+					        
+					        if(Modifier.isInterface(ccn.access) || Modifier.isInterface(dcn.access)) {
+					        	// enums as well?
+					        	return "java/lang/Object";
+					        } else {
+					        	do {
+					        		ClassNode nccn = app.findClassNode(ccn.superName);
+					        		if(nccn == null)
+					        			break;
+					        		ccn = nccn;
+					        		c = app.getStructures().getSupers(ccn);
+					        	} while(!c.contains(dcn));
+					        	return ccn.name;
+					        }
+					    }
+					};
+					
+					node.accept(writer);
+					byte[] bytes = writer.toByteArray();
+					
+					return defineClass(name, bytes, 0, bytes.length);
+				}
+				
+				return super.findClass(name);
+			}
+		};
+
+//		System.out.printf("Loading client%n");
+		try {
+			Class<?> client = cl.loadClass("client");
+			Applet applet = (Applet) client.newInstance();
+			System.out.println("success");
+			// break mainFor;
+		} catch(RuntimeException | ClassFormatError e) {
+//			System.out.println("exception thrown: " + e.getMessage());
+			e.printStackTrace();
+		}
+	
 //		browser.setApplet(applet);
 		
 //		new Thread(){
