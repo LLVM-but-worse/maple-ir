@@ -1,9 +1,5 @@
 package org.mapleir.deobimpl2;
 
-import java.lang.reflect.Modifier;
-import java.util.*;
-import java.util.Map.Entry;
-
 import org.mapleir.IRCallTracer;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
@@ -30,6 +26,17 @@ import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
+
+import java.lang.reflect.Modifier;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
 
 public class ConstantParameterPass2 implements IPass, Opcode {
 	
@@ -253,31 +260,23 @@ public class ConstantParameterPass2 implements IPass, Opcode {
 			}
 		}
 		
-		
 		int killedTotal = 0;
-		for(Entry<MethodNode, NullPermeableHashMap<Integer, Set<ConstantExpr>>> e : upconsts.entrySet()) {
-			MethodNode m = e.getKey();
-			ControlFlowGraph cfg = cxt.getIR(m);
-			
-			for(Entry<Integer, Set<ConstantExpr>> e2 : e.getValue().entrySet()) {
-				if(e2.getValue().size() != 1) {
-					System.err.println(" ?? " + m + " -> " + e2.getValue());
-					throw new RuntimeException();
-				}
-				
-				String newDesc = buildDesc(Type.getArgumentTypes(m.desc), Type.getReturnType(m.desc), e.getValue().keySet());
-				boolean killSynth = checkConflicts(cxt, m, newDesc);
-				inlineConstant(cfg, m, e2.getKey(), e2.getValue().iterator().next(), killSynth);
-			}
-		}
-		
-		
 		for(;;) {
 			int killedBeforePass = killedTotal;
 			
 			for(Entry<MethodNode, NullPermeableHashMap<Integer, Set<ConstantExpr>>> e : upconsts.entrySet()) {
 				MethodNode mn = e.getKey();
-				killedTotal += fixDeadParameters(cxt, mn, getVirtualChain(cxt, mn.owner, mn.name, mn.desc), e.getValue().keySet());
+				
+				NullPermeableHashMap<Integer, Set<ConstantExpr>> constants = e.getValue();
+				Map<Integer, ConstantExpr> deadParams = new HashMap<>();
+				for(Entry<Integer, Set<ConstantExpr>> deadParam : constants.entrySet()) {
+					if (deadParam.getValue().size() != 1) {
+						System.err.println(" ?? " + mn + " -> " + deadParam.getValue());
+						throw new RuntimeException();
+					}
+					deadParams.put(deadParam.getKey(), deadParam.getValue().iterator().next());
+				}
+				killedTotal += fixDeadParameters(cxt, mn, getVirtualChain(cxt, mn.owner, mn.name, mn.desc), deadParams);
 			}
 			
 			if(killedBeforePass == killedTotal) {
@@ -285,22 +284,25 @@ public class ConstantParameterPass2 implements IPass, Opcode {
 			}
 		}
 		
-		System.out.printf("  removed %d constant paramters.%n", killedTotal);
-		
+		System.out.printf("  removed %d constant parameters.%n", killedTotal);
 		return killedTotal;
 	}
 	
-	private int fixDeadParameters(IContext cxt, MethodNode mn, Set<MethodNode> chain, Set<Integer> deadIndices) {
+	private int fixDeadParameters(IContext cxt, MethodNode mn, Set<MethodNode> chain, Map<Integer, ConstantExpr> deadParams) {
 		if(processMethods.contains(mn)) {
 			return 0;
 		}
 
+		Set<Integer> deadIndices = deadParams.keySet();
+		ControlFlowGraph cfg = cxt.getIR(mn);
+		
 		String newDesc = buildDesc(Type.getArgumentTypes(mn.desc), Type.getReturnType(mn.desc), deadIndices);
-		
-//		System.out.println(mn + " -> " + newDesc);
-		
 		boolean isStatic = Modifier.isStatic(mn.access);
 		if (checkConflicts(cxt, mn, newDesc)) {
+//			System.out.println(mn.desc + " -> " + newDesc);
+			for (Entry<Integer, ConstantExpr> deadParam : deadParams.entrySet()) {
+				inlineConstant(cfg, mn, deadParam.getKey(), deadParam.getValue());
+			}
 			if (!isStatic && !mn.name.equals("<init>")) {
 				chain.add(mn);
 				remapMethods(chain, newDesc, deadIndices);
@@ -325,20 +327,20 @@ public class ConstantParameterPass2 implements IPass, Opcode {
 		if(Modifier.isStatic(mn.access)) {
 			MethodNode conflict = resolver.findStaticCall(mn.owner.name, mn.name, newDesc);
 			if(conflict != null) {
-//				System.out.printf("  can't remap(s) %s because of %s.%n", mn, conflict);
+				System.out.printf("  can't remap(s) %s because of %s.%n", mn, conflict);
 				return false;
 			}
 		} else {
 			if(mn.name.equals("<init>")) {
 				MethodNode conflict = resolver.findVirtualCall(mn.owner, mn.name, newDesc);
 				if(conflict != null) {
-//					System.out.printf("  can't remap(i) %s because of %s.%n", mn, conflict);
+					System.out.printf("  can't remap(i) %s because of %s.%n", mn, conflict);
 					return false;
 				}
 			} else {
 				Set<MethodNode> conflicts = getVirtualChain(cxt, mn.owner, mn.name, newDesc);
 				if(conflicts.size() > 0) {
-//					System.out.printf("  can't remap(v) %s because of %s.%n", mn, conflicts);
+					System.out.printf("  can't remap(v) %s because of %s.%n", mn, conflicts);
 					return false;
 				}
 			}
@@ -468,7 +470,7 @@ public class ConstantParameterPass2 implements IPass, Opcode {
 		return sb.toString();
 	}
 	
-	private void inlineConstant(ControlFlowGraph cfg, MethodNode mn, int parameterIndex, ConstantExpr c, boolean killSynth) {
+	private void inlineConstant(ControlFlowGraph cfg, MethodNode mn, int parameterIndex, ConstantExpr c) {
 		boolean isStatic = Modifier.isStatic(mn.access);
 //		System.out.println(mn + " " + isStatic + " @" + parameterIndex);
 //		System.out.println("  c: " + c);
@@ -491,7 +493,7 @@ public class ConstantParameterPass2 implements IPass, Opcode {
 			System.err.println("  " + argDef.getType() + " vs " + params[parameterIndex]);
 			throw new RuntimeException();
 		}
-		boolean removeDef = true;
+		boolean removeDef = false;
 		
 		/* demote the def from a synthetic
 		 * copy to a normal one. */
@@ -514,10 +516,8 @@ public class ConstantParameterPass2 implements IPass, Opcode {
 		
 		CopyVarStmt copy = new CopyVarStmt(dv, c.copy());
 		BasicBlock b = argDef.getBlock();
-		if (killSynth) {
-			argDef.delete();
-			pool.defs.remove(argLocal);
-		}
+		argDef.delete();
+		pool.defs.remove(argLocal);
 		argDef = copy;
 		b.add(copy);
 		pool.defs.put(spill, copy);
@@ -530,7 +530,6 @@ public class ConstantParameterPass2 implements IPass, Opcode {
 		Iterator<VarExpr> it = pool.uses.getNonNull(argLocal).iterator();
 		while(it.hasNext()) {
 			VarExpr v = it.next();
-			
 			if(v.getParent() == null) {
 				/* the use is in a phi, we can't
 				 * remove the def. */
@@ -539,6 +538,7 @@ public class ConstantParameterPass2 implements IPass, Opcode {
 				v.setLocal(spill);
 			} else {
 				CodeUnit par = v.getParent();
+//				System.out.println("  Fixed use " + par + " to " + c.copy());
 				par.overwrite(c.copy(), par.indexOf(v));
 			}
 		}
