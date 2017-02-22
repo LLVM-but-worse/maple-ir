@@ -750,12 +750,12 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		if(drs > 0) {
 			if(urs == 0) {
 				// we can clone the range information.
-				for(ExceptionRange<BasicBlock> e : dr) {
-					e.addVertex(ub);
-					builder.graph.addEdge(ub, new TryCatchEdge<>(ub, e));
-				}
-				
-				transferable = true;
+//				for(ExceptionRange<BasicBlock> e : dr) {
+//					e.addVertex(ub);
+//					builder.graph.addEdge(ub, new TryCatchEdge<>(ub, e));
+//				}
+//				
+//				transferable = true;
 			} else {
 				dr.removeAll(ur);
 				

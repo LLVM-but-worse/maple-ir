@@ -37,7 +37,6 @@ import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.commons.blocksplit.SplitMethodWriterDelegate;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
-import org.topdank.banalysis.asm.insn.InstructionPrinter;
 import org.topdank.byteengineer.commons.data.JarInfo;
 import org.topdank.byteio.in.SingleJarDownloader;
 
@@ -64,18 +63,18 @@ public class Boot2 {
 			if(!cn.name.equals("client"))
 				continue;
 			for(MethodNode m : cn.methods) {
-				if(!m.toString().equals("client.o(Ljava/lang/String;Ljava/lang/String;ZI)Lbu;"))
-					continue;
+//				if(!m.toString().equals("client.o(Ljava/lang/String;Ljava/lang/String;ZI)Lbu;"))
+//					continue;
 //				if(m.toString().equals("client.ro()V")) {
 
 //					System.out.println("transform: " +m + " @" + m.instructions.size());
 					ControlFlowGraph cfg = ControlFlowGraphBuilder.build(m);
 					BoissinotDestructor.leaveSSA(cfg);
 					cfg.getLocals().realloc(cfg);
-					System.out.println(cfg);
+//					System.out.println(cfg);
 					ControlFlowGraphDumper.dump(cfg, m);
 					
-					InstructionPrinter.consolePrint(m);
+//					InstructionPrinter.consolePrint(m);
 //				}
 			}
 		
