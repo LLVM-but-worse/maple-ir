@@ -16,6 +16,9 @@ import java.util.jar.JarOutputStream;
 
 import org.mapleir.byteio.CompleteResolvingJarDumper;
 import org.mapleir.deobimpl2.CallgraphPruningPass;
+import org.mapleir.deobimpl2.ConstantExpressionReorderPass;
+import org.mapleir.deobimpl2.ConstantParameterPass2;
+import org.mapleir.deobimpl2.FieldRSADecryptionPass;
 import org.mapleir.ir.ControlFlowGraphDumper;
 import org.mapleir.ir.cfg.BoissinotDestructor;
 import org.mapleir.ir.cfg.ControlFlowGraph;
@@ -383,6 +386,10 @@ public class Boot {
 //				new FieldRSADecryptionPass(),
 //				new PassGroup("Interprocedural Optimisations")
 //					.add(new ConstantParameterPass2())
+				new ConstantExpressionReorderPass(),
+				new FieldRSADecryptionPass(),
+				new PassGroup("Interprocedural Optimisations")
+					.add(new ConstantParameterPass2())
 //					.add(new ConstantExpressionEvaluatorPass())
 //					.add(new DeadCodeEliminationPass())
 				
