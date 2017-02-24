@@ -36,15 +36,14 @@ public class ConstantExpr extends Expr {
 		if (cst == null) {
 			return Type.getType("Ljava/lang/Object;");
 		} else if (cst instanceof Integer) {
-//			int val = ((Integer) cst).intValue();
-//			if (val >= Byte.MIN_VALUE && val <= Byte.MAX_VALUE) {
-//				return Type.BYTE_TYPE;
-//			} else if (val >= Short.MIN_VALUE && val <= Short.MAX_VALUE) {
-//				return Type.SHORT_TYPE;
-//			} else {
-//				return Type.INT_TYPE;
-//			}
-			return Type.INT_TYPE;
+			int val = ((Integer) cst).intValue();
+			if (val >= Byte.MIN_VALUE && val <= Byte.MAX_VALUE) {
+				return Type.BYTE_TYPE;
+			} else if (val >= Short.MIN_VALUE && val <= Short.MAX_VALUE) {
+				return Type.SHORT_TYPE;
+			} else {
+				return Type.INT_TYPE;
+			}
 		} else if (cst instanceof Long) {
 			return Type.LONG_TYPE;
 		} else if (cst instanceof Float) {

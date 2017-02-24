@@ -1,5 +1,14 @@
 package org.mapleir.deobimpl2;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
+
 import org.mapleir.deobimpl2.ConstantParameterPass.SemiConstantParameter;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
@@ -38,15 +47,6 @@ import org.objectweb.asm.tree.JumpInsnNode;
 import org.objectweb.asm.tree.LabelNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.tree.VarInsnNode;
-
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicReference;
 
 public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 
@@ -206,7 +206,7 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 	
 	private void overwrite(CodeUnit parent, Expr from, Expr to, LocalsPool pool) {
 		updateDefuse(from, to, pool);
-		parent.overwrite(from, parent.indexOf(to));
+		parent.overwrite(to, parent.indexOf(from));
 	}
 	
 	private void updateDefuse(Expr from, Expr to, LocalsPool pool) {
