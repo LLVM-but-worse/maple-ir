@@ -1,5 +1,7 @@
 package org.mapleir.ir.code.expr;
 
+import static org.objectweb.asm.Opcodes.*;
+
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.CodeUnit;
 import org.mapleir.ir.code.Expr;
@@ -8,12 +10,6 @@ import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.util.Printer;
-
-import static org.objectweb.asm.Opcodes.DCMPG;
-import static org.objectweb.asm.Opcodes.DCMPL;
-import static org.objectweb.asm.Opcodes.FCMPG;
-import static org.objectweb.asm.Opcodes.FCMPL;
-import static org.objectweb.asm.Opcodes.LCMP;
 
 public class ComparisonExpr extends Expr {
 
@@ -27,6 +23,18 @@ public class ComparisonExpr extends Expr {
 				return ValueComparisonType.GT;
 			} else if(opcode == FCMPL || opcode == DCMPL) {
 				return ValueComparisonType.LT;
+			} else {
+				throw new UnsupportedOperationException(Printer.OPCODES[opcode]);
+			}
+		}
+		
+		public static Type resolveType(int opcode) {
+			if(opcode == LCMP) {
+				return Type.LONG_TYPE;
+			} else if(opcode == FCMPG || opcode == FCMPL) {
+				return Type.FLOAT_TYPE;
+			} else if(opcode == DCMPG || opcode == DCMPL) {
+				return Type.DOUBLE_TYPE;
 			} else {
 				throw new UnsupportedOperationException(Printer.OPCODES[opcode]);
 			}
