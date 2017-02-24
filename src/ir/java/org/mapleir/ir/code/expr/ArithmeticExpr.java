@@ -1,5 +1,7 @@
 package org.mapleir.ir.code.expr;
 
+import static org.objectweb.asm.Opcodes.*;
+
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.CodeUnit;
 import org.mapleir.ir.code.Expr;
@@ -8,17 +10,6 @@ import org.mapleir.stdlib.util.TypeUtils;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.util.Printer;
-
-import static org.objectweb.asm.Opcodes.DREM;
-import static org.objectweb.asm.Opcodes.IADD;
-import static org.objectweb.asm.Opcodes.IAND;
-import static org.objectweb.asm.Opcodes.IOR;
-import static org.objectweb.asm.Opcodes.ISHL;
-import static org.objectweb.asm.Opcodes.IXOR;
-import static org.objectweb.asm.Opcodes.LAND;
-import static org.objectweb.asm.Opcodes.LOR;
-import static org.objectweb.asm.Opcodes.LUSHR;
-import static org.objectweb.asm.Opcodes.LXOR;
 
 public class ArithmeticExpr extends Expr {
 
@@ -54,6 +45,54 @@ public class ArithmeticExpr extends Expr {
 				return Operator.XOR;
 			} else {
 				throw new UnsupportedOperationException(Printer.OPCODES[bOpcode]);
+			}
+		}
+		
+		public static Type resolveType(int bOpcode) {
+			switch(bOpcode) {
+				case IADD:
+				case ISUB:
+				case IMUL:
+				case IDIV:
+				case IREM:
+				case INEG:
+				case ISHL:
+				case ISHR:
+				case IUSHR:
+				case IAND:
+				case IOR:
+				case IXOR:
+					return Type.INT_TYPE;
+				case LADD:
+				case LSUB:
+				case LMUL:
+				case LDIV:
+				case LREM:
+				case LNEG:
+				case LSHL:
+				case LSHR:
+				case LUSHR:
+				case LAND:
+				case LOR:
+				case LXOR:
+					return Type.LONG_TYPE;
+				case FADD:
+				case FSUB:
+				case FMUL:
+				case FDIV:
+				case FREM:
+				case FNEG:
+					return Type.FLOAT_TYPE;
+				case DADD:
+				case DSUB:
+				case DMUL:
+				case DDIV:
+				case DREM:
+				case DNEG:
+					return Type.DOUBLE_TYPE;
+					
+				default:
+					throw new UnsupportedOperationException(Printer.OPCODES[bOpcode]);
 			}
 		}
 	}

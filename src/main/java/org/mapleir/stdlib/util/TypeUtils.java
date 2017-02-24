@@ -244,6 +244,9 @@ public class TypeUtils {
 				}
 				break;
 			case Type.BOOLEAN:
+				if(sortTo == Type.BOOLEAN || sortTo == Type.INT || sortTo == Type.BYTE) {
+					return new int[] {};
+				}
 			case Type.INT:
 				if (sortTo == Type.BOOLEAN || sortTo == Type.INT) {
 					return new int[] {};

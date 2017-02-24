@@ -127,15 +127,6 @@ public class InvocationResolver {
 			
 			MethodNode m;
 			
-//			if(owner.equals("bk")) {
-//				for(ClassNode cnode : app.iterate()) {
-//					if(cnode.superName.equals("bk")) {
-//						System.out.println("extends; " + cnode);
-//					}
-//				}
-//				System.out.println("dels: " +  app.getStructures().getDelegates(cn));
-//			}
-			
 			for(ClassNode c : app.getStructures().getDelegates(cn)) {
 				m = findMethod(c, name, desc);
 				
@@ -196,42 +187,7 @@ public class InvocationResolver {
 				lvl = newLvl;
 			}
 			
-			
-//			Set<ClassNode> classes = app.getStructures().getAllBranches(cn, true);
-//			Set<ClassNode> classes = new HashSet<>();
-//			System.out.println("vcall: " + owner + "." + name + " " + desc);
-//			System.out.println(" owner: " + cn);
-//			classes.add(cn);
-//			classes.addAll(app.getStructures().getSupers(cn));
-//			classes.addAll(app.getStructures().getDelegates(cn));
-//			System.out.println(" set: " + classes);
-//			set.addAll(getVirtualMethods(classes, name, desc));
-//			System.out.println("  calls: " + set);
-//			MethodNode m = resolveVirtualCall(cn, name, desc);
-//			if(m != null) {
-//				set.add(m);
-//			}
-			
-//			for(ClassNode subC : tree.getSupers(cn)) {
-//				m = resolveVirtualCall(subC, name, desc);
-//				if(m != null) {
-//					set.add(m);
-//				}
-//			}
-			
-//			for(ClassNode subC : tree.getDelegates(cn)) {
-//				m = resolveVirtualCall(subC, name, desc);
-//				if(m != null) {
-//					set.add(m);
-//				}
-//			}
-			
-			// if(set.size() == 0) {
-			// 	throw new UnsupportedOperationException(String.format("No call sites for %s.%s %s", owner, name, desc));
-			// }
-			
 			return set;
-			// throw new IllegalStateException(cn.name + "." + name + " " + desc);
 		}
 		
 		return set;
