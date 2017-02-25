@@ -1039,10 +1039,10 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 					if(vl != def.getVariable().getLocal()) {
 						throw new RuntimeException(vl + ", " + def);
 					}
-					
 					/* use pool remove */
 					it.remove();
 					pool.defs.remove(vl);
+					
 				}
 			}
 		}
@@ -1057,12 +1057,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		
 		Expr e = def.getExpression();
 		
-//		if(e.getOpcode() == Opcode.CATCH || e.getOpcode() == Opcode.EPHI) {
-//			return false;
-//		}
-		
 		if(canPrune(e)) {
-//			System.out.println("prune " + def);
 			for(Expr s : e.enumerateWithSelf()) {
 				if(s.getOpcode() == Opcode.LOCAL_LOAD) {
 					VarExpr v = (VarExpr) s;
@@ -1080,12 +1075,6 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 	
 	private boolean canPrune(Expr e) {
 		int op = e.getOpcode();
-//		if(op == Opcode.INVOKE || op == Opcode.DYNAMIC_INVOKE || op == Opcode.INIT_OBJ) {
-//			return false;
-//		}
-//		if(e.getOpcode() == Opcode.CATCH || e.getOpcode() == Opcode.EPHI) {
-//			return false;
-//		}
 		
 		if(op != Opcode.PHI && ConstraintUtil.isUncopyable(e)) {
 			return false;
@@ -1137,16 +1126,6 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		
 		pool.uses.get(vl).remove(v);
 	}
-	
-//	private void mergemapCongruenceClasses() {
-//		NullPermeableHashMap<VersionedLocal, Set<VersionedLocal>> remap = createCongMap();
-//		
-//		for(Entry<VersionedLocal, Set<VersionedLocal>> e : shadowed.entrySet()) {
-//			for(VersionedLocal vl : e.getValue()) {
-//				if(remap.)
-//			}
-//		}
-//	}
 
 	private void resolveShadowedLocals() {
 		Set<VersionedLocal> visited = new HashSet<>();
@@ -1253,8 +1232,8 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		Iterator<Entry<VersionedLocal, Set<VarExpr>>> it = pool.uses.entrySet().iterator();
 		while(it.hasNext()) {
 			Entry<VersionedLocal, Set<VarExpr>> e = it.next();
-//			System.out.println(e.getKey() + " ->  " + e.getValue());
 			VersionedLocal vl = e.getKey();
+			
 			if(deferred.contains(vl) || vl.isStack()) {
 				Set<VarExpr> useSet = e.getValue();
 				AbstractCopyStmt def = pool.defs.get(vl);
@@ -1275,9 +1254,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 						/* phi var*/
 						Expr rhs = def.getExpression();
 						
-						if(use.getParent() == null) {
-							//
-						} else {
+						if(use.getParent() != null) {
 							if(canTransferHandlers(def.getBlock(), use.getBlock()) && val.canPropagate(def, use.getRootParent(), use, false)) {
 								CodeUnit parent = use.getParent();
 								if(rhs.getOpcode() == Opcode.CATCH) {
@@ -1287,18 +1264,14 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 									// first expression in the block, if we aren't
 									// then deny, otherwise we can get rid of the local.
 									if(rp.getBlock().indexOf(rp) != 1 || rp.enumerateExecutionOrder().indexOf(use) != 0) {
-										/* System.out.println("ignoring prop of " + use + " to " + rp);
-										System.out.println(" i1: " + rp.getBlock().indexOf(rp));
-										System.out.println(" i2: " + rp.enumerateExecutionOrder().indexOf(use)); */
 										deferred.remove(vl);
 										continue;
 									}
-									
-									/*System.out.println("allowing " + use + " to " + rp);
-									TabbedStringWriter sw = new TabbedStringWriter();
-									ControlFlowGraph.blockToString(sw, builder.graph, use.getBlock(), 0);
-									System.out.println(sw); */
 								}
+//								System.out.println("replace " + vl + " with " + rhs);
+//								System.out.println(" in " + parent);
+//								System.out.println(" kill def: " + def);
+								
 								rhs.unlink();
 								def.delete();
 								pool.defs.remove(vl);
@@ -1311,8 +1284,6 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 							}
 						}
 					}
-				} else {
-//					// Rejected
 				}
 			}
 		
@@ -1350,7 +1321,6 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		if(OPTIMISE) {
 			resolveShadowedLocals();
 			aggregateInitialisers();
-			
 			
 			int i;
 			do {
