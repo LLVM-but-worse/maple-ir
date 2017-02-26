@@ -32,7 +32,6 @@ public class MethodRenamerPass implements IPass {
 	@Override
 	public int accept(IContext cxt, IPass prev, List<IPass> completed) {
 		ApplicationClassSource source = cxt.getApplication();
-		InvocationResolver resolver = cxt.getInvocationResolver();
 		
 		Map<MethodNode, String> remapped = new HashMap<>();
 
@@ -77,6 +76,16 @@ public class MethodRenamerPass implements IPass {
 			}
 		}
 		
+		rename(cxt, remapped, true);
+		System.out.printf("  Remapped %d/%d methods.%n", remapped.size(), totalMethods);
+		
+		return remapped.size();
+	}
+	
+	public static void rename(IContext cxt, Map<MethodNode, String> remapped, boolean warn) {
+		ApplicationClassSource source = cxt.getApplication();
+		InvocationResolver resolver = cxt.getInvocationResolver();
+		
 		for(ClassNode cn : source.iterate()) {
 			{
 				if(cn.outerMethod != null) {
@@ -101,7 +110,6 @@ public class MethodRenamerPass implements IPass {
 			}
 			
 			for(MethodNode m : cn.methods) {
-				
 				ControlFlowGraph cfg = cxt.getIR(m);
 				
 				for(BasicBlock b : cfg.vertices()) {
@@ -123,7 +131,7 @@ public class MethodRenamerPass implements IPass {
 										if(remapped.containsKey(site)) {
 											invoke.setName(remapped.get(site));
 										} else {
-											if(mustMark(source, invoke.getOwner())) {
+											if(warn && mustMark(source, invoke.getOwner())) {
 												System.err.println("  invalid site(s): " + invoke);
 											}
 										}
@@ -143,7 +151,7 @@ public class MethodRenamerPass implements IPass {
 										if(remapped.containsKey(site)) {
 											invoke.setName(remapped.get(site));
 										} else {
-											if(!site.name.equals("<init>") && canRename(cxt, sites)) {
+											if(warn && !site.name.equals("<init>") && canRename(cxt, sites)) {
 												System.err.println("  invalid site(v): " + invoke + ", " + sites);
 											}
 										}
@@ -169,18 +177,14 @@ public class MethodRenamerPass implements IPass {
 		for(Entry<MethodNode, String> e : remapped.entrySet()) {
 			e.getKey().name = e.getValue();
 		}
-		
-		System.out.printf("  Remapped %d/%d methods.%n", remapped.size(), totalMethods);
-		
-		return remapped.size();
 	}
 	
-	private boolean mustMark(ApplicationClassSource tree, String owner) {
+	private static boolean mustMark(ApplicationClassSource tree, String owner) {
 		ClassNode cn = tree.findClassNode(owner);
 		return cn == null || !tree.isLibraryClass(owner);
 	}
 	
-	private boolean canRename(IContext cxt, Set<MethodNode> methods) {
+	private static boolean canRename(IContext cxt, Set<MethodNode> methods) {
 		for(MethodNode m : methods) {
 			if(cxt.getApplication().isLibraryClass(m.owner.name)) {
 				/* inherited from runtime class */
@@ -190,7 +194,7 @@ public class MethodRenamerPass implements IPass {
 		return true;
 	}
 	
-	private Set<MethodNode> getVirtualMethods(IContext cxt, Set<ClassNode> classes, String name, String desc) {
+	private static Set<MethodNode> getVirtualMethods(IContext cxt, Set<ClassNode> classes, String name, String desc) {
 		Set<MethodNode> set = new HashSet<>();
 		for(ClassNode cn : classes) {
 			for(MethodNode m : cn.methods) {
