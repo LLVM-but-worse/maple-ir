@@ -2,14 +2,16 @@ package org.mapleir.deobimpl2;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicReference;
 
-import org.mapleir.deobimpl2.ConstantParameterPass.SemiConstantParameter;
+import org.mapleir.deobimpl2.util.IPConstAnalysis;
+import org.mapleir.deobimpl2.util.IPConstAnalysis.ChildVisitor;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.cfg.edge.FlowEdge;
@@ -19,14 +21,9 @@ import org.mapleir.ir.code.CodeUnit;
 import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.code.Opcode;
 import org.mapleir.ir.code.Stmt;
-import org.mapleir.ir.code.expr.ArithmeticExpr;
+import org.mapleir.ir.code.expr.*;
 import org.mapleir.ir.code.expr.ArithmeticExpr.Operator;
-import org.mapleir.ir.code.expr.CastExpr;
-import org.mapleir.ir.code.expr.ComparisonExpr;
 import org.mapleir.ir.code.expr.ComparisonExpr.ValueComparisonType;
-import org.mapleir.ir.code.expr.ConstantExpr;
-import org.mapleir.ir.code.expr.NegationExpr;
-import org.mapleir.ir.code.expr.VarExpr;
 import org.mapleir.ir.code.stmt.ConditionalJumpStmt;
 import org.mapleir.ir.code.stmt.ConditionalJumpStmt.ComparisonType;
 import org.mapleir.ir.code.stmt.UnconditionalJumpStmt;
@@ -60,18 +57,22 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 	
 	@Override
 	public int accept(IContext cxt, IPass prev, List<IPass> completed) {
+		int k = 0;
 		int j = 0;
 		
-		AtomicReference<ConstantParameterPass> pass = new AtomicReference<>();
-		
-		for(IPass c : completed) {
-			if(c instanceof ConstantParameterPass) {
-				pass.set((ConstantParameterPass) c);
-			}
-		}
+//		ConstantParameterPass pass = null;
+//		
+//		for(IPass c : completed) {
+//			if(c instanceof ConstantParameterPass) {
+//				pass = (ConstantParameterPass) c;
+//			}
+//		}
+		IPConstAnalysisVisitor vis = new IPConstAnalysisVisitor(cxt);
+		IPConstAnalysis.create(cxt, vis);
 		
 		for(;;) {
 			int js = j;
+			int ks = k;
 			
 			for(ClassNode cn : cxt.getApplication().iterate()) {
 				for(MethodNode m : cn.methods) {
@@ -83,109 +84,15 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 						for(int i=0; i < b.size(); i++) {
 							Stmt stmt = b.get(i);
 							
-							if(stmt.getOpcode() == COND_JUMP) {
-								ConditionalJumpStmt cond = (ConditionalJumpStmt) stmt;
-								
-								Expr l = cond.getLeft();
-								Expr r = cond.getRight();
-								
-								if(!isPrimitive(l.getType()) || !isPrimitive(r.getType())) {
-									continue;
-								}
-								
-								LocalValueResolver resolver = new LocalValueResolver() {
-									@Override
-									public Set<Expr> getValues(Local l) {
-										AbstractCopyStmt copy = pool.defs.get(l);
-
-										ConstantParameterPass cp = pass.get();
-										if(cp != null) {
-											Set<Expr> set = new HashSet<>();
-											
-											if(copy.isSynthetic()) {
-												VarExpr vE = (VarExpr) copy.getExpression();
-												if(vE.getLocal() != l) {
-													throw new IllegalStateException(copy + " : " + l);
-												}
-												Set<SemiConstantParameter> set2 = cp.getSemiConstantValues(m);
-												
-												if(set2 != null) {
-													for(SemiConstantParameter param : set2) {
-														if(param.lvtIndex == l.getIndex()) {
-															set.addAll(param.inputs);
-														}
-													}
-												}
-											} else {
-												set.add(copy.getExpression());
-											}
-											
-											return set;
-										} else {
-											Set<Expr> set = new HashSet<>();
-											set.add(copy.getExpression());
-											return set;
-										}
-									}
-								};
-								Set<ConstantExpr> lSet = evalPossibleValues(resolver, l);
-								Set<ConstantExpr> rSet = evalPossibleValues(resolver, r);
-								
-								if(isValidSet(lSet) && isValidSet(rSet)) {
-									predictBranch(cfg, b, cond, i, lSet, rSet);
-								}
+							if(stmt.getOpcode() == COND_JUMP && simplifyConditionalBranch(vis, cfg, (ConditionalJumpStmt)stmt, i)) {
+								 k++;
 							}
-							
-							for(Expr e : stmt.enumerateOnlyChildren()) {
-								CodeUnit par = e.getParent();
-								if(par != null) {
-									/* no point evaluating constants */
-									if(e.getOpcode() != CONST_LOAD) {
-										Expr val = eval(pool, e);
-										if(val != null) {
-											if(!val.equivalent(e)) {
-												overwrite(par, e, val, pool);
-												j++;
-											}
-										}
-										
-										// TODO: fix this hack for nested exprs
-										if(e.getOpcode() == ARITHMETIC && e.getParent() != null) {
-											ArithmeticExpr ae = (ArithmeticExpr) e;
-											Operator op = ae.getOperator();
-											
-											Expr e2 = simplify(pool, ae);
-											
-											if(e2 != null) {
-												overwrite(par, e, e2, pool);
-												j++;
-											} else if (op == Operator.MUL) {
-												/* (x * c) * k
-												 * to
-												 * (x * ck)
-												 */
-												Expr l = ae.getLeft();
-												Expr r = ae.getRight();
-												
-												if(l.getOpcode() == ARITHMETIC) {
-													ArithmeticExpr xcExpr = (ArithmeticExpr) l;
-			
-													if(xcExpr.getOperator() == Operator.MUL) {
-														Expr r2 = xcExpr.getRight();
-														Expr c = eval(pool, r2);
-														Expr k = eval(pool, r);
-														if(c != null && k != null) {
-															Bridge bridge = getArithmeticBridge(c.getType(), k.getType(), c.getType(), Operator.MUL);
-															Object v = bridge.eval(((ConstantExpr) c).getConstant(), ((ConstantExpr) k).getConstant());
-															
-															ArithmeticExpr newAe = new ArithmeticExpr(new ConstantExpr(v), xcExpr.getLeft().copy(), Operator.MUL);
-															overwrite(ae.getParent(), ae, newAe, pool);
-															j++;
-														}
-													}
-												}
-											}
-										}
+
+							for(CodeUnit e : stmt.enumerateExecutionOrder()) {
+								if(e instanceof Expr) {
+									CodeUnit par = ((Expr) e).getParent();
+									if(par != null) {
+										j += simplifyArithmetic(pool, par, (Expr) e);
 									}
 								}
 							}
@@ -194,12 +101,77 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 				}
 			}
 			
-			if(js == j) {
+			if(js == j && ks == k) {
 				break;
 			}
 		}
 		
 		System.out.printf("  evaluated %d constant expressions.%n", j);
+		System.out.printf("  eliminated %d constant branches.%n", k);
+		
+		return j;
+	}
+	
+	private int simplifyArithmetic(LocalsPool pool, CodeUnit par, Expr e) {
+		int j = 0;
+		
+		/* no point evaluating constants */
+		if(e.getOpcode() != CONST_LOAD) {
+			Expr val = eval(pool, e);
+			if(val != null) {
+				if(!val.equivalent(e)) {
+					overwrite(par, e, val, pool);
+					e = val;
+					j++;
+				}
+			}
+			
+			// TODO: fix this hack for nested exprs
+			if(e.getOpcode() == ARITHMETIC) {
+				ArithmeticExpr ae = (ArithmeticExpr) e;
+				Operator op = ae.getOperator();
+				
+				Expr e2 = simplify(pool, ae);
+				
+				if(e2 != null) {
+					overwrite(par, e, e2, pool);
+					j++;
+				} else if (op == Operator.MUL) {
+					/* (x * c) * k
+					 * to
+					 * (x * ck)
+					 */
+					Expr l = ae.getLeft();
+					Expr r = ae.getRight();
+					
+					if(l.getOpcode() == ARITHMETIC) {
+						ArithmeticExpr xcExpr = (ArithmeticExpr) l;
+
+						if(xcExpr.getOperator() == Operator.MUL) {
+							Expr r2 = xcExpr.getRight();
+							Expr c = eval(pool, r2);
+							Expr k = eval(pool, r);
+							if(c != null && k != null) {
+								ConstantExpr cc = (ConstantExpr) c;
+								ConstantExpr ck = (ConstantExpr) k;
+								
+								Bridge bridge = getArithmeticBridge(c.getType(), k.getType(), c.getType(), Operator.MUL);
+
+								/*System.out.println("eval: " + bridge.method + " " + cc.getConstant().getClass() + " " + ck.getConstant().getClass());
+								System.out.println("   actual: " + cc.getType() + ", " +  ck.getType());
+								System.out.println("      " + cc.getConstant() +"  " + ck.getConstant());*/
+								
+								Object v = bridge.eval(cc.getConstant(), ck.getConstant());
+								
+								ArithmeticExpr newAe = new ArithmeticExpr(new ConstantExpr(v, c.getType()), xcExpr.getLeft().copy(), Operator.MUL);
+								overwrite(ae.getParent(), ae, newAe, pool);
+								j++;
+							}
+						}
+					}
+				}
+			}
+		}
 		
 		return j;
 	}
@@ -211,20 +183,93 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 	
 	private void updateDefuse(Expr from, Expr to, LocalsPool pool) {
 		// remove uses in from
-		for(Expr e : from.enumerateOnlyChildren()) {
-			if (e instanceof VarExpr) {
+		for(Expr e : from.enumerateWithSelf()) {
+			if (e.getOpcode() == Opcode.LOCAL_LOAD) {
 				VersionedLocal l = (VersionedLocal) ((VarExpr) e).getLocal();
-				pool.uses.getNonNull(l).remove(e);
+				pool.uses.get(l).remove(e);
 			}
 		}
 		
 		// add uses in to
-		for(Expr e : to.enumerateOnlyChildren()) {
-			if (e instanceof VarExpr) {
+		for(Expr e : to.enumerateWithSelf()) {
+			if (e.getOpcode() == Opcode.LOCAL_LOAD) {
 				VarExpr var = (VarExpr) e;
-				pool.uses.getNonNull((VersionedLocal) var.getLocal()).add(var);
+				pool.uses.get((VersionedLocal) var.getLocal()).add(var);
 			}
 		}
+	}
+	
+	private boolean simplifyConditionalBranch(IPConstAnalysisVisitor vis, ControlFlowGraph cfg, ConditionalJumpStmt cond, int i) {		
+		Expr l = cond.getLeft();
+		Expr r = cond.getRight();
+		
+		if(!isPrimitive(l.getType()) || !isPrimitive(r.getType())) {
+			return false;
+		}
+		
+		LocalValueResolver resolver;
+		
+		LocalsPool pool = cfg.getLocals();
+		if(vis != null) {
+			// FIXME: use
+			resolver = new SemiConstantLocalValueResolver(cfg.getMethod(), pool, vis);
+		} else {
+			resolver = new PooledLocalValueResolver(pool);
+		}
+		
+		Set<ConstantExpr> lSet = evalPossibleValues(resolver, l);
+		Set<ConstantExpr> rSet = evalPossibleValues(resolver, r);
+		
+		if(isValidSet(lSet) && isValidSet(rSet)) {
+			return attemptBranchElimination(cfg, cond.getBlock(), cond, i, lSet, rSet);
+		} else {
+			return false;
+		}
+	}
+	
+	private boolean attemptBranchElimination(ControlFlowGraph cfg, BasicBlock b, ConditionalJumpStmt cond, int insnIndex, Set<ConstantExpr> leftSet, Set<ConstantExpr> rightSet) {
+		Boolean val = null;
+		
+		for(ConstantExpr lc : leftSet) {
+			for(ConstantExpr rc : rightSet) {
+				if(isPrimitive(lc.getType()) && isPrimitive(rc.getType())) {
+					Bridge bridge = getConditionalEvalBridge(lc.getType(), rc.getType(), cond.getComparisonType());
+					/*System.out.println("eval: " + bridge.method + " " + lc.getConstant().getClass() + " " + rc.getConstant().getClass());
+					System.out.println("   actual: " + lc.getType() + ", " +  rc.getType());
+					System.out.println("      " + lc.getConstant() +"  " + rc.getConstant());*/
+					
+					boolean branchVal = (boolean) bridge.eval(lc.getConstant(), rc.getConstant());
+					
+					if(val != null) {
+						if(val != branchVal) {
+							return false;
+						}
+					} else {
+						val = branchVal;
+					}
+				} else {
+					/*System.err.println("something::");
+					System.err.println("  " + cond);
+					System.err.println("  leftset: " + leftSet);
+					System.err.println("  rightSet: " + rightSet);|
+					return;*/
+					throw new UnsupportedOperationException();
+				}
+			}
+		}
+
+		// FIXME: remove check when false branch removal is supported.
+		if(val != null && val.booleanValue()) {
+			/*if(leftSet.size() > 1 || rightSet.size() > 1) {
+				System.out.println("Strong elim:: predict=" + val.toString());
+				System.out.println("  " + cond);
+				System.out.println("  leftset: " + leftSet);
+				System.out.println("  rightSet: " + rightSet);
+			}*/
+			eliminateBranch(cfg, b, cond, insnIndex, val);
+			return true;
+		}
+		return false;
 	}
 	
 	private Expr simplify(LocalsPool pool, ArithmeticExpr e) {
@@ -241,7 +286,7 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 				if(FieldRSADecryptionPass.__eq((Number) o, 1, o instanceof Long)) {
 					return e.getLeft().copy();
 				} else if(FieldRSADecryptionPass.__eq((Number) o, 0, o instanceof Long)) {
-					return new ConstantExpr(0);
+					return new ConstantExpr(0, ce.getType());
 				}
 			}
 		}
@@ -249,44 +294,20 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 		return null;
 	}
 	
-	private void predictBranch(ControlFlowGraph cfg, BasicBlock b, ConditionalJumpStmt cond, int insnIndex, Set<ConstantExpr> leftSet, Set<ConstantExpr> rightSet) {
-		Boolean val = null;
-		
-		for(ConstantExpr lc : leftSet) {
-			for(ConstantExpr rc : rightSet) {
-				if(isPrimitive(lc.getType()) && isPrimitive(rc.getType())) {
-					Bridge bridge = getConditionalEvalBridge(lc.getType(), rc.getType(), cond.getComparisonType());
-					boolean branchVal = (boolean) bridge.eval(lc.getConstant(), rc.getConstant());
-					
-					if(val != null) {
-						if(val != branchVal) {
-							return;
-						}
-					} else {
-						val = branchVal;
-					}
-				} else {
-					System.err.println("something::");
-					System.err.println("  " + cond);
-					System.err.println("  leftset: " + leftSet);
-					System.err.println("  rightSet: " + rightSet);
-					return;
-				}
+	private void killStmt(LocalsPool pool, ConditionalJumpStmt c) {
+		for(Expr e : c.enumerateOnlyChildren()) {
+			if(e.getOpcode() == Opcode.LOCAL_LOAD) {
+				VarExpr v = (VarExpr) e;
+				
+				Local l = v.getLocal();
+				pool.uses.get(l).remove(v);
 			}
-		}
-		
-		if(val != null) {
-			if(leftSet.size() > 1 || rightSet.size() > 1) {
-//				System.out.println("Strong elim:: predict=" + val.toString());
-//				System.out.println("  " + cond);
-//				System.out.println("  leftset: " + leftSet);
-//				System.out.println("  rightSet: " + rightSet);
-			}
-			eliminateBranch(cfg, b, cond, insnIndex, val);
 		}
 	}
 	
 	private void eliminateBranch(ControlFlowGraph cfg, BasicBlock b, ConditionalJumpStmt cond, int insnIndex, boolean val) {
+		LocalsPool pool = cfg.getLocals();
+		
 		if(val) {
 			// always true, jump to true successor
 			for(FlowEdge<BasicBlock> fe : new HashSet<>(cfg.getEdges(b))) {
@@ -296,14 +317,15 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 					}
 					
 					cfg.removeEdge(b, fe);
-					DeadCodeEliminationPass.safeKill(fe);
+					DeadCodeEliminationPass.safeKill(pool, fe);
 				} else if(fe.getType() == FlowEdges.IMMEDIATE) {
-					DeadCodeEliminationPass.safeKill(fe);
+					DeadCodeEliminationPass.safeKill(pool, fe);
 					cfg.removeEdge(b, fe);
 				} else if(fe.getType() != FlowEdges.TRYCATCH) {
 					throw new IllegalStateException(fe.toString());
 				}
 			}
+			killStmt(pool, cond);
 
 			UnconditionalJumpStmt newJump = new UnconditionalJumpStmt(cond.getTrueSuccessor());
 			b.set(insnIndex, newJump);
@@ -348,7 +370,7 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 				
 				Bridge b = getArithmeticBridge(lc.getType(), rc.getType(), ae.getType(), ae.getOperator());
 				
-				ConstantExpr cr = new ConstantExpr(b.eval(lc.getConstant(), rc.getConstant()));
+				ConstantExpr cr = new ConstantExpr(b.eval(lc.getConstant(), rc.getConstant()), ae.getType());
 				return cr;
 			}
 		} else if(e.getOpcode() == NEGATE) {
@@ -359,7 +381,7 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 				ConstantExpr ce = (ConstantExpr) e2;
 				Bridge b = getNegationBridge(e2.getType());
 				
-				ConstantExpr cr = new ConstantExpr(b.eval(ce.getConstant()));
+				ConstantExpr cr = new ConstantExpr(b.eval(ce.getConstant()), ce.getType());
 				return cr;
 			}
 		} else if(e.getOpcode() == LOCAL_LOAD) {
@@ -405,7 +427,7 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 				
 				Bridge b = getCastBridge(from, to);
 				
-				ConstantExpr cr = new ConstantExpr(b.eval(ce.getConstant()));
+				ConstantExpr cr = new ConstantExpr(b.eval(ce.getConstant()), to);
 				return cr;
 			}
 		} else if(e.getOpcode() == COMPARE) {
@@ -423,9 +445,7 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 				
 				Bridge b = getComparisonBridge(lc.getType(), rc.getType(), comp.getComparisonType());
 				
-				System.out.println(b.method);
-				System.out.println(comp + " -> " + b.eval(lc.getConstant(), rc.getConstant()));
-				ConstantExpr cr = new ConstantExpr(b.eval(lc.getConstant(), rc.getConstant()));
+				ConstantExpr cr = new ConstantExpr(b.eval(lc.getConstant(), rc.getConstant()), Type.INT_TYPE);
 				return cr;
 			}
 		}
@@ -464,7 +484,7 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 				for(ConstantExpr lc : le) {
 					for(ConstantExpr rc : re) {
 						Bridge b = getArithmeticBridge(lc.getType(), rc.getType(), ae.getType(), ae.getOperator());
-						results.add(new ConstantExpr(b.eval(lc.getConstant(), rc.getConstant())));
+						results.add(new ConstantExpr(b.eval(lc.getConstant(), rc.getConstant()), ae.getType()));
 					}
 				}
 				
@@ -479,7 +499,7 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 				
 				for(ConstantExpr c : vals) {
 					Bridge b = getNegationBridge(c.getType());
-					results.add(new ConstantExpr(b.eval(c.getConstant())));
+					results.add(new ConstantExpr(b.eval(c.getConstant()), c.getType()));
 				}
 				
 				return returnCleanSet(results);
@@ -538,7 +558,7 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 					
 					Bridge b = getCastBridge(from, to);
 					
-					results.add(new ConstantExpr(b.eval(ce.getConstant())));
+					results.add(new ConstantExpr(b.eval(ce.getConstant()), to));
 				}
 				
 				return returnCleanSet(results);
@@ -567,28 +587,6 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 		}
 		
 		return null;
-	}
-	
-	static interface LocalValueResolver {
-		Set<Expr> getValues(Local l);
-	}
-	
-	static class PooledLocalValueResolver implements LocalValueResolver {
-		
-		final LocalsPool pool;
-		
-		PooledLocalValueResolver(LocalsPool pool) {
-			this.pool = pool;
-		}
-		
-		@Override
-		public Set<Expr> getValues(Local l) {
-			AbstractCopyStmt copy = pool.defs.get(l);
-			
-			Set<Expr> set = new HashSet<>();
-			set.add(copy.getExpression());
-			return set;
-		}
 	}
 	
 	private void cast(InsnList insns, Type from, Type to) {
@@ -756,7 +754,7 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 			insns.add(new VarInsnNode(TypeUtils.getVariableLoadOpcode(t1), 0));
 			cast(insns, t1, leftType);
 
-			insns.add(new VarInsnNode(TypeUtils.getVariableLoadOpcode(t2), t2.getSize() /*D,J=2, else 1*/));
+			insns.add(new VarInsnNode(TypeUtils.getVariableLoadOpcode(t2), t1.getSize() /*D,J=2, else 1*/));
 			cast(insns, t2, rightType);
 			
 			int opcode;
@@ -871,6 +869,152 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 	private static class BridgeClassLoader extends ClassLoader {
 		public Class<?> make(String name, byte[] bytes) {
 			return defineClass(name.replace("/", "."), bytes, 0, bytes.length);
+		}
+	}
+	
+	static interface LocalValueResolver {
+		Set<Expr> getValues(Local l);
+	}
+	
+	static class PooledLocalValueResolver implements LocalValueResolver {
+		
+		final LocalsPool pool;
+		
+		PooledLocalValueResolver(LocalsPool pool) {
+			this.pool = pool;
+		}
+		
+		@Override
+		public Set<Expr> getValues(Local l) {
+			AbstractCopyStmt copy = pool.defs.get(l);
+			
+			Set<Expr> set = new HashSet<>();
+			set.add(copy.getExpression());
+			return set;
+		}
+	}
+	
+	static class SemiConstantLocalValueResolver implements LocalValueResolver {
+		private final MethodNode method;
+		private final LocalsPool pool;
+		private final IPConstAnalysisVisitor vis;
+		
+		public SemiConstantLocalValueResolver(MethodNode method, LocalsPool pool, IPConstAnalysisVisitor vis) {
+			this.method = method;
+			this.pool = pool;
+			this.vis = vis;
+		}
+
+		@Override
+		public Set<Expr> getValues(Local l) {
+			Set<Expr> set = new HashSet<>();
+			
+			AbstractCopyStmt copy = pool.defs.get(l);
+			if(copy.isSynthetic()) {
+				VarExpr vE = (VarExpr) copy.getExpression();
+				if(vE.getLocal() != l) {
+					throw new IllegalStateException(copy + " : " + l);
+				}
+				
+				int paramNum = copy.getBlock().indexOf(copy);
+				if(!Modifier.isStatic(method.access)) {
+					/* for a virtual call, the implicit
+					 * this object isn't considered a
+					 * parameter, so the current computed
+					 * paramNum is off by +1 (as it is
+					 * including the lvar0_0 synth def). */
+					paramNum -= 1;
+				}
+				
+				if(!vis.unconst.get(method)[paramNum]) {
+					set.addAll(vis.constParams.get(method).get(paramNum));
+				}
+			} else {
+				set.add(copy.getExpression());
+			}
+			
+			return set;
+		}
+	}
+
+	static class IPConstAnalysisVisitor implements ChildVisitor {
+
+		final IContext cxt;
+		final Map<MethodNode, List<Set<ConstantExpr>>> constParams = new HashMap<>();
+		final Map<MethodNode, boolean[]> unconst = new HashMap<>();
+		
+		IPConstAnalysisVisitor(IContext cxt) {
+			this.cxt = cxt;
+		}
+		
+		@Override
+		public void postVisitMethod(IPConstAnalysis analysis, MethodNode m) {
+			int pCount = Type.getArgumentTypes(m.desc).length;
+			boolean[] arr = new boolean[pCount];
+			
+			if(Modifier.isStatic(m.access)) {
+				if(!constParams.containsKey(m)) {
+					List<Set<ConstantExpr>> l = new ArrayList<>();
+					constParams.put(m, l);
+					
+					for(int i=0; i < pCount; i++) {
+						l.add(new HashSet<>());
+					}
+					
+					unconst.put(m, arr);
+				}
+			} else {
+				for(MethodNode site : cxt.getInvocationResolver().resolveVirtualCalls(m.owner.name, m.name, m.desc, true)) {
+					if(!constParams.containsKey(site)) {
+						List<Set<ConstantExpr>> l = new ArrayList<>();
+						constParams.put(site, l);
+						
+						for(int i=0; i < pCount; i++) {
+							l.add(new HashSet<>());
+						}
+						
+						unconst.put(site, arr);
+					}
+				}
+			}
+		}
+		
+		@Override
+		public void postProcessedInvocation(IPConstAnalysis analysis, MethodNode caller, MethodNode callee, Expr call) {
+			Expr[] params;
+			
+			if(call.getOpcode() == INVOKE) {
+				params = ((InvocationExpr) call).getParameterArguments();
+			} else if(call.getOpcode() == INIT_OBJ) {
+				params = ((InitialisedObjectExpr) call).getArgumentExpressions();
+			} else {
+				throw new UnsupportedOperationException(String.format("%s -> %s (%s)", caller, callee, call));
+			}
+			
+			for(int i=0; i < params.length; i++) {
+				Expr e = params[i];
+				
+				if(e.getOpcode() == Opcode.CONST_LOAD) {
+					if(Modifier.isStatic(callee.access)) {
+						constParams.get(callee).get(i).add((ConstantExpr) e);
+					} else {
+						/* only chain callsites *can* have this input */
+						for(MethodNode site : cxt.getInvocationResolver().resolveVirtualCalls(callee.owner.name, callee.name, callee.desc, true)) {
+							constParams.get(site).get(i).add((ConstantExpr) e);
+						}
+					}
+				} else {
+					/* callsites tainted */
+					if(Modifier.isStatic(callee.access)) {
+						unconst.get(callee)[i] = true;
+					} else {
+						/* only chain callsites *can* have this input */
+						for(MethodNode site : cxt.getInvocationResolver().resolveVirtualCalls(callee.owner.name, callee.name, callee.desc, true)) {
+							unconst.get(site)[i] = true;
+						}
+					}
+				}
+			}
 		}
 	}
 }

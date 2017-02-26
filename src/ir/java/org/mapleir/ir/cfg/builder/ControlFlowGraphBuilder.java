@@ -89,7 +89,7 @@ public class ControlFlowGraphBuilder {
 		try {
 			return builder.buildImpl();
 		} catch(RuntimeException e) {
-//			System.err.println(builder.graph);
+			System.err.println(builder.graph);
 			throw e;
 		}
 	}

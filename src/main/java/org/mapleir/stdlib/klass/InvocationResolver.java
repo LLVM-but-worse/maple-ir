@@ -88,7 +88,7 @@ public class InvocationResolver {
 		return findM;
 	}
 	
-	public Set<MethodNode> resolveVirtualCalls(String owner, String name, String desc) {
+	public Set<MethodNode> resolveVirtualCalls(String owner, String name, String desc, boolean strict) {
 		Set<MethodNode> set = new HashSet<>();
 		ClassNode cn = app.findClassNode(owner);
 		
@@ -108,8 +108,8 @@ public class InvocationResolver {
 			 * be a call to A.invoke(), B.invoke() or c.invoke().
 			 * So we include all of these cases at the start.
 			 * 
-			 * Alternatively to being a subclass, it could
-			 * be a call in the class A or the closest
+			 * The alternative to being a subclass call, is
+			 * a call in the class A or the closest
 			 * superclass method to it, i.e.
 			 * 
 			 * C extends B, B extends A1 implements A2, A3,
@@ -126,6 +126,19 @@ public class InvocationResolver {
 			 */
 			
 			MethodNode m;
+			
+			if(name.equals("<init>")) {
+				m = findMethod(cn, name, desc);
+				
+				if(m == null) {
+					if(strict) {
+						throw new IllegalStateException(String.format("No call to %s.<init> %s", owner, desc));
+					}
+				} else {
+					set.add(m);
+				}
+				return set;
+			}
 			
 			for(ClassNode c : app.getStructures().getDelegates(cn)) {
 				m = findMethod(c, name, desc);
@@ -152,7 +165,7 @@ public class InvocationResolver {
 					}
 				}
 				
-				if(lvlSites.size() > 1) {
+				if(lvlSites.size() > 1 && strict) {
 					System.out.printf("(warn) resolved %s.%s %s to %s.%n", owner, name, desc, lvlSites);
 				}
 				
@@ -186,8 +199,6 @@ public class InvocationResolver {
 				lvl.clear();
 				lvl = newLvl;
 			}
-			
-			return set;
 		}
 		
 		return set;

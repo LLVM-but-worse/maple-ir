@@ -12,10 +12,23 @@ import org.objectweb.asm.Type;
 public class ConstantExpr extends Expr {
 
 	private Object cst;
-
-	public ConstantExpr(Object cst) {
+	private Type type;
+	
+	public ConstantExpr(Object cst, Type type, boolean check) {
 		super(CONST_LOAD);
 		this.cst = cst;
+		this.type = type;
+		
+		if(type == Type.BOOLEAN_TYPE) {
+			throw new RuntimeException();
+		}
+		if(check && !type.equals(computeType(cst))) {
+			throw new IllegalStateException(cst + ", " + type + ", " + computeType(cst));
+		}
+	}
+	
+	public ConstantExpr(Object cst, Type type) {
+		this(cst, type, false);
 	}
 
 	public Object getConstant() {
@@ -28,11 +41,10 @@ public class ConstantExpr extends Expr {
 
 	@Override
 	public Expr copy() {
-		return new ConstantExpr(cst);
+		return new ConstantExpr(cst, type);
 	}
 
-	@Override
-	public Type getType() {
+	public static Type computeType(Object cst) {
 		if (cst == null) {
 			return Type.getType("Ljava/lang/Object;");
 		} else if (cst instanceof Integer) {
@@ -44,6 +56,7 @@ public class ConstantExpr extends Expr {
 			} else {
 				return Type.INT_TYPE;
 			}
+//			return Type.INT_TYPE;
 		} else if (cst instanceof Long) {
 			return Type.LONG_TYPE;
 		} else if (cst instanceof Float) {
@@ -65,11 +78,20 @@ public class ConstantExpr extends Expr {
 			return Type.getType("Ljava/lang/invoke/MethodHandle;");
 		} else if (cst instanceof Boolean) {
 			return Type.BOOLEAN_TYPE;
+		} else if(cst instanceof Byte) {
+			return Type.BYTE_TYPE;
 		} else if (cst instanceof Character) {
 			return Type.CHAR_TYPE;
+		} else if(cst instanceof Short) {
+			return Type.SHORT_TYPE;
 		} else {
 			throw new RuntimeException("Invalid type: " + cst);
 		}
+	}
+	
+	@Override
+	public Type getType() {
+		return type;
 	}
 
 	@Override
@@ -81,7 +103,7 @@ public class ConstantExpr extends Expr {
 	public void toString(TabbedStringWriter printer) {
 		if (cst == null) {
 			printer.print("null");
-		} else if (cst instanceof Integer) {
+		} else if (cst instanceof Integer || cst instanceof Byte || cst instanceof Short) {
 			printer.print(cst + "");
 		} else if (cst instanceof Long) {
 			printer.print(cst + "L");
@@ -111,25 +133,29 @@ public class ConstantExpr extends Expr {
 			printer.print((char) cst);
 			printer.print('\'');
 		} else {
-			throw new IllegalStateException();
+			throw new IllegalStateException(cst + " : " + cst.getClass());
 		}
 	}
 
+	private void packInt(MethodVisitor visitor, int value) {
+		if (value >= -1 && value <= 5) {
+			visitor.visitInsn(Opcodes.ICONST_M1 + (value + 1));
+		} else if (value >= Byte.MIN_VALUE && value <= Byte.MAX_VALUE) {
+			visitor.visitIntInsn(Opcodes.BIPUSH, value);
+		} else if (value >= Short.MIN_VALUE && value <= Short.MAX_VALUE) {
+			visitor.visitIntInsn(Opcodes.SIPUSH, value);
+		} else {
+			visitor.visitLdcInsn(value);
+		}
+	}
+	
 	@Override
 	public void toCode(MethodVisitor visitor, ControlFlowGraph cfg) {
 		if (cst == null) {
 			visitor.visitInsn(Opcodes.ACONST_NULL);
-		} else if (cst instanceof Integer) {
-			int value = (int) cst;
-			if (value >= -1 && value <= 5) {
-				visitor.visitInsn(Opcodes.ICONST_M1 + (value + 1));
-			} else if (value >= Byte.MIN_VALUE && value <= Byte.MAX_VALUE) {
-				visitor.visitIntInsn(Opcodes.BIPUSH, value);
-			} else if (value >= Short.MIN_VALUE && value <= Short.MAX_VALUE) {
-				visitor.visitIntInsn(Opcodes.SIPUSH, value);
-			} else {
-				visitor.visitLdcInsn(value);
-			}
+		} else if (cst instanceof Integer || cst instanceof Byte || cst instanceof Short) {
+			Number n = (Number) cst;
+			packInt(visitor, n.intValue());
 		} else if (cst instanceof Long) {
 			long value = (long) cst;
 			if (value == 0L || value == 1L) {
@@ -160,17 +186,9 @@ public class ConstantExpr extends Expr {
 			visitor.visitInsn(value ? Opcodes.ICONST_1 : Opcodes.ICONST_0);
 		} else if (cst instanceof Character) {
 			char value = (char) cst;
-			if (value >= -1 && value <= 5) {
-				visitor.visitInsn(Opcodes.ICONST_M1 + (value + 1));
-			} else if (value >= Byte.MIN_VALUE && value <= Byte.MAX_VALUE) {
-				visitor.visitIntInsn(Opcodes.BIPUSH, value);
-			} else if (value >= Short.MIN_VALUE && value <= Short.MAX_VALUE) {
-				visitor.visitIntInsn(Opcodes.SIPUSH, value);
-			} else {
-				visitor.visitLdcInsn(value);
-			}
+			packInt(visitor, value);
 		} else {
-			throw new IllegalStateException();
+			throw new IllegalStateException(cst + " : " + cst.getClass());
 		}
 	}
 

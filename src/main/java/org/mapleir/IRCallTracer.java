@@ -60,7 +60,7 @@ public class IRCallTracer extends CallTracer {
 //									System.err.println(cfg);
 //									throw new RuntimeException("current context: " + m);
 //								}
-								Set<MethodNode> targets = resolver.resolveVirtualCalls(owner, name, desc);
+								Set<MethodNode> targets = resolver.resolveVirtualCalls(owner, name, desc, true);
 								if(targets.size() > 0) {
 									for(MethodNode vtarg : targets) {
 										trace(vtarg);
