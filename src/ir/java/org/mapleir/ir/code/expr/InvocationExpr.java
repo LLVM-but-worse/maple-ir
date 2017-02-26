@@ -124,8 +124,6 @@ public class InvocationExpr extends Expr {
 
 	@Override
 	public void onChildUpdated(int ptr) {
-		
-		
 		updateArgument(ptr, read(ptr));
 	}
 
@@ -175,6 +173,10 @@ public class InvocationExpr extends Expr {
 			System.arraycopy(bck, 0, argTypes, 1, bck.length);
 			argTypes[0] = Type.getType("L" + owner + ";");
 		}
+		
+//		if(name.equals("getPath")) {
+//			System.out.println(this);
+//		}
 		
 		for (int i = 0; i < argumentExpressions.length; i++) {
 			argumentExpressions[i].toCode(visitor, cfg);

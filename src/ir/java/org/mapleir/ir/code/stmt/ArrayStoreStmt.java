@@ -98,7 +98,10 @@ public class ArrayStoreStmt extends Stmt {
 			visitor.visitInsn(iCast[i]);
 		valueExpression.toCode(visitor, cfg);
 		if (TypeUtils.isPrimitive(type.getType())) {
+//			System.out.println(this);
+//			System.out.println(valueExpression.getType() + " -> " + type.getType());
 			int[] vCast = TypeUtils.getPrimitiveCastOpcodes(valueExpression.getType(), type.getType());
+//			System.out.println("vcast: " + Arrays.toString(vCast));
 			for (int i = 0; i < vCast.length; i++)
 				visitor.visitInsn(vCast[i]);
 		}

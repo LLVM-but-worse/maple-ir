@@ -1,5 +1,15 @@
 package org.mapleir.deobimpl2;
 
+import java.lang.reflect.Modifier;
+import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.CodeUnit;
@@ -18,16 +28,6 @@ import org.mapleir.stdlib.deob.IPass;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.FieldNode;
 import org.objectweb.asm.tree.MethodNode;
-
-import java.lang.reflect.Modifier;
-import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 public class FieldRSADecryptionPass implements IPass, Opcode {
 
@@ -256,7 +256,7 @@ public class FieldRSADecryptionPass implements IPass, Opcode {
 								Expr e = fs.getValueExpression();
 								e.unlink();
 								
-								ArithmeticExpr ae = new ArithmeticExpr(new ConstantExpr(p[1]), e, Operator.MUL);
+								ArithmeticExpr ae = new ArithmeticExpr(new ConstantExpr(p[1], e.getType()), e, Operator.MUL);
 								fs.setValueExpression(ae);
 								
 //								fsKey = key(fs);
@@ -300,7 +300,7 @@ public class FieldRSADecryptionPass implements IPass, Opcode {
 									}
 								}
 
-								ArithmeticExpr ae = new ArithmeticExpr(new ConstantExpr(p[0]), fl.copy(), Operator.MUL);
+								ArithmeticExpr ae = new ArithmeticExpr(new ConstantExpr(p[0], fl.getType()), fl.copy(), Operator.MUL);
 								par.overwrite(ae, par.indexOf(fl));
 							}
 						}

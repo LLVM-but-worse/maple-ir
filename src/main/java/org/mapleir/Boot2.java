@@ -4,6 +4,7 @@ import java.applet.Applet;
 import java.applet.AppletContext;
 import java.applet.AppletStub;
 import java.applet.AudioClip;
+import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.Image;
 import java.awt.Toolkit;
@@ -27,29 +28,41 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.mapleir.ir.ControlFlowGraphDumper;
+import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.BoissinotDestructor;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.cfg.builder.ControlFlowGraphBuilder;
+import org.mapleir.ir.code.Expr;
+import org.mapleir.ir.code.expr.FieldLoadExpr;
+import org.mapleir.ir.code.expr.InvocationExpr;
+import org.mapleir.ir.code.expr.VarExpr;
+import org.mapleir.ir.code.stmt.PopStmt;
+import org.mapleir.ir.locals.Local;
 import org.mapleir.stdlib.klass.ClassNodeUtil;
 import org.mapleir.stdlib.klass.library.ApplicationClassSource;
 import org.mapleir.stdlib.klass.library.InstalledRuntimeClassSource;
 import org.objectweb.asm.ClassWriter;
+import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.Type;
 import org.objectweb.asm.commons.blocksplit.SplitMethodWriterDelegate;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.topdank.byteengineer.commons.data.JarInfo;
 import org.topdank.byteio.in.SingleJarDownloader;
 
+import javax.swing.JFrame;
+import javax.swing.JPanel;
+
 public class Boot2 {
 
 	public static void main(String[] args) throws Exception {
-//		VirtualRunescapeBrowser browser = new VirtualRunescapeBrowser(new URL("http://oldschool84.runescape.com/"));
+		VirtualRunescapeBrowser browser = new VirtualRunescapeBrowser(new URL("http://oldschool84.runescape.com/"));
 	
 //		File f = Boot.locateRevFile(133);
 
 
 		File f = new File("res/gamepack133.jar");
-//		System.out.printf("Running from %s%n", f.getAbsolutePath());
+		System.out.printf("Running from %s%n", f.getAbsolutePath());
 		
 		SingleJarDownloader<ClassNode> dl = new SingleJarDownloader<>(new JarInfo(f));
 		dl.download();
@@ -60,19 +73,44 @@ public class Boot2 {
 		
 		// System.out.println("@ " + j);
 		for(ClassNode cn : app.iterate()) {
-			if(!cn.name.equals("client"))
-				continue;
 			for(MethodNode m : cn.methods) {
 //				if(!m.toString().equals("client.o(Ljava/lang/String;Ljava/lang/String;ZI)Lbu;"))
 //					continue;
+				
+				if(m.toString().equals("q.y(Ljava/lang/Throwable;Ljava/lang/String;)Lcd;")) {
+					ControlFlowGraph cfg = ControlFlowGraphBuilder.build(m);
+					
+					BasicBlock entry = cfg.getEntries().iterator().next();
+					{
+						Local l = cfg.getLocals().get(0, 0, false);
+						InvocationExpr e = new InvocationExpr(Opcodes.INVOKEVIRTUAL, new Expr[]{new VarExpr(l, Type.getType(Throwable.class))}, "java/lang/Throwable", "printStackTrace", "()V");
+						PopStmt p = new PopStmt(e);
+						entry.add(p);
+					}
+					{
+//					    GETSTATIC java/lang/System.out : Ljava/io/PrintStream;
+//				    ALOAD 10
+//				    INVOKEVIRTUAL java/io/PrintStream.println (Ljava/lang/Object;)V
+						FieldLoadExpr out = new FieldLoadExpr(null, "java/lang/System", "err", "Ljava/io/PrintStream;");
+						Local l = cfg.getLocals().get(1, 0, false);
+						InvocationExpr e = new InvocationExpr(Opcodes.INVOKEVIRTUAL, new Expr[]{out, new VarExpr(l, Type.getType(String.class))}, "java/io/PrintStream", "println", "(Ljava/lang/String;)V");
+						PopStmt p = new PopStmt(e);
+						entry.add(p);
+					}
+					System.out.println(cfg);
+					
+					BoissinotDestructor.leaveSSA(cfg);
+					cfg.getLocals().realloc(cfg);
+					ControlFlowGraphDumper.dump(cfg, m);
+				}
 //				if(m.toString().equals("client.ro()V")) {
 
 //					System.out.println("transform: " +m + " @" + m.instructions.size());
-					ControlFlowGraph cfg = ControlFlowGraphBuilder.build(m);
-					BoissinotDestructor.leaveSSA(cfg);
-					cfg.getLocals().realloc(cfg);
+//					ControlFlowGraph cfg = ControlFlowGraphBuilder.build(m);
+//					BoissinotDestructor.leaveSSA(cfg);
+//					cfg.getLocals().realloc(cfg);
 //					System.out.println(cfg);
-					ControlFlowGraphDumper.dump(cfg, m);
+//					ControlFlowGraphDumper.dump(cfg, m);
 					
 //					InstructionPrinter.consolePrint(m);
 //				}
@@ -80,7 +118,7 @@ public class Boot2 {
 		
 		}
 		
-		// System.out.printf("Linked runtime%n");
+		System.out.printf("Linked runtime%n");
 		
 		ClassLoader cl = new ClassLoader() {
 			@Override
@@ -93,7 +131,7 @@ public class Boot2 {
 				ClassNode node = app.findClassNode(bname);
 				
 				if(node != null) {
-//					System.out.println("Defining " + bname);
+					System.out.println("Defining " + bname);
 					
 					ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_FRAMES, new SplitMethodWriterDelegate()) {
 					    @Override
@@ -152,38 +190,41 @@ public class Boot2 {
 			}
 		};
 
-//		System.out.printf("Loading client%n");
-		try {
-			Class<?> client = cl.loadClass("client");
-			Applet applet = (Applet) client.newInstance();
-			System.out.println("success");
-			// break mainFor;
-		} catch(RuntimeException | ClassFormatError e) {
-//			System.out.println("exception thrown: " + e.getMessage());
-			e.printStackTrace();
-		}
-	
-//		browser.setApplet(applet);
+		System.out.printf("Loading client%n");
+//		try {
+//			Class<?> client = cl.loadClass("client");
+//			Applet applet = (Applet) client.newInstance();
+//			System.out.println("success");
+//			// break mainFor;
+//		} catch(RuntimeException | ClassFormatError e) {
+////			System.out.println("exception thrown: " + e.getMessage());
+//			e.printStackTrace();
+//		}
 		
-//		new Thread(){
-//			@Override
-//			public void run() {
-//				applet.init();
-//				applet.start();
-//			}
-//		}.start();
-//
-//		System.out.printf("Create ui%n");
-//		JFrame frame = new JFrame("RS #" + f.getName().substring(0, f.getName().length() - 4));
-//		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-//		
-//		JPanel panel = new JPanel(new BorderLayout());
-//		panel.add(applet, BorderLayout.NORTH);
-//		frame.setContentPane(panel);
-//		
-//		
-//		frame.pack();
-//		frame.setVisible(true);
+		Class<?> client = cl.loadClass("client");
+		Applet applet = (Applet) client.newInstance();
+	
+		browser.setApplet(applet);
+		
+		new Thread(){
+			@Override
+			public void run() {
+				applet.init();
+				applet.start();
+			}
+		}.start();
+
+		System.out.printf("Create ui%n");
+		JFrame frame = new JFrame("RS #" + f.getName().substring(0, f.getName().length() - 4));
+		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		
+		JPanel panel = new JPanel(new BorderLayout());
+		panel.add(applet, BorderLayout.NORTH);
+		frame.setContentPane(panel);
+		
+		
+		frame.pack();
+		frame.setVisible(true);
 
 		
 	}

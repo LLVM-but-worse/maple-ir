@@ -61,10 +61,10 @@ public class ControlFlowGraphDecorator implements DotPropertyDecorator<ControlFl
 	private void outputBlock(BasicBlock n, StringBuilder sb2) {
 		Iterator<Stmt> it = n.iterator();
 		TabbedStringWriter sw = new TabbedStringWriter();
-		// int insn = 0;
+		int insn = 0;
 		while(it.hasNext()) {
 			Stmt stmt = it.next();
-			sw.print(stmt.getId() + ". ");
+			sw.print(insn++ + ". ");
 			stmt.toString(sw);
 			sw.print("\n");
 		}

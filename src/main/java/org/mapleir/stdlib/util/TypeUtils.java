@@ -3,8 +3,10 @@ package org.mapleir.stdlib.util;
 import static org.objectweb.asm.Opcodes.*;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.mapleir.stdlib.klass.library.ApplicationClassSource;
@@ -192,12 +194,17 @@ public class TypeUtils {
 				throw new IllegalArgumentException(Printer.OPCODES[opcode]);
 		}
 	}
-
+	
 	public static int[] getPrimitiveCastOpcodes(Type from, Type to) {
 		int sortFrom = from.getSort();
 		int sortTo = to.getSort();
 
 		switch (sortFrom) {
+			case Type.BOOLEAN:
+				if (sortTo == Type.BOOLEAN || sortTo == Type.BYTE || sortTo == Type.INT) {
+					return new int[] {};
+				}
+				break;
 			case Type.BYTE:
 				if (sortTo == Type.BOOLEAN || sortTo == Type.BYTE || sortTo == Type.INT) {
 					return new int[] {};
@@ -243,10 +250,6 @@ public class TypeUtils {
 					return new int[] { I2D };
 				}
 				break;
-			case Type.BOOLEAN:
-				if(sortTo == Type.BOOLEAN || sortTo == Type.INT || sortTo == Type.BYTE) {
-					return new int[] {};
-				}
 			case Type.INT:
 				if (sortTo == Type.BOOLEAN || sortTo == Type.INT) {
 					return new int[] {};
@@ -474,7 +477,7 @@ public class TypeUtils {
 	}
 
 	public static int getNegateOpcode(Type type) {
-		if (type == Type.INT_TYPE) {
+		if (type == Type.INT_TYPE || type == Type.SHORT_TYPE || type == Type.BYTE_TYPE) {
 			return Opcodes.INEG;
 		} else if (type == Type.LONG_TYPE) {
 			return Opcodes.LNEG;
@@ -623,5 +626,41 @@ public class TypeUtils {
 		} while (!up.isEmpty());
 		
 		return classes;
+	}
+
+	private static final Map<Class<?>, Type> unboxTable = new HashMap<>();
+	
+	static {
+		// unboxTable.put(Boolean.class, Type.BOOLEAN_TYPE);
+		unboxTable.put(Character.class, Type.CHAR_TYPE);
+		unboxTable.put(Byte.class, Type.BYTE_TYPE);
+		unboxTable.put(Short.class, Type.SHORT_TYPE);
+		unboxTable.put(Integer.class, Type.INT_TYPE);
+		unboxTable.put(Float.class, Type.FLOAT_TYPE);
+		unboxTable.put(Double.class, Type.DOUBLE_TYPE);
+		unboxTable.put(Long.class, Type.LONG_TYPE);
+		unboxTable.put(String.class, Type.getType(String.class));
+	}
+	
+	public static Type unbox(Object cst) {
+		Class<?> c = cst.getClass();
+		
+		Type t = unboxTable.get(c);
+		if(t == null) {
+			if(c == Type.class) {
+				Type type = (Type) cst;
+				if (type.getSort() == Type.OBJECT || type.getSort() == Type.ARRAY) {
+					return Type.getType("Ljava/lang/Class;");
+				} else if (type.getSort() == Type.METHOD) {
+					return Type.getType("Ljava/lang/invoke/MethodType;");
+				} else {
+					throw new RuntimeException("Invalid type: " + cst);
+				}
+			} else {
+				throw new UnsupportedOperationException(c.getName() + " : " + unboxTable.containsKey(c));
+			}
+		} else {
+			return t;
+		}
 	}
 }

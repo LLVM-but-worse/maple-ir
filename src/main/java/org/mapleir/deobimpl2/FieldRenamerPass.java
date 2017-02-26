@@ -2,6 +2,7 @@ package org.mapleir.deobimpl2;
 
 import java.lang.reflect.Modifier;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -119,23 +120,68 @@ public class FieldRenamerPass implements IPass {
 		}
 	}
 	
-	private FieldNode findStaticField(ApplicationClassSource source, String owner, String name, String desc) {
-		ClassNode cn0 = source.findClassNode(owner);
-		if(cn0 == null) {
-			return null;
-		}
+	public FieldNode findStaticField(ApplicationClassSource app, String owner, String name, String desc) {
+		Set<FieldNode> set = new HashSet<>();
 		
-		Set<ClassNode> cset = source.getStructures().getAllBranches(cn0, true);
+		ClassNode cn = app.findClassNode(owner);
 		
-		for(ClassNode cn : cset) {
-			for(FieldNode f : cn.fields) {
-				if(Modifier.isStatic(f.access) && f.name.equals(name) && f.desc.equals(desc)) {
-					return f;
+		/* we do this because static fields can be in
+		 * interfaces. */
+		if(cn != null) {
+			Set<ClassNode> lvl = new HashSet<>();
+			lvl.add(cn);
+			for(;;) {
+				if(lvl.size() == 0) {
+					break;
 				}
+				
+				Set<FieldNode> lvlSites = new HashSet<>();
+				
+				for(ClassNode c : lvl) {
+					for(FieldNode f : c.fields) {
+						if(Modifier.isStatic(f.access) && f.name.equals(name) && f.desc.equals(desc)) {
+							lvlSites.add(f);
+						}
+					}
+				}
+				
+				if(lvlSites.size() > 1) {
+					System.out.printf("(warn) resolved %s.%s %s to %s.%n", owner, name, desc, lvlSites);
+				}
+				
+				if(lvlSites.size() > 0) {
+					set.addAll(lvlSites);
+					break;
+				}
+				
+				Set<ClassNode> newLvl = new HashSet<>();
+				for(ClassNode c : lvl) {
+					ClassNode sup = app.findClassNode(c.superName);
+					if(sup != null) {
+						newLvl.add(sup);
+					}
+					
+					for(String iface : c.interfaces) {
+						ClassNode ifaceN = app.findClassNode(iface);
+						
+						if(ifaceN != null) {
+							newLvl.add(ifaceN);
+						}
+					}
+				}
+				
+				lvl.clear();
+				lvl = newLvl;
 			}
 		}
 		
-		return null;
+		if(set.size() > 1) {
+			throw new UnsupportedOperationException(String.format("multi dispatch?: %s.%s %s results:%s", owner, name, desc, set));
+		} else if(set.size() == 1) {
+			return set.iterator().next();
+		} else {
+			return null;
+		}
 	}
 	
 	private FieldNode findVirtualField(ApplicationClassSource source, String owner, String name, String desc) {
