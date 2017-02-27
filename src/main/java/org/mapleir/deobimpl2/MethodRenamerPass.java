@@ -147,6 +147,21 @@ public class MethodRenamerPass implements IPass {
 									if(sites.size() > 0) {
 										/* all of the sites must be linked by the same name,
 										 * so we can use any to find the new name. */
+										
+										boolean anyContains = false;
+										boolean allContains = true;
+										for(MethodNode s : sites) {
+											anyContains |= remapped.containsKey(s);
+											allContains &= remapped.containsKey(s);
+										}
+										
+										if(anyContains && !allContains) {
+											System.err.println("mismatch: ");
+											System.err.println(classes);
+											System.err.println(sites);
+											throw new RuntimeException();
+										}
+										
 										MethodNode site = sites.iterator().next();
 										if(remapped.containsKey(site)) {
 											invoke.setName(remapped.get(site));
@@ -175,7 +190,9 @@ public class MethodRenamerPass implements IPass {
 		 * them using the old names during the invocation 
 		 * analysis above. */
 		for(Entry<MethodNode, String> e : remapped.entrySet()) {
+			System.out.println(e.getKey());
 			e.getKey().name = e.getValue();
+			System.out.println("  post: " + e.getKey());
 		}
 	}
 	
