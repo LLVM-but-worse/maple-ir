@@ -70,6 +70,8 @@ public class IRCallTracer extends CallTracer {
 									if(!owner.contains("java")) {
 										System.err.printf("(warn): can't resolve vcall: %s.%s %s.%n", owner, name, desc);
 										System.err.println("  call from " + m);
+										
+										System.err.println(context.getApplication().findClassNode(owner).methods);
 									}
 								}
 							}

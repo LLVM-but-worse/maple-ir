@@ -118,7 +118,9 @@ public class ClassStructures {
 					if(source.isLibraryClass(o.name) && !exploreLibs) {
 						continue;
 					}
-					discovered.add(o);
+					if(o.name.equals("java/lang/Object")) {
+						discovered.add(o);
+					}
 				}
 				for (ClassNode o : getDelegates(c)) {
 					if(source.isLibraryClass(o.name) && !exploreLibs) {

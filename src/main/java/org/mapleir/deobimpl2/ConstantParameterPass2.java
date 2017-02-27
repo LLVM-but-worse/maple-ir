@@ -12,6 +12,7 @@ import java.util.Set;
 
 import org.mapleir.deobimpl2.util.IPConstAnalysis;
 import org.mapleir.deobimpl2.util.IPConstAnalysis.ChildVisitor;
+import org.mapleir.deobimpl2.util.RenamingUtil;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.CodeUnit;
@@ -36,9 +37,6 @@ import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
 
 public class ConstantParameterPass2 implements IPass, Opcode {
-
-	public ConstantParameterPass2() {
-	}
 	
 	@Override
 	public int accept(IContext cxt, IPass prev, List<IPass> completed) {
@@ -302,27 +300,40 @@ public class ConstantParameterPass2 implements IPass, Opcode {
 					Set<MethodNode> chain = chainMap.get(m);
 					
 					/* rename the smallest conflict set */
-					if(chain.size() < conflicts.size()) {
-						mustRename.add(chain);
-					} else {
-						mustRename.add(conflicts);
-					}
+//					if(chain.size() < conflicts.size()) {
+//						
+//					} else {
+//						mustRename.add(conflicts);
+//					}
+					mustRename.add(chain);
 				}
 			}
 		}
 		
 		remap.keySet().removeAll(toRemove);
 		
+		int k = RenamingUtil.numeric("aaaaa");
 		Map<MethodNode, String> methodNameRemap = new HashMap<>();
 		for(Set<MethodNode> set : mustRename) {
-			MethodNode first = set.iterator().next();
-			String newName = "rename_" + first.name;
-			
+			// MethodNode first = set.iterator().next();
+			// String newName = "rename_" + first.name;
+			String newName = RenamingUtil.createName(k++);
 			System.out.printf(" renaming %s to %s%n", set, newName);
+			System.out.println("   recom " + computeChain(cxt, set.iterator().next()));
+			Set<MethodNode> s2 = new HashSet<>();
+			for(MethodNode m : set) {
+				s2.addAll(chainMap.get(m));
+			}
+			
+			if(!s2.equals(set)) {
+				System.err.println(set);
+				System.err.println(s2);
+				throw new IllegalStateException();
+			}
+			
 			for(MethodNode m : set) {
 				methodNameRemap.put(m, newName);
 			}
-			
 		}
 		
 		if(mustRename.size() > 0) {
@@ -355,8 +366,18 @@ public class ConstantParameterPass2 implements IPass, Opcode {
 								continue;
 							}
 							
+//							if(call.getOpcode() == INVOKE) {
+//								InvocationExpr invoke = (InvocationExpr) call;
+//								invoke.setDesc(newDesc);
+//							} else if(call.getOpcode() == INIT_OBJ) {
+//								InitialisedObjectExpr invoke = (InitialisedObjectExpr) call;
+//								invoke.setDesc(newDesc);
+//							} else {
+//								throw new UnsupportedOperationException(String.format("%s -> %s", call.toString(), n));
+//							}
+							
 							visitedExprs.add(call);
-							patchCall(n, call, filteredConstantParameters.get(n));
+							patchCall(newDesc, call, filteredConstantParameters.get(n));
 							
 							killedTotal += chain.size();
 						}
@@ -375,13 +396,13 @@ public class ConstantParameterPass2 implements IPass, Opcode {
 		return killedTotal;
 	}
 	
-	private void patchCall(MethodNode to, Expr call, boolean[] dead) {
+	private void patchCall(String newDesc, Expr call, boolean[] dead) {
 		if(call.getOpcode() == Opcode.INIT_OBJ) {
 			InitialisedObjectExpr init = (InitialisedObjectExpr) call;
 
 			CodeUnit parent = init.getParent();
 			Expr[] newArgs = buildArgs(init.getArgumentExpressions(), false, dead);
-			InitialisedObjectExpr init2 = new InitialisedObjectExpr(init.getOwner(), to.desc, newArgs);
+			InitialisedObjectExpr init2 = new InitialisedObjectExpr(init.getOwner(), newDesc, newArgs);
 
 			parent.overwrite(init2, parent.indexOf(init));
 		} else if(call.getOpcode() == Opcode.INVOKE) {
@@ -390,7 +411,7 @@ public class ConstantParameterPass2 implements IPass, Opcode {
 			CodeUnit parent = invoke.getParent();
 			
 			Expr[] newArgs = buildArgs(invoke.getArgumentExpressions(), invoke.getCallType() != Opcodes.INVOKESTATIC, dead);
-			InvocationExpr invoke2 = new InvocationExpr(invoke.getCallType(), newArgs, invoke.getOwner(), invoke.getName(), to.desc);
+			InvocationExpr invoke2 = new InvocationExpr(invoke.getCallType(), newArgs, invoke.getOwner(), invoke.getName(), newDesc);
 			
 			parent.overwrite(invoke2, parent.indexOf(invoke));
 		} else {
