@@ -69,7 +69,7 @@ public class InvocationResolver {
 		return set;
 	}
 	
-	private MethodNode findMethod(ClassNode cn, String name, String desc) {
+	public MethodNode findClassMethod(ClassNode cn, String name, String desc) {
 		MethodNode findM = null;
 		
 		for(MethodNode m : cn.methods) {
@@ -128,7 +128,7 @@ public class InvocationResolver {
 			MethodNode m;
 			
 			if(name.equals("<init>")) {
-				m = findMethod(cn, name, desc);
+				m = findClassMethod(cn, name, desc);
 				
 				if(m == null) {
 					if(strict) {
@@ -141,7 +141,7 @@ public class InvocationResolver {
 			}
 			
 			for(ClassNode c : app.getStructures().getDelegates(cn)) {
-				m = findMethod(c, name, desc);
+				m = findClassMethod(c, name, desc);
 				
 				if(m != null) {
 					set.add(m);
@@ -159,7 +159,7 @@ public class InvocationResolver {
 				
 				Set<MethodNode> lvlSites = new HashSet<>();
 				for(ClassNode c : lvl) {
-					m = findMethod(c, name, desc);
+					m = findClassMethod(c, name, desc);
 					if(m != null) {
 						lvlSites.add(m);
 					}

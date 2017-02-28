@@ -3,9 +3,11 @@ package org.mapleir.deobimpl2;
 import java.lang.reflect.Modifier;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Queue;
 import java.util.Set;
 
 import org.mapleir.deobimpl2.util.RenamingUtil;
@@ -19,6 +21,7 @@ import org.mapleir.stdlib.IContext;
 import org.mapleir.stdlib.deob.IPass;
 import org.mapleir.stdlib.klass.InvocationResolver;
 import org.mapleir.stdlib.klass.library.ApplicationClassSource;
+import org.mapleir.stdlib.klass.library.ClassStructures;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
 
@@ -211,6 +214,88 @@ public class MethodRenamerPass implements IPass {
 		return true;
 	}
 	
+	public static MethodNode findClassMethod(ClassNode cn, String name, String desc) {
+		MethodNode findM = null;
+		
+		for(MethodNode m : cn.methods) {
+			if(!Modifier.isStatic(m.access)) {
+				if(m.name.equals(name) && m.desc.equals(desc)) {
+					
+					if(findM != null) {
+						throw new IllegalStateException(String.format("%s contains %s and %s", cn.name, findM, m));
+					}
+					
+					findM = m;
+				}
+			}
+		}
+		
+		return findM;
+	}
+	
+	public static Set<MethodNode> getHierarchyMethodChain(IContext cxt, ClassNode cn, String name, String desc) {
+		ApplicationClassSource app = cxt.getApplication();
+		ClassStructures structures = app.getStructures();
+		
+		Set<ClassNode> visited = new HashSet<>();
+		visited.addAll(structures.getDelegates(cn));
+		visited.add(cn);
+		
+		Queue<ClassNode> visitHeads = new LinkedList<>();
+		for(ClassNode current : visited) {
+			MethodNode m = findClassMethod(current, name, desc);
+		    if(m != null) {
+		        visitHeads.add(current);
+		    }
+		}
+		visited.clear();
+		
+		Map<ClassNode, MethodNode> results = new HashMap<>();
+
+		while(!visitHeads.isEmpty()) {
+		    ClassNode current = visitHeads.remove();
+		    
+		    Set<String> directSupers = new HashSet<>();
+		    directSupers.add(current.superName);
+		    directSupers.addAll(current.interfaces);
+		    
+		    for(String s : directSupers) {
+		    	if(s != null && !app.isLibraryClass(s)) {
+		    		ClassNode parent = app.findClassNode(s);
+					if (visited.add(parent)) {
+						visitHeads.add(parent);
+						MethodNode m = findClassMethod(parent, name, desc);
+						if(m != null) {
+							if(results.containsKey(parent)) {
+								throw new IllegalStateException();
+							}
+							results.put(parent, m);
+						}
+					}
+		    	}
+			}
+		}
+
+		Set<ClassNode> classes = new HashSet<>();
+		for (ClassNode top : results.keySet()) {
+		    classes.addAll(structures.getDelegates(top));
+		}
+		
+		Set<MethodNode> methods = new HashSet<>();
+		for(ClassNode c : classes) {
+			if(results.containsKey(c)) {
+				methods.add(results.get(c));
+			} else {
+				MethodNode m = findClassMethod(c, name, desc);
+				if(m != null) {
+					methods.add(m);
+				}
+			}
+		}
+		
+		return methods;
+	}
+	
 	private static Set<MethodNode> getVirtualMethods(IContext cxt, Set<ClassNode> classes, String name, String desc) {
 		Set<MethodNode> set = new HashSet<>();
 		for(ClassNode cn : classes) {
@@ -223,5 +308,5 @@ public class MethodRenamerPass implements IPass {
 			}
 		}
 		return set;
-	}
+}
 }
