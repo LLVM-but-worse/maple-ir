@@ -4,7 +4,7 @@ import org.mapleir.byteio.CompleteResolvingJarDumper;
 import org.mapleir.deobimpl2.CallgraphPruningPass;
 import org.mapleir.deobimpl2.ConstantExpressionEvaluatorPass;
 import org.mapleir.deobimpl2.ConstantExpressionReorderPass;
-import org.mapleir.deobimpl2.ConstantParameterPass2;
+import org.mapleir.deobimpl2.ConstantParameterPass;
 import org.mapleir.deobimpl2.DeadCodeEliminationPass;
 import org.mapleir.deobimpl2.MethodRenamerPass;
 import org.mapleir.ir.ControlFlowGraphDumper;
@@ -447,16 +447,16 @@ public class Boot {
 				new CallgraphPruningPass(),
 //				new ConcreteStaticInvocationPass(),
 				new MethodRenamerPass(),
-//				new ConstantParameterPass2()
+//				new ConstantParameterPass()
 //				new ClassRenamerPass(),
 //				new FieldRenamerPass(),
 //				new ConstantExpressionReorderPass(),
 //				new FieldRSADecryptionPass(),
 //				new PassGroup("Interprocedural Optimisations")
-//					.add(new ConstantParameterPass2())
+//					.add(new ConstantParameterPass())
 				new ConstantExpressionReorderPass(),
 //				new FieldRSADecryptionPass(),
-				new ConstantParameterPass2(),
+				new ConstantParameterPass(),
 				new ConstantExpressionEvaluatorPass(),
 				new DeadCodeEliminationPass()
 //				new PassGroup("Interprocedural Optimisations")

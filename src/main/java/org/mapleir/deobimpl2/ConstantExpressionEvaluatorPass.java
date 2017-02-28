@@ -1,15 +1,5 @@
 package org.mapleir.deobimpl2;
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
 import org.mapleir.deobimpl2.util.IPConstAnalysis;
 import org.mapleir.deobimpl2.util.IPConstAnalysis.ChildVisitor;
 import org.mapleir.ir.cfg.BasicBlock;
@@ -21,9 +11,16 @@ import org.mapleir.ir.code.CodeUnit;
 import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.code.Opcode;
 import org.mapleir.ir.code.Stmt;
-import org.mapleir.ir.code.expr.*;
+import org.mapleir.ir.code.expr.ArithmeticExpr;
 import org.mapleir.ir.code.expr.ArithmeticExpr.Operator;
+import org.mapleir.ir.code.expr.CastExpr;
+import org.mapleir.ir.code.expr.ComparisonExpr;
 import org.mapleir.ir.code.expr.ComparisonExpr.ValueComparisonType;
+import org.mapleir.ir.code.expr.ConstantExpr;
+import org.mapleir.ir.code.expr.InitialisedObjectExpr;
+import org.mapleir.ir.code.expr.InvocationExpr;
+import org.mapleir.ir.code.expr.NegationExpr;
+import org.mapleir.ir.code.expr.VarExpr;
 import org.mapleir.ir.code.stmt.ConditionalJumpStmt;
 import org.mapleir.ir.code.stmt.ConditionalJumpStmt.ComparisonType;
 import org.mapleir.ir.code.stmt.UnconditionalJumpStmt;
@@ -45,6 +42,16 @@ import org.objectweb.asm.tree.LabelNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.tree.VarInsnNode;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 
 	private final BridgeClassLoader classLoader;
@@ -60,13 +67,6 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 		int k = 0;
 		int j = 0;
 		
-//		ConstantParameterPass pass = null;
-//		
-//		for(IPass c : completed) {
-//			if(c instanceof ConstantParameterPass) {
-//				pass = (ConstantParameterPass) c;
-//			}
-//		}
 		IPConstAnalysisVisitor vis = new IPConstAnalysisVisitor(cxt);
 		IPConstAnalysis.create(cxt, vis);
 		

@@ -4,7 +4,7 @@ import org.mapleir.IRCallTracer;
 import org.mapleir.deobimpl2.ConcreteStaticInvocationPass;
 import org.mapleir.deobimpl2.ConstantExpressionEvaluatorPass;
 import org.mapleir.deobimpl2.ConstantExpressionReorderPass;
-import org.mapleir.deobimpl2.ConstantParameterPass2;
+import org.mapleir.deobimpl2.ConstantParameterPass;
 import org.mapleir.deobimpl2.DeadCodeEliminationPass;
 import org.mapleir.deobimpl2.FieldRSADecryptionPass;
 import org.mapleir.ir.ControlFlowGraphDumper;
@@ -145,11 +145,11 @@ public class MapleIRPlugin implements Plugin {
 //				new ClassRenamerPass(),
 //				new FieldRenamerPass(),
 //				new PassGroup("Interprocedural Optimisations")
-//					.add(new ConstantParameterPass2())
+//					.add(new ConstantParameterPass())
 				new ConstantExpressionReorderPass(),
 				new FieldRSADecryptionPass(),
 				new PassGroup("Interprocedural Optimisations")
-					.add(new ConstantParameterPass2())
+					.add(new ConstantParameterPass())
 					.add(new ConstantExpressionEvaluatorPass())
 					.add(new DeadCodeEliminationPass())
 				

@@ -1,10 +1,9 @@
 package testcases.condbranch;
 
 import org.mapleir.deobimpl2.ConstantExpressionEvaluatorPass;
-import org.mapleir.deobimpl2.ConstantParameterPass2;
+import org.mapleir.deobimpl2.ConstantParameterPass;
 import org.mapleir.deobimpl2.DeadCodeEliminationPass;
 import org.mapleir.stdlib.deob.PassGroup;
-
 import testcases.CheckReturn;
 import testcases.FlaggedMethod;
 
@@ -140,7 +139,7 @@ public class ConditionalBranch1 {
 	
 	public static PassGroup getPasses() {
 		return new PassGroup(null)
-				.add(new ConstantParameterPass2())
+				.add(new ConstantParameterPass())
 				.add(new ConstantExpressionEvaluatorPass())
 				.add(new DeadCodeEliminationPass());
 	}
