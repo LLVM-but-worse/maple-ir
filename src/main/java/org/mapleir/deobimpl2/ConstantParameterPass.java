@@ -1,26 +1,26 @@
 package org.mapleir.deobimpl2;
 
-import org.mapleir.IRCallTracer;
+import org.mapleir.deobimpl2.util.IPConstAnalysis;
+import org.mapleir.deobimpl2.util.IPConstAnalysis.ChildVisitor;
+import org.mapleir.deobimpl2.util.RenamingUtil;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.CodeUnit;
 import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.code.Opcode;
-import org.mapleir.ir.code.Stmt;
 import org.mapleir.ir.code.expr.ConstantExpr;
 import org.mapleir.ir.code.expr.InitialisedObjectExpr;
 import org.mapleir.ir.code.expr.InvocationExpr;
 import org.mapleir.ir.code.expr.VarExpr;
 import org.mapleir.ir.code.stmt.copy.AbstractCopyStmt;
 import org.mapleir.ir.code.stmt.copy.CopyVarStmt;
-import org.mapleir.ir.locals.Local;
 import org.mapleir.ir.locals.LocalsPool;
 import org.mapleir.ir.locals.VersionedLocal;
 import org.mapleir.stdlib.IContext;
-import org.mapleir.stdlib.collections.NullPermeableHashMap;
 import org.mapleir.stdlib.deob.IPass;
 import org.mapleir.stdlib.klass.InvocationResolver;
 import org.mapleir.stdlib.klass.library.ApplicationClassSource;
+import org.mapleir.stdlib.klass.library.ClassStructures;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.ClassNode;
@@ -28,82 +28,461 @@ import org.objectweb.asm.tree.MethodNode;
 
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
-import java.util.TreeSet;
 
 public class ConstantParameterPass implements IPass, Opcode {
 	
-	private static final Comparator<Integer> INTEGER_ORDERER = Integer::compareUnsigned;
-
-	public static class SemiConstantParameter {
-		final int lvtIndex;
-		final Set<ConstantExpr> inputs;
+	@Override
+	public int accept(IContext cxt, IPass prev, List<IPass> completed) {
+		Map<MethodNode, Set<MethodNode>> chainMap = new HashMap<>();
+		for(MethodNode mn : cxt.getActiveMethods()) {
+			makeUpChain(cxt, mn, chainMap);
+		}
 		
-		SemiConstantParameter(int lvtIndex, Set<ConstantExpr> inputs) {
-			this.lvtIndex = lvtIndex;
-			this.inputs = inputs;
+		InvocationResolver resolver = cxt.getInvocationResolver();
+		
+		Map<MethodNode, List<Set<Object>>> rawConstantParameters = new HashMap<>();
+		Map<MethodNode, boolean[]> chainedNonConstant = new HashMap<>();
+		Map<MethodNode, boolean[]> specificNonConstant = new HashMap<>();
+		
+		ChildVisitor vis = new IPConstAnalysis.ChildVisitor() {
+			@Override
+			public void postVisitMethod(IPConstAnalysis analysis, MethodNode m) {
+				int pCount = Type.getArgumentTypes(m.desc).length;
+				
+				/* init map entries */
+				if(!chainedNonConstant.containsKey(m)) {
+					for(MethodNode assoc : chainMap.get(m)) {
+						boolean[] arr = new boolean[pCount];
+						chainedNonConstant.put(assoc, arr);
+					}
+					
+					for(MethodNode assoc : chainMap.get(m)) {
+						boolean[] arr = new boolean[pCount];
+						specificNonConstant.put(assoc, arr);
+					}
+				}
+				
+				if(Modifier.isStatic(m.access)) {
+					if(!rawConstantParameters.containsKey(m)) {
+						List<Set<Object>> l = new ArrayList<>(pCount);
+						rawConstantParameters.put(m, l);
+						
+						for(int i=0; i < pCount; i++) {
+							l.add(new HashSet<>());
+						}
+					}
+				} else {
+					// TODO: cache
+					for(MethodNode site : resolver.resolveVirtualCalls(m.owner.name, m.name, m.desc, true)) {
+						if(!rawConstantParameters.containsKey(site)) {
+							List<Set<Object>> l = new ArrayList<>(pCount);
+							rawConstantParameters.put(site, l);
+							
+							for(int i=0; i < pCount; i++) {
+								l.add(new HashSet<>());
+							}
+						}
+					}
+				}
+			}
+			
+			@Override
+			public void postProcessedInvocation(IPConstAnalysis analysis, MethodNode caller, MethodNode callee, Expr call) {
+				Expr[] params;
+				
+				if(call.getOpcode() == INVOKE) {
+					params = ((InvocationExpr) call).getParameterArguments();
+				} else if(call.getOpcode() == INIT_OBJ) {
+					params = ((InitialisedObjectExpr) call).getArgumentExpressions();
+				} else {
+					throw new UnsupportedOperationException(String.format("%s -> %s (%s)", caller, callee, call));
+				}
+				
+				for(int i=0; i < params.length; i++) {
+					Expr e = params[i];
+					
+					if(e.getOpcode() == Opcode.CONST_LOAD) {
+						if(Modifier.isStatic(callee.access)) {
+							rawConstantParameters.get(callee).get(i).add(((ConstantExpr) e).getConstant());
+						} else {
+							/* only chain callsites *can* have this input */
+							for(MethodNode site : resolver.resolveVirtualCalls(callee.owner.name, callee.name, callee.desc, true)) {
+								rawConstantParameters.get(site).get(i).add(((ConstantExpr) e).getConstant());
+							}
+						}
+					} else {
+						// FIXME:
+						/* whole branch tainted */
+						for(MethodNode associated : chainMap.get(callee)) {
+							chainedNonConstant.get(associated)[i] = true;
+						}
+						
+						/* callsites tainted */
+						if(Modifier.isStatic(callee.access)) {
+							specificNonConstant.get(callee)[i] = true;
+						} else {
+							/* only chain callsites *can* have this input */
+							for(MethodNode site : resolver.resolveVirtualCalls(callee.owner.name, callee.name, callee.desc, true)) {
+								specificNonConstant.get(site)[i] = true;
+							}
+						}
+					}
+				}
+			}
+		};
+		
+		IPConstAnalysis constAnalysis = IPConstAnalysis.create(cxt, vis);
+		
+		ApplicationClassSource app = cxt.getApplication();
+		ClassStructures structures = app.getStructures();
+		
+		/* remove all calls to library methods since we can't
+		 * handle them. */
+		Iterator<Entry<MethodNode, List<Set<Object>>>> it = rawConstantParameters.entrySet().iterator();
+		while(it.hasNext()) {
+			Entry<MethodNode, List<Set<Object>>> en = it.next();
+			
+			MethodNode m = en.getKey();
+
+			if(app.isLibraryClass(m.owner.name)) {
+				it.remove();
+				continue;
+			}
+			
+			superFor: for(ClassNode cn : structures.getSupers(m.owner)) {
+				if(app.isLibraryClass(cn.name)) {
+					for(MethodNode m1 : cn.methods) {
+						if(m1.name.equals(m.name) && m1.desc.equals(m.desc)) {
+							it.remove();
+							break superFor;
+						}
+					}
+				}
+			}
+		}
+		
+		/* aggregate constant parameters indices with their chained
+		 * methods such that the map contains only constant parameter
+		 * indices that we can actually remove while keeping a valid chain.
+		 * 
+		 * We do this as we can have methods from different branches that
+		 * are cousin-related but have different constant parameter values.
+		 * In these cases we can still inline the constants (different constants)
+		 * and change the descriptions, keeping the chain. */
+		
+		Map<MethodNode, boolean[]> filteredConstantParameters = new HashMap<>();
+		
+		for(Entry<MethodNode, List<Set<Object>>> en : rawConstantParameters.entrySet()) {
+			MethodNode m = en.getKey();
+
+			List<Set<Object>> objParams = en.getValue();
+			boolean[] tainted = chainedNonConstant.get(m);
+			
+			if(filteredConstantParameters.containsKey(m)) {
+				/* note: if this method is contained in the
+				 * map all of it's cousin-reachable methods
+				 * must also be and furthermore the dead map
+				 * for the entire chain is the same array. 
+				 * 
+				 * we need to now merge the current dead map
+				 * with the one specifically for this method.*/
+				
+				boolean[] thisDeadMap = makeDeadMap(objParams, tainted);
+				boolean[] prevDeadMap = filteredConstantParameters.get(m);
+				
+				if(thisDeadMap.length != prevDeadMap.length) {
+					throw new IllegalStateException(String.format("m: %s, chain:%s, %d:%d", m, chainMap.get(m), thisDeadMap.length, prevDeadMap.length));
+				}
+				
+				/* each dead map contains true values for an
+				 * index if that index is a constant parameter. */
+				for(int i=0; i < prevDeadMap.length; i++) {
+					prevDeadMap[i] &= thisDeadMap[i];
+				}
+			} else {
+				boolean[] deadParams = makeDeadMap(objParams, tainted);
+				
+				for(MethodNode chm : chainMap.get(m)) {
+					filteredConstantParameters.put(chm, deadParams);
+				}
+			}
+			
+			ControlFlowGraph cfg = cxt.getIR(m);
+			
+			// boolean b = false;
+			
+			boolean[] specificTaint = specificNonConstant.get(m);
+			
+			for(int i=0; i < objParams.size(); i++) {
+				Set<Object> set = objParams.get(i);
+				
+				/* since these are callsite specific
+				 * constant parameters, we can inline
+				 * them even if we can't eliminate the
+				 * parameter for the whole chain later.
+				 * 
+				 * doing this here also means that when
+				 * we rebuild descriptors later, if the
+				 * parameter */
+				
+				if(!specificTaint[i] && set.size() == 1) {
+					/*if(!b) {
+						System.out.printf("%s (%b)%n", m, Modifier.isStatic(m.access));
+						System.out.printf("   calls:%n");
+						List<List<Expr>> lists = constAnalysis.getInputs(m);
+						for(int j=0; j < lists.size(); j++) {
+							System.out.printf("       @%d: %s%n", j, lists.get(j));
+						}
+						b = true;
+					}
+					System.out.printf("  inline: @%d/%d = %s%n", i, constAnalysis.getLocalIndex(m, i), set.iterator().next());*/
+					
+					inlineConstant(cfg, constAnalysis.getLocalIndex(m, i), set.iterator().next());
+				}
+			}
+		}
+		
+		Map<MethodNode, String> remap = new HashMap<>();
+		Set<MethodNode> toRemove = new HashSet<>();
+		
+		Set<Set<MethodNode>> mustRename = new HashSet<>();
+		
+		for(Entry<MethodNode, boolean[]> en : filteredConstantParameters.entrySet()) {
+			MethodNode m = en.getKey();
+			
+			if(!remap.containsKey(m) && !toRemove.contains(m)) {
+				boolean[] deadMap = en.getValue();
+				
+				boolean notSame = false;
+				for(boolean b : deadMap) {
+					notSame |= b;
+				}
+				
+				if(!notSame) {
+					/* eliminate all branches (same congruence class) */
+					for(MethodNode n : chainMap.get(m)) {
+						toRemove.add(n);
+					}
+					continue;
+				}
+				
+				Type[] params = Type.getArgumentTypes(m.desc);
+				Type ret = Type.getReturnType(m.desc);
+				String desc = buildDesc(params, ret, deadMap);
+				
+				Set<MethodNode> conflicts = new HashSet<>();
+				
+				for(MethodNode chm : chainMap.get(m)) {
+					remap.put(chm, desc);
+					
+					if(Modifier.isStatic(m.access)) {
+						MethodNode mm = resolver.findStaticCall(chm.owner.name, chm.name, desc);
+						if(mm != null) {
+							conflicts.add(mm);
+						}
+					} else {
+						if(chm.name.equals("<init>")) {
+							conflicts.addAll(resolver.resolveVirtualCalls(chm.owner.name, "<init>", desc, false));
+						} else {
+							conflicts.addAll(resolver.getVirtualChain(m.owner, m.name, desc));
+						}
+					}
+				}
+				
+				if(conflicts.size() > 0) {
+					Set<MethodNode> chain = chainMap.get(m);
+					
+					/* rename the smallest conflict set */
+//					if(chain.size() < conflicts.size()) {
+//						
+//					} else {
+//						mustRename.add(conflicts);
+//					}
+					mustRename.add(chain);
+				}
+			}
+		}
+		
+		remap.keySet().removeAll(toRemove);
+		
+		int k = RenamingUtil.numeric("aaaaa");
+		Map<MethodNode, String> methodNameRemap = new HashMap<>();
+		for(Set<MethodNode> set : mustRename) {
+			// MethodNode first = set.iterator().next();
+			// String newName = "rename_" + first.name;
+			String newName = RenamingUtil.createName(k++);
+			System.out.printf(" renaming %s to %s%n", set, newName);
+			System.out.println("   recom " + computeChain(cxt, set.iterator().next()));
+			Set<MethodNode> s2 = new HashSet<>();
+			for(MethodNode m : set) {
+				s2.addAll(chainMap.get(m));
+			}
+			
+			if(!s2.equals(set)) {
+				System.err.println(set);
+				System.err.println(s2);
+				throw new IllegalStateException();
+			}
+			
+			for(MethodNode m : set) {
+				methodNameRemap.put(m, newName);
+			}
+		}
+		
+		if(mustRename.size() > 0) {
+			MethodRenamerPass.rename(cxt, methodNameRemap, false);
+		}
+		
+		Set<MethodNode> visitedMethods = new HashSet<>();
+		Set<Expr> visitedExprs = new HashSet<>();
+		
+		int killedTotal = 0;
+		for(;;) {
+			int killedBeforePass = killedTotal;
+			
+			for(Entry<MethodNode, String> en : remap.entrySet()) {
+				MethodNode m = en.getKey();
+				String newDesc = en.getValue();
+				
+				if(!visitedMethods.contains(m)) {
+					Set<MethodNode> chain = chainMap.get(m);
+					
+					for(MethodNode n : chain) {
+						n.desc = newDesc;
+						
+						for(Expr call : constAnalysis.getCallsTo(n)) {
+							/* since the callgrapher finds all
+							 * the methods in a hierarchy and considers
+							 * it as a single invocation, a certain
+							 * invocation may be considered multiple times. */
+							if(visitedExprs.contains(call)) {
+								continue;
+							}
+							
+//							if(call.getOpcode() == INVOKE) {
+//								InvocationExpr invoke = (InvocationExpr) call;
+//								invoke.setDesc(newDesc);
+//							} else if(call.getOpcode() == INIT_OBJ) {
+//								InitialisedObjectExpr invoke = (InitialisedObjectExpr) call;
+//								invoke.setDesc(newDesc);
+//							} else {
+//								throw new UnsupportedOperationException(String.format("%s -> %s", call.toString(), n));
+//							}
+							
+							visitedExprs.add(call);
+							patchCall(newDesc, call, filteredConstantParameters.get(n));
+							
+							killedTotal += chain.size();
+						}
+					}
+					
+					visitedMethods.addAll(chain);
+				}
+			}
+			
+			if(killedBeforePass == killedTotal) {
+				break;
+			}
+		}
+		
+		System.out.printf("  removed %d constant parameters.%n", killedTotal);
+		return killedTotal;
+	}
+	
+	private void patchCall(String newDesc, Expr call, boolean[] dead) {
+		if(call.getOpcode() == Opcode.INIT_OBJ) {
+			InitialisedObjectExpr init = (InitialisedObjectExpr) call;
+
+			CodeUnit parent = init.getParent();
+			Expr[] newArgs = buildArgs(init.getArgumentExpressions(), false, dead);
+			InitialisedObjectExpr init2 = new InitialisedObjectExpr(init.getOwner(), newDesc, newArgs);
+
+			parent.overwrite(init2, parent.indexOf(init));
+		} else if(call.getOpcode() == Opcode.INVOKE) {
+			InvocationExpr invoke = (InvocationExpr) call;
+
+			CodeUnit parent = invoke.getParent();
+			
+			Expr[] newArgs = buildArgs(invoke.getArgumentExpressions(), invoke.getCallType() != Opcodes.INVOKESTATIC, dead);
+			InvocationExpr invoke2 = new InvocationExpr(invoke.getCallType(), newArgs, invoke.getOwner(), invoke.getName(), newDesc);
+			
+			parent.overwrite(invoke2, parent.indexOf(invoke));
+		} else {
+			throw new UnsupportedOperationException(call.toString());
 		}
 	}
 	
-	private final Map<MethodNode, Set<Expr>> calls;
-	/** Sets which contain the indices of constant value parameters of a method. */
-	private final Map<MethodNode, Set<Integer>> constantParameterIndices;
-	private final Map<MethodNode, Set<SemiConstantParameter>> semiConstantParameters;
-	private final Set<MethodNode> processMethods;
-	private final Set<MethodNode> cantfix;
-	private final Set<Expr> processedExprs;
-	private final Map<MethodNode, int[]> paramIndices;
-	private final NullPermeableHashMap<MethodNode, Map<Integer, ConstantExpr>> constantParameters;
-	
-	public ConstantParameterPass() {
-		calls = new HashMap<>();
-		constantParameterIndices  = new HashMap<>();
-		semiConstantParameters  = new HashMap<>();
-		processMethods = new HashSet<>();
-		cantfix = new HashSet<>();
-		processedExprs = new HashSet<>();
-		paramIndices = new HashMap<>();
-		constantParameters = new NullPermeableHashMap<>(HashMap::new);
+	private static Expr[] buildArgs(Expr[] oldArgs, boolean obj, boolean[] dead) {
+		int off = obj ? 1 : 0;
+		
+		if(dead.length != (oldArgs.length - off)) {
+			throw new IllegalStateException();
+		}
+		
+		List<Expr> newArgs = new ArrayList<>(oldArgs.length);
+		for(int i=dead.length-1; i >= 0; i--) {
+			Expr e = oldArgs[i + off];
+			if(!dead[i]) {
+				newArgs.add(0, e);
+			}
+			e.unlink();
+		}
+		
+		if(obj) {
+			Expr e = oldArgs[0];
+			newArgs.add(0, e);
+			e.unlink();
+		}
+		
+		return newArgs.toArray(new Expr[0]);
 	}
 	
-	@Override
-	public String getId() {
-		return "Argument-Prune";
+	private static boolean[] makeDeadMap(List<Set<Object>> objParams, boolean[] tainted) {
+		boolean[] removable = new boolean[objParams.size()];
+		
+		for(int i=0; i < objParams.size(); i++) {
+			Set<Object> s = objParams.get(i);
+			
+			removable[i] = s.size() <= 1 && !tainted[i];
+		}
+		
+		return removable;
 	}
 	
-	public Set<SemiConstantParameter> getSemiConstantValues(MethodNode m) {
-		return semiConstantParameters.get(m);
+	private static String buildDesc(Type[] preParams, Type ret, boolean[] dead) {
+		StringBuilder sb = new StringBuilder();
+		sb.append("(");
+		for(int i=0; i < preParams.length; i++) {
+			if(!dead[i]) {
+				Type t = preParams[i];
+				sb.append(t.toString());
+			}
+		}
+		sb.append(")").append(ret.toString());
+		return sb.toString();
 	}
 	
-	
-	private void inlineConstant(ControlFlowGraph cfg, MethodNode mn, int parameterIndex, ConstantExpr c) {
+	private void inlineConstant(ControlFlowGraph cfg, int argLocalIndex, Object o) {	
 		LocalsPool pool = cfg.getLocals();
-		int argLocalIndex = paramIndices.get(mn)[parameterIndex];
 		
 		VersionedLocal argLocal = pool.get(argLocalIndex, 0, false);
 		AbstractCopyStmt argDef = pool.defs.get(argLocal);
 		
-		boolean removeDef = true;
+		boolean removeDef = false;
+		
+		// FIXME:
+		ConstantExpr c = new ConstantExpr(o, argDef.getType() == Type.BOOLEAN_TYPE ? Type.BYTE_TYPE : argDef.getType());
 		
 		/* demote the def from a synthetic
 		 * copy to a normal one. */
-		try {
-			argDef.getVariable().copy();
-		} catch(RuntimeException e) {
-			System.err.println(cfg);
-			System.err.println(Modifier.isStatic(mn.access));
-			System.err.println(argLocal + " : " + argDef);
-			System.err.println("Param index: " + parameterIndex);
-			System.err.println("Arg index: " + argLocalIndex);
-			System.err.println(c);
-			throw e;
-		}
+		argDef.getVariable().copy();
 		VarExpr dv = argDef.getVariable().copy();
 		
 		VersionedLocal spill = pool.makeLatestVersion(argLocal);
@@ -112,10 +491,9 @@ public class ConstantParameterPass implements IPass, Opcode {
 		CopyVarStmt copy = new CopyVarStmt(dv, c.copy());
 		BasicBlock b = argDef.getBlock();
 		argDef.delete();
+		pool.defs.remove(argLocal);
 		argDef = copy;
 		b.add(copy);
-		
-		pool.defs.remove(argLocal);
 		pool.defs.put(spill, copy);
 		
 		Set<VarExpr> spillUses = new HashSet<>();
@@ -123,10 +501,9 @@ public class ConstantParameterPass implements IPass, Opcode {
 		
 		/* Replace each use of the parameter variable with
 		 * the constant. */
-		Iterator<VarExpr> it = pool.uses.get(argLocal).iterator();
+		Iterator<VarExpr> it = pool.uses.getNonNull(argLocal).iterator();
 		while(it.hasNext()) {
 			VarExpr v = it.next();
-			
 			if(v.getParent() == null) {
 				/* the use is in a phi, we can't
 				 * remove the def. */
@@ -149,472 +526,31 @@ public class ConstantParameterPass implements IPass, Opcode {
 		}
 	}
 	
-	@Override
-	public int accept(IContext cxt, IPass prev, List<IPass> completed) {
-		calls.clear();
-		constantParameterIndices.clear();
-		semiConstantParameters.clear();
-		processedExprs.clear();
-		processMethods.clear();
-		cantfix.clear();
-		paramIndices.clear();
-		constantParameters.clear();
+	private Set<MethodNode> computeChain(IContext cxt, MethodNode m) {
+		Set<MethodNode> chain = new HashSet<>();
+		chain.add(m);
 		
-		ApplicationClassSource source = cxt.getApplication();
-		
-		Map<MethodNode, List<List<Expr>>> parameterInputs = new HashMap<>();
-		
-		IRCallTracer tracer = new IRCallTracer(cxt) {
-			@Override
-			protected void visitMethod(MethodNode m) {
-				if(source.isLibraryClass(m.owner.name)) {
-					return;
-				}
-				
-				boolean isStatic = (m.access & Opcodes.ACC_STATIC) != 0;
-				
-				int paramCount = Type.getArgumentTypes(m.desc).length;
-				int copyCount = paramCount + (isStatic ? 0 : 1);
-				List<List<Expr>> lists = new ArrayList<>(copyCount);
-				
-				/* Create a mapping between the actual variable table
-				 * indices and the parameter indices in the method
-				 * descriptor. */
-				int[] idxs = new int[copyCount];
-				/* int idx = 0;
-				if((m.access & Opcodes.ACC_STATIC) == 0) {
-					idx++;
-				} */
-				ControlFlowGraph cfg = cxt.getIR(m);
-				BasicBlock entry = cfg.getEntries().iterator().next();
-				
-				/* static:
-				 *  first arg = 0
-				 * 
-				 * non-static:
-				 *  this = 0
-				 *  first arg = 1*/
-				int paramIndex = 0;
-				for(Stmt stmt : entry) {
-					if(stmt.getOpcode() == LOCAL_STORE) {
-						CopyVarStmt cvs = (CopyVarStmt) stmt;
-						if(cvs.isSynthetic()) {
-							Local l = cvs.getVariable().getLocal();
-							
-							if(l.getIndex() == 0 && paramIndex != 0) {
-								throw new IllegalStateException(l + " @" + paramIndex);
-							} else if(l.getIndex() == 0 && paramIndex == 0) {
-								if(!isStatic) {
-									// System.out.println("non static skip: " + l);
-									continue;
-								}
-							}
-							
-							try {
-								idxs[paramIndex++] = l.getIndex();
-							} catch(RuntimeException e) {
-								System.out.println(m + " static: " + isStatic);
-								System.out.println(l + " @" + paramIndex);
-								System.err.println(cfg);
-								throw e;
-							}
-							continue;
-						}
-					}
-					
-					break;
-				}
-				
-				for(int j=0; j < paramCount; j++) {
-					lists.add(new ArrayList<>());
-				}
-				
-				/* for(int i=0; i < paramTypes.length; i++) {
-					lists.add(new ArrayList<>());
-
-					idxs[i] = idx;
-					idx += paramTypes[i].getSize();
-				} */
-				paramIndices.put(m, idxs);
-				
-				parameterInputs.put(m, lists);
-				calls.put(m, new HashSet<>());
-			}
-			
-			@Override
-			protected void processedInvocation(MethodNode caller, MethodNode callee, Expr e) {
-				if(source.isLibraryClass(callee.owner.name)) {
-					return;
-				}
-				
-				calls.get(callee).add(e);
-				
-				Expr[] params;
-				
-				if(e.getOpcode() == INVOKE) {
-					params = ((InvocationExpr) e).getParameterArguments();
-				} else if(e.getOpcode() == INIT_OBJ) {
-					params = ((InitialisedObjectExpr) e).getArgumentExpressions();
-				} else {
-					throw new UnsupportedOperationException(String.format("%s -> %s (%s)", caller, callee, e));
-				}
-				
-				for(int i=0; i < params.length; i++) {
-					parameterInputs.get(callee).get(i).add(params[i]);
-				}
-			}
-		};
-		
-
-		for(MethodNode mn : cxt.getActiveMethods()) {
-			tracer.trace(mn);
-		}
-		
-		for(MethodNode method : cxt.getActiveMethods()) {
-			List<List<Expr>> argExprs = parameterInputs.get(method);
-
-			Set<Integer> constantParameterIndexSet = new TreeSet<>(INTEGER_ORDERER);
-			Set<SemiConstantParameter> semiConstantParameterSet = new HashSet<>();
-			
-			for(int parameterIndex=0; parameterIndex < argExprs.size(); parameterIndex++) {
-				List<Expr> allParameterInputs = argExprs.get(parameterIndex);
-				ConstantExpr constantVal = getConstantValue(allParameterInputs);
-				
-				if(constantVal != null) {
-					/* We have found that the parameter at index 'i' for this
-					 * exact method is always constant, so we will inline it
-					 * into the method body. This does not affect the super
-					 * and subclass methods at all, since we haven't changed
-					 * the method descriptors yet.
-					 * 
-					 * I decided to do this because (1) we can legally do this,
-					 * (2) even if the other methods render a descriptor
-					 * change impossible, we will have (presumably) reduced the
-					 * complexity of the method and (3) we would need to store
-					 * this constant for later to handle it if we didn't do it
-					 * here. */
-					// inlineConstant(cfg, method, parameterIndex, constantVal);
-					constantParameters.getNonNull(method).put(parameterIndex, constantVal);
-					constantParameterIndexSet.add(parameterIndex);
-				} else if(isSemiConstantSet(allParameterInputs)) {
-					// System.out.printf("Multivalue param for %s @ arg%d:   %s.%n", mn, i, l);
-					Set<ConstantExpr> valSet = new HashSet<>();
-					for(Expr e : allParameterInputs) {
-						valSet.add((ConstantExpr) e);
-					}
-					SemiConstantParameter param = new SemiConstantParameter(parameterIndex, valSet);
-					semiConstantParameterSet.add(param);
-				}
-			}
-
-			if(constantParameterIndexSet.size() > 0) {
-				constantParameterIndices.put(method, constantParameterIndexSet);
-			}
-			
-			if(constantParameterIndexSet.size() > 0) {
-				semiConstantParameters.put(method, semiConstantParameterSet);
+		if(!Modifier.isStatic(m.access)) {
+			if(!m.name.equals("<init>")) {
+				chain.addAll(cxt.getInvocationResolver().getVirtualChain(m.owner, m.name, m.desc));
 			}
 		}
 		
-		int killedTotal = 0;
-				
-		for(;;) {
-			int killedBeforePass = killedTotal;
-			
-			for(MethodNode mn : constantParameterIndices.keySet()) {
-				killedTotal += fixDeadParameters(cxt, mn);
-			}
-			
-			if(killedBeforePass == killedTotal) {
-				break;
-			}
-		}
-		
-		cantfix.removeAll(processMethods);
-		
-		System.out.println("  can't fix:");
-		for(MethodNode m : cantfix) {
-			System.out.println("    " + m + ":: " + constantParameterIndices.get(m));
-		}
-		
-		System.out.printf("Removed %d constant paramters.%n", killedTotal);
-		
-		return killedTotal;
+		return chain;
 	}
-	
-	private int fixDeadParameters(IContext cxt, MethodNode mn) {
-		if(processMethods.contains(mn)) {
-			return 0;
-		}
 		
-		Set<Integer> deadIndices;
-		Set<MethodNode> chain = null;
-				
-		if(!Modifier.isStatic(mn.access) && !mn.name.equals("<init>")) {
-			chain = cxt.getInvocationResolver().getVirtualChain(mn.owner, mn.name, mn.desc);
-			
-			if(!isActiveChain(chain)) {
-				cantfix.addAll(chain);
-				
-				System.out.println();
-				System.out.println("@" + mn);
-				Set<ClassNode> cc = cxt.getApplication().getStructures().dfsTree(mn.owner, true, true, false);
-				
-				System.out.println(" class chain: " + cc);
-				System.out.println("  inactive chain: " + chain);
-				
-				for(MethodNode m : chain) {
-					System.out.println("  m: " + m + ", ds: " + constantParameterIndices.get(m));
-				}
-				
-				for(MethodNode m : chain) {
-					for(Expr c : calls.get(m)) {
-						System.out.println("   1.  m: " + m + ", c: " + c);
-					}
-				}
-				
-				for(Expr c : calls.get(mn)) {
-					System.out.println("   2.  c: " + c);
-				}
-				
-				System.out.println();
-				
-				return 0;
-				
-			}
-			
-			/* find the common dead indices. */
-			deadIndices = new HashSet<>();
-			for(MethodNode m : chain) {
-				Set<Integer> set = constantParameterIndices.get(m);
-				if(set != null) {
-					deadIndices.addAll(set);
-				}
-			}
-
-			for(MethodNode m : chain) {
-				Set<Integer> set = constantParameterIndices.get(m);
-				if(set != null) {
-					deadIndices.retainAll(set);
-				}
-			}
+	private void makeUpChain(IContext cxt, MethodNode m, Map<MethodNode, Set<MethodNode>> chainMap) {
+		if(chainMap.containsKey(m)) {
+			/*Set<MethodNode> chain = chainMap.get(m);
+			Set<MethodNode> comp = computeChain(cxt, m);
+			if(!chain.equals(comp)) {
+				throw new IllegalStateException(m + "\n chain: " + chain +"\n comp: " + comp);
+			}*/
 		} else {
-			deadIndices = constantParameterIndices.get(mn);
-		}
-		
-		String newDesc = buildDesc(Type.getArgumentTypes(mn.desc), Type.getReturnType(mn.desc), deadIndices);
-		
-		InvocationResolver resolver = cxt.getInvocationResolver();
-		
-		if(Modifier.isStatic(mn.access)) {
-			MethodNode conflict = resolver.findStaticCall(mn.owner.name, mn.name, newDesc);
-			if(conflict != null) {
-				// System.out.printf("  can't remap(s) %s because of %s.%n", mn, conflict);
-				cantfix.add(mn);
-				return 0;
-			}
-		} else {
-			if(mn.name.equals("<init>")) {
-				MethodNode conflict = resolver.findVirtualCall(mn.owner, mn.name, newDesc);
-				if(conflict != null) {
-					// System.out.printf("  can't remap(i) %s because of %s.%n", mn, conflict);
-					cantfix.add(mn);
-					return 0;
-				}
-			} else {
-				Set<MethodNode> conflicts = cxt.getInvocationResolver().getVirtualChain(mn.owner, mn.name, newDesc);
-				if(conflicts.size() == 0) {
-					remapMethods(chain, newDesc, deadIndices);
-					return deadIndices.size();
-				} else {
-					// System.out.printf("  can't remap(v) %s because of %s.%n", mn, conflicts);
-					cantfix.addAll(chain);
-					return 0;
-				}
+			Set<MethodNode> chain = computeChain(cxt, m);
+			for(MethodNode chm : chain) {
+				chainMap.put(chm, chain);
 			}
 		}
-		
-		remapMethod(mn, newDesc, deadIndices);
-		return deadIndices.size();
-	}
-	
-	private void remapMethods(Set<MethodNode> methods, String newDesc, Set<Integer> deadSet) {
-		Map<Integer, ConstantExpr> prev = null;
-
-		for(MethodNode mn : methods) {
-			Map<Integer, ConstantExpr> map = constantParameters.get(mn);
-			
-			if(prev != null) {
-				if(!prev.equals(map)) {
-					System.err.println("p: " + prev);
-					System.out.println("m: " + map);
-					throw new RuntimeException();
-				}
-			} else {
-				prev = map;
-			}
-		}
-		
-		
-		for(MethodNode mn : methods) {
-//			System.out.println(" 2. descmap: " + mn + " to " + newDesc);
-			mn.desc = newDesc;
-			processMethods.add(mn);
-			
-			for(Expr call : calls.get(mn)) {
-				if(processedExprs.contains(call)) {
-					continue;
-				}
-//				System.out.println("   2. fixing: " + call + " to " + mn);
-				processedExprs.add(call);
-				patchCall(mn, call, deadSet);
-			}
-		}
-	}
-	
-	private void remapMethod(MethodNode mn, String newDesc, Set<Integer> dead) {
-//		System.out.println(" 1. descmap: " + mn + " to " + newDesc);
-		mn.desc = newDesc;
-		processMethods.add(mn);
-		
-		for(Expr call : calls.get(mn)) {
-			/* since the callgrapher finds all
-			 * the methods in a hierarchy and considers
-			 * it as a single invocation, a certain
-			 * invocation may be considered multiple times. */
-			if(processedExprs.contains(call)) {
-				continue;
-			}
-//			System.out.println("   1. fixing: " + call + " to " + mn);
-			processedExprs.add(call);
-			patchCall(mn, call, dead);
-		}
-	}
-	
-	private void patchCall(MethodNode to, Expr call, Set<Integer> dead) {
-		if(call.getOpcode() == Opcode.INIT_OBJ) {
-			InitialisedObjectExpr init = (InitialisedObjectExpr) call;
-
-			CodeUnit parent = init.getParent();
-			Expr[] newArgs = buildArgs(init.getArgumentExpressions(), 0, dead);
-			InitialisedObjectExpr init2 = new InitialisedObjectExpr(init.getOwner(), to.desc, newArgs);
-
-			parent.overwrite(init2, parent.indexOf(init));
-		} else if(call.getOpcode() == Opcode.INVOKE) {
-			InvocationExpr invoke = (InvocationExpr) call;
-
-			CodeUnit parent = invoke.getParent();
-			
-			Expr[] newArgs = buildArgs(invoke.getArgumentExpressions(), invoke.getCallType() == Opcodes.INVOKESTATIC ? 0 : -1, dead);
-			InvocationExpr invoke2 = new InvocationExpr(invoke.getCallType(), newArgs, invoke.getOwner(), invoke.getName(), to.desc);
-			
-			parent.overwrite(invoke2, parent.indexOf(invoke));
-		} else {
-			throw new UnsupportedOperationException(call.toString());
-		}
-	}
-	
-	private static Expr[] buildArgs(Expr[] oldArgs, int off, Set<Integer> dead) {
-		Expr[] newArgs = new Expr[oldArgs.length - dead.size()];
-
-		int j = newArgs.length - 1;
-		for(int i=oldArgs.length-1; i >= 0; i--) {
-			Expr e = oldArgs[i];
-			if(!dead.contains(i + off)) {
-				newArgs[j--] = e;
-			}
-			e.unlink();
-		}
-		
-		return newArgs;
-	}
-	
-	private static String buildDesc(Type[] preParams, Type ret, Set<Integer> dead) {
-		StringBuilder sb = new StringBuilder();
-		sb.append("(");
-		for(int i=0; i < preParams.length; i++) {
-			if(!dead.contains(i)) {
-				Type t = preParams[i];
-				sb.append(t.toString());
-			}
-		}
-		sb.append(")").append(ret.toString());
-		return sb.toString();
-	}
-	
-	private boolean isActiveChain(Set<MethodNode> chain) {
-		if(chain.size() == 0) {
-			throw new UnsupportedOperationException(chain.toString());
-		} else if(chain.size() == 1) {
-			return true;
-		} else {
-			Set<MethodNode> chain2 = new HashSet<>();
-			chain2.addAll(chain);
-			
-			Iterator<MethodNode> it = chain2.iterator();
-			while(it.hasNext()) {
-				MethodNode m = it.next();
-				if(constantParameterIndices.get(m) == null) {
-					it.remove();
-				}
-			}
-			
-			if(chain2.size() == 0) {
-				throw new UnsupportedOperationException(chain2.toString());
-			} else if(chain2.size() == 1) {
-				return true;
-			}
-			
-			it = chain2.iterator();
-			
-			/* Find possible common dead indices that we can
-			 * process. If there are none, then the chain is
-			 * considered inactive. */
-			Set<Integer> ret = new HashSet<>();
-			
-			ret.addAll(constantParameterIndices.get(it.next()));
-			
-			while(it.hasNext()) {
-				ret.retainAll(constantParameterIndices.get(it.next()));
-			}
-			
-			return ret.size() > 0;
-		}
-	}
-	
-	private static boolean isSemiConstantSet(List<Expr> exprs) {
-		if(exprs.size() <= 1) {
-			return false;
-		}
-		
-		for(Expr e : exprs) {
-			if(e.getOpcode() != Opcode.CONST_LOAD) {
-				return false;
-			}
-		}
-		return true;
-	}
-	
-	private static ConstantExpr getConstantValue(List<Expr> exprs) {
-		ConstantExpr v = null;
-		
-		for(Expr e : exprs) {
-			if(e.getOpcode() == Opcode.CONST_LOAD) {
-				ConstantExpr c = (ConstantExpr) e;
-				if(v == null) {
-					v = c;
-				} else {
-					if(c.getConstant() != null && c.getConstant().equals(v.getConstant())) {
-						v = c;
-					} else {
-						return null;
-					}
-				}
-			} else {
-				return null;
-			}
-		}
-		
-		return v;
 	}
 }
