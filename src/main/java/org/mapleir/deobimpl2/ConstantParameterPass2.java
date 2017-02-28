@@ -1,15 +1,5 @@
 package org.mapleir.deobimpl2;
 
-import java.lang.reflect.Modifier;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-
 import org.mapleir.deobimpl2.util.IPConstAnalysis;
 import org.mapleir.deobimpl2.util.IPConstAnalysis.ChildVisitor;
 import org.mapleir.deobimpl2.util.RenamingUtil;
@@ -35,6 +25,16 @@ import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
+
+import java.lang.reflect.Modifier;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
 
 public class ConstantParameterPass2 implements IPass, Opcode {
 	
@@ -291,7 +291,7 @@ public class ConstantParameterPass2 implements IPass, Opcode {
 						if(chm.name.equals("<init>")) {
 							conflicts.addAll(resolver.resolveVirtualCalls(chm.owner.name, "<init>", desc, false));
 						} else {
-							conflicts.addAll(getVirtualChain(cxt, m.owner, m.name, desc));
+							conflicts.addAll(resolver.getVirtualChain(m.owner, m.name, desc));
 						}
 					}
 				}
@@ -532,22 +532,11 @@ public class ConstantParameterPass2 implements IPass, Opcode {
 		
 		if(!Modifier.isStatic(m.access)) {
 			if(!m.name.equals("<init>")) {
-				chain.addAll(getVirtualChain(cxt, m.owner, m.name, m.desc));
+				chain.addAll(cxt.getInvocationResolver().getVirtualChain(m.owner, m.name, m.desc));
 			}
 		}
 		
 		return chain;
-	}
-	
-	private Set<MethodNode> getVirtualChain(IContext cxt, ClassNode cn, String name, String desc) {		
-		Set<MethodNode> set = new HashSet<>();
-		for(ClassNode c : cxt.getApplication().getStructures().getAllBranches(cn, false)) {
-			MethodNode mr = cxt.getInvocationResolver().findVirtualCall(c, name, desc);
-			if(mr != null) {
-				set.add(mr);
-			}
-		}
-		return set;
 	}
 		
 	private void makeUpChain(IContext cxt, MethodNode m, Map<MethodNode, Set<MethodNode>> chainMap) {
