@@ -2,14 +2,8 @@ package org.mapleir;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Deque;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Set;
 import java.util.jar.JarOutputStream;
 
 import org.mapleir.byteio.CompleteResolvingJarDumper;
@@ -18,6 +12,7 @@ import org.mapleir.deobimpl2.ConstantExpressionEvaluatorPass;
 import org.mapleir.deobimpl2.ConstantExpressionReorderPass;
 import org.mapleir.deobimpl2.ConstantParameterPass2;
 import org.mapleir.deobimpl2.DeadCodeEliminationPass;
+import org.mapleir.deobimpl2.MethodRenamerPass;
 import org.mapleir.ir.ControlFlowGraphDumper;
 import org.mapleir.ir.cfg.BoissinotDestructor;
 import org.mapleir.ir.cfg.ControlFlowGraph;
@@ -30,6 +25,7 @@ import org.mapleir.stdlib.deob.PassGroup;
 import org.mapleir.stdlib.klass.InvocationResolver;
 import org.mapleir.stdlib.klass.library.ApplicationClassSource;
 import org.mapleir.stdlib.klass.library.InstalledRuntimeClassSource;
+import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.topdank.byteengineer.commons.data.JarInfo;
@@ -199,28 +195,107 @@ public class Boot {
 //		section("Finished.");
 //	}
 	
-	static class A {
-		void call() {
-			System.out.println("xd");
+	interface I5 {
+		void m();
+	}
+	interface I4 extends I5 {
+		@Override
+		void m();
+	}
+	interface I3 extends I5 {
+		@Override
+		void m();
+	}
+	interface I2 extends I3 {
+		@Override
+		void m();
+	}
+	interface I6 extends I4 {
+		@Override
+		void m();
+	}
+	interface I7 extends I2 {
+		@Override
+		void m();
+	}
+	interface I1 extends I4 {
+		@Override
+		void m();
+	}
+	interface I8 extends I6, I1 {
+		@Override
+		void m();
+	}
+	class A implements I1, I2 {
+		@Override
+		public void m() {
+		}
+	}
+	class B extends A implements I6 {
+		@Override
+		public void m() {
+		}
+	}
+	class C extends A implements I7 {
+		@Override
+		public void m() {
+		}
+	}
+	class D extends B implements I8, I7 {
+		@Override
+		public void m() {
 		}
 	}
 	
-	static abstract class B extends A {
-		@Override
-		abstract void call();
-	}
-	
-	static class C extends B {
-
-		@Override
-		void call() {
-			// FIXME: need to check if we can
-			// produce bytecode to call A.call() from
-			// here.
+	public static void main(String[] args) throws Throwable {
+		Class<?>[] cls = new Class<?>[] {
+			I5.class, I4.class, I3.class, I2.class, I6.class,
+			I7.class, I1.class, I8.class, A.class, B.class,
+			C.class, D.class
+		};
+		
+		Set<ClassNode> cns = new HashSet<>();
+		for(Class<?> c : cls) {
+			ClassReader cr = new ClassReader(c.getName());
+			ClassNode cn = new ClassNode();
+			cr.accept(cn, 0);
+			cns.add(cn);
 		}
+		
+		ApplicationClassSource app = new ApplicationClassSource("app", cns);
+		app.addLibraries(new InstalledRuntimeClassSource(app));
+		
+		InvocationResolver ir = new InvocationResolver(app);
+		IContext cxt = new IContext() {
+			@Override
+			public InvocationResolver getInvocationResolver() {
+				return ir;
+			}
+			@Override
+			public ControlFlowGraph getIR(MethodNode m) {
+				return null;
+			}
+			@Override
+			public ApplicationClassSource getApplication() {
+				return app;
+			}
+			@Override
+			public Set<MethodNode> getActiveMethods() {
+				return null;
+			}
+		};
+		
+		Set<MethodNode> set = MethodRenamerPass.getHierarchyMethodChain(cxt, app.findClassNode("org/mapleir/Boot$A"), "m", "()V");
+		List<MethodNode> list = new ArrayList<>(set);
+		Collections.sort(list, new Comparator<MethodNode>() {
+			@Override
+			public int compare(MethodNode o1, MethodNode o2) {
+				return o1.owner.name.substring(o1.owner.name.lastIndexOf('/')).compareTo(o2.owner.name.substring(o2.owner.name.lastIndexOf('/')));
+			}
+		});
+		System.out.println(list);
 	}
-	
-	public static void main(String[] args) throws Exception {
+	public static void main5(String[] args) throws Exception {
 		/* Class<?>[] cs = new Class<?>[] {A1.class, A2.class, A.class, B1.class, C1.class, D.class, E.class, B2.class, C2.class};
 		Set<ClassNode> classes = new HashSet<>();
 		for(Class<?> c : cs) {
