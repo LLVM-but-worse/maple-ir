@@ -257,7 +257,7 @@ public class Boot {
 		}
 	}
 	
-	public static void main(String[] args) throws Throwable {
+	public static void main1234(String[] args) throws Throwable {
 		Class<?>[] cls = new Class<?>[] {
 			I5.class, I4.class, I3.class, I2.class, I6.class,
 			I7.class, I1.class, I8.class, A.class, B.class,
@@ -305,7 +305,7 @@ public class Boot {
 		});
 		System.out.println(list);
 	}
-	public static void main5(String[] args) throws Exception {
+	public static void main(String[] args) throws Exception {
 		/* Class<?>[] cs = new Class<?>[] {A1.class, A2.class, A.class, B1.class, C1.class, D.class, E.class, B2.class, C2.class};
 		Set<ClassNode> classes = new HashSet<>();
 		for(Class<?> c : cs) {
@@ -446,7 +446,7 @@ public class Boot {
 		return new IPass[] {
 				new CallgraphPruningPass(),
 //				new ConcreteStaticInvocationPass(),
-//				new MethodRenamerPass(),
+				new MethodRenamerPass(),
 //				new ConstantParameterPass2()
 //				new ClassRenamerPass(),
 //				new FieldRenamerPass(),
