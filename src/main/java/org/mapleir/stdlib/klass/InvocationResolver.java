@@ -1,13 +1,14 @@
 package org.mapleir.stdlib.klass;
 
-import java.lang.reflect.Modifier;
-import java.util.HashSet;
-import java.util.Set;
-
 import org.mapleir.stdlib.klass.library.ApplicationClassSource;
+import org.mapleir.stdlib.klass.library.ClassStructures;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
+
+import java.lang.reflect.Modifier;
+import java.util.HashSet;
+import java.util.Set;
 
 public class InvocationResolver {
 
@@ -140,7 +141,7 @@ public class InvocationResolver {
 				return set;
 			}
 			
-			for(ClassNode c : app.getStructures().getDelegates(cn)) {
+			for(ClassNode c : app.getStructures().dfsTree(cn, false, true, true)) {
 				m = findClassMethod(c, name, desc);
 				
 				if(m != null) {
@@ -225,5 +226,17 @@ public class InvocationResolver {
 		} else {
 			return null;
 		}
+	}
+	
+	public Set<MethodNode> getVirtualChain(ClassNode cn, String name, String desc) {
+		Set<MethodNode> set = new HashSet<>();
+		final ClassStructures structures = app.getStructures();
+		for(ClassNode c : structures.dfsTree(cn, true, true, false)) {
+			MethodNode mr = findVirtualCall(c, name, desc);
+			if(mr != null) {
+				set.add(mr);
+			}
+		}
+		return set;
 	}
 }

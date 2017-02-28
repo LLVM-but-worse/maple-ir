@@ -1,11 +1,5 @@
 package org.mapleir;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.*;
-import java.util.Map.Entry;
-import java.util.jar.JarOutputStream;
-
 import org.mapleir.byteio.CompleteResolvingJarDumper;
 import org.mapleir.deobimpl2.CallgraphPruningPass;
 import org.mapleir.deobimpl2.ConstantExpressionEvaluatorPass;
@@ -31,6 +25,21 @@ import org.objectweb.asm.tree.MethodNode;
 import org.topdank.byteengineer.commons.data.JarInfo;
 import org.topdank.byteio.in.SingleJarDownloader;
 import org.topdank.byteio.out.JarDumper;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.jar.JarOutputStream;
 
 public class Boot {
 
@@ -237,7 +246,7 @@ public class Boot {
 		public void m() {
 		}
 	}
-	class C extends A implements I7 {
+	class C extends A implements I7, E {
 		@Override
 		public void m() {
 		}

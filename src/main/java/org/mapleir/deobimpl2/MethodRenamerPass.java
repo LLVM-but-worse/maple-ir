@@ -1,15 +1,5 @@
 package org.mapleir.deobimpl2;
 
-import java.lang.reflect.Modifier;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Queue;
-import java.util.Set;
-
 import org.mapleir.deobimpl2.util.RenamingUtil;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
@@ -24,6 +14,16 @@ import org.mapleir.stdlib.klass.library.ApplicationClassSource;
 import org.mapleir.stdlib.klass.library.ClassStructures;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
+
+import java.lang.reflect.Modifier;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Queue;
+import java.util.Set;
 
 public class MethodRenamerPass implements IPass {
 
@@ -59,7 +59,7 @@ public class MethodRenamerPass implements IPass {
 					}
 				} else {
 					if(!m.name.equals("<init>")) {
-						Set<ClassNode> classes = source.getStructures().getAllBranches(m.owner, true);
+						Set<ClassNode> classes = source.getStructures().dfsTree(m.owner, true, true, true);
 						Set<MethodNode> methods = getVirtualMethods(cxt, classes, m.name, m.desc);
 						
 						if(canRename(cxt, methods)) {
@@ -145,7 +145,7 @@ public class MethodRenamerPass implements IPass {
 									}
 								} else {
 //									 Set<MethodNode> sites = resolver.resolveVirtualCalls(invoke.getOwner(), invoke.getName(), invoke.getDesc());
-									Set<ClassNode> classes = source.getStructures().getAllBranches(cn, true);
+									Set<ClassNode> classes = source.getStructures().dfsTree(cn, true, true, true);
 									Set<MethodNode> sites = getVirtualMethods(cxt, classes, invoke.getName(), invoke.getDesc());
 									if(sites.size() > 0) {
 										/* all of the sites must be linked by the same name,
@@ -238,8 +238,9 @@ public class MethodRenamerPass implements IPass {
 		ClassStructures structures = app.getStructures();
 		
 		Set<ClassNode> visited = new HashSet<>();
-		visited.addAll(structures.getDelegates(cn));
+		visited.addAll(structures.dfsTree(cn, false, true, true));
 		visited.add(cn);
+		System.out.println("visited " + visited);
 		
 		Queue<ClassNode> visitHeads = new LinkedList<>();
 		for(ClassNode current : visited) {
@@ -249,37 +250,42 @@ public class MethodRenamerPass implements IPass {
 		    }
 		}
 		visited.clear();
+		System.out.println("visitHeads start with " + visitHeads);
 		
 		Map<ClassNode, MethodNode> results = new HashMap<>();
-
 		while(!visitHeads.isEmpty()) {
 		    ClassNode current = visitHeads.remove();
 		    
 		    Set<String> directSupers = new HashSet<>();
 		    directSupers.add(current.superName);
 		    directSupers.addAll(current.interfaces);
-		    
+		    directSupers.remove(null);
 		    for(String s : directSupers) {
-		    	if(s != null && !app.isLibraryClass(s)) {
-		    		ClassNode parent = app.findClassNode(s);
-					if (visited.add(parent)) {
-						visitHeads.add(parent);
-						MethodNode m = findClassMethod(parent, name, desc);
-						if(m != null) {
-							if(results.containsKey(parent)) {
-								throw new IllegalStateException();
-							}
-							results.put(parent, m);
+				ClassNode parent = app.findClassNode(s);
+				MethodNode m = findClassMethod(parent, name, desc);
+				if(m != null) {
+					results.remove(current);
+					System.out.println("  -" + current + "   \t" + results.keySet());
+				}
+				if (visited.add(parent)) {
+					if (m != null) {
+						if (results.containsKey(parent)) {
+							throw new IllegalStateException();
 						}
+						results.put(parent, m);
+						System.out.println("  +" + parent + "   \t" + results.keySet());
 					}
-		    	}
+					visitHeads.add(parent);
+				}
 			}
 		}
+		System.out.println("results " + results.keySet());
 
 		Set<ClassNode> classes = new HashSet<>();
 		for (ClassNode top : results.keySet()) {
-		    classes.addAll(structures.getDelegates(top));
+		    classes.addAll(structures.dfsTree(top, false, true, true));
 		}
+		System.out.println("classes " + classes);
 		
 		Set<MethodNode> methods = new HashSet<>();
 		for(ClassNode c : classes) {
@@ -292,6 +298,7 @@ public class MethodRenamerPass implements IPass {
 				}
 			}
 		}
+		System.out.println("classes " + classes);
 		
 		return methods;
 	}
