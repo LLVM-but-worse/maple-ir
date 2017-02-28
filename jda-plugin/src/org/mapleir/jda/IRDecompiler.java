@@ -1,7 +1,6 @@
 package org.mapleir.jda;
 
 import org.mapleir.ir.cfg.ControlFlowGraph;
-import org.mapleir.ir.cfg.builder.ControlFlowGraphBuilder;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
 import the.bytecode.club.jda.decompilers.bytecode.ClassNodeDecompiler;
@@ -48,7 +47,7 @@ class IRInstructionPrinter extends InstructionPrinter {
 	
 	@Override
 	public ArrayList<String> createPrint() {
-		ControlFlowGraph cfg = ControlFlowGraphBuilder.build(mNode);
+		ControlFlowGraph cfg = MapleIRPlugin.cfgs.get(mNode);
 		String result = cfg.toString();
 		return new ArrayList<>(Arrays.asList(result.split("\n")));
 	}
