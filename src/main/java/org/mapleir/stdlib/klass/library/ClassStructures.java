@@ -40,18 +40,7 @@ public class ClassStructures {
 	
 	private void build() {
 		for (ClassNode node : source.iterateWithLibraries()) {
-			for (String iface : node.interfaces) {
-				ClassNode ifacecs = findClass(iface);
-				if (ifacecs == null)
-					continue;
-
-				getDelegates0(ifacecs).add(node);
-
-				Set<ClassNode> superinterfaces = new HashSet<>();
-				buildSubTree(superinterfaces, ifacecs);
-
-				getSupers0(node).addAll(superinterfaces);
-			}
+			buildSuperinterfaces(node, null);
 			
 			ClassNode currentSuper = findClass(node.superName);
 			ClassNode prevSuper = node;
@@ -59,25 +48,30 @@ public class ClassStructures {
 				getDelegates0(currentSuper).add(prevSuper);
 				
 				getSupers0(node).add(currentSuper);
-				for (String iface : currentSuper.interfaces) {
-					ClassNode ifacecs = findClass(iface);
-					if (ifacecs == null)
-						continue;
-					
-					getDelegates0(ifacecs).add(currentSuper);
-					
-					Set<ClassNode> superinterfaces = new HashSet<>();
-					buildSubTree(superinterfaces, ifacecs);
-					
-					getSupers0(currentSuper).addAll(superinterfaces);
-					getSupers0(node).addAll(superinterfaces);
-				}
+				buildSuperinterfaces(currentSuper, node);
 				prevSuper = currentSuper;
 				currentSuper = findClass(currentSuper.superName);
 			}
 
 			getSupers0(node);
 			getDelegates0(node);
+		}
+	}
+	
+	private void buildSuperinterfaces(ClassNode currentSuper, ClassNode node) {
+		for (String iface : currentSuper.interfaces) {
+			ClassNode ifacecs = findClass(iface);
+			if (ifacecs == null)
+				continue;
+			
+			getDelegates0(ifacecs).add(currentSuper);
+			
+			Set<ClassNode> superinterfaces = new HashSet<>();
+			buildSubTree(superinterfaces, ifacecs);
+			
+			getSupers0(currentSuper).addAll(superinterfaces);
+			if (node != null)
+				getSupers0(node).addAll(superinterfaces);
 		}
 	}
 	
@@ -112,7 +106,9 @@ public class ClassStructures {
 		return Collections.unmodifiableSet(delgates.get(cn));
 	}
 	
-	// gets all connected classes, both up and down
+	// gets all connected classes in specified directions.
+	// NOTE: enabling up and down search means that ALL CONNECTED BRANCHES are returned
+	// i.e. you can go up one branch and back down another
 	public Set<ClassNode> dfsTree(ClassNode cn, boolean up, boolean down, boolean exploreLibs) {
 		Set<ClassNode> set = new HashSet<>();
 
@@ -134,8 +130,7 @@ public class ClassStructures {
 					ClassNode o = iterator.next();
 					if (source.isLibraryClass(o.name) && !exploreLibs) {
 						iterator.remove();
-					}
-					if (o.name.equals("java/lang/Object")) {
+					} else if (o.name.equals("java/lang/Object")) {
 						iterator.remove();
 					}
 				}
