@@ -196,14 +196,12 @@ public class Boot {
 //	}
 	
 	interface I5 {
-		void m();
+		
 	}
 	interface I4 extends I5 {
-		@Override
 		void m();
 	}
 	interface I3 extends I5 {
-		@Override
 		void m();
 	}
 	interface I2 extends I3 {
@@ -227,7 +225,6 @@ public class Boot {
 		void m();
 	}
 	interface E extends I5 {
-		@Override
 		void m();
 	}
 	class A implements I1, I2 {
