@@ -1,14 +1,15 @@
 package org.mapleir.stdlib.klass.library;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.Set;
-
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.ValueCreator;
 import org.objectweb.asm.tree.ClassNode;
+
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 public class ClassStructures {
 	private static final ValueCreator<Set<ClassNode>> SET_CREATOR = LinkedHashSet::new;
@@ -51,20 +52,27 @@ public class ClassStructures {
 
 				getSupers0(node).addAll(superinterfaces);
 			}
+			
 			ClassNode currentSuper = findClass(node.superName);
+			ClassNode prevSuper = node;
 			while (currentSuper != null) {
-				getDelegates0(currentSuper).add(node);
+				getDelegates0(currentSuper).add(prevSuper);
+				
 				getSupers0(node).add(currentSuper);
 				for (String iface : currentSuper.interfaces) {
 					ClassNode ifacecs = findClass(iface);
 					if (ifacecs == null)
 						continue;
+					
 					getDelegates0(ifacecs).add(currentSuper);
+					
 					Set<ClassNode> superinterfaces = new HashSet<>();
 					buildSubTree(superinterfaces, ifacecs);
+					
 					getSupers0(currentSuper).addAll(superinterfaces);
 					getSupers0(node).addAll(superinterfaces);
 				}
+				prevSuper = currentSuper;
 				currentSuper = findClass(currentSuper.superName);
 			}
 
@@ -90,6 +98,7 @@ public class ClassStructures {
 		return supers.getNonNull(cn);
 	}
 
+	// returns the DIRECT delegates of the class
 	public Set<ClassNode> getDelegates0(ClassNode cn) {
 		return delgates.getNonNull(cn);
 	}
@@ -98,12 +107,13 @@ public class ClassStructures {
 		return Collections.unmodifiableSet(supers.get(cn));
 	}
 
+	// returns the DIRECT delegates of the class
 	public Set<ClassNode> getDelegates(ClassNode cn) {
 		return Collections.unmodifiableSet(delgates.get(cn));
 	}
 	
 	// gets all connected classes, both up and down
-	public Set<ClassNode> getAllBranches(ClassNode cn, boolean exploreLibs) {
+	public Set<ClassNode> dfsTree(ClassNode cn, boolean up, boolean down, boolean exploreLibs) {
 		Set<ClassNode> set = new HashSet<>();
 
 		Set<ClassNode> pending = new HashSet<>();
@@ -114,19 +124,20 @@ public class ClassStructures {
 
 			Set<ClassNode> discovered = new HashSet<>();
 			for (ClassNode c : pending) {
-				for (ClassNode o : getSupers(c)) {
-					if(source.isLibraryClass(o.name) && !exploreLibs) {
-						continue;
-					}
-					if(o.name.equals("java/lang/Object")) {
-						discovered.add(o);
-					}
+				if (up) {
+					discovered.addAll(getSupers(c));
 				}
-				for (ClassNode o : getDelegates(c)) {
-					if(source.isLibraryClass(o.name) && !exploreLibs) {
-						continue;
+				if (down) {
+					discovered.addAll(getDelegates(c));
+				}
+				for (Iterator<ClassNode> iterator = discovered.iterator(); iterator.hasNext(); ) {
+					ClassNode o = iterator.next();
+					if (source.isLibraryClass(o.name) && !exploreLibs) {
+						iterator.remove();
 					}
-					discovered.add(o);
+					if (o.name.equals("java/lang/Object")) {
+						iterator.remove();
+					}
 				}
 			}
 
@@ -138,15 +149,6 @@ public class ClassStructures {
 			}
 		}
 
-		return set;
-	}
-
-	public Set<ClassNode> getVirtualReachableBranches(ClassNode cn) {
-		Set<ClassNode> set = new HashSet<>();
-		
-		set.addAll(getSupers(cn));
-		set.addAll(getDelegates(cn));
-		
 		return set;
 	}
 }

@@ -351,14 +351,14 @@ public class ConstantParameterPass implements IPass, Opcode {
 		Set<MethodNode> chain = null;
 				
 		if(!Modifier.isStatic(mn.access) && !mn.name.equals("<init>")) {
-			chain = getVirtualChain(cxt, mn.owner, mn.name, mn.desc);
+			chain = cxt.getInvocationResolver().getVirtualChain(mn.owner, mn.name, mn.desc);
 			
 			if(!isActiveChain(chain)) {
 				cantfix.addAll(chain);
 				
 				System.out.println();
 				System.out.println("@" + mn);
-				Set<ClassNode> cc = cxt.getApplication().getStructures().getAllBranches(mn.owner, false);
+				Set<ClassNode> cc = cxt.getApplication().getStructures().dfsTree(mn.owner, true, true, false);
 				
 				System.out.println(" class chain: " + cc);
 				System.out.println("  inactive chain: " + chain);
@@ -422,7 +422,7 @@ public class ConstantParameterPass implements IPass, Opcode {
 					return 0;
 				}
 			} else {
-				Set<MethodNode> conflicts = getVirtualChain(cxt, mn.owner, mn.name, newDesc);
+				Set<MethodNode> conflicts = cxt.getInvocationResolver().getVirtualChain(mn.owner, mn.name, newDesc);
 				if(conflicts.size() == 0) {
 					remapMethods(chain, newDesc, deadIndices);
 					return deadIndices.size();
@@ -540,17 +540,6 @@ public class ConstantParameterPass implements IPass, Opcode {
 		}
 		sb.append(")").append(ret.toString());
 		return sb.toString();
-	}
-	
-	private Set<MethodNode> getVirtualChain(IContext cxt, ClassNode cn, String name, String desc) {		
-		Set<MethodNode> set = new HashSet<>();
-		for(ClassNode c : cxt.getApplication().getStructures().getAllBranches(cn, false)) {
-			MethodNode mr = cxt.getInvocationResolver().findVirtualCall(c, name, desc);
-			if(mr != null) {
-				set.add(mr);
-			}
-		}
-		return set;
 	}
 	
 	private boolean isActiveChain(Set<MethodNode> chain) {
