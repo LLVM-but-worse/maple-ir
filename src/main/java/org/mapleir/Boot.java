@@ -226,6 +226,10 @@ public class Boot {
 		@Override
 		void m();
 	}
+	interface E extends I5 {
+		@Override
+		void m();
+	}
 	class A implements I1, I2 {
 		@Override
 		public void m() {
@@ -251,7 +255,7 @@ public class Boot {
 		Class<?>[] cls = new Class<?>[] {
 			I5.class, I4.class, I3.class, I2.class, I6.class,
 			I7.class, I1.class, I8.class, A.class, B.class,
-			C.class, D.class
+			C.class, D.class, E.class
 		};
 		
 		Set<ClassNode> cns = new HashSet<>();
