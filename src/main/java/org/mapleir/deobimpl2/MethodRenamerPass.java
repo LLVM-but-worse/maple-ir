@@ -1,15 +1,5 @@
 package org.mapleir.deobimpl2;
 
-import java.lang.reflect.Modifier;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Queue;
-import java.util.Set;
-
 import org.mapleir.deobimpl2.util.RenamingUtil;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
@@ -24,6 +14,16 @@ import org.mapleir.stdlib.klass.library.ApplicationClassSource;
 import org.mapleir.stdlib.klass.library.ClassStructures;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
+
+import java.lang.reflect.Modifier;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Queue;
+import java.util.Set;
 
 public class MethodRenamerPass implements IPass {
 
@@ -176,7 +176,7 @@ public class MethodRenamerPass implements IPass {
 										}
 									} else {
 										if(mustMark(source, invoke.getOwner())) {
-											System.err.println("  can't resolve(v) " + invoke + ", owner: " + invoke.getOwner());
+											System.err.println("  can't resolve(v) " + invoke + ", owner: " + invoke.getOwner() + " desc " + invoke.getDesc());
 											// System.err.println("  classes: " + classes);
 										}
 									}
@@ -238,22 +238,34 @@ public class MethodRenamerPass implements IPass {
 		ApplicationClassSource app = cxt.getApplication();
 		ClassStructures structures = app.getStructures();
 		
+		check: { for (ClassNode viable : structures.dfsTree(cn, true, true, true))
+			if (viable.getMethod(name, desc, false) != null)
+				break check;
+			System.err.println("cn: " + cn);
+			System.err.println("name: " + name);
+			System.err.println("desc: " + desc);
+			System.err.println("Searched: " + structures.dfsTree(cn, true, true, true));
+			throw new IllegalArgumentException("You must be really dense because that method doesn't even exist.");
+		}
+		
 		Set<ClassNode> visited = new HashSet<>();
 		visited.addAll(structures.dfsTree(cn, false, true, true));
 		visited.add(cn);
 		// System.out.println("visited " + visited);
 		
+		Map<ClassNode, MethodNode> results = new HashMap<>();
 		Queue<ClassNode> visitHeads = new LinkedList<>();
 		for(ClassNode current : visited) {
 			MethodNode m = findClassMethod(current, name, desc);
 		    if(m != null) {
+				results.put(current, m);
 		        visitHeads.add(current);
 		    }
 		}
 		visited.clear();
-		// System.out.println("visitHeads start with " + visitHeads);
+		visited.addAll(visitHeads);
 		
-		Map<ClassNode, MethodNode> results = new HashMap<>();
+//		System.out.println("visitHeads start with " + visitHeads);
 		while(!visitHeads.isEmpty()) {
 		    ClassNode current = visitHeads.remove();
 		    
@@ -261,6 +273,7 @@ public class MethodRenamerPass implements IPass {
 		    directSupers.add(current.superName);
 		    directSupers.addAll(current.interfaces);
 		    directSupers.remove(null);
+//		    System.out.println(directSupers);
 		    for(String s : directSupers) {
 				ClassNode parent = app.findClassNode(s);
 				MethodNode m = findClassMethod(parent, name, desc);
