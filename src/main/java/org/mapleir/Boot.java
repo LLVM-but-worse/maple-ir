@@ -376,6 +376,10 @@ public class Boot {
 			}
 		};
 		
+//		ClassNode cn = app.findClassNode("ab");
+//		MethodRenamerPass.getHierarchyMethodChain(cxt, cn, "c", "(Ljava/lang/Object;ZB)[B");
+//		System.exit(0);
+		
 		section("Expanding callgraph and generating cfgs.");
 		CallTracer tracer = new IRCallTracer(cxt) {
 			@Override
