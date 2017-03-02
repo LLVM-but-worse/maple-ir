@@ -127,7 +127,11 @@ public class MethodRenamerPass implements IPass {
 									continue;
 								}
 								
-								if(invoke.getInstanceExpression() == null) {
+								if(Modifier.isStatic(m.access)) {
+									if (invoke.getInstanceExpression() != null) {
+										System.err.println("(warn) Static method has non-null instance expression??? " + m.owner + " " + m.name + " " + m.desc + " " + invoke.getInstanceExpression());
+									}
+										
 									MethodNode site = resolver.findStaticCall(invoke.getOwner(), invoke.getName(), invoke.getDesc());
 									
 									if(site != null) {
@@ -312,7 +316,6 @@ public class MethodRenamerPass implements IPass {
 				}
 			}
 		}
-		// System.out.println("classes " + classes);
 		
 		return methods;
 	}
