@@ -1,8 +1,6 @@
 package org.mapleir.stdlib.collections.graph;
 
-import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -28,14 +26,18 @@ public abstract class FastDirectedGraph<N extends FastGraphVertex, E extends Fas
 	}
 
 	@Override
-	public void addVertex(N v) {
+	public boolean addVertex(N v) {
+		boolean ret = false;
 		if(!map.containsKey(v)) {
 			map.put(v, createSet());
+			ret = true;
 		}
 		
 		if(!reverseMap.containsKey(v)) {
 			reverseMap.put(v, createSet());
+			ret = true;
 		}
+		return ret;
 	}
 
 	@Override
@@ -98,15 +100,11 @@ public abstract class FastDirectedGraph<N extends FastGraphVertex, E extends Fas
 	
 	@Override
 	public void addEdge(N v, E e) {
-		if(!map.containsKey(v)) {
-			addVertex(v);
-		}
+		addVertex(v);
 		map.get(v).add(e);
 		
 		N dst = /*getDestination(v, e)*/ e.dst;
-		if(!reverseMap.containsKey(dst)) {
-			addVertex(dst);
-		}
+		addVertex(dst);
 		
 		reverseMap.get(dst).add(e);
 	}
@@ -216,21 +214,5 @@ public abstract class FastDirectedGraph<N extends FastGraphVertex, E extends Fas
 		}
 		sb.append("}");
 		return sb.toString();
-	}
-	
-	public static <N extends FastGraphVertex, E extends FastGraphEdge<N>> List<N> computeSuccessors(FastDirectedGraph<N, E> graph, N n) {
-		List<N> list = new ArrayList<>();
-		for(E succ : graph.getEdges(n)) {
-			list.add(/*graph.getDestination(n, succ)*/ succ.dst);
-		}
-		return list;
-	}
-	
-	public static <N extends FastGraphVertex, E extends FastGraphEdge<N>> List<N> computePredecessors(FastDirectedGraph<N, E> graph, N n) {
-		List<N> list = new ArrayList<>();
-		for(E pred : graph.getReverseEdges(n)) {
-			list.add(/*graph.getSource(n, pred)*/ pred.src);
-		}
-		return list;
 	}
 }

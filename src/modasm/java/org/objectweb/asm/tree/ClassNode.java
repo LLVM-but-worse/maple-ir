@@ -29,11 +29,7 @@
  */
 package org.objectweb.asm.tree;
 
-import java.lang.reflect.Modifier;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-
+import org.mapleir.stdlib.collections.graph.FastGraphVertex;
 import org.objectweb.asm.AnnotationVisitor;
 import org.objectweb.asm.Attribute;
 import org.objectweb.asm.ClassVisitor;
@@ -42,12 +38,17 @@ import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.TypePath;
 
+import java.lang.reflect.Modifier;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
 /**
  * A node that represents a class.
  * 
  * @author Eric Bruneton
  */
-public class ClassNode extends ClassVisitor {
+public class ClassNode extends ClassVisitor implements FastGraphVertex {
 
     /**
      * The class version.
@@ -428,4 +429,19 @@ public class ClassNode extends ClassVisitor {
 	public String toString() {
 		return name;
 	}
+    
+    // maple-ir start //
+    private static int ID_COUNTER = 1;
+   	private final int numericId = ID_COUNTER++;
+    
+    @Override
+    public String getId() {
+        return numericId + "." + name;
+    }
+    
+    @Override
+    public int getNumericId() {
+        return numericId;
+    }
+    // maple-ir end //
 }

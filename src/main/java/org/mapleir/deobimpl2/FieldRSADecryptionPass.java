@@ -1,15 +1,5 @@
 package org.mapleir.deobimpl2;
 
-import java.lang.reflect.Modifier;
-import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.CodeUnit;
@@ -21,13 +11,23 @@ import org.mapleir.ir.code.expr.ArithmeticExpr.Operator;
 import org.mapleir.ir.code.expr.ConstantExpr;
 import org.mapleir.ir.code.expr.FieldLoadExpr;
 import org.mapleir.ir.code.stmt.FieldStoreStmt;
-import org.mapleir.stdlib.IContext;
+import org.mapleir.state.IContext;
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.SetCreator;
 import org.mapleir.stdlib.deob.IPass;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.FieldNode;
 import org.objectweb.asm.tree.MethodNode;
+
+import java.lang.reflect.Modifier;
+import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 public class FieldRSADecryptionPass implements IPass, Opcode {
 
@@ -96,8 +96,8 @@ public class FieldRSADecryptionPass implements IPass, Opcode {
 	public int accept(IContext cxt, IPass prev, List<IPass> completed) {
 		this.cxt = cxt;
 		
-		for(MethodNode m : cxt.getActiveMethods()) {
-			ControlFlowGraph cfg = cxt.getIR(m);
+		for(MethodNode m : cxt.getCFGS().getActiveMethods()) {
+			ControlFlowGraph cfg = cxt.getCFGS().getIR(m);
 
 			for(BasicBlock b : cfg.vertices()) {
 				for(Stmt stmt : b) {
@@ -243,7 +243,7 @@ public class FieldRSADecryptionPass implements IPass, Opcode {
 	private void transform(IContext cxt) {
 		for(ClassNode cn : cxt.getApplication().iterate()) {
 			for(MethodNode m : cn.methods) {
-				ControlFlowGraph cfg = cxt.getIR(m);
+				ControlFlowGraph cfg = cxt.getCFGS().getIR(m);
 				
 				for(BasicBlock b : cfg.vertices()) {
 					for(Stmt stmt : b) {
@@ -311,7 +311,7 @@ public class FieldRSADecryptionPass implements IPass, Opcode {
 		
 //		for(ClassNode cn : cxt.getClassTree().getClasses().values()) {
 //			for(MethodNode m : cn.methods) {
-//				ControlFlowGraph cfg = cxt.getIR(m);
+//				ControlFlowGraph cfg = cxt.getCFGS().getIR(m);
 //				
 //				for(BasicBlock b : cfg.vertices()) {
 //					for(Stmt stmt : b) {

@@ -1,10 +1,10 @@
 package org.mapleir.stdlib.deob;
 
+import org.mapleir.Boot;
+import org.mapleir.state.IContext;
+
 import java.util.ArrayList;
 import java.util.List;
-
-import org.mapleir.Boot;
-import org.mapleir.stdlib.IContext;
 
 public class PassGroup implements IPass {
 

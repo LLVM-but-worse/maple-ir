@@ -1,7 +1,5 @@
 package org.mapleir.deobimpl2;
 
-import java.util.List;
-
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.Expr;
@@ -11,9 +9,11 @@ import org.mapleir.ir.code.expr.ArithmeticExpr;
 import org.mapleir.ir.code.expr.ArithmeticExpr.Operator;
 import org.mapleir.ir.code.stmt.ConditionalJumpStmt;
 import org.mapleir.ir.code.stmt.ConditionalJumpStmt.ComparisonType;
-import org.mapleir.stdlib.IContext;
+import org.mapleir.state.IContext;
 import org.mapleir.stdlib.deob.IPass;
 import org.objectweb.asm.tree.MethodNode;
+
+import java.util.List;
 
 public class ConstantExpressionReorderPass implements IPass, Opcode {
 
@@ -25,8 +25,8 @@ public class ConstantExpressionReorderPass implements IPass, Opcode {
 	@Override
 	public int accept(IContext cxt, IPass prev, List<IPass> completed) {
 		int i = 0;
-		for(MethodNode m : cxt.getActiveMethods()) {
-			ControlFlowGraph ir = cxt.getIR(m);
+		for(MethodNode m : cxt.getCFGS().getActiveMethods()) {
+			ControlFlowGraph ir = cxt.getCFGS().getIR(m);
 			i += transform(ir);
 		}
 		System.out.println("  swapped " + i + " constant expression orders.");

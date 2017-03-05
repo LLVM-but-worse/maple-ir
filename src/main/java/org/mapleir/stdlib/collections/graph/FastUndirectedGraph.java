@@ -27,13 +27,17 @@ public abstract class FastUndirectedGraph<N extends FastGraphVertex, E extends F
 	}
 
 	@Override
-	public void addVertex(N n) {
+	public boolean addVertex(N n) {
+		boolean ret = false;
 		if(!map.containsKey(n)) {
 			map.put(n, createSet());
+			ret = true;
 		}
 		if(!reverseMap.containsKey(n)) {
 			reverseMap.put(n, createSet());
+			ret = true;
 		}
+		return ret;
 	}
 
 	@Override

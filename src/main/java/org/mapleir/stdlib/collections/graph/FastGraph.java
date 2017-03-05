@@ -10,7 +10,7 @@ public interface FastGraph<N extends FastGraphVertex, E extends FastGraphEdge<N>
 
 	Set<N> vertices();
 	
-	void addVertex(N n);
+	boolean addVertex(N n);
 	
 	void removeVertex(N n);
 	

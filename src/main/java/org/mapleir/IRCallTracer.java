@@ -1,7 +1,5 @@
 package org.mapleir;
 
-import java.util.Set;
-
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.Expr;
@@ -9,10 +7,12 @@ import org.mapleir.ir.code.Opcode;
 import org.mapleir.ir.code.Stmt;
 import org.mapleir.ir.code.expr.InitialisedObjectExpr;
 import org.mapleir.ir.code.expr.InvocationExpr;
-import org.mapleir.stdlib.IContext;
+import org.mapleir.state.IContext;
 import org.mapleir.stdlib.call.CallTracer;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.MethodNode;
+
+import java.util.Set;
 
 public class IRCallTracer extends CallTracer {
 
@@ -25,7 +25,7 @@ public class IRCallTracer extends CallTracer {
 
 	@Override
 	protected void traceImpl(MethodNode m) {
-		ControlFlowGraph cfg = context.getIR(m);
+		ControlFlowGraph cfg = context.getCFGS().getIR(m);
 		if(cfg == null) {
 			throw new UnsupportedOperationException("No cfg for " + m + " [" + m.instructions.size() + "]");
 		}
