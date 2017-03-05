@@ -20,7 +20,7 @@ import org.mapleir.stdlib.IContext;
 import org.mapleir.stdlib.deob.IPass;
 import org.mapleir.stdlib.klass.InvocationResolver;
 import org.mapleir.stdlib.klass.library.ApplicationClassSource;
-import org.mapleir.stdlib.klass.library.ClassStructures;
+import org.mapleir.stdlib.klass.library.structures.ClassStructures;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.ClassNode;

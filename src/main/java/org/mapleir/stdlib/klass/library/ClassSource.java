@@ -1,22 +1,17 @@
 package org.mapleir.stdlib.klass.library;
 
-import org.mapleir.stdlib.klass.ClassHelper;
-import org.objectweb.asm.tree.ClassNode;
-
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
+import org.mapleir.stdlib.klass.ClassHelper;
+import org.objectweb.asm.tree.ClassNode;
+
 public abstract class ClassSource {
 
 	protected final Map<String, ClassNode> nodeMap;
-	
-	public ClassSource() {
-		this(new HashMap<>());
-	}
 	
 	public ClassSource(Collection<ClassNode> classes) {
 		this(ClassHelper.convertToMap(classes));
