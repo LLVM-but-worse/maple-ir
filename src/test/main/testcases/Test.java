@@ -17,7 +17,7 @@
 //import org.mapleir.ir.cfg.ControlFlowGraph;
 //import org.mapleir.ir.cfg.builder.ControlFlowGraphBuilder;
 //import org.mapleir.ir.code.Expr;
-//import org.mapleir.stdlib.IContext;
+//import org.mapleir.state.IContext;
 //import org.mapleir.stdlib.call.CallTracer;
 //import org.mapleir.stdlib.deob.PassGroup;
 //import org.mapleir.stdlib.klass.ClassTree;
@@ -61,7 +61,7 @@
 //			}
 //
 //			@Override
-//			public ControlFlowGraph getIR(MethodNode m) {
+//			public ControlFlowGraph getNonNull(MethodNode m) {
 //				if(cfgs.containsKey(m)) {
 //					return cfgs.get(m);
 //				} else {
@@ -72,7 +72,7 @@
 //			}
 //
 //			@Override
-//			public Set<MethodNode> getActiveMethods() {
+//			public Set<MethodNode> keySet() {
 //				return cfgs.keySet();
 //			}
 //
@@ -105,7 +105,7 @@
 //							System.out.println();
 //							System.out.println();
 //							System.out.printf("%s, static=%b.%n", m, Modifier.isStatic(m.access));
-//							System.out.println(cxt.getIR(m));
+//							System.out.println(cxt.getCFGS().getIR(m));
 //						}
 //					}
 //				}
