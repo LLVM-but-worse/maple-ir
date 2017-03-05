@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.mapleir.ir.cfg.BasicBlock;
-import org.mapleir.stdlib.collections.graph.flow.TarjanSCC;
+import org.mapleir.stdlib.collections.graph.algorithms.TarjanSCC;
 
 public class NaturalisationPass2 extends ControlFlowGraphBuilder.BuilderPass {
 

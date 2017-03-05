@@ -1,4 +1,4 @@
-package org.mapleir.ir.analysis;
+package org.mapleir.stdlib.collections.graph.algorithms;
 
 import java.util.ArrayList;
 import java.util.HashSet;
