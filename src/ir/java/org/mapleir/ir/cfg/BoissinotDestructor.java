@@ -250,7 +250,7 @@ public class BoissinotDestructor {
 		FastBlockGraph dominatorTree = new FastBlockGraph();
 		resolver.domc.makeTree(dominatorTree);
 		dominatorTree.getEntries().add(dummyHead);
-		return new SimpleDfs<>(dominatorTree, dummyHead, true, true);
+		return new SimpleDfs<>(dominatorTree, dummyHead, SimpleDfs.PRE | SimpleDfs.POST);
 	}
 
 	private SSADefUseMap createDuChains() {

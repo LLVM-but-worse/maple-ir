@@ -39,7 +39,7 @@ public class DominanceLivenessAnalyser {
 		backEdges = new NullPermeableHashMap<>(cfg);
 		backTargets = cfg.createBitSet();
 		reducedCfg = reduce(cfg, dfs.getEdges(ExtendedDfs.BACK));
-		reducedDfs = new SimpleDfs<>(reducedCfg, entry, true, true);
+		reducedDfs = new SimpleDfs<>(reducedCfg, entry, SimpleDfs.PRE | SimpleDfs.POST);
 
 		computeReducedReachability();
 		computeTargetReachability();
