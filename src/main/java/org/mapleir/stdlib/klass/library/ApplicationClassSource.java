@@ -7,13 +7,14 @@ import java.util.Map;
 
 import org.mapleir.stdlib.collections.IteratorIterator;
 import org.mapleir.stdlib.klass.ClassHelper;
+import org.mapleir.stdlib.klass.library.structures2.ClassResolver;
 import org.objectweb.asm.tree.ClassNode;
 
 public class ApplicationClassSource extends ClassSource {
 
 	private final String name;
 	private final Collection<LibraryClassSource> libraries;
-	private ClassStructures structures;
+	private ClassResolver structures;
 	
 	public ApplicationClassSource(String name, Collection<ClassNode> classes) {
 		this(name, ClassHelper.convertToMap(classes));
@@ -23,10 +24,12 @@ public class ApplicationClassSource extends ClassSource {
 		super(nodeMap);
 		this.name = (name == null ? "unknown" : name);
 		libraries = new ArrayList<>();
-		structures = new ClassStructures(this);
 	}
 	
-	public ClassStructures getStructures() {
+	public ClassResolver getStructures() {
+		if(structures == null) {
+			structures = new ClassResolver(this);
+		}
 		return structures;
 	}
 	
@@ -46,7 +49,7 @@ public class ApplicationClassSource extends ClassSource {
 				libraries.add(cs);
 			}
 		}
-		structures = new ClassStructures(this);
+		structures = new ClassResolver(this);
 	}
 	
 	public ClassNode findClassNode(String name) {
@@ -54,8 +57,6 @@ public class ApplicationClassSource extends ClassSource {
 		
 		if(n != null) {
 			ClassNode cn = n.node;
-			structures.getSupers0(cn);
-			structures.getDelegates0(cn);
 			return cn;
 		} else {
 			return null;
