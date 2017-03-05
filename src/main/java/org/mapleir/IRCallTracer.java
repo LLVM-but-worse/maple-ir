@@ -25,7 +25,7 @@ public class IRCallTracer extends CallTracer {
 
 	@Override
 	protected void traceImpl(MethodNode m) {
-		ControlFlowGraph cfg = context.getCFGS().getNonNull(m);
+		ControlFlowGraph cfg = context.getCFGS().getIR(m);
 		if(cfg == null) {
 			throw new UnsupportedOperationException("No cfg for " + m + " [" + m.instructions.size() + "]");
 		}

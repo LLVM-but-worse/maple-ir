@@ -115,7 +115,7 @@ public class IPConstAnalysis extends IRCallTracer implements Opcode {
 		 * descriptor. */
 		int[] idxs = new int[synthCount];
 		
-		ControlFlowGraph cfg = context.getCFGS().getNonNull(m);
+		ControlFlowGraph cfg = context.getCFGS().getIR(m);
 		BasicBlock entry = cfg.getEntries().iterator().next();
 		
 		/* static:

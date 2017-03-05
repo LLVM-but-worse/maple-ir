@@ -716,20 +716,25 @@ public class GraphUtils {
 		cfg.removeVertex(head);
 	}
 	
-	public static <N extends FastGraphVertex> List<FlowEdge<N>> weigh(Set<FlowEdge<N>> edges) {
-		List<FlowEdge<N>> lst = new ArrayList<>();
-		lst.addAll(edges);
-		lst.sort(new Comparator<FlowEdge<N>>() {
-			@Override
-			public int compare(FlowEdge<N> o1, FlowEdge<N> o2) {
-				if (o1.getType() == FlowEdges.DUMMY) {
-					return 1;
-				} else if (o2.getType() == FlowEdges.DUMMY) {
-					return -1;
+	public static <N extends FastGraphVertex> List<? extends FastGraphEdge<N>> weigh(Set<? extends FastGraphEdge<N>> edges) {
+		List<? extends FastGraphEdge<N>> lst = new ArrayList<>();
+		if (edges.isEmpty())
+			return lst;
+		
+		((List<FastGraphEdge<N>>) lst).addAll(edges);
+		if (lst.get(0) instanceof FlowEdge) {
+			((List<? extends FlowEdge<N>>) lst).sort(new Comparator<FlowEdge<N>>() {
+				@Override
+				public int compare(FlowEdge<N> o1, FlowEdge<N> o2) {
+					if (o1.getType() == FlowEdges.DUMMY) {
+						return 1;
+					} else if (o2.getType() == FlowEdges.DUMMY) {
+						return -1;
+					}
+					return 0;
 				}
-				return 0;
-			}
-		});
+			});
+		}
 		return lst;
 	}
 	
