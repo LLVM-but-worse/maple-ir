@@ -1,15 +1,7 @@
 package org.mapleir.byteio;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.lang.reflect.Modifier;
-import java.util.Set;
-import java.util.jar.JarEntry;
-import java.util.jar.JarOutputStream;
-
+import org.mapleir.state.ApplicationClassSource;
 import org.mapleir.stdlib.klass.ClassNodeUtil;
-import org.mapleir.stdlib.klass.library.ApplicationClassSource;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.commons.blocksplit.SplitMethodWriterDelegate;
 import org.objectweb.asm.tree.ClassNode;
@@ -18,6 +10,14 @@ import org.topdank.byteengineer.commons.data.JarContents;
 import org.topdank.byteengineer.commons.data.JarResource;
 import org.topdank.byteio.out.JarDumper;
 import org.topdank.byteio.util.Debug;
+
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.lang.reflect.Modifier;
+import java.util.Set;
+import java.util.jar.JarEntry;
+import java.util.jar.JarOutputStream;
 
 /**
  * Dumps ClassNodes and JarResources back into a file on the local system.
