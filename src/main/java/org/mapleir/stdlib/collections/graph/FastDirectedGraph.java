@@ -1,8 +1,6 @@
 package org.mapleir.stdlib.collections.graph;
 
-import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -216,21 +214,5 @@ public abstract class FastDirectedGraph<N extends FastGraphVertex, E extends Fas
 		}
 		sb.append("}");
 		return sb.toString();
-	}
-	
-	public static <N extends FastGraphVertex, E extends FastGraphEdge<N>> List<N> computeSuccessors(FastDirectedGraph<N, E> graph, N n) {
-		List<N> list = new ArrayList<>();
-		for(E succ : graph.getEdges(n)) {
-			list.add(/*graph.getDestination(n, succ)*/ succ.dst);
-		}
-		return list;
-	}
-	
-	public static <N extends FastGraphVertex, E extends FastGraphEdge<N>> List<N> computePredecessors(FastDirectedGraph<N, E> graph, N n) {
-		List<N> list = new ArrayList<>();
-		for(E pred : graph.getReverseEdges(n)) {
-			list.add(/*graph.getSource(n, pred)*/ pred.src);
-		}
-		return list;
 	}
 }
