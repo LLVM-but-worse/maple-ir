@@ -1,5 +1,15 @@
 package org.mapleir.deobimpl2;
 
+import java.lang.reflect.Modifier;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Queue;
+import java.util.Set;
+
 import org.mapleir.deobimpl2.util.RenamingUtil;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
@@ -11,19 +21,9 @@ import org.mapleir.stdlib.IContext;
 import org.mapleir.stdlib.deob.IPass;
 import org.mapleir.stdlib.klass.InvocationResolver;
 import org.mapleir.stdlib.klass.library.ApplicationClassSource;
-import org.mapleir.stdlib.klass.library.ClassStructures;
+import org.mapleir.stdlib.klass.library.structures.ClassStructures;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
-
-import java.lang.reflect.Modifier;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Queue;
-import java.util.Set;
 
 public class MethodRenamerPass implements IPass {
 
@@ -112,6 +112,8 @@ public class MethodRenamerPass implements IPass {
 				}
 			}
 			
+			Set<Expr> visited = new HashSet<>();
+			
 			for(MethodNode m : cn.methods) {
 				ControlFlowGraph cfg = cxt.getIR(m);
 				
@@ -122,16 +124,17 @@ public class MethodRenamerPass implements IPass {
 							if(e.getOpcode() == Opcode.INVOKE) {
 								InvocationExpr invoke = (InvocationExpr) e;
 								
+								if(visited.contains(invoke)) {
+									throw new RuntimeException(invoke.toString());
+								}
+								visited.add(invoke);
+								
 								if(invoke.getOwner().startsWith("[")) {
 									System.err.println("  ignore array object invoke: " + invoke + ", owner: " + invoke.getOwner());
 									continue;
 								}
 								
-								if(Modifier.isStatic(m.access)) {
-									if (invoke.getInstanceExpression() != null) {
-										System.err.println("(warn) Static method has non-null instance expression??? " + m.owner + " " + m.name + " " + m.desc + " " + invoke.getInstanceExpression());
-									}
-										
+								if(invoke.getInstanceExpression() == null) {
 									MethodNode site = resolver.findStaticCall(invoke.getOwner(), invoke.getName(), invoke.getDesc());
 									
 									if(site != null) {
@@ -151,7 +154,7 @@ public class MethodRenamerPass implements IPass {
 //									 Set<MethodNode> sites = resolver.resolveVirtualCalls(invoke.getOwner(), invoke.getName(), invoke.getDesc());
 									// Set<ClassNode> classes = source.getStructures().dfsTree(cn, true, true, true);
 									// Set<MethodNode> sites = getVirtualMethods(cxt, classes, invoke.getName(), invoke.getDesc());
-									Set<MethodNode> sites = getHierarchyMethodChain(cxt, m.owner, m.name, m.desc);
+									Set<MethodNode> sites = getHierarchyMethodChain(cxt, source.findClassNode(invoke.getOwner()), invoke.getName(), invoke.getDesc());
 									if(sites.size() > 0) {
 										/* all of the sites must be linked by the same name,
 										 * so we can use any to find the new name. */

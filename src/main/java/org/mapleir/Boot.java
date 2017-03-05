@@ -1,5 +1,11 @@
 package org.mapleir;
 
+import java.io.File;
+import java.io.IOException;
+import java.util.*;
+import java.util.Map.Entry;
+import java.util.jar.JarOutputStream;
+
 import org.mapleir.byteio.CompleteResolvingJarDumper;
 import org.mapleir.deobimpl2.CallgraphPruningPass;
 import org.mapleir.deobimpl2.ConstantExpressionEvaluatorPass;
@@ -25,21 +31,6 @@ import org.objectweb.asm.tree.MethodNode;
 import org.topdank.byteengineer.commons.data.JarInfo;
 import org.topdank.byteio.in.SingleJarDownloader;
 import org.topdank.byteio.out.JarDumper;
-
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Deque;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.jar.JarOutputStream;
 
 public class Boot {
 
@@ -334,16 +325,64 @@ public class Boot {
 		
 		File f = locateRevFile(135);
 		
-		section("Preparing to run on " + f.getAbsolutePath());
+		// section("Preparing to run on " + f.getAbsolutePath());
 		SingleJarDownloader<ClassNode> dl = new SingleJarDownloader<>(new JarInfo(f));
 		dl.download();
 		
-		ApplicationClassSource app = new ApplicationClassSource(f.getName().substring(0, f.getName().length() - 4), dl.getJarContents().getClassContents());
+//		System.out.println("loading rt");
+		section("loading rt");
+		
+		section("test");
+		String name = f.getName().substring(0, f.getName().length() - 4);
+		
+		{
+			SingleJarDownloader<ClassNode> dl2 = new SingleJarDownloader<>(new JarInfo(new File("res/rt.jar")));
+			dl2.download();
+			ApplicationClassSource app = new ApplicationClassSource("rt", dl2.getJarContents().getClassContents());
+			app.addLibraries(new InstalledRuntimeClassSource(app));
+			app.getStructures();
+//			BufferedReader br = new BufferedReader(new FileReader(new File("out/tree.json")));
+//			String l = br.readLine();
+//			br.close();
+//			
+//			PreLoadedStructures str = new Gson().fromJson(l, PreLoadedStructures.class);
+//			section("done");
+		}
+		
+		if("".equals("")) {
+			return;
+		}
+		
+		final int outerIters = 20;
+		final int innerIters = 1000;
+		long total = 0;
+		
+		for(int j=0; j < outerIters; j++) {
+			long n = System.nanoTime();
+			
+			int k = 0;
+			for(int i=0; i < innerIters; i++) {
+				ApplicationClassSource app = new ApplicationClassSource(name, dl.getJarContents().getClassContents());
+				 InstalledRuntimeClassSource jre = new InstalledRuntimeClassSource(app);
+				app.addLibraries(jre);
+//				k = app.getStructures().size();
+			}
+			double t = (double)(System.nanoTime() - n) / (double)innerIters;
+			total += System.nanoTime() - n;
+			System.out.printf(" inner: %fms%n", (double)t/1000000D);
+			System.out.printf(" strucsize:%d%n", k);
+		}
+		System.out.printf("avg: %fms%n", ((double)(total/outerIters)/(double)innerIters)/1000000D);
+		
+		
+		if("".equals("")) {
+			return;
+		}
+		// section("Building jar class hierarchy.");
+		
+		ApplicationClassSource app = new ApplicationClassSource(name, dl.getJarContents().getClassContents());
 		InstalledRuntimeClassSource jre = new InstalledRuntimeClassSource(app);
-		
-		section("Building jar class hierarchy.");
 		app.addLibraries(jre);
-		
 		section("Initialising context.");
 		
 		InvocationResolver resolver = new InvocationResolver(app);
