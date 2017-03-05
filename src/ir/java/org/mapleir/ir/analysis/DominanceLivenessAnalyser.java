@@ -8,7 +8,9 @@ import org.mapleir.ir.cfg.edge.FlowEdge;
 import org.mapleir.ir.locals.Local;
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.bitset.GenericBitSet;
-import org.mapleir.stdlib.collections.graph.flow.TarjanDominanceComputor;
+import org.mapleir.stdlib.collections.graph.algorithms.ExtendedDfs;
+import org.mapleir.stdlib.collections.graph.algorithms.SimpleDfs;
+import org.mapleir.stdlib.collections.graph.algorithms.TarjanDominanceComputor;
 
 public class DominanceLivenessAnalyser {
 
@@ -37,7 +39,7 @@ public class DominanceLivenessAnalyser {
 		backEdges = new NullPermeableHashMap<>(cfg);
 		backTargets = cfg.createBitSet();
 		reducedCfg = reduce(cfg, dfs.getEdges(ExtendedDfs.BACK));
-		reducedDfs = new SimpleDfs<>(reducedCfg, entry, true, true);
+		reducedDfs = new SimpleDfs<>(reducedCfg, entry, SimpleDfs.PRE | SimpleDfs.POST);
 
 		computeReducedReachability();
 		computeTargetReachability();

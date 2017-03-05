@@ -1,14 +1,14 @@
 package org.mapleir.ir.cfg;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-
 import org.mapleir.ir.cfg.edge.FlowEdge;
 import org.mapleir.ir.cfg.edge.TryCatchEdge;
 import org.mapleir.stdlib.collections.graph.flow.FlowGraph;
 import org.objectweb.asm.tree.LabelNode;
+
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
 public class FastBlockGraph extends FlowGraph<BasicBlock, FlowEdge<BasicBlock>> {
 
@@ -34,9 +34,10 @@ public class FastBlockGraph extends FlowGraph<BasicBlock, FlowEdge<BasicBlock>> 
 	}
 	
 	@Override
-	public void addVertex(BasicBlock v) {
-		super.addVertex(v);
+	public boolean addVertex(BasicBlock v) {
+		boolean ret = super.addVertex(v);
 		blockLabels.put(v.getLabelNode(), v);
+		return ret;
 	}
 	
 	@Override

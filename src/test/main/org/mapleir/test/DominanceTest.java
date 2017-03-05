@@ -3,11 +3,11 @@ package org.mapleir.test;
 // import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
-import org.mapleir.ir.analysis.SimpleDfs;
+import org.mapleir.stdlib.collections.graph.algorithms.SimpleDfs;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.FastBlockGraph;
 import org.mapleir.ir.cfg.edge.ImmediateEdge;
-import org.mapleir.stdlib.collections.graph.flow.TarjanDominanceComputor;
+import org.mapleir.stdlib.collections.graph.algorithms.TarjanDominanceComputor;
 
 public class DominanceTest {
 
@@ -41,7 +41,7 @@ public class DominanceTest {
 
 		System.out.println(graph);
 
-		TarjanDominanceComputor<BasicBlock> comp = new TarjanDominanceComputor<>(graph, new SimpleDfs<>(graph, graph.getEntries().iterator().next(), true, false).getPreOrder());
+		TarjanDominanceComputor<BasicBlock> comp = new TarjanDominanceComputor<>(graph, new SimpleDfs<>(graph, graph.getEntries().iterator().next(), SimpleDfs.PRE).getPreOrder());
 
 		for(BasicBlock b : graph.vertices()) {
 			System.out.println(b.getId());

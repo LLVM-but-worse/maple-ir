@@ -1,6 +1,10 @@
 package org.mapleir.stdlib.util;
 
-import static org.objectweb.asm.Opcodes.*;
+import org.mapleir.state.ApplicationClassSource;
+import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.Type;
+import org.objectweb.asm.tree.ClassNode;
+import org.objectweb.asm.util.Printer;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -9,11 +13,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.mapleir.stdlib.klass.library.ApplicationClassSource;
-import org.objectweb.asm.Opcodes;
-import org.objectweb.asm.Type;
-import org.objectweb.asm.tree.ClassNode;
-import org.objectweb.asm.util.Printer;
+import static org.objectweb.asm.Opcodes.*;
 
 public class TypeUtils {
 

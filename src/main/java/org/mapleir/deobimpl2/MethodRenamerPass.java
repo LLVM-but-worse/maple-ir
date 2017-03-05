@@ -1,5 +1,20 @@
 package org.mapleir.deobimpl2;
 
+import org.mapleir.deobimpl2.util.RenamingUtil;
+import org.mapleir.ir.cfg.BasicBlock;
+import org.mapleir.ir.cfg.ControlFlowGraph;
+import org.mapleir.ir.code.Expr;
+import org.mapleir.ir.code.Opcode;
+import org.mapleir.ir.code.Stmt;
+import org.mapleir.ir.code.expr.InvocationExpr;
+import org.mapleir.state.ApplicationClassSource;
+import org.mapleir.state.IContext;
+import org.mapleir.state.structures.ClassTree;
+import org.mapleir.stdlib.deob.IPass;
+import org.mapleir.stdlib.klass.InvocationResolver;
+import org.objectweb.asm.tree.ClassNode;
+import org.objectweb.asm.tree.MethodNode;
+
 import java.lang.reflect.Modifier;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -9,21 +24,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Queue;
 import java.util.Set;
-
-import org.mapleir.deobimpl2.util.RenamingUtil;
-import org.mapleir.ir.cfg.BasicBlock;
-import org.mapleir.ir.cfg.ControlFlowGraph;
-import org.mapleir.ir.code.Expr;
-import org.mapleir.ir.code.Opcode;
-import org.mapleir.ir.code.Stmt;
-import org.mapleir.ir.code.expr.InvocationExpr;
-import org.mapleir.stdlib.IContext;
-import org.mapleir.stdlib.deob.IPass;
-import org.mapleir.stdlib.klass.InvocationResolver;
-import org.mapleir.stdlib.klass.library.ApplicationClassSource;
-import org.mapleir.stdlib.klass.library.structures.ClassStructures;
-import org.objectweb.asm.tree.ClassNode;
-import org.objectweb.asm.tree.MethodNode;
 
 public class MethodRenamerPass implements IPass {
 
@@ -115,7 +115,7 @@ public class MethodRenamerPass implements IPass {
 			Set<Expr> visited = new HashSet<>();
 			
 			for(MethodNode m : cn.methods) {
-				ControlFlowGraph cfg = cxt.getIR(m);
+				ControlFlowGraph cfg = cxt.getCFGS().getIR(m);
 				
 				for(BasicBlock b : cfg.vertices()) {
 					for(Stmt stmt : b) {
@@ -243,8 +243,9 @@ public class MethodRenamerPass implements IPass {
 	
 	public static Set<MethodNode> getHierarchyMethodChain(IContext cxt, ClassNode cn, String name, String desc) {
 		ApplicationClassSource app = cxt.getApplication();
-		ClassStructures structures = app.getStructures();
+		ClassTree structures = app.getStructures();
 		
+		// TODO: Use existing SimpleDFS code
 		check: { for (ClassNode viable : structures.dfsTree(cn, true, true, true))
 			if (viable.getMethod(name, desc, false) != null)
 				break check;

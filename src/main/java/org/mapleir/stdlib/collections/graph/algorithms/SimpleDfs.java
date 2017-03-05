@@ -1,4 +1,9 @@
-package org.mapleir.ir.analysis;
+package org.mapleir.stdlib.collections.graph.algorithms;
+
+import org.mapleir.stdlib.collections.graph.FastDirectedGraph;
+import org.mapleir.stdlib.collections.graph.FastGraphEdge;
+import org.mapleir.stdlib.collections.graph.FastGraphVertex;
+import org.mapleir.stdlib.collections.graph.GraphUtils;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -6,17 +11,17 @@ import java.util.List;
 import java.util.Set;
 import java.util.Stack;
 
-import org.mapleir.ir.cfg.edge.FlowEdge;
-import org.mapleir.stdlib.collections.graph.FastGraphVertex;
-import org.mapleir.stdlib.collections.graph.GraphUtils;
-import org.mapleir.stdlib.collections.graph.flow.FlowGraph;
-
 public class SimpleDfs<N extends FastGraphVertex> implements DepthFirstSearch<N> {
+	public static final int REVERSE = 1, PRE = 2, POST = 4;
 	
 	private List<N> preorder;
 	private List<N> postorder;
-
-	public SimpleDfs(FlowGraph<N, FlowEdge<N>> graph, N entry, boolean pre, boolean post) {
+	
+	public SimpleDfs(FastDirectedGraph<N, ? extends FastGraphEdge<N>> graph, N entry, int flags) {
+		boolean direction = (flags & REVERSE) == 0;
+		boolean pre = (flags & PRE) != 0;
+		boolean post = (flags & POST) != 0;
+		
 		if (pre)
 			preorder = new ArrayList<>();
 		if (post)
@@ -38,8 +43,8 @@ public class SimpleDfs<N extends FastGraphVertex> implements DepthFirstSearch<N>
 				preorder.add(current);
 			if (post)
 				postStack.push(current);
-			for (FlowEdge<N> succ : GraphUtils.weigh(graph.getEdges(current)))
-				preStack.push(succ.dst);
+			for (FastGraphEdge<N> succ : GraphUtils.weigh(direction ? graph.getEdges(current) : graph.getReverseEdges(current)))
+				preStack.push(direction? succ.dst : succ.src);
 		}
 		if (post)
 			while (!postStack.isEmpty())
