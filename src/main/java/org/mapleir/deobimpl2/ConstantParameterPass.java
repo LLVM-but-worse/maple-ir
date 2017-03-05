@@ -16,7 +16,7 @@ import org.mapleir.ir.code.stmt.copy.AbstractCopyStmt;
 import org.mapleir.ir.code.stmt.copy.CopyVarStmt;
 import org.mapleir.ir.locals.LocalsPool;
 import org.mapleir.ir.locals.VersionedLocal;
-import org.mapleir.stdlib.IContext;
+import org.mapleir.state.IContext;
 import org.mapleir.stdlib.deob.IPass;
 import org.mapleir.stdlib.klass.InvocationResolver;
 import org.mapleir.stdlib.klass.library.ApplicationClassSource;
@@ -41,7 +41,7 @@ public class ConstantParameterPass implements IPass, Opcode {
 	@Override
 	public int accept(IContext cxt, IPass prev, List<IPass> completed) {
 		Map<MethodNode, Set<MethodNode>> chainMap = new HashMap<>();
-		for(MethodNode mn : cxt.getActiveMethods()) {
+		for(MethodNode mn : cxt.getCFGS().getActiveMethods()) {
 			makeUpChain(cxt, mn, chainMap);
 		}
 		
@@ -214,7 +214,7 @@ public class ConstantParameterPass implements IPass, Opcode {
 				}
 			}
 			
-			ControlFlowGraph cfg = cxt.getIR(m);
+			ControlFlowGraph cfg = cxt.getCFGS().getIR(m);
 			
 			// boolean b = false;
 			

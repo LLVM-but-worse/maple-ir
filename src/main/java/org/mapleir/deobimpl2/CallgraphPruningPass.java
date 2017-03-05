@@ -1,13 +1,13 @@
 package org.mapleir.deobimpl2;
 
-import java.util.List;
-import java.util.ListIterator;
-import java.util.Set;
-
-import org.mapleir.stdlib.IContext;
+import org.mapleir.state.IContext;
 import org.mapleir.stdlib.deob.IPass;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
+
+import java.util.List;
+import java.util.ListIterator;
+import java.util.Set;
 
 public class CallgraphPruningPass implements IPass {
 
@@ -18,7 +18,7 @@ public class CallgraphPruningPass implements IPass {
 	
 	@Override
 	public int accept(IContext cxt, IPass prev, List<IPass> completed) {
-		Set<MethodNode> active = cxt.getActiveMethods();
+		Set<MethodNode> active = cxt.getCFGS().getActiveMethods();
 		
 		int i = 0;
 		

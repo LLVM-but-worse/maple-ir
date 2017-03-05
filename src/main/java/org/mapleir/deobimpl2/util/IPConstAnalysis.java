@@ -1,13 +1,5 @@
 package org.mapleir.deobimpl2.util;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
 import org.mapleir.IRCallTracer;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
@@ -17,10 +9,18 @@ import org.mapleir.ir.code.Stmt;
 import org.mapleir.ir.code.expr.InitialisedObjectExpr;
 import org.mapleir.ir.code.expr.InvocationExpr;
 import org.mapleir.ir.code.stmt.copy.CopyVarStmt;
-import org.mapleir.stdlib.IContext;
+import org.mapleir.state.IContext;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.MethodNode;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 public class IPConstAnalysis extends IRCallTracer implements Opcode {
 	
@@ -34,7 +34,7 @@ public class IPConstAnalysis extends IRCallTracer implements Opcode {
 	
 	public static IPConstAnalysis create(IContext cxt, List<ChildVisitor> visitors) {
 		IPConstAnalysis analysis = new IPConstAnalysis(cxt, visitors);
-		for(MethodNode mn : cxt.getActiveMethods()) {
+		for(MethodNode mn : cxt.getCFGS().getActiveMethods()) {
 			analysis.trace(mn);
 		}
 		return analysis;
@@ -115,7 +115,7 @@ public class IPConstAnalysis extends IRCallTracer implements Opcode {
 		 * descriptor. */
 		int[] idxs = new int[synthCount];
 		
-		ControlFlowGraph cfg = context.getIR(m);
+		ControlFlowGraph cfg = context.getCFGS().getNonNull(m);
 		BasicBlock entry = cfg.getEntries().iterator().next();
 		
 		/* static:
