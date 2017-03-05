@@ -1,7 +1,5 @@
 package org.mapleir.stdlib.collections.graph.flow;
 
-import java.util.*;
-
 import org.mapleir.ir.cfg.edge.FlowEdge;
 import org.mapleir.ir.cfg.edge.TryCatchEdge;
 import org.mapleir.stdlib.collections.ValueCreator;
@@ -9,6 +7,16 @@ import org.mapleir.stdlib.collections.bitset.BitSetIndexer;
 import org.mapleir.stdlib.collections.bitset.GenericBitSet;
 import org.mapleir.stdlib.collections.graph.FastDirectedGraph;
 import org.mapleir.stdlib.collections.graph.FastGraphVertex;
+
+import java.util.ArrayList;
+import java.util.BitSet;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.ListIterator;
+import java.util.Map;
+import java.util.Set;
 
 import static org.mapleir.stdlib.collections.graph.GraphUtils.FAKEHEAD_ID;
 
@@ -79,13 +87,14 @@ public abstract class FlowGraph<N extends FastGraphVertex, E extends FlowEdge<N>
 	}
 	
 	@Override
-	public void addVertex(N v) {
+	public boolean addVertex(N v) {
 		vertexIds.put(v.getId(), v);
-		super.addVertex(v);
+		boolean ret = super.addVertex(v);
 		
 		int index = translateBlockIndex(v.getNumericId());
 		indexMap.put(index, v);
 		indexedSet.set(index, true);
+		return ret;
 	}	
 	
 	@Override

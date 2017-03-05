@@ -28,14 +28,18 @@ public abstract class FastDirectedGraph<N extends FastGraphVertex, E extends Fas
 	}
 
 	@Override
-	public void addVertex(N v) {
+	public boolean addVertex(N v) {
+		boolean ret = false;
 		if(!map.containsKey(v)) {
 			map.put(v, createSet());
+			ret = true;
 		}
 		
 		if(!reverseMap.containsKey(v)) {
 			reverseMap.put(v, createSet());
+			ret = true;
 		}
+		return ret;
 	}
 
 	@Override
@@ -98,15 +102,11 @@ public abstract class FastDirectedGraph<N extends FastGraphVertex, E extends Fas
 	
 	@Override
 	public void addEdge(N v, E e) {
-		if(!map.containsKey(v)) {
-			addVertex(v);
-		}
+		addVertex(v);
 		map.get(v).add(e);
 		
 		N dst = /*getDestination(v, e)*/ e.dst;
-		if(!reverseMap.containsKey(dst)) {
-			addVertex(dst);
-		}
+		addVertex(dst);
 		
 		reverseMap.get(dst).add(e);
 	}

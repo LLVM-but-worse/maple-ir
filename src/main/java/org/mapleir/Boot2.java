@@ -150,6 +150,7 @@ public class Boot2 {
 					    		throw new UnsupportedOperationException(c.toString());
 					    	}
 					    	
+							// TODO: MUST BE CONVERTED TO ACCOUNT FOR DIRECT SUPERS, NOT ALL
 					        Set<ClassNode> c = app.getStructures().getSupers(ccn);
 					        Set<ClassNode> d = app.getStructures().getSupers(dcn);
 					        
