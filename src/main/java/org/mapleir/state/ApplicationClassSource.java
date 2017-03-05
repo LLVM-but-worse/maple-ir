@@ -1,6 +1,7 @@
 package org.mapleir.state;
 
 import org.mapleir.state.structures.ClassResolver;
+import org.mapleir.state.structures.ClassTree;
 import org.mapleir.stdlib.collections.IteratorIterator;
 import org.mapleir.stdlib.klass.ClassHelper;
 import org.objectweb.asm.tree.ClassNode;
@@ -14,7 +15,8 @@ public class ApplicationClassSource extends ClassSource {
 
 	private final String name;
 	private final Collection<LibraryClassSource> libraries;
-	private ClassResolver structures;
+	private ClassResolver resolver;
+	private ClassTree classTree;
 	
 	public ApplicationClassSource(String name, Collection<ClassNode> classes) {
 		this(name, ClassHelper.convertToMap(classes));
@@ -26,11 +28,21 @@ public class ApplicationClassSource extends ClassSource {
 		libraries = new ArrayList<>();
 	}
 	
-	public ClassResolver getStructures() {
-		if(structures == null) {
-			structures = new ClassResolver(this);
+	public ClassResolver getResolver() {
+		if(resolver == null) {
+			resolver = new ClassResolver(this);
 		}
-		return structures;
+		return resolver;
+	}
+	
+	public ClassTree getStructures() {
+		if (classTree == null) {
+			classTree = new ClassTree(this);
+			for (ClassNode node : iterateWithLibraries()) {
+				classTree.addVertex(node);
+			}
+		}
+		return classTree;
 	}
 	
 	@Override
@@ -49,7 +61,7 @@ public class ApplicationClassSource extends ClassSource {
 				libraries.add(cs);
 			}
 		}
-		structures = new ClassResolver(this);
+		resolver = new ClassResolver(this);
 	}
 	
 	public ClassNode findClassNode(String name) {

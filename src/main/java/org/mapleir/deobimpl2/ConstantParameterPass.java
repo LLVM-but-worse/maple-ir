@@ -18,9 +18,9 @@ import org.mapleir.ir.locals.LocalsPool;
 import org.mapleir.ir.locals.VersionedLocal;
 import org.mapleir.state.ApplicationClassSource;
 import org.mapleir.state.IContext;
+import org.mapleir.state.structures.ClassTree;
 import org.mapleir.stdlib.deob.IPass;
 import org.mapleir.stdlib.klass.InvocationResolver;
-import org.mapleir.stdlib.klass.library.structures.ClassStructures;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.ClassNode;
@@ -141,7 +141,7 @@ public class ConstantParameterPass implements IPass, Opcode {
 		IPConstAnalysis constAnalysis = IPConstAnalysis.create(cxt, vis);
 		
 		ApplicationClassSource app = cxt.getApplication();
-		ClassStructures structures = app.getStructures();
+		ClassTree structures = app.getStructures();
 		
 		/* remove all calls to library methods since we can't
 		 * handle them. */
@@ -156,6 +156,7 @@ public class ConstantParameterPass implements IPass, Opcode {
 				continue;
 			}
 			
+			// TODO: MUST BE CONVERTED TO ACCOUNT FOR DIRECT SUPERS, NOT ALL
 			superFor: for(ClassNode cn : structures.getSupers(m.owner)) {
 				if(app.isLibraryClass(cn.name)) {
 					for(MethodNode m1 : cn.methods) {

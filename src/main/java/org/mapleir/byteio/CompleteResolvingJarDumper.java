@@ -112,6 +112,7 @@ public class CompleteResolvingJarDumper implements JarDumper {
 		    		// return getCommonSuperClass(type1, type2);
 		    	}
 		    	
+				// TODO: MUST BE CONVERTED TO ACCOUNT FOR DIRECT SUPERS, NOT ALL
 		        Set<ClassNode> c = source.getStructures().getSupers(ccn);
 		        Set<ClassNode> d = source.getStructures().getSupers(dcn);
 		        
