@@ -1,6 +1,6 @@
 package org.mapleir.deobimpl2;
 
-import org.mapleir.ir.analysis.SimpleDfs;
+import org.mapleir.stdlib.collections.graph.algorithms.SimpleDfs;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.cfg.builder.ssaopt.ConstraintUtil;

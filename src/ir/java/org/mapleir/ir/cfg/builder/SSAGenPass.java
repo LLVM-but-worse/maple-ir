@@ -5,7 +5,7 @@ import java.util.Map.Entry;
 
 import org.mapleir.ir.analysis.Liveness;
 import org.mapleir.ir.analysis.SSABlockLivenessAnalyser;
-import org.mapleir.ir.analysis.SimpleDfs;
+import org.mapleir.stdlib.collections.graph.algorithms.SimpleDfs;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.cfg.builder.ssaopt.ConstraintUtil;
@@ -43,7 +43,7 @@ import org.mapleir.stdlib.collections.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.SetCreator;
 import org.mapleir.stdlib.collections.graph.GraphUtils;
 import org.mapleir.stdlib.collections.graph.flow.ExceptionRange;
-import org.mapleir.stdlib.collections.graph.flow.TarjanDominanceComputor;
+import org.mapleir.stdlib.collections.graph.algorithms.TarjanDominanceComputor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.LabelNode;
