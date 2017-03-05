@@ -341,10 +341,11 @@ public class Boot {
 			ApplicationClassSource app = new ApplicationClassSource("rt", dl2.getJarContents().getClassContents());
 			app.addLibraries(new InstalledRuntimeClassSource(app));
 			app.getStructures();
+			System.out.println(app.getStructures());
 //			BufferedReader br = new BufferedReader(new FileReader(new File("out/tree.json")));
 //			String l = br.readLine();
 //			br.close();
-//			
+//
 //			PreLoadedStructures str = new Gson().fromJson(l, PreLoadedStructures.class);
 //			section("done");
 		}

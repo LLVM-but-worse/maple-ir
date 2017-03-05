@@ -8,8 +8,10 @@ import org.objectweb.asm.tree.MethodNode;
 import java.util.Set;
 
 public class CFGStore extends NullPermeableHashMap<MethodNode, ControlFlowGraph> {
+	private static final long serialVersionUID = 1L;
+	
 	public CFGStore() {
-		super((ControlFlowGraphBuilder::build));
+		super(ControlFlowGraphBuilder::build);
 	}
 	
 	public ControlFlowGraph getIR(MethodNode m) {

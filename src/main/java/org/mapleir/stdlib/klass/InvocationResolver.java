@@ -1,7 +1,7 @@
 package org.mapleir.stdlib.klass;
 
 import org.mapleir.state.ApplicationClassSource;
-import org.mapleir.stdlib.klass.library.structures.ClassStructures;
+import org.mapleir.state.structures.ClassTree;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
@@ -141,6 +141,7 @@ public class InvocationResolver {
 				return set;
 			}
 			
+			// TODO: Use existing SimpleDFS code
 			for(ClassNode c : app.getStructures().dfsTree(cn, false, true, true)) {
 				m = findClassMethod(c, name, desc);
 				
@@ -230,7 +231,7 @@ public class InvocationResolver {
 	
 	public Set<MethodNode> getVirtualChain(ClassNode cn, String name, String desc) {
 		Set<MethodNode> set = new HashSet<>();
-		final ClassStructures structures = app.getStructures();
+		final ClassTree structures = app.getStructures();
 		for(ClassNode c : structures.dfsTree(cn, true, true, false)) {
 			MethodNode mr = findVirtualCall(c, name, desc);
 			if(mr != null) {
