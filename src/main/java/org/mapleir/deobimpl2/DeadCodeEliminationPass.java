@@ -1,11 +1,6 @@
 package org.mapleir.deobimpl2;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-
-import org.mapleir.ir.analysis.SimpleDfs;
+import org.mapleir.stdlib.collections.graph.algorithms.SimpleDfs;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.cfg.builder.ssaopt.ConstraintUtil;
@@ -22,10 +17,15 @@ import org.mapleir.ir.code.stmt.copy.AbstractCopyStmt;
 import org.mapleir.ir.code.stmt.copy.CopyPhiStmt;
 import org.mapleir.ir.locals.Local;
 import org.mapleir.ir.locals.LocalsPool;
-import org.mapleir.stdlib.IContext;
+import org.mapleir.state.IContext;
 import org.mapleir.stdlib.deob.IPass;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
+
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
 
 public class DeadCodeEliminationPass implements IPass {
 
@@ -60,7 +60,7 @@ public class DeadCodeEliminationPass implements IPass {
 		do {
 			c = false;
 			
-			SimpleDfs<BasicBlock> dfs = new SimpleDfs<>(cfg, cfg.getEntries().iterator().next(), true, false);
+			SimpleDfs<BasicBlock> dfs = new SimpleDfs<>(cfg, cfg.getEntries().iterator().next(), SimpleDfs.PRE);
 			
 			List<BasicBlock> pre = dfs.getPreOrder();
 			for(BasicBlock b : new HashSet<>(cfg.vertices())) {
@@ -174,7 +174,7 @@ public class DeadCodeEliminationPass implements IPass {
 		
 		for (ClassNode cn : cxt.getApplication().iterate()) {
 			for (MethodNode m : cn.methods) {
-				ControlFlowGraph cfg = cxt.getIR(m);
+				ControlFlowGraph cfg = cxt.getCFGS().getIR(m);
 
 				/* dead blocks */
 

@@ -28,7 +28,7 @@ import org.mapleir.ir.code.stmt.copy.AbstractCopyStmt;
 import org.mapleir.ir.locals.Local;
 import org.mapleir.ir.locals.LocalsPool;
 import org.mapleir.ir.locals.VersionedLocal;
-import org.mapleir.stdlib.IContext;
+import org.mapleir.state.IContext;
 import org.mapleir.stdlib.deob.IPass;
 import org.mapleir.stdlib.util.TypeUtils;
 import org.objectweb.asm.ClassWriter;
@@ -77,7 +77,7 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 			for(ClassNode cn : cxt.getApplication().iterate()) {
 				for(MethodNode m : cn.methods) {
 					
-					ControlFlowGraph cfg = cxt.getIR(m);
+					ControlFlowGraph cfg = cxt.getCFGS().getIR(m);
 					LocalsPool pool = cfg.getLocals();
 					
 					for(BasicBlock b : new HashSet<>(cfg.vertices())) {
