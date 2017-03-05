@@ -41,7 +41,7 @@ public class DominanceTest {
 
 		System.out.println(graph);
 
-		TarjanDominanceComputor<BasicBlock> comp = new TarjanDominanceComputor<>(graph, new SimpleDfs<>(graph, graph.getEntries().iterator().next(), true, false).getPreOrder());
+		TarjanDominanceComputor<BasicBlock> comp = new TarjanDominanceComputor<>(graph, new SimpleDfs<>(graph, graph.getEntries().iterator().next(), SimpleDfs.PRE).getPreOrder());
 
 		for(BasicBlock b : graph.vertices()) {
 			System.out.println(b.getId());

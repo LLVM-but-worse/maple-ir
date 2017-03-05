@@ -60,7 +60,7 @@ public class DeadCodeEliminationPass implements IPass {
 		do {
 			c = false;
 			
-			SimpleDfs<BasicBlock> dfs = new SimpleDfs<>(cfg, cfg.getEntries().iterator().next(), true, false);
+			SimpleDfs<BasicBlock> dfs = new SimpleDfs<>(cfg, cfg.getEntries().iterator().next(), SimpleDfs.PRE);
 			
 			List<BasicBlock> pre = dfs.getPreOrder();
 			for(BasicBlock b : new HashSet<>(cfg.vertices())) {
