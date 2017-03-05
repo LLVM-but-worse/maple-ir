@@ -5,7 +5,7 @@ import java.util.Map.Entry;
 
 import org.mapleir.ir.analysis.DominanceLivenessAnalyser;
 import org.mapleir.ir.analysis.SSADefUseMap;
-import org.mapleir.ir.analysis.SimpleDfs;
+import org.mapleir.stdlib.collections.graph.algorithms.SimpleDfs;
 import org.mapleir.ir.code.CodeUnit;
 import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.code.Opcode;

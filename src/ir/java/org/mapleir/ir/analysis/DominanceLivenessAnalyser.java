@@ -8,7 +8,9 @@ import org.mapleir.ir.cfg.edge.FlowEdge;
 import org.mapleir.ir.locals.Local;
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.bitset.GenericBitSet;
-import org.mapleir.stdlib.collections.graph.flow.TarjanDominanceComputor;
+import org.mapleir.stdlib.collections.graph.algorithms.ExtendedDfs;
+import org.mapleir.stdlib.collections.graph.algorithms.SimpleDfs;
+import org.mapleir.stdlib.collections.graph.algorithms.TarjanDominanceComputor;
 
 public class DominanceLivenessAnalyser {
 
