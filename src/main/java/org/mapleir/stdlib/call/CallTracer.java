@@ -1,12 +1,12 @@
 package org.mapleir.stdlib.call;
 
+import org.mapleir.ir.code.Expr;
+import org.mapleir.state.ApplicationClassSource;
+import org.mapleir.stdlib.klass.InvocationResolver;
+import org.objectweb.asm.tree.MethodNode;
+
 import java.util.HashSet;
 import java.util.Set;
-
-import org.mapleir.ir.code.Expr;
-import org.mapleir.stdlib.klass.InvocationResolver;
-import org.mapleir.stdlib.klass.library.ApplicationClassSource;
-import org.objectweb.asm.tree.MethodNode;
 
 public abstract class CallTracer {
 

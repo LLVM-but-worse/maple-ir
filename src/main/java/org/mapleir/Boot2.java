@@ -1,13 +1,34 @@
 package org.mapleir;
 
+import org.mapleir.ir.ControlFlowGraphDumper;
+import org.mapleir.ir.cfg.BasicBlock;
+import org.mapleir.ir.cfg.BoissinotDestructor;
+import org.mapleir.ir.cfg.ControlFlowGraph;
+import org.mapleir.ir.cfg.builder.ControlFlowGraphBuilder;
+import org.mapleir.ir.code.Expr;
+import org.mapleir.ir.code.expr.FieldLoadExpr;
+import org.mapleir.ir.code.expr.InvocationExpr;
+import org.mapleir.ir.code.expr.VarExpr;
+import org.mapleir.ir.code.stmt.PopStmt;
+import org.mapleir.ir.locals.Local;
+import org.mapleir.state.ApplicationClassSource;
+import org.mapleir.state.InstalledRuntimeClassSource;
+import org.mapleir.stdlib.klass.ClassNodeUtil;
+import org.objectweb.asm.ClassWriter;
+import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.Type;
+import org.objectweb.asm.commons.blocksplit.SplitMethodWriterDelegate;
+import org.objectweb.asm.tree.ClassNode;
+import org.objectweb.asm.tree.MethodNode;
+import org.topdank.byteengineer.commons.data.JarInfo;
+import org.topdank.byteio.in.SingleJarDownloader;
+
+import javax.swing.*;
 import java.applet.Applet;
 import java.applet.AppletContext;
 import java.applet.AppletStub;
 import java.applet.AudioClip;
-import java.awt.BorderLayout;
-import java.awt.Dimension;
-import java.awt.Image;
-import java.awt.Toolkit;
+import java.awt.*;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
@@ -26,32 +47,6 @@ import java.util.Set;
 import java.util.Vector;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import org.mapleir.ir.ControlFlowGraphDumper;
-import org.mapleir.ir.cfg.BasicBlock;
-import org.mapleir.ir.cfg.BoissinotDestructor;
-import org.mapleir.ir.cfg.ControlFlowGraph;
-import org.mapleir.ir.cfg.builder.ControlFlowGraphBuilder;
-import org.mapleir.ir.code.Expr;
-import org.mapleir.ir.code.expr.FieldLoadExpr;
-import org.mapleir.ir.code.expr.InvocationExpr;
-import org.mapleir.ir.code.expr.VarExpr;
-import org.mapleir.ir.code.stmt.PopStmt;
-import org.mapleir.ir.locals.Local;
-import org.mapleir.stdlib.klass.ClassNodeUtil;
-import org.mapleir.stdlib.klass.library.ApplicationClassSource;
-import org.mapleir.stdlib.klass.library.InstalledRuntimeClassSource;
-import org.objectweb.asm.ClassWriter;
-import org.objectweb.asm.Opcodes;
-import org.objectweb.asm.Type;
-import org.objectweb.asm.commons.blocksplit.SplitMethodWriterDelegate;
-import org.objectweb.asm.tree.ClassNode;
-import org.objectweb.asm.tree.MethodNode;
-import org.topdank.byteengineer.commons.data.JarInfo;
-import org.topdank.byteio.in.SingleJarDownloader;
-
-import javax.swing.JFrame;
-import javax.swing.JPanel;
 
 public class Boot2 {
 
