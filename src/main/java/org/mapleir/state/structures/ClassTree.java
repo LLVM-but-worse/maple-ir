@@ -7,37 +7,54 @@ import org.mapleir.stdlib.collections.graph.FastGraphEdge;
 import org.mapleir.stdlib.util.TabbedStringWriter;
 import org.objectweb.asm.tree.ClassNode;
 
-// A graph to represnt the inheritance tree. We define the FORWARD EDGE direction to be from parent to child.
+/**
+ * A graph to represent the inheritance tree.
+ * The graph follows the convention of anti-arborescence, i.e. edges point towards the root (Object).
+ * @see <a href=https://en.wikipedia.org/wiki/Tree_(graph_theory)>Wikipedia: Tree</a>
+ */
 public class ClassTree extends FastDirectedGraph<ClassNode, InheritanceEdge> {
 	private final ClassResolver resolver;
-	private final ClassNode cnObject;
+	private final ClassNode rootNode;
 	
 	public ClassTree(ApplicationClassSource source) {
 		super();
 		resolver = source.getResolver();
-		cnObject = resolver.findClass("java/lang/Object");
+		rootNode = resolver.findClass("java/lang/Object");
 	}
 	
 	public Iterable<ClassNode> getParents(ClassNode cn) {
 		// this avoids any stupid anonymous Iterable<ClassNode> and Iterator bullcrap
 		// and also avoids computing a temporary set, so it is performant
-		return () -> getReverseEdges(cn).stream().map(e -> e.src).iterator();
+		return () -> getEdges(cn).stream().map(e -> e.dst).iterator();
+	}
+	
+	public Iterable<ClassNode> getInterfaces(ClassNode cn) {
+		return () -> getEdges(cn).stream().filter(e -> e instanceof ImplementsEdge).map(e -> e.dst).iterator();
+	}
+	
+	public ClassNode getSuper(ClassNode cn) {
+		if (cn == rootNode)
+			return null;
+		for (InheritanceEdge edge : getEdges(cn))
+			if (edge instanceof ExtendsEdge)
+				return edge.dst;
+		throw new IllegalStateException("Couldn't find parent class?");
 	}
 	
 	public Iterable<ClassNode> getChildren(ClassNode cn) {
-		return () -> getEdges(cn).stream().map(e -> e.dst).iterator();
+		return () -> getReverseEdges(cn).stream().map(e -> e.src).iterator();
 	}
 	
 	@Override
 	public boolean addVertex(ClassNode cn) {
 		if (!super.addVertex(cn))
 			return false;
-		ClassNode sup = cn.superName != null ? resolver.findClass(cn.superName) : cnObject;
-		super.addEdge(sup, new InheritanceEdge(sup, cn));
+		ClassNode sup = cn.superName != null ? resolver.findClass(cn.superName) : rootNode;
+		super.addEdge(cn, new ExtendsEdge(cn, sup));
 		
 		for (String s : cn.interfaces) {
 			ClassNode iface = resolver.findClass(s);
-			super.addEdge(iface, new InheritanceEdge(iface, cn));
+			super.addEdge(cn, new ImplementsEdge(cn, iface));
 		}
 		return true;
 	}
@@ -80,24 +97,46 @@ public class ClassTree extends FastDirectedGraph<ClassNode, InheritanceEdge> {
 		sw.print(String.format("%s", cn.getId()));
 		sw.tab();
 		for(InheritanceEdge e : ct.getEdges(cn)) {
-			sw.print("\n-> " + e.toString());
+			sw.print("\n^ " + e.toString());
 		}
 		for(InheritanceEdge p : ct.getReverseEdges(cn)) {
-			sw.print("\n<- " + p.toString());
+			sw.print("\nV " + p.toString());
 		}
 		sw.untab();
 		sw.print("\n");
 	}
 }
 
-class InheritanceEdge extends FastGraphEdge<ClassNode> {
-	public InheritanceEdge(ClassNode src, ClassNode dst) {
-		super(src, dst);
+abstract class InheritanceEdge extends FastGraphEdge<ClassNode> {
+	public InheritanceEdge(ClassNode child, ClassNode parent) {
+		super(child, parent);
 	}
 	
 	@Override
 	public String toString() {
-		return String.format("#%s parents #%s", src.getId(), dst.getId());
+		return String.format("#%s inherits #%s", src.getId(), dst.getId());
+	}
+}
+
+class ExtendsEdge extends InheritanceEdge {
+	public ExtendsEdge(ClassNode child, ClassNode parent) {
+		super(child, parent);
+	}
+	
+	@Override
+	public String toString() {
+		return String.format("#%s extends #%s", src.getId(), dst.getId());
+	}
+}
+
+class ImplementsEdge extends InheritanceEdge {
+	public ImplementsEdge(ClassNode child, ClassNode parent) {
+		super(child, parent);
+	}
+	
+	@Override
+	public String toString() {
+		return String.format("#%s implements #%s", src.getId(), dst.getId());
 	}
 }
 
