@@ -1,5 +1,6 @@
 package org.mapleir.state;
 
+import org.mapleir.stdlib.application.ApplicationClassSource;
 import org.mapleir.stdlib.klass.InvocationResolver;
 
 public class MapleDB implements IContext {
