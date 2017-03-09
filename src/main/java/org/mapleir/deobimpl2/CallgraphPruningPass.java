@@ -1,6 +1,6 @@
 package org.mapleir.deobimpl2;
 
-import org.mapleir.state.IContext;
+import org.mapleir.stdlib.deob.IContext;
 import org.mapleir.stdlib.deob.IPass;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;

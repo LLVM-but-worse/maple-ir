@@ -1,7 +1,5 @@
 package org.mapleir.stdlib.deob;
 
-import org.mapleir.state.IContext;
-
 import java.util.List;
 
 public interface IPass {
