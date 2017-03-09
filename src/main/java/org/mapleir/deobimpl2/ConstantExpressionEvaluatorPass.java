@@ -28,7 +28,7 @@ import org.mapleir.ir.code.stmt.copy.AbstractCopyStmt;
 import org.mapleir.ir.locals.Local;
 import org.mapleir.ir.locals.LocalsPool;
 import org.mapleir.ir.locals.VersionedLocal;
-import org.mapleir.state.IContext;
+import org.mapleir.stdlib.deob.IContext;
 import org.mapleir.stdlib.deob.IPass;
 import org.mapleir.stdlib.util.TypeUtils;
 import org.objectweb.asm.ClassWriter;

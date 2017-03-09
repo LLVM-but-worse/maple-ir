@@ -1,6 +1,7 @@
-package org.mapleir.state;
+package org.mapleir.deobimpl2.cxt;
 
 import org.mapleir.stdlib.application.ApplicationClassSource;
+import org.mapleir.stdlib.deob.IContext;
 import org.mapleir.stdlib.klass.InvocationResolver;
 
 public class MapleDB implements IContext {

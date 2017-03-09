@@ -7,8 +7,8 @@ import org.mapleir.ir.code.Opcode;
 import org.mapleir.ir.code.Stmt;
 import org.mapleir.ir.code.expr.InitialisedObjectExpr;
 import org.mapleir.ir.code.expr.InvocationExpr;
-import org.mapleir.state.IContext;
 import org.mapleir.stdlib.call.CallTracer;
+import org.mapleir.stdlib.deob.IContext;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.MethodNode;
 

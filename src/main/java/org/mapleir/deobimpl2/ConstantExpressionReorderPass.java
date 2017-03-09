@@ -9,7 +9,7 @@ import org.mapleir.ir.code.expr.ArithmeticExpr;
 import org.mapleir.ir.code.expr.ArithmeticExpr.Operator;
 import org.mapleir.ir.code.stmt.ConditionalJumpStmt;
 import org.mapleir.ir.code.stmt.ConditionalJumpStmt.ComparisonType;
-import org.mapleir.state.IContext;
+import org.mapleir.stdlib.deob.IContext;
 import org.mapleir.stdlib.deob.IPass;
 import org.objectweb.asm.tree.MethodNode;
 
