@@ -1,7 +1,7 @@
 package org.mapleir.stdlib.deob;
 
 import org.mapleir.Boot;
-import org.mapleir.stdlib.IContext;
+import org.mapleir.deobimpl2.cxt.IContext;
 
 import java.util.ArrayList;
 import java.util.List;

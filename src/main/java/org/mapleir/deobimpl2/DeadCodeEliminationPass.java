@@ -1,6 +1,6 @@
 package org.mapleir.deobimpl2;
 
-import org.mapleir.stdlib.IContext;
+import org.mapleir.deobimpl2.cxt.IContext;
 import org.mapleir.stdlib.collections.graph.algorithms.SimpleDfs;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
