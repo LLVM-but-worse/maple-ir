@@ -1,6 +1,5 @@
-package org.mapleir.stdlib;
+package org.mapleir.deobimpl2.cxt;
 
-import org.mapleir.deobimpl2.cxt.CFGStore;
 import org.mapleir.stdlib.app.ApplicationClassSource;
 import org.mapleir.stdlib.klass.InvocationResolver;
 

@@ -18,7 +18,7 @@ import org.mapleir.ir.code.expr.VarExpr;
 import org.mapleir.ir.code.stmt.FieldStoreStmt;
 import org.mapleir.ir.code.stmt.ReturnStmt;
 import org.mapleir.ir.code.stmt.copy.AbstractCopyStmt;
-import org.mapleir.stdlib.IContext;
+import org.mapleir.deobimpl2.cxt.IContext;
 import org.mapleir.stdlib.app.ApplicationClassSource;
 import org.mapleir.stdlib.deob.IPass;
 import org.mapleir.stdlib.klass.ClassHelper;
