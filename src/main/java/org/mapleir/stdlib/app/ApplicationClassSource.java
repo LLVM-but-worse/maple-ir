@@ -1,4 +1,4 @@
-package org.mapleir.stdlib.application;
+package org.mapleir.stdlib.app;
 
 import java.util.ArrayList;
 import java.util.Collection;

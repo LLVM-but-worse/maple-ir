@@ -1,4 +1,4 @@
-package org.mapleir.stdlib.application;
+package org.mapleir.stdlib.app;
 
 import org.mapleir.stdlib.klass.ClassHelper;
 import org.objectweb.asm.tree.ClassNode;
