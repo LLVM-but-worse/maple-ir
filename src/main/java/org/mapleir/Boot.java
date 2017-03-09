@@ -21,6 +21,7 @@ import org.mapleir.deobimpl2.cxt.MapleDB;
 import org.mapleir.ir.ControlFlowGraphDumper;
 import org.mapleir.ir.cfg.BoissinotDestructor;
 import org.mapleir.ir.cfg.ControlFlowGraph;
+import org.mapleir.ir.cfg.builder.ControlFlowGraphBuilder;
 import org.mapleir.ir.code.Expr;
 import org.mapleir.deobimpl2.cxt.IContext;
 import org.mapleir.stdlib.app.ApplicationClassSource;
@@ -411,11 +412,11 @@ public class Boot {
 		
 		section0("...generated " + cxt.getCFGS().size() + " cfgs in %fs.%n", "Preparing to transform.");
 		
-//		PassGroup masterGroup = new PassGroup("MasterController");
-//		for(IPass p : getTransformationPasses()) {
-//			masterGroup.add(p);
-//		}
-//		run(cxt, masterGroup);
+		PassGroup masterGroup = new PassGroup("MasterController");
+		for(IPass p : getTransformationPasses()) {
+			masterGroup.add(p);
+		}
+		run(cxt, masterGroup);
 
 		
 //		for(ClassNode cn : app.iterate()) {
