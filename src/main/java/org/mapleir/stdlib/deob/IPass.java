@@ -2,6 +2,8 @@ package org.mapleir.stdlib.deob;
 
 import java.util.List;
 
+import org.mapleir.stdlib.IContext;
+
 public interface IPass {
 	
 	default String getId() {
