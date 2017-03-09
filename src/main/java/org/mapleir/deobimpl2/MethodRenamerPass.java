@@ -9,6 +9,7 @@ import org.mapleir.ir.code.Stmt;
 import org.mapleir.ir.code.expr.InvocationExpr;
 import org.mapleir.deobimpl2.cxt.IContext;
 import org.mapleir.stdlib.app.ApplicationClassSource;
+import org.mapleir.stdlib.collections.graph.algorithms.SimpleDfs;
 import org.mapleir.stdlib.deob.IPass;
 import org.mapleir.stdlib.klass.ClassTree;
 import org.mapleir.stdlib.klass.InvocationResolver;
@@ -16,6 +17,7 @@ import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
 
 import java.lang.reflect.Modifier;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -246,18 +248,21 @@ public class MethodRenamerPass implements IPass {
 		ClassTree structures = app.getStructures();
 		
 		// TODO: Use existing SimpleDFS code
-		check: { for (ClassNode viable : structures.dfsTree(cn, true, true, true))
-			if (viable.getMethod(name, desc, false) != null)
-				break check;
+		check: {
+			Collection<ClassNode> toSearch = structures.getAllChildren(cn);
+			toSearch.addAll(structures.getAllParents(cn));
+			for (ClassNode viable : toSearch)
+				if (viable.getMethod(name, desc, false) != null)
+					break check;
 			System.err.println("cn: " + cn);
 			System.err.println("name: " + name);
 			System.err.println("desc: " + desc);
-			System.err.println("Searched: " + structures.dfsTree(cn, true, true, true));
+			System.err.println("Searched: " + toSearch);
 			throw new IllegalArgumentException("You must be really dense because that method doesn't even exist.");
 		}
 		
 		Set<ClassNode> visited = new HashSet<>();
-		visited.addAll(structures.dfsTree(cn, false, true, true));
+		visited.addAll(structures.getAllChildren(cn));
 		visited.add(cn);
 		// System.out.println("visited " + visited);
 		
@@ -305,7 +310,7 @@ public class MethodRenamerPass implements IPass {
 
 		Set<ClassNode> classes = new HashSet<>();
 		for (ClassNode top : results.keySet()) {
-		    classes.addAll(structures.dfsTree(top, false, true, true));
+		    classes.addAll(structures.getAllChildren(top));
 		}
 		// System.out.println("classes " + classes);
 		
