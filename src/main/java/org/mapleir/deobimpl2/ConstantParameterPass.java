@@ -1,5 +1,15 @@
 package org.mapleir.deobimpl2;
 
+import java.lang.reflect.Modifier;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+
 import org.mapleir.deobimpl2.util.IPConstAnalysis;
 import org.mapleir.deobimpl2.util.IPConstAnalysis.ChildVisitor;
 import org.mapleir.deobimpl2.util.RenamingUtil;
@@ -25,16 +35,6 @@ import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
-
-import java.lang.reflect.Modifier;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
 
 public class ConstantParameterPass implements IPass, Opcode {
 	
@@ -157,7 +157,7 @@ public class ConstantParameterPass implements IPass, Opcode {
 			}
 			
 			// TODO: MUST BE CONVERTED TO ACCOUNT FOR DIRECT SUPERS, NOT ALL
-			superFor: for(ClassNode cn : structures.getSupers(m.owner)) {
+			superFor: for(ClassNode cn : structures.getAllParents(m.owner)) {
 				if(app.isLibraryClass(cn.name)) {
 					for(MethodNode m1 : cn.methods) {
 						if(m1.name.equals(m.name) && m1.desc.equals(m.desc)) {
