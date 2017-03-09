@@ -16,7 +16,7 @@ import org.mapleir.ir.code.stmt.copy.AbstractCopyStmt;
 import org.mapleir.ir.code.stmt.copy.CopyVarStmt;
 import org.mapleir.ir.locals.LocalsPool;
 import org.mapleir.ir.locals.VersionedLocal;
-import org.mapleir.stdlib.application.ApplicationClassSource;
+import org.mapleir.stdlib.app.ApplicationClassSource;
 import org.mapleir.stdlib.deob.IContext;
 import org.mapleir.stdlib.deob.IPass;
 import org.mapleir.stdlib.klass.ClassTree;

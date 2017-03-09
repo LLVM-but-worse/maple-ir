@@ -8,7 +8,7 @@ import java.util.Set;
 import java.util.jar.JarEntry;
 import java.util.jar.JarOutputStream;
 
-import org.mapleir.stdlib.application.ApplicationClassSource;
+import org.mapleir.stdlib.app.ApplicationClassSource;
 import org.mapleir.stdlib.klass.ClassHelper;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.commons.blocksplit.SplitMethodWriterDelegate;
