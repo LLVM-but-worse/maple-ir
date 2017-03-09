@@ -1,6 +1,7 @@
 package org.mapleir.stdlib.klass;
 
 import java.lang.reflect.Modifier;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -231,7 +232,12 @@ public class InvocationResolver {
 	public Set<MethodNode> getVirtualChain(ClassNode cn, String name, String desc) {
 		Set<MethodNode> set = new HashSet<>();
 		final ClassTree structures = app.getStructures();
-		for(ClassNode c : structures.dfsTree(cn, true, true, false)) {
+		Collection<ClassNode> branches = structures.getAllChildren(cn);
+		branches.addAll(structures.getAllParents(cn));
+		for(ClassNode c : branches) {
+			if (app.isLibraryClass(c.name)) {
+				continue;
+			}
 			MethodNode mr = findVirtualCall(c, name, desc);
 			if(mr != null) {
 				set.add(mr);

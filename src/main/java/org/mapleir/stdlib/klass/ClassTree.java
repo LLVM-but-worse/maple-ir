@@ -38,6 +38,10 @@ public class ClassTree extends FastDirectedGraph<ClassNode, InheritanceEdge> {
 		return () -> getEdges(cn).stream().filter(e -> e instanceof ImplementsEdge).map(e -> e.dst).iterator();
 	}
 	
+	public Iterable<ClassNode> iterateChildren(ClassNode cn) {
+		return () -> getReverseEdges(cn).stream().map(e -> e.src).iterator();
+	}
+	
 	public Collection<ClassNode> getParents(ClassNode cn) {
 		return __getnodes(getEdges(cn), true);
 	}
@@ -55,15 +59,11 @@ public class ClassTree extends FastDirectedGraph<ClassNode, InheritanceEdge> {
 	}
 	
 	public Collection<ClassNode> getAllParents(ClassNode cn) {
-		return __getall(cn, 0);
+		return SimpleDfs.preorder(this, cn, false);
 	}
 	
 	public Collection<ClassNode> getAllChildren(ClassNode cn) {
-		return __getall(cn, SimpleDfs.REVERSE);
-	}
-	
-	private Collection<ClassNode> __getall(ClassNode cn, int dir) {
-		return new SimpleDfs<>(this, cn, dir | SimpleDfs.PRE).getPreOrder();
+		return SimpleDfs.preorder(this, cn, true);
 	}
 	
 	public ClassNode getSuper(ClassNode cn) {
@@ -75,8 +75,13 @@ public class ClassTree extends FastDirectedGraph<ClassNode, InheritanceEdge> {
 		throw new IllegalStateException("Couldn't find parent class?");
 	}
 	
-	public Iterable<ClassNode> iterateChildren(ClassNode cn) {
-		return () -> getReverseEdges(cn).stream().map(e -> e.src).iterator();
+	protected ClassNode findClass(String name) {
+		LocateableClassNode n = source.findClass(name);
+		if(n != null) {
+			return n.node;
+		} else {
+			throw new RuntimeException(String.format("Class not found %s", name));
+		}
 	}
 	
 	@Override
@@ -119,25 +124,6 @@ public class ClassTree extends FastDirectedGraph<ClassNode, InheritanceEdge> {
 	}
 	
 	@Override
-	public String toString() {
-		TabbedStringWriter sw = new TabbedStringWriter();
-		for(ClassNode cn : vertices()) {
-			blockToString(sw, this, cn);
-		}
-		return sw.toString();
-	}
-	
-	protected ClassNode findClass(String name) {
-		LocateableClassNode n = source.findClass(name);
-		if(n != null) {
-			ClassNode cn = n.node;
-			return cn;
-		} else {
-			throw new RuntimeException(String.format("Class not found %s", name));
-		}
-	}
-	
-	@Override
 	public Set<InheritanceEdge> getEdges(ClassNode cn) {
 		if(!containsVertex(cn)) {
 			addVertex(cn);
@@ -151,6 +137,15 @@ public class ClassTree extends FastDirectedGraph<ClassNode, InheritanceEdge> {
 			addVertex(cn);
 		}
 		return super.getReverseEdges(cn);
+	}
+	
+	@Override
+	public String toString() {
+		TabbedStringWriter sw = new TabbedStringWriter();
+		for(ClassNode cn : vertices()) {
+			blockToString(sw, this, cn);
+		}
+		return sw.toString();
 	}
 	
 	public static void blockToString(TabbedStringWriter sw, ClassTree ct, ClassNode cn) {
