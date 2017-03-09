@@ -1,4 +1,4 @@
-package org.mapleir.stdlib.deob;
+package org.mapleir.stdlib;
 
 import org.mapleir.deobimpl2.cxt.CFGStore;
 import org.mapleir.stdlib.app.ApplicationClassSource;
