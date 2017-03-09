@@ -1,15 +1,15 @@
 package org.mapleir.stdlib.collections.graph.algorithms;
 
-import org.mapleir.stdlib.collections.graph.FastDirectedGraph;
-import org.mapleir.stdlib.collections.graph.FastGraphEdge;
-import org.mapleir.stdlib.collections.graph.FastGraphVertex;
-import org.mapleir.stdlib.collections.graph.GraphUtils;
-
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.Stack;
+
+import org.mapleir.stdlib.collections.graph.FastDirectedGraph;
+import org.mapleir.stdlib.collections.graph.FastGraphEdge;
+import org.mapleir.stdlib.collections.graph.FastGraphVertex;
+import org.mapleir.stdlib.collections.graph.GraphUtils;
 
 public class SimpleDfs<N extends FastGraphVertex> implements DepthFirstSearch<N> {
 	public static final int REVERSE = 1, PRE = 2, POST = 4;

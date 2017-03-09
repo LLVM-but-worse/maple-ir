@@ -1,10 +1,15 @@
 package org.mapleir.stdlib.klass;
 
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
+
 import org.mapleir.stdlib.app.ApplicationClassSource;
 import org.mapleir.stdlib.app.LocateableClassNode;
 import org.mapleir.stdlib.collections.graph.FastDirectedGraph;
 import org.mapleir.stdlib.collections.graph.FastGraph;
 import org.mapleir.stdlib.collections.graph.FastGraphEdge;
+import org.mapleir.stdlib.collections.graph.algorithms.SimpleDfs;
 import org.mapleir.stdlib.klass.ClassTree.InheritanceEdge;
 import org.mapleir.stdlib.util.TabbedStringWriter;
 import org.objectweb.asm.tree.ClassNode;
@@ -23,14 +28,42 @@ public class ClassTree extends FastDirectedGraph<ClassNode, InheritanceEdge> {
 		rootNode = findClass("java/lang/Object");
 	}
 	
-	public Iterable<ClassNode> getParents(ClassNode cn) {
+	public Iterable<ClassNode> iterateParents(ClassNode cn) {
 		// this avoids any stupid anonymous Iterable<ClassNode> and Iterator bullcrap
 		// and also avoids computing a temporary set, so it is performant
 		return () -> getEdges(cn).stream().map(e -> e.dst).iterator();
 	}
 	
-	public Iterable<ClassNode> getInterfaces(ClassNode cn) {
+	public Iterable<ClassNode> iterateInterfaces(ClassNode cn) {
 		return () -> getEdges(cn).stream().filter(e -> e instanceof ImplementsEdge).map(e -> e.dst).iterator();
+	}
+	
+	public Collection<ClassNode> getParents(ClassNode cn) {
+		return __getnodes(getEdges(cn), true);
+	}
+	
+	public Collection<ClassNode> getChildren(ClassNode cn) {
+		return __getnodes(getReverseEdges(cn), false);
+	}
+	
+	private Collection<ClassNode> __getnodes(Collection<? extends FastGraphEdge<ClassNode>> edges, boolean dst) {
+		Set<ClassNode> set = new HashSet<>();
+		for(FastGraphEdge<ClassNode> e : edges) {
+			set.add(dst ? e.dst : e.src);
+		}
+		return set;
+	}
+	
+	public Collection<ClassNode> getAllParents(ClassNode cn) {
+		return __getall(cn, 0);
+	}
+	
+	public Collection<ClassNode> getAllChildren(ClassNode cn) {
+		return __getall(cn, SimpleDfs.REVERSE);
+	}
+	
+	private Collection<ClassNode> __getall(ClassNode cn, int dir) {
+		return new SimpleDfs<>(this, cn, dir | SimpleDfs.PRE).getPreOrder();
 	}
 	
 	public ClassNode getSuper(ClassNode cn) {
@@ -42,7 +75,7 @@ public class ClassTree extends FastDirectedGraph<ClassNode, InheritanceEdge> {
 		throw new IllegalStateException("Couldn't find parent class?");
 	}
 	
-	public Iterable<ClassNode> getChildren(ClassNode cn) {
+	public Iterable<ClassNode> iterateChildren(ClassNode cn) {
 		return () -> getReverseEdges(cn).stream().map(e -> e.src).iterator();
 	}
 	
@@ -102,6 +135,22 @@ public class ClassTree extends FastDirectedGraph<ClassNode, InheritanceEdge> {
 		} else {
 			throw new RuntimeException(String.format("Class not found %s", name));
 		}
+	}
+	
+	@Override
+	public Set<InheritanceEdge> getEdges(ClassNode cn) {
+		if(!containsVertex(cn)) {
+			addVertex(cn);
+		}
+		return super.getEdges(cn);
+	}
+	
+	@Override
+	public Set<InheritanceEdge> getReverseEdges(ClassNode cn) {
+		if(!containsVertex(cn)) {
+			addVertex(cn);
+		}
+		return super.getReverseEdges(cn);
 	}
 	
 	public static void blockToString(TabbedStringWriter sw, ClassTree ct, ClassNode cn) {
