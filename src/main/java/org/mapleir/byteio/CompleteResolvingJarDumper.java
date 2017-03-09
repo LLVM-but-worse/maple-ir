@@ -1,6 +1,6 @@
 package org.mapleir.byteio;
 
-import org.mapleir.state.ApplicationClassSource;
+import org.mapleir.stdlib.application.ApplicationClassSource;
 import org.mapleir.stdlib.klass.ClassNodeUtil;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.commons.blocksplit.SplitMethodWriterDelegate;
