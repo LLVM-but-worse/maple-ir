@@ -258,6 +258,8 @@ public class MethodRenamerPass implements IPass {
 			System.err.println("name: " + name);
 			System.err.println("desc: " + desc);
 			System.err.println("Searched: " + toSearch);
+			System.err.println("Children: " + structures.getAllChildren(cn));
+			System.err.println("Parents: " + structures.getAllParents(cn));
 			throw new IllegalArgumentException("You must be really dense because that method doesn't even exist.");
 		}
 		
