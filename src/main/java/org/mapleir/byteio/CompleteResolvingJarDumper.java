@@ -1,7 +1,15 @@
 package org.mapleir.byteio;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.lang.reflect.Modifier;
+import java.util.Set;
+import java.util.jar.JarEntry;
+import java.util.jar.JarOutputStream;
+
 import org.mapleir.stdlib.application.ApplicationClassSource;
-import org.mapleir.stdlib.klass.ClassNodeUtil;
+import org.mapleir.stdlib.klass.ClassHelper;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.commons.blocksplit.SplitMethodWriterDelegate;
 import org.objectweb.asm.tree.ClassNode;
@@ -10,14 +18,6 @@ import org.topdank.byteengineer.commons.data.JarContents;
 import org.topdank.byteengineer.commons.data.JarResource;
 import org.topdank.byteio.out.JarDumper;
 import org.topdank.byteio.util.Debug;
-
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.lang.reflect.Modifier;
-import java.util.Set;
-import java.util.jar.JarEntry;
-import java.util.jar.JarOutputStream;
 
 /**
  * Dumps ClassNodes and JarResources back into a file on the local system.
@@ -91,7 +91,7 @@ public class CompleteResolvingJarDumper implements JarDumper {
 		    	
 		    	if(ccn == null) {
 //		    		return "java/lang/Object";
-		    		ClassNode c = ClassNodeUtil.create(type1);
+		    		ClassNode c = ClassHelper.create(type1);
 		    		if(c == null) {
 		    			return "java/lang/Object";
 		    		}
@@ -103,7 +103,7 @@ public class CompleteResolvingJarDumper implements JarDumper {
 		    	if(dcn == null) {
 
 //		    		return "java/lang/Object";
-		    		ClassNode c = ClassNodeUtil.create(type2);
+		    		ClassNode c = ClassHelper.create(type2);
 		    		if(c == null) {
 		    			return "java/lang/Object";
 		    		}
