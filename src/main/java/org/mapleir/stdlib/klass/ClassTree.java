@@ -1,9 +1,11 @@
-package org.mapleir.state.structures;
+package org.mapleir.stdlib.klass;
 
 import org.mapleir.state.ApplicationClassSource;
+import org.mapleir.state.LocateableClassNode;
 import org.mapleir.stdlib.collections.graph.FastDirectedGraph;
 import org.mapleir.stdlib.collections.graph.FastGraph;
 import org.mapleir.stdlib.collections.graph.FastGraphEdge;
+import org.mapleir.stdlib.klass.ClassTree.InheritanceEdge;
 import org.mapleir.stdlib.util.TabbedStringWriter;
 import org.objectweb.asm.tree.ClassNode;
 
@@ -13,13 +15,12 @@ import org.objectweb.asm.tree.ClassNode;
  * @see <a href=https://en.wikipedia.org/wiki/Tree_(graph_theory)>Wikipedia: Tree</a>
  */
 public class ClassTree extends FastDirectedGraph<ClassNode, InheritanceEdge> {
-	private final ClassResolver resolver;
+	private final ApplicationClassSource source;
 	private final ClassNode rootNode;
 	
 	public ClassTree(ApplicationClassSource source) {
-		super();
-		resolver = source.getResolver();
-		rootNode = resolver.findClass("java/lang/Object");
+		this.source = source;
+		rootNode = findClass("java/lang/Object");
 	}
 	
 	public Iterable<ClassNode> getParents(ClassNode cn) {
@@ -49,11 +50,11 @@ public class ClassTree extends FastDirectedGraph<ClassNode, InheritanceEdge> {
 	public boolean addVertex(ClassNode cn) {
 		if (!super.addVertex(cn))
 			return false;
-		ClassNode sup = cn.superName != null ? resolver.findClass(cn.superName) : rootNode;
+		ClassNode sup = cn.superName != null ? findClass(cn.superName) : rootNode;
 		super.addEdge(cn, new ExtendsEdge(cn, sup));
 		
 		for (String s : cn.interfaces) {
-			ClassNode iface = resolver.findClass(s);
+			ClassNode iface = findClass(s);
 			super.addEdge(cn, new ImplementsEdge(cn, iface));
 		}
 		return true;
@@ -93,6 +94,16 @@ public class ClassTree extends FastDirectedGraph<ClassNode, InheritanceEdge> {
 		return sw.toString();
 	}
 	
+	protected ClassNode findClass(String name) {
+		LocateableClassNode n = source.findClass(name);
+		if(n != null) {
+			ClassNode cn = n.node;
+			return cn;
+		} else {
+			throw new RuntimeException(String.format("Class not found %s", name));
+		}
+	}
+	
 	public static void blockToString(TabbedStringWriter sw, ClassTree ct, ClassNode cn) {
 		sw.print(String.format("%s", cn.getId()));
 		sw.tab();
@@ -105,38 +116,37 @@ public class ClassTree extends FastDirectedGraph<ClassNode, InheritanceEdge> {
 		sw.untab();
 		sw.print("\n");
 	}
-}
-
-abstract class InheritanceEdge extends FastGraphEdge<ClassNode> {
-	public InheritanceEdge(ClassNode child, ClassNode parent) {
-		super(child, parent);
-	}
 	
-	@Override
-	public String toString() {
-		return String.format("#%s inherits #%s", src.getId(), dst.getId());
+	public static abstract class InheritanceEdge extends FastGraphEdge<ClassNode> {
+		public InheritanceEdge(ClassNode child, ClassNode parent) {
+			super(child, parent);
+		}
+		
+		@Override
+		public String toString() {
+			return String.format("#%s inherits #%s", src.getId(), dst.getId());
+		}
+	}
+
+	public static class ExtendsEdge extends InheritanceEdge {
+		public ExtendsEdge(ClassNode child, ClassNode parent) {
+			super(child, parent);
+		}
+		
+		@Override
+		public String toString() {
+			return String.format("#%s extends #%s", src.getId(), dst.getId());
+		}
+	}
+
+	public static class ImplementsEdge extends InheritanceEdge {
+		public ImplementsEdge(ClassNode child, ClassNode parent) {
+			super(child, parent);
+		}
+		
+		@Override
+		public String toString() {
+			return String.format("#%s implements #%s", src.getId(), dst.getId());
+		}
 	}
 }
-
-class ExtendsEdge extends InheritanceEdge {
-	public ExtendsEdge(ClassNode child, ClassNode parent) {
-		super(child, parent);
-	}
-	
-	@Override
-	public String toString() {
-		return String.format("#%s extends #%s", src.getId(), dst.getId());
-	}
-}
-
-class ImplementsEdge extends InheritanceEdge {
-	public ImplementsEdge(ClassNode child, ClassNode parent) {
-		super(child, parent);
-	}
-	
-	@Override
-	public String toString() {
-		return String.format("#%s implements #%s", src.getId(), dst.getId());
-	}
-}
-
