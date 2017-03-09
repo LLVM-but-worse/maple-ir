@@ -2,7 +2,7 @@ package org.mapleir.stdlib.deob;
 
 import java.util.List;
 
-import org.mapleir.stdlib.IContext;
+import org.mapleir.deobimpl2.cxt.IContext;
 
 public interface IPass {
 	

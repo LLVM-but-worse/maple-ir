@@ -11,7 +11,7 @@ import org.mapleir.ir.code.expr.ArithmeticExpr.Operator;
 import org.mapleir.ir.code.expr.ConstantExpr;
 import org.mapleir.ir.code.expr.FieldLoadExpr;
 import org.mapleir.ir.code.stmt.FieldStoreStmt;
-import org.mapleir.stdlib.IContext;
+import org.mapleir.deobimpl2.cxt.IContext;
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.SetCreator;
 import org.mapleir.stdlib.deob.IPass;

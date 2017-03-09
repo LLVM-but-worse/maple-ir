@@ -8,7 +8,7 @@ import org.mapleir.ir.code.Opcode;
 import org.mapleir.ir.code.Stmt;
 import org.mapleir.ir.code.expr.FieldLoadExpr;
 import org.mapleir.ir.code.stmt.FieldStoreStmt;
-import org.mapleir.stdlib.IContext;
+import org.mapleir.deobimpl2.cxt.IContext;
 import org.mapleir.stdlib.app.ApplicationClassSource;
 import org.mapleir.stdlib.deob.IPass;
 import org.objectweb.asm.tree.ClassNode;
