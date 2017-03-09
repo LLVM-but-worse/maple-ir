@@ -1,13 +1,13 @@
 package org.mapleir.stdlib.klass;
 
+import java.lang.reflect.Modifier;
+import java.util.HashSet;
+import java.util.Set;
+
 import org.mapleir.stdlib.app.ApplicationClassSource;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
-
-import java.lang.reflect.Modifier;
-import java.util.HashSet;
-import java.util.Set;
 
 public class InvocationResolver {
 
@@ -141,7 +141,7 @@ public class InvocationResolver {
 			}
 			
 			// TODO: Use existing SimpleDFS code
-			for(ClassNode c : app.getStructures().dfsTree(cn, false, true, true)) {
+			for(ClassNode c : app.getStructures().getAllChildren(cn)) {
 				m = findClassMethod(c, name, desc);
 				
 				if(m != null) {

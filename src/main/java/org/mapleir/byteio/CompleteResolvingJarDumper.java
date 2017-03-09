@@ -4,12 +4,13 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.lang.reflect.Modifier;
-import java.util.Set;
+import java.util.Collection;
 import java.util.jar.JarEntry;
 import java.util.jar.JarOutputStream;
 
 import org.mapleir.stdlib.app.ApplicationClassSource;
 import org.mapleir.stdlib.klass.ClassHelper;
+import org.mapleir.stdlib.klass.ClassTree;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.commons.blocksplit.SplitMethodWriterDelegate;
 import org.objectweb.asm.tree.ClassNode;
@@ -76,6 +77,8 @@ public class CompleteResolvingJarDumper implements JarDumper {
 	public int dumpClass(JarOutputStream out, String name, ClassNode cn) throws IOException {
 		JarEntry entry = new JarEntry(cn.name + ".class");
 		out.putNextEntry(entry);
+		ClassTree tree = source.getStructures();
+		
 		ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_FRAMES, new SplitMethodWriterDelegate()) {
 			// this method in ClassWriter uses the systemclassloader as
 			// a stream location to load the super class, however, most of
@@ -112,9 +115,8 @@ public class CompleteResolvingJarDumper implements JarDumper {
 		    		// return getCommonSuperClass(type1, type2);
 		    	}
 		    	
-				// TODO: MUST BE CONVERTED TO ACCOUNT FOR DIRECT SUPERS, NOT ALL
-		        Set<ClassNode> c = source.getStructures().getSupers(ccn);
-		        Set<ClassNode> d = source.getStructures().getSupers(dcn);
+		    	Collection<ClassNode> c = tree.getParents(ccn);
+		    	Collection<ClassNode> d = tree.getParents(dcn);
 		        
 		        if(c.contains(dcn))
 		        	return type1;
@@ -131,7 +133,7 @@ public class CompleteResolvingJarDumper implements JarDumper {
 		        		if(nccn == null)
 		        			break;
 		        		ccn = nccn;
-		        		c = source.getStructures().getSupers(ccn);
+		        		c = tree.getParents(ccn);
 		        	} while(!c.contains(dcn));
 		        	return ccn.name;
 		        }
