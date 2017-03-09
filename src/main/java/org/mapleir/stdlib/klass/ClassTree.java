@@ -1,7 +1,7 @@
 package org.mapleir.stdlib.klass;
 
-import org.mapleir.state.ApplicationClassSource;
-import org.mapleir.state.LocateableClassNode;
+import org.mapleir.stdlib.application.ApplicationClassSource;
+import org.mapleir.stdlib.application.LocateableClassNode;
 import org.mapleir.stdlib.collections.graph.FastDirectedGraph;
 import org.mapleir.stdlib.collections.graph.FastGraph;
 import org.mapleir.stdlib.collections.graph.FastGraphEdge;

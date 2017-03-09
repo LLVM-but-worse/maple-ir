@@ -1,5 +1,15 @@
 package org.mapleir;
 
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Deque;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.jar.JarOutputStream;
+
 import org.mapleir.byteio.CompleteResolvingJarDumper;
 import org.mapleir.deobimpl2.CallgraphPruningPass;
 import org.mapleir.deobimpl2.ConstantExpressionEvaluatorPass;
@@ -10,30 +20,23 @@ import org.mapleir.deobimpl2.MethodRenamerPass;
 import org.mapleir.ir.ControlFlowGraphDumper;
 import org.mapleir.ir.cfg.BoissinotDestructor;
 import org.mapleir.ir.cfg.ControlFlowGraph;
-import org.mapleir.ir.code.Expr;
-import org.mapleir.state.ApplicationClassSource;
 import org.mapleir.state.IContext;
-import org.mapleir.state.InstalledRuntimeClassSource;
 import org.mapleir.state.MapleDB;
-import org.mapleir.stdlib.call.CallTracer;
-import org.mapleir.stdlib.collections.graph.algorithms.SimpleDfs;
+import org.mapleir.stdlib.application.ApplicationClassSource;
+import org.mapleir.stdlib.application.InstalledRuntimeClassSource;
+import org.mapleir.stdlib.collections.graph.dot.BasicDotConfiguration;
+import org.mapleir.stdlib.collections.graph.dot.DotConfiguration;
+import org.mapleir.stdlib.collections.graph.dot.DotConfiguration.GraphType;
+import org.mapleir.stdlib.collections.graph.dot.DotWriter;
 import org.mapleir.stdlib.deob.IPass;
 import org.mapleir.stdlib.deob.PassGroup;
+import org.mapleir.stdlib.klass.ClassTree;
+import org.mapleir.stdlib.klass.ClassTree.InheritanceEdge;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.topdank.byteengineer.commons.data.JarInfo;
 import org.topdank.byteio.in.SingleJarDownloader;
 import org.topdank.byteio.out.JarDumper;
-
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Deque;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.jar.JarOutputStream;
 
 public class Boot {
 
@@ -402,7 +405,14 @@ public class Boot {
 			cxt.getCFGS().getIR(m);
 //			tracer.trace(m);
 		}
-		System.out.println(new SimpleDfs<>(cxt.getApplication().getStructures(), cxt.getApplication().findClass("java/lang/Object").node, SimpleDfs.REVERSE | SimpleDfs.PRE | SimpleDfs.POST).getPreOrder());
+		// System.out.println(new SimpleDfs<>(cxt.getApplication().getStructures(), cxt.getApplication().findClass("java/lang/Object").node, SimpleDfs.REVERSE | SimpleDfs.PRE | SimpleDfs.POST).getPreOrder());
+		
+		{
+			ClassTree tree = cxt.getApplication().getStructures();
+			DotConfiguration<ClassTree, ClassNode, InheritanceEdge> config = new BasicDotConfiguration<>(GraphType.DIRECTED);
+			DotWriter<ClassTree, ClassNode, InheritanceEdge> writer = new DotWriter<>(config, tree);
+			writer.setName("thingy22").export();
+		}
 		
 		section0("...generated " + cxt.getCFGS().size() + " cfgs in %fs.%n", "Preparing to transform.");
 		

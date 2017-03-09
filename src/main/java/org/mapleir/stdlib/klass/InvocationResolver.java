@@ -1,7 +1,6 @@
 package org.mapleir.stdlib.klass;
 
-import org.mapleir.state.ApplicationClassSource;
-import org.mapleir.state.structures.ClassTree;
+import org.mapleir.stdlib.application.ApplicationClassSource;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
