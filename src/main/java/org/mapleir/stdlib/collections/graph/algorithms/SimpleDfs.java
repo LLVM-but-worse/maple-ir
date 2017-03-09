@@ -51,6 +51,22 @@ public class SimpleDfs<N extends FastGraphVertex> implements DepthFirstSearch<N>
 				postorder.add(postStack.pop());
 	}
 
+	public static <N extends FastGraphVertex> List<N> preorder(FastDirectedGraph<N, ? extends FastGraphEdge<N>> graph, N entry) {
+		return preorder(graph, entry, false);
+	}
+	
+	public static <N extends FastGraphVertex> List<N> preorder(FastDirectedGraph<N, ? extends FastGraphEdge<N>> graph, N entry, boolean reverse) {
+		return new SimpleDfs<>(graph, entry, PRE | (reverse? REVERSE : 0)).getPreOrder();
+	}
+	
+	public static <N extends FastGraphVertex> List<N> postorder(FastDirectedGraph<N, ? extends FastGraphEdge<N>> graph, N entry) {
+		return postorder(graph, entry, false);
+	}
+	
+	public static <N extends FastGraphVertex> List<N> postorder(FastDirectedGraph<N, ? extends FastGraphEdge<N>> graph, N entry, boolean reverse) {
+		return new SimpleDfs<>(graph, entry, POST | (reverse? REVERSE : 0)).getPostOrder();
+	}
+
 	@Override
 	public List<N> getPreOrder() {
 		return preorder;

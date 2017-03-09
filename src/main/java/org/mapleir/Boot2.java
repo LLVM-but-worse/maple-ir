@@ -13,7 +13,8 @@ import org.mapleir.ir.code.stmt.PopStmt;
 import org.mapleir.ir.locals.Local;
 import org.mapleir.stdlib.app.ApplicationClassSource;
 import org.mapleir.stdlib.app.InstalledRuntimeClassSource;
-import org.mapleir.stdlib.klass.ClassNodeUtil;
+import org.mapleir.stdlib.klass.ClassHelper;
+import org.mapleir.stdlib.klass.ClassTree;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
@@ -38,6 +39,7 @@ import java.lang.ref.WeakReference;
 import java.lang.reflect.Modifier;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -135,7 +137,7 @@ public class Boot2 {
 					    	ClassNode dcn = app.findClassNode(type2);
 					    	
 					    	if(ccn == null) {
-					    		ClassNode c = ClassNodeUtil.create(type1);
+					    		ClassNode c = ClassHelper.create(type1);
 					    		if(c == null) {
 					    			return "java/lang/Object";
 					    		}
@@ -143,7 +145,7 @@ public class Boot2 {
 					    	}
 					    	
 					    	if(dcn == null) {
-					    		ClassNode c = ClassNodeUtil.create(type2);
+					    		ClassNode c = ClassHelper.create(type2);
 					    		if(c == null) {
 					    			return "java/lang/Object";
 					    		}
@@ -151,8 +153,9 @@ public class Boot2 {
 					    	}
 					    	
 							// TODO: MUST BE CONVERTED TO ACCOUNT FOR DIRECT SUPERS, NOT ALL
-					        Set<ClassNode> c = app.getStructures().getSupers(ccn);
-					        Set<ClassNode> d = app.getStructures().getSupers(dcn);
+							ClassTree tree = app.getStructures();
+					        Collection<ClassNode> c = tree.getAllParents(ccn);
+					        Collection<ClassNode> d = tree.getAllParents(dcn);
 					        
 					        if(c.contains(dcn))
 					        	return type1;
@@ -169,7 +172,7 @@ public class Boot2 {
 					        		if(nccn == null)
 					        			break;
 					        		ccn = nccn;
-					        		c = app.getStructures().getSupers(ccn);
+					        		c = tree.getAllParents(ccn);
 					        	} while(!c.contains(dcn));
 					        	return ccn.name;
 					        }
@@ -612,7 +615,7 @@ public class Boot2 {
 		/**
 		 * Syncs an Applet with this browser instance. <br>
 		 * Syncing in this case may refer to caching or calls to {@link Applet#setStub(AppletStub)}.
-		 * 
+		 *
 		 * @param applet The new Applet.
 		 */
 		public void setApplet(Applet applet);
@@ -661,7 +664,7 @@ public class Boot2 {
 
 		/**
 		 * Each virtual game browser is associated with a webpage which embeds the Applet that is going to be ran. Therefore a {@link IPageCrawler} is needed to parse the parameters for the Applet environment and the Applet itself.
-		 * 
+		 *
 		 * @return The crawler.
 		 */
 		public IPageCrawler getCrawler();

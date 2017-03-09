@@ -115,8 +115,8 @@ public class CompleteResolvingJarDumper implements JarDumper {
 		    		// return getCommonSuperClass(type1, type2);
 		    	}
 		    	
-		    	Collection<ClassNode> c = tree.getParents(ccn);
-		    	Collection<ClassNode> d = tree.getParents(dcn);
+		    	Collection<ClassNode> c = tree.getAllParents(ccn);
+		    	Collection<ClassNode> d = tree.getAllParents(dcn);
 		        
 		        if(c.contains(dcn))
 		        	return type1;
@@ -133,7 +133,7 @@ public class CompleteResolvingJarDumper implements JarDumper {
 		        		if(nccn == null)
 		        			break;
 		        		ccn = nccn;
-		        		c = tree.getParents(ccn);
+		        		c = tree.getAllParents(ccn);
 		        	} while(!c.contains(dcn));
 		        	return ccn.name;
 		        }
