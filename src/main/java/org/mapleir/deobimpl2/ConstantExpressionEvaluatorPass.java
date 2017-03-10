@@ -106,8 +106,8 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 			}
 		}
 		
-		System.out.printf("  evaluated %d constant expressions.%n", j);
-		System.out.printf("  eliminated %d constant branches.%n", k);
+//		System.out.printf("  evaluated %d constant expressions.%n", j);
+//		System.out.printf("  eliminated %d constant branches.%n", k);
 		
 		return j;
 	}
@@ -248,11 +248,12 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 						val = branchVal;
 					}
 				} else {
-					/*System.err.println("something::");
+					System.err.println("something::");
 					System.err.println("  " + cond);
 					System.err.println("  leftset: " + leftSet);
-					System.err.println("  rightSet: " + rightSet);|
-					return;*/
+					System.err.println("  rightSet: " + rightSet);
+					System.err.println(cfg);
+					System.err.println(cfg.getMethod());
 					throw new UnsupportedOperationException();
 				}
 			}

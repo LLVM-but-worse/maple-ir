@@ -25,6 +25,10 @@ public class IRCallTracer extends CallTracer {
 
 	@Override
 	protected void traceImpl(MethodNode m) {
+		MethodNode clinit = m.owner.getMethod("<clinit>", "()V", true);
+		if (clinit != null)
+			trace(clinit);
+		
 		ControlFlowGraph cfg = context.getCFGS().getIR(m);
 		if(cfg == null) {
 			throw new UnsupportedOperationException("No cfg for " + m + " [" + m.instructions.size() + "]");
@@ -53,7 +57,7 @@ public class IRCallTracer extends CallTracer {
 									trace(call);
 									processedInvocation(m, call, invoke);
 								} else {
-									System.err.printf("(warn): can't resolve constructor: %s.<init> %s.%n", owner, desc);
+//									System.err.printf("(warn): can't resolve constructor: %s.<init> %s.%n", owner, desc);
 								}
 							} else {
 //								if(owner.equals("java/lang/Object") && name.equals("equals")) {
@@ -68,10 +72,10 @@ public class IRCallTracer extends CallTracer {
 									}
 								} else {
 									if(!owner.contains("java")) {
-										System.err.printf("(warn): can't resolve vcall: %s.%s %s.%n", owner, name, desc);
-										System.err.println("  call from " + m);
+//										System.err.printf("(warn): can't resolve vcall: %s.%s %s.%n", owner, name, desc);
+//										System.err.println("  call from " + m);
 										
-										System.err.println(context.getApplication().findClassNode(owner).methods);
+//										System.err.println(context.getApplication().findClassNode(owner).methods);
 									}
 								}
 							}
@@ -83,7 +87,7 @@ public class IRCallTracer extends CallTracer {
 							trace(call);
 							processedInvocation(m, call, init);
 						} else {
-							System.err.printf("(warn): can't resolve constructor: %s.<init> %s.%n", init.getOwner(), init.getDesc());
+//							System.err.printf("(warn): can't resolve constructor: %s.<init> %s.%n", init.getOwner(), init.getDesc());
 						}
 					}
 				}

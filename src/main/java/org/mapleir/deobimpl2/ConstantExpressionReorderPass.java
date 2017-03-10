@@ -29,7 +29,7 @@ public class ConstantExpressionReorderPass implements IPass, Opcode {
 			ControlFlowGraph ir = cxt.getCFGS().getIR(m);
 			i += transform(ir);
 		}
-		System.out.println("  swapped " + i + " constant expression orders.");
+//		System.out.println("  swapped " + i + " constant expression orders.");
 		return i;
 	}
 	

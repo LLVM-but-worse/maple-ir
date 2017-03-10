@@ -80,7 +80,8 @@ public class ClassTree extends FastDirectedGraph<ClassNode, InheritanceEdge> {
 		if(n != null) {
 			return n.node;
 		} else {
-			throw new RuntimeException(String.format("Class not found %s", name));
+			return null;
+//			throw new RuntimeException(String.format("Class not found %s", name));
 		}
 	}
 	
@@ -89,10 +90,15 @@ public class ClassTree extends FastDirectedGraph<ClassNode, InheritanceEdge> {
 		if (!super.addVertex(cn))
 			return false;
 		ClassNode sup = cn.superName != null ? findClass(cn.superName) : rootNode;
+		if (sup == null)
+			sup = rootNode;
+		
 		super.addEdge(cn, new ExtendsEdge(cn, sup));
 		
 		for (String s : cn.interfaces) {
 			ClassNode iface = findClass(s);
+			if (iface == null)
+				iface = rootNode;
 			super.addEdge(cn, new ImplementsEdge(cn, iface));
 		}
 		return true;

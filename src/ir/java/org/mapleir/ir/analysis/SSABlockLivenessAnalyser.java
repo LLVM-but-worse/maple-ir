@@ -131,11 +131,12 @@ public class SSABlockLivenessAnalyser implements Liveness<BasicBlock> {
 					
 					// TODO: look into hasNaturalFlow before blindly
 					// adding it as live-in.
-					if (e.getOpcode() == Opcode.CATCH) {
-						if(GraphUtils.hasNaturalPredecessors(cfg, b)) {
-							use.get(b).add(l);
-						}
-					}
+					// edit: disregard that
+//					if (e.getOpcode() == Opcode.CATCH) {
+//						if(GraphUtils.hasNaturalPredecessors(cfg, b)) {
+//							use.get(b).add(l);
+//						}
+//					}
 				}
 				for (Expr c : stmt.enumerateOnlyChildren()) {
 					if (c.getOpcode() == Opcode.LOCAL_LOAD) {

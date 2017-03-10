@@ -66,6 +66,8 @@ public class JSRInlinerAdapter extends MethodNode implements Opcodes {
      * than one subroutine. This should not happen often.
      */
     final BitSet dualCitizens = new BitSet();
+    
+    public boolean dirty = false;
 
     /**
      * Creates a new JSRInliner. <i>Subclasses must not use this
@@ -142,6 +144,7 @@ public class JSRInlinerAdapter extends MethodNode implements Opcodes {
         super.visitJumpInsn(opcode, lbl);
         LabelNode ln = ((JumpInsnNode) instructions.getLast()).label;
         if (opcode == JSR && !subroutineHeads.containsKey(ln)) {
+            dirty = true;
             subroutineHeads.put(ln, new BitSet());
         }
     }

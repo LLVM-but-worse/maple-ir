@@ -121,7 +121,8 @@ public class ConstantParameterPass implements IPass, Opcode {
 						// FIXME:
 						/* whole branch tainted */
 						for(MethodNode associated : chainMap.get(callee)) {
-							chainedNonConstant.get(associated)[i] = true;
+							if (chainedNonConstant.get(associated) != null)
+								chainedNonConstant.get(associated)[i] = true;
 						}
 						
 						/* callsites tainted */
@@ -130,7 +131,8 @@ public class ConstantParameterPass implements IPass, Opcode {
 						} else {
 							/* only chain callsites *can* have this input */
 							for(MethodNode site : resolver.resolveVirtualCalls(callee.owner.name, callee.name, callee.desc, true)) {
-								specificNonConstant.get(site)[i] = true;
+								if (chainedNonConstant.get(site) != null)
+									specificNonConstant.get(site)[i] = true;
 							}
 						}
 					}
@@ -156,7 +158,6 @@ public class ConstantParameterPass implements IPass, Opcode {
 				continue;
 			}
 			
-			// TODO: MUST BE CONVERTED TO ACCOUNT FOR DIRECT SUPERS, NOT ALL
 			superFor: for(ClassNode cn : structures.getAllParents(m.owner)) {
 				if(app.isLibraryClass(cn.name)) {
 					for(MethodNode m1 : cn.methods) {
@@ -251,6 +252,7 @@ public class ConstantParameterPass implements IPass, Opcode {
 		}
 		
 		Map<MethodNode, String> remap = new HashMap<>();
+		/*
 		Set<MethodNode> toRemove = new HashSet<>();
 		
 		Set<Set<MethodNode>> mustRename = new HashSet<>();
@@ -267,7 +269,7 @@ public class ConstantParameterPass implements IPass, Opcode {
 				}
 				
 				if(!notSame) {
-					/* eliminate all branches (same congruence class) */
+					// eliminate all branches (same congruence class)
 					for(MethodNode n : chainMap.get(m)) {
 						toRemove.add(n);
 					}
@@ -300,7 +302,7 @@ public class ConstantParameterPass implements IPass, Opcode {
 				if(conflicts.size() > 0) {
 					Set<MethodNode> chain = chainMap.get(m);
 					
-					/* rename the smallest conflict set */
+					// rename the smallest conflict set
 //					if(chain.size() < conflicts.size()) {
 //						
 //					} else {
@@ -340,6 +342,7 @@ public class ConstantParameterPass implements IPass, Opcode {
 		if(mustRename.size() > 0) {
 			MethodRenamerPass.rename(cxt, methodNameRemap, false);
 		}
+		*/
 		
 		Set<MethodNode> visitedMethods = new HashSet<>();
 		Set<Expr> visitedExprs = new HashSet<>();
@@ -393,7 +396,7 @@ public class ConstantParameterPass implements IPass, Opcode {
 			}
 		}
 		
-		System.out.printf("  removed %d constant parameters.%n", killedTotal);
+//		System.out.printf("  removed %d constant parameters.%n", killedTotal);
 		return killedTotal;
 	}
 	
@@ -491,8 +494,8 @@ public class ConstantParameterPass implements IPass, Opcode {
 		
 		CopyVarStmt copy = new CopyVarStmt(dv, c.copy());
 		BasicBlock b = argDef.getBlock();
-		argDef.delete();
-		pool.defs.remove(argLocal);
+//		argDef.delete();
+//		pool.defs.remove(argLocal);
 		argDef = copy;
 		b.add(copy);
 		pool.defs.put(spill, copy);

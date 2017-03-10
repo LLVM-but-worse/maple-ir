@@ -35,7 +35,8 @@ public class InvocationResolver {
 			if(set.size() == 1) {
 				return set.iterator().next();
 			} else {
-				throw new IllegalStateException(String.format("Looking for: %s.<init>%s, got: %s", owner, desc, set));
+//				throw new IllegalStateException(String.format("Looking for: %s.<init>%s, got: %s", owner, desc, set));
+				return null;
 			}
 		} else {
 			return null;
@@ -168,7 +169,7 @@ public class InvocationResolver {
 				}
 				
 				if(lvlSites.size() > 1 && strict) {
-					System.out.printf("(warn) resolved %s.%s %s to %s.%n", owner, name, desc, lvlSites);
+//					System.out.printf("(warn) resolved %s.%s %s to %s.%n", owner, name, desc, lvlSites);
 				}
 				
 				/* we've found the method in the current

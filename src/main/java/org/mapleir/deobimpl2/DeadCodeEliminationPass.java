@@ -182,9 +182,9 @@ public class DeadCodeEliminationPass implements IPass {
 			}
 		}
 
-		System.out.printf("  removed %d dead blocks.%n", i);
-		System.out.printf("  converted %d immediate jumps.%n", j);
-		System.out.printf("  eliminated %d dead locals.%n", k);
+//		System.out.printf("  removed %d dead blocks.%n", i);
+//		System.out.printf("  converted %d immediate jumps.%n", j);
+//		System.out.printf("  eliminated %d dead locals.%n", k);
 		
 		return i + j;
 	}

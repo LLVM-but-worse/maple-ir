@@ -33,7 +33,7 @@ public class CallgraphPruningPass implements IPass {
 			}
 		}
 		
-		System.out.println("Removed " + i + " dead methods.");
+//		System.out.println("Removed " + i + " dead methods.");
 		
 		return i;
 	}

@@ -95,7 +95,7 @@ public class JarContents<C extends ClassNode> {
 		public Map<String, C> namedMap() {
 			if (invalidated) {
 				invalidated = false;
-				Map<String, C> nodeMap = new HashMap<String, C>();
+				Map<String, C> nodeMap = new HashMap<>();
 				Iterator<C> it = iterator();
 				while (it.hasNext()) {
 					C cn = it.next();
@@ -128,7 +128,7 @@ public class JarContents<C extends ClassNode> {
 
 		@Override
 		public Map<String, JarResource> namedMap() {
-			Map<String, JarResource> map = new HashMap<String, JarResource>();
+			Map<String, JarResource> map = new HashMap<>();
 			for (JarResource resource : this) {
 				map.put(resource.getName(), resource);
 			}

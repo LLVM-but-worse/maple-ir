@@ -384,7 +384,7 @@ public abstract class CodeUnit implements FastGraphVertex, Opcode {
 	protected Set<Expr> _enumerate() {
 		Set<Expr> set = new HashSet<>();
 
-		if(opcode == Opcode.PHI) {
+		if(opcode == Opcode.PHI || opcode == Opcode.EPHI) {
 			/*CopyPhiStmt phi = (CopyPhiStmt) this;
 			for(Expr e : phi.getExpression().getArguments().values()) {
 				set.add(e);

@@ -46,7 +46,7 @@ public class PassGroup implements IPass {
 			delta = 0;
 			
 			if(name != null) {
-				System.out.printf("Running %s group.%n", name);
+//				System.out.printf("Running %s group.%n", name);
 			}
 			
 			for(int i=0; i < passed.length; i++) {
@@ -60,7 +60,7 @@ public class PassGroup implements IPass {
 				if(Boot.logging) {
 					Boot.section0("...took %fs." + (i == 0 ? "%n" : ""), "Running " + p.getId());
 				} else {
-					System.out.println("Running " + p.getId());
+//					System.out.println("Running " + p.getId());
 				}
 				lastDelta = p.accept(cxt, last, completed);
 				
@@ -74,8 +74,8 @@ public class PassGroup implements IPass {
 			if(delta == 0) {
 				break;
 			}
-			System.out.println();
-			System.out.println();
+//			System.out.println();
+//			System.out.println();
 		}
 		
 		return 0;

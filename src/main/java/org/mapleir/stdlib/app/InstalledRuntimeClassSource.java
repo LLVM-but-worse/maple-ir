@@ -65,7 +65,7 @@ public class InstalledRuntimeClassSource extends LibraryClassSource {
 			return node;
 		} catch(IOException e) {
 			// TODO: logger
-			System.err.println(e.getMessage() + ": " + name);
+//			System.err.println(e.getMessage() + ": " + name);
 			notContains.add(name);
 			return null;
 		}
