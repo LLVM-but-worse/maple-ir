@@ -194,17 +194,21 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 		for(Expr e : to.enumerateWithSelf()) {
 			if (e.getOpcode() == Opcode.LOCAL_LOAD) {
 				VarExpr var = (VarExpr) e;
-				pool.uses.get((VersionedLocal) var.getLocal()).add(var);
+				pool.uses.get(var.getLocal()).add(var);
 			}
 		}
 	}
 	
-	private boolean simplifyConditionalBranch(IPConstAnalysisVisitor vis, ControlFlowGraph cfg, ConditionalJumpStmt cond, int i) {		
+	private boolean simplifyConditionalBranch(IPConstAnalysisVisitor vis, ControlFlowGraph cfg, ConditionalJumpStmt cond, int i) {
 		Expr l = cond.getLeft();
 		Expr r = cond.getRight();
 		
-		if(!isPrimitive(l.getType()) || !isPrimitive(r.getType())) {
-			return false;
+		if(l instanceof ConstantExpr && r instanceof ConstantExpr) {
+			if (!isPrimitive(l.getType()) && !isPrimitive(r.getType())) {
+				return attemptNullarityBranchElimination(cfg, cond.getBlock(), cond, i, (ConstantExpr) l, (ConstantExpr) r);
+			} else{
+				return false;
+			}
 		}
 		
 		LocalValueResolver resolver;
@@ -221,13 +225,27 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 		Set<ConstantExpr> rSet = evalPossibleValues(resolver, r);
 		
 		if(isValidSet(lSet) && isValidSet(rSet)) {
-			return attemptBranchElimination(cfg, cond.getBlock(), cond, i, lSet, rSet);
+			return attemptPrimitiveBranchElimination(cfg, cond.getBlock(), cond, i, lSet, rSet);
 		} else {
 			return false;
 		}
 	}
 	
-	private boolean attemptBranchElimination(ControlFlowGraph cfg, BasicBlock b, ConditionalJumpStmt cond, int insnIndex, Set<ConstantExpr> leftSet, Set<ConstantExpr> rightSet) {
+	private boolean attemptNullarityBranchElimination(ControlFlowGraph cfg, BasicBlock b, ConditionalJumpStmt cond, int insnIndex, ConstantExpr left, ConstantExpr right) {
+		if (left.getConstant() == null && right.getConstant() == null) {
+			eliminateBranch(cfg, b, cond, insnIndex, cond.getComparisonType() == ComparisonType.EQ);
+			return true;
+		}
+		if (cond.getComparisonType() == ComparisonType.EQ) {
+			if ((left.getConstant() == null) != (right.getConstant() == null)) {
+				eliminateBranch(cfg, b, cond, insnIndex, false);
+				return true;
+			}
+		}
+		return false;
+	}
+	
+	private boolean attemptPrimitiveBranchElimination(ControlFlowGraph cfg, BasicBlock b, ConditionalJumpStmt cond, int insnIndex, Set<ConstantExpr> leftSet, Set<ConstantExpr> rightSet) {
 		Boolean val = null;
 		
 		for(ConstantExpr lc : leftSet) {
