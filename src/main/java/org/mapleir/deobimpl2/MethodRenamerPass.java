@@ -251,9 +251,10 @@ public class MethodRenamerPass implements IPass {
 		check: {
 			Collection<ClassNode> toSearch = structures.getAllChildren(cn);
 			toSearch.addAll(structures.getAllParents(cn));
-			for (ClassNode viable : toSearch)
-				if (viable.getMethod(name, desc, false) != null)
+			for (ClassNode viable : toSearch) {
+				if (findClassMethod(viable, name, desc) != null)
 					break check;
+			}
 			System.err.println("cn: " + cn);
 			System.err.println("name: " + name);
 			System.err.println("desc: " + desc);
@@ -272,8 +273,9 @@ public class MethodRenamerPass implements IPass {
 		Queue<ClassNode> visitHeads = new LinkedList<>();
 		for(ClassNode current : visited) {
 			MethodNode m = findClassMethod(current, name, desc);
-		    if(m != null) {
+		    if(m != null)
 				results.put(current, m);
+		    if(m != null || current == cn) {
 		        visitHeads.add(current);
 		    }
 		}
