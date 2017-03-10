@@ -9,9 +9,11 @@ import org.mapleir.deobimpl2.cxt.IContext;
 import org.mapleir.deobimpl2.cxt.MapleDB;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
+import org.mapleir.ir.code.CodeUnit;
 import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.code.Opcode;
 import org.mapleir.ir.code.Stmt;
+import org.mapleir.ir.code.expr.ConstantExpr;
 import org.mapleir.ir.code.expr.InvocationExpr;
 import org.mapleir.stdlib.app.ApplicationClassSource;
 import org.mapleir.stdlib.app.InstalledRuntimeClassSource;
@@ -32,11 +34,21 @@ import java.io.FileInputStream;
 import java.io.InputStream;
 import java.security.MessageDigest;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Scanner;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
+
+import static org.mapleir.ir.code.Opcode.ARRAY_LEN;
+import static org.mapleir.ir.code.Opcode.ARRAY_LOAD;
+import static org.mapleir.ir.code.Opcode.ARRAY_STORE;
+import static org.mapleir.ir.code.Opcode.FIELD_LOAD;
+import static org.mapleir.ir.code.Opcode.FIELD_STORE;
+import static org.mapleir.ir.code.Opcode.INVOKE;
 
 public class ExpligotMain {
 	public static String sha1(File file) throws Exception  {
@@ -114,6 +126,7 @@ public class ExpligotMain {
 		}
 		
 		// Kill JSRs
+		AtomicBoolean abort = new AtomicBoolean(false);
 		for(ClassNode cn : app.iterate()) {
 			List<MethodNode> newMethods = new ArrayList<>();
 			for (MethodNode m : cn.methods) {
@@ -123,6 +136,7 @@ public class ExpligotMain {
 				newMethods.add(nodeWithoutJsr);
 				if (adapter.dirty) {
 					System.out.println("WARNING: jsr detected; highly likely jar is obfuscated");
+					abort.set(true);
 				}
 			}
 			cn.methods = newMethods;
@@ -145,18 +159,19 @@ public class ExpligotMain {
 		app.rebuildTable();
 		
 		IContext cxt = new MapleDB(app);
-		AtomicBoolean abort = new AtomicBoolean(false);
 		CallTracer tracer = new IRCallTracer(cxt) {
 			@Override
 			protected void processedInvocation(MethodNode caller, MethodNode callee, Expr call) {
 				if (!abort.get() && callee.owner == jreClass && callee.name.equals("forName")) {
-					System.out.println("WARNING: Found Class.forName; aborting callgraph analysis (caller " + caller + ")");
-					abort.set(true);
+					if (!caller.owner.name.contains("facebook") && !caller.owner.name.contains("twitter")) {
+						System.out.println("WARNING: Possible reflective call obfuscation; found Class.forName in " + caller);
+//						abort.set(true);
+					}
 				}
 			}
 		};
 		
-		for(MethodNode m : mainClass.methods) {
+		for(MethodNode m : getEntries(app, mainClass)) {
 			if (abort.get())
 				break;
 			tracer.trace(m);
@@ -195,26 +210,45 @@ public class ExpligotMain {
 			System.out.println("WARNING: A large portion of the code was marked dead during optimization.");
 		System.out.println(presize + " non-dead methods post-optimisation (delta -" + delta + " = " + percent + "%)\n");
 		
+		final String[][] loggedCalls = new String[callsToLog.length][2];
+		for (int i = 0; i < callsToLog.length; i++) {
+			String[] logTarget = callsToLog[i].split("\\.");
+			logTarget[1] = logTarget[1].replace("*", ".*");
+			loggedCalls[i] = logTarget;
+		}
+		
 		for(Entry<MethodNode, ControlFlowGraph> e : cxt.getCFGS().entrySet()) {
 			MethodNode mn = e.getKey();
 			ControlFlowGraph cfg = e.getValue();
 			for (BasicBlock b : cfg.vertices()) {
 				for (Stmt stmt : b) {
 					for(Expr c : stmt.enumerateOnlyChildren()) {
-						if (c.getOpcode() == Opcode.INVOKE) {
-							InvocationExpr invoke = (InvocationExpr) c;
-							boolean isStatic = (invoke.getCallType() == Opcodes.INVOKESTATIC);
-							String owner = invoke.getOwner();
-							String name = invoke.getName();
-							
-							if (owner.equals("java/lang/Runtime") && name.equals("exec")) {
-								System.out.println("Call to Runtime.exec in " + mn);
-								System.out.println("    Context: " + invoke);
-							}
-							if (owner.equals("java/lang/ProcessBuilder")) {
-								System.out.println("Call to ProcessBuilder in " + mn);
-								System.out.println("    Context: " + invoke);
-							}
+						switch(c.getOpcode()) {
+							case INVOKE:
+								InvocationExpr invoke = (InvocationExpr) c;
+								boolean isStatic = (invoke.getCallType() == Opcodes.INVOKESTATIC);
+								String owner = invoke.getOwner();
+								String name = invoke.getName();
+								String desc = invoke.getDesc();
+								
+								for (String[] loggedCall : loggedCalls)
+								if (owner.matches(loggedCall[0]) && (name + desc).matches(loggedCall[1])) {
+									logResult("Call to " + owner + "." + name + desc, invoke);
+								}
+								
+								if (isNullExpr(invoke.getInstanceExpression())) {
+									ClassNode ownerNode = app.findClassNode(invoke.getOwner());
+									if (ownerNode != null && ownerNode.getMethod(name, desc, false) != null) {
+										logResult("Possible NullPointerException on instance method invocation", invoke);
+									}
+								}
+								break;
+							case ARRAY_STORE:
+							case FIELD_STORE:
+							case ARRAY_LOAD:
+							case FIELD_LOAD:
+							case ARRAY_LEN:
+								break;
 						}
 					}
 				}
@@ -225,6 +259,29 @@ public class ExpligotMain {
 		
 //		section("Finished.");
 	}
+	
+	public static void logResult(String msg, CodeUnit context) {
+		System.out.println(msg);
+		System.out.println("    Context: " + context + " in " + context.getBlock().getGraph().getMethod());
+		System.out.print(context.getBlock().getGraph());
+		System.out.println();
+		System.out.println();
+		System.out.println();
+		System.out.println();
+		System.out.println();
+	}
+	
+	public static boolean isNullExpr(Expr e) {
+		if (e instanceof ConstantExpr)
+			return ((ConstantExpr) e).getConstant() == null;
+		return e == null;
+	}
+	
+	public static final String[] callsToLog = new String[] {
+			"java/lang/Runtime.exec*",
+			"java/lang/ProcessBuilder.*",
+			"java/net/Socket.<init>*",
+	};
 	
 	private static void run(IContext cxt, PassGroup group) {
 		group.accept(cxt, null, new ArrayList<>());
@@ -250,6 +307,19 @@ public class ExpligotMain {
 //				new PassGroup("Interprocedural Optimisations")
 				
 		};
+	}
+	
+	private static Set<MethodNode> getEntries(ApplicationClassSource app, ClassNode mainClass) {
+		Set<MethodNode> entries = new HashSet<>();
+		entries.addAll(mainClass.methods);
+		for(ClassNode cn : app.iterate()) {
+			for (MethodNode mn : cn.methods) {
+				if (cn.name.length() > 2 && !cn.name.equals("<init>")) {
+					entries.add(mn);
+				}
+			}
+		}
+		return entries;
 	}
 	
 	private static int countMethods(ApplicationClassSource source) {
