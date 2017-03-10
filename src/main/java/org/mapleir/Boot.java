@@ -384,8 +384,8 @@ public class Boot {
 		
 		IContext cxt = new MapleDB(app);
 		
-//		ClassNode cn = app.findClassNode("ab");
-//		MethodRenamerPass.getHierarchyMethodChain(cxt, cn, "c", "(Ljava/lang/Object;ZB)[B");
+//		ClassNode cn = app.findClassNode("bm");
+//		System.out.println(MethodRenamerPass.getHierarchyMethodChain(cxt, cn, "q", "()V"));
 //		System.exit(0);
 		
 		section("Expanding callgraph and generating cfgs.");
@@ -496,7 +496,7 @@ public class Boot {
 		/* searches only app classes. */
 		for(ClassNode cn : source.iterate())  {
 			for(MethodNode m : cn.methods) {
-				if(m.name.length() > 2 && !m.name.equals("<init>")) {
+				if((m.name.length() > 2 && !m.name.equals("<init>")) || m.instructions.size() == 0) {
 					set.add(m);
 				}
 			}
