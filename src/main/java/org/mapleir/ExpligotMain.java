@@ -20,6 +20,7 @@ import org.mapleir.stdlib.app.LibraryClassSource;
 import org.mapleir.stdlib.call.CallTracer;
 import org.mapleir.stdlib.deob.IPass;
 import org.mapleir.stdlib.deob.PassGroup;
+import org.mapleir.stdlib.klass.ClassTree;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.commons.JSRInlinerAdapter;
 import org.objectweb.asm.tree.ClassNode;
@@ -146,6 +147,7 @@ public class ExpligotMain {
 		InstalledRuntimeClassSource jre = new InstalledRuntimeClassSource(app);
 		app.addLibraries(jre);
 		ClassNode jreClass = jre.findClass("java/lang/Class").node;
+		ClassNode jreThread = jre.findClass("java/lang/Thread").node;
 		
 		for (int i = 1; i < args.length; i++) {
 			File libFile = new File(args[i]);
@@ -155,6 +157,7 @@ public class ExpligotMain {
 			app.addLibraries(lib);
 		}
 		app.rebuildTable();
+		ClassTree classTree = app.getStructures();
 		
 		IContext cxt = new MapleDB(app);
 		CallTracer tracer = new IRCallTracer(cxt) {
@@ -234,18 +237,37 @@ public class ExpligotMain {
 									logResult("Call to " + owner + "." + name + desc, invoke);
 								}
 								
-								if (isNullExpr(invoke.getInstanceExpression())) {
-									ClassNode ownerNode = app.findClassNode(invoke.getOwner());
-									if (ownerNode != null && ownerNode.getMethod(name, desc, false) != null) {
+								ClassNode ownerNode = app.findClassNode(invoke.getOwner());
+								if (ownerNode != null) {
+									if (classTree.getAllParents(ownerNode).contains(jreThread) && name.equals("start")) {
+										logResult("Thread object " + owner + " is used", invoke);
+									}
+									
+									if (isNullExpr(invoke.getInstanceExpression()) && ownerNode.getMethod(name, desc, false) != null) {
 										logResult("Possible NullPointerException on instance method invocation", invoke);
 									}
 								}
 								break;
 							case ARRAY_STORE:
-							case FIELD_STORE:
+								for (int i = 0; i < c.children.length; i++) {
+									if (i == 2)
+										continue;
+									Expr var = c.children[i];
+									if (var instanceof ConstantExpr && ((ConstantExpr) var).getConstant() == null) {
+										logResult("Possible NullPointerException on array write", c);
+										break;
+									}
+								}
+								break;
 							case ARRAY_LOAD:
 							case FIELD_LOAD:
 							case ARRAY_LEN:
+								for (Expr var : c.enumerateOnlyChildren()) {
+									if (var instanceof ConstantExpr && ((ConstantExpr) var).getConstant() == null) {
+										logResult("Possible NullPointerException on array/field access", c);
+										break;
+									}
+								}
 								break;
 						}
 					}
@@ -261,12 +283,6 @@ public class ExpligotMain {
 	public static void logResult(String msg, CodeUnit context) {
 		System.out.println(msg);
 		System.out.println("    Context: " + context + " in " + context.getBlock().getGraph().getMethod());
-		System.out.print(context.getBlock().getGraph());
-		System.out.println();
-		System.out.println();
-		System.out.println();
-		System.out.println();
-		System.out.println();
 	}
 	
 	public static boolean isNullExpr(Expr e) {
