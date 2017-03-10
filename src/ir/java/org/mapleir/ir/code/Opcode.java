@@ -109,6 +109,8 @@ public interface Opcode {
 	int CATCH          = 0x705;
 	int THROW          = 0x706;
 	int MONITOR        = 0x707;
+	
+	int NOP            = 0x800;
 
 	int CLASS_PHI      = 0x900;
 	int PHI            = 0x901;

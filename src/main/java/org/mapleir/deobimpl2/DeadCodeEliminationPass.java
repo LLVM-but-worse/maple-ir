@@ -1,7 +1,6 @@
 package org.mapleir.deobimpl2;
 
 import org.mapleir.deobimpl2.cxt.IContext;
-import org.mapleir.stdlib.collections.graph.algorithms.SimpleDfs;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.cfg.builder.ssaopt.ConstraintUtil;
@@ -18,6 +17,7 @@ import org.mapleir.ir.code.stmt.copy.AbstractCopyStmt;
 import org.mapleir.ir.code.stmt.copy.CopyPhiStmt;
 import org.mapleir.ir.locals.Local;
 import org.mapleir.ir.locals.LocalsPool;
+import org.mapleir.stdlib.collections.graph.algorithms.SimpleDfs;
 import org.mapleir.stdlib.deob.IPass;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
@@ -156,8 +156,10 @@ public class DeadCodeEliminationPass implements IPass {
 								deadLocals++;
 								c = true;
 							}
+						} else if (stmt.getOpcode() == Opcode.NOP) {
+							it.remove();
+							c = true;
 						}
-
 					}
 				}
 			}
@@ -182,9 +184,9 @@ public class DeadCodeEliminationPass implements IPass {
 			}
 		}
 
-//		System.out.printf("  removed %d dead blocks.%n", i);
-//		System.out.printf("  converted %d immediate jumps.%n", j);
-//		System.out.printf("  eliminated %d dead locals.%n", k);
+//		System.out.printf("  removed %d dead blocks.%n", deadBlocks);
+//		System.out.printf("  converted %d immediate jumps.%n", immediateJumps);
+//		System.out.printf("  eliminated %d dead locals.%n", deadLocals);
 		
 		return deadBlocks + immediateJumps;
 	}
