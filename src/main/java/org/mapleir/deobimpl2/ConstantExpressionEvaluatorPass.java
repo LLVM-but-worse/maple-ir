@@ -1,5 +1,6 @@
 package org.mapleir.deobimpl2;
 
+import org.mapleir.deobimpl2.cxt.IContext;
 import org.mapleir.deobimpl2.util.IPConstAnalysis;
 import org.mapleir.deobimpl2.util.IPConstAnalysis.ChildVisitor;
 import org.mapleir.ir.cfg.BasicBlock;
@@ -23,12 +24,12 @@ import org.mapleir.ir.code.expr.NegationExpr;
 import org.mapleir.ir.code.expr.VarExpr;
 import org.mapleir.ir.code.stmt.ConditionalJumpStmt;
 import org.mapleir.ir.code.stmt.ConditionalJumpStmt.ComparisonType;
+import org.mapleir.ir.code.stmt.NopStmt;
 import org.mapleir.ir.code.stmt.UnconditionalJumpStmt;
 import org.mapleir.ir.code.stmt.copy.AbstractCopyStmt;
 import org.mapleir.ir.locals.Local;
 import org.mapleir.ir.locals.LocalsPool;
 import org.mapleir.ir.locals.VersionedLocal;
-import org.mapleir.deobimpl2.cxt.IContext;
 import org.mapleir.stdlib.deob.IPass;
 import org.mapleir.stdlib.util.TypeUtils;
 import org.objectweb.asm.ClassWriter;
@@ -324,26 +325,26 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 	
 	private void eliminateBranch(ControlFlowGraph cfg, BasicBlock b, ConditionalJumpStmt cond, int insnIndex, boolean val) {
 		LocalsPool pool = cfg.getLocals();
-		
+
+		for(FlowEdge<BasicBlock> fe : new HashSet<>(cfg.getEdges(b))) {
+			if(fe.getType() == FlowEdges.COND) {
+				if(fe.dst != cond.getTrueSuccessor()) {
+					throw new IllegalStateException(fe + ", " + cond);
+				}
+				
+				cfg.removeEdge(b, fe);
+				DeadCodeEliminationPass.safeKill(pool, fe);
+			}
+		}
+		killStmt(pool, cond);
 		if(val) {
 			// always true, jump to true successor
 			for(FlowEdge<BasicBlock> fe : new HashSet<>(cfg.getEdges(b))) {
-				if(fe.getType() == FlowEdges.COND) {
-					if(fe.dst != cond.getTrueSuccessor()) {
-						throw new IllegalStateException(fe + ", " + cond);
-					}
-					
-					cfg.removeEdge(b, fe);
-					DeadCodeEliminationPass.safeKill(pool, fe);
-				} else if(fe.getType() == FlowEdges.IMMEDIATE) {
+				if(fe.getType() == FlowEdges.IMMEDIATE) {
 					DeadCodeEliminationPass.safeKill(pool, fe);
 					cfg.removeEdge(b, fe);
-				} else if(fe.getType() != FlowEdges.TRYCATCH) {
-					throw new IllegalStateException(fe.toString());
 				}
 			}
-			killStmt(pool, cond);
-
 			UnconditionalJumpStmt newJump = new UnconditionalJumpStmt(cond.getTrueSuccessor());
 			b.set(insnIndex, newJump);
 			UnconditionalJumpEdge<BasicBlock> uje = new UnconditionalJumpEdge<>(b, cond.getTrueSuccessor());
@@ -351,22 +352,7 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 		} else {
 			// always false, keep immediate (fallthrough) and
 			// remove the conditional branch.
-
-//			for (FlowEdge<BasicBlock> fe : new HashSet<>(cfg.getEdges(b))) {
-//				if (fe.getType() == FlowEdges.COND) {
-//					if (fe.dst != cond.getTrueSuccessor()) {
-//						throw new IllegalStateException(fe + ", " + cond);
-//					}
-//
-//					cfg.removeEdge(b, fe);
-//					DeadCodeEliminationPass.safeKill(fe);
-//				} else if (fe.getType() == FlowEdges.IMMEDIATE) {
-//				} else if (fe.getType() != FlowEdges.TRYCATCH) {
-//					throw new IllegalStateException(fe.toString());
-//				}
-//
-//				b.remove(cond);
-//			}
+			b.set(insnIndex, new NopStmt());
 		}
 	}
 	
