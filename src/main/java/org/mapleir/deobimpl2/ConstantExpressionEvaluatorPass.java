@@ -194,7 +194,7 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 		for(Expr e : to.enumerateWithSelf()) {
 			if (e.getOpcode() == Opcode.LOCAL_LOAD) {
 				VarExpr var = (VarExpr) e;
-				pool.uses.get(var.getLocal()).add(var);
+				pool.uses.get((VersionedLocal) var.getLocal()).add(var);
 			}
 		}
 	}
@@ -203,12 +203,11 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 		Expr l = cond.getLeft();
 		Expr r = cond.getRight();
 		
-		if(l instanceof ConstantExpr && r instanceof ConstantExpr) {
-			if (!isPrimitive(l.getType()) && !isPrimitive(r.getType())) {
+		if (!isPrimitive(l.getType()) || !isPrimitive(r.getType())) {
+			if(l instanceof ConstantExpr && r instanceof ConstantExpr && !isPrimitive(l.getType()) && !isPrimitive(r.getType())) {
 				return attemptNullarityBranchElimination(cfg, cond.getBlock(), cond, i, (ConstantExpr) l, (ConstantExpr) r);
-			} else{
-				return false;
 			}
+			return false;
 		}
 		
 		LocalValueResolver resolver;
