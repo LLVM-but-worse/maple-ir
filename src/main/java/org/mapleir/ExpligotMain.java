@@ -18,6 +18,7 @@ import org.mapleir.stdlib.app.ApplicationClassSource;
 import org.mapleir.stdlib.app.InstalledRuntimeClassSource;
 import org.mapleir.stdlib.app.LibraryClassSource;
 import org.mapleir.stdlib.call.CallTracer;
+import org.mapleir.stdlib.collections.NullPermeableHashMap;
 import org.mapleir.stdlib.deob.IPass;
 import org.mapleir.stdlib.deob.PassGroup;
 import org.mapleir.stdlib.klass.ClassTree;
@@ -42,12 +43,7 @@ import java.util.Scanner;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static org.mapleir.ir.code.Opcode.ARRAY_LEN;
-import static org.mapleir.ir.code.Opcode.ARRAY_LOAD;
-import static org.mapleir.ir.code.Opcode.ARRAY_STORE;
-import static org.mapleir.ir.code.Opcode.FIELD_LOAD;
-import static org.mapleir.ir.code.Opcode.FIELD_STORE;
-import static org.mapleir.ir.code.Opcode.INVOKE;
+import static org.mapleir.ir.code.Opcode.*;
 
 public class ExpligotMain {
 	public static String sha1(File file) throws Exception  {
@@ -133,8 +129,8 @@ public class ExpligotMain {
 				JSRInlinerAdapter adapter = new JSRInlinerAdapter(nodeWithoutJsr, m.access, m.name, m.desc, m.signature, m.exceptions.toArray(new String[0]));
 				m.accept(adapter);
 				newMethods.add(nodeWithoutJsr);
-				if (adapter.dirty) {
-					System.out.println("WARNING: jsr detected; highly likely jar is obfuscated");
+				if (!abort.get() && adapter.dirty) {
+					System.out.println("WARNING: jsr detected; almost certainly the jar is obfuscated");
 					abort.set(true);
 				}
 			}
@@ -218,12 +214,16 @@ public class ExpligotMain {
 			loggedCalls[i] = logTarget;
 		}
 		
+		final List<InvocationExpr> loggedInvokes = new ArrayList<>();
+		final List<CodeUnit> npeCandidates = new ArrayList<>();
+		final NullPermeableHashMap<ClassNode, Set<InvocationExpr>> threadObjects = new NullPermeableHashMap<>(HashSet::new);
+		
 		for(Entry<MethodNode, ControlFlowGraph> e : cxt.getCFGS().entrySet()) {
 			MethodNode mn = e.getKey();
 			ControlFlowGraph cfg = e.getValue();
 			for (BasicBlock b : cfg.vertices()) {
 				for (Stmt stmt : b) {
-					for(Expr c : stmt.enumerateOnlyChildren()) {
+					for(CodeUnit c : stmt.enumerateWithSelf()) {
 						switch(c.getOpcode()) {
 							case INVOKE:
 								InvocationExpr invoke = (InvocationExpr) c;
@@ -234,18 +234,18 @@ public class ExpligotMain {
 								
 								for (String[] loggedCall : loggedCalls)
 								if (owner.matches(loggedCall[0]) && (name + desc).matches(loggedCall[1])) {
-									logResult("Call to " + owner + "." + name + desc, invoke);
+									loggedInvokes.add(invoke);
 								}
 								
 								ClassNode ownerNode = app.findClassNode(invoke.getOwner());
 								if (ownerNode != null) {
 									if (classTree.getAllParents(ownerNode).contains(jreThread) && name.equals("start")) {
-										logResult("Thread object " + owner + " is used", invoke);
+										threadObjects.getNonNull(ownerNode).add(invoke);
 									}
+								}
 									
-									if (isNullExpr(invoke.getInstanceExpression()) && ownerNode.getMethod(name, desc, false) != null) {
-										logResult("Possible NullPointerException on instance method invocation", invoke);
-									}
+								if (isNullExpr(invoke.getInstanceExpression()) && !isStatic) {
+									npeCandidates.add(invoke);
 								}
 								break;
 							case ARRAY_STORE:
@@ -254,7 +254,7 @@ public class ExpligotMain {
 										continue;
 									Expr var = c.children[i];
 									if (var instanceof ConstantExpr && ((ConstantExpr) var).getConstant() == null) {
-										logResult("Possible NullPointerException on array write", c);
+										npeCandidates.add(c);
 										break;
 									}
 								}
@@ -264,7 +264,7 @@ public class ExpligotMain {
 							case ARRAY_LEN:
 								for (Expr var : c.enumerateOnlyChildren()) {
 									if (var instanceof ConstantExpr && ((ConstantExpr) var).getConstant() == null) {
-										logResult("Possible NullPointerException on array/field access", c);
+										npeCandidates.add(c);
 										break;
 									}
 								}
@@ -275,14 +275,44 @@ public class ExpligotMain {
 			}
 		}
 		
+		System.out.println("Potentially vulnerable function calls:");
+		for (InvocationExpr invoke : loggedInvokes) {
+			logResult(invoke.getOwner() + "." + invoke.getName() + invoke.getDesc(), invoke);
+		}
+		System.out.println();
+		
+		System.out.println("Possible bugs:");
+		for (CodeUnit c : npeCandidates) {
+			switch(c.getOpcode()) {
+				case INVOKE:
+					logResult("Possible NullPointerException on instance method invocation", c);
+					break;
+				case ARRAY_STORE:
+					logResult("Possible NullPointerException on array write", c);
+					break;
+				case ARRAY_LOAD:
+				case ARRAY_LEN:
+					logResult("Possible NullPointerException on array access", c);
+					break;
+			}
+		}
+		System.out.println();
+		
+		System.out.println("Threading:");
+		for (Entry<ClassNode, Set<InvocationExpr>> e : threadObjects.entrySet()) {
+			logResult(e.getKey() + " is used by:", e.getValue().toArray(new CodeUnit[e.getValue().size()]));
+		}
+		System.out.println();
+		
 		System.out.println("\n---");
 		
 //		section("Finished.");
 	}
 	
-	public static void logResult(String msg, CodeUnit context) {
-		System.out.println(msg);
-		System.out.println("    Context: " + context + " in " + context.getBlock().getGraph().getMethod());
+	public static void logResult(String msg, CodeUnit... contexts) {
+		System.out.println(" - " + msg);
+		for (CodeUnit context : contexts)
+			System.out.println("   Context: " + context + " in " + context.getBlock().getGraph().getMethod());
 	}
 	
 	public static boolean isNullExpr(Expr e) {
