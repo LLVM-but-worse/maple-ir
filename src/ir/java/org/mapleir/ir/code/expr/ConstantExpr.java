@@ -102,7 +102,7 @@ public class ConstantExpr extends Expr {
 	@Override
 	public void toString(TabbedStringWriter printer) {
 		if (cst == null) {
-			printer.print("null");
+			printer.print("nullconst");
 		} else if (cst instanceof Integer || cst instanceof Byte || cst instanceof Short) {
 			printer.print(cst + "");
 		} else if (cst instanceof Long) {
