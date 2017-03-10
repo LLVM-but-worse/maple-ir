@@ -48,9 +48,9 @@ public class DeadCodeEliminationPass implements IPass {
 		}
 	}
 
-	int i = 0;
-	int j = 0;
-	int k = 0;
+	int deadBlocks = 0;
+	int immediateJumps = 0;
+	int deadLocals = 0;
 	
 	public void process(ControlFlowGraph cfg) {
 		LocalsPool lp = cfg.getLocals();
@@ -89,7 +89,7 @@ public class DeadCodeEliminationPass implements IPass {
 					}
 					cfg.removeVertex(b);
 					
-					i++;
+					deadBlocks++;
 					c = true;
 				} else {
 //					System.out.println("proc2: " + b);
@@ -117,7 +117,7 @@ public class DeadCodeEliminationPass implements IPass {
 								throw new IllegalStateException(b + " : " + stmt);
 							}
 							
-							j++;
+							immediateJumps++;
 							c = true;
 						}
 					}
@@ -153,7 +153,7 @@ public class DeadCodeEliminationPass implements IPass {
 								pool.defs.remove(l);
 								it.remove();
 								
-								k++;
+								deadLocals++;
 								c = true;
 							}
 						}
@@ -168,9 +168,9 @@ public class DeadCodeEliminationPass implements IPass {
 
 	@Override
 	public int accept(IContext cxt, IPass prev, List<IPass> completed) {
-		i = 0;
-		j = 0;
-		k = 0;
+		deadBlocks = 0;
+		immediateJumps = 0;
+		deadLocals = 0;
 		
 		for (ClassNode cn : cxt.getApplication().iterate()) {
 			for (MethodNode m : cn.methods) {
@@ -186,6 +186,6 @@ public class DeadCodeEliminationPass implements IPass {
 //		System.out.printf("  converted %d immediate jumps.%n", j);
 //		System.out.printf("  eliminated %d dead locals.%n", k);
 		
-		return i + j;
+		return deadBlocks + immediateJumps;
 	}
 }
