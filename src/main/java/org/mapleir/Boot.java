@@ -128,7 +128,7 @@ public class Boot {
 //					.add(new ConstantParameterPass())
 				new ConstantExpressionReorderPass(),
 //				new FieldRSADecryptionPass(),
-				new ConstantParameterPass(),
+//				new ConstantParameterPass(),
 				new ConstantExpressionEvaluatorPass(),
 				new DeadCodeEliminationPass()
 //				new PassGroup("Interprocedural Optimisations")

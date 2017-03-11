@@ -76,9 +76,9 @@ public class ControlFlowGraphDumper {
 			BasicBlock endBlock = range.get(range.size() - 1);
 			BasicBlock im = endBlock.getImmediate();
 			if (im == null) {
-				BasicBlock nextBlock = cfg.getBlock(BasicBlock.createBlockName(BasicBlock.numeric(endBlock.getId()) + 1));
-				if (nextBlock != null) {
-					end = nextBlock.getLabel();
+				int endIndex = blocks.indexOf(endBlock);
+				if (endIndex + 1 < blocks.size()) {
+					end = blocks.get(blocks.indexOf(endBlock) + 1).getLabel();
 				} else {
 					LabelNode label = new LabelNode();
 					m.visitLabel(label.getLabel());
