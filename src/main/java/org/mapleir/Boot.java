@@ -16,6 +16,7 @@ import org.mapleir.deobimpl2.ConstantExpressionEvaluatorPass;
 import org.mapleir.deobimpl2.ConstantExpressionReorderPass;
 import org.mapleir.deobimpl2.ConstantParameterPass;
 import org.mapleir.deobimpl2.DeadCodeEliminationPass;
+import org.mapleir.deobimpl2.FieldRSADecryptionPass;
 import org.mapleir.deobimpl2.MethodRenamerPass;
 import org.mapleir.deobimpl2.cxt.IContext;
 import org.mapleir.deobimpl2.cxt.MapleDB;
@@ -129,7 +130,7 @@ public class Boot {
 //				new PassGroup("Interprocedural Optimisations")
 //					.add(new ConstantParameterPass())
 				new ConstantExpressionReorderPass(),
-//				new FieldRSADecryptionPass(),
+				new FieldRSADecryptionPass(),
 				new ConstantParameterPass(),
 				new ConstantExpressionEvaluatorPass(),
 				new DeadCodeEliminationPass()

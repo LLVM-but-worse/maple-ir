@@ -155,8 +155,7 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 							if(c != null && k != null) {
 								ConstantExpr cc = (ConstantExpr) c;
 								ConstantExpr ck = (ConstantExpr) k;
-								
-								Bridge bridge = getArithmeticBridge(c.getType(), k.getType(), c.getType(), Operator.MUL);
+								Bridge bridge = getArithmeticBridge(c.getType(), k.getType(), c.getType().getSort() > k.getType().getSort()? c.getType() : k.getType(), Operator.MUL);
 
 								/*System.out.println("eval: " + bridge.method + " " + cc.getConstant().getClass() + " " + ck.getConstant().getClass());
 								System.out.println("   actual: " + cc.getType() + ", " +  ck.getType());
