@@ -1,5 +1,10 @@
 package org.mapleir.deobimpl2;
 
+import java.lang.reflect.Modifier;
+import java.util.*;
+import java.util.Map.Entry;
+
+import org.mapleir.deobimpl2.cxt.IContext;
 import org.mapleir.deobimpl2.util.RenamingUtil;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
@@ -7,25 +12,12 @@ import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.code.Opcode;
 import org.mapleir.ir.code.Stmt;
 import org.mapleir.ir.code.expr.InvocationExpr;
-import org.mapleir.deobimpl2.cxt.IContext;
 import org.mapleir.stdlib.app.ApplicationClassSource;
-import org.mapleir.stdlib.collections.graph.algorithms.SimpleDfs;
 import org.mapleir.stdlib.deob.IPass;
 import org.mapleir.stdlib.klass.ClassTree;
 import org.mapleir.stdlib.klass.InvocationResolver;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
-
-import java.lang.reflect.Modifier;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Queue;
-import java.util.Set;
 
 public class MethodRenamerPass implements IPass {
 
@@ -63,7 +55,7 @@ public class MethodRenamerPass implements IPass {
 					if(!m.name.equals("<init>")) {
 						// Set<ClassNode> classes = source.getStructures().dfsTree(m.owner, true, true, true);
 						// Set<MethodNode> methods = getVirtualMethods(cxt, classes, m.name, m.desc);
-						Set<MethodNode> methods = getHierarchyMethodChain(cxt, m.owner, m.name, m.desc);
+						Set<MethodNode> methods = getHierarchyMethodChain(cxt, m.owner, m.name, m.desc, true);
 						if(canRename(cxt, methods)) {
 							String newName = RenamingUtil.createName(i++);
 							
@@ -156,7 +148,7 @@ public class MethodRenamerPass implements IPass {
 //									 Set<MethodNode> sites = resolver.resolveVirtualCalls(invoke.getOwner(), invoke.getName(), invoke.getDesc());
 									// Set<ClassNode> classes = source.getStructures().dfsTree(cn, true, true, true);
 									// Set<MethodNode> sites = getVirtualMethods(cxt, classes, invoke.getName(), invoke.getDesc());
-									Set<MethodNode> sites = getHierarchyMethodChain(cxt, source.findClassNode(invoke.getOwner()), invoke.getName(), invoke.getDesc());
+									Set<MethodNode> sites = getHierarchyMethodChain(cxt, source.findClassNode(invoke.getOwner()), invoke.getName(), invoke.getDesc(), true);
 									if(sites.size() > 0) {
 										/* all of the sites must be linked by the same name,
 										 * so we can use any to find the new name. */
@@ -203,9 +195,8 @@ public class MethodRenamerPass implements IPass {
 		 * them using the old names during the invocation 
 		 * analysis above. */
 		for(Entry<MethodNode, String> e : remapped.entrySet()) {
-			System.out.println(e.getKey());
+			// System.out.printf("%s -> %s%n", e.getKey(), e.getValue());
 			e.getKey().name = e.getValue();
-			System.out.println("  post: " + e.getKey());
 		}
 	}
 	
@@ -243,46 +234,44 @@ public class MethodRenamerPass implements IPass {
 		return findM;
 	}
 	
-	public static Set<MethodNode> getHierarchyMethodChain(IContext cxt, ClassNode cn, String name, String desc) {
+	public static Set<MethodNode> getHierarchyMethodChain(IContext cxt, ClassNode cn, String name, String desc, boolean verify) {
 		ApplicationClassSource app = cxt.getApplication();
 		ClassTree structures = app.getStructures();
 		
-		// TODO: Use existing SimpleDFS code
-		check: {
-			Collection<ClassNode> toSearch = structures.getAllChildren(cn);
-			toSearch.addAll(structures.getAllParents(cn));
-			for (ClassNode viable : toSearch) {
-				if (findClassMethod(viable, name, desc) != null)
-					break check;
+		if (verify) {
+			check: {
+				Collection<ClassNode> toSearch = structures.getAllChildren(cn);
+				toSearch.addAll(structures.getAllParents(cn));
+				for (ClassNode viable : toSearch)
+					if (findClassMethod(viable, name, desc) != null)
+						break check;
+				System.err.println("cn: " + cn);
+				System.err.println("name: " + name);
+				System.err.println("desc: " + desc);
+				System.err.println("Searched: " + toSearch);
+				System.err.println("Children: " + structures.getAllChildren(cn));
+				System.err.println("Parents: " + structures.getAllParents(cn));
+				throw new IllegalArgumentException("You must be really dense because that method doesn't even exist.");
 			}
-			System.err.println("cn: " + cn);
-			System.err.println("name: " + name);
-			System.err.println("desc: " + desc);
-			System.err.println("Searched: " + toSearch);
-			System.err.println("Children: " + structures.getAllChildren(cn));
-			System.err.println("Parents: " + structures.getAllParents(cn));
-			throw new IllegalArgumentException("You must be really dense because that method doesn't even exist.");
 		}
-		
+
 		Set<ClassNode> visited = new HashSet<>();
 		visited.addAll(structures.getAllChildren(cn));
 		visited.add(cn);
-		// System.out.println("visited " + visited);
 		
 		Map<ClassNode, MethodNode> results = new HashMap<>();
 		Queue<ClassNode> visitHeads = new LinkedList<>();
 		for(ClassNode current : visited) {
 			MethodNode m = findClassMethod(current, name, desc);
-		    if(m != null)
+		    if(m != null) {
 				results.put(current, m);
-		    if(m != null || current == cn) {
 		        visitHeads.add(current);
 		    }
 		}
 		visited.clear();
 		visited.addAll(visitHeads);
+		visitHeads.add(cn);
 		
-//		System.out.println("visitHeads start with " + visitHeads);
 		while(!visitHeads.isEmpty()) {
 		    ClassNode current = visitHeads.remove();
 		    
@@ -290,13 +279,12 @@ public class MethodRenamerPass implements IPass {
 		    directSupers.add(current.superName);
 		    directSupers.addAll(current.interfaces);
 		    directSupers.remove(null);
-//		    System.out.println(directSupers);
+		    
 		    for(String s : directSupers) {
 				ClassNode parent = app.findClassNode(s);
 				MethodNode m = findClassMethod(parent, name, desc);
 				if(m != null) {
 					results.remove(current);
-					// System.out.println("  -" + current + "   \t" + results.keySet());
 				}
 				if (visited.add(parent)) {
 					if (m != null) {
@@ -304,19 +292,16 @@ public class MethodRenamerPass implements IPass {
 							throw new IllegalStateException();
 						}
 						results.put(parent, m);
-						// System.out.println("  +" + parent + "   \t" + results.keySet());
 					}
 					visitHeads.add(parent);
 				}
 			}
 		}
-		// System.out.println("results " + results.keySet());
 
 		Set<ClassNode> classes = new HashSet<>();
 		for (ClassNode top : results.keySet()) {
 		    classes.addAll(structures.getAllChildren(top));
 		}
-		// System.out.println("classes " + classes);
 		
 		Set<MethodNode> methods = new HashSet<>();
 		for(ClassNode c : classes) {
