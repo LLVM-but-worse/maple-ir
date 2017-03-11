@@ -384,8 +384,8 @@ public class Boot {
 		
 		IContext cxt = new MapleDB(app);
 		
-//		ClassNode cn = app.findClassNode("ab");
-//		MethodRenamerPass.getHierarchyMethodChain(cxt, cn, "c", "(Ljava/lang/Object;ZB)[B");
+//		ClassNode cn = app.findClassNode("bm");
+//		System.out.println(MethodRenamerPass.getHierarchyMethodChain(cxt, cn, "q", "()V"));
 //		System.exit(0);
 		
 		section("Expanding callgraph and generating cfgs.");
