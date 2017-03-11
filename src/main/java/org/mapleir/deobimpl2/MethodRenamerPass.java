@@ -243,7 +243,7 @@ public class MethodRenamerPass implements IPass {
 				Collection<ClassNode> toSearch = structures.getAllChildren(cn);
 				toSearch.addAll(structures.getAllParents(cn));
 				for (ClassNode viable : toSearch)
-					if (viable.getMethod(name, desc, false) != null)
+					if (findClassMethod(viable, name, desc) != null)
 						break check;
 				System.err.println("cn: " + cn);
 				System.err.println("name: " + name);
