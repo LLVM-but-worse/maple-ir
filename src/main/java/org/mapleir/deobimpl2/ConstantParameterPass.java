@@ -10,6 +10,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import org.mapleir.deobimpl2.cxt.IContext;
 import org.mapleir.deobimpl2.util.IPConstAnalysis;
 import org.mapleir.deobimpl2.util.IPConstAnalysis.ChildVisitor;
 import org.mapleir.deobimpl2.util.RenamingUtil;
@@ -26,7 +27,6 @@ import org.mapleir.ir.code.stmt.copy.AbstractCopyStmt;
 import org.mapleir.ir.code.stmt.copy.CopyVarStmt;
 import org.mapleir.ir.locals.LocalsPool;
 import org.mapleir.ir.locals.VersionedLocal;
-import org.mapleir.deobimpl2.cxt.IContext;
 import org.mapleir.stdlib.app.ApplicationClassSource;
 import org.mapleir.stdlib.deob.IPass;
 import org.mapleir.stdlib.klass.ClassTree;
@@ -235,17 +235,6 @@ public class ConstantParameterPass implements IPass, Opcode {
 				 * parameter */
 				
 				if(!specificTaint[i] && set.size() == 1) {
-					/*if(!b) {
-						System.out.printf("%s (%b)%n", m, Modifier.isStatic(m.access));
-						System.out.printf("   calls:%n");
-						List<List<Expr>> lists = constAnalysis.getInputs(m);
-						for(int j=0; j < lists.size(); j++) {
-							System.out.printf("       @%d: %s%n", j, lists.get(j));
-						}
-						b = true;
-					}
-					System.out.printf("  inline: @%d/%d = %s%n", i, constAnalysis.getLocalIndex(m, i), set.iterator().next());*/
-					
 					inlineConstant(cfg, constAnalysis.getLocalIndex(m, i), set.iterator().next());
 				}
 			}
@@ -294,7 +283,7 @@ public class ConstantParameterPass implements IPass, Opcode {
 						if(chm.name.equals("<init>")) {
 							conflicts.addAll(resolver.resolveVirtualCalls(chm.owner.name, "<init>", desc, false));
 						} else {
-							conflicts.addAll(resolver.getVirtualChain(m.owner, m.name, desc));
+							conflicts.addAll(MethodRenamerPass.getHierarchyMethodChain(cxt, m.owner, m.name, desc, false));
 						}
 					}
 				}
@@ -352,14 +341,31 @@ public class ConstantParameterPass implements IPass, Opcode {
 			int killedBeforePass = killedTotal;
 			
 			for(Entry<MethodNode, String> en : remap.entrySet()) {
-				MethodNode m = en.getKey();
+				MethodNode key = en.getKey();
 				String newDesc = en.getValue();
 				
-				if(!visitedMethods.contains(m)) {
-					Set<MethodNode> chain = chainMap.get(m);
+				if(!visitedMethods.contains(key)) {
+					Set<MethodNode> chain = chainMap.get(key);
+					
+					/*for(MethodNode n : chain) {
+						if(visitedMethods.contains(n)) {
+							throw new IllegalStateException(String.format("Invalid transistivityr: %s in %s but not %s", n, chain, key));
+						}
+					}*/
+					
+					boolean[] dead = filteredConstantParameters.get(key);
 					
 					for(MethodNode n : chain) {
 						n.desc = newDesc;
+						
+						/* boolean[] dead = filteredConstantParameters.get(n);
+						boolean[] deadM = filteredConstantParameters.get(key);
+						
+						if(!Arrays.equals(dead, deadM)) {
+							throw new IllegalStateException(String.format("neq: %s vs %s for %s and %s", Arrays.toString(dead), Arrays.toString(deadM), n, key));
+						} */
+						
+						demoteDeadParamters(constAnalysis, cxt.getCFGS().getIR(n), n, dead);
 						
 						for(Expr call : constAnalysis.getCallsTo(n)) {
 							/* since the callgrapher finds all
@@ -370,18 +376,10 @@ public class ConstantParameterPass implements IPass, Opcode {
 								continue;
 							}
 							
-//							if(call.getOpcode() == INVOKE) {
-//								InvocationExpr invoke = (InvocationExpr) call;
-//								invoke.setDesc(newDesc);
-//							} else if(call.getOpcode() == INIT_OBJ) {
-//								InitialisedObjectExpr invoke = (InitialisedObjectExpr) call;
-//								invoke.setDesc(newDesc);
-//							} else {
-//								throw new UnsupportedOperationException(String.format("%s -> %s", call.toString(), n));
-//							}
-							
+							/* the invocationexpr method desc is changed implicitly
+							 * when the new expression is created in patchCall() */
 							visitedExprs.add(call);
-							patchCall(newDesc, call, filteredConstantParameters.get(n));
+							patchCall(newDesc, call, dead);
 							
 							killedTotal += chain.size();
 						}
@@ -400,6 +398,101 @@ public class ConstantParameterPass implements IPass, Opcode {
 		return killedTotal;
 	}
 	
+	private void inlineConstant(ControlFlowGraph cfg, int argLocalIndex, Object o) {
+		/* we don't actually demote the synthetic copy
+		 * here as we would also need to change the
+		 * method desc and we can't do that until
+		 * later so we defer it. */
+		LocalsPool pool = cfg.getLocals();
+
+		/* create the spill variable but not the
+		 * actual definition yet. */
+		VersionedLocal argLocal = pool.get(argLocalIndex, 0, false);
+		VersionedLocal spill = pool.makeLatestVersion(argLocal);
+
+		AbstractCopyStmt synthParamCopy = pool.defs.get(argLocal);
+		ConstantExpr rhsVal = new ConstantExpr(o, synthParamCopy.getType() == Type.BOOLEAN_TYPE ? Type.BYTE_TYPE : synthParamCopy.getType());
+		
+		/* we have to maintain local references in
+		 * phis as opposed to direct constant refs,
+		 * so we go through every use of the argLocal
+		 * and either replace it with the constant or
+		 * a reference to the spill local if it is in
+		 * a phi. */
+
+		Set<VarExpr> spillUses = new HashSet<>();
+		boolean requireSpill = false;
+		
+		Iterator<VarExpr> it = pool.uses.get(argLocal).iterator();
+		while(it.hasNext()) {
+			VarExpr v = it.next();
+			if(v.getParent() == null) {
+				/* the use is in a phi, we can't
+				 * remove the def. 
+				 * 
+				 * we also replace the old var
+				 * with the new spill one so we
+				 * have to add this as a use of
+				 * the new spill local. */
+				spillUses.add(v);
+				v.setLocal(spill);
+				
+				requireSpill = true;
+			} else {
+				CodeUnit par = v.getParent();
+				par.overwrite(rhsVal.copy(), par.indexOf(v));
+			}
+			
+			/* this use is no longer associated
+			 * with the old argLocal. */
+			it.remove();
+		}
+		
+		if(pool.uses.get(argLocal).size() != 0) {
+			throw new IllegalStateException(String.format("l:%s, uses:%s", argLocal, pool.uses.get(argLocal)));
+		}
+		
+		if(requireSpill) {
+			/* generate the copy for the spill (v = const) */
+			CopyVarStmt spillCopy = new CopyVarStmt(new VarExpr(spill, synthParamCopy.getVariable().getType()), rhsVal);
+			synthParamCopy.getBlock().add(spillCopy);
+			
+			/* initialise data entries for the new spill
+			 * variable. */
+			pool.defs.put(spill, spillCopy);
+			pool.uses.put(spill, spillUses);
+		}
+	}
+	
+	private void demoteDeadParamters(IPConstAnalysis constAnalysis, ControlFlowGraph cfg, MethodNode n, boolean[] dead) {
+		LocalsPool pool = cfg.getLocals();
+		BasicBlock entry = cfg.getEntries().iterator().next();
+		
+		for(int i=0; i < dead.length; i++) {
+			if(dead[i]) {
+				int localIndex = constAnalysis.getLocalIndex(n, i);
+				VersionedLocal local = pool.get(localIndex, 0, false);
+				
+				AbstractCopyStmt copy = pool.defs.get(local);
+				
+				if(copy.getBlock() != entry) {
+					System.err.printf("entry:%n%s%n", ControlFlowGraph.printBlock(entry));
+					System.err.printf("block:%n%s%n", ControlFlowGraph.printBlock(copy.getBlock()));
+					throw new IllegalStateException(String.format("See debug trace (entry vs block) in %s", n));
+				}
+				
+				copy.delete();
+				
+				if(pool.uses.get(local).size() != 0) {
+					throw new IllegalStateException(String.format("m: %s, l:%s, uses:%s", n, local, pool.uses.get(local)));
+				}
+
+				pool.defs.remove(local);
+				pool.uses.remove(local);
+			}
+		}
+	}
+
 	private void patchCall(String newDesc, Expr call, boolean[] dead) {
 		if(call.getOpcode() == Opcode.INIT_OBJ) {
 			InitialisedObjectExpr init = (InitialisedObjectExpr) call;
@@ -473,70 +566,13 @@ public class ConstantParameterPass implements IPass, Opcode {
 		return sb.toString();
 	}
 	
-	private void inlineConstant(ControlFlowGraph cfg, int argLocalIndex, Object o) {	
-		LocalsPool pool = cfg.getLocals();
-		
-		VersionedLocal argLocal = pool.get(argLocalIndex, 0, false);
-		AbstractCopyStmt argDef = pool.defs.get(argLocal);
-		
-		boolean removeDef = false;
-		
-		// FIXME:
-		ConstantExpr c = new ConstantExpr(o, argDef.getType() == Type.BOOLEAN_TYPE ? Type.BYTE_TYPE : argDef.getType());
-		
-		/* demote the def from a synthetic
-		 * copy to a normal one. */
-		argDef.getVariable().copy();
-		VarExpr dv = argDef.getVariable().copy();
-		
-		VersionedLocal spill = pool.makeLatestVersion(argLocal);
-		dv.setLocal(spill);
-		
-		CopyVarStmt copy = new CopyVarStmt(dv, c.copy());
-		BasicBlock b = argDef.getBlock();
-//		argDef.delete();
-//		pool.defs.remove(argLocal);
-		argDef = copy;
-		b.add(copy);
-		pool.defs.put(spill, copy);
-		
-		Set<VarExpr> spillUses = new HashSet<>();
-		pool.uses.put(spill, spillUses);
-		
-		/* Replace each use of the parameter variable with
-		 * the constant. */
-		Iterator<VarExpr> it = pool.uses.getNonNull(argLocal).iterator();
-		while(it.hasNext()) {
-			VarExpr v = it.next();
-			if(v.getParent() == null) {
-				/* the use is in a phi, we can't
-				 * remove the def. */
-				removeDef = false;
-				spillUses.add(v);
-				v.setLocal(spill);
-			} else {
-				CodeUnit par = v.getParent();
-				par.overwrite(c.copy(), par.indexOf(v));
-			}
-		}
-
-		/* Remove the use set of the previous local
-		 * since we've replaced it with a new 'spill'
-		 * variable. */
-		pool.uses.remove(argLocal);
-		
-		if(removeDef) {
-			argDef.delete();
-		}
-	}
-	
 	private Set<MethodNode> computeChain(IContext cxt, MethodNode m) {
 		Set<MethodNode> chain = new HashSet<>();
 		chain.add(m);
 		
 		if(!Modifier.isStatic(m.access)) {
 			if(!m.name.equals("<init>")) {
-				chain.addAll(cxt.getInvocationResolver().getVirtualChain(m.owner, m.name, m.desc));
+				chain.addAll(MethodRenamerPass.getHierarchyMethodChain(cxt, m.owner, m.name, m.desc, true));
 			}
 		}
 		
