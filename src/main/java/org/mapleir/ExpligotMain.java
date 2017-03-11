@@ -159,7 +159,7 @@ public class ExpligotMain {
 		CallTracer tracer = new IRCallTracer(cxt) {
 			@Override
 			protected void processedInvocation(MethodNode caller, MethodNode callee, Expr call) {
-				if (!abort.get() && callee.owner == jreClass && callee.name.equals("forName")) {
+				if (callee.owner == jreClass && callee.name.equals("forName")) {
 					if (!caller.owner.name.contains("facebook") && !caller.owner.name.contains("twitter")) {
 						System.out.println("WARNING: Possible reflective call obfuscation; found Class.forName in " + caller);
 //						abort.set(true);
@@ -214,7 +214,7 @@ public class ExpligotMain {
 			loggedCalls[i] = logTarget;
 		}
 		
-		final List<InvocationExpr> loggedInvokes = new ArrayList<>();
+		final NullPermeableHashMap<String, Set<InvocationExpr>> loggedInvokes = new NullPermeableHashMap<>(HashSet::new);
 		final List<CodeUnit> npeCandidates = new ArrayList<>();
 		final NullPermeableHashMap<ClassNode, Set<InvocationExpr>> threadObjects = new NullPermeableHashMap<>(HashSet::new);
 		
@@ -234,7 +234,7 @@ public class ExpligotMain {
 								
 								for (String[] loggedCall : loggedCalls)
 								if (owner.matches(loggedCall[0]) && (name + desc).matches(loggedCall[1])) {
-									loggedInvokes.add(invoke);
+									loggedInvokes.getNonNull(owner + "." + name + desc).add(invoke);
 								}
 								
 								ClassNode ownerNode = app.findClassNode(invoke.getOwner());
@@ -276,8 +276,8 @@ public class ExpligotMain {
 		}
 		
 		System.out.println("Potentially vulnerable function calls:");
-		for (InvocationExpr invoke : loggedInvokes) {
-			logResult(invoke.getOwner() + "." + invoke.getName() + invoke.getDesc(), invoke);
+		for (Entry<String, Set<InvocationExpr>> entry : loggedInvokes.entrySet()) {
+			logResult(entry.getKey(), entry.getValue().toArray(new CodeUnit[entry.getValue().size()]));
 		}
 		System.out.println();
 		
@@ -312,7 +312,7 @@ public class ExpligotMain {
 	public static void logResult(String msg, CodeUnit... contexts) {
 		System.out.println(" - " + msg);
 		for (CodeUnit context : contexts)
-			System.out.println("   Context: " + context + " in " + context.getBlock().getGraph().getMethod());
+			System.out.println("   * " + context + " in " + context.getBlock().getGraph().getMethod());
 	}
 	
 	public static boolean isNullExpr(Expr e) {
@@ -325,6 +325,10 @@ public class ExpligotMain {
 			"java/lang/Runtime.exec*",
 			"java/lang/ProcessBuilder.*",
 			"java/net/Socket.<init>*",
+			"java/lang/ClassLoader.*",
+			"java/net/URLClassLoader.*",
+			"javax/script/ScriptEngine.*",
+			"java/lang/System.load*",
 	};
 	
 	private static void run(IContext cxt, PassGroup group) {
@@ -358,7 +362,7 @@ public class ExpligotMain {
 		entries.addAll(mainClass.methods);
 		for(ClassNode cn : app.iterate()) {
 			for (MethodNode mn : cn.methods) {
-				if (cn.name.length() > 2 && !cn.name.equals("<init>")) {
+				if (cn.name.length() > 2 && !cn.name.equals("<init>") || mn.instructions.size() == 0) {
 					entries.add(mn);
 				}
 			}
