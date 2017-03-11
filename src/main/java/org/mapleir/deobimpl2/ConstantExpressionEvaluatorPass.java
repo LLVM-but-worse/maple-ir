@@ -277,7 +277,7 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 		}
 
 		// FIXME: remove check when false branch removal is supported.
-		if(val != null && val.booleanValue()) {
+		if(val != null) {
 			/*if(leftSet.size() > 1 || rightSet.size() > 1) {
 				System.out.println("Strong elim:: predict=" + val.toString());
 				System.out.println("  " + cond);
