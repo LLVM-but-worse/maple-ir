@@ -17,13 +17,12 @@ import org.mapleir.deobimpl2.ConstantExpressionReorderPass;
 import org.mapleir.deobimpl2.ConstantParameterPass;
 import org.mapleir.deobimpl2.DeadCodeEliminationPass;
 import org.mapleir.deobimpl2.MethodRenamerPass;
+import org.mapleir.deobimpl2.cxt.IContext;
 import org.mapleir.deobimpl2.cxt.MapleDB;
 import org.mapleir.ir.ControlFlowGraphDumper;
 import org.mapleir.ir.cfg.BoissinotDestructor;
 import org.mapleir.ir.cfg.ControlFlowGraph;
-import org.mapleir.ir.cfg.builder.ControlFlowGraphBuilder;
 import org.mapleir.ir.code.Expr;
-import org.mapleir.deobimpl2.cxt.IContext;
 import org.mapleir.stdlib.app.ApplicationClassSource;
 import org.mapleir.stdlib.app.InstalledRuntimeClassSource;
 import org.mapleir.stdlib.call.CallTracer;
@@ -495,7 +494,7 @@ public class Boot {
 		/* searches only app classes. */
 		for(ClassNode cn : source.iterate())  {
 			for(MethodNode m : cn.methods) {
-				if(m.name.length() > 2 && !m.name.equals("<init>")) {
+				if((m.name.length() > 2 && !m.name.equals("<init>")) || m.instructions.size() == 0) {
 					set.add(m);
 				}
 			}
