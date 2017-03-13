@@ -99,6 +99,13 @@ public class LatestValue {
 		path.remove(def);
 		path.add(use);
 		
+		if(debug) {
+			System.out.println(" path:");
+			for(Stmt s : path) {
+				System.out.println("  " + s);
+			}
+		}
+		
 		for(Stmt stmt : path) {
 			if(stmt != use) {
 				for(CodeUnit s : stmt.enumerateWithSelf()) {

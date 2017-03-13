@@ -5,7 +5,6 @@ import java.util.Map.Entry;
 
 import org.mapleir.ir.analysis.Liveness;
 import org.mapleir.ir.analysis.SSABlockLivenessAnalyser;
-import org.mapleir.stdlib.collections.graph.algorithms.SimpleDfs;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.cfg.builder.ssaopt.ConstraintUtil;
@@ -42,15 +41,16 @@ import org.mapleir.ir.locals.VersionedLocal;
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.SetCreator;
 import org.mapleir.stdlib.collections.graph.GraphUtils;
-import org.mapleir.stdlib.collections.graph.flow.ExceptionRange;
+import org.mapleir.stdlib.collections.graph.algorithms.SimpleDfs;
 import org.mapleir.stdlib.collections.graph.algorithms.TarjanDominanceComputor;
+import org.mapleir.stdlib.collections.graph.flow.ExceptionRange;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.LabelNode;
 
 public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 
-	private static final boolean OPTIMISE = true;
+	private static boolean OPTIMISE = true;
 
 	private final BasicLocal svar0;
 	private final Map<VersionedLocal, Type> types;
@@ -699,6 +699,8 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 			}
 			latest.put(ssaL, value);
 		}
+		
+		System.out.println("made val " + ssaL + " -> " + latest.get(ssaL));
 	}
 	
 	private void collectUses(Expr e) {
@@ -815,14 +817,14 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 				 * will not have a mapping. In this case
 				 * they will not have an updated target.*/
 				LatestValue value = latest.get(ssaL);
-				boolean variableVar = value.getType() == LatestValue.PARAM || value.getType() == LatestValue.PHI;
+				boolean unpredictable = value.getType() == LatestValue.PARAM || value.getType() == LatestValue.PHI;
 				
-				if(variableVar && ssaL != value.getSuggestedValue()) {
+				if(unpredictable && ssaL != value.getSuggestedValue()) {
 					VersionedLocal vl = (VersionedLocal) value.getSuggestedValue();
 					if(shouldPropagate(ssaL, vl)) {
 						newL = vl;
 					}
-				} else if(!isPhi && !variableVar) {
+				} else if(!isPhi && !unpredictable) {
 					Expr e = null;
 					
 					AbstractCopyStmt def = pool.defs.get(ssaL);
@@ -859,6 +861,17 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 						}
 					} else {
 						if(!value.hasConstraints() || (canTransferHandlers(def.getBlock(), var.getBlock()) && value.canPropagate(def, var.getRootParent(), var, false))) {
+							if(def.toString().equals("svar1_22 = lvar2_0;")) {
+								System.out.printf("d: %s%n", def);
+								System.out.printf("u: %s%n", var.getRootParent());
+								System.out.printf("l: %s%n", ssaL);
+								System.out.printf("v: %s%n", value);
+								System.out.printf("rv: %s%n", rval);
+								System.out.printf("c: %b%n", value.hasConstraints());
+								value.canPropagate(def, var.getRootParent(), var, true);
+								System.out.println();
+							}
+							
 							e = rval;
 						} else if(value.getRealValue() instanceof VersionedLocal) {
 							VersionedLocal realVal = (VersionedLocal) value.getRealValue();
@@ -1302,6 +1315,13 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 	
 	@Override
 	public void run() {
+		OPTIMISE = builder.method.toString().equals("ad.h(B)V");
+		
+		if(OPTIMISE) {
+			System.out.println("opt: " + builder.method);
+			System.out.println(builder.graph);
+		}
+//		OPTIMISE = false;
 		pool = builder.graph.getLocals();
 		
 		graphSize = builder.graph.size() + 1;
@@ -1333,5 +1353,10 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		}
 		
 		GraphUtils.disconnectHead(builder.graph, builder.head);
+
+		
+		if(builder.method.toString().equals("ad.h(B)V")) {
+			System.out.println(builder.graph);
+		}
 	}
 }
