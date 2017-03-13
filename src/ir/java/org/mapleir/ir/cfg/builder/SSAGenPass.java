@@ -658,7 +658,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		if(opcode == Opcode.LOCAL_LOAD) {
 			if(copy.isSynthetic()) {
 				/* equals itself (pure value).*/
-				LatestValue value = new LatestValue(builder.graph, LatestValue.PARAM, ssaL);
+				LatestValue value = new LatestValue(builder.graph, LatestValue.PARAM, ssaL, null /*null or ssaL*/);
 				latest.put(ssaL, value);
 			} else {
 				/* i.e. x = y, where x and y are both variables.
@@ -673,7 +673,10 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 				if(!latest.containsKey(ssaL)) {
 					if(latest.containsKey(rhsL)) {
 						LatestValue anc = latest.get(rhsL);
-						LatestValue value = new LatestValue(builder.graph, anc.getType(), rhsL, anc.getSuggestedValue());
+						// TODO: maybe advance the src local if we
+						// can validate an expr propagation to the
+						// new copy dst.
+						LatestValue value = new LatestValue(builder.graph, anc.getType(), rhsL, anc.getSuggestedValue(), anc.getSource());
 						value.importConstraints(anc);
 						latest.put(ssaL, value);
 					} else {
@@ -687,20 +690,20 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 			LatestValue value;
 			if(opcode == Opcode.CONST_LOAD) {
 				ConstantExpr ce = (ConstantExpr) e;
-				value = new LatestValue(builder.graph, LatestValue.CONST, ce);
+				value = new LatestValue(builder.graph, LatestValue.CONST, ce, null);
 			} else if((opcode & Opcode.CLASS_PHI) == Opcode.CLASS_PHI){
-				value = new LatestValue(builder.graph, LatestValue.PHI, ssaL);
+				value = new LatestValue(builder.graph, LatestValue.PHI, ssaL, null);
 			} else {
 				if(e.getOpcode() == Opcode.LOCAL_LOAD) {
 					throw new RuntimeException(copy + "    " + e);
 				}
-				value = new LatestValue(builder.graph, LatestValue.VAR, e);
+				value = new LatestValue(builder.graph, LatestValue.VAR, e, ssaL);
 				value.makeConstraints(e);
 			}
 			latest.put(ssaL, value);
 		}
 		
-		System.out.println("made val " + ssaL + " -> " + latest.get(ssaL));
+//		System.out.println("made val " + ssaL + " -> " + latest.get(ssaL));
 	}
 	
 	private void collectUses(Expr e) {
@@ -860,17 +863,20 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 							deferred.add(newL);
 						}
 					} else {
-						if(!value.hasConstraints() || (canTransferHandlers(def.getBlock(), var.getBlock()) && value.canPropagate(def, var.getRootParent(), var, false))) {
-							if(def.toString().equals("svar1_22 = lvar2_0;")) {
-								System.out.printf("d: %s%n", def);
-								System.out.printf("u: %s%n", var.getRootParent());
-								System.out.printf("l: %s%n", ssaL);
-								System.out.printf("v: %s%n", value);
-								System.out.printf("rv: %s%n", rval);
-								System.out.printf("c: %b%n", value.hasConstraints());
-								value.canPropagate(def, var.getRootParent(), var, true);
-								System.out.println();
-							}
+						AbstractCopyStmt from = def;
+						if(value.getSource() != null) {
+							from = pool.defs.get(value.getSource());
+						}
+						
+						if(!value.hasConstraints() || (canTransferHandlers(def.getBlock(), var.getBlock()) && value.canPropagate(from, var.getRootParent(), var, false))) {
+							/*System.out.printf("d: %s%n", def);
+							System.out.printf("f: %s%n", from);
+							System.out.printf("u: %s%n", var.getRootParent());
+							System.out.printf("l: %s%n", ssaL);
+							System.out.printf("v: %s%n", value);
+							System.out.printf("rv: %s%n", rval);
+							System.out.printf("c: %b%n", value.hasConstraints());
+							System.out.println();*/
 							
 							e = rval;
 						} else if(value.getRealValue() instanceof VersionedLocal) {
@@ -1315,12 +1321,12 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 	
 	@Override
 	public void run() {
-		OPTIMISE = builder.method.toString().equals("ad.h(B)V");
+//		OPTIMISE = builder.method.toString().equals("ad.h(B)V");
 		
-		if(OPTIMISE) {
-			System.out.println("opt: " + builder.method);
-			System.out.println(builder.graph);
-		}
+//		if(OPTIMISE) {
+//			System.out.println("opt: " + builder.method);
+//			System.out.println(builder.graph);
+//		}
 //		OPTIMISE = false;
 		pool = builder.graph.getLocals();
 		
@@ -1355,8 +1361,8 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		GraphUtils.disconnectHead(builder.graph, builder.head);
 
 		
-		if(builder.method.toString().equals("ad.h(B)V")) {
-			System.out.println(builder.graph);
-		}
+//		if(builder.method.toString().equals("ad.h(B)V")) {
+//			System.out.println(builder.graph);
+//		}
 	}
 }
