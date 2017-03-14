@@ -5,7 +5,6 @@ import java.util.Map.Entry;
 
 import org.mapleir.ir.analysis.Liveness;
 import org.mapleir.ir.analysis.SSABlockLivenessAnalyser;
-import org.mapleir.stdlib.collections.graph.algorithms.SimpleDfs;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.cfg.builder.ssaopt.ConstraintUtil;
@@ -25,7 +24,6 @@ import org.mapleir.ir.code.expr.ConstantExpr;
 import org.mapleir.ir.code.expr.InitialisedObjectExpr;
 import org.mapleir.ir.code.expr.InvocationExpr;
 import org.mapleir.ir.code.expr.PhiExpr;
-import org.mapleir.ir.code.expr.UninitialisedObjectExpr;
 import org.mapleir.ir.code.expr.VarExpr;
 import org.mapleir.ir.code.stmt.ConditionalJumpStmt;
 import org.mapleir.ir.code.stmt.PopStmt;
@@ -42,15 +40,16 @@ import org.mapleir.ir.locals.VersionedLocal;
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.SetCreator;
 import org.mapleir.stdlib.collections.graph.GraphUtils;
-import org.mapleir.stdlib.collections.graph.flow.ExceptionRange;
+import org.mapleir.stdlib.collections.graph.algorithms.SimpleDfs;
 import org.mapleir.stdlib.collections.graph.algorithms.TarjanDominanceComputor;
+import org.mapleir.stdlib.collections.graph.flow.ExceptionRange;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.LabelNode;
 
 public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 
-	private static final boolean OPTIMISE = true;
+	private static boolean OPTIMISE = true;
 
 	private final BasicLocal svar0;
 	private final Map<VersionedLocal, Type> types;
@@ -531,6 +530,10 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		}
 		
 		unstackDefs(b);
+		
+		if(OPTIMISE) {
+			optimisePhis(b);
+		}
 	}
 	
 	private void fixPhiArgs(BasicBlock b, BasicBlock succ) {
@@ -575,8 +578,20 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 	}
 	
 	private void searchImpl(BasicBlock b) {
-		for(Stmt stmt : b) {
+		Iterator<Stmt> it = b.iterator();
+		
+		while(it.hasNext()) {
+			Stmt stmt = it.next();
+			
 			int opcode = stmt.getOpcode();
+			
+			if(opcode == Opcode.POP) {
+				PopStmt pop = (PopStmt) stmt;
+				if(!ConstraintUtil.isUncopyable(pop.getExpression())) {
+					it.remove();
+					continue;
+				}
+			}
 			
 			if(opcode == Opcode.PHI_STORE) {
 				/* We can rename these any time as these
@@ -639,6 +654,173 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		return ssaL;
 	}
 	
+	private void optimisePhis(BasicBlock b) {
+		List<CopyPhiStmt> phis = new ArrayList<>();
+		for(Stmt stmt : b) {
+			if(stmt.getOpcode() == Opcode.PHI_STORE) {
+				phis.add((CopyPhiStmt) stmt);
+			} else {
+				break;
+			}
+		}
+		
+		if(phis.size() > 1) {
+			Set<Set<CopyPhiStmt>> ccs = findPhiClasses(phis);
+			
+			for(Set<CopyPhiStmt> cc : ccs) {
+				CopyPhiStmt pref = chooseRealPhi(cc);
+//				System.out.println("want to merge:");
+//				for(CopyPhiStmt s : cc) {
+//					System.out.println("  " + s);
+//				}
+//				System.out.println(" keeping " + pref);
+				reduceClass(cc, pref);
+			}
+		}
+	}
+	
+	private void reduceClass(Set<CopyPhiStmt> cc, CopyPhiStmt preferred) {
+		Set<CopyPhiStmt> useless = new HashSet<>(cc);
+		useless.remove(preferred);
+
+		VersionedLocal phiLocal = (VersionedLocal) preferred.getVariable().getLocal();
+
+		/* all the *dead* phi class locals */
+		Set<VersionedLocal> deadLocals = new HashSet<>();
+		
+		for (CopyPhiStmt def : useless) {
+			VersionedLocal local = (VersionedLocal) def.getVariable().getLocal();
+			deadLocals.add(local);
+			
+			for(Expr e : def.enumerateOnlyChildren()) {
+				if(e.getOpcode() == Opcode.LOCAL_LOAD) {
+					VarExpr v = (VarExpr) e;
+					VersionedLocal vl = (VersionedLocal) v.getLocal();
+					pool.uses.get(vl).remove(v);
+				}
+			}
+			
+//			System.out.println(" killing " + def);
+			
+			def.delete();
+		}
+		
+		for(VersionedLocal vl : deadLocals) {
+			Set<VarExpr> deadVExprs = pool.uses.get(vl);
+			
+			for(VarExpr v : deadVExprs) {
+				/* v.getLocal() == vl, i.e. dead phi local.
+				 * Replace each dead var with the real one. */
+				
+				v.setLocal(phiLocal);
+				pool.uses.get(phiLocal).add(v);
+			}
+			
+			/* all dead. */
+			/*pool.uses.get(vl)*/deadVExprs.clear();
+			pool.defs.remove(vl);
+		}
+	}
+	
+	private CopyPhiStmt chooseRealPhi(Set<CopyPhiStmt> cc) {
+		for (CopyPhiStmt cps : cc) {
+			if (!cps.getVariable().getLocal().isStack()) {
+				return cps;
+			}
+		}
+		return cc.iterator().next();
+	}
+	
+	private Set<Set<CopyPhiStmt>> findPhiClasses(Collection<CopyPhiStmt> phis) {
+		NullPermeableHashMap<CopyPhiStmt, Set<CopyPhiStmt>> equiv = new NullPermeableHashMap<>(new SetCreator<>());
+		
+		for(CopyPhiStmt cps : phis) {
+			if(equiv.containsKey(cps)) {
+				continue;
+			}
+			
+			PhiExpr phi = cps.getExpression();
+			otherPhiFor: for(CopyPhiStmt cps2 : phis) {
+				if(cps == cps2 || equiv.containsKey(cps2)) {
+					continue;
+				}
+				
+				PhiExpr phi2 = cps2.getExpression();
+				
+				if(!phi.getSources().equals(phi2.getSources())) {
+					continue;
+				}
+				
+				for(BasicBlock src : phi.getSources()) {
+					Expr e1 = phi.getArgument(src);
+					Expr e2 = phi2.getArgument(src);
+					
+					if(!isSameValue(e1, e2)) {
+						continue otherPhiFor;
+					}
+				}
+				
+				/* phi equiv phi2; merge. */
+				Set<CopyPhiStmt> cca = equiv.getNonNull(cps);
+				Set<CopyPhiStmt> ccb = equiv.getNonNull(cps2);
+				
+				cca.add(cps2);
+				ccb.add(cps);
+				
+				cca.addAll(ccb);
+				
+				for (CopyPhiStmt s : cca) {
+					equiv.put(s, cca);
+				}
+			}
+		}
+		
+		/* get rid of duplicates */
+		return new HashSet<>(equiv.values());
+	}
+	
+	private boolean shouldCoalesce(int opcode) {
+		switch (opcode) {
+			case Opcode.INVOKE:
+			case Opcode.DYNAMIC_INVOKE:
+			case Opcode.INIT_OBJ:
+			case Opcode.UNINIT_OBJ:
+			case Opcode.NEW_ARRAY:
+			case Opcode.CATCH:
+			case Opcode.EPHI:
+			case Opcode.PHI:
+			case Opcode.FIELD_LOAD:
+				return false;
+		};
+		return true;
+	}
+	
+	private Expr getValue(Expr e) {
+		if(e.getOpcode() == Opcode.LOCAL_LOAD) {
+			VarExpr v = (VarExpr) e;
+			
+			AbstractCopyStmt def = pool.defs.get(v.getLocal());
+			Expr val = def.getExpression();
+			
+			if(!def.isSynthetic() && def.getOpcode() != Opcode.PHI_STORE) {
+				return getValue(val);
+			}
+		}
+		
+		return e;
+	}
+	
+	private boolean isSameValue(Expr e1, Expr e2) {
+		Expr val1 = getValue(e1);
+		Expr val2 = getValue(e2);
+		
+		if(!shouldCoalesce(val1.getOpcode()) || !shouldCoalesce(val2.getOpcode())) {
+			return false;
+		}
+		
+		return val1.equivalent(val2);
+	}
+	
 	private void makeValue(AbstractCopyStmt copy, VersionedLocal ssaL) {
 		/* Attempts to find the 'value' of a local.
 		 * The value can be the following types:
@@ -656,7 +838,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		if(opcode == Opcode.LOCAL_LOAD) {
 			if(copy.isSynthetic()) {
 				/* equals itself (pure value).*/
-				LatestValue value = new LatestValue(builder.graph, LatestValue.PARAM, ssaL);
+				LatestValue value = new LatestValue(builder.graph, LatestValue.PARAM, ssaL, null /*null or ssaL*/);
 				latest.put(ssaL, value);
 			} else {
 				/* i.e. x = y, where x and y are both variables.
@@ -671,7 +853,10 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 				if(!latest.containsKey(ssaL)) {
 					if(latest.containsKey(rhsL)) {
 						LatestValue anc = latest.get(rhsL);
-						LatestValue value = new LatestValue(builder.graph, anc.getType(), rhsL, anc.getSuggestedValue());
+						// TODO: maybe advance the src local if we
+						// can validate an expr propagation to the
+						// new copy dst.
+						LatestValue value = new LatestValue(builder.graph, anc.getType(), rhsL, anc.getSuggestedValue(), anc.getSource());
 						value.importConstraints(anc);
 						latest.put(ssaL, value);
 					} else {
@@ -685,18 +870,20 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 			LatestValue value;
 			if(opcode == Opcode.CONST_LOAD) {
 				ConstantExpr ce = (ConstantExpr) e;
-				value = new LatestValue(builder.graph, LatestValue.CONST, ce);
+				value = new LatestValue(builder.graph, LatestValue.CONST, ce, null);
 			} else if((opcode & Opcode.CLASS_PHI) == Opcode.CLASS_PHI){
-				value = new LatestValue(builder.graph, LatestValue.PHI, ssaL);
+				value = new LatestValue(builder.graph, LatestValue.PHI, ssaL, null);
 			} else {
 				if(e.getOpcode() == Opcode.LOCAL_LOAD) {
 					throw new RuntimeException(copy + "    " + e);
 				}
-				value = new LatestValue(builder.graph, LatestValue.VAR, e);
+				value = new LatestValue(builder.graph, LatestValue.VAR, e, ssaL);
 				value.makeConstraints(e);
 			}
 			latest.put(ssaL, value);
 		}
+		
+//		System.out.println("made val " + ssaL + " -> " + latest.get(ssaL));
 	}
 	
 	private void collectUses(Expr e) {
@@ -734,7 +921,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		
 		cca.addAll(ccb);
 		
-		for (VersionedLocal l : ccb) {
+		for (VersionedLocal l : cca) {
 			shadowed.put(l, cca);
 		}
 	}
@@ -813,14 +1000,14 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 				 * will not have a mapping. In this case
 				 * they will not have an updated target.*/
 				LatestValue value = latest.get(ssaL);
-				boolean variableVar = value.getType() == LatestValue.PARAM || value.getType() == LatestValue.PHI;
+				boolean unpredictable = value.getType() == LatestValue.PARAM || value.getType() == LatestValue.PHI;
 				
-				if(variableVar && ssaL != value.getSuggestedValue()) {
+				if(unpredictable && ssaL != value.getSuggestedValue()) {
 					VersionedLocal vl = (VersionedLocal) value.getSuggestedValue();
 					if(shouldPropagate(ssaL, vl)) {
 						newL = vl;
 					}
-				} else if(!isPhi && !variableVar) {
+				} else if(!isPhi && !unpredictable) {
 					Expr e = null;
 					
 					AbstractCopyStmt def = pool.defs.get(ssaL);
@@ -842,22 +1029,28 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 						 * in the second case, we can
 						 * propagate the source var (x)
 						 * in place of the target (y). */
-						if(value.getRealValue() instanceof VersionedLocal) {
-							VersionedLocal realVal = (VersionedLocal) value.getRealValue();
-							if(shouldPropagate(ssaL, realVal)) {
-								newL = realVal;
-							} else {
-								merge(ssaL, realVal);
-							}
+						newL = tryDefer(value, ssaL);
+					} else {
+						AbstractCopyStmt from = def;
+						if(value.getSource() != null) {
+							from = pool.defs.get(value.getSource());
 						}
 						
-						/* no change. */
-						if(newL == ssaL) {
-							deferred.add(newL);
-						}
-					} else {
-						if(!value.hasConstraints() || (canTransferHandlers(def.getBlock(), var.getBlock()) && value.canPropagate(def, var.getRootParent(), var, false))) {
-							e = rval;
+						if(!value.hasConstraints() || (canTransferHandlers(def.getBlock(), var.getBlock()) && value.canPropagate(from, var.getRootParent(), var, false))) {
+							/*System.out.printf("d: %s%n", def);
+							System.out.printf("f: %s%n", from);
+							System.out.printf("u: %s%n", var.getRootParent());
+							System.out.printf("l: %s%n", ssaL);
+							System.out.printf("v: %s%n", value);
+							System.out.printf("rv: %s%n", rval);
+							System.out.printf("c: %b%n", value.hasConstraints());
+							System.out.println();*/
+							
+							if(shouldCopy(rval)) {
+								e = rval;
+							} else {
+								newL = tryDefer(value, ssaL);
+							}
 						} else if(value.getRealValue() instanceof VersionedLocal) {
 							VersionedLocal realVal = (VersionedLocal) value.getRealValue();
 							if(shouldPropagate(ssaL, realVal)) {
@@ -931,6 +1124,35 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		}
 	}
 	
+	private VersionedLocal tryDefer(LatestValue value, VersionedLocal ssaL) {
+		VersionedLocal newL = ssaL;
+		
+		if(value.getRealValue() instanceof VersionedLocal) {
+			VersionedLocal realVal = (VersionedLocal) value.getRealValue();
+			if(shouldPropagate(ssaL, realVal)) {
+				newL = realVal;
+			} else {
+				merge(ssaL, realVal);
+			}
+		}
+		
+		/* no change. */
+		if(newL == ssaL) {
+			deferred.add(newL);
+		}
+		
+		return newL;
+	}
+
+	private boolean shouldCopy(Expr rval) {
+		for(Expr e : rval.enumerateWithSelf()) {
+			if(e.getOpcode() == Opcode.ARITHMETIC) {
+				return false;
+			}
+		}
+		return true;
+	}
+
 	private VersionedLocal latest(int index, boolean isStack) {
 		LocalsPool handler = builder.graph.getLocals();
 		Local l = handler.get(index, isStack);
@@ -995,7 +1217,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 								}
 							} else if(inst.getOpcode() == Opcode.UNINIT_OBJ) {
 								// replace pop(new Klass.<init>(args)) with pop(new Klass(args))
-								UninitialisedObjectExpr obj = (UninitialisedObjectExpr) inst;
+								// UninitialisedObjectExpr obj = (UninitialisedObjectExpr) inst;
 								
 								Expr[] args = invoke.getParameterArguments();
 								// we want to reuse the exprs, so free it first.
@@ -1300,6 +1522,13 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 	
 	@Override
 	public void run() {
+//		OPTIMISE = builder.method.toString().equals("ad.h(B)V");
+		
+//		if(OPTIMISE) {
+//			System.out.println("opt: " + builder.method);
+//			System.out.println(builder.graph);
+//		}
+//		OPTIMISE = false;
 		pool = builder.graph.getLocals();
 		
 		graphSize = builder.graph.size() + 1;
@@ -1331,5 +1560,10 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		}
 		
 		GraphUtils.disconnectHead(builder.graph, builder.head);
+
+		
+//		if(builder.method.toString().equals("ad.h(B)V")) {
+//			System.out.println(builder.graph);
+//		}
 	}
 }

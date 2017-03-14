@@ -15,6 +15,7 @@ import org.mapleir.ir.code.expr.FieldLoadExpr;
 import org.mapleir.ir.code.expr.VarExpr;
 import org.mapleir.ir.code.stmt.copy.AbstractCopyStmt;
 import org.mapleir.ir.locals.Local;
+import org.mapleir.ir.locals.VersionedLocal;
 
 public class LatestValue {
 	
@@ -25,17 +26,19 @@ public class LatestValue {
 	private final int type;
 	private final Object rvalue;
 	private final Object svalue;
+	private final VersionedLocal src;
 	private final List<Constraint> constraints;
 	
-	public LatestValue(ControlFlowGraph cfg, int type, Object val) {
-		this(cfg, type, val, val);
+	public LatestValue(ControlFlowGraph cfg, int type, Object val, VersionedLocal src) {
+		this(cfg, type, val, val, src);
 	}
 	
-	public LatestValue(ControlFlowGraph cfg, int type, Object rvalue, Object svalue) {
+	public LatestValue(ControlFlowGraph cfg, int type, Object rvalue, Object svalue, VersionedLocal src) {
 		this.cfg = cfg;
 		this.type = type;
 		this.rvalue = rvalue;
 		this.svalue = svalue;
+		this.src = src;
 		constraints = new ArrayList<>();
 	}
 	
@@ -53,6 +56,10 @@ public class LatestValue {
 	
 	public Object getSuggestedValue() {
 		return svalue;
+	}
+	
+	public VersionedLocal getSource() {
+		return src;
 	}
 	
 	public void importConstraints(LatestValue v) {
@@ -99,6 +106,13 @@ public class LatestValue {
 		path.remove(def);
 		path.add(use);
 		
+		if(debug) {
+			System.out.println(" path:");
+			for(Stmt s : path) {
+				System.out.println("  " + s);
+			}
+		}
+		
 		for(Stmt stmt : path) {
 			if(stmt != use) {
 				for(CodeUnit s : stmt.enumerateWithSelf()) {
@@ -140,6 +154,6 @@ public class LatestValue {
 	
 	@Override
 	public String toString() {
-		return String.format("LatestValue: {type=%s, rval=%s, sval=%s, cons=%d}", TO_STRING[type], rvalue, svalue, constraints.size());
+		return String.format("LatestValue: {type=%s, rval=%s, sval=%s, src=%s, cons=%d}", TO_STRING[type], rvalue, svalue, src, constraints.size());
 	}
 }

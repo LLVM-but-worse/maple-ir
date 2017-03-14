@@ -56,25 +56,11 @@ public class InvocationResolver {
 		return result;
 	}
 	
-	private Set<MethodNode> getVirtualMethods(Set<ClassNode> classes, String name, String desc) {
-		Set<MethodNode> set = new HashSet<>();
-		for(ClassNode cn : classes) {
-			for(MethodNode m : cn.methods) {
-				if(!Modifier.isStatic(m.access)) {
-					if(m.name.equals(name) && m.desc.equals(desc)) {
-						set.add(m);
-					}
-				}
-			}
-		}
-		return set;
-	}
-	
-	public MethodNode findClassMethod(ClassNode cn, String name, String desc) {
+	public MethodNode findClassMethod(ClassNode cn, String name, String desc, boolean _abstract) {
 		MethodNode findM = null;
 		
 		for(MethodNode m : cn.methods) {
-			if(!Modifier.isStatic(m.access) && !Modifier.isAbstract(m.access)) {
+			if(!Modifier.isStatic(m.access) && (Modifier.isAbstract(m.access) == _abstract)) {
 				if(m.name.equals(name) && m.desc.equals(desc)) {
 					
 					if(findM != null) {
@@ -129,7 +115,7 @@ public class InvocationResolver {
 			MethodNode m;
 			
 			if(name.equals("<init>")) {
-				m = findClassMethod(cn, name, desc);
+				m = findClassMethod(cn, name, desc, false);
 				
 				if(m == null) {
 					if(strict) {
@@ -143,7 +129,7 @@ public class InvocationResolver {
 			
 			// TODO: Use existing SimpleDFS code
 			for(ClassNode c : app.getStructures().getAllChildren(cn)) {
-				m = findClassMethod(c, name, desc);
+				m = findClassMethod(c, name, desc, true);
 				
 				if(m != null) {
 					set.add(m);
@@ -161,7 +147,7 @@ public class InvocationResolver {
 				
 				Set<MethodNode> lvlSites = new HashSet<>();
 				for(ClassNode c : lvl) {
-					m = findClassMethod(c, name, desc);
+					m = findClassMethod(c, name, desc, false);
 					if(m != null) {
 						lvlSites.add(m);
 					}

@@ -61,7 +61,15 @@ public class MethodRenamerPass implements IPass {
 							
 							for(MethodNode o : methods) {
 								if(remapped.containsKey(o)) {
-									throw new IllegalStateException(String.format("m: %s, o: %s, ms: %s, remap[o]: %s", m, o, methods, remapped.get(o)));
+									System.err.printf("m: %s%n", m);
+									System.err.printf("o: %s%n", o);
+									System.err.println("ms;");
+									for(MethodNode s : methods) {
+										System.err.printf("   %s%n", s);
+									}
+									System.err.printf("on: %s%n", remapped.get(o));
+									System.err.printf("nn: %s%n", newName);
+									throw new IllegalStateException();
 								}
 								remapped.put(o, newName);
 							}
