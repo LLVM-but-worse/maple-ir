@@ -965,7 +965,7 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 					unconst.put(m, arr);
 				}
 			} else {
-				for(MethodNode site : cxt.getInvocationResolver().resolveVirtualCalls(m.owner.name, m.name, m.desc, true)) {
+				for(MethodNode site : cxt.getInvocationResolver().resolveVirtualCalls(m, true)) {
 					if(!constParams.containsKey(site)) {
 						List<Set<ConstantExpr>> l = new ArrayList<>();
 						constParams.put(site, l);
@@ -1000,7 +1000,7 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 						constParams.get(callee).get(i).add((ConstantExpr) e);
 					} else {
 						/* only chain callsites *can* have this input */
-						for(MethodNode site : cxt.getInvocationResolver().resolveVirtualCalls(callee.owner.name, callee.name, callee.desc, true)) {
+						for(MethodNode site : cxt.getInvocationResolver().resolveVirtualCalls(callee, true)) {
 							constParams.get(site).get(i).add((ConstantExpr) e);
 						}
 					}
@@ -1010,7 +1010,7 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 						unconst.get(callee)[i] = true;
 					} else {
 						/* only chain callsites *can* have this input */
-						for(MethodNode site : cxt.getInvocationResolver().resolveVirtualCalls(callee.owner.name, callee.name, callee.desc, true)) {
+						for(MethodNode site : cxt.getInvocationResolver().resolveVirtualCalls(callee, true)) {
 							unconst.get(site)[i] = true;
 						}
 					}
