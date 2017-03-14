@@ -11,12 +11,10 @@ import java.util.Set;
 import java.util.jar.JarOutputStream;
 
 import org.mapleir.byteio.CompleteResolvingJarDumper;
-import org.mapleir.deobimpl2.CallgraphPruningPass;
+import org.mapleir.deobimpl2.ClassRenamerPass;
 import org.mapleir.deobimpl2.ConstantExpressionEvaluatorPass;
 import org.mapleir.deobimpl2.ConstantExpressionReorderPass;
-import org.mapleir.deobimpl2.ConstantParameterPass;
 import org.mapleir.deobimpl2.DeadCodeEliminationPass;
-import org.mapleir.deobimpl2.FieldRSADecryptionPass;
 import org.mapleir.deobimpl2.MethodRenamerPass;
 import org.mapleir.deobimpl2.cxt.IContext;
 import org.mapleir.deobimpl2.cxt.MapleDB;
@@ -50,12 +48,24 @@ public class Boot {
 			return;
 		} */
 		
-		File f = locateRevFile(135);
-		
+//		File f = locateRevFile(135);
+		File f = new File("res/allatori6.1.jar");
 		section("Preparing to run on " + f.getAbsolutePath());
 		SingleJarDownloader<ClassNode> dl = new SingleJarDownloader<>(new JarInfo(f));
 		dl.download();
-		
+//		
+//		for(ClassNode cn : dl.getJarContents().getClassContents()) {
+//			for(MethodNode m : cn.methods) {
+//				if(m.toString().equals("com/allatori/IIiIiiiIII.IIiIiiIiII(Ljava/lang/String;)Ljava/lang/String;")) {
+//					ControlFlowGraph cfg = ControlFlowGraphBuilder.build(m);
+//					System.out.println(cfg);
+//				}
+//			}
+//		}
+//		
+//		if("".equals("")) {
+//			return;
+//		}
 		String name = f.getName().substring(0, f.getName().length() - 4);
 		
 		ApplicationClassSource app = new ApplicationClassSource(name, dl.getJarContents().getClassContents());
@@ -106,7 +116,7 @@ public class Boot {
 				return super.dumpResource(out, name, file);
 			}
 		};
-		dumper.dump(new File("out/osb.jar"));
+		dumper.dump(new File("out/osb4.jar"));
 		
 		section("Finished.");
 	}
@@ -117,8 +127,9 @@ public class Boot {
 	
 	private static IPass[] getTransformationPasses() {
 		return new IPass[] {
-				new CallgraphPruningPass(),
+//				new CallgraphPruningPass(),
 //				new ConcreteStaticInvocationPass(),
+				new ClassRenamerPass(),
 				new MethodRenamerPass(),
 //				new ConstantParameterPass()
 //				new ClassRenamerPass(),
@@ -128,8 +139,8 @@ public class Boot {
 //				new PassGroup("Interprocedural Optimisations")
 //					.add(new ConstantParameterPass())
 				new ConstantExpressionReorderPass(),
-				new FieldRSADecryptionPass(),
-				new ConstantParameterPass(),
+//				new FieldRSADecryptionPass(),
+//				new ConstantParameterPass(),
 				new ConstantExpressionEvaluatorPass(),
 				new DeadCodeEliminationPass()
 //				new PassGroup("Interprocedural Optimisations")
@@ -146,9 +157,9 @@ public class Boot {
 		/* searches only app classes. */
 		for(ClassNode cn : source.iterate())  {
 			for(MethodNode m : cn.methods) {
-				if((m.name.length() > 2 && !m.name.equals("<init>")) || m.instructions.size() == 0) {
+//				if((m.name.length() > 2 && !m.name.equals("<init>")) || m.instructions.size() == 0) {
 					set.add(m);
-				}
+//				}
 			}
 		}
 		return set;
