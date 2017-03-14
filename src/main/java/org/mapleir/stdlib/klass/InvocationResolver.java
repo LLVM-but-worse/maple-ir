@@ -5,6 +5,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 import org.mapleir.stdlib.app.ApplicationClassSource;
+import org.mapleir.stdlib.util.TypeUtils;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.ClassNode;
@@ -43,13 +44,22 @@ public class InvocationResolver {
 	}
 	
 	private boolean checkOveride(Type expected, Type actual) {
-		if(expected.getDimensions() != actual.getDimensions()) {
+		boolean eArr = expected.getSort() == Type.ARRAY;
+		boolean aArr = actual.getSort() == Type.ARRAY;
+		if(eArr != aArr) {
 			return false;
 		}
 		
-		if(expected.getDimensions() > 0) {
+		if(eArr) {
 			expected = expected.getElementType();
 			actual = actual.getElementType();
+		}
+		
+		if(TypeUtils.isPrimitive(expected) || TypeUtils.isPrimitive(actual)) {
+			return false;
+		}
+		if(expected == Type.VOID_TYPE || actual == Type.VOID_TYPE) {
+			return false;
 		}
 		
 		ClassNode eCn = app.findClassNode(expected.getInternalName());
@@ -90,8 +100,12 @@ public class InvocationResolver {
 	}
 	
 	public boolean isStrictlyEqual(MethodNode candidate, String name, String desc, boolean isStatic) {
+		if(Modifier.isStatic(candidate.access) != isStatic) {
+			return false;
+		}
+		
 		if(isStatic) {
-			return Modifier.isStatic(candidate.access) && candidate.name.equals(name) && candidate.desc.equals(desc);
+			return candidate.name.equals(name) && candidate.desc.equals(desc);
 		} else {
 			return isVirtualDerivative(candidate, name, desc);
 		}
@@ -103,7 +117,6 @@ public class InvocationResolver {
 		for(MethodNode m : cn.methods) {
 			if(!Modifier.isStatic(m.access) && (Modifier.isAbstract(m.access) == _abstract)) {
 				if(m.name.equals(name) && (congruentReturn ? isCongruent(desc, m.desc) : m.desc.equals(desc))) {
-					
 					if(findM != null) {
 						throw new IllegalStateException(String.format("%s contains %s and %s", cn.name, findM, m));
 					}
