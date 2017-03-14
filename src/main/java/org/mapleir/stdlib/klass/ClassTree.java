@@ -1,6 +1,7 @@
 package org.mapleir.stdlib.klass;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -22,10 +23,12 @@ import org.objectweb.asm.tree.ClassNode;
 public class ClassTree extends FastDirectedGraph<ClassNode, InheritanceEdge> {
 	private final ApplicationClassSource source;
 	private final ClassNode rootNode;
+//	private final Set<ClassNode> unsupported;
 	
 	public ClassTree(ApplicationClassSource source) {
 		this.source = source;
 		rootNode = findClass("java/lang/Object");
+//		unsupported = new HashSet<>();
 	}
 	
 	public Iterable<ClassNode> iterateParents(ClassNode cn) {
@@ -59,10 +62,16 @@ public class ClassTree extends FastDirectedGraph<ClassNode, InheritanceEdge> {
 	}
 	
 	public Collection<ClassNode> getAllParents(ClassNode cn) {
+		if(!containsVertex(cn)) {
+			return Collections.emptySet();
+		}
 		return SimpleDfs.preorder(this, cn, false);
 	}
 	
 	public Collection<ClassNode> getAllChildren(ClassNode cn) {
+		if(!containsVertex(cn)) {
+			return Collections.emptySet();
+		}
 		return SimpleDfs.preorder(this, cn, true);
 	}
 	
