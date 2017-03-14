@@ -63,8 +63,12 @@ public class MethodRenamerPass implements IPass {
 								if(remapped.containsKey(o)) {
 									System.err.printf("m: %s%n", m);
 									System.err.printf("o: %s%n", o);
-									System.err.println("ms;");
+									System.err.println("this ms::");
 									for(MethodNode s : methods) {
+										System.err.printf("   %s%n", s);
+									}
+									System.err.println("o ms::");
+									for(MethodNode s : getHierarchyMethodChain(cxt, o.owner, o.name, o.desc, true)) {
 										System.err.printf("   %s%n", s);
 									}
 									System.err.printf("on: %s%n", remapped.get(o));
@@ -223,7 +227,7 @@ public class MethodRenamerPass implements IPass {
 		return true;
 	}
 	
-	public static MethodNode findClassMethod(ClassNode cn, String name, String desc) {
+	/*public static MethodNode findClassMethod(ClassNode cn, String name, String desc) {
 		MethodNode findM = null;
 		
 		for(MethodNode m : cn.methods) {
@@ -240,18 +244,20 @@ public class MethodRenamerPass implements IPass {
 		}
 		
 		return findM;
-	}
+	}*/
 	
 	public static Set<MethodNode> getHierarchyMethodChain(IContext cxt, ClassNode cn, String name, String desc, boolean verify) {
 		ApplicationClassSource app = cxt.getApplication();
 		ClassTree structures = app.getStructures();
+		InvocationResolver resolver = cxt.getInvocationResolver();
 		
 		if (verify) {
+			// xd lmao wtf do i do here with the new ret thing
 			check: {
 				Collection<ClassNode> toSearch = structures.getAllChildren(cn);
 				toSearch.addAll(structures.getAllParents(cn));
 				for (ClassNode viable : toSearch)
-					if (findClassMethod(viable, name, desc) != null)
+					if (resolver.findClassMethod(viable, name, desc, true, true) != null)
 						break check;
 				System.err.println("cn: " + cn);
 				System.err.println("name: " + name);
@@ -270,7 +276,7 @@ public class MethodRenamerPass implements IPass {
 		Map<ClassNode, MethodNode> results = new HashMap<>();
 		Queue<ClassNode> visitHeads = new LinkedList<>();
 		for(ClassNode current : visited) {
-			MethodNode m = findClassMethod(current, name, desc);
+			MethodNode m = resolver.findClassMethod(current, name, desc, true, true);
 		    if(m != null) {
 				results.put(current, m);
 		        visitHeads.add(current);

@@ -80,7 +80,7 @@ public class ConstantParameterPass implements IPass, Opcode {
 					}
 				} else {
 					// TODO: cache
-					for(MethodNode site : resolver.resolveVirtualCalls(m.owner.name, m.name, m.desc, true)) {
+					for(MethodNode site : resolver.resolveVirtualCalls(m, true)) {
 						if(!rawConstantParameters.containsKey(site)) {
 							List<Set<Object>> l = new ArrayList<>(pCount);
 							rawConstantParameters.put(site, l);
@@ -113,7 +113,7 @@ public class ConstantParameterPass implements IPass, Opcode {
 							rawConstantParameters.get(callee).get(i).add(((ConstantExpr) e).getConstant());
 						} else {
 							/* only chain callsites *can* have this input */
-							for(MethodNode site : resolver.resolveVirtualCalls(callee.owner.name, callee.name, callee.desc, true)) {
+							for(MethodNode site : resolver.resolveVirtualCalls(callee, true)) {
 								rawConstantParameters.get(site).get(i).add(((ConstantExpr) e).getConstant());
 							}
 						}
@@ -129,7 +129,7 @@ public class ConstantParameterPass implements IPass, Opcode {
 							specificNonConstant.get(callee)[i] = true;
 						} else {
 							/* only chain callsites *can* have this input */
-							for(MethodNode site : resolver.resolveVirtualCalls(callee.owner.name, callee.name, callee.desc, true)) {
+							for(MethodNode site : resolver.resolveVirtualCalls(callee, true)) {
 								specificNonConstant.get(site)[i] = true;
 							}
 						}
@@ -160,7 +160,7 @@ public class ConstantParameterPass implements IPass, Opcode {
 			superFor: for(ClassNode cn : structures.getAllParents(m.owner)) {
 				if(app.isLibraryClass(cn.name)) {
 					for(MethodNode m1 : cn.methods) {
-						if(m1.name.equals(m.name) && m1.desc.equals(m.desc)) {
+						if(resolver.isStrictlyEqual(m1, m, Modifier.isStatic(m.access))) {
 							it.remove();
 							break superFor;
 						}

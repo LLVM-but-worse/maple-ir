@@ -6,6 +6,7 @@ import java.util.Set;
 
 import org.mapleir.stdlib.app.ApplicationClassSource;
 import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
 
@@ -41,26 +42,67 @@ public class InvocationResolver {
 		}
 	}
 	
-	public MethodNode findVirtualCall(ClassNode cn, String name, String desc) {
-		MethodNode result = null;
-		for(MethodNode m : cn.methods) {
-			if((m.access & Opcodes.ACC_STATIC) == 0) {
-				if(m.name.equals(name) && m.desc.equals(desc)) {
-					if (result != null)
-						throw new IllegalStateException(cn.name + "." + name + " " + desc + " => " + result + "," + m);
-					result = m;
-				}
-			}
+	private boolean checkOveride(Type expected, Type actual) {
+		if(expected.getDimensions() != actual.getDimensions()) {
+			return false;
 		}
-		return result;
+		
+		if(expected.getDimensions() > 0) {
+			expected = expected.getElementType();
+			actual = actual.getElementType();
+		}
+		
+		ClassNode eCn = app.findClassNode(expected.getInternalName());
+		ClassNode aCn = app.findClassNode(actual.getInternalName());
+		
+		return app.getStructures().getAllParents(aCn).contains(eCn);
 	}
 	
-	public MethodNode findClassMethod(ClassNode cn, String name, String desc, boolean _abstract) {
+	private boolean isCongruent(String expected, String actual) {
+		Type[] eParams = Type.getArgumentTypes(expected);
+		Type[] aParams = Type.getArgumentTypes(actual);
+		
+		if(eParams.length != aParams.length) {
+			return false;
+		}
+		
+		for(int i=0; i < eParams.length; i++) {
+			Type e = eParams[i];
+			Type a = aParams[i];
+			
+			if(!e.equals(a)) {
+				return false;
+			}
+		}
+		
+		Type eR = Type.getReturnType(expected);
+		Type aR = Type.getReturnType(actual);
+		
+		return checkOveride(eR, aR);
+	}
+	
+	public boolean isVirtualDerivative(MethodNode candidate, String name, String desc) {
+		return candidate.name.equals(name) && isCongruent(desc, candidate.desc);
+	}
+	
+	public boolean isStrictlyEqual(MethodNode candidate, MethodNode target, boolean isStatic) {
+		return isStrictlyEqual(candidate, target.name, target.desc, isStatic);
+	}
+	
+	public boolean isStrictlyEqual(MethodNode candidate, String name, String desc, boolean isStatic) {
+		if(isStatic) {
+			return Modifier.isStatic(candidate.access) && candidate.name.equals(name) && candidate.desc.equals(desc);
+		} else {
+			return isVirtualDerivative(candidate, name, desc);
+		}
+	}
+	
+	public MethodNode findClassMethod(ClassNode cn, String name, String desc, boolean congruentReturn, boolean _abstract) {
 		MethodNode findM = null;
 		
 		for(MethodNode m : cn.methods) {
 			if(!Modifier.isStatic(m.access) && (Modifier.isAbstract(m.access) == _abstract)) {
-				if(m.name.equals(name) && m.desc.equals(desc)) {
+				if(m.name.equals(name) && (congruentReturn ? isCongruent(desc, m.desc) : m.desc.equals(desc))) {
 					
 					if(findM != null) {
 						throw new IllegalStateException(String.format("%s contains %s and %s", cn.name, findM, m));
@@ -72,6 +114,11 @@ public class InvocationResolver {
 		}
 		
 		return findM;
+	}
+	
+
+	public Set<MethodNode> resolveVirtualCalls(MethodNode m, boolean strict) {
+		return resolveVirtualCalls(m.owner.name, m.name, m.desc, strict);
 	}
 	
 	public Set<MethodNode> resolveVirtualCalls(String owner, String name, String desc, boolean strict) {
@@ -114,7 +161,7 @@ public class InvocationResolver {
 			MethodNode m;
 			
 			if(name.equals("<init>")) {
-				m = findClassMethod(cn, name, desc, false);
+				m = findClassMethod(cn, name, desc, false, false);
 				
 				if(m == null) {
 					if(strict) {
@@ -128,7 +175,7 @@ public class InvocationResolver {
 			
 			// TODO: Use existing SimpleDFS code
 			for(ClassNode c : app.getStructures().getAllChildren(cn)) {
-				m = findClassMethod(c, name, desc, true);
+				m = findClassMethod(c, name, desc, true, true);
 				
 				if(m != null) {
 					set.add(m);
@@ -146,7 +193,7 @@ public class InvocationResolver {
 				
 				Set<MethodNode> lvlSites = new HashSet<>();
 				for(ClassNode c : lvl) {
-					m = findClassMethod(c, name, desc, false);
+					m = findClassMethod(c, name, desc, false, false);
 					if(m != null) {
 						lvlSites.add(m);
 					}
