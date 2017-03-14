@@ -24,7 +24,6 @@ import org.mapleir.ir.code.expr.ConstantExpr;
 import org.mapleir.ir.code.expr.InitialisedObjectExpr;
 import org.mapleir.ir.code.expr.InvocationExpr;
 import org.mapleir.ir.code.expr.PhiExpr;
-import org.mapleir.ir.code.expr.UninitialisedObjectExpr;
 import org.mapleir.ir.code.expr.VarExpr;
 import org.mapleir.ir.code.stmt.ConditionalJumpStmt;
 import org.mapleir.ir.code.stmt.PopStmt;
@@ -533,6 +532,10 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		}
 		
 		unstackDefs(b);
+		
+		if(OPTIMISE) {
+			optimisePhis(b);
+		}
 	}
 	
 	private void fixPhiArgs(BasicBlock b, BasicBlock succ) {
@@ -577,8 +580,20 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 	}
 	
 	private void searchImpl(BasicBlock b) {
-		for(Stmt stmt : b) {
+		Iterator<Stmt> it = b.iterator();
+		
+		while(it.hasNext()) {
+			Stmt stmt = it.next();
+			
 			int opcode = stmt.getOpcode();
+			
+			if(opcode == Opcode.POP) {
+				PopStmt pop = (PopStmt) stmt;
+				if(!ConstraintUtil.isUncopyable(pop.getExpression())) {
+					it.remove();
+					continue;
+				}
+			}
 			
 			if(opcode == Opcode.PHI_STORE) {
 				/* We can rename these any time as these
@@ -639,6 +654,173 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		pool.uses.put(ssaL, new HashSet<>());
 		
 		return ssaL;
+	}
+	
+	private void optimisePhis(BasicBlock b) {
+		List<CopyPhiStmt> phis = new ArrayList<>();
+		for(Stmt stmt : b) {
+			if(stmt.getOpcode() == Opcode.PHI_STORE) {
+				phis.add((CopyPhiStmt) stmt);
+			} else {
+				break;
+			}
+		}
+		
+		if(phis.size() > 1) {
+			Set<Set<CopyPhiStmt>> ccs = findPhiClasses(phis);
+			
+			for(Set<CopyPhiStmt> cc : ccs) {
+				CopyPhiStmt pref = chooseRealPhi(cc);
+//				System.out.println("want to merge:");
+//				for(CopyPhiStmt s : cc) {
+//					System.out.println("  " + s);
+//				}
+//				System.out.println(" keeping " + pref);
+				reduceClass(cc, pref);
+			}
+		}
+	}
+	
+	private void reduceClass(Set<CopyPhiStmt> cc, CopyPhiStmt preferred) {
+		Set<CopyPhiStmt> useless = new HashSet<>(cc);
+		useless.remove(preferred);
+
+		VersionedLocal phiLocal = (VersionedLocal) preferred.getVariable().getLocal();
+
+		/* all the *dead* phi class locals */
+		Set<VersionedLocal> deadLocals = new HashSet<>();
+		
+		for (CopyPhiStmt def : useless) {
+			VersionedLocal local = (VersionedLocal) def.getVariable().getLocal();
+			deadLocals.add(local);
+			
+			for(Expr e : def.enumerateOnlyChildren()) {
+				if(e.getOpcode() == Opcode.LOCAL_LOAD) {
+					VarExpr v = (VarExpr) e;
+					VersionedLocal vl = (VersionedLocal) v.getLocal();
+					pool.uses.get(vl).remove(v);
+				}
+			}
+			
+//			System.out.println(" killing " + def);
+			
+			def.delete();
+		}
+		
+		for(VersionedLocal vl : deadLocals) {
+			Set<VarExpr> deadVExprs = pool.uses.get(vl);
+			
+			for(VarExpr v : deadVExprs) {
+				/* v.getLocal() == vl, i.e. dead phi local.
+				 * Replace each dead var with the real one. */
+				
+				v.setLocal(phiLocal);
+				pool.uses.get(phiLocal).add(v);
+			}
+			
+			/* all dead. */
+			/*pool.uses.get(vl)*/deadVExprs.clear();
+			pool.defs.remove(vl);
+		}
+	}
+	
+	private CopyPhiStmt chooseRealPhi(Set<CopyPhiStmt> cc) {
+		for (CopyPhiStmt cps : cc) {
+			if (!cps.getVariable().getLocal().isStack()) {
+				return cps;
+			}
+		}
+		return cc.iterator().next();
+	}
+	
+	private Set<Set<CopyPhiStmt>> findPhiClasses(Collection<CopyPhiStmt> phis) {
+		NullPermeableHashMap<CopyPhiStmt, Set<CopyPhiStmt>> equiv = new NullPermeableHashMap<>(new SetCreator<>());
+		
+		for(CopyPhiStmt cps : phis) {
+			if(equiv.containsKey(cps)) {
+				continue;
+			}
+			
+			PhiExpr phi = cps.getExpression();
+			otherPhiFor: for(CopyPhiStmt cps2 : phis) {
+				if(cps == cps2 || equiv.containsKey(cps2)) {
+					continue;
+				}
+				
+				PhiExpr phi2 = cps2.getExpression();
+				
+				if(!phi.getSources().equals(phi2.getSources())) {
+					continue;
+				}
+				
+				for(BasicBlock src : phi.getSources()) {
+					Expr e1 = phi.getArgument(src);
+					Expr e2 = phi2.getArgument(src);
+					
+					if(!isSameValue(e1, e2)) {
+						continue otherPhiFor;
+					}
+				}
+				
+				/* phi equiv phi2; merge. */
+				Set<CopyPhiStmt> cca = equiv.getNonNull(cps);
+				Set<CopyPhiStmt> ccb = equiv.getNonNull(cps2);
+				
+				cca.add(cps2);
+				ccb.add(cps);
+				
+				cca.addAll(ccb);
+				
+				for (CopyPhiStmt s : cca) {
+					equiv.put(s, cca);
+				}
+			}
+		}
+		
+		/* get rid of duplicates */
+		return new HashSet<>(equiv.values());
+	}
+	
+	private boolean shouldCoalesce(int opcode) {
+		switch (opcode) {
+			case Opcode.INVOKE:
+			case Opcode.DYNAMIC_INVOKE:
+			case Opcode.INIT_OBJ:
+			case Opcode.UNINIT_OBJ:
+			case Opcode.NEW_ARRAY:
+			case Opcode.CATCH:
+			case Opcode.EPHI:
+			case Opcode.PHI:
+			case Opcode.FIELD_LOAD:
+				return false;
+		};
+		return true;
+	}
+	
+	private Expr getValue(Expr e) {
+		if(e.getOpcode() == Opcode.LOCAL_LOAD) {
+			VarExpr v = (VarExpr) e;
+			
+			AbstractCopyStmt def = pool.defs.get(v.getLocal());
+			Expr val = def.getExpression();
+			
+			if(!def.isSynthetic() && def.getOpcode() != Opcode.PHI_STORE) {
+				return getValue(val);
+			}
+		}
+		
+		return e;
+	}
+	
+	private boolean isSameValue(Expr e1, Expr e2) {
+		Expr val1 = getValue(e1);
+		Expr val2 = getValue(e2);
+		
+		if(!shouldCoalesce(val1.getOpcode()) || !shouldCoalesce(val2.getOpcode())) {
+			return false;
+		}
+		
+		return val1.equivalent(val2);
 	}
 	
 	private void makeValue(AbstractCopyStmt copy, VersionedLocal ssaL) {
@@ -741,7 +923,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		
 		cca.addAll(ccb);
 		
-		for (VersionedLocal l : ccb) {
+		for (VersionedLocal l : cca) {
 			shadowed.put(l, cca);
 		}
 	}
@@ -849,19 +1031,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 						 * in the second case, we can
 						 * propagate the source var (x)
 						 * in place of the target (y). */
-						if(value.getRealValue() instanceof VersionedLocal) {
-							VersionedLocal realVal = (VersionedLocal) value.getRealValue();
-							if(shouldPropagate(ssaL, realVal)) {
-								newL = realVal;
-							} else {
-								merge(ssaL, realVal);
-							}
-						}
-						
-						/* no change. */
-						if(newL == ssaL) {
-							deferred.add(newL);
-						}
+						newL = tryDefer(value, ssaL);
 					} else {
 						AbstractCopyStmt from = def;
 						if(value.getSource() != null) {
@@ -878,7 +1048,11 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 							System.out.printf("c: %b%n", value.hasConstraints());
 							System.out.println();*/
 							
-							e = rval;
+							if(shouldCopy(rval)) {
+								e = rval;
+							} else {
+								newL = tryDefer(value, ssaL);
+							}
 						} else if(value.getRealValue() instanceof VersionedLocal) {
 							VersionedLocal realVal = (VersionedLocal) value.getRealValue();
 							if(shouldPropagate(ssaL, realVal)) {
@@ -952,6 +1126,35 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		}
 	}
 	
+	private VersionedLocal tryDefer(LatestValue value, VersionedLocal ssaL) {
+		VersionedLocal newL = ssaL;
+		
+		if(value.getRealValue() instanceof VersionedLocal) {
+			VersionedLocal realVal = (VersionedLocal) value.getRealValue();
+			if(shouldPropagate(ssaL, realVal)) {
+				newL = realVal;
+			} else {
+				merge(ssaL, realVal);
+			}
+		}
+		
+		/* no change. */
+		if(newL == ssaL) {
+			deferred.add(newL);
+		}
+		
+		return newL;
+	}
+
+	private boolean shouldCopy(Expr rval) {
+		for(Expr e : rval.enumerateWithSelf()) {
+			if(e.getOpcode() == Opcode.ARITHMETIC) {
+				return false;
+			}
+		}
+		return true;
+	}
+
 	private VersionedLocal latest(int index, boolean isStack) {
 		LocalsPool handler = builder.graph.getLocals();
 		Local l = handler.get(index, isStack);
@@ -1016,7 +1219,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 								}
 							} else if(inst.getOpcode() == Opcode.UNINIT_OBJ) {
 								// replace pop(new Klass.<init>(args)) with pop(new Klass(args))
-								UninitialisedObjectExpr obj = (UninitialisedObjectExpr) inst;
+								// UninitialisedObjectExpr obj = (UninitialisedObjectExpr) inst;
 								
 								Expr[] args = invoke.getParameterArguments();
 								// we want to reuse the exprs, so free it first.
