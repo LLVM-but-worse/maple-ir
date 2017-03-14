@@ -1,5 +1,15 @@
 package org.mapleir.deobimpl2;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 import org.mapleir.deobimpl2.cxt.IContext;
 import org.mapleir.deobimpl2.util.IPConstAnalysis;
 import org.mapleir.deobimpl2.util.IPConstAnalysis.ChildVisitor;
@@ -12,16 +22,9 @@ import org.mapleir.ir.code.CodeUnit;
 import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.code.Opcode;
 import org.mapleir.ir.code.Stmt;
-import org.mapleir.ir.code.expr.ArithmeticExpr;
+import org.mapleir.ir.code.expr.*;
 import org.mapleir.ir.code.expr.ArithmeticExpr.Operator;
-import org.mapleir.ir.code.expr.CastExpr;
-import org.mapleir.ir.code.expr.ComparisonExpr;
 import org.mapleir.ir.code.expr.ComparisonExpr.ValueComparisonType;
-import org.mapleir.ir.code.expr.ConstantExpr;
-import org.mapleir.ir.code.expr.InitialisedObjectExpr;
-import org.mapleir.ir.code.expr.InvocationExpr;
-import org.mapleir.ir.code.expr.NegationExpr;
-import org.mapleir.ir.code.expr.VarExpr;
 import org.mapleir.ir.code.stmt.ConditionalJumpStmt;
 import org.mapleir.ir.code.stmt.ConditionalJumpStmt.ComparisonType;
 import org.mapleir.ir.code.stmt.NopStmt;
@@ -42,16 +45,6 @@ import org.objectweb.asm.tree.JumpInsnNode;
 import org.objectweb.asm.tree.LabelNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.tree.VarInsnNode;
-
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 
@@ -121,7 +114,13 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 			Expr val = eval(pool, e);
 			if(val != null) {
 				if(!val.equivalent(e)) {
-					overwrite(par, e, val, pool);
+					try {
+						overwrite(par, e, val, pool);
+					} catch(RuntimeException ex) {
+						System.err.println("e: " + e);
+						System.err.println("v: " + val);
+						throw ex;
+					}
 					e = val;
 					j++;
 				}
@@ -357,7 +356,7 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 	
 	private Expr eval(LocalsPool pool, Expr e) {
 		if(e.getOpcode() == CONST_LOAD) {
-			return e;
+			return e.copy();
 		} else if(e.getOpcode() == ARITHMETIC) {
 			ArithmeticExpr ae = (ArithmeticExpr) e;
 			Expr l = ae.getLeft();
