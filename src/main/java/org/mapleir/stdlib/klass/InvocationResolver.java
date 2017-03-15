@@ -1,6 +1,7 @@
 package org.mapleir.stdlib.klass;
 
 import java.lang.reflect.Modifier;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -67,6 +68,25 @@ public class InvocationResolver {
 		
 		return app.getStructures().getAllParents(aCn).contains(eCn);
 	}
+
+	
+	private void debugCong(String expected, String actual) {
+		Type eR = Type.getReturnType(expected);
+		Type aR = Type.getReturnType(actual);
+		
+		System.err.println("eR: " + eR);
+		System.err.println("aR: " + aR);
+		System.err.println("eq: " + (eR == aR));
+
+		ClassNode eCn = app.findClassNode(eR.getInternalName());
+		ClassNode aCn = app.findClassNode(aR.getInternalName());
+		
+		System.err.println("eCn: " + eCn.name);
+		System.err.println("aCn: " + aCn.name);
+		System.err.println(app.getStructures().getAllParents(aCn));
+		System.err.println("eCn parent of aCn?: " + app.getStructures().getAllParents(aCn).contains(eCn));
+		System.err.println("aCn child of eCn?: " + app.getStructures().getAllChildren(eCn).contains(aCn));
+	}
 	
 	private boolean isCongruent(String expected, String actual) {
 		Type[] eParams = Type.getArgumentTypes(expected);
@@ -88,7 +108,7 @@ public class InvocationResolver {
 		Type eR = Type.getReturnType(expected);
 		Type aR = Type.getReturnType(actual);
 		
-		return checkOveride(eR, aR);
+		return eR.equals(aR) || checkOveride(eR, aR);
 	}
 	
 	public boolean isVirtualDerivative(MethodNode candidate, String name, String desc) {
@@ -111,13 +131,17 @@ public class InvocationResolver {
 		}
 	}
 	
-	public MethodNode findClassMethod(ClassNode cn, String name, String desc, boolean congruentReturn, boolean _abstract) {
+	private MethodNode findDerivativeMethod(ClassNode cn, String name, String desc, boolean congruentReturn, boolean allowAbstract) {
 		MethodNode findM = null;
-		
+
 		for(MethodNode m : cn.methods) {
-			if(!Modifier.isStatic(m.access) && (Modifier.isAbstract(m.access) == _abstract)) {
+			if(!Modifier.isStatic(m.access) && (allowAbstract || !Modifier.isAbstract(m.access))) {
 				if(m.name.equals(name) && (congruentReturn ? isCongruent(desc, m.desc) : m.desc.equals(desc))) {
 					if(findM != null) {
+						System.err.println("==findM==");
+						debugCong(desc, findM.desc);
+						System.err.println("==m==");
+						debugCong(desc, m.desc);
 						throw new IllegalStateException(String.format("%s contains %s and %s", cn.name, findM, m));
 					}
 					
@@ -127,6 +151,18 @@ public class InvocationResolver {
 		}
 		
 		return findM;
+	}
+
+	public MethodNode findClassMethod(ClassNode cn, String name, String desc, boolean congruentReturn, boolean allowAbstract) {
+		/* find exact method first */
+		MethodNode m = findDerivativeMethod(cn, name, desc, false, allowAbstract);
+		if(m != null) {
+			return m;
+		} else if(congruentReturn) {
+			m = findDerivativeMethod(cn, name, desc, true, allowAbstract);
+		}
+		
+		return m;
 	}
 	
 
@@ -186,9 +222,13 @@ public class InvocationResolver {
 				return set;
 			}
 			
+			Collection<ClassNode> ch = app.getStructures().getAllChildren(cn);
+			if(!ch.contains(cn)) {
+				ch.add(cn);
+			}
 			// TODO: Use existing SimpleDFS code
-			for(ClassNode c : app.getStructures().getAllChildren(cn)) {
-				m = findClassMethod(c, name, desc, true, true);
+			for(ClassNode c : ch) {
+				m = findClassMethod(c, name, desc, true, false);
 				
 				if(m != null) {
 					set.add(m);
