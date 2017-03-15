@@ -1,7 +1,6 @@
 package org.mapleir.stdlib.klass;
 
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -63,14 +62,14 @@ public class ClassTree extends FastDirectedGraph<ClassNode, InheritanceEdge> {
 	
 	public Collection<ClassNode> getAllParents(ClassNode cn) {
 		if(!containsVertex(cn)) {
-			return Collections.emptySet();
+			return new HashSet<>();
 		}
 		return SimpleDfs.preorder(this, cn, false);
 	}
 	
 	public Collection<ClassNode> getAllChildren(ClassNode cn) {
 		if(!containsVertex(cn)) {
-			return Collections.emptySet();
+			return new HashSet<>();
 		}
 		return SimpleDfs.preorder(this, cn, true);
 	}

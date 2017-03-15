@@ -34,7 +34,7 @@ import org.topdank.byteio.in.SingleJarDownloader;
 import org.topdank.byteio.out.JarDumper;
 
 public class Boot {
-
+	
 	public static boolean logging = false;
 	private static long timer;
 	private static Deque<String> sections;
