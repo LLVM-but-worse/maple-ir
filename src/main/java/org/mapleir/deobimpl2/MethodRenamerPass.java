@@ -254,11 +254,14 @@ public class MethodRenamerPass implements IPass {
 		if (verify) {
 			// xd lmao wtf do i do here with the new ret thing
 			check: {
-				Collection<ClassNode> toSearch = structures.getAllChildren(cn);
+				Collection<ClassNode> toSearch = new HashSet<>(structures.getAllChildren(cn));
+				toSearch.add(cn);
 				toSearch.addAll(structures.getAllParents(cn));
-				for (ClassNode viable : toSearch)
-					if (resolver.findClassMethod(viable, name, desc, true, true) != null)
+				for (ClassNode viable : toSearch) {
+					if (resolver.findClassMethod(viable, name, desc, true, true) != null) {
 						break check;
+					}
+				}
 				System.err.println("cn: " + cn);
 				System.err.println("name: " + name);
 				System.err.println("desc: " + desc);
@@ -282,6 +285,7 @@ public class MethodRenamerPass implements IPass {
 		        visitHeads.add(current);
 		    }
 		}
+		
 		visited.clear();
 		visited.addAll(visitHeads);
 		visitHeads.add(cn);
@@ -296,7 +300,7 @@ public class MethodRenamerPass implements IPass {
 		    
 		    for(String s : directSupers) {
 				ClassNode parent = app.findClassNode(s);
-				MethodNode m = findClassMethod(parent, name, desc);
+				MethodNode m = resolver.findClassMethod(parent, name, desc, true, true);
 				if(m != null) {
 					results.remove(current);
 				}
@@ -315,14 +319,15 @@ public class MethodRenamerPass implements IPass {
 		Set<ClassNode> classes = new HashSet<>();
 		for (ClassNode top : results.keySet()) {
 		    classes.addAll(structures.getAllChildren(top));
-		}
+		    classes.add(top);
+			}
 		
 		Set<MethodNode> methods = new HashSet<>();
 		for(ClassNode c : classes) {
 			if(results.containsKey(c)) {
 				methods.add(results.get(c));
 			} else {
-				MethodNode m = findClassMethod(c, name, desc);
+				MethodNode m = resolver.findClassMethod(c, name, desc, true, true);
 				if(m != null) {
 					methods.add(m);
 				}

@@ -1,15 +1,15 @@
 package org.mapleir.stdlib.app;
 
-import org.mapleir.stdlib.klass.ClassHelper;
-import org.objectweb.asm.tree.ClassNode;
-
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.mapleir.stdlib.klass.ClassHelper;
+import org.objectweb.asm.tree.ClassNode;
+
 public class LibraryClassSource extends ClassSource {
 
-	private final ApplicationClassSource parent;
+	protected final ApplicationClassSource parent;
 	
 	public LibraryClassSource(ApplicationClassSource parent) {
 		this(parent, new HashMap<>());
