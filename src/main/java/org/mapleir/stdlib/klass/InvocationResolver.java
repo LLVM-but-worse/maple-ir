@@ -1,12 +1,21 @@
 package org.mapleir.stdlib.klass;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.lang.reflect.Modifier;
 import java.util.Collection;
+import java.util.Deque;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.Set;
 
 import org.mapleir.stdlib.app.ApplicationClassSource;
+import org.mapleir.stdlib.collections.NullPermeableHashMap;
+import org.mapleir.stdlib.collections.SetCreator;
+import org.mapleir.stdlib.collections.graph.algorithms.ExtendedDfs;
 import org.mapleir.stdlib.util.TypeUtils;
+import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.ClassNode;
@@ -142,6 +151,22 @@ public class InvocationResolver {
 						debugCong(desc, findM.desc);
 						System.err.println("==m==");
 						debugCong(desc, m.desc);
+						
+						{
+							ClassWriter cw = new ClassWriter(0);
+							cn.accept(cw);
+							byte[] bs = cw.toByteArray();
+							
+							try {
+								FileOutputStream fos = new FileOutputStream(new File("out/broken.class"));
+								fos.write(bs);
+								fos.close();
+							} catch (IOException e) {
+								e.printStackTrace();
+							}
+							
+						}
+						
 						throw new IllegalStateException(String.format("%s contains %s and %s", cn.name, findM, m));
 					}
 					
@@ -222,17 +247,91 @@ public class InvocationResolver {
 				return set;
 			}
 			
+			{
+				Collection<ClassNode> supers = app.getStructures().getAllParents(cn);
+				System.out.println(supers);
+				System.out.println(" size: " + supers.size());
+				
+				Set<MethodNode> heads = new HashSet<>();
+				NullPermeableHashMap<ClassNode, Set<ClassNode>> closestParents = new NullPermeableHashMap<>(new SetCreator<>());
+				Deque<ClassNode> stack = new LinkedList<>();
+				
+				new ExtendedDfs<ClassNode>(app.getStructures(), cn, 0) {
+					@Override
+					protected void dfs(ClassNode par, ClassNode cn) {
+						/* enter */
+						stack.push(cn);
+						
+						MethodNode mn = findClassMethod(cn, name, desc, false, true);
+						
+						if(mn != null) {
+							heads.add(mn);
+							
+							/* push current node off the stack
+							 * as it's not selfparented and 
+							 * we're done with the branch. */
+							stack.pop();
+							
+							for(ClassNode c : stack) {
+								closestParents.getNonNull(c).add(cn);
+							}
+						} else {
+							/* not here, search supers */
+							super.dfs(par, cn);
+							if(stack.peekFirst() != cn) {
+								throw new RuntimeException(cn + " : " + stack.peek());
+							} else {
+								/* done branch naturally */
+								stack.pop();
+							}
+						}
+					}
+				};
+				
+				for(MethodNode mn : heads) {
+					Deque<ClassNode> rtypes = new LinkedList<>();
+					Type retType = Type.getReturnType(mn.desc);
+					
+					if(!TypeUtils.isPrimitive(retType) && !mn.desc.endsWith("V")) {
+						ClassNode retClass = app.findClassNode(retType.getInternalName());
+						Set<ClassNode> retClasses = new HashSet<>(app.getStructures().getAllChildren(retClass));
+						retClasses.add(retClass);
+						
+						System.out.println("m: " + mn);
+						System.out.println("  classes: " + retClasses);
+						new ExtendedDfs<ClassNode>(app.getStructures(), mn.owner, ExtendedDfs.REVERSE) {
+							@Override
+							protected void dfs(ClassNode par, ClassNode cn) {
+								if(cn != mn.owner) {
+									System.out.println("c: "+ cn);
+								}
+								super.dfs(par, cn);
+							}
+						};
+					}
+				}
+			}
+			
 			Collection<ClassNode> ch = app.getStructures().getAllChildren(cn);
 			if(!ch.contains(cn)) {
 				ch.add(cn);
 			}
 			// TODO: Use existing SimpleDFS code
-			for(ClassNode c : ch) {
-				m = findClassMethod(c, name, desc, true, false);
-				
-				if(m != null) {
-					set.add(m);
+			try {
+				for(ClassNode c : ch) {
+					m = findClassMethod(c, name, desc, true, false);
+					
+					if(m != null) {
+						set.add(m);
+					}
 				}
+			} catch(RuntimeException e) {
+				System.err.println("call:");
+				System.err.println(owner);
+				System.err.println(name);
+				System.err.println(desc);
+				System.err.println(strict);
+				throw e;
 			}
 			
 			m = null;

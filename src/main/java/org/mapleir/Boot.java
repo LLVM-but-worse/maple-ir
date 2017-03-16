@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.jar.JarOutputStream;
@@ -27,6 +28,7 @@ import org.mapleir.stdlib.app.InstalledRuntimeClassSource;
 import org.mapleir.stdlib.call.CallTracer;
 import org.mapleir.stdlib.deob.IPass;
 import org.mapleir.stdlib.deob.PassGroup;
+import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.topdank.byteengineer.commons.data.JarInfo;
@@ -39,7 +41,72 @@ public class Boot {
 	private static long timer;
 	private static Deque<String> sections;
 	
+	public static interface I0 {
+	}
+	public static interface I1 extends I0 {
+	}
+	public static interface I3 {
+		I0 m(int i);
+	}
+	
+	public static interface I4 {
+		I1 m(int i);
+	}
+	
+	public static abstract class A implements I3, I4 {
+	}
+	
+	public static abstract class B extends A {
+		@Override
+		public I1 m(int i) {
+			return null;
+		}
+	}
+	
+	public static class I1Impl implements I1 {
+		final int i;
+		public I1Impl(int i) {
+			this.i = i;
+		}
+
+		@Override
+		public
+		String toString() {
+			return "hi " + i;
+		}
+	}
+	
+	public static class C extends A {
+		@Override
+		public I1 m(int i) {
+			return new I1Impl(i);
+		}
+	}
+	
+	void a(A a) {
+		System.out.println(a.m(0));
+	}
+	
 	public static void main(String[] args) throws Exception {
+		Class<?>[] cls = new Class<?>[]{I0.class, I1.class, I3.class, I4.class, A.class, B.class};
+		
+		List<ClassNode> classes = new ArrayList<>();
+		for(Class<?> c : cls) {
+			ClassReader cr = new ClassReader(c.getName());
+			ClassNode cn = new ClassNode();
+			cr.accept(cn, 0);
+			classes.add(cn);
+		}
+		
+		ApplicationClassSource app = new ApplicationClassSource("test", classes);
+		InstalledRuntimeClassSource jre = new InstalledRuntimeClassSource(app);
+		app.addLibraries(jre);
+		
+		IContext cxt = new MapleDB(app);
+		cxt.getInvocationResolver().resolveVirtualCalls("org/mapleir/Boot$B", "m", "(I)Lorg/mapleir/Boot$I0;", true);
+		
+	}
+	public static void main1(String[] args) throws Exception {
 		sections = new LinkedList<>();
 		logging = true;
 		/* if(args.length < 1) {
@@ -76,6 +143,12 @@ public class Boot {
 		IContext cxt = new MapleDB(app);
 		
 		section("Expanding callgraph and generating cfgs.");
+		
+		cxt.getInvocationResolver().resolveVirtualCalls("com/allatori/iiiIiIIiII", "IIiIiiIiII", "(Lcom/allatori/iiiiiIIIii;)Lcom/allatori/iIIiIiiIiI;", true);
+		
+		if("".equals("")) {
+			return;
+		}
 		
 		CallTracer tracer = new IRCallTracer(cxt) {
 			@Override
