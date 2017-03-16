@@ -7,32 +7,34 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.mapleir.ir.cfg.edge.FlowEdge;
+import org.mapleir.stdlib.collections.KeyedValueCreator;
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
-import org.mapleir.stdlib.collections.ValueCreator;
+import org.mapleir.stdlib.collections.graph.FastDirectedGraph;
+import org.mapleir.stdlib.collections.graph.FastGraphEdge;
 import org.mapleir.stdlib.collections.graph.FastGraphVertex;
-import org.mapleir.stdlib.collections.graph.flow.FlowGraph;
 
 public class ExtendedDfs<N extends FastGraphVertex> implements DepthFirstSearch<N> {
 	
 	public static final int WHITE = 0, GREY = 1, BLACK = 2;
 	public static final int TREE = WHITE, BACK = GREY, FOR_CROSS = BLACK;
-	public static final int EDGES = 0x1, PARENTS = 0x2, PRE = 0x4, POST = 0x8;
+	public static final int EDGES = 0x1, PARENTS = 0x2, PRE = 0x4, POST = 0x8, REVERSE = 0x10, 
+							COLOUR_VISITOR = 0x20;
 	
 	private final int opt;
-	private final FlowGraph<N, FlowEdge<N>> graph;
+	private final FastDirectedGraph<N, ? extends FastGraphEdge<N>> graph;
 	private final NullPermeableHashMap<N, Integer> colours;
-	private final Map<Integer, Set<FlowEdge<N>>> edges;
+	private final Map<Integer, Set<FastGraphEdge<N>>> edges;
 	private final Map<N, N> parents;
 	private final List<N> preorder;
 	private final List<N> postorder;
 	
-	public ExtendedDfs(FlowGraph<N, FlowEdge<N>> graph, N entry, int opt) {
+	public ExtendedDfs(FastDirectedGraph<N, ? extends FastGraphEdge<N>> graph, N entry, int opt) {
 		this.opt = opt;
 		this.graph = graph;
-		colours = new NullPermeableHashMap<>(new ValueCreator<Integer>() {
+		colours = new NullPermeableHashMap<>(new KeyedValueCreator<N, Integer>() {
 			@Override
-			public Integer create() {
+			public Integer create(N k) {
+				if(opt(COLOUR_VISITOR)) coloured(k, WHITE);
 				return WHITE;
 			}
 		});
@@ -50,7 +52,7 @@ public class ExtendedDfs<N extends FastGraphVertex> implements DepthFirstSearch<
 			edges = null;
 		}
 		
-		dfs(entry);
+		dfs(null, entry);
 	}
 	
 	public int getColour(N b) {
@@ -65,7 +67,7 @@ public class ExtendedDfs<N extends FastGraphVertex> implements DepthFirstSearch<
 		return parents.get(b);
 	}
 	
-	public Set<FlowEdge<N>> getEdges(int type) {
+	public Set<FastGraphEdge<N>> getEdges(int type) {
 		return edges.get(type);
 	}
 
@@ -73,24 +75,35 @@ public class ExtendedDfs<N extends FastGraphVertex> implements DepthFirstSearch<
 		return (opt & i) != 0;
 	}
 
-	private void dfs(N b) {
-		if(opt(PRE)) preorder.add(b);
-		colours.put(b, GREY);
+	protected void dfs(N par, N b) {
+		boolean cvisit = opt(COLOUR_VISITOR);
+		boolean reverse = opt(REVERSE);
 		
-		for(FlowEdge<N> sE : order(graph.getEdges(b)))  {
-			N s = sE.dst;
+		if(opt(PRE)) preorder.add(b);
+		
+		colours.put(b, GREY);
+		if(cvisit) coloured(b, GREY);
+		
+		for(FastGraphEdge<N> sE : order(reverse ? graph.getReverseEdges(b) : graph.getEdges(b)))  {
+			N s = reverse ? sE.src : sE.dst;
 			if(opt(EDGES)) edges.get(colours.getNonNull(s)).add(sE);
+			
 			if(colours.getNonNull(s) == WHITE) {
 				if(opt(PARENTS)) parents.put(s, b);
-				dfs(s);
+				dfs(b, s);
 			}
 		}
 		
 		if(opt(POST)) postorder.add(b);
+		
 		colours.put(b, BLACK);
+		if(cvisit) coloured(b, BLACK);
 	}
 	
-	protected Iterable<FlowEdge<N>> order(Set<FlowEdge<N>> edges) {
+	protected void coloured(N n, int c) {
+	}
+	
+	protected Iterable<? extends FastGraphEdge<N>> order(Set<? extends FastGraphEdge<N>> edges) {
 		return edges;
 	}
 
