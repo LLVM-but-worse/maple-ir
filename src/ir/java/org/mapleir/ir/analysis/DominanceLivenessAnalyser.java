@@ -8,6 +8,7 @@ import org.mapleir.ir.cfg.edge.FlowEdge;
 import org.mapleir.ir.locals.Local;
 import org.mapleir.stdlib.collections.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.bitset.GenericBitSet;
+import org.mapleir.stdlib.collections.graph.FastGraphEdge;
 import org.mapleir.stdlib.collections.graph.algorithms.ExtendedDfs;
 import org.mapleir.stdlib.collections.graph.algorithms.SimpleDfs;
 import org.mapleir.stdlib.collections.graph.algorithms.TarjanDominanceComputor;
@@ -93,10 +94,10 @@ public class DominanceLivenessAnalyser {
 		}
 	}
 
-	private ControlFlowGraph reduce(ControlFlowGraph cfg, Set<FlowEdge<BasicBlock>> back) {
+	private ControlFlowGraph reduce(ControlFlowGraph cfg, Set<FastGraphEdge<BasicBlock>> back) {
 		ControlFlowGraph reducedCfg = cfg.copy();
-		for (FlowEdge<BasicBlock> e : back) {
-			reducedCfg.removeEdge(e.src, e);
+		for (FastGraphEdge<BasicBlock> e : back) {
+			reducedCfg.removeEdge(e.src, (FlowEdge<BasicBlock>) e);
 			backTargets.add(e.dst);
 			backEdges.getNonNull(e.src).add(e.dst);
 		}
