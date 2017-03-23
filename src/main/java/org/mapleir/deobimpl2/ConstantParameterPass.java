@@ -41,7 +41,7 @@ public class ConstantParameterPass implements IPass, Opcode {
 	@Override
 	public int accept(IContext cxt, IPass prev, List<IPass> completed) {
 		Map<MethodNode, Set<MethodNode>> chainMap = new HashMap<>();
-		for(MethodNode mn : cxt.getCFGS().getActiveMethods()) {
+		for(MethodNode mn : cxt.getIRCache().getActiveMethods()) {
 			makeUpChain(cxt, mn, chainMap);
 		}
 		
@@ -215,7 +215,7 @@ public class ConstantParameterPass implements IPass, Opcode {
 				}
 			}
 			
-			ControlFlowGraph cfg = cxt.getCFGS().getIR(m);
+			ControlFlowGraph cfg = cxt.getIRCache().getFor(m);
 			
 			// boolean b = false;
 			
@@ -362,7 +362,7 @@ public class ConstantParameterPass implements IPass, Opcode {
 							throw new IllegalStateException(String.format("neq: %s vs %s for %s and %s", Arrays.toString(dead), Arrays.toString(deadM), n, key));
 						} */
 						
-						demoteDeadParamters(constAnalysis, cxt.getCFGS().getIR(n), n, dead);
+						demoteDeadParamters(constAnalysis, cxt.getIRCache().getFor(n), n, dead);
 						
 						for(Expr call : constAnalysis.getCallsTo(n)) {
 							/* since the callgrapher finds all

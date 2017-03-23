@@ -51,7 +51,7 @@ public class FieldRenamerPass implements IPass {
 		
 		for(ClassNode cn : source.iterate()) {
 			for(MethodNode m : cn.methods) {
-				ControlFlowGraph cfg = cxt.getCFGS().getIR(m);
+				ControlFlowGraph cfg = cxt.getIRCache().getFor(m);
 				
 				for(BasicBlock b : cfg.vertices()) {
 					for(Stmt stmt : b) {

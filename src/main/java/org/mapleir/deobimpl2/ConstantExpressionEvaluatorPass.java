@@ -71,7 +71,7 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 			for(ClassNode cn : cxt.getApplication().iterate()) {
 				for(MethodNode m : cn.methods) {
 					
-					ControlFlowGraph cfg = cxt.getCFGS().getIR(m);
+					ControlFlowGraph cfg = cxt.getIRCache().getFor(m);
 					LocalsPool pool = cfg.getLocals();
 					
 					for(BasicBlock b : new HashSet<>(cfg.vertices())) {

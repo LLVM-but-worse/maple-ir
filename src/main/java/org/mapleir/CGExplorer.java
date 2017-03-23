@@ -1,7 +1,7 @@
 package org.mapleir;
 
 import org.mapleir.deobimpl2.cxt.IContext;
-import org.mapleir.deobimpl2.cxt.MapleDB;
+import org.mapleir.deobimpl2.cxt.BasicContext;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.Expr;
 import org.mapleir.stdlib.app.ApplicationClassSource;
@@ -60,7 +60,7 @@ public class CGExplorer {
 		
 		InvocationResolver resolver = new InvocationResolver(app);
 		Map<MethodNode, ControlFlowGraph> cfgs = new HashMap<>();
-		IContext cxt = new MapleDB(app);
+		IContext cxt = new BasicContext(app);
 		
 		CallTracer tracer = new IRCallTracer(cxt) {
 			@Override

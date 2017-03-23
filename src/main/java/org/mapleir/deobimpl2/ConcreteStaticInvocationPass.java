@@ -29,7 +29,7 @@ public class ConcreteStaticInvocationPass implements IPass {
 		
 		for(ClassNode cn : cxt.getApplication().iterate()) {
 			for(MethodNode mn : cn.methods) {
-				ControlFlowGraph cfg = cxt.getCFGS().getIR(mn);
+				ControlFlowGraph cfg = cxt.getIRCache().getFor(mn);
 				
 				for(BasicBlock b : cfg.vertices()) {
 					for(Stmt stmt : b) {

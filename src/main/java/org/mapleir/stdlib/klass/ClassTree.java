@@ -28,6 +28,10 @@ public class ClassTree extends FastDirectedGraph<ClassNode, InheritanceEdge> {
 		this.source = source;
 		rootNode = findClass("java/lang/Object");
 //		unsupported = new HashSet<>();
+		
+		for (ClassNode node : source.iterateWithLibraries()) {
+			addVertex(node);
+		}
 	}
 	
 	public Iterable<ClassNode> iterateParents(ClassNode cn) {
