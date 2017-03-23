@@ -2,11 +2,11 @@ package org.mapleir;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.LinkedList;
-import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.jar.JarOutputStream;
@@ -17,20 +17,29 @@ import org.mapleir.deobimpl2.ConstantExpressionEvaluatorPass;
 import org.mapleir.deobimpl2.ConstantExpressionReorderPass;
 import org.mapleir.deobimpl2.DeadCodeEliminationPass;
 import org.mapleir.deobimpl2.MethodRenamerPass;
+import org.mapleir.deobimpl2.cxt.BasicContext;
 import org.mapleir.deobimpl2.cxt.IContext;
-import org.mapleir.deobimpl2.cxt.MapleDB;
+import org.mapleir.deobimpl2.cxt.IRCache;
 import org.mapleir.ir.ControlFlowGraphDumper;
 import org.mapleir.ir.cfg.BoissinotDestructor;
 import org.mapleir.ir.cfg.ControlFlowGraph;
-import org.mapleir.ir.code.Expr;
+import org.mapleir.ir.cfg.builder.ControlFlowGraphBuilder;
 import org.mapleir.stdlib.app.ApplicationClassSource;
 import org.mapleir.stdlib.app.InstalledRuntimeClassSource;
 import org.mapleir.stdlib.call.CallTracer;
+import org.mapleir.stdlib.collections.KeyedValueCreator;
 import org.mapleir.stdlib.deob.IPass;
 import org.mapleir.stdlib.deob.PassGroup;
-import org.objectweb.asm.ClassReader;
+import org.mapleir.stdlib.klass.InvocationResolver;
+import org.mapleir.t.A;
+import org.objectweb.asm.ClassWriter;
+import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.ClassNode;
+import org.objectweb.asm.tree.InsnList;
+import org.objectweb.asm.tree.InsnNode;
+import org.objectweb.asm.tree.MethodInsnNode;
 import org.objectweb.asm.tree.MethodNode;
+import org.objectweb.asm.tree.VarInsnNode;
 import org.topdank.byteengineer.commons.data.JarInfo;
 import org.topdank.byteio.in.SingleJarDownloader;
 import org.topdank.byteio.out.JarDumper;
@@ -40,73 +49,119 @@ public class Boot {
 	public static boolean logging = false;
 	private static long timer;
 	private static Deque<String> sections;
-	
-	public static interface I0 {
-	}
-	public static interface I1 extends I0 {
-	}
-	public static interface I3 {
-		I0 m(int i);
-	}
-	
-	public static interface I4 {
-		I1 m(int i);
-	}
-	
-	public static abstract class A implements I3, I4 {
-	}
-	
-	public static abstract class B extends A {
-		@Override
-		public I1 m(int i) {
-			return null;
-		}
-	}
-	
-	public static class I1Impl implements I1 {
-		final int i;
-		public I1Impl(int i) {
-			this.i = i;
-		}
 
-		@Override
-		public
-		String toString() {
-			return "hi " + i;
-		}
-	}
-	
-	public static class C extends A {
-		@Override
-		public I1 m(int i) {
-			return new I1Impl(i);
-		}
-	}
-	
 	void a(A a) {
 		System.out.println(a.m(0));
 	}
 	
-	public static void main(String[] args) throws Exception {
-		Class<?>[] cls = new Class<?>[]{I0.class, I1.class, I3.class, I4.class, A.class, B.class};
-		
-		List<ClassNode> classes = new ArrayList<>();
-		for(Class<?> c : cls) {
-			ClassReader cr = new ClassReader(c.getName());
-			ClassNode cn = new ClassNode();
-			cr.accept(cn, 0);
-			classes.add(cn);
+	public static void main5(String[] args) throws Exception {
+		ClassNode c1 = new ClassNode();
+		c1.access = Opcodes.ACC_PUBLIC | Opcodes.ACC_ABSTRACT;
+		c1.version = Opcodes.V1_7;
+		c1.name = "r/Test";
+		c1.superName = "java/lang/Object";
+
+		{
+			MethodNode m = new MethodNode(c1, Opcodes.ACC_PUBLIC | Opcodes.ACC_ABSTRACT, "m", "(I)Lorg/mapleir/t/I0;", null, null);
+			c1.methods.add(m);
+		}
+
+		{
+			MethodNode m = new MethodNode(c1, Opcodes.ACC_PUBLIC | Opcodes.ACC_ABSTRACT, "m", "(I)Lorg/mapleir/t/I1;", null, null);
+			c1.methods.add(m);
 		}
 		
-		ApplicationClassSource app = new ApplicationClassSource("test", classes);
-		InstalledRuntimeClassSource jre = new InstalledRuntimeClassSource(app);
-		app.addLibraries(jre);
+		{
+			MethodNode m = new MethodNode(c1, Opcodes.ACC_PUBLIC, "<init>", "()V", null, null);
+			InsnList list = new InsnList();
+			list.add(new VarInsnNode(Opcodes.ALOAD, 0));
+			list.add(new MethodInsnNode(Opcodes.INVOKESPECIAL, "java/lang/Object", "<init>", "()V", false));
+			list.add(new InsnNode(Opcodes.RETURN));
+			m.instructions = list;
+			c1.methods.add(m);
+		}
 		
-		IContext cxt = new MapleDB(app);
-		cxt.getInvocationResolver().resolveVirtualCalls("org/mapleir/Boot$B", "m", "(I)Lorg/mapleir/Boot$I0;", true);
+		ClassNode c2 = new ClassNode();
+		c2.access = Opcodes.ACC_PUBLIC;
+		c2.version = Opcodes.V1_7;
+		c2.name = "r/Test2";
+		c2.superName = "r/Test";
 		
+		{
+			MethodNode m = new MethodNode(c2, Opcodes.ACC_PUBLIC, "<init>", "()V", null, null);
+			InsnList list = new InsnList();
+			list.add(new VarInsnNode(Opcodes.ALOAD, 0));
+			list.add(new MethodInsnNode(Opcodes.INVOKESPECIAL, "r/Test", "<init>", "()V", false));
+			list.add(new InsnNode(Opcodes.RETURN));
+			m.instructions = list;
+			c2.methods.add(m);
+		}
+		
+		{
+			MethodNode m = new MethodNode(c2, Opcodes.ACC_PUBLIC, "m", "(I)Lorg/mapleir/t/I1;", null, null);
+			InsnList list = new InsnList();
+			list.add(new InsnNode(Opcodes.ACONST_NULL));
+			list.add(new InsnNode(Opcodes.ARETURN));
+			m.instructions = list;
+			c2.methods.add(m);
+		}
+		
+		{
+			MethodNode m = new MethodNode(c2, Opcodes.ACC_PUBLIC, "m", "(I)Lorg/mapleir/t/I0;", null, null);
+			InsnList list = new InsnList();
+			list.add(new InsnNode(Opcodes.ACONST_NULL));
+			list.add(new InsnNode(Opcodes.ARETURN));
+			m.instructions = list;
+			c2.methods.add(m);
+		}
+		
+		ClassLoader cl = new ClassLoader() {
+			{
+				{
+					ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES);
+					c1.accept(cw);
+					byte[] bs = cw.toByteArray();
+					defineClass(bs, 0, bs.length);
+				}
+				{
+					ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES);
+					c2.accept(cw);
+					byte[] bs = cw.toByteArray();
+					defineClass(bs, 0, bs.length);
+				}
+			}
+		};
+
+		System.out.println(cl.loadClass("r.Test"));
+		Object o = cl.loadClass("r.Test2").newInstance();
+		
+		for(Method m : o.getClass().getMethods()) {
+			if(m.getName().equals("m")) {
+				System.out.println(m.invoke(o, 5));
+			}
+		}
 	}
-	public static void main1(String[] args) throws Exception {
+	
+//	public static void main(String[] args) throws Exception {
+//		Class<?>[] cls = new Class<?>[]{I0.class, I1.class, I3.class, I4.class, A.class, B.class, C.class, I1Impl.class};
+//		
+//		List<ClassNode> classes = new ArrayList<>();
+//		for(Class<?> c : cls) {
+//			ClassReader cr = new ClassReader(c.getName());
+//			ClassNode cn = new ClassNode();
+//			cr.accept(cn, 0);
+//			classes.add(cn);
+//		}
+//		
+//		ApplicationClassSource app = new ApplicationClassSource("test", classes);
+//		InstalledRuntimeClassSource jre = new InstalledRuntimeClassSource(app);
+//		app.addLibraries(jre);
+//		
+//		IContext cxt = new MapleDB(app);
+//		System.out.println(cxt.getInvocationResolver().resolveVirtualCalls("org/mapleir/t/A", "m", "(I)Lorg/mapleir/t/I1;", true));
+//		
+//	}
+	public static void main(String[] args) throws Exception {
 		sections = new LinkedList<>();
 		logging = true;
 		/* if(args.length < 1) {
@@ -140,28 +195,55 @@ public class Boot {
 		app.addLibraries(jre);
 		section("Initialising context.");
 		
-		IContext cxt = new MapleDB(app);
+		IContext cxt = new BasicContext.BasicContextBuilder()
+				.setApplication(app)
+				.setInvocationResolver(new InvocationResolver(app))
+				.setCache(new IRCache(new KeyedValueCreator<MethodNode, ControlFlowGraph>() {
+					/*private void attemptLoadType(Type t) {
+						if(t.getSort() == Type.ARRAY) {
+							t = t.getElementType();
+						}
+						
+						if(TypeUtils.isPrimitive(t) || t == Type.VOID_TYPE) {
+							return;
+						}
+						
+						ClassNode n = app.findClassNode(t.getInternalName());
+						if(n != null) {
+							ClassTree tree = app.getStructures();
+							
+							if(!tree.containsVertex(n)) {
+								tree.addVertex(n);
+							}
+						}
+					}*/
+					
+					@Override
+					public ControlFlowGraph create(MethodNode m) {
+						/* lazy load types */
+						ControlFlowGraph cfg = ControlFlowGraphBuilder.build(m);
+						
+						/*for(BasicBlock b : cfg.vertices()) {
+							for(Stmt stmt : b) {
+								for(Expr e : stmt.enumerateOnlyChildren()) {
+									attemptLoadType(e.getType());
+								}
+							}
+						}*/
+						
+						return cfg;
+					}
+				}))
+				.build();
 		
 		section("Expanding callgraph and generating cfgs.");
 		
-		cxt.getInvocationResolver().resolveVirtualCalls("com/allatori/iiiIiIIiII", "IIiIiiIiII", "(Lcom/allatori/iiiiiIIIii;)Lcom/allatori/iIIiIiiIiI;", true);
-		
-		if("".equals("")) {
-			return;
-		}
-		
-		CallTracer tracer = new IRCallTracer(cxt) {
-			@Override
-			protected void processedInvocation(MethodNode caller, MethodNode callee, Expr call) {
-				/* the cfgs are generated by calling Icontext.getCFGS().getIR()
-				 * in IRCallTracer.traceImpl(). */
-			}
-		};
+		CallTracer tracer = new IRCallTracer(cxt);
 		for(MethodNode m : findEntries(app)) {
 			tracer.trace(m);
 		}
 		
-		section0("...generated " + cxt.getCFGS().size() + " cfgs in %fs.%n", "Preparing to transform.");
+		section0("...generated " + cxt.getIRCache().size() + " cfgs in %fs.%n", "Preparing to transform.");
 		
 		PassGroup masterGroup = new PassGroup("MasterController");
 		for(IPass p : getTransformationPasses()) {
@@ -170,7 +252,7 @@ public class Boot {
 		run(cxt, masterGroup);
 		
 		section("Retranslating SSA IR to standard flavour.");
-		for(Entry<MethodNode, ControlFlowGraph> e : cxt.getCFGS().entrySet()) {
+		for(Entry<MethodNode, ControlFlowGraph> e : cxt.getIRCache().entrySet()) {
 			MethodNode mn = e.getKey();
 			ControlFlowGraph cfg = e.getValue();
 			BoissinotDestructor.leaveSSA(cfg);

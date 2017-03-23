@@ -158,7 +158,7 @@ public class ClassRenamerPass implements IPass {
 				unsupported(m.invisibleLocalVariableAnnotations);
 				
 				
-				ControlFlowGraph cfg = cxt.getCFGS().getIR(m);
+				ControlFlowGraph cfg = cxt.getIRCache().getFor(m);
 				
 				for(BasicBlock b : cfg.vertices()) {
 					for(Stmt stmt : b) {

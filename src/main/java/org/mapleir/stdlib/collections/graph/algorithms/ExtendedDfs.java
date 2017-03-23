@@ -28,7 +28,7 @@ public class ExtendedDfs<N extends FastGraphVertex> implements DepthFirstSearch<
 	private final List<N> preorder;
 	private final List<N> postorder;
 	
-	public ExtendedDfs(FastDirectedGraph<N, ? extends FastGraphEdge<N>> graph, N entry, int opt) {
+	public ExtendedDfs(FastDirectedGraph<N, ? extends FastGraphEdge<N>> graph, int opt) {
 		this.opt = opt;
 		this.graph = graph;
 		colours = new NullPermeableHashMap<>(new KeyedValueCreator<N, Integer>() {
@@ -51,8 +51,11 @@ public class ExtendedDfs<N extends FastGraphVertex> implements DepthFirstSearch<
 		} else {
 			edges = null;
 		}
-		
+	}
+	
+	public ExtendedDfs<N> run(N entry) {
 		dfs(null, entry);
+		return this;
 	}
 	
 	public int getColour(N b) {

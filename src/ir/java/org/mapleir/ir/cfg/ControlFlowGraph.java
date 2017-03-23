@@ -97,12 +97,12 @@ public class ControlFlowGraph extends FastBlockGraph {
 		sw.print("\n");
 	}
 
+	public LocalsPool getLocals() {
+		return locals;
+	}
+
 	@Override
 	public ControlFlowGraph copy() {
 		return new ControlFlowGraph(this);
-	}
-
-	public LocalsPool getLocals() {
-		return locals;
 	}
 }
