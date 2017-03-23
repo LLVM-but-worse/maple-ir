@@ -4,16 +4,10 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.lang.reflect.Modifier;
-import java.util.Collection;
-import java.util.Deque;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.Set;
 
 import org.mapleir.stdlib.app.ApplicationClassSource;
-import org.mapleir.stdlib.collections.NullPermeableHashMap;
-import org.mapleir.stdlib.collections.SetCreator;
-import org.mapleir.stdlib.collections.graph.algorithms.ExtendedDfs;
 import org.mapleir.stdlib.util.TypeUtils;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Opcodes;
@@ -140,7 +134,7 @@ public class InvocationResolver {
 		}
 	}
 	
-	private MethodNode findDerivativeMethod(ClassNode cn, String name, String desc, boolean congruentReturn, boolean allowAbstract) {
+	private MethodNode findMethod(ClassNode cn, String name, String desc, boolean congruentReturn, boolean allowAbstract) {
 		MethodNode findM = null;
 
 		for(MethodNode m : cn.methods) {
@@ -167,7 +161,7 @@ public class InvocationResolver {
 							
 						}
 						
-						throw new IllegalStateException(String.format("%s contains %s and %s", cn.name, findM, m));
+						throw new IllegalStateException(String.format("%s contains %s(br=%b) and %s(br=%b)", cn.name, findM, m, (findM.access & Opcodes.ACC_BRIDGE) != 0, (m.access & Opcodes.ACC_BRIDGE) != 0));
 					}
 					
 					findM = m;
@@ -178,13 +172,29 @@ public class InvocationResolver {
 		return findM;
 	}
 
-	public MethodNode findClassMethod(ClassNode cn, String name, String desc, boolean congruentReturn, boolean allowAbstract) {
+	public Set<MethodNode> findCongruentMethods(ClassNode cn, String name, String desc, boolean allowAbstract) {
+		Set<MethodNode> res = new HashSet<>();
+		for(MethodNode m : cn.methods) {
+			if(!Modifier.isStatic(m.access) && (allowAbstract || !Modifier.isAbstract(m.access))) {
+				if(m.name.equals(name) && (m.desc.equals(desc) || isCongruent(desc, m.desc))) {
+					res.add(m);
+				}
+			}
+		}
+		return res;
+	}
+	
+	public MethodNode findExactClassMethod(ClassNode cn, String name, String desc, boolean allowAbstract) {
+		return findMethod(cn, name, desc, false, allowAbstract);
+	}
+	
+	public Set<MethodNode> findRelatedClassMethods(ClassNode cn, String name, String desc, boolean rootwards) {
 		/* find exact method first */
-		MethodNode m = findDerivativeMethod(cn, name, desc, false, allowAbstract);
+		MethodNode m = findMethod(cn, name, desc, false, allowAbstract);
 		if(m != null) {
 			return m;
 		} else if(congruentReturn) {
-			m = findDerivativeMethod(cn, name, desc, true, allowAbstract);
+			m = findMethod(cn, name, desc, true, allowAbstract);
 		}
 		
 		return m;
@@ -235,7 +245,7 @@ public class InvocationResolver {
 			MethodNode m;
 			
 			if(name.equals("<init>")) {
-				m = findClassMethod(cn, name, desc, false, false);
+				m = findExactClassMethod(cn, name, desc, false);
 				
 				if(m == null) {
 					if(strict) {
@@ -247,91 +257,12 @@ public class InvocationResolver {
 				return set;
 			}
 			
-			{
-				Collection<ClassNode> supers = app.getStructures().getAllParents(cn);
-				System.out.println(supers);
-				System.out.println(" size: " + supers.size());
+			for(ClassNode c : app.getStructures().getAllChildren(cn)) {
+				m = findExactClassMethod(c, name, desc, true);
 				
-				Set<MethodNode> heads = new HashSet<>();
-				NullPermeableHashMap<ClassNode, Set<ClassNode>> closestParents = new NullPermeableHashMap<>(new SetCreator<>());
-				Deque<ClassNode> stack = new LinkedList<>();
-				
-				new ExtendedDfs<ClassNode>(app.getStructures(), cn, 0) {
-					@Override
-					protected void dfs(ClassNode par, ClassNode cn) {
-						/* enter */
-						stack.push(cn);
-						
-						MethodNode mn = findClassMethod(cn, name, desc, false, true);
-						
-						if(mn != null) {
-							heads.add(mn);
-							
-							/* push current node off the stack
-							 * as it's not selfparented and 
-							 * we're done with the branch. */
-							stack.pop();
-							
-							for(ClassNode c : stack) {
-								closestParents.getNonNull(c).add(cn);
-							}
-						} else {
-							/* not here, search supers */
-							super.dfs(par, cn);
-							if(stack.peekFirst() != cn) {
-								throw new RuntimeException(cn + " : " + stack.peek());
-							} else {
-								/* done branch naturally */
-								stack.pop();
-							}
-						}
-					}
-				};
-				
-				for(MethodNode mn : heads) {
-					Deque<ClassNode> rtypes = new LinkedList<>();
-					Type retType = Type.getReturnType(mn.desc);
-					
-					if(!TypeUtils.isPrimitive(retType) && !mn.desc.endsWith("V")) {
-						ClassNode retClass = app.findClassNode(retType.getInternalName());
-						Set<ClassNode> retClasses = new HashSet<>(app.getStructures().getAllChildren(retClass));
-						retClasses.add(retClass);
-						
-						System.out.println("m: " + mn);
-						System.out.println("  classes: " + retClasses);
-						new ExtendedDfs<ClassNode>(app.getStructures(), mn.owner, ExtendedDfs.REVERSE) {
-							@Override
-							protected void dfs(ClassNode par, ClassNode cn) {
-								if(cn != mn.owner) {
-									System.out.println("c: "+ cn);
-								}
-								super.dfs(par, cn);
-							}
-						};
-					}
+				if(m != null) {
+					set.add(m);
 				}
-			}
-			
-			Collection<ClassNode> ch = app.getStructures().getAllChildren(cn);
-			if(!ch.contains(cn)) {
-				ch.add(cn);
-			}
-			// TODO: Use existing SimpleDFS code
-			try {
-				for(ClassNode c : ch) {
-					m = findClassMethod(c, name, desc, true, false);
-					
-					if(m != null) {
-						set.add(m);
-					}
-				}
-			} catch(RuntimeException e) {
-				System.err.println("call:");
-				System.err.println(owner);
-				System.err.println(name);
-				System.err.println(desc);
-				System.err.println(strict);
-				throw e;
 			}
 			
 			m = null;
@@ -345,14 +276,22 @@ public class InvocationResolver {
 				
 				Set<MethodNode> lvlSites = new HashSet<>();
 				for(ClassNode c : lvl) {
-					m = findClassMethod(c, name, desc, false, false);
+					m = findExactClassMethod(c, name, desc, true);
 					if(m != null) {
 						lvlSites.add(m);
 					}
 				}
 				
 				if(lvlSites.size() > 1 && strict) {
-					System.out.printf("(warn) resolved %s.%s %s to %s.%n", owner, name, desc, lvlSites);
+					int c = 0;
+					for(MethodNode mn : lvlSites) {
+						if(!Modifier.isAbstract(mn.access)) {
+							c++;
+						}
+					}
+					if(c > 1) {
+						System.out.printf("(warn) resolved %s.%s %s to %s (c=%d).%n", owner, name, desc, lvlSites, c);
+					}
 				}
 				
 				/* we've found the method in the current
@@ -365,7 +304,6 @@ public class InvocationResolver {
 					break;
 				}
 				
-				// TODO: use queues here instead.
 				Set<ClassNode> newLvl = new HashSet<>();
 				for(ClassNode c : lvl) {
 					ClassNode sup = app.findClassNode(c.superName);

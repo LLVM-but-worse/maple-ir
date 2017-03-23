@@ -36,7 +36,7 @@ public class DominanceLivenessAnalyser {
 		tq = new NullPermeableHashMap<>(cfg);
 		sdoms = new NullPermeableHashMap<>(cfg);
 
-		dfs = new ExtendedDfs<>(cfg, entry, ExtendedDfs.EDGES);
+		dfs = new ExtendedDfs<>(cfg, ExtendedDfs.EDGES).run(entry);
 		backEdges = new NullPermeableHashMap<>(cfg);
 		backTargets = cfg.createBitSet();
 		reducedCfg = reduce(cfg, dfs.getEdges(ExtendedDfs.BACK));

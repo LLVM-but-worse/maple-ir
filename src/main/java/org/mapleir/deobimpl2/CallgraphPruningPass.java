@@ -18,7 +18,7 @@ public class CallgraphPruningPass implements IPass {
 	
 	@Override
 	public int accept(IContext cxt, IPass prev, List<IPass> completed) {
-		Set<MethodNode> active = cxt.getCFGS().getActiveMethods();
+		Set<MethodNode> active = cxt.getIRCache().getActiveMethods();
 		
 		int i = 0;
 		

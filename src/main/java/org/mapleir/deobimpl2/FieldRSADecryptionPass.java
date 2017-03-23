@@ -96,8 +96,8 @@ public class FieldRSADecryptionPass implements IPass, Opcode {
 	public int accept(IContext cxt, IPass prev, List<IPass> completed) {
 		this.cxt = cxt;
 		
-		for(MethodNode m : cxt.getCFGS().getActiveMethods()) {
-			ControlFlowGraph cfg = cxt.getCFGS().getIR(m);
+		for(MethodNode m : cxt.getIRCache().getActiveMethods()) {
+			ControlFlowGraph cfg = cxt.getIRCache().getFor(m);
 
 			for(BasicBlock b : cfg.vertices()) {
 				for(Stmt stmt : b) {
@@ -243,7 +243,7 @@ public class FieldRSADecryptionPass implements IPass, Opcode {
 	private void transform(IContext cxt) {
 		for(ClassNode cn : cxt.getApplication().iterate()) {
 			for(MethodNode m : cn.methods) {
-				ControlFlowGraph cfg = cxt.getCFGS().getIR(m);
+				ControlFlowGraph cfg = cxt.getIRCache().getFor(m);
 				
 				for(BasicBlock b : cfg.vertices()) {
 					for(Stmt stmt : b) {
