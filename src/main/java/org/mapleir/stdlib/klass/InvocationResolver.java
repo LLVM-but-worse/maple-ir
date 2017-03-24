@@ -25,31 +25,175 @@ public class InvocationResolver {
 		this.app = app;
 	}
 	
-	public static Set<MethodNode> getHierarchyMethodChain(IContext cxt, ClassNode cn, String name, String desc, boolean verify) {
-		ApplicationClassSource app = cxt.getApplication();
-		ClassTree structures = app.getStructures();
-		InvocationResolver resolver = cxt.getInvocationResolver();
+	private boolean areTypesCongruent(Type expected, Type actual) {
+		if (expected.equals(actual))
+			return true;
 		
-		Set<MethodNode> foundMethods = new HashSet<>();
-		Collection<ClassNode> toSearch = structures.getAllBranches(cn);
-		for (ClassNode viable : toSearch) {
-			MethodNode found = resolver.findMethod(viable, name, desc, true, true);
-			if (found != null) {
-				foundMethods.add(found);
-			}
+		boolean eArr = expected.getSort() == Type.ARRAY;
+		boolean aArr = actual.getSort() == Type.ARRAY;
+		if(eArr != aArr) {
+			return false;
 		}
-		if (verify && foundMethods.isEmpty()) {
-			System.err.println("cn: " + cn);
-			System.err.println("name: " + name);
-			System.err.println("desc: " + desc);
-			System.err.println("Searched: " + toSearch);
-			System.err.println("Children: " + structures.getAllChildren(cn));
-			System.err.println("Parents: " + structures.getAllParents(cn));
-			throw new IllegalArgumentException("You must be really dense because that method doesn't even exist.");
+		
+		if(eArr) {
+			expected = expected.getElementType();
+			actual = actual.getElementType();
 		}
-		return foundMethods;
+		
+		if(TypeUtils.isPrimitive(expected) || TypeUtils.isPrimitive(actual)) {
+			return false;
+		}
+		if(expected == Type.VOID_TYPE || actual == Type.VOID_TYPE) {
+			return false;
+		}
+		
+		ClassNode eCn = app.findClassNode(expected.getInternalName());
+		ClassNode aCn = app.findClassNode(actual.getInternalName());
+		
+		return app.getStructures().getAllParents(aCn).contains(eCn);
 	}
 	
+	private boolean doArgumentsMatch(String expected, String actual) {
+		Type[] eParams = Type.getArgumentTypes(expected);
+		Type[] aParams = Type.getArgumentTypes(actual);
+		
+		if(eParams.length != aParams.length) {
+			return false;
+		}
+		
+		for(int i=0; i < eParams.length; i++) {
+			Type e = eParams[i];
+			Type a = aParams[i];
+			
+			if(!e.equals(a)) {
+				return false;
+			}
+		}
+		return true;
+	}
+	
+	private boolean areReturnTypesCongruent(String a, String b) {
+		return areTypesCongruent(Type.getReturnType(a), Type.getReturnType(b));
+	}
+	
+	private boolean areDescsCongruent(String a, String b) {
+		return doArgumentsMatch(a, b) && areReturnTypesCongruent(a, b);
+	}
+	
+	public boolean isVirtualDerivative(MethodNode candidate, String name, String desc) {
+		return candidate.name.equals(name) && areDescsCongruent(desc, candidate.desc);
+	}
+	
+	public boolean areMethodsCongruent(MethodNode candidate, String name, String desc, boolean isStatic) {
+		if(Modifier.isStatic(candidate.access) != isStatic) {
+			return false;
+		}
+		
+		if(isStatic) {
+			return candidate.name.equals(name) && candidate.desc.equals(desc);
+		} else {
+			return isVirtualDerivative(candidate, name, desc);
+		}
+	}
+	
+	public boolean areMethodsCongruent(MethodNode candidate, MethodNode target, boolean isStatic) {
+		return areMethodsCongruent(candidate, target.name, target.desc, isStatic);
+	}
+	
+	public static boolean isBridge(int access) {
+		return (access & Opcodes.ACC_BRIDGE) != 0;
+	}
+	
+	private static int ANY_TYPES = 0;
+	private static int CONGRUENT_TYPES = 1;
+	private static int EXACT_TYPES = 2;
+	
+	private static int VIRTUAL_METHOD = ~Modifier.STATIC & ~Modifier.ABSTRACT & ~Opcodes.ACC_BRIDGE;
+	
+	private void debugCong(String expected, String actual) {
+		Type eR = Type.getReturnType(expected);
+		Type aR = Type.getReturnType(actual);
+		
+		System.err.println("eR: " + eR);
+		System.err.println("aR: " + aR);
+		System.err.println("eq: " + (eR == aR));
+
+		ClassNode eCn = app.findClassNode(eR.getInternalName());
+		ClassNode aCn = app.findClassNode(aR.getInternalName());
+		
+		System.err.println("eCn: " + eCn.name);
+		System.err.println("aCn: " + aCn.name);
+		System.err.println(app.getStructures().getAllParents(aCn));
+		System.err.println("eCn parent of aCn?: " + app.getStructures().getAllParents(aCn).contains(eCn));
+		System.err.println("aCn child of eCn?: " + app.getStructures().getAllChildren(eCn).contains(aCn));
+	}
+	
+	/**
+	 * Finds methods in cn matching name and desc.
+	 * @param cn
+	 * @param name
+	 * @param desc
+	 * @param returnTypes One of ANY_TYPES, CONGRUENT_TYPES, or EXACT_TYPES
+	 * @param mask Mask of allowed attributes for modifiers; bit 1 = allowed, 0 = not allowed
+	 * @return
+	 */
+	private Set<MethodNode> findMethod(ClassNode cn, String name, String desc, int returnTypes, int mask) {
+		Set<MethodNode> findM = new HashSet<>();
+
+		for(MethodNode m : cn.methods) {
+			if(((m.access ^ mask) & m.access) == 0) { // no bits set in m.access that aren't in flags
+				assert(!Modifier.isStatic(m.access));
+				if (Modifier.isStatic(m.access))
+					throw new IllegalStateException("B0i");
+				if ((mask & Modifier.ABSTRACT) == 0 && Modifier.isAbstract(m.access))
+					throw new IllegalStateException("B0i");
+				if ((mask & Opcodes.ACC_BRIDGE) == 0 && (m.access & Opcodes.ACC_BRIDGE) != 0)
+					throw new IllegalStateException("B0i");
+
+				if (!m.name.equals(name))
+					continue;
+				if (!doArgumentsMatch(desc, m.desc))
+					continue;
+				if (returnTypes == CONGRUENT_TYPES) {
+					if (!areReturnTypesCongruent(desc, m.desc))
+						continue;
+				} else if (returnTypes == EXACT_TYPES) {
+					if (!desc.equals(m.desc))
+						continue;
+				}
+				
+				// sanity check
+				if (returnTypes == EXACT_TYPES && !isBridge(mask) && !findM.isEmpty()) {
+					System.err.println("==findM==");
+					debugCong(desc, findM.iterator().next().desc);
+					System.err.println("==m==");
+					debugCong(desc, m.desc);
+					
+					{
+						ClassWriter cw = new ClassWriter(0);
+						cn.accept(cw);
+						byte[] bs = cw.toByteArray();
+						
+						try {
+							FileOutputStream fos = new FileOutputStream(new File("out/broken.class"));
+							fos.write(bs);
+							fos.close();
+						} catch (IOException e) {
+							e.printStackTrace();
+						}
+						
+					}
+					
+					throw new IllegalStateException(String.format("%s contains %s(br=%b) and %s(br=%b)", cn.name, findM, isBridge(findM.iterator().next().access), m, isBridge(m.access)));
+				}
+				findM.add(m);
+			}
+		}
+		
+		return findM;
+	}
+	
+	// todo: refactor to just proxy to findExactClassMethod
 	public MethodNode resolveVirtualInitCall(String owner, String desc) {
 		Set<MethodNode> set = new HashSet<>();
 		
@@ -74,166 +218,9 @@ public class InvocationResolver {
 		}
 	}
 	
-	private boolean checkOveride(Type expected, Type actual) {
-		boolean eArr = expected.getSort() == Type.ARRAY;
-		boolean aArr = actual.getSort() == Type.ARRAY;
-		if(eArr != aArr) {
-			return false;
-		}
-		
-		if(eArr) {
-			expected = expected.getElementType();
-			actual = actual.getElementType();
-		}
-		
-		if(TypeUtils.isPrimitive(expected) || TypeUtils.isPrimitive(actual)) {
-			return false;
-		}
-		if(expected == Type.VOID_TYPE || actual == Type.VOID_TYPE) {
-			return false;
-		}
-		
-		ClassNode eCn = app.findClassNode(expected.getInternalName());
-		ClassNode aCn = app.findClassNode(actual.getInternalName());
-		
-		return app.getStructures().getAllParents(aCn).contains(eCn);
-	}
-
-	
-	private void debugCong(String expected, String actual) {
-		Type eR = Type.getReturnType(expected);
-		Type aR = Type.getReturnType(actual);
-		
-		System.err.println("eR: " + eR);
-		System.err.println("aR: " + aR);
-		System.err.println("eq: " + (eR == aR));
-
-		ClassNode eCn = app.findClassNode(eR.getInternalName());
-		ClassNode aCn = app.findClassNode(aR.getInternalName());
-		
-		System.err.println("eCn: " + eCn.name);
-		System.err.println("aCn: " + aCn.name);
-		System.err.println(app.getStructures().getAllParents(aCn));
-		System.err.println("eCn parent of aCn?: " + app.getStructures().getAllParents(aCn).contains(eCn));
-		System.err.println("aCn child of eCn?: " + app.getStructures().getAllChildren(eCn).contains(aCn));
-	}
-	
-	private boolean doArgumentsMatch(String expected, String actual) {
-		Type[] eParams = Type.getArgumentTypes(expected);
-		Type[] aParams = Type.getArgumentTypes(actual);
-		
-		if(eParams.length != aParams.length) {
-			return false;
-		}
-		
-		for(int i=0; i < eParams.length; i++) {
-			Type e = eParams[i];
-			Type a = aParams[i];
-			
-			if(!e.equals(a)) {
-				return false;
-			}
-		}
-		return true;
-	}
-	
-	private boolean isCongruent(String expected, String actual) {
-		if (!doArgumentsMatch(expected, actual))
-			return false;
-		Type eR = Type.getReturnType(expected);
-		Type aR = Type.getReturnType(actual);
-		
-		return eR.equals(aR) || checkOveride(eR, aR);
-	}
-	
-	public boolean isVirtualDerivative(MethodNode candidate, String name, String desc) {
-		return candidate.name.equals(name) && isCongruent(desc, candidate.desc);
-	}
-	
-	public boolean isStrictlyEqual(MethodNode candidate, MethodNode target, boolean isStatic) {
-		return isStrictlyEqual(candidate, target.name, target.desc, isStatic);
-	}
-	
-	public boolean isStrictlyEqual(MethodNode candidate, String name, String desc, boolean isStatic) {
-		if(Modifier.isStatic(candidate.access) != isStatic) {
-			return false;
-		}
-		
-		if(isStatic) {
-			return candidate.name.equals(name) && candidate.desc.equals(desc);
-		} else {
-			return isVirtualDerivative(candidate, name, desc);
-		}
-	}
-	
-	public MethodNode findMethodWithParams(ClassNode cn, String name, String desc, boolean allowAbstract) {
-		for(MethodNode m : cn.methods) {
-			if(!Modifier.isStatic(m.access) && (allowAbstract || !Modifier.isAbstract(m.access))) {
-				if(m.name.equals(name) && doArgumentsMatch(m.desc, desc)) {
-					return m;
-				}
-			}
-		}
-		return null;
-	}
-	
-	private MethodNode findMethod(ClassNode cn, String name, String desc, boolean congruentReturn, boolean allowAbstract) {
-		MethodNode findM = null;
-
-		for(MethodNode m : cn.methods) {
-			if(!Modifier.isStatic(m.access) && (allowAbstract || !Modifier.isAbstract(m.access))) {
-				if(m.name.equals(name) && (congruentReturn ? isCongruent(desc, m.desc) : m.desc.equals(desc))) {
-					if(findM != null) {
-//						System.err.println("==findM==");
-//						debugCong(desc, findM.desc);
-//						System.err.println("==m==");
-//						debugCong(desc, m.desc);
-//
-//						{
-//							ClassWriter cw = new ClassWriter(0);
-//							cn.accept(cw);
-//							byte[] bs = cw.toByteArray();
-//
-//							try {
-//								FileOutputStream fos = new FileOutputStream(new File("out/broken.class"));
-//								fos.write(bs);
-//								fos.close();
-//							} catch (IOException e) {
-//								e.printStackTrace();
-//							}
-//
-//						}
-//
-						// idk
-//						throw new IllegalStateException(String.format("%s contains %s(br=%b) and %s(br=%b)", cn.name, findM, m, (findM.access & Opcodes.ACC_BRIDGE) != 0, (m.access & Opcodes.ACC_BRIDGE) != 0));
-					}
-					
-					findM = m;
-				}
-			}
-		}
-		
-		return findM;
-	}
-
-	public Set<MethodNode> findCongruentMethods(ClassNode cn, String name, String desc, boolean allowAbstract) {
-		Set<MethodNode> res = new HashSet<>();
-		for(MethodNode m : cn.methods) {
-			if(!Modifier.isStatic(m.access) && (allowAbstract || !Modifier.isAbstract(m.access))) {
-				if(m.name.equals(name) && (m.desc.equals(desc) || isCongruent(desc, m.desc))) {
-					res.add(m);
-				}
-			}
-		}
-		return res;
-	}
-	
 	public MethodNode findExactClassMethod(ClassNode cn, String name, String desc, boolean allowAbstract) {
-		return findMethod(cn, name, desc, false, allowAbstract);
-	}
-
-	public Set<MethodNode> resolveVirtualCalls(MethodNode m, boolean strict) {
-		return resolveVirtualCalls(m.owner.name, m.name, m.desc, strict);
+		Set<MethodNode> found = findMethod(cn, name, desc, EXACT_TYPES, VIRTUAL_METHOD | (allowAbstract ? Modifier.ABSTRACT : 0));
+		return found.isEmpty() ? null : found.iterator().next();
 	}
 	
 	public Set<MethodNode> resolveVirtualCalls(String owner, String name, String desc, boolean strict) {
@@ -359,10 +346,15 @@ public class InvocationResolver {
 		return set;
 	}
 	
-	public MethodNode findStaticCall(String owner, String name, String desc) {
+	public Set<MethodNode> resolveVirtualCalls(MethodNode m, boolean strict) {
+		return resolveVirtualCalls(m.owner.name, m.name, m.desc, strict);
+	}
+	
+	public MethodNode resolveStaticCall(String owner, String name, String desc) {
 		ClassNode cn = app.findClassNode(owner);
 		MethodNode mn = null;
 		if(cn != null) {
+			// todo: replace with findMethod
 			for(MethodNode m : cn.methods) {
 				if((m.access & Opcodes.ACC_STATIC) != 0) {
 					if(m.name.equals(name) && m.desc.equals(desc)) {
@@ -373,12 +365,34 @@ public class InvocationResolver {
 				}
 			}
 			if(mn == null) {
-				return findStaticCall(cn.superName, name, desc);
+				return resolveStaticCall(cn.superName, name, desc);
 			} else {
 				return mn;
 			}
 		} else {
 			return null;
 		}
+	}
+	
+	public static Set<MethodNode> getHierarchyMethodChain(IContext cxt, ClassNode cn, String name, String desc, boolean verify) {
+		ApplicationClassSource app = cxt.getApplication();
+		ClassTree structures = app.getStructures();
+		InvocationResolver resolver = cxt.getInvocationResolver();
+		
+		Set<MethodNode> foundMethods = new HashSet<>();
+		Collection<ClassNode> toSearch = structures.getAllBranches(cn);
+		for (ClassNode viable : toSearch) {
+			foundMethods.addAll(resolver.findMethod(viable, name, desc, EXACT_TYPES, VIRTUAL_METHOD | Modifier.ABSTRACT | Opcodes.ACC_BRIDGE));
+		}
+		if (verify && foundMethods.isEmpty()) {
+			System.err.println("cn: " + cn);
+			System.err.println("name: " + name);
+			System.err.println("desc: " + desc);
+			System.err.println("Searched: " + toSearch);
+			System.err.println("Children: " + structures.getAllChildren(cn));
+			System.err.println("Parents: " + structures.getAllParents(cn));
+			throw new IllegalArgumentException("You must be really dense because that method doesn't even exist.");
+		}
+		return foundMethods;
 	}
 }
