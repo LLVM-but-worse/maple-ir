@@ -33,7 +33,7 @@ public class InvocationResolver {
 		Set<MethodNode> foundMethods = new HashSet<>();
 		Collection<ClassNode> toSearch = structures.getAllBranches(cn);
 		for (ClassNode viable : toSearch) {
-			MethodNode found = resolver.findMethodWithParams(viable, name, desc, true);
+			MethodNode found = resolver.findMethod(viable, name, desc, true, true);
 			if (found != null) {
 				foundMethods.add(found);
 			}
@@ -184,27 +184,28 @@ public class InvocationResolver {
 			if(!Modifier.isStatic(m.access) && (allowAbstract || !Modifier.isAbstract(m.access))) {
 				if(m.name.equals(name) && (congruentReturn ? isCongruent(desc, m.desc) : m.desc.equals(desc))) {
 					if(findM != null) {
-						System.err.println("==findM==");
-						debugCong(desc, findM.desc);
-						System.err.println("==m==");
-						debugCong(desc, m.desc);
-						
-						{
-							ClassWriter cw = new ClassWriter(0);
-							cn.accept(cw);
-							byte[] bs = cw.toByteArray();
-							
-							try {
-								FileOutputStream fos = new FileOutputStream(new File("out/broken.class"));
-								fos.write(bs);
-								fos.close();
-							} catch (IOException e) {
-								e.printStackTrace();
-							}
-							
-						}
-						
-						throw new IllegalStateException(String.format("%s contains %s(br=%b) and %s(br=%b)", cn.name, findM, m, (findM.access & Opcodes.ACC_BRIDGE) != 0, (m.access & Opcodes.ACC_BRIDGE) != 0));
+//						System.err.println("==findM==");
+//						debugCong(desc, findM.desc);
+//						System.err.println("==m==");
+//						debugCong(desc, m.desc);
+//
+//						{
+//							ClassWriter cw = new ClassWriter(0);
+//							cn.accept(cw);
+//							byte[] bs = cw.toByteArray();
+//
+//							try {
+//								FileOutputStream fos = new FileOutputStream(new File("out/broken.class"));
+//								fos.write(bs);
+//								fos.close();
+//							} catch (IOException e) {
+//								e.printStackTrace();
+//							}
+//
+//						}
+//
+						// idk
+//						throw new IllegalStateException(String.format("%s contains %s(br=%b) and %s(br=%b)", cn.name, findM, m, (findM.access & Opcodes.ACC_BRIDGE) != 0, (m.access & Opcodes.ACC_BRIDGE) != 0));
 					}
 					
 					findM = m;

@@ -69,7 +69,7 @@ public class MethodRenamerPass implements IPass {
 							for(MethodNode o : methods) {
 								
 								boooooooooool = o.toString().equals("unu.IIiIiiIiII(Lpvg;)Lunu;");
-								Set<MethodNode> s2 = InvocationResolver.getHierarchyMethodChain(cxt, o.owner, o.name, o.desc, true);
+								Set<MethodNode> s2 = InvocationResolver.getHierarchyMethodChain(cxt, o.owner, o.name, m.desc, true);
 								boooooooooool = false;
 								
 								if(!methods.equals(s2)) {
@@ -86,24 +86,24 @@ public class MethodRenamerPass implements IPass {
 									throw new IllegalStateException();
 								}
 								
-								if(remapped.containsKey(o)) {
-									System.err.printf("m: %s%n", m);
-									System.err.printf("o: %s%n", o);
-									System.err.println("this ms::");
-									for(MethodNode s : methods) {
-										System.err.printf("   %s%n", s);
-									}
-									System.err.println("o ms::");
-									for(MethodNode s : InvocationResolver.getHierarchyMethodChain(cxt, o.owner, o.name, o.desc, true)) {
-										System.err.printf("   %s%n", s);
-									}
-									System.err.println(" o debugset::");
-									for(MethodNode s : debugMap.get(o)) {
-										System.err.printf("   %s%n", s);
-									}
-									System.err.printf("on: %s%n", remapped.get(o));
-									System.err.printf("nn: %s%n", newName);
-									throw new IllegalStateException();
+								if(remapped.containsKey(o)) { // technically speaking, this is possible if we're doing congruent returns.
+//									System.err.printf("m: %s%n", m);
+//									System.err.printf("o: %s%n", o);
+//									System.err.println("this ms::");
+//									for(MethodNode s : methods) {
+//										System.err.printf("   %s%n", s);
+//									}
+//									System.err.println("o ms::");
+//									for(MethodNode s : InvocationResolver.getHierarchyMethodChain(cxt, o.owner, o.name, m.desc, true)) {
+//										System.err.printf("   %s%n", s);
+//									}
+//									System.err.println(" o debugset::");
+//									for(MethodNode s : debugMap.get(o)) {
+//										System.err.printf("   %s%n", s);
+//									}
+//									System.err.printf("on: %s%n", remapped.get(o));
+//									System.err.printf("nn: %s%n", newName);
+//									throw new IllegalStateException();
 								}
 								remapped.put(o, newName);
 							}
