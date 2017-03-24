@@ -33,7 +33,7 @@ public class InvocationResolver {
 		Set<MethodNode> foundMethods = new HashSet<>();
 		Collection<ClassNode> toSearch = structures.getAllBranches(cn);
 		for (ClassNode viable : toSearch) {
-			MethodNode found = resolver.findMethod(viable, name, desc, true, true);
+			MethodNode found = resolver.findMethodWithParams(viable, name, desc, true);
 			if (found != null) {
 				foundMethods.add(found);
 			}
@@ -118,7 +118,7 @@ public class InvocationResolver {
 		System.err.println("aCn child of eCn?: " + app.getStructures().getAllChildren(eCn).contains(aCn));
 	}
 	
-	private boolean isCongruent(String expected, String actual) {
+	private boolean doArgumentsMatch(String expected, String actual) {
 		Type[] eParams = Type.getArgumentTypes(expected);
 		Type[] aParams = Type.getArgumentTypes(actual);
 		
@@ -134,7 +134,12 @@ public class InvocationResolver {
 				return false;
 			}
 		}
-		
+		return true;
+	}
+	
+	private boolean isCongruent(String expected, String actual) {
+		if (!doArgumentsMatch(expected, actual))
+			return false;
 		Type eR = Type.getReturnType(expected);
 		Type aR = Type.getReturnType(actual);
 		
@@ -159,6 +164,17 @@ public class InvocationResolver {
 		} else {
 			return isVirtualDerivative(candidate, name, desc);
 		}
+	}
+	
+	public MethodNode findMethodWithParams(ClassNode cn, String name, String desc, boolean allowAbstract) {
+		for(MethodNode m : cn.methods) {
+			if(!Modifier.isStatic(m.access) && (allowAbstract || !Modifier.isAbstract(m.access))) {
+				if(m.name.equals(name) && doArgumentsMatch(m.desc, desc)) {
+					return m;
+				}
+			}
+		}
+		return null;
 	}
 	
 	private MethodNode findMethod(ClassNode cn, String name, String desc, boolean congruentReturn, boolean allowAbstract) {
