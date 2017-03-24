@@ -160,7 +160,7 @@ public class ConstantParameterPass implements IPass, Opcode {
 			superFor: for(ClassNode cn : structures.getAllParents(m.owner)) {
 				if(app.isLibraryClass(cn.name)) {
 					for(MethodNode m1 : cn.methods) {
-						if(resolver.isStrictlyEqual(m1, m, Modifier.isStatic(m.access))) {
+						if(resolver.areMethodsCongruent(m1, m, Modifier.isStatic(m.access))) {
 							it.remove();
 							break superFor;
 						}
@@ -273,7 +273,7 @@ public class ConstantParameterPass implements IPass, Opcode {
 					remap.put(chm, desc);
 					
 					if(Modifier.isStatic(m.access)) {
-						MethodNode mm = resolver.findStaticCall(chm.owner.name, chm.name, desc);
+						MethodNode mm = resolver.resolveStaticCall(chm.owner.name, chm.name, desc);
 						if(mm != null) {
 							conflicts.add(mm);
 						}
