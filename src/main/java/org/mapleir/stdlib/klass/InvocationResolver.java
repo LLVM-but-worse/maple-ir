@@ -130,24 +130,29 @@ public class InvocationResolver {
 	
 	/**
 	 * Finds methods in cn matching name and desc.
-	 * @param cn
-	 * @param name
-	 * @param desc
+	 * @param cn ClassNode
+	 * @param name name of method
+	 * @param desc method descriptor
 	 * @param returnTypes One of ANY_TYPES, CONGRUENT_TYPES, or EXACT_TYPES
-	 * @param mask Mask of allowed attributes for modifiers; bit 1 = allowed, 0 = not allowed
-	 * @return
+	 * @param allowedMask Mask of allowed attributes for modifiers; bit 1 = allowed, 0 = not allowed
+	 * @param requiredMask Mask of required attributes for modifiers; bit 1 = allowed, 0 = not allowed
+	 * @return Set of methods matching specifications
 	 */
-	private Set<MethodNode> findMethod(ClassNode cn, String name, String desc, int returnTypes, int mask) {
+	private Set<MethodNode> findMethod(ClassNode cn, String name, String desc, int returnTypes, int allowedMask, int requiredMask) {
+		allowedMask |= requiredMask;
 		Set<MethodNode> findM = new HashSet<>();
 
 		for(MethodNode m : cn.methods) {
-			if(((m.access ^ mask) & m.access) == 0) { // no bits set in m.access that aren't in flags
-				assert(!Modifier.isStatic(m.access));
-				if (Modifier.isStatic(m.access))
+			// no bits set in m.access that aren't in allowedMask
+			// no bits unset in m.access that are in requiredMask
+			if(((m.access ^ allowedMask) & m.access) == 0 && ((m.access ^ requiredMask) & requiredMask) == 0) {
+				if (!Modifier.isStatic(allowedMask) && Modifier.isStatic(m.access))
 					throw new IllegalStateException("B0i");
-				if ((mask & Modifier.ABSTRACT) == 0 && Modifier.isAbstract(m.access))
+				if (!Modifier.isAbstract(allowedMask) && Modifier.isAbstract(m.access))
 					throw new IllegalStateException("B0i");
-				if ((mask & Opcodes.ACC_BRIDGE) == 0 && (m.access & Opcodes.ACC_BRIDGE) != 0)
+				if (!isBridge(allowedMask) && isBridge(m.access))
+					throw new IllegalStateException("B0i");
+				if (Modifier.isStatic(requiredMask) && !Modifier.isStatic(m.access))
 					throw new IllegalStateException("B0i");
 
 				if (!m.name.equals(name))
@@ -163,7 +168,7 @@ public class InvocationResolver {
 				}
 				
 				// sanity check
-				if (returnTypes == EXACT_TYPES && !isBridge(mask) && !findM.isEmpty()) {
+				if (returnTypes == EXACT_TYPES && !isBridge(allowedMask) && !findM.isEmpty()) {
 					System.err.println("==findM==");
 					debugCong(desc, findM.iterator().next().desc);
 					System.err.println("==m==");
@@ -193,34 +198,43 @@ public class InvocationResolver {
 		return findM;
 	}
 	
-	// todo: refactor to just proxy to findExactClassMethod
-	public MethodNode resolveVirtualInitCall(String owner, String desc) {
-		Set<MethodNode> set = new HashSet<>();
-		
-		ClassNode cn = app.findClassNode(owner);
-		
-		if(cn != null) {
-			for(MethodNode m : cn.methods) {
-				if((m.access & Opcodes.ACC_STATIC) == 0) {
-					if(m.name.equals("<init>") && m.desc.equals(desc)) {
-						set.add(m);
-					}
-				}
-			}
-			
-			if(set.size() == 1) {
-				return set.iterator().next();
-			} else {
-				throw new IllegalStateException(String.format("Looking for: %s.<init>%s, got: %s", owner, desc, set));
-			}
-		} else {
-			return null;
-		}
+	public MethodNode findExactMethod(ClassNode cn, String name, String desc, int allowedMask, int requiredMask) {
+		Set<MethodNode> found = findMethod(cn, name, desc, EXACT_TYPES, allowedMask, requiredMask);
+		return found.isEmpty() ? null : found.iterator().next();
 	}
 	
-	public MethodNode findExactClassMethod(ClassNode cn, String name, String desc, boolean allowAbstract) {
-		Set<MethodNode> found = findMethod(cn, name, desc, EXACT_TYPES, VIRTUAL_METHOD | (allowAbstract ? Modifier.ABSTRACT : 0));
-		return found.isEmpty() ? null : found.iterator().next();
+	public MethodNode findExactMethod(ClassNode cn, String name, String desc, boolean allowAbstract) {
+		return findExactMethod(cn, name, desc, VIRTUAL_METHOD | (allowAbstract ? Modifier.ABSTRACT : 0), 0);
+	}
+	
+	public MethodNode resolveVirtualInitCall(String owner, String desc) {
+		Set<MethodNode> set = new HashSet<>();
+		ClassNode cn = app.findClassNode(owner);
+		if (cn == null)
+			return null;
+		
+		MethodNode ret = findExactMethod(cn, "<init>", desc, false);
+		if (ret == null)
+			throw new IllegalStateException(String.format("Looking for: %s.<init>%s, got: %s", owner, desc, set));
+		return ret;
+	}
+	
+	public Set<MethodNode> resolveVirtualCalls(MethodNode m, boolean strict) {
+		return resolveVirtualCalls(m.owner.name, m.name, m.desc, strict);
+	}
+	
+	public MethodNode resolveStaticCall(String owner, String name, String desc) {
+		ClassNode cn = app.findClassNode(owner);
+		if (cn == null) {
+			return null;
+		}
+		
+		MethodNode mn = findExactMethod(cn, name, desc, VIRTUAL_METHOD | Modifier.ABSTRACT | Modifier.STATIC, Modifier.STATIC);
+		if(mn == null) {
+			return resolveStaticCall(cn.superName, name, desc);
+		} else {
+			return mn;
+		}
 	}
 	
 	public Set<MethodNode> resolveVirtualCalls(String owner, String name, String desc, boolean strict) {
@@ -263,7 +277,7 @@ public class InvocationResolver {
 			MethodNode m;
 			
 			if(name.equals("<init>")) {
-				m = findExactClassMethod(cn, name, desc, false);
+				m = findExactMethod(cn, name, desc, false);
 				
 				if(m == null) {
 					if(strict) {
@@ -276,7 +290,7 @@ public class InvocationResolver {
 			}
 			
 			for(ClassNode c : app.getStructures().getAllChildren(cn)) {
-				m = findExactClassMethod(c, name, desc, true);
+				m = findExactMethod(c, name, desc, true);
 				
 				if(m != null) {
 					set.add(m);
@@ -294,7 +308,7 @@ public class InvocationResolver {
 				
 				Set<MethodNode> lvlSites = new HashSet<>();
 				for(ClassNode c : lvl) {
-					m = findExactClassMethod(c, name, desc, true);
+					m = findExactMethod(c, name, desc, true);
 					if(m != null) {
 						lvlSites.add(m);
 					}
@@ -346,34 +360,6 @@ public class InvocationResolver {
 		return set;
 	}
 	
-	public Set<MethodNode> resolveVirtualCalls(MethodNode m, boolean strict) {
-		return resolveVirtualCalls(m.owner.name, m.name, m.desc, strict);
-	}
-	
-	public MethodNode resolveStaticCall(String owner, String name, String desc) {
-		ClassNode cn = app.findClassNode(owner);
-		MethodNode mn = null;
-		if(cn != null) {
-			// todo: replace with findMethod
-			for(MethodNode m : cn.methods) {
-				if((m.access & Opcodes.ACC_STATIC) != 0) {
-					if(m.name.equals(name) && m.desc.equals(desc)) {
-						if (mn != null)
-							throw new IllegalStateException(owner + "." + name + " " + desc + ",   " + mn + "," + m);
-						mn = m;
-					}
-				}
-			}
-			if(mn == null) {
-				return resolveStaticCall(cn.superName, name, desc);
-			} else {
-				return mn;
-			}
-		} else {
-			return null;
-		}
-	}
-	
 	public static Set<MethodNode> getHierarchyMethodChain(IContext cxt, ClassNode cn, String name, String desc, boolean verify) {
 		ApplicationClassSource app = cxt.getApplication();
 		ClassTree structures = app.getStructures();
@@ -382,7 +368,7 @@ public class InvocationResolver {
 		Set<MethodNode> foundMethods = new HashSet<>();
 		Collection<ClassNode> toSearch = structures.getAllBranches(cn);
 		for (ClassNode viable : toSearch) {
-			foundMethods.addAll(resolver.findMethod(viable, name, desc, EXACT_TYPES, VIRTUAL_METHOD | Modifier.ABSTRACT | Opcodes.ACC_BRIDGE));
+			foundMethods.addAll(resolver.findMethod(viable, name, desc, EXACT_TYPES, VIRTUAL_METHOD | Modifier.ABSTRACT | Opcodes.ACC_BRIDGE, 0));
 		}
 		if (verify && foundMethods.isEmpty()) {
 			System.err.println("cn: " + cn);
