@@ -1,12 +1,6 @@
 package org.mapleir.stdlib.klass;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.lang.reflect.Modifier;
-import java.util.HashSet;
-import java.util.Set;
-
+import org.mapleir.deobimpl2.cxt.IContext;
 import org.mapleir.stdlib.app.ApplicationClassSource;
 import org.mapleir.stdlib.util.TypeUtils;
 import org.objectweb.asm.ClassWriter;
@@ -15,12 +9,45 @@ import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.lang.reflect.Modifier;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
+
 public class InvocationResolver {
 
 	private final ApplicationClassSource app;
 	
 	public InvocationResolver(ApplicationClassSource app) {
 		this.app = app;
+	}
+	
+	public static Set<MethodNode> getHierarchyMethodChain(IContext cxt, ClassNode cn, String name, String desc, boolean verify) {
+		ApplicationClassSource app = cxt.getApplication();
+		ClassTree structures = app.getStructures();
+		InvocationResolver resolver = cxt.getInvocationResolver();
+		
+		Set<MethodNode> foundMethods = new HashSet<>();
+		Collection<ClassNode> toSearch = structures.getAllBranches(cn);
+		for (ClassNode viable : toSearch) {
+			MethodNode found = resolver.findMethod(viable, name, desc, true, true);
+			if (found != null) {
+				foundMethods.add(found);
+			}
+		}
+		if (verify && foundMethods.isEmpty()) {
+			System.err.println("cn: " + cn);
+			System.err.println("name: " + name);
+			System.err.println("desc: " + desc);
+			System.err.println("Searched: " + toSearch);
+			System.err.println("Children: " + structures.getAllChildren(cn));
+			System.err.println("Parents: " + structures.getAllParents(cn));
+			throw new IllegalArgumentException("You must be really dense because that method doesn't even exist.");
+		}
+		return foundMethods;
 	}
 	
 	public MethodNode resolveVirtualInitCall(String owner, String desc) {
@@ -187,19 +214,6 @@ public class InvocationResolver {
 	public MethodNode findExactClassMethod(ClassNode cn, String name, String desc, boolean allowAbstract) {
 		return findMethod(cn, name, desc, false, allowAbstract);
 	}
-	
-	public Set<MethodNode> findRelatedClassMethods(ClassNode cn, String name, String desc, boolean rootwards) {
-		/* find exact method first */
-		MethodNode m = findMethod(cn, name, desc, false, allowAbstract);
-		if(m != null) {
-			return m;
-		} else if(congruentReturn) {
-			m = findMethod(cn, name, desc, true, allowAbstract);
-		}
-		
-		return m;
-	}
-	
 
 	public Set<MethodNode> resolveVirtualCalls(MethodNode m, boolean strict) {
 		return resolveVirtualCalls(m.owner.name, m.name, m.desc, strict);
