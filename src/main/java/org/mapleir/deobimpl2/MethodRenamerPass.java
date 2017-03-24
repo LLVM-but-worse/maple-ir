@@ -175,7 +175,7 @@ public class MethodRenamerPass implements IPass {
 								}
 								
 								if(invoke.getInstanceExpression() == null) {
-									MethodNode site = resolver.findStaticCall(invoke.getOwner(), invoke.getName(), invoke.getDesc());
+									MethodNode site = resolver.resolveStaticCall(invoke.getOwner(), invoke.getName(), invoke.getDesc());
 									
 									if(site != null) {
 										if(remapped.containsKey(site)) {
