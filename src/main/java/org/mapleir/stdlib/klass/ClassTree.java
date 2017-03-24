@@ -2,6 +2,8 @@ package org.mapleir.stdlib.klass;
 
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.Queue;
 import java.util.Set;
 
 import org.mapleir.stdlib.app.ApplicationClassSource;
@@ -76,6 +78,20 @@ public class ClassTree extends FastDirectedGraph<ClassNode, InheritanceEdge> {
 			return new HashSet<>();
 		}
 		return SimpleDfs.preorder(this, cn, true);
+	}
+	
+	public Collection<ClassNode> getAllBranches(ClassNode cn) {
+		Collection<ClassNode> results = new HashSet<>();
+		Queue<ClassNode> queue = new LinkedList<>();
+		queue.add(cn);
+		while (!queue.isEmpty()) {
+			ClassNode next = queue.remove();
+			if (results.add(next)) {
+				queue.addAll(getAllParents(next));
+				queue.addAll(getAllChildren(next));
+			}
+		}
+		return results;
 	}
 	
 	public ClassNode getSuper(ClassNode cn) {
