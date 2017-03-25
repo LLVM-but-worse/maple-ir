@@ -2,11 +2,14 @@ package org.mapleir;
 
 import org.mapleir.deobimpl2.cxt.IContext;
 import org.mapleir.deobimpl2.cxt.BasicContext;
+import org.mapleir.deobimpl2.cxt.IRCache;
 import org.mapleir.ir.cfg.ControlFlowGraph;
+import org.mapleir.ir.cfg.builder.ControlFlowGraphBuilder;
 import org.mapleir.ir.code.Expr;
 import org.mapleir.stdlib.app.ApplicationClassSource;
 import org.mapleir.stdlib.app.InstalledRuntimeClassSource;
 import org.mapleir.stdlib.call.CallTracer;
+import org.mapleir.stdlib.collections.KeyedValueCreator;
 import org.mapleir.stdlib.klass.InvocationResolver;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
@@ -58,9 +61,11 @@ public class CGExplorer {
 		
 		CGExplorer b = new CGExplorer(app);
 		
-		InvocationResolver resolver = new InvocationResolver(app);
-		Map<MethodNode, ControlFlowGraph> cfgs = new HashMap<>();
-		IContext cxt = new BasicContext(app);
+		IContext cxt = new BasicContext.BasicContextBuilder()
+				.setApplication(app)
+				.setInvocationResolver(new InvocationResolver(app))
+				.setCache(new IRCache(ControlFlowGraphBuilder::build))
+				.build();
 		
 		CallTracer tracer = new IRCallTracer(cxt) {
 			@Override

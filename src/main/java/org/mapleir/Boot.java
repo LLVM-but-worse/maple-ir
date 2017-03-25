@@ -198,42 +198,7 @@ public class Boot {
 		IContext cxt = new BasicContext.BasicContextBuilder()
 				.setApplication(app)
 				.setInvocationResolver(new InvocationResolver(app))
-				.setCache(new IRCache(new KeyedValueCreator<MethodNode, ControlFlowGraph>() {
-					/*private void attemptLoadType(Type t) {
-						if(t.getSort() == Type.ARRAY) {
-							t = t.getElementType();
-						}
-						
-						if(TypeUtils.isPrimitive(t) || t == Type.VOID_TYPE) {
-							return;
-						}
-						
-						ClassNode n = app.findClassNode(t.getInternalName());
-						if(n != null) {
-							ClassTree tree = app.getStructures();
-							
-							if(!tree.containsVertex(n)) {
-								tree.addVertex(n);
-							}
-						}
-					}*/
-					
-					@Override
-					public ControlFlowGraph create(MethodNode m) {
-						/* lazy load types */
-						ControlFlowGraph cfg = ControlFlowGraphBuilder.build(m);
-						
-						/*for(BasicBlock b : cfg.vertices()) {
-							for(Stmt stmt : b) {
-								for(Expr e : stmt.enumerateOnlyChildren()) {
-									attemptLoadType(e.getType());
-								}
-							}
-						}*/
-						
-						return cfg;
-					}
-				}))
+				.setCache(new IRCache(ControlFlowGraphBuilder::build))
 				.build();
 		
 		section("Expanding callgraph and generating cfgs.");
