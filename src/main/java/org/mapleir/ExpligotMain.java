@@ -5,10 +5,12 @@ import org.mapleir.deobimpl2.ConstantExpressionEvaluatorPass;
 import org.mapleir.deobimpl2.ConstantExpressionReorderPass;
 import org.mapleir.deobimpl2.ConstantParameterPass;
 import org.mapleir.deobimpl2.DeadCodeEliminationPass;
+import org.mapleir.deobimpl2.cxt.BasicContext;
 import org.mapleir.deobimpl2.cxt.IContext;
-import org.mapleir.deobimpl2.cxt.MapleDB;
+import org.mapleir.deobimpl2.cxt.IRCache;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
+import org.mapleir.ir.cfg.builder.ControlFlowGraphBuilder;
 import org.mapleir.ir.code.CodeUnit;
 import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.code.Stmt;
@@ -22,6 +24,7 @@ import org.mapleir.stdlib.collections.NullPermeableHashMap;
 import org.mapleir.stdlib.deob.IPass;
 import org.mapleir.stdlib.deob.PassGroup;
 import org.mapleir.stdlib.klass.ClassTree;
+import org.mapleir.stdlib.klass.InvocationResolver;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.commons.JSRInlinerAdapter;
 import org.objectweb.asm.tree.ClassNode;
@@ -155,7 +158,12 @@ public class ExpligotMain {
 		app.rebuildTable();
 		ClassTree classTree = app.getStructures();
 		
-		IContext cxt = new MapleDB(app);
+		IContext cxt = new BasicContext.BasicContextBuilder()
+						.setApplication(app)
+						.setInvocationResolver(new InvocationResolver(app))
+						.setCache(new IRCache(ControlFlowGraphBuilder::build))
+						.build();
+
 		CallTracer tracer = new IRCallTracer(cxt) {
 			@Override
 			protected void processedInvocation(MethodNode caller, MethodNode callee, Expr call) {
@@ -173,7 +181,7 @@ public class ExpligotMain {
 				break;
 			tracer.trace(m);
 		}
-		int presize = cxt.getCFGS().size();
+		int presize = cxt.getIRCache().size();
 		int delta = totalSize - presize;
 		float percent = 100.f * delta / (float)totalSize;
 		percent = (float)Math.floor(percent * 100) / 100.f;
@@ -185,7 +193,7 @@ public class ExpligotMain {
 			for(ClassNode cn : app.iterate())
 				for (MethodNode m : cn.methods)
 					tracer.trace(m);
-			presize = cxt.getCFGS().size();
+			presize = cxt.getIRCache().size();
 		} else {
 			System.out.println(presize + " methods analysed (delta -" + delta + " = " + percent + "%)");
 		}
@@ -199,7 +207,7 @@ public class ExpligotMain {
 		}
 		run(cxt, masterGroup);
 		
-		int postsize = cxt.getCFGS().size();
+		int postsize = cxt.getIRCache().size();
 		delta = postsize - presize;
 		percent = 100.f * delta / (float)presize;
 		percent = (float)Math.floor(percent * 100) / 100.f;
@@ -218,7 +226,7 @@ public class ExpligotMain {
 		final List<CodeUnit> npeCandidates = new ArrayList<>();
 		final NullPermeableHashMap<ClassNode, Set<InvocationExpr>> threadObjects = new NullPermeableHashMap<>(HashSet::new);
 		
-		for(Entry<MethodNode, ControlFlowGraph> e : cxt.getCFGS().entrySet()) {
+		for(Entry<MethodNode, ControlFlowGraph> e : cxt.getIRCache().entrySet()) {
 			MethodNode mn = e.getKey();
 			ControlFlowGraph cfg = e.getValue();
 			for (BasicBlock b : cfg.vertices()) {

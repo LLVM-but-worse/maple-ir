@@ -41,7 +41,7 @@ public class ConstantParameterPass implements IPass, Opcode {
 	@Override
 	public int accept(IContext cxt, IPass prev, List<IPass> completed) {
 		Map<MethodNode, Set<MethodNode>> chainMap = new HashMap<>();
-		for(MethodNode mn : cxt.getCFGS().getActiveMethods()) {
+		for(MethodNode mn : cxt.getIRCache().getActiveMethods()) {
 			makeUpChain(cxt, mn, chainMap);
 		}
 		
@@ -80,7 +80,7 @@ public class ConstantParameterPass implements IPass, Opcode {
 					}
 				} else {
 					// TODO: cache
-					for(MethodNode site : resolver.resolveVirtualCalls(m.owner.name, m.name, m.desc, true)) {
+					for(MethodNode site : resolver.resolveVirtualCalls(m, false)) {
 						if(!rawConstantParameters.containsKey(site)) {
 							List<Set<Object>> l = new ArrayList<>(pCount);
 							rawConstantParameters.put(site, l);
@@ -113,7 +113,7 @@ public class ConstantParameterPass implements IPass, Opcode {
 							rawConstantParameters.get(callee).get(i).add(((ConstantExpr) e).getConstant());
 						} else {
 							/* only chain callsites *can* have this input */
-							for(MethodNode site : resolver.resolveVirtualCalls(callee.owner.name, callee.name, callee.desc, true)) {
+							for(MethodNode site : resolver.resolveVirtualCalls(callee, false)) {
 								rawConstantParameters.get(site).get(i).add(((ConstantExpr) e).getConstant());
 							}
 						}
@@ -121,8 +121,7 @@ public class ConstantParameterPass implements IPass, Opcode {
 						// FIXME:
 						/* whole branch tainted */
 						for(MethodNode associated : chainMap.get(callee)) {
-							if (chainedNonConstant.get(associated) != null)
-								chainedNonConstant.get(associated)[i] = true;
+							chainedNonConstant.get(associated)[i] = true;
 						}
 						
 						/* callsites tainted */
@@ -130,9 +129,8 @@ public class ConstantParameterPass implements IPass, Opcode {
 							specificNonConstant.get(callee)[i] = true;
 						} else {
 							/* only chain callsites *can* have this input */
-							for(MethodNode site : resolver.resolveVirtualCalls(callee.owner.name, callee.name, callee.desc, true)) {
-								if (chainedNonConstant.get(site) != null)
-									specificNonConstant.get(site)[i] = true;
+							for(MethodNode site : resolver.resolveVirtualCalls(callee, false)) {
+								specificNonConstant.get(site)[i] = true;
 							}
 						}
 					}
@@ -158,10 +156,11 @@ public class ConstantParameterPass implements IPass, Opcode {
 				continue;
 			}
 			
+			// TODO: MUST BE CONVERTED TO ACCOUNT FOR DIRECT SUPERS, NOT ALL
 			superFor: for(ClassNode cn : structures.getAllParents(m.owner)) {
 				if(app.isLibraryClass(cn.name)) {
 					for(MethodNode m1 : cn.methods) {
-						if(m1.name.equals(m.name) && m1.desc.equals(m.desc)) {
+						if(resolver.areMethodsCongruent(m1, m, Modifier.isStatic(m.access))) {
 							it.remove();
 							break superFor;
 						}
@@ -216,7 +215,7 @@ public class ConstantParameterPass implements IPass, Opcode {
 				}
 			}
 			
-			ControlFlowGraph cfg = cxt.getCFGS().getIR(m);
+			ControlFlowGraph cfg = cxt.getIRCache().getFor(m);
 			
 			// boolean b = false;
 			
@@ -275,7 +274,7 @@ public class ConstantParameterPass implements IPass, Opcode {
 					remap.put(chm, desc);
 					
 					if(Modifier.isStatic(m.access)) {
-						MethodNode mm = resolver.findStaticCall(chm.owner.name, chm.name, desc);
+						MethodNode mm = resolver.resolveStaticCall(chm.owner.name, chm.name, desc);
 						if(mm != null) {
 							conflicts.add(mm);
 						}
@@ -283,7 +282,7 @@ public class ConstantParameterPass implements IPass, Opcode {
 						if(chm.name.equals("<init>")) {
 							conflicts.addAll(resolver.resolveVirtualCalls(chm.owner.name, "<init>", desc, false));
 						} else {
-							conflicts.addAll(MethodRenamerPass.getHierarchyMethodChain(cxt, m.owner, m.name, desc, false));
+							conflicts.addAll(InvocationResolver.getHierarchyMethodChain(cxt, m.owner, m.name, desc, false));
 						}
 					}
 				}
@@ -365,7 +364,7 @@ public class ConstantParameterPass implements IPass, Opcode {
 							throw new IllegalStateException(String.format("neq: %s vs %s for %s and %s", Arrays.toString(dead), Arrays.toString(deadM), n, key));
 						} */
 						
-						demoteDeadParamters(constAnalysis, cxt.getCFGS().getIR(n), n, dead);
+						demoteDeadParamters(constAnalysis, cxt.getIRCache().getFor(n), n, dead);
 						
 						for(Expr call : constAnalysis.getCallsTo(n)) {
 							/* since the callgrapher finds all
@@ -572,7 +571,7 @@ public class ConstantParameterPass implements IPass, Opcode {
 		
 		if(!Modifier.isStatic(m.access)) {
 			if(!m.name.equals("<init>")) {
-				chain.addAll(MethodRenamerPass.getHierarchyMethodChain(cxt, m.owner, m.name, m.desc, true));
+				chain.addAll(InvocationResolver.getHierarchyMethodChain(cxt, m.owner, m.name, m.desc, false));
 			}
 		}
 		

@@ -71,7 +71,7 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 			for(ClassNode cn : cxt.getApplication().iterate()) {
 				for(MethodNode m : cn.methods) {
 					
-					ControlFlowGraph cfg = cxt.getCFGS().getIR(m);
+					ControlFlowGraph cfg = cxt.getIRCache().getFor(m);
 					LocalsPool pool = cfg.getLocals();
 					
 					for(BasicBlock b : new HashSet<>(cfg.vertices())) {
@@ -966,7 +966,7 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 					unconst.put(m, arr);
 				}
 			} else {
-				for(MethodNode site : cxt.getInvocationResolver().resolveVirtualCalls(m.owner.name, m.name, m.desc, true)) {
+				for(MethodNode site : cxt.getInvocationResolver().resolveVirtualCalls(m, false)) {
 					if(!constParams.containsKey(site)) {
 						List<Set<ConstantExpr>> l = new ArrayList<>();
 						constParams.put(site, l);
@@ -1001,7 +1001,7 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 						constParams.get(callee).get(i).add((ConstantExpr) e);
 					} else {
 						/* only chain callsites *can* have this input */
-						for(MethodNode site : cxt.getInvocationResolver().resolveVirtualCalls(callee.owner.name, callee.name, callee.desc, true)) {
+						for(MethodNode site : cxt.getInvocationResolver().resolveVirtualCalls(callee, false)) {
 							constParams.get(site).get(i).add((ConstantExpr) e);
 						}
 					}
@@ -1011,7 +1011,7 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 						unconst.get(callee)[i] = true;
 					} else {
 						/* only chain callsites *can* have this input */
-						for(MethodNode site : cxt.getInvocationResolver().resolveVirtualCalls(callee.owner.name, callee.name, callee.desc, true)) {
+						for(MethodNode site : cxt.getInvocationResolver().resolveVirtualCalls(callee, false)) {
 							unconst.get(site)[i] = true;
 						}
 					}

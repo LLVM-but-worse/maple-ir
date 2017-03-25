@@ -1,8 +1,12 @@
 package org.mapleir.deobimpl2;
 
 import java.lang.reflect.Modifier;
-import java.util.*;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import org.mapleir.deobimpl2.cxt.IContext;
 import org.mapleir.deobimpl2.util.RenamingUtil;
@@ -14,7 +18,6 @@ import org.mapleir.ir.code.Stmt;
 import org.mapleir.ir.code.expr.InvocationExpr;
 import org.mapleir.stdlib.app.ApplicationClassSource;
 import org.mapleir.stdlib.deob.IPass;
-import org.mapleir.stdlib.klass.ClassTree;
 import org.mapleir.stdlib.klass.InvocationResolver;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
@@ -40,6 +43,8 @@ public class MethodRenamerPass implements IPass {
 		
 		int i = RenamingUtil.computeMinimum(totalMethods);
 		
+		Map<MethodNode, Set<MethodNode>> debugMap = new HashMap<>();
+		
 		for(ClassNode cn : source.iterate()) {
 			for(MethodNode m : cn.methods) {
 				if(remapped.containsKey(m)) {
@@ -55,23 +60,56 @@ public class MethodRenamerPass implements IPass {
 					if(!m.name.equals("<init>")) {
 						// Set<ClassNode> classes = source.getStructures().dfsTree(m.owner, true, true, true);
 						// Set<MethodNode> methods = getVirtualMethods(cxt, classes, m.name, m.desc);
-						Set<MethodNode> methods = getHierarchyMethodChain(cxt, m.owner, m.name, m.desc, true);
+						boooooooooool = m.toString().equals("cca.IIiIiiIiII(Lpvg;)Lvwb;");
+						Set<MethodNode> methods = InvocationResolver.getHierarchyMethodChain(cxt, m.owner, m.name, m.desc, false);
+						boooooooooool = false;
 						if(canRename(cxt, methods)) {
 							String newName = RenamingUtil.createName(i++);
 							
 							for(MethodNode o : methods) {
-								if(remapped.containsKey(o)) {
+								
+								boooooooooool = o.toString().equals("unu.IIiIiiIiII(Lpvg;)Lunu;");
+								Set<MethodNode> s2 = InvocationResolver.getHierarchyMethodChain(cxt, o.owner, o.name, m.desc, false);
+								boooooooooool = false;
+								
+								if(!methods.equals(s2)) {
 									System.err.printf("m: %s%n", m);
 									System.err.printf("o: %s%n", o);
-									System.err.println("ms;");
+									System.err.println("this ms::");
 									for(MethodNode s : methods) {
 										System.err.printf("   %s%n", s);
 									}
-									System.err.printf("on: %s%n", remapped.get(o));
-									System.err.printf("nn: %s%n", newName);
+									System.err.println("o ms::");
+									for(MethodNode s : s2) {
+										System.err.printf("   %s%n", s);
+									}
 									throw new IllegalStateException();
 								}
+								
+								if(remapped.containsKey(o)) { // technically speaking, this is possible if we're doing congruent returns.
+//									System.err.printf("m: %s%n", m);
+//									System.err.printf("o: %s%n", o);
+//									System.err.println("this ms::");
+//									for(MethodNode s : methods) {
+//										System.err.printf("   %s%n", s);
+//									}
+//									System.err.println("o ms::");
+//									for(MethodNode s : InvocationResolver.getHierarchyMethodChain(cxt, o.owner, o.name, m.desc, true)) {
+//										System.err.printf("   %s%n", s);
+//									}
+//									System.err.println(" o debugset::");
+//									for(MethodNode s : debugMap.get(o)) {
+//										System.err.printf("   %s%n", s);
+//									}
+//									System.err.printf("on: %s%n", remapped.get(o));
+//									System.err.printf("nn: %s%n", newName);
+//									throw new IllegalStateException();
+								}
 								remapped.put(o, newName);
+							}
+							
+							for(MethodNode hm : methods) {
+								debugMap.put(hm, methods);
 							}
 						} else {
 							System.out.println("  can't rename: " + methods);
@@ -117,7 +155,7 @@ public class MethodRenamerPass implements IPass {
 			Set<Expr> visited = new HashSet<>();
 			
 			for(MethodNode m : cn.methods) {
-				ControlFlowGraph cfg = cxt.getCFGS().getIR(m);
+				ControlFlowGraph cfg = cxt.getIRCache().getFor(m);
 				
 				for(BasicBlock b : cfg.vertices()) {
 					for(Stmt stmt : b) {
@@ -137,7 +175,7 @@ public class MethodRenamerPass implements IPass {
 								}
 								
 								if(invoke.getInstanceExpression() == null) {
-									MethodNode site = resolver.findStaticCall(invoke.getOwner(), invoke.getName(), invoke.getDesc());
+									MethodNode site = resolver.resolveStaticCall(invoke.getOwner(), invoke.getName(), invoke.getDesc());
 									
 									if(site != null) {
 										if(remapped.containsKey(site)) {
@@ -156,7 +194,7 @@ public class MethodRenamerPass implements IPass {
 //									 Set<MethodNode> sites = resolver.resolveVirtualCalls(invoke.getOwner(), invoke.getName(), invoke.getDesc());
 									// Set<ClassNode> classes = source.getStructures().dfsTree(cn, true, true, true);
 									// Set<MethodNode> sites = getVirtualMethods(cxt, classes, invoke.getName(), invoke.getDesc());
-									Set<MethodNode> sites = getHierarchyMethodChain(cxt, source.findClassNode(invoke.getOwner()), invoke.getName(), invoke.getDesc(), true);
+									Set<MethodNode> sites = InvocationResolver.getHierarchyMethodChain(cxt, source.findClassNode(invoke.getOwner()), invoke.getName(), invoke.getDesc(), false);
 									if(sites.size() > 0) {
 										/* all of the sites must be linked by the same name,
 										 * so we can use any to find the new name. */
@@ -223,7 +261,7 @@ public class MethodRenamerPass implements IPass {
 		return true;
 	}
 	
-	public static MethodNode findClassMethod(ClassNode cn, String name, String desc) {
+	/*public static MethodNode findClassMethod(ClassNode cn, String name, String desc) {
 		MethodNode findM = null;
 		
 		for(MethodNode m : cn.methods) {
@@ -240,91 +278,7 @@ public class MethodRenamerPass implements IPass {
 		}
 		
 		return findM;
-	}
+	}*/
 	
-	public static Set<MethodNode> getHierarchyMethodChain(IContext cxt, ClassNode cn, String name, String desc, boolean verify) {
-		ApplicationClassSource app = cxt.getApplication();
-		ClassTree structures = app.getStructures();
-		
-		if (verify) {
-			check: {
-				Collection<ClassNode> toSearch = structures.getAllChildren(cn);
-				toSearch.addAll(structures.getAllParents(cn));
-				for (ClassNode viable : toSearch)
-					if (findClassMethod(viable, name, desc) != null)
-						break check;
-				System.err.println("cn: " + cn);
-				System.err.println("name: " + name);
-				System.err.println("desc: " + desc);
-				System.err.println("Searched: " + toSearch);
-				System.err.println("Children: " + structures.getAllChildren(cn));
-				System.err.println("Parents: " + structures.getAllParents(cn));
-				throw new IllegalArgumentException("You must be really dense because that method doesn't even exist.");
-			}
-		}
-
-		Set<ClassNode> visited = new HashSet<>();
-		visited.addAll(structures.getAllChildren(cn));
-		visited.add(cn);
-		
-		Map<ClassNode, MethodNode> results = new HashMap<>();
-		Queue<ClassNode> visitHeads = new LinkedList<>();
-		for(ClassNode current : visited) {
-			MethodNode m = findClassMethod(current, name, desc);
-		    if(m != null) {
-				results.put(current, m);
-		        visitHeads.add(current);
-		    }
-		}
-		visited.clear();
-		visited.addAll(visitHeads);
-		visitHeads.add(cn);
-		
-		while(!visitHeads.isEmpty()) {
-		    ClassNode current = visitHeads.remove();
-		    
-		    Set<String> directSupers = new HashSet<>();
-		    directSupers.add(current.superName);
-		    directSupers.addAll(current.interfaces);
-		    directSupers.remove(null);
-		    
-		    for(String s : directSupers) {
-				ClassNode parent = app.findClassNode(s);
-				if (parent == null)
-					continue;
-				MethodNode m = findClassMethod(parent, name, desc);
-				if(m != null) {
-					results.remove(current);
-				}
-				if (visited.add(parent)) {
-					if (m != null) {
-						if (results.containsKey(parent)) {
-							throw new IllegalStateException();
-						}
-						results.put(parent, m);
-					}
-					visitHeads.add(parent);
-				}
-			}
-		}
-
-		Set<ClassNode> classes = new HashSet<>();
-		for (ClassNode top : results.keySet()) {
-		    classes.addAll(structures.getAllChildren(top));
-		}
-		
-		Set<MethodNode> methods = new HashSet<>();
-		for(ClassNode c : classes) {
-			if(results.containsKey(c)) {
-				methods.add(results.get(c));
-			} else {
-				MethodNode m = findClassMethod(c, name, desc);
-				if(m != null) {
-					methods.add(m);
-				}
-			}
-		}
-		
-		return methods;
-	}
+	static boolean boooooooooool = false;
 }

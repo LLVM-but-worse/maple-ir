@@ -1,5 +1,8 @@
 package org.mapleir;
 
+import java.util.Set;
+
+import org.mapleir.deobimpl2.cxt.IContext;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.Expr;
@@ -7,12 +10,9 @@ import org.mapleir.ir.code.Opcode;
 import org.mapleir.ir.code.Stmt;
 import org.mapleir.ir.code.expr.InitialisedObjectExpr;
 import org.mapleir.ir.code.expr.InvocationExpr;
-import org.mapleir.deobimpl2.cxt.IContext;
 import org.mapleir.stdlib.call.CallTracer;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.MethodNode;
-
-import java.util.Set;
 
 public class IRCallTracer extends CallTracer {
 
@@ -25,11 +25,7 @@ public class IRCallTracer extends CallTracer {
 
 	@Override
 	protected void traceImpl(MethodNode m) {
-		MethodNode clinit = m.owner.getMethod("<clinit>", "()V", true);
-		if (clinit != null)
-			trace(clinit);
-		
-		ControlFlowGraph cfg = context.getCFGS().getIR(m);
+		ControlFlowGraph cfg = context.getIRCache().getFor(m);
 		if(cfg == null) {
 			throw new UnsupportedOperationException("No cfg for " + m + " [" + m.instructions.size() + "]");
 		}
@@ -45,7 +41,7 @@ public class IRCallTracer extends CallTracer {
 						String desc = invoke.getDesc();
 						
 						if(isStatic) {
-							MethodNode call = resolver.findStaticCall(owner, name, desc);
+							MethodNode call = resolver.resolveStaticCall(owner, name, desc);
 							if(call != null) {
 								trace(call);
 								processedInvocation(m, call, invoke);
@@ -64,7 +60,7 @@ public class IRCallTracer extends CallTracer {
 //									System.err.println(cfg);
 //									throw new RuntimeException("current context: " + m);
 //								}
-								Set<MethodNode> targets = resolver.resolveVirtualCalls(owner, name, desc, true);
+								Set<MethodNode> targets = resolver.resolveVirtualCalls(owner, name, desc, false);
 								if(targets.size() > 0) {
 									for(MethodNode vtarg : targets) {
 										trace(vtarg);

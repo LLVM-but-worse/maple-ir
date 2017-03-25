@@ -25,8 +25,8 @@ public class ConstantExpressionReorderPass implements IPass, Opcode {
 	@Override
 	public int accept(IContext cxt, IPass prev, List<IPass> completed) {
 		int i = 0;
-		for(MethodNode m : cxt.getCFGS().getActiveMethods()) {
-			ControlFlowGraph ir = cxt.getCFGS().getIR(m);
+		for(MethodNode m : cxt.getIRCache().getActiveMethods()) {
+			ControlFlowGraph ir = cxt.getIRCache().getFor(m);
 			i += transform(ir);
 		}
 //		System.out.println("  swapped " + i + " constant expression orders.");
