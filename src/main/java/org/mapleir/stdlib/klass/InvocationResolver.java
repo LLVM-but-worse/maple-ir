@@ -1,5 +1,13 @@
 package org.mapleir.stdlib.klass;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.lang.reflect.Modifier;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
+
 import org.mapleir.deobimpl2.cxt.IContext;
 import org.mapleir.stdlib.app.ApplicationClassSource;
 import org.mapleir.stdlib.util.TypeUtils;
@@ -8,14 +16,6 @@ import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
-
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.lang.reflect.Modifier;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Set;
 
 public class InvocationResolver {
 
@@ -26,8 +26,9 @@ public class InvocationResolver {
 	}
 	
 	private boolean areTypesCongruent(Type expected, Type actual) {
-		if (expected.equals(actual))
+		if (expected.equals(actual)) {
 			return true;
+		}
 		
 		boolean eArr = expected.getSort() == Type.ARRAY;
 		boolean aArr = actual.getSort() == Type.ARRAY;
@@ -50,13 +51,12 @@ public class InvocationResolver {
 		ClassNode eCn = app.findClassNode(expected.getInternalName());
 		ClassNode aCn = app.findClassNode(actual.getInternalName());
 		
-		return app.getStructures().getAllParents(aCn).contains(eCn);
+		ClassTree tree = app.getStructures();
+		return tree.getAllParents(aCn).contains(eCn) ||
+				tree.getAllParents(eCn).contains(aCn);
 	}
 	
-	private boolean doArgumentsMatch(String expected, String actual) {
-		Type[] eParams = Type.getArgumentTypes(expected);
-		Type[] aParams = Type.getArgumentTypes(actual);
-		
+	private boolean doArgumentsMatch(Type[] eParams, Type[] aParams) {
 		if(eParams.length != aParams.length) {
 			return false;
 		}
@@ -70,6 +70,12 @@ public class InvocationResolver {
 			}
 		}
 		return true;
+	}
+	
+	private boolean doArgumentsMatch(String expected, String actual) {
+		Type[] eParams = Type.getArgumentTypes(expected);
+		Type[] aParams = Type.getArgumentTypes(actual);
+		return doArgumentsMatch(eParams, aParams);
 	}
 	
 	private boolean areReturnTypesCongruent(String a, String b) {
@@ -104,11 +110,12 @@ public class InvocationResolver {
 		return (access & Opcodes.ACC_BRIDGE) != 0;
 	}
 	
-	private static int ANY_TYPES = 0;
-	private static int CONGRUENT_TYPES = 1;
-	private static int EXACT_TYPES = 2;
+	private static final int ANY_TYPES = 0;
+	private static final int CONGRUENT_TYPES = 1;
+	private static final int EXACT_TYPES = 2;
+	private static final int LOOSELY_RELATED_TYPES = 3;
 	
-	private static int VIRTUAL_METHOD = ~Modifier.STATIC & ~Modifier.ABSTRACT & ~Opcodes.ACC_BRIDGE;
+	private static final int VIRTUAL_METHOD = ~Modifier.STATIC & ~Modifier.ABSTRACT & ~Opcodes.ACC_BRIDGE;
 	
 	private void debugCong(String expected, String actual) {
 		Type eR = Type.getReturnType(expected);
@@ -138,10 +145,12 @@ public class InvocationResolver {
 	 * @param requiredMask Mask of required attributes for modifiers; bit 1 = allowed, 0 = not allowed
 	 * @return Set of methods matching specifications
 	 */
-	private Set<MethodNode> findMethod(ClassNode cn, String name, String desc, int returnTypes, int allowedMask, int requiredMask) {
+	private Set<MethodNode> findMethods(ClassNode cn, String name, String desc, int returnTypes, int allowedMask, int requiredMask) {
 		allowedMask |= requiredMask;
 		Set<MethodNode> findM = new HashSet<>();
-
+		
+		Type[] expectedParams = Type.getArgumentTypes(desc);
+		
 		for(MethodNode m : cn.methods) {
 			// no bits set in m.access that aren't in allowedMask
 			// no bits unset in m.access that are in requiredMask
@@ -155,16 +164,27 @@ public class InvocationResolver {
 				if (Modifier.isStatic(requiredMask) && !Modifier.isStatic(m.access))
 					throw new IllegalStateException("B0i");
 
-				if (!m.name.equals(name))
+				if (!m.name.equals(name) || !doArgumentsMatch(expectedParams, Type.getArgumentTypes(m.desc))) {
 					continue;
-				if (!doArgumentsMatch(desc, m.desc))
-					continue;
-				if (returnTypes == CONGRUENT_TYPES) {
-					if (!areReturnTypesCongruent(desc, m.desc))
-						continue;
-				} else if (returnTypes == EXACT_TYPES) {
-					if (!desc.equals(m.desc))
-						continue;
+				}
+
+				switch(returnTypes) {
+					case ANY_TYPES: break;
+					case CONGRUENT_TYPES:
+						if (!areReturnTypesCongruent(desc, m.desc)) {
+							continue;
+						}
+						break;
+					case EXACT_TYPES:
+						if (!desc.equals(m.desc)) {
+							continue;
+						}
+						break;
+					case LOOSELY_RELATED_TYPES:
+						if(!areTypesLooselyRelated(Type.getReturnType(desc), Type.getReturnType(m.desc))) {
+							continue;
+						}
+						break;
 				}
 				
 				// sanity check
@@ -198,9 +218,48 @@ public class InvocationResolver {
 		return findM;
 	}
 	
+	/* returns true if::
+	 *  both types are primitives of the same
+	 *   race.
+	 * or
+	 *  the types are both objects.
+	 * or
+	 *  they are both array types and have the
+	 *  same number of dimensions and have
+	 *  loosely or strongly (T I G H T L Y)
+	 *  related element types.
+	 * */
+	private boolean areTypesLooselyRelated(Type t1, Type t2) {
+		/* getSort() returns V, Z, C, B, I, F, J, D, array or object */
+		if(t1.getSort() == t2.getSort()) {
+			if(t1.getSort() == Type.ARRAY) {
+				/* both arrays */
+				
+				if(t1.getDimensions() != t2.getDimensions()) {
+					return false;
+				}
+				
+				return areTypesLooselyRelated(t1.getElementType(), t2.getElementType());
+			}
+			
+			/* either strongly related (prims) or
+			 * loosely (object types) */
+			return true;
+		} else {
+			/* no chance m8 */
+			return false;
+		}
+	}
+
 	public MethodNode findExactMethod(ClassNode cn, String name, String desc, int allowedMask, int requiredMask) {
-		Set<MethodNode> found = findMethod(cn, name, desc, EXACT_TYPES, allowedMask, requiredMask);
-		return found.isEmpty() ? null : found.iterator().next();
+		Set<MethodNode> found = findMethods(cn, name, desc, EXACT_TYPES, allowedMask, requiredMask);
+		if(found.size() == 0) {
+			return null;
+		} else if(found.size() == 1) {
+			return found.iterator().next();
+		} else {
+			throw new IllegalStateException(found.toString());
+		}
 	}
 	
 	public MethodNode findExactMethod(ClassNode cn, String name, String desc, boolean allowAbstract) {
@@ -368,17 +427,17 @@ public class InvocationResolver {
 		Set<MethodNode> foundMethods = new HashSet<>();
 		Collection<ClassNode> toSearch = structures.getAllBranches(cn);
 		for (ClassNode viable : toSearch) {
-			foundMethods.addAll(resolver.findMethod(viable, name, desc, EXACT_TYPES, VIRTUAL_METHOD | Modifier.ABSTRACT | Opcodes.ACC_BRIDGE, 0));
+			foundMethods.addAll(resolver.findMethods(viable, name, desc, EXACT_TYPES, VIRTUAL_METHOD | Modifier.ABSTRACT | Opcodes.ACC_BRIDGE, 0));
 		}
-		if (verify && foundMethods.isEmpty()) {
-			System.err.println("cn: " + cn);
-			System.err.println("name: " + name);
-			System.err.println("desc: " + desc);
-			System.err.println("Searched: " + toSearch);
-			System.err.println("Children: " + structures.getAllChildren(cn));
-			System.err.println("Parents: " + structures.getAllParents(cn));
-			throw new IllegalArgumentException("You must be really dense because that method doesn't even exist.");
-		}
+//		if (verify && foundMethods.isEmpty()) {
+//			System.err.println("cn: " + cn);
+//			System.err.println("name: " + name);
+//			System.err.println("desc: " + desc);
+//			System.err.println("Searched: " + toSearch);
+//			System.err.println("Children: " + structures.getAllChildren(cn));
+//			System.err.println("Parents: " + structures.getAllParents(cn));
+//			throw new IllegalArgumentException("You must be really dense because that method doesn't even exist.");
+//		}
 		return foundMethods;
 	}
 }

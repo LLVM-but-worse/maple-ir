@@ -25,7 +25,7 @@ import org.objectweb.asm.tree.MethodNode;
 public class MethodRenamerPass implements IPass {
 
 	@Override
-	public boolean isSingletonPass() {
+	public boolean isQuantisedPass() {
 		return false;
 	}
 	
@@ -43,7 +43,7 @@ public class MethodRenamerPass implements IPass {
 		
 		int i = RenamingUtil.computeMinimum(totalMethods);
 		
-		Map<MethodNode, Set<MethodNode>> debugMap = new HashMap<>();
+		// Map<MethodNode, Set<MethodNode>> debugMap = new HashMap<>();
 		
 		for(ClassNode cn : source.iterate()) {
 			for(MethodNode m : cn.methods) {
@@ -60,19 +60,14 @@ public class MethodRenamerPass implements IPass {
 					if(!m.name.equals("<init>")) {
 						// Set<ClassNode> classes = source.getStructures().dfsTree(m.owner, true, true, true);
 						// Set<MethodNode> methods = getVirtualMethods(cxt, classes, m.name, m.desc);
-						boooooooooool = m.toString().equals("cca.IIiIiiIiII(Lpvg;)Lvwb;");
 						Set<MethodNode> methods = InvocationResolver.getHierarchyMethodChain(cxt, m.owner, m.name, m.desc, true);
-						boooooooooool = false;
 						if(canRename(cxt, methods)) {
 							String newName = RenamingUtil.createName(i++);
 							
 							for(MethodNode o : methods) {
+								// Set<MethodNode> s2 = InvocationResolver.getHierarchyMethodChain(cxt, o.owner, o.name, m.desc, true);
 								
-								boooooooooool = o.toString().equals("unu.IIiIiiIiII(Lpvg;)Lunu;");
-								Set<MethodNode> s2 = InvocationResolver.getHierarchyMethodChain(cxt, o.owner, o.name, m.desc, true);
-								boooooooooool = false;
-								
-								if(!methods.equals(s2)) {
+								/*if(!methods.equals(s2)) {
 									System.err.printf("m: %s%n", m);
 									System.err.printf("o: %s%n", o);
 									System.err.println("this ms::");
@@ -84,33 +79,33 @@ public class MethodRenamerPass implements IPass {
 										System.err.printf("   %s%n", s);
 									}
 									throw new IllegalStateException();
-								}
+								}*/
 								
-								if(remapped.containsKey(o)) { // technically speaking, this is possible if we're doing congruent returns.
-//									System.err.printf("m: %s%n", m);
-//									System.err.printf("o: %s%n", o);
-//									System.err.println("this ms::");
-//									for(MethodNode s : methods) {
-//										System.err.printf("   %s%n", s);
-//									}
-//									System.err.println("o ms::");
-//									for(MethodNode s : InvocationResolver.getHierarchyMethodChain(cxt, o.owner, o.name, m.desc, true)) {
-//										System.err.printf("   %s%n", s);
-//									}
-//									System.err.println(" o debugset::");
-//									for(MethodNode s : debugMap.get(o)) {
-//										System.err.printf("   %s%n", s);
-//									}
-//									System.err.printf("on: %s%n", remapped.get(o));
-//									System.err.printf("nn: %s%n", newName);
-//									throw new IllegalStateException();
-								}
+								/*if(remapped.containsKey(o)) {
+									System.err.printf("m: %s%n", m);
+									System.err.printf("o: %s%n", o);
+									System.err.println("this ms::");
+									for(MethodNode s : methods) {
+										System.err.printf("   %s%n", s);
+									}
+									System.err.println("o ms::");
+									for(MethodNode s : InvocationResolver.getHierarchyMethodChain(cxt, o.owner, o.name, m.desc, true)) {
+										System.err.printf("   %s%n", s);
+									}
+									System.err.println(" o debugset::");
+									for(MethodNode s : debugMap.get(o)) {
+										System.err.printf("   %s%n", s);
+									}
+									System.err.printf("on: %s%n", remapped.get(o));
+									System.err.printf("nn: %s%n", newName);
+									throw new IllegalStateException();
+								}*/
 								remapped.put(o, newName);
 							}
 							
-							for(MethodNode hm : methods) {
+							/*for(MethodNode hm : methods) {
 								debugMap.put(hm, methods);
-							}
+							}*/
 						} else {
 							System.out.println("  can't rename: " + methods);
 						}
@@ -187,7 +182,19 @@ public class MethodRenamerPass implements IPass {
 										}
 									} else {
 										if(mustMark(source, invoke.getOwner())) {
-											System.err.println("  can't resolve(s) " + invoke);
+											System.err.printf("  can't resolve(s) %s ; %s.%s %s%n", invoke, invoke.getOwner(), invoke.getName(), invoke.getDesc());
+
+											/*if(m.toString().equals("hey.IIiIiiIiII()Lime;")) {
+												System.out.println("MethodRenamerPass.accept() " + newName);
+												throw new UnsupportedOperationException();
+											}*/
+											
+											if(invoke.getOwner().equals("hey")) {
+												for(MethodNode mm : cxt.getApplication().findClassNode(invoke.getOwner()).methods) {
+													System.out.println(mm);
+												}
+												throw new UnsupportedOperationException();
+											}
 										}
 									}
 								} else {
@@ -279,6 +286,4 @@ public class MethodRenamerPass implements IPass {
 		
 		return findM;
 	}*/
-	
-	static boolean boooooooooool = false;
 }
