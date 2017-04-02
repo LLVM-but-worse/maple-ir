@@ -26,7 +26,7 @@ import java.util.Set;
 public class FieldRenamerPass implements IPass {
 
 	@Override
-	public boolean isSingletonPass() {
+	public boolean isQuantisedPass() {
 		return false;
 	}
 	

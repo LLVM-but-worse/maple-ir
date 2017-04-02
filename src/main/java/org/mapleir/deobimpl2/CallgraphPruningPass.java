@@ -39,7 +39,7 @@ public class CallgraphPruningPass implements IPass {
 	}
 	
 	@Override
-	public boolean isSingletonPass() {
+	public boolean isQuantisedPass() {
 		return false;
 	}
 }

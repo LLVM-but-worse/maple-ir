@@ -27,13 +27,10 @@ import org.mapleir.ir.code.stmt.copy.AbstractCopyStmt;
 import org.mapleir.ir.code.stmt.copy.CopyVarStmt;
 import org.mapleir.ir.locals.LocalsPool;
 import org.mapleir.ir.locals.VersionedLocal;
-import org.mapleir.stdlib.app.ApplicationClassSource;
 import org.mapleir.stdlib.deob.IPass;
-import org.mapleir.stdlib.klass.ClassTree;
 import org.mapleir.stdlib.klass.InvocationResolver;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
-import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
 
 public class ConstantParameterPass implements IPass, Opcode {
@@ -140,12 +137,12 @@ public class ConstantParameterPass implements IPass, Opcode {
 		
 		IPConstAnalysis constAnalysis = IPConstAnalysis.create(cxt, vis);
 		
-		ApplicationClassSource app = cxt.getApplication();
-		ClassTree structures = app.getStructures();
+//		ApplicationClassSource app = cxt.getApplication();
+//		ClassTree structures = app.getStructures();
 		
 		/* remove all calls to library methods since we can't
 		 * handle them. */
-		Iterator<Entry<MethodNode, List<Set<Object>>>> it = rawConstantParameters.entrySet().iterator();
+		/*Iterator<Entry<MethodNode, List<Set<Object>>>> it = rawConstantParameters.entrySet().iterator();
 		while(it.hasNext()) {
 			Entry<MethodNode, List<Set<Object>>> en = it.next();
 			
@@ -167,7 +164,7 @@ public class ConstantParameterPass implements IPass, Opcode {
 					}
 				}
 			}
-		}
+		}*/
 		
 		/* aggregate constant parameters indices with their chained
 		 * methods such that the map contains only constant parameter
