@@ -1483,18 +1483,22 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 								CodeUnit parent = use.getParent();
 								if(rhs.getOpcode() == Opcode.CATCH) {
 									CodeUnit rp = use.getRootParent();
+//									System.out.println("DENIED NIGGA");
+//									System.out.println("replace " + vl + " with " + rhs);
+//									System.out.println(" in " + parent);
+//									System.out.println(" kill def: " + def);
+//									System.out.println();
+									deferred.remove(vl);
+									continue;
 									
 									// check to see if we're moving it to the
 									// first expression in the block, if we aren't
 									// then deny, otherwise we can get rid of the local.
-									if(rp.getBlock().indexOf(rp) != 1 || rp.enumerateExecutionOrder().indexOf(use) != 0) {
-										deferred.remove(vl);
-										continue;
-									}
+//									if(rp.getBlock().indexOf(rp) != 1 || rp.enumerateExecutionOrder().indexOf(use) != 0) {
+//										
+//									}
 								}
-//								System.out.println("replace " + vl + " with " + rhs);
-//								System.out.println(" in " + parent);
-//								System.out.println(" kill def: " + def);
+								
 								
 								rhs.unlink();
 								def.delete();
