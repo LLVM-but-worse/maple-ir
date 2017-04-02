@@ -17,7 +17,7 @@ import java.util.List;
 public class ConcreteStaticInvocationPass implements IPass {
 
 	@Override
-	public boolean isSingletonPass() {
+	public boolean isQuantisedPass() {
 		return false;
 	}
 	

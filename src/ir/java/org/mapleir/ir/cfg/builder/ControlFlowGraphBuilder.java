@@ -79,7 +79,7 @@ public class ControlFlowGraphBuilder {
 	
 	public ControlFlowGraph buildImpl() {
 		for(BuilderPass p : resolvePasses()) {
-			p.run();			
+			p.run();
 		}
 		return graph;
 	}

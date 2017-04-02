@@ -10,7 +10,7 @@ public interface IPass {
 		return getClass().getSimpleName();
 	}
 	
-	default boolean isSingletonPass() {
+	default boolean isQuantisedPass() {
 		return true;
 	}
 
