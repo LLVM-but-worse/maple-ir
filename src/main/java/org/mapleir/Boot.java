@@ -1,7 +1,6 @@
 package org.mapleir;
 
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -201,31 +200,29 @@ public class Boot {
 		
 		section("Expanding callgraph and generating cfgs.");
 		
-		for(ClassNode cn : app.iterate()) {
-			for(MethodNode m : cn.methods) {
-				if(m.toString().equals("com/allatori/IIiIIIiIii.IIiIiiIiII(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;")) {
-					ControlFlowGraph cfg = cxt.getIRCache().getFor(m);
-					System.out.println(cfg);
-					
-					BoissinotDestructor.leaveSSA(cfg);
-					cfg.getLocals().realloc(cfg);
-					ControlFlowGraphDumper.dump(cfg, m);
-					
-					ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES);
-					cn.accept(cw);
-					byte[] bs = cw.toByteArray();
-					
-					FileOutputStream fos = new FileOutputStream(new File("out/testclass.class"));
-					fos.write(bs);
-					fos.close();
-					
-				}
-			}
-		}
+//		for(ClassNode cn : app.iterate()) {
+//			for(MethodNode m : cn.methods) {
+//				if(m.toString().equals("com/allatori/IIiIIIiIii.IIiIiiIiII(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;")) {
+//					ControlFlowGraph cfg = cxt.getIRCache().getFor(m);
+//					
+//					BoissinotDestructor.leaveSSA(cfg);
+//					cfg.getLocals().realloc(cfg);
+//					ControlFlowGraphDumper.dump(cfg, m);
+//					
+//					ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES);
+//					cn.accept(cw);
+//					byte[] bs = cw.toByteArray();
+//					
+//					FileOutputStream fos = new FileOutputStream(new File("out/testclass.class"));
+//					fos.write(bs);
+//					fos.close();
+//				}
+//			}
+//		}
 		
-		if("".equals("")) {
-			return;
-		}
+//		if("".equals("")) {
+//			return;
+//		}
 		
 		CallTracer tracer = new IRCallTracer(cxt);
 		for(MethodNode m : findEntries(app)) {

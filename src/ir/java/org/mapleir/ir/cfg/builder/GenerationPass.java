@@ -1517,7 +1517,6 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		ensureMarks();
 		
 		List<BasicBlock> blocks = new ArrayList<>(builder.graph.vertices());
-		System.out.println("blocks: " + blocks);
 		blocks.sort(new Comparator<BasicBlock>() {
 			@Override
 			public int compare(BasicBlock o1, BasicBlock o2) {
@@ -1536,9 +1535,6 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		if(builder.count == 0) { // no blocks created
 			init();
 			processQueue();
-			
-			System.out.println("MAKED");
-			System.out.println(builder.graph);
 		}
 	}
 }
