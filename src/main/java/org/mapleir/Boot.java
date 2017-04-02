@@ -13,9 +13,7 @@ import java.util.jar.JarOutputStream;
 
 import org.mapleir.byteio.CompleteResolvingJarDumper;
 import org.mapleir.deobimpl2.ClassRenamerPass;
-import org.mapleir.deobimpl2.ConstantExpressionEvaluatorPass;
-import org.mapleir.deobimpl2.ConstantExpressionReorderPass;
-import org.mapleir.deobimpl2.DeadCodeEliminationPass;
+import org.mapleir.deobimpl2.FieldRenamerPass;
 import org.mapleir.deobimpl2.MethodRenamerPass;
 import org.mapleir.deobimpl2.cxt.BasicContext;
 import org.mapleir.deobimpl2.cxt.IContext;
@@ -27,7 +25,6 @@ import org.mapleir.ir.cfg.builder.ControlFlowGraphBuilder;
 import org.mapleir.stdlib.app.ApplicationClassSource;
 import org.mapleir.stdlib.app.InstalledRuntimeClassSource;
 import org.mapleir.stdlib.call.CallTracer;
-import org.mapleir.stdlib.collections.KeyedValueCreator;
 import org.mapleir.stdlib.deob.IPass;
 import org.mapleir.stdlib.deob.PassGroup;
 import org.mapleir.stdlib.klass.InvocationResolver;
@@ -203,6 +200,19 @@ public class Boot {
 		
 		section("Expanding callgraph and generating cfgs.");
 		
+		for(ClassNode cn : app.iterate()) {
+			for(MethodNode m : cn.methods) {
+				if(m.toString().equals("com/allatori/IIiIIIiIii.IIiIiiIiII(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;")) {
+					ControlFlowGraph cfg = cxt.getIRCache().getFor(m);
+					System.out.println(cfg);
+				}
+			}
+		}
+		
+		if("".equals("")) {
+			return;
+		}
+		
 		CallTracer tracer = new IRCallTracer(cxt);
 		for(MethodNode m : findEntries(app)) {
 			tracer.trace(m);
@@ -220,6 +230,11 @@ public class Boot {
 		for(Entry<MethodNode, ControlFlowGraph> e : cxt.getIRCache().entrySet()) {
 			MethodNode mn = e.getKey();
 			ControlFlowGraph cfg = e.getValue();
+			
+//			if(mn.owner.name.equals("brq") && mn.name.equals("adm")) {
+//				InstructionPrinter.consolePrint(mn);
+//			}
+			
 			BoissinotDestructor.leaveSSA(cfg);
 			cfg.getLocals().realloc(cfg);
 			ControlFlowGraphDumper.dump(cfg, mn);
@@ -236,7 +251,7 @@ public class Boot {
 				return super.dumpResource(out, name, file);
 			}
 		};
-		dumper.dump(new File("out/osb4.jar"));
+		dumper.dump(new File("out/osb5.jar"));
 		
 		section("Finished.");
 	}
@@ -253,16 +268,16 @@ public class Boot {
 				new MethodRenamerPass(),
 //				new ConstantParameterPass()
 //				new ClassRenamerPass(),
-//				new FieldRenamerPass(),
+				new FieldRenamerPass(),
 //				new ConstantExpressionReorderPass(),
 //				new FieldRSADecryptionPass(),
 //				new PassGroup("Interprocedural Optimisations")
 //					.add(new ConstantParameterPass())
-				new ConstantExpressionReorderPass(),
+//				new ConstantExpressionReorderPass(),
 //				new FieldRSADecryptionPass(),
 //				new ConstantParameterPass(),
-				new ConstantExpressionEvaluatorPass(),
-				new DeadCodeEliminationPass()
+//				new ConstantExpressionEvaluatorPass(),
+//				new DeadCodeEliminationPass()
 //				new PassGroup("Interprocedural Optimisations")
 				
 		};
