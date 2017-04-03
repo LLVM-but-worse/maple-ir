@@ -1,6 +1,7 @@
 package org.mapleir.ir.cfg;
 
 import org.mapleir.ir.cfg.edge.FlowEdge;
+import org.mapleir.ir.code.CodeUnit;
 import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.code.Opcode;
 import org.mapleir.ir.code.Stmt;
@@ -73,6 +74,32 @@ public class ControlFlowGraph extends FastBlockGraph {
 				locals.uses.get(l).remove(v);
 			}
 		}
+	}
+	
+	/**
+	 * Replaces an expression and updates def/use information accordingly.
+	 * @param parent Statement containing expression to be replaced.
+	 * @param from Statement to be replaced.
+	 * @param to Statement to replace old statement with.
+	 */
+	public void overwrite(CodeUnit parent, Expr from, Expr to) {
+		// remove uses in from
+		for(Expr e : from.enumerateWithSelf()) {
+			if (e.getOpcode() == Opcode.LOCAL_LOAD) {
+				VersionedLocal l = (VersionedLocal) ((VarExpr) e).getLocal();
+				locals.uses.get(l).remove(e);
+			}
+		}
+		
+		// add uses in to
+		for(Expr e : to.enumerateWithSelf()) {
+			if (e.getOpcode() == Opcode.LOCAL_LOAD) {
+				VarExpr var = (VarExpr) e;
+				locals.uses.get((VersionedLocal) var.getLocal()).add(var);
+			}
+		}
+		
+		parent.overwrite(to, parent.indexOf(from));
 	}
 	
 	@Override
