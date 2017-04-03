@@ -1,9 +1,9 @@
 package testcases.condbranch;
 
-import org.mapleir.deobimpl2.ConstantExpressionEvaluatorPass;
-import org.mapleir.deobimpl2.ConstantParameterPass;
-import org.mapleir.deobimpl2.DeadCodeEliminationPass;
-import org.mapleir.stdlib.deob.PassGroup;
+import org.mapleir.deob.PassGroup;
+import org.mapleir.deob.passes.ConstantExpressionEvaluatorPass;
+import org.mapleir.deob.passes.ConstantParameterPass;
+import org.mapleir.deob.passes.DeadCodeEliminationPass;
 import testcases.CheckReturn;
 import testcases.FlaggedMethod;
 

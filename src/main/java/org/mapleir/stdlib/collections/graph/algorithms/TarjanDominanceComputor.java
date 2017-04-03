@@ -2,11 +2,11 @@ package org.mapleir.stdlib.collections.graph.algorithms;
 
 import org.mapleir.ir.cfg.edge.FlowEdge;
 import org.mapleir.ir.cfg.edge.ImmediateEdge;
-import org.mapleir.stdlib.collections.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.graph.FastGraph;
 import org.mapleir.stdlib.collections.graph.FastGraphEdge;
 import org.mapleir.stdlib.collections.graph.FastGraphVertex;
 import org.mapleir.stdlib.collections.graph.flow.FlowGraph;
+import org.mapleir.stdlib.collections.nullpermeable.NullPermeableHashMap;
 
 import java.util.HashMap;
 import java.util.HashSet;
