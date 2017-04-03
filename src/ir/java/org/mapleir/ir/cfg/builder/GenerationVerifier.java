@@ -1,18 +1,24 @@
 package org.mapleir.ir.cfg.builder;
 
-import org.mapleir.ir.code.Expr;
-import org.mapleir.ir.code.ExpressionStack;
-import org.mapleir.ir.code.Opcode;
-import org.mapleir.ir.code.expr.ConstantExpr;
-import org.objectweb.asm.Type;
-import org.objectweb.asm.util.Printer;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class CFGVerifier {
+import org.mapleir.ir.cfg.BasicBlock;
+import org.mapleir.ir.cfg.builder.GenerationVerifier.VerifyException.ExceptionStage;
+import org.mapleir.ir.code.Expr;
+import org.mapleir.ir.code.ExpressionStack;
+import org.mapleir.ir.code.Opcode;
+import org.mapleir.ir.code.expr.ConstantExpr;
+import org.objectweb.asm.Type;
+import org.objectweb.asm.tree.AbstractInsnNode;
+import org.objectweb.asm.util.Printer;
+
+public class GenerationVerifier {
+
+	public static boolean VERIFY = false;
+	
 	/* Format for stack configs:
 	 *  OPCODE:NUM_CONFIGS:CONF_0:CONF_2 ... :CONF_N
 	 *
@@ -37,22 +43,22 @@ public class CFGVerifier {
 	 *     are both stack configurations.
 	 *
 	 * Example:
-	 *   1:1:*>I|*    describes ACONST_NULL,
+	 *   1:1:*>N|*    describes ACONST_NULL,
 	 *      => opcode = 1;
 	 *      => 1 configuration
 	 *      => no required pre stack configuration
-	 *      => top item ofpost stack is an int
+	 *      => top item of post stack is a null
 	 *  */
 	private static final String[] STACK_CONFIGS = new String[] {
 			"0:0",        // NOP
 			"1:1:*>N|*",  // ACONST_NULL
 			"2:1:*>I|*",  // ICONST_M1
-			"3:1:*>I|*",  // ICONST_0
-			"4:1:*>I|*",  // ICONST_1
-			"5:1:*>I|*",  // ICONST_2
-			"6:1:*>I|*",  // ICONST_3
-			"7:1:*>I|*",  // ICONST_4
-			"8:1:*>I|*",  // ICONST_5
+			"3:1:*>1|*",  // ICONST_0
+			"4:1:*>1|*",  // ICONST_1
+			"5:1:*>1|*",  // ICONST_2
+			"6:1:*>1|*",  // ICONST_3
+			"7:1:*>1|*",  // ICONST_4
+			"8:1:*>1|*",  // ICONST_5
 			"9:1:*>J|*",  // LCONST_0
 			"10:1:*>J|*", // LCONST_1
 			"11:1:*>F|*", // FCONST_0
@@ -63,8 +69,8 @@ public class CFGVerifier {
 			
 			// B/S IPUSH is sign extended before
 			// being pushed... >:(
-			"16:1:*>I|*", // BIPUSH
-			"17:1:*>I|*", // SIPUSH
+			"16:1:*>B|*", // BIPUSH
+			"17:1:*>S|*", // SIPUSH
 			"18:1:*>X|*", // LDC
 			
 			"21:1:*>I|*", // ILOAD
@@ -86,7 +92,7 @@ public class CFGVerifier {
 			"52:1:I|[C|*>I|*", // CALOAD
 			"53:1:I|[S|*>I|*", // SALOAD
 			
-			"54:1:I>*", // ISTORE
+			"54:2:1>*:Z>*", // ISTORE
 			"55:1:J*>*", // LSTORE
 			"56:1:F*>*", // FSTORE
 			"57:1:D*>*", // DSTORE
@@ -101,9 +107,9 @@ public class CFGVerifier {
 			// and are truncated to byte/char/
 			// /short before being set in the
 			// array.
-			"84:1:I|I|[B|*>*", // BASTORE
-			"85:1:I|I|[C|*>*", // CASTORE
-			"86:1:I|I|[S|*>*", // SASTORE
+			"84:1:B|I|X|*>*", // BASTORE
+			"85:1:C|I|X|*>*", // CASTORE
+			"86:1:S|I|X|*>*", // SASTORE
 			
 			"87:1:1|*>*", // POP
 			"88:2:1|1|*>*:2|*>*", // POP2
@@ -119,39 +125,39 @@ public class CFGVerifier {
 			"95:0",    // SWAP
 			
 			// 96 - 131
-			"96:1:I|I|*>I|*", // IADD
+			"96:1:1|1|*>I|*", // IADD
 			"97:1:J|J|*>J|*", // LADD
 			"98:1:F|F|*>F|*", // FADD
 			"99:1:D|D|*>D|*", // DADD
-			"100:1:I|I|*>I|*", // ISUB
+			"100:1:1|1|*>I|*", // ISUB
 			"101:1:J|J|*>J|*", // LSUB
 			"102:1:F|F|*>F|*", // FSUB
 			"103:1:D|D|*>D|*", // DSUB
-			"104:1:I|I|*>I|*", // IMUL
+			"104:1:1||*>I|*", // IMUL
 			"105:1:J|J|*>J|*", // LMUL
 			"106:1:F|F|*>F|*", // FMUL
 			"107:1:D|D|*>D|*", // DMUL
-			"108:1:I|I|*>I|*", // IDIV
+			"108:1:1|1|*>I|*", // IDIV
 			"109:1:J|J|*>J|*", // LDIV
 			"110:1:F|F|*>F|*", // FDIV
 			"111:1:D|D|*>D|*", // DDIV
-			"112:1:I|I|*>I|*", // IREM
+			"112:1:1|1|*>I|*", // IREM
 			"113:1:J|J|*>J|*", // LREM
 			"114:1:F|F|*>F|*", // FREM
 			"115:1:D|D|*>D|*", // DREM
-			"120:1:I|I|*>I|*", // ISHL
+			"120:1:1|1|*>I|*", // ISHL
 			"121:1:I|J|*>J|*", // LSHL
-			"122:1:I|I|*>I|*", // ISHR
+			"122:1:1|1|*>I|*", // ISHR
 			"123:1:I|J|*>J|*", // LSHR
-			"124:1:I|I|*>I|*", // IUSHR
+			"124:1:1|1|*>I|*", // IUSHR
 			"125:1:I|J|*>J|*", // LUSHR
-			"126:1:I|I|*>I|*", // IAND
+			"126:1:1|1|*>I|*", // IAND
 			"127:1:J|J|*>J|*", // LAND
-			"128:1:I|I|*>I|*", // IOR
+			"128:1:1|1|*>I|*", // IOR
 			"129:1:J|J|*>J|*", // LOR
-			"130:1:I|I|*>I|*", // IXOR
+			"130:1:1|1|*>I|*", // IXOR
 			"131:1:J|J|*>J|*", // LXOR
-			"116:1:I|*>I|*", // INEG
+			"116:1:1|*>1|*", // INEG
 			"117:1:J|*>J|*", // LNEG
 			"118:1:F|*>F|*", // FNEG
 			"119:1:D|*>D|*", // DNEG
@@ -171,9 +177,9 @@ public class CFGVerifier {
 			"142:1:D|*>I|*", // D2I
 			"143:1:D|*>J|*", // D2L
 			"144:1:D|*>F|*", // D2F
-			"145:1:I|*>B|*", // I2B
-			"146:1:I|*>C|*", // I2C
-			"147:1:I|*>S|*", // I2S
+			"145:1:1|*>B|*", // I2B
+			"146:1:1|*>C|*", // I2C
+			"147:1:1|*>S|*", // I2S
 			
 			// 148 - 158
 			"148:1:J|J|*>I|*", // LCMP
@@ -181,19 +187,19 @@ public class CFGVerifier {
 			"150:1:F|F|*>I|*", // FCMPG
 			"151:1:D|D|*>I|*", // DCMPL
 			"152:1:D|D|*>I|*", // DCMPG
-			"153:1:I|*>*", // IFEQ
-			"154:1:I|*>*", // IFNE
-			"155:1:I|*>*", // IFLT
-			"156:1:I|*>*", // IFGE
-			"157:1:I|*>*", // IFGT
-			"158:1:I|*>*", // IFLE
+			"153:2:I|*>*:Z|*>*", // IFEQ
+			"154:2:I|*>*:Z|*>*", // IFNE
+			"155:2:I|*>*:Z|*>*", // IFLT
+			"156:2:I|*>*:Z|*>*", // IFGE
+			"157:2:I|*>*:Z|*>*", // IFGT
+			"158:2:I|*>*:Z|*>*", // IFLE
 			
-			"159:1:I|I|*>*", // IF_ICMPEQ
-			"160:1:I|I|*>*", // IF_ICMPNE
-			"161:1:I|I|*>*", // IF_ICMPLT
-			"162:1:I|I|*>*", // IF_ICMPGE
-			"163:1:I|I|*>*", // IF_ICMPGT
-			"164:1:I|I|*>*", // IF_ICMPLE
+			"159:1:1|1|*>*", // IF_ICMPEQ
+			"160:1:1|1|*>*", // IF_ICMPNE
+			"161:1:1|1|*>*", // IF_ICMPLT
+			"162:1:1|1|*>*", // IF_ICMPGE
+			"163:1:1|1|*>*", // IF_ICMPGT
+			"164:1:1|1|*>*", // IF_ICMPLE
 			"165:1:X|X|*>*", // IF_ACMPEQ
 			"166:1:X|X|*>*", // IF_ACMPNE
 			
@@ -289,6 +295,7 @@ public class CFGVerifier {
 		static final int CLASS_TYPE_SUB = 4;
 		static final int CLASS_TYPE_EXACT = 5;
 		static final int CLASS_ALL = 6;
+		static final int CLASS_ANY_SINGLE_CLASS = 3;
 		
 		final Object tok;
 		final int dims;
@@ -337,6 +344,9 @@ public class CFGVerifier {
 					case 'Z':
 						tok = Type.getType(actualType);
 						tclass = CLASS_TYPE_EXACT;
+						break;
+					case 'O':
+						tclass = CLASS_ANY_SINGLE_CLASS;
 						break;
 					case '*':
 						tclass = CLASS_ALL;
@@ -401,6 +411,9 @@ public class CFGVerifier {
 				} else {
 					return type.equals(tok);
 				}
+			} else if(tclass == CLASS_ANY_SINGLE_CLASS) {
+				// TODO: [] fields and methods
+				return type.getSort() == Type.OBJECT;
 			} else {
 				throw new UnsupportedOperationException(e + ",  " + type + ",  " + tclass + ",   " + tok + ",   " + dims);
 			}
@@ -558,7 +571,12 @@ public class CFGVerifier {
 		}
 	}
 	
-	static List<VerifierRule> find_verify_matches(int bIndex, int op, ExpressionStack stack) {
+	List<VerifierRule> find_verify_matches() {
+		throwNoContext();
+		
+		int op = currentContext.insn.opcode();
+		ExpressionStack stack = currentContext.stack;
+		
 		List<VerifierRule> rules = vrules.get(op);
 		
 		if(rules == null) {
@@ -575,13 +593,18 @@ public class CFGVerifier {
 		}
 		
 		if(possible.isEmpty() && !rules.isEmpty()) {
-			throw new IllegalStateException("Pre stack: " + stack + ", configs: " + __vrules.get(op) + " @" + bIndex);
+			throw new VerifyException(ExceptionStage.PRE, currentContext);
 		}
 		
 		return possible;
 	}
 	
-	static void confirm_rules(int bIndex, int opcode, List<VerifierRule> rules, ExpressionStack stack) {
+	void confirm_rules(List<VerifierRule> rules) {
+		throwNoContext();
+		
+		int opcode = currentContext.insn.opcode();
+		ExpressionStack stack = currentContext.stack;
+		
 		List<VerifierRule> vr = vrules.get(opcode);
 		
 		if(vr.size() > 0) {
@@ -591,10 +614,27 @@ public class CFGVerifier {
 				}
 			}
 			
-			throw new IllegalStateException("Post stack: " + stack + ", configs: " + __vrules.get(opcode) + " @" + bIndex);
+			throw new VerifyException(ExceptionStage.POST, currentContext);
 		}
 	}
 	
+	private void throwNoContext() {
+		if(currentContext == null) {
+			throw new IllegalStateException("No context");
+		}
+	}
+	
+	public GenerationContext newContext(ExpressionStack stack, AbstractInsnNode insn, BasicBlock block) {
+		GenerationContext cxt = new GenerationContext(stack, insn, block);
+		currentContext = cxt;
+		return cxt;
+	}
+	
+	public void addEvent(GenerationEvent e) {
+		currentContext.events.add(e);
+	}
+	
+	private GenerationContext currentContext;
 	private static final Map<Integer, String> __vrules;
 	private static final Map<Integer, List<VerifierRule>> vrules;
 	
@@ -602,5 +642,69 @@ public class CFGVerifier {
 		__vrules = new HashMap<>();
 		vrules = new HashMap<>();
 		compile_configs(STACK_CONFIGS);
+	}
+	
+	public static interface GenerationEvent {
+	}
+	
+	public static class GenerationMessageEvent implements GenerationEvent {
+		private final String msg;
+		
+		public GenerationMessageEvent(String msg) {
+			this.msg = msg;
+		}
+		
+		@Override
+		public String toString() {
+			return msg;
+		}
+	}
+	
+	public static class GenerationContext {
+		public final ExpressionStack stack;
+		public final AbstractInsnNode insn;
+		public final BasicBlock block;
+		public final List<GenerationEvent> events;
+		
+		public GenerationContext(ExpressionStack stack, AbstractInsnNode insn, BasicBlock block) {
+			this.stack = stack;
+			this.insn = insn;
+			this.block = block;
+			events = new ArrayList<>();
+		}
+		
+		@Override
+		public String toString() {
+			StringBuilder msglog = new StringBuilder();
+			for(GenerationEvent e : events) {
+				msglog.append(e).append(System.lineSeparator());
+			}
+			return String.format("%s, b: #%s, stack: %s%n  Eventlog(%d):%s", Printer.OPCODES[insn.opcode()].toLowerCase(), block.getId(), stack, events.size(), msglog);
+		}
+	}
+	
+	public static class VerifyException extends RuntimeException {
+		private static final long serialVersionUID = 1L;
+		
+		public enum ExceptionStage {
+			PRE, POST
+		}
+		
+		private final ExceptionStage stage;
+		private final GenerationContext context;
+		
+		public VerifyException(ExceptionStage stage, GenerationContext context) {
+			super(String.format("error during %s / %s for %s%n%s", context.block.getGraph().getMethod(), stage, __vrules.get(context.insn.opcode()), context));
+			this.stage = stage;
+			this.context = context;
+		}
+		
+		public ExceptionStage getStage() {
+			return stage;
+		}
+		
+		public GenerationContext getContext() {
+			return context;
+		}
 	}
 }

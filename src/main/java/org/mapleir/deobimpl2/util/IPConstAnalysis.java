@@ -34,7 +34,7 @@ public class IPConstAnalysis extends IRCallTracer implements Opcode {
 	
 	public static IPConstAnalysis create(IContext cxt, List<ChildVisitor> visitors) {
 		IPConstAnalysis analysis = new IPConstAnalysis(cxt, visitors);
-		for(MethodNode mn : cxt.getCFGS().getActiveMethods()) {
+		for(MethodNode mn : cxt.getIRCache().getActiveMethods()) {
 			analysis.trace(mn);
 		}
 		return analysis;
@@ -115,7 +115,7 @@ public class IPConstAnalysis extends IRCallTracer implements Opcode {
 		 * descriptor. */
 		int[] idxs = new int[synthCount];
 		
-		ControlFlowGraph cfg = context.getCFGS().getIR(m);
+		ControlFlowGraph cfg = context.getIRCache().getFor(m);
 		BasicBlock entry = cfg.getEntries().iterator().next();
 		
 		/* static:
