@@ -9,5 +9,5 @@ public interface IContext {
 	
 	InvocationResolver getInvocationResolver();
 	
-	CFGStore getCFGS();
+	IRCache getIRCache();
 }

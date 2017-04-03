@@ -1,10 +1,11 @@
 package org.mapleir.stdlib.app;
 
-import org.objectweb.asm.ClassReader;
-import org.objectweb.asm.tree.ClassNode;
-
 import java.io.IOException;
 import java.util.HashSet;
+
+import org.mapleir.stdlib.klass.ClassTree;
+import org.objectweb.asm.ClassReader;
+import org.objectweb.asm.tree.ClassNode;
 
 public class InstalledRuntimeClassSource extends LibraryClassSource {
 
@@ -60,6 +61,11 @@ public class InstalledRuntimeClassSource extends LibraryClassSource {
 			cr.accept(cn, ClassReader.SKIP_CODE);
 			/* cache it. */
 			nodeMap.put(cn.name, cn);
+			
+			ClassTree tree = parent.getStructures();
+			if(!tree.containsVertex(cn)) {
+				tree.addVertex(cn);
+			}
 			
 			LocateableClassNode node = new LocateableClassNode(this, cn);
 			return node;

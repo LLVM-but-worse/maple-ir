@@ -642,7 +642,7 @@ public class TypeUtils {
 		unboxTable.put(String.class, Type.getType(String.class));
 	}
 	
-	public static Type unbox(Object cst) {
+	public static Type unboxType(Object cst) {
 		Class<?> c = cst.getClass();
 		
 		Type t = unboxTable.get(c);

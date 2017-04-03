@@ -34,6 +34,11 @@ public abstract class FastDirectedGraph<N extends FastGraphVertex, E extends Fas
 		}
 		
 		if(!reverseMap.containsKey(v)) {
+			
+			if(!ret) {
+				throw new IllegalStateException(v.toString());
+			}
+			
 			reverseMap.put(v, createSet());
 			ret = true;
 		}

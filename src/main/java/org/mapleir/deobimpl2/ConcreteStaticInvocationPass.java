@@ -17,7 +17,7 @@ import java.util.List;
 public class ConcreteStaticInvocationPass implements IPass {
 
 	@Override
-	public boolean isSingletonPass() {
+	public boolean isQuantisedPass() {
 		return false;
 	}
 	
@@ -29,7 +29,7 @@ public class ConcreteStaticInvocationPass implements IPass {
 		
 		for(ClassNode cn : cxt.getApplication().iterate()) {
 			for(MethodNode mn : cn.methods) {
-				ControlFlowGraph cfg = cxt.getCFGS().getIR(mn);
+				ControlFlowGraph cfg = cxt.getIRCache().getFor(mn);
 				
 				for(BasicBlock b : cfg.vertices()) {
 					for(Stmt stmt : b) {
@@ -38,7 +38,7 @@ public class ConcreteStaticInvocationPass implements IPass {
 								InvocationExpr invoke = (InvocationExpr) e;
 								
 								if(invoke.getInstanceExpression() == null) {
-									MethodNode invoked = resolver.findStaticCall(invoke.getOwner(), invoke.getName(), invoke.getDesc());
+									MethodNode invoked = resolver.resolveStaticCall(invoke.getOwner(), invoke.getName(), invoke.getDesc());
 									
 									if(invoked != null) {
 										if(!invoked.owner.name.equals(invoke.getOwner())) {

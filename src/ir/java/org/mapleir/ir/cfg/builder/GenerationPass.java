@@ -36,7 +36,6 @@ import org.objectweb.asm.tree.*;
 import org.objectweb.asm.util.Printer;
 
 public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
-	private static final boolean VERIFY = false;
 	
 	private static final int[] EMPTY_STACK_HEIGHTS = new int[]{};
 	private static final int[] SINGLE_RETURN_HEIGHTS = new int[]{1};
@@ -55,6 +54,8 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 	private static final int[] DUP_X2_64_HEIGHTS = new int[]{1, 2};
 	private static final int[] DUP_X2_32_HEIGHTS = new int[]{1, 1, 1};
 
+	private final GenerationVerifier verifier;
+	
 	protected final InsnList insns;
 	private final BitSet finished;
 	private final LinkedList<LabelNode> queue;
@@ -81,6 +82,12 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		inputStacks = new HashMap<>();
 		
 		insns = builder.method.instructions;
+		
+		if(GenerationVerifier.VERIFY) {
+			verifier = new GenerationVerifier();
+		} else {
+			verifier = null;
+		}
 	}
 	
 	protected BasicBlock makeBlock(LabelNode label) {
@@ -184,7 +191,6 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 			addEntry(index, Type.getType("L" + m.owner.name + ";"), b);
 			index++;
 		}
-	
 		for(int i=0; i < args.length; i++) {
 			Type arg = args[i];
 			addEntry(index, arg, b);
@@ -327,14 +333,15 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 	
 	protected void process(BasicBlock b, AbstractInsnNode ain) {
 		int opcode = ain.opcode();
-		
+
 		// System.out.println("Executing " + Printer.OPCODES[opcode]);
 		// System.out.println(" PreStack: " + currentStack);
 		
-		List<CFGVerifier.VerifierRule> possibleRules = null;
+		List<GenerationVerifier.VerifierRule> possibleRules = null;
 		
-		if(VERIFY) {
-			possibleRules = CFGVerifier.find_verify_matches(insns.indexOf(ain), opcode, currentStack);
+		if(GenerationVerifier.VERIFY) {
+			verifier.newContext(currentStack, ain, b);
+			possibleRules = verifier.find_verify_matches();
 		}
 		
 		switch (opcode) {
@@ -379,7 +386,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 				if(cst instanceof Number) {
 					_const(cst, ConstantExpr.computeType(cst));
 				} else {
-					_const(cst, TypeUtils.unbox(cst));
+					_const(cst, TypeUtils.unboxType(cst));
 				}
 				break;
 			case LCMP:
@@ -677,14 +684,11 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 				break;
 		}
 		
-		if(VERIFY) {
+		if(GenerationVerifier.VERIFY) {
 			if(possibleRules != null) {
-				CFGVerifier.confirm_rules(insns.indexOf(ain), opcode, possibleRules, currentStack);
+				verifier.confirm_rules(possibleRules);
 			}
 		}
-		
-
-		// System.out.println(" PosStack: " + currentStack);
 	}
 	
 	protected void _nop() {
@@ -1327,6 +1331,9 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 	}
 	
 	protected void addStmt(Stmt stmt) {
+		if(GenerationVerifier.VERIFY) {
+			verifier.addEvent(new GenerationVerifier.GenerationMessageEvent(" adding " + stmt));
+		}
 		currentBlock.add(stmt);
 	}
 	
