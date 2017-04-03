@@ -4,8 +4,8 @@ import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.cfg.edge.FlowEdge;
 import org.mapleir.ir.locals.Local;
-import org.mapleir.stdlib.collections.nullpermeable.NullPermeableHashMap;
-import org.mapleir.stdlib.collections.nullpermeable.SetCreator;
+import org.mapleir.stdlib.collections.map.NullPermeableHashMap;
+import org.mapleir.stdlib.collections.map.SetCreator;
 import org.objectweb.asm.tree.MethodNode;
 
 import java.util.HashMap;

@@ -11,9 +11,9 @@ import org.mapleir.ir.code.stmt.copy.CopyVarStmt;
 import org.mapleir.stdlib.collections.bitset.BitSetIndexer;
 import org.mapleir.stdlib.collections.bitset.GenericBitSet;
 import org.mapleir.stdlib.collections.bitset.IncrementalBitSetIndexer;
-import org.mapleir.stdlib.collections.nullpermeable.NullPermeableHashMap;
-import org.mapleir.stdlib.collections.nullpermeable.SetCreator;
-import org.mapleir.stdlib.collections.nullpermeable.ValueCreator;
+import org.mapleir.stdlib.collections.map.NullPermeableHashMap;
+import org.mapleir.stdlib.collections.map.SetCreator;
+import org.mapleir.stdlib.collections.map.ValueCreator;
 import org.mapleir.stdlib.util.TypeUtils;
 import org.objectweb.asm.Type;
 

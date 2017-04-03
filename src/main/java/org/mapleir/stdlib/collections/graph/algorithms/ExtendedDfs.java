@@ -3,8 +3,8 @@ package org.mapleir.stdlib.collections.graph.algorithms;
 import org.mapleir.stdlib.collections.graph.FastDirectedGraph;
 import org.mapleir.stdlib.collections.graph.FastGraphEdge;
 import org.mapleir.stdlib.collections.graph.FastGraphVertex;
-import org.mapleir.stdlib.collections.nullpermeable.KeyedValueCreator;
-import org.mapleir.stdlib.collections.nullpermeable.NullPermeableHashMap;
+import org.mapleir.stdlib.collections.map.KeyedValueCreator;
+import org.mapleir.stdlib.collections.map.NullPermeableHashMap;
 
 import java.util.ArrayList;
 import java.util.HashMap;

@@ -14,8 +14,8 @@ import org.mapleir.ir.locals.LocalsPool;
 import org.mapleir.stdlib.collections.bitset.BitSetIndexer;
 import org.mapleir.stdlib.collections.bitset.GenericBitSet;
 import org.mapleir.stdlib.collections.bitset.IncrementalBitSetIndexer;
-import org.mapleir.stdlib.collections.nullpermeable.NullPermeableHashMap;
-import org.mapleir.stdlib.collections.nullpermeable.ValueCreator;
+import org.mapleir.stdlib.collections.map.NullPermeableHashMap;
+import org.mapleir.stdlib.collections.map.ValueCreator;
 import org.objectweb.asm.Type;
 
 import java.util.HashMap;
