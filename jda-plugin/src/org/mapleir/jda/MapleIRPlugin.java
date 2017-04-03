@@ -1,15 +1,15 @@
 package org.mapleir.jda;
 
+import org.mapleir.context.IContext;
 import org.mapleir.deob.IPass;
 import org.mapleir.deob.PassGroup;
 import org.mapleir.deob.passes.ConcreteStaticInvocationPass;
-import org.mapleir.deob.passes.ConstantExpressionEvaluatorPass;
 import org.mapleir.deob.passes.ConstantExpressionReorderPass;
 import org.mapleir.deob.passes.ConstantParameterPass;
 import org.mapleir.deob.passes.DeadCodeEliminationPass;
 import org.mapleir.deob.passes.FieldRSADecryptionPass;
+import org.mapleir.deob.passes.eval.ConstantExpressionEvaluatorPass;
 import org.mapleir.ir.cfg.ControlFlowGraph;
-import org.mapleir.state.IContext;
 import org.objectweb.asm.tree.MethodNode;
 import the.bytecode.club.jda.FileContainer;
 import the.bytecode.club.jda.api.Plugin;

@@ -2,9 +2,8 @@ package org.mapleir.deob.passes;
 
 import org.mapleir.context.IContext;
 import org.mapleir.deob.IPass;
-import org.mapleir.deob.util.IPConstAnalysis;
-import org.mapleir.deob.util.IPConstAnalysis.ChildVisitor;
-import org.mapleir.deob.util.InvocationResolver;
+import org.mapleir.deob.interproc.ChildVisitor;
+import org.mapleir.deob.interproc.IPConstAnalysis;
 import org.mapleir.deob.util.RenamingUtil;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
@@ -19,6 +18,7 @@ import org.mapleir.ir.code.stmt.copy.AbstractCopyStmt;
 import org.mapleir.ir.code.stmt.copy.CopyVarStmt;
 import org.mapleir.ir.locals.LocalsPool;
 import org.mapleir.ir.locals.VersionedLocal;
+import org.mapleir.stdlib.util.InvocationResolver;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.MethodNode;
@@ -48,7 +48,7 @@ public class ConstantParameterPass implements IPass, Opcode {
 		Map<MethodNode, boolean[]> chainedNonConstant = new HashMap<>();
 		Map<MethodNode, boolean[]> specificNonConstant = new HashMap<>();
 		
-		ChildVisitor vis = new IPConstAnalysis.ChildVisitor() {
+		ChildVisitor vis = new ChildVisitor() {
 			@Override
 			public void postVisitMethod(IPConstAnalysis analysis, MethodNode m) {
 				int pCount = Type.getArgumentTypes(m.desc).length;
