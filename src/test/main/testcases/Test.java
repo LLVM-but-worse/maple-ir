@@ -12,8 +12,8 @@
 //import java.util.Set;
 //
 //import org.mapleir.IRCallTracer;
-//import org.mapleir.ir.ControlFlowGraphDumper;
-//import org.mapleir.ir.cfg.algorithms.BoissinotDestructor;
+//import org.mapleir.ir.algorithms.ControlFlowGraphDumper;
+//import org.mapleir.ir.algorithms.BoissinotDestructor;
 //import org.mapleir.ir.cfg.ControlFlowGraph;
 //import org.mapleir.ir.cfg.builder.ControlFlowGraphBuilder;
 //import org.mapleir.ir.code.Expr;

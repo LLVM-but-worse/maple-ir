@@ -1,6 +1,6 @@
 package org.mapleir.stdlib.util.dot;
 
-import org.mapleir.ir.cfg.algorithms.Liveness;
+import org.mapleir.ir.algorithms.Liveness;
 import org.mapleir.stdlib.collections.graph.FastGraph;
 import org.mapleir.stdlib.collections.graph.FastGraphEdge;
 import org.mapleir.stdlib.collections.graph.FastGraphVertex;
