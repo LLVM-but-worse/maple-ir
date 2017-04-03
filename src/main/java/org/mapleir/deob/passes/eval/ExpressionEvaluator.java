@@ -1,13 +1,9 @@
 package org.mapleir.deob.passes.eval;
 
 import org.mapleir.deob.passes.FieldRSADecryptionPass;
+import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.Expr;
-import org.mapleir.ir.code.expr.ArithmeticExpr;
-import org.mapleir.ir.code.expr.CastExpr;
-import org.mapleir.ir.code.expr.ComparisonExpr;
-import org.mapleir.ir.code.expr.ConstantExpr;
-import org.mapleir.ir.code.expr.NegationExpr;
-import org.mapleir.ir.code.expr.VarExpr;
+import org.mapleir.ir.code.expr.*;
 import org.mapleir.ir.code.stmt.ConditionalJumpStmt;
 import org.mapleir.ir.code.stmt.copy.AbstractCopyStmt;
 import org.mapleir.ir.locals.Local;
@@ -18,30 +14,12 @@ import org.objectweb.asm.Type;
 import java.util.HashSet;
 import java.util.Set;
 
-import static org.mapleir.ir.code.Opcode.ARITHMETIC;
-import static org.mapleir.ir.code.Opcode.CAST;
-import static org.mapleir.ir.code.Opcode.COMPARE;
-import static org.mapleir.ir.code.Opcode.CONST_LOAD;
-import static org.mapleir.ir.code.Opcode.LOCAL_LOAD;
-import static org.mapleir.ir.code.Opcode.NEGATE;
+import static org.mapleir.ir.code.Opcode.*;
 
 public class ExpressionEvaluator {
-	BridgeFactory bridgeFactory;
-	
-	public static boolean isValidSet(Set<?> set) {
-		return set != null && set.size() > 0;
-	}
-	
-	private static <T> Set<T> returnCleanSet(Set<T> set) {
-		if(set != null && set.size() > 0) {
-			return set;
-		} else {
-			return null;
-		}
-	}
+	BridgeFactory bridgeFactory = new BridgeFactory();
 	
 	public ExpressionEvaluator() {
-		bridgeFactory = new BridgeFactory();
 	}
 	
 	// todo: delete this method
@@ -53,6 +31,18 @@ public class ExpressionEvaluator {
 		System.out.println("      " + cc.getConstant() +"  " + ck.getConstant());*/
 		
 		return bridge.eval(cc.getConstant(), ck.getConstant());
+	}
+	
+	private static boolean isValidSet(Set<?> set) {
+		return set != null && set.size() > 0;
+	}
+	
+	private static <T> Set<T> returnCleanSet(Set<T> set) {
+		if(set != null && set.size() > 0) {
+			return set;
+		} else {
+			return null;
+		}
 	}
 	
 	public Expr eval(LocalsPool pool, Expr e) {
@@ -333,5 +323,52 @@ public class ExpressionEvaluator {
 		}
 
 		return val;
+	}
+	
+	// todo: move this into the evaluator FFS
+	public Boolean simplifyConditionalBranch(IPConstAnalysisVisitor vis, ControlFlowGraph cfg, ConditionalJumpStmt cond) {
+		Expr l = cond.getLeft();
+		Expr r = cond.getRight();
+		
+		if (!TypeUtils.isPrimitive(l.getType()) || !TypeUtils.isPrimitive(r.getType())) {
+			if(l instanceof ConstantExpr && r instanceof ConstantExpr && !TypeUtils.isPrimitive(l.getType()) && !TypeUtils.isPrimitive(r.getType())) {
+				return attemptNullarityBranchElimination(cond, (ConstantExpr) l, (ConstantExpr) r);
+			}
+			return null;
+		}
+		
+		LocalValueResolver resolver;
+		
+		LocalsPool pool = cfg.getLocals();
+		if(vis != null) {
+			// FIXME: use
+			resolver = new LocalValueResolver.SemiConstantLocalValueResolver(cfg.getMethod(), pool, vis);
+		} else {
+			resolver = new LocalValueResolver.PooledLocalValueResolver(pool);
+		}
+		
+		Set<ConstantExpr> lSet = evalPossibleValues(resolver, l);
+		Set<ConstantExpr> rSet = evalPossibleValues(resolver, r);
+		
+		if(isValidSet(lSet) && isValidSet(rSet)) {
+			Boolean result = evaluateConditional(cond, lSet, rSet);
+			if (result != null) {
+				return result;
+			}
+		}
+		return null;
+	}
+	
+	// todo: move this into the evaluator and join it with evaluateConditional
+	private Boolean attemptNullarityBranchElimination(ConditionalJumpStmt cond, ConstantExpr left, ConstantExpr right) {
+		if (left.getConstant() == null && right.getConstant() == null) {
+			return cond.getComparisonType() == ConditionalJumpStmt.ComparisonType.EQ;
+		}
+		if (cond.getComparisonType() == ConditionalJumpStmt.ComparisonType.EQ) {
+			if ((left.getConstant() == null) != (right.getConstant() == null)) {
+				return false;
+			}
+		}
+		return null;
 	}
 }
