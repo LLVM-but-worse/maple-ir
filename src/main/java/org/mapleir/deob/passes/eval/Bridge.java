@@ -2,6 +2,7 @@ package org.mapleir.deob.passes.eval;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.Arrays;
 
 public class Bridge {
 	private final Method method;
@@ -12,9 +13,10 @@ public class Bridge {
 	
 	public Object eval(Object... objs) {
 		try {
-			Object ret = method.invoke(null, objs);
-			return ret;
+			return method.invoke(null, objs);
 		} catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
+			System.err.println(Arrays.toString(method.getParameterTypes()));
+			System.err.println(Arrays.toString(objs));
 			throw new RuntimeException(e);
 		}
 	}

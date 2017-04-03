@@ -4,6 +4,7 @@ import org.mapleir.deob.passes.FieldRSADecryptionPass;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.code.expr.*;
+import org.mapleir.ir.code.expr.ArithmeticExpr.Operator;
 import org.mapleir.ir.code.stmt.ConditionalJumpStmt;
 import org.mapleir.ir.code.stmt.copy.AbstractCopyStmt;
 import org.mapleir.ir.locals.Local;
@@ -135,7 +136,10 @@ public class ExpressionEvaluator {
 		return null;
 	}
 	
-	public Expr simplify(LocalsPool pool, ArithmeticExpr e) {
+	public Expr simplifyMultiplication(LocalsPool pool, ArithmeticExpr e) {
+		if (e.getOperator() != Operator.MUL)
+			throw new IllegalArgumentException("Only works on multiplication exprs");
+		
 		Expr r = e.getRight();
 		
 		Expr re = eval(pool, r);
