@@ -17,9 +17,10 @@ import java.util.Set;
 import static org.mapleir.ir.code.Opcode.*;
 
 public class ExpressionEvaluator {
-	BridgeFactory bridgeFactory = new BridgeFactory();
+	BridgeFactory bridgeFactory;
 	
 	public ExpressionEvaluator() {
+		bridgeFactory = new BridgeFactory();
 	}
 	
 	// todo: delete this method

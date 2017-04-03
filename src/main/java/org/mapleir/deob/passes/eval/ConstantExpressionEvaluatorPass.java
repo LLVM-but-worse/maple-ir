@@ -15,12 +15,10 @@ import org.mapleir.ir.code.Stmt;
 import org.mapleir.ir.code.expr.ArithmeticExpr;
 import org.mapleir.ir.code.expr.ArithmeticExpr.Operator;
 import org.mapleir.ir.code.expr.ConstantExpr;
-import org.mapleir.ir.code.expr.VarExpr;
 import org.mapleir.ir.code.stmt.ConditionalJumpStmt;
 import org.mapleir.ir.code.stmt.NopStmt;
 import org.mapleir.ir.code.stmt.UnconditionalJumpStmt;
 import org.mapleir.ir.locals.LocalsPool;
-import org.mapleir.ir.locals.VersionedLocal;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
 
@@ -28,7 +26,8 @@ import java.util.HashSet;
 import java.util.List;
 
 public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
-	ExpressionEvaluator evaluator;
+	private ExpressionEvaluator evaluator;
+	private int branchesEvaluated, exprsEvaluated;
 	
 	public ConstantExpressionEvaluatorPass() {
 		evaluator = new ExpressionEvaluator();
@@ -36,8 +35,8 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 	
 	@Override
 	public int accept(IContext cxt, IPass prev, List<IPass> completed) {
-		int branchesEvaluated = 0;
-		int exprsEvaluated = 0;
+		branchesEvaluated = 0;
+		exprsEvaluated = 0;
 		
 		IPConstAnalysisVisitor vis = new IPConstAnalysisVisitor(cxt);
 		IPConstAnalysis.create(cxt, vis);
@@ -48,33 +47,7 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 			
 			for(ClassNode cn : cxt.getApplication().iterate()) {
 				for(MethodNode m : cn.methods) {
-					
-					ControlFlowGraph cfg = cxt.getIRCache().getFor(m);
-					LocalsPool pool = cfg.getLocals();
-					
-					for(BasicBlock b : new HashSet<>(cfg.vertices())) {
-						for(int i=0; i < b.size(); i++) {
-							Stmt stmt = b.get(i);
-							
-							if(stmt.getOpcode() == COND_JUMP) {
-								ConditionalJumpStmt cond = (ConditionalJumpStmt) stmt;
-								Boolean result = evaluator.evaluateConditional(vis, cfg, cond);
-								if (result != null) {
-									eliminateBranch(cfg, cond.getBlock(), cond, i, result);
-									 branchesEvaluated++;
-								}
-							}
-
-							for(CodeUnit e : stmt.enumerateExecutionOrder()) {
-								if(e instanceof Expr) {
-									CodeUnit par = ((Expr) e).getParent();
-									if(par != null) {
-										exprsEvaluated += simplifyArithmetic(pool, par, (Expr) e);
-									}
-								}
-							}
-						}
-					}
+					processMethod(vis, cxt.getIRCache().getFor(m));
 				}
 			}
 			
@@ -89,7 +62,34 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 		return exprsEvaluated;
 	}
 	
-	private int simplifyArithmetic(LocalsPool pool, CodeUnit par, Expr e) {
+	private void processMethod(IPConstAnalysisVisitor vis, ControlFlowGraph cfg) {
+		for(BasicBlock b : new HashSet<>(cfg.vertices())) {
+			for(int i=0; i < b.size(); i++) {
+				Stmt stmt = b.get(i);
+				
+				if(stmt.getOpcode() == COND_JUMP) {
+					ConditionalJumpStmt cond = (ConditionalJumpStmt) stmt;
+					Boolean result = evaluator.evaluateConditional(vis, cfg, cond);
+					if (result != null) {
+						eliminateBranch(cfg, cond.getBlock(), cond, i, result);
+						 branchesEvaluated++;
+					}
+				}
+
+				for(CodeUnit e : stmt.enumerateExecutionOrder()) {
+					if(e instanceof Expr) {
+						CodeUnit par = ((Expr) e).getParent();
+						if(par != null) {
+							exprsEvaluated += simplifyArithmetic(cfg, par, (Expr) e);
+						}
+					}
+				}
+			}
+		}
+	}
+	
+	private int simplifyArithmetic(ControlFlowGraph cfg, CodeUnit par, Expr e) {
+		LocalsPool pool = cfg.getLocals();
 		int j = 0;
 		
 		/* no point evaluating constants */
@@ -98,7 +98,7 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 			if(val != null) {
 				if(!val.equivalent(e)) {
 					try {
-						overwrite(par, e, val, pool);
+						cfg.overwrite(par, e, val);
 					} catch(RuntimeException ex) {
 						System.err.println("e: " + e);
 						System.err.println("v: " + val);
@@ -117,7 +117,7 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 				Expr e2 = evaluator.simplify(pool, ae);
 				
 				if(e2 != null) {
-					overwrite(par, e, e2, pool);
+					cfg.overwrite(par, e, e2);
 					j++;
 				} else if (op == Operator.MUL) {
 					/* (x * c) * k
@@ -140,7 +140,7 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 								Object v = evaluator.evalMultiplication(c, cc, k, ck);
 								
 								ArithmeticExpr newAe = new ArithmeticExpr(new ConstantExpr(v, c.getType()), xcExpr.getLeft().copy(), Operator.MUL);
-								overwrite(ae.getParent(), ae, newAe, pool);
+								cfg.overwrite(ae.getParent(), ae, newAe);
 								j++;
 							}
 						}
@@ -152,32 +152,7 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 		return j;
 	}
 	
-	private void overwrite(CodeUnit parent, Expr from, Expr to, LocalsPool pool) {
-		updateDefuse(from, to, pool);
-		parent.overwrite(to, parent.indexOf(from));
-	}
-	
-	private void updateDefuse(Expr from, Expr to, LocalsPool pool) {
-		// remove uses in from
-		for(Expr e : from.enumerateWithSelf()) {
-			if (e.getOpcode() == Opcode.LOCAL_LOAD) {
-				VersionedLocal l = (VersionedLocal) ((VarExpr) e).getLocal();
-				pool.uses.get(l).remove(e);
-			}
-		}
-		
-		// add uses in to
-		for(Expr e : to.enumerateWithSelf()) {
-			if (e.getOpcode() == Opcode.LOCAL_LOAD) {
-				VarExpr var = (VarExpr) e;
-				pool.uses.get((VersionedLocal) var.getLocal()).add(var);
-			}
-		}
-	}
-	
 	private void eliminateBranch(ControlFlowGraph cfg, BasicBlock b, ConditionalJumpStmt cond, int insnIndex, boolean val) {
-		LocalsPool pool = cfg.getLocals();
-
 		for(FlowEdge<BasicBlock> fe : new HashSet<>(cfg.getEdges(b))) {
 			if(fe.getType() == FlowEdges.COND) {
 				if(fe.dst != cond.getTrueSuccessor()) {
