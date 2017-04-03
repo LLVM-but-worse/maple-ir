@@ -1,7 +1,6 @@
-package org.mapleir.deob.util;
+package org.mapleir.deob.interproc;
 
 import org.mapleir.context.IContext;
-import org.mapleir.deob.interproc.IRCallTracer;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.Expr;
@@ -184,14 +183,4 @@ public class IPConstAnalysis extends IRCallTracer implements Opcode {
 		}
 	}
 	
-	public static interface ChildVisitor {
-		
-		default void preVisitMethod(IPConstAnalysis analysis, MethodNode m) {}
-		
-		default void postVisitMethod(IPConstAnalysis analysis, MethodNode m) {}
-		
-		default void preProcessedInvocation(IPConstAnalysis analysis, MethodNode caller, MethodNode callee, Expr e) {}
-		
-		default void postProcessedInvocation(IPConstAnalysis analysis, MethodNode caller, MethodNode callee, Expr e) {}
-	}
 }

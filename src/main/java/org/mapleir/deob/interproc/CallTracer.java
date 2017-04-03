@@ -1,8 +1,8 @@
 package org.mapleir.deob.interproc;
 
 import org.mapleir.context.app.ApplicationClassSource;
-import org.mapleir.deob.util.InvocationResolver;
 import org.mapleir.ir.code.Expr;
+import org.mapleir.stdlib.util.InvocationResolver;
 import org.objectweb.asm.tree.MethodNode;
 
 import java.util.HashSet;
