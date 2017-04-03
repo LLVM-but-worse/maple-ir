@@ -1,7 +1,7 @@
 package org.mapleir.deob.passes.eval;
 
 import org.mapleir.context.IContext;
-import org.mapleir.deob.interproc.IPtAnalysisVisitor;
+import org.mapleir.deob.interproc.IPAnalysisVisitor;
 import org.mapleir.deob.interproc.IPAnalysis;
 import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.code.Opcode;
@@ -19,7 +19,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public class IPConstAnalysisVisitor implements IPtAnalysisVisitor {
+public class IPConstAnalysisVisitor implements IPAnalysisVisitor {
 
 	final IContext cxt;
 	final Map<MethodNode, List<Set<ConstantExpr>>> constParams = new HashMap<>();
