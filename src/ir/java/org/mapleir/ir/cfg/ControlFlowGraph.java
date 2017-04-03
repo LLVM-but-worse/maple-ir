@@ -1,13 +1,19 @@
 package org.mapleir.ir.cfg;
 
-import java.util.Iterator;
-
 import org.mapleir.ir.cfg.edge.FlowEdge;
+import org.mapleir.ir.code.Expr;
+import org.mapleir.ir.code.Opcode;
 import org.mapleir.ir.code.Stmt;
+import org.mapleir.ir.code.expr.PhiExpr;
+import org.mapleir.ir.code.expr.VarExpr;
+import org.mapleir.ir.code.stmt.copy.CopyPhiStmt;
 import org.mapleir.ir.locals.LocalsPool;
+import org.mapleir.ir.locals.VersionedLocal;
 import org.mapleir.stdlib.collections.graph.flow.ExceptionRange;
 import org.mapleir.stdlib.util.TabbedStringWriter;
 import org.objectweb.asm.tree.MethodNode;
+
+import java.util.Iterator;
 
 public class ControlFlowGraph extends FastBlockGraph {
 	
@@ -27,6 +33,46 @@ public class ControlFlowGraph extends FastBlockGraph {
 	
 	public MethodNode getMethod() {
 		return method;
+	}
+	
+	/**
+	 * Properly removes phi uses in fe.dst of phi arguments from fe.src.
+	 * @param fe Edge to excise phi uses.
+	 */
+	public void excisePhiUses(FlowEdge<BasicBlock> fe) {
+		if (!this.containsEdge(fe.src, fe))
+			throw new IllegalArgumentException("Graph does not contain the specified edge");
+		for (Stmt stmt : fe.dst) {
+			if (stmt.getOpcode() == Stmt.PHI_STORE) {
+				CopyPhiStmt phs = (CopyPhiStmt) stmt;
+				PhiExpr phi = phs.getExpression();
+				
+				BasicBlock pred = fe.src;
+				VarExpr arg = (VarExpr) phi.getArgument(pred);
+				
+				VersionedLocal l = (VersionedLocal) arg.getLocal();
+				locals.uses.get(l).remove(arg);
+				
+				phi.removeArgument(pred);
+			} else {
+				return;
+			}
+		}
+	}
+	
+	/**
+	 * Excises uses of a removed statement.
+	 * @param c Removed statement to update def/use information with respect to.
+	 */
+	public void exciseStmt(Stmt c) {
+		for(Expr e : c.enumerateOnlyChildren()) {
+			if(e.getOpcode() == Opcode.LOCAL_LOAD) {
+				VarExpr v = (VarExpr) e;
+				
+				VersionedLocal l = (VersionedLocal) v.getLocal();
+				locals.uses.get(l).remove(v);
+			}
+		}
 	}
 	
 	@Override

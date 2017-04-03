@@ -12,6 +12,7 @@ import org.mapleir.ir.code.stmt.ConditionalJumpStmt;
 import org.mapleir.ir.code.stmt.copy.AbstractCopyStmt;
 import org.mapleir.ir.locals.Local;
 import org.mapleir.ir.locals.LocalsPool;
+import org.mapleir.stdlib.util.TypeUtils;
 import org.objectweb.asm.Type;
 
 import java.util.HashSet;
@@ -26,18 +27,6 @@ import static org.mapleir.ir.code.Opcode.NEGATE;
 
 public class ExpressionEvaluator {
 	BridgeFactory bridgeFactory;
-	
-	public static boolean isPrimitive(Type t) {
-		switch(t.getSort()) {
-			case Type.VOID:
-			case Type.ARRAY:
-			case Type.OBJECT:
-			case Type.METHOD:
-				return false;
-			default:
-				return true;
-		}
-	}
 	
 	public static boolean isValidSet(Set<?> set) {
 		return set != null && set.size() > 0;
@@ -127,8 +116,8 @@ public class ExpressionEvaluator {
 				Type from = ce.getType();
 				Type to = cast.getType();
 				
-				boolean p1 = isPrimitive(from);
-				boolean p2 = isPrimitive(to);
+				boolean p1 = TypeUtils.isPrimitive(from);
+				boolean p2 = TypeUtils.isPrimitive(to);
 				
 				if(p1 != p2) {
 					throw new IllegalStateException(from + " to " + to);
@@ -268,8 +257,8 @@ public class ExpressionEvaluator {
 					Type from = ce.getType();
 					Type to = cast.getType();
 					
-					boolean p1 = isPrimitive(from);
-					boolean p2 = isPrimitive(to);
+					boolean p1 = TypeUtils.isPrimitive(from);
+					boolean p2 = TypeUtils.isPrimitive(to);
 					
 					if(p1 != p2) {
 						throw new IllegalStateException(from + " to " + to);
@@ -317,7 +306,7 @@ public class ExpressionEvaluator {
 		
 		for(ConstantExpr lc : leftSet) {
 			for(ConstantExpr rc : rightSet) {
-				if(isPrimitive(lc.getType()) && isPrimitive(rc.getType())) {
+				if(TypeUtils.isPrimitive(lc.getType()) && TypeUtils.isPrimitive(rc.getType())) {
 					Bridge bridge = bridgeFactory.getConditionalEvalBridge(lc.getType(), rc.getType(), cond.getComparisonType());
 					/*System.out.println("eval: " + bridge.method + " " + lc.getConstant().getClass() + " " + rc.getConstant().getClass());
 					System.out.println("   actual: " + lc.getType() + ", " +  rc.getType());
