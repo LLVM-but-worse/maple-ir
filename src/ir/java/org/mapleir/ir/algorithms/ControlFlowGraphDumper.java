@@ -1,9 +1,4 @@
-package org.mapleir.ir;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.ListIterator;
-import java.util.Set;
+package org.mapleir.ir.algorithms;
 
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
@@ -16,8 +11,15 @@ import org.objectweb.asm.Label;
 import org.objectweb.asm.tree.LabelNode;
 import org.objectweb.asm.tree.MethodNode;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.ListIterator;
+import java.util.Set;
+
 public class ControlFlowGraphDumper {
 	public static void dump(ControlFlowGraph cfg, MethodNode m) {
+		// TODO: Use tarjan scc to linearize CFG and rebuild ranges
+		
 		m.instructions.removeAll(true);
 		m.tryCatchBlocks.clear();
 
