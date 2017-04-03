@@ -58,7 +58,7 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 							
 							if(stmt.getOpcode() == COND_JUMP) {
 								ConditionalJumpStmt cond = (ConditionalJumpStmt) stmt;
-								Boolean result = evaluator.simplifyConditionalBranch(vis, cfg, cond);
+								Boolean result = evaluator.evaluateConditional(vis, cfg, cond);
 								if (result != null) {
 									eliminateBranch(cfg, cond.getBlock(), cond, i, result);
 									 branchesEvaluated++;
