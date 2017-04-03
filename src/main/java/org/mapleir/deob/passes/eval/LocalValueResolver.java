@@ -35,9 +35,9 @@ public interface LocalValueResolver {
 	class SemiConstantLocalValueResolver implements LocalValueResolver {
 		private final MethodNode method;
 		private final LocalsPool pool;
-		private final IPConstAnalysisVisitor vis;
+		private final IPAnalysisVisitor vis;
 		
-		public SemiConstantLocalValueResolver(MethodNode method, LocalsPool pool, IPConstAnalysisVisitor vis) {
+		public SemiConstantLocalValueResolver(MethodNode method, LocalsPool pool, IPAnalysisVisitor vis) {
 			this.method = method;
 			this.pool = pool;
 			this.vis = vis;

@@ -383,7 +383,7 @@ public class ExpressionEvaluator {
 		return val;
 	}
 	
-	public Boolean evaluateConditional(IPConstAnalysisVisitor vis, ControlFlowGraph cfg, ConditionalJumpStmt cond) {
+	public Boolean evaluateConditional(IPAnalysisVisitor vis, ControlFlowGraph cfg, ConditionalJumpStmt cond) {
 		Expr l = cond.getLeft();
 		Expr r = cond.getRight();
 		
