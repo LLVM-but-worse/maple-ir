@@ -3,7 +3,7 @@ package org.mapleir.deob.interproc;
 import org.mapleir.ir.code.Expr;
 import org.objectweb.asm.tree.MethodNode;
 
-public interface ChildVisitor {
+public interface IPtAnalysisVisitor {
 	
 	default void preVisitMethod(IPAnalysis analysis, MethodNode m) {}
 	

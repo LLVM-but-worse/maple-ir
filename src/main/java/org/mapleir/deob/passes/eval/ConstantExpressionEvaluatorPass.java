@@ -35,7 +35,7 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 		branchesEvaluated = 0;
 		exprsEvaluated = 0;
 		
-		IPAnalysisVisitor vis = new IPAnalysisVisitor(cxt);
+		IPConstAnalysisVisitor vis = new IPConstAnalysisVisitor(cxt);
 		IPAnalysis.create(cxt, vis);
 		
 		for(;;) {
@@ -59,7 +59,7 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 		return exprsEvaluated;
 	}
 	
-	private void processMethod(IPAnalysisVisitor vis, ControlFlowGraph cfg) {
+	private void processMethod(IPConstAnalysisVisitor vis, ControlFlowGraph cfg) {
 		for(BasicBlock b : new HashSet<>(cfg.vertices())) {
 			for(int i=0; i < b.size(); i++) {
 				Stmt stmt = b.get(i);
