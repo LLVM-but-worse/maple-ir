@@ -11,21 +11,18 @@ import org.mapleir.deob.PassGroup;
 import org.mapleir.deob.interproc.CallTracer;
 import org.mapleir.deob.interproc.IRCallTracer;
 import org.mapleir.deob.passes.ClassRenamerPass;
+import org.mapleir.deob.passes.ConstantExpressionReorderPass;
+import org.mapleir.deob.passes.DeadCodeEliminationPass;
 import org.mapleir.deob.passes.FieldRenamerPass;
-import org.mapleir.deob.passes.MethodRenamerPass;
-import org.mapleir.deob.util.InvocationResolver;
+import org.mapleir.deob.passes.eval.ConstantExpressionEvaluatorPass;
 import org.mapleir.ir.algorithms.BoissinotDestructor;
 import org.mapleir.ir.algorithms.ControlFlowGraphDumper;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.cfg.builder.ControlFlowGraphBuilder;
+import org.mapleir.stdlib.util.InvocationResolver;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Opcodes;
-import org.objectweb.asm.tree.ClassNode;
-import org.objectweb.asm.tree.InsnList;
-import org.objectweb.asm.tree.InsnNode;
-import org.objectweb.asm.tree.MethodInsnNode;
-import org.objectweb.asm.tree.MethodNode;
-import org.objectweb.asm.tree.VarInsnNode;
+import org.objectweb.asm.tree.*;
 import org.topdank.byteengineer.commons.data.JarInfo;
 import org.topdank.byteio.in.SingleJarDownloader;
 import org.topdank.byteio.out.JarDumper;
@@ -33,12 +30,8 @@ import org.topdank.byteio.out.JarDumper;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.Deque;
-import java.util.HashSet;
-import java.util.LinkedList;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Set;
 import java.util.jar.JarOutputStream;
 
 public class Boot {
@@ -164,7 +157,7 @@ public class Boot {
 		} */
 		
 //		File f = locateRevFile(135);
-		File f = new File("res/allatori6.1.jar");
+		File f = new File("res/gamepack135.jar");
 		section("Preparing to run on " + f.getAbsolutePath());
 		SingleJarDownloader<ClassNode> dl = new SingleJarDownloader<>(new JarInfo(f));
 		dl.download();
@@ -272,7 +265,7 @@ public class Boot {
 //				new CallgraphPruningPass(),
 //				new ConcreteStaticInvocationPass(),
 				new ClassRenamerPass(),
-				new MethodRenamerPass(),
+//				new MethodRenamerPass(),
 //				new ConstantParameterPass()
 //				new ClassRenamerPass(),
 				new FieldRenamerPass(),
@@ -280,11 +273,11 @@ public class Boot {
 //				new FieldRSADecryptionPass(),
 //				new PassGroup("Interprocedural Optimisations")
 //					.add(new ConstantParameterPass())
-//				new ConstantExpressionReorderPass(),
+				new ConstantExpressionReorderPass(),
 //				new FieldRSADecryptionPass(),
 //				new ConstantParameterPass(),
-//				new ConstantExpressionEvaluatorPass(),
-//				new DeadCodeEliminationPass()
+				new ConstantExpressionEvaluatorPass(),
+				new DeadCodeEliminationPass()
 //				new PassGroup("Interprocedural Optimisations")
 				
 		};
