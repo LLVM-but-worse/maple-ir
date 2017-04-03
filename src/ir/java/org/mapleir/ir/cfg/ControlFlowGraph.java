@@ -65,7 +65,6 @@ public class ControlFlowGraph extends FastBlockGraph {
 	
 	/**
 	 * Excises uses of a removed statement.
-	 * @param index Index of the statement within its block.
 	 * @param c Removed statement to update def/use information with respect to.
 	 */
 	public void exciseStmt(Stmt c) {
