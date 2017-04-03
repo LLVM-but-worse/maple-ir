@@ -1,9 +1,9 @@
 package org.mapleir.stdlib.collections.bitset;
 
-import org.mapleir.stdlib.collections.nullpermeable.NullPermeableHashMap;
-import org.mapleir.stdlib.collections.nullpermeable.ValueCreator;
-
 import java.util.HashMap;
+
+import org.mapleir.stdlib.collections.map.NullPermeableHashMap;
+import org.mapleir.stdlib.collections.map.ValueCreator;
 
 public class IncrementalBitSetIndexer<N> implements BitSetIndexer<N> {
 

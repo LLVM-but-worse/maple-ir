@@ -2,8 +2,8 @@ package org.mapleir.context;
 
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.cfg.builder.ControlFlowGraphBuilder;
-import org.mapleir.stdlib.collections.nullpermeable.KeyedValueCreator;
-import org.mapleir.stdlib.collections.nullpermeable.NullPermeableHashMap;
+import org.mapleir.stdlib.collections.map.KeyedValueCreator;
+import org.mapleir.stdlib.collections.map.NullPermeableHashMap;
 import org.objectweb.asm.tree.MethodNode;
 
 import java.util.Set;

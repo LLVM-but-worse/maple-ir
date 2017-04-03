@@ -14,7 +14,7 @@ import org.mapleir.ir.locals.Local;
 import org.mapleir.ir.locals.LocalsPool;
 import org.mapleir.stdlib.collections.bitset.GenericBitSet;
 import org.mapleir.stdlib.collections.graph.GraphUtils;
-import org.mapleir.stdlib.collections.nullpermeable.NullPermeableHashMap;
+import org.mapleir.stdlib.collections.map.NullPermeableHashMap;
 
 import java.util.LinkedList;
 import java.util.ListIterator;
