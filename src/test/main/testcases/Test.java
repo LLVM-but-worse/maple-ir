@@ -13,15 +13,15 @@
 //
 //import org.mapleir.IRCallTracer;
 //import org.mapleir.ir.ControlFlowGraphDumper;
-//import org.mapleir.ir.cfg.BoissinotDestructor;
+//import org.mapleir.ir.cfg.algorithms.BoissinotDestructor;
 //import org.mapleir.ir.cfg.ControlFlowGraph;
 //import org.mapleir.ir.cfg.builder.ControlFlowGraphBuilder;
 //import org.mapleir.ir.code.Expr;
 //import org.mapleir.state.IContext;
-//import org.mapleir.stdlib.call.CallTracer;
-//import org.mapleir.stdlib.deob.PassGroup;
-//import org.mapleir.stdlib.klass.ClassTree;
-//import org.mapleir.stdlib.klass.InvocationResolver;
+//import org.mapleir.analysis.call.CallTracer;
+//import org.mapleir.deob.PassGroup;
+//import org.mapleir.cxt.app.ClassTree;
+//import org.mapleir.deob.util.InvocationResolver;
 //import org.objectweb.asm.ClassReader;
 //import org.objectweb.asm.ClassWriter;
 //import org.objectweb.asm.tree.AnnotationNode;

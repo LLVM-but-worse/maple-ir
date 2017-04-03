@@ -1,7 +1,7 @@
 package org.mapleir.stdlib.collections.bitset;
 
-import org.mapleir.stdlib.collections.NullPermeableHashMap;
-import org.mapleir.stdlib.collections.ValueCreator;
+import org.mapleir.stdlib.collections.nullpermeable.NullPermeableHashMap;
+import org.mapleir.stdlib.collections.nullpermeable.ValueCreator;
 
 import java.util.HashMap;
 
