@@ -1,25 +1,20 @@
 package org.mapleir.deobimpl2;
 
+import java.util.*;
+
+import org.mapleir.deobimpl2.cxt.IContext;
 import org.mapleir.deobimpl2.util.RenamingUtil;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.code.Opcode;
 import org.mapleir.ir.code.Stmt;
-import org.mapleir.ir.code.expr.CastExpr;
-import org.mapleir.ir.code.expr.CaughtExceptionExpr;
-import org.mapleir.ir.code.expr.FieldLoadExpr;
-import org.mapleir.ir.code.expr.InitialisedObjectExpr;
-import org.mapleir.ir.code.expr.InstanceofExpr;
-import org.mapleir.ir.code.expr.InvocationExpr;
-import org.mapleir.ir.code.expr.NewArrayExpr;
-import org.mapleir.ir.code.expr.UninitialisedObjectExpr;
-import org.mapleir.ir.code.expr.VarExpr;
+import org.mapleir.ir.code.expr.*;
 import org.mapleir.ir.code.stmt.FieldStoreStmt;
 import org.mapleir.ir.code.stmt.ReturnStmt;
 import org.mapleir.ir.code.stmt.copy.AbstractCopyStmt;
-import org.mapleir.deobimpl2.cxt.IContext;
 import org.mapleir.stdlib.app.ApplicationClassSource;
+import org.mapleir.stdlib.collections.graph.flow.ExceptionRange;
 import org.mapleir.stdlib.deob.IPass;
 import org.mapleir.stdlib.klass.ClassHelper;
 import org.objectweb.asm.Type;
@@ -29,17 +24,10 @@ import org.objectweb.asm.tree.LocalVariableNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.tree.TryCatchBlockNode;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 public class ClassRenamerPass implements IPass {
 
 	@Override
-	public boolean isSingletonPass() {
+	public boolean isQuantisedPass() {
 		return false;
 	}
 	
@@ -92,8 +80,8 @@ public class ClassRenamerPass implements IPass {
 			// unsupported(cn.sourceFile);
 			// unsupported(cn.sourceDebug);
 			cn.outerClass = remapping.getOrDefault(cn.outerClass, cn.outerClass);
-			unsupported(cn.outerMethod);
-			unsupported(cn.outerMethodDesc);
+//			unsupported(cn.outerMethod);
+//			unsupported(cn.outerMethodDesc);
 
 			unsupported(cn.visibleAnnotations);
 			unsupported(cn.invisibleAnnotations);
@@ -150,6 +138,16 @@ public class ClassRenamerPass implements IPass {
 					tcbn.type = remapping.getOrDefault(tcbn.type, tcbn.type);
 				}
 
+				ControlFlowGraph cfg = cxt.getIRCache().getFor(m);
+				
+				for(ExceptionRange<BasicBlock> er : cfg.getRanges()) {
+					Set<String> newTypeSet = new HashSet<>();
+					for(String s : er.getTypes()) {
+						newTypeSet.add(remapping.getOrDefault(s, s));
+					}
+					er.setTypes(newTypeSet);
+				}
+
 				if(m.localVariables != null) {
 					m.localVariables.clear();
 					for(LocalVariableNode lvn : m.localVariables) {
@@ -164,9 +162,6 @@ public class ClassRenamerPass implements IPass {
 				
 				unsupported(m.visibleLocalVariableAnnotations);
 				unsupported(m.invisibleLocalVariableAnnotations);
-				
-				
-				ControlFlowGraph cfg = cxt.getCFGS().getIR(m);
 				
 				for(BasicBlock b : cfg.vertices()) {
 					for(Stmt stmt : b) {
@@ -265,6 +260,22 @@ public class ClassRenamerPass implements IPass {
 								String newType = resolveType(v.getType(), remapping);
 								if(newType != null) {
 									v.setType(Type.getType(newType));
+								}
+							} else if(e.getOpcode() == Opcode.CONST_LOAD) {
+								ConstantExpr c = (ConstantExpr) e;
+								
+								Object cst = c.getConstant();
+								if(cst instanceof Type) {
+									Type t = (Type) cst;
+									
+									if(t.getSort() == Type.OBJECT) {
+										String newType = resolveType(t, remapping);
+										if(newType != null) {
+											c.setConstant(Type.getType(newType));
+										}
+									} else {
+										throw new UnsupportedOperationException(String.format("Unsupported ctype %s (%d)", t, t.getSort()));
+									}
 								}
 							}
 						}

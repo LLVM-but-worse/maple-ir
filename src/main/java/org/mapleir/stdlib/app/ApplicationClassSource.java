@@ -29,9 +29,6 @@ public class ApplicationClassSource extends ClassSource {
 	public ClassTree getStructures() {
 		if (classTree == null) {
 			classTree = new ClassTree(this);
-			for (ClassNode node : iterateWithLibraries()) {
-				classTree.addVertex(node);
-			}
 		}
 		return classTree;
 	}
