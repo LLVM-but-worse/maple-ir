@@ -6,7 +6,7 @@ import org.mapleir.stdlib.collections.bitset.BitSetIndexer;
 import org.mapleir.stdlib.collections.bitset.GenericBitSet;
 import org.mapleir.stdlib.collections.graph.FastDirectedGraph;
 import org.mapleir.stdlib.collections.graph.FastGraphVertex;
-import org.mapleir.stdlib.collections.nullpermeable.ValueCreator;
+import org.mapleir.stdlib.collections.map.ValueCreator;
 
 import java.util.ArrayList;
 import java.util.BitSet;

@@ -1,4 +1,4 @@
-package org.mapleir.stdlib.collections.nullpermeable;
+package org.mapleir.stdlib.collections.map;
 
 public interface ValueCreator<V> extends KeyedValueCreator<Object, V> {
 	V create();

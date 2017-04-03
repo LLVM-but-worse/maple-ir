@@ -1,4 +1,4 @@
-package org.mapleir.stdlib.collections.nullpermeable;
+package org.mapleir.stdlib.collections.map;
 
 import java.util.HashSet;
 import java.util.Set;

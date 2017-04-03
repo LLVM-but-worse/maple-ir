@@ -6,7 +6,7 @@ import org.mapleir.stdlib.collections.graph.FastGraph;
 import org.mapleir.stdlib.collections.graph.FastGraphEdge;
 import org.mapleir.stdlib.collections.graph.FastGraphVertex;
 import org.mapleir.stdlib.collections.graph.flow.FlowGraph;
-import org.mapleir.stdlib.collections.nullpermeable.NullPermeableHashMap;
+import org.mapleir.stdlib.collections.map.NullPermeableHashMap;
 
 import java.util.HashMap;
 import java.util.HashSet;
