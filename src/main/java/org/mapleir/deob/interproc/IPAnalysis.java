@@ -21,9 +21,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public class IPConstAnalysis extends IRCallTracer implements Opcode {
+public class IPAnalysis extends IRCallTracer implements Opcode {
 	
-	public static IPConstAnalysis create(IContext cxt, ChildVisitor... visitors) {
+	public static IPAnalysis create(IContext cxt, ChildVisitor... visitors) {
 		List<ChildVisitor> cvs = new ArrayList<>();
 		for(ChildVisitor v : visitors) {
 			cvs.add(v);
@@ -31,8 +31,8 @@ public class IPConstAnalysis extends IRCallTracer implements Opcode {
 		return create(cxt, cvs);
 	}
 	
-	public static IPConstAnalysis create(IContext cxt, List<ChildVisitor> visitors) {
-		IPConstAnalysis analysis = new IPConstAnalysis(cxt, visitors);
+	public static IPAnalysis create(IContext cxt, List<ChildVisitor> visitors) {
+		IPAnalysis analysis = new IPAnalysis(cxt, visitors);
 		for(MethodNode mn : cxt.getIRCache().getActiveMethods()) {
 			analysis.trace(mn);
 		}
@@ -44,7 +44,7 @@ public class IPConstAnalysis extends IRCallTracer implements Opcode {
 	private final Map<MethodNode, List<List<Expr>>> parameterInputs;
 	private final Map<MethodNode, int[]> paramIndices;
 	
-	public IPConstAnalysis(IContext cxt, List<ChildVisitor> visitors) {
+	public IPAnalysis(IContext cxt, List<ChildVisitor> visitors) {
 		super(cxt);
 		this.visitors = visitors;
 		

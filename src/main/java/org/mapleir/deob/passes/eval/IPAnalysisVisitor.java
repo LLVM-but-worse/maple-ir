@@ -2,7 +2,7 @@ package org.mapleir.deob.passes.eval;
 
 import org.mapleir.context.IContext;
 import org.mapleir.deob.interproc.ChildVisitor;
-import org.mapleir.deob.interproc.IPConstAnalysis;
+import org.mapleir.deob.interproc.IPAnalysis;
 import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.code.Opcode;
 import org.mapleir.ir.code.expr.ConstantExpr;
@@ -19,18 +19,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public class IPConstAnalysisVisitor implements ChildVisitor {
+public class IPAnalysisVisitor implements ChildVisitor {
 
 	final IContext cxt;
 	final Map<MethodNode, List<Set<ConstantExpr>>> constParams = new HashMap<>();
 	final Map<MethodNode, boolean[]> unconst = new HashMap<>();
 	
-	public IPConstAnalysisVisitor(IContext cxt) {
+	public IPAnalysisVisitor(IContext cxt) {
 		this.cxt = cxt;
 	}
 	
 	@Override
-	public void postVisitMethod(IPConstAnalysis analysis, MethodNode m) {
+	public void postVisitMethod(IPAnalysis analysis, MethodNode m) {
 		int pCount = Type.getArgumentTypes(m.desc).length;
 		boolean[] arr = new boolean[pCount];
 		
@@ -62,7 +62,7 @@ public class IPConstAnalysisVisitor implements ChildVisitor {
 	}
 	
 	@Override
-	public void postProcessedInvocation(IPConstAnalysis analysis, MethodNode caller, MethodNode callee, Expr call) {
+	public void postProcessedInvocation(IPAnalysis analysis, MethodNode caller, MethodNode callee, Expr call) {
 		Expr[] params;
 		
 		if(call.getOpcode() == Opcode.INVOKE) {

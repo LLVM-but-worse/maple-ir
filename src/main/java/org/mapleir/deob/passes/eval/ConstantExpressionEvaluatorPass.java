@@ -2,7 +2,7 @@ package org.mapleir.deob.passes.eval;
 
 import org.mapleir.context.IContext;
 import org.mapleir.deob.IPass;
-import org.mapleir.deob.interproc.IPConstAnalysis;
+import org.mapleir.deob.interproc.IPAnalysis;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.cfg.edge.FlowEdge;
@@ -35,8 +35,8 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 		branchesEvaluated = 0;
 		exprsEvaluated = 0;
 		
-		IPConstAnalysisVisitor vis = new IPConstAnalysisVisitor(cxt);
-		IPConstAnalysis.create(cxt, vis);
+		IPAnalysisVisitor vis = new IPAnalysisVisitor(cxt);
+		IPAnalysis.create(cxt, vis);
 		
 		for(;;) {
 			int prevExprsEval = exprsEvaluated;
@@ -59,7 +59,7 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 		return exprsEvaluated;
 	}
 	
-	private void processMethod(IPConstAnalysisVisitor vis, ControlFlowGraph cfg) {
+	private void processMethod(IPAnalysisVisitor vis, ControlFlowGraph cfg) {
 		for(BasicBlock b : new HashSet<>(cfg.vertices())) {
 			for(int i=0; i < b.size(); i++) {
 				Stmt stmt = b.get(i);
