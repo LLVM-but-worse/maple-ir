@@ -1,9 +1,9 @@
 package org.mapleir.ir.cfg.builder;
 
+import org.mapleir.ir.algorithms.Liveness;
+import org.mapleir.ir.algorithms.SSABlockLivenessAnalyser;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
-import org.mapleir.ir.cfg.algorithms.Liveness;
-import org.mapleir.ir.cfg.algorithms.SSABlockLivenessAnalyser;
 import org.mapleir.ir.cfg.builder.ssaopt.ConstraintUtil;
 import org.mapleir.ir.cfg.builder.ssaopt.LatestValue;
 import org.mapleir.ir.cfg.edge.ConditionalJumpEdge;

@@ -1,4 +1,4 @@
-package org.mapleir.ir.cfg.algorithms;
+package org.mapleir.ir.algorithms;
 
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
