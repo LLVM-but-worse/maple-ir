@@ -1,34 +1,23 @@
 package org.mapleir;
 
-import java.io.File;
-import java.io.IOException;
-import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.Deque;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.jar.JarOutputStream;
-
-import org.mapleir.byteio.CompleteResolvingJarDumper;
-import org.mapleir.deobimpl2.ClassRenamerPass;
-import org.mapleir.deobimpl2.FieldRenamerPass;
-import org.mapleir.deobimpl2.MethodRenamerPass;
-import org.mapleir.deobimpl2.cxt.BasicContext;
-import org.mapleir.deobimpl2.cxt.IContext;
-import org.mapleir.deobimpl2.cxt.IRCache;
+import org.mapleir.context.BasicContext;
+import org.mapleir.context.IContext;
+import org.mapleir.context.IRCache;
+import org.mapleir.context.app.ApplicationClassSource;
+import org.mapleir.context.app.CompleteResolvingJarDumper;
+import org.mapleir.context.app.InstalledRuntimeClassSource;
+import org.mapleir.deob.IPass;
+import org.mapleir.deob.PassGroup;
+import org.mapleir.deob.interproc.CallTracer;
+import org.mapleir.deob.interproc.IRCallTracer;
+import org.mapleir.deob.passes.ClassRenamerPass;
+import org.mapleir.deob.passes.FieldRenamerPass;
+import org.mapleir.deob.passes.MethodRenamerPass;
+import org.mapleir.deob.util.InvocationResolver;
 import org.mapleir.ir.ControlFlowGraphDumper;
-import org.mapleir.ir.cfg.BoissinotDestructor;
 import org.mapleir.ir.cfg.ControlFlowGraph;
+import org.mapleir.ir.cfg.algorithms.BoissinotDestructor;
 import org.mapleir.ir.cfg.builder.ControlFlowGraphBuilder;
-import org.mapleir.stdlib.app.ApplicationClassSource;
-import org.mapleir.stdlib.app.InstalledRuntimeClassSource;
-import org.mapleir.stdlib.call.CallTracer;
-import org.mapleir.stdlib.deob.IPass;
-import org.mapleir.stdlib.deob.PassGroup;
-import org.mapleir.stdlib.klass.InvocationResolver;
-import org.mapleir.t.A;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.ClassNode;
@@ -41,16 +30,23 @@ import org.topdank.byteengineer.commons.data.JarInfo;
 import org.topdank.byteio.in.SingleJarDownloader;
 import org.topdank.byteio.out.JarDumper;
 
+import java.io.File;
+import java.io.IOException;
+import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.Deque;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.jar.JarOutputStream;
+
 public class Boot {
 	
 	public static boolean logging = false;
 	private static long timer;
 	private static Deque<String> sections;
 
-	void a(A a) {
-		System.out.println(a.m(0));
-	}
-	
 	public static void main5(String[] args) throws Exception {
 		ClassNode c1 = new ClassNode();
 		c1.access = Opcodes.ACC_PUBLIC | Opcodes.ACC_ABSTRACT;

@@ -2,11 +2,11 @@ package org.mapleir.stdlib.collections.graph.flow;
 
 import org.mapleir.ir.cfg.edge.FlowEdge;
 import org.mapleir.ir.cfg.edge.TryCatchEdge;
-import org.mapleir.stdlib.collections.ValueCreator;
 import org.mapleir.stdlib.collections.bitset.BitSetIndexer;
 import org.mapleir.stdlib.collections.bitset.GenericBitSet;
 import org.mapleir.stdlib.collections.graph.FastDirectedGraph;
 import org.mapleir.stdlib.collections.graph.FastGraphVertex;
+import org.mapleir.stdlib.collections.nullpermeable.ValueCreator;
 
 import java.util.ArrayList;
 import java.util.BitSet;

@@ -16,7 +16,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
-//import org.mapleir.ir.analysis.StatementGraph;
+//import org.mapleir.analysis.StatementGraph;
 
 public class GraphUtils {
 
