@@ -44,9 +44,8 @@ public class DeadCodeEliminationPass implements IPass {
 			for(BasicBlock b : new HashSet<>(cfg.vertices())) {
 				if(!pre.contains(b)) {
 //					System.out.println("proc1: " + b);
-					LocalsPool pool = cfg.getLocals();
-					for(FlowEdge<BasicBlock> fe : cfg.getEdges(b)) {
-						cfg.excisePhiUses(fe);
+					for(FlowEdge<BasicBlock> fe : new HashSet<>(cfg.getEdges(b))) {
+						cfg.exciseEdge(fe);
 					}
 //					System.out.println("removed: ");
 					for(Stmt stmt : b) {
@@ -86,7 +85,7 @@ public class DeadCodeEliminationPass implements IPass {
 						
 						if(verts.indexOf(b) + 1 == verts.indexOf(dst)) {
 							ImmediateEdge<BasicBlock> im = new ImmediateEdge<>(b, dst);
-							cfg.removeEdge(b, uncond);
+							cfg.exciseEdge(uncond);
 							cfg.addEdge(b, im);
 							
 							Stmt stmt = b.remove(b.size() - 1);
