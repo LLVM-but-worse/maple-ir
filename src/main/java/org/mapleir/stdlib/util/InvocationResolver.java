@@ -1,9 +1,8 @@
-package org.mapleir.deob.util;
+package org.mapleir.stdlib.util;
 
 import org.mapleir.context.IContext;
 import org.mapleir.context.app.ApplicationClassSource;
 import org.mapleir.context.app.ClassTree;
-import org.mapleir.stdlib.util.TypeUtils;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
