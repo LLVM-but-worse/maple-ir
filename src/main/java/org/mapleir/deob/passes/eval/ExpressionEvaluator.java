@@ -12,6 +12,7 @@ import org.mapleir.ir.locals.LocalsPool;
 import org.mapleir.stdlib.util.TypeUtils;
 import org.objectweb.asm.Type;
 
+import java.math.BigDecimal;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -54,7 +55,9 @@ public class ExpressionEvaluator {
 				
 				Bridge b = bridgeFactory.getArithmeticBridge(lc.getType(), rc.getType(), ae.getType(), ae.getOperator());
 				
-				return new ConstantExpr(b.eval(lc.getConstant(), rc.getConstant()), ae.getType());
+				ConstantExpr dick = new ConstantExpr(b.eval(lc.getConstant(), rc.getConstant()), ae.getType());
+				System.out.println("  " + e.getType() + " " + e + " => " + dick + " " + dick.getType());
+				return dick;
 			}
 		} else if(e.getOpcode() == NEGATE) {
 			NegationExpr neg = (NegationExpr) e;
@@ -158,6 +161,31 @@ public class ExpressionEvaluator {
 		return null;
 	}
 	
+	private ArithmeticExpr simplifyAddition(LocalsPool pool, ArithmeticExpr ae) {
+		if (ae.getOperator() != Operator.ADD)
+			throw new IllegalArgumentException("Only works on addition exprs");
+		
+		Expr rhs = ae.getRight();
+		// a + -(b) => a - b
+		if (rhs.getOpcode() == NEGATE) {
+			Expr r = eval(pool, ((NegationExpr) rhs).getExpression());
+			Object negated = ((ConstantExpr) r).getConstant();
+			return new ArithmeticExpr(new ConstantExpr(negated, rhs.getType()), ae.getLeft().copy(), SUB);
+		}
+		
+		// a + -b => a - b
+		if (rhs.getOpcode() == CONST_LOAD) {
+			if (new BigDecimal(((ConstantExpr) rhs).getConstant().toString()).signum() < 0) {
+				Expr negatedR = eval(pool, new NegationExpr(rhs.copy()));
+				if (negatedR != null) {
+					Object negated = ((ConstantExpr) negatedR).getConstant();
+					return new ArithmeticExpr(new ConstantExpr(negated, rhs.getType()), ae.getLeft().copy(), SUB);
+				}
+			}
+		}
+		return null;
+	}
+	
 	public ArithmeticExpr reassociate(LocalsPool pool, ArithmeticExpr ae) {
 		ArithmeticExpr leftAe = (ArithmeticExpr) ae.getLeft();
 		Operator operatorA = leftAe.getOperator();
@@ -178,9 +206,9 @@ public class ExpressionEvaluator {
 				sign = -1;
 			}
 			if (sign != 0) {
-				Expr cr1r2 = eval(pool, new ArithmeticExpr(cr1, sign > 0 ? cr2 : new NegationExpr(cr2), operatorB));
-				Object associated = ((ConstantExpr) cr1r2).getConstant();
-				return new ArithmeticExpr(new ConstantExpr(associated, r1.getType()), leftAe.getLeft().copy(), operatorA);
+				ConstantExpr cr1r2 = (ConstantExpr) eval(pool, new ArithmeticExpr(sign > 0 ? cr2 : new NegationExpr(cr2), cr1, operatorB));
+				Object associated = cr1r2.getConstant();
+				return new ArithmeticExpr(new ConstantExpr(associated, cr1r2.getType()), leftAe.getLeft().copy(), operatorA);
 			}
 		}
 		return null;
@@ -190,6 +218,9 @@ public class ExpressionEvaluator {
 		Expr e2 = null;
 		if (ae.getOperator() == MUL) { // try to simplify multiplication
 			e2 = simplifyMultiplication(pool, ae);
+		}
+		if (e2 == null && ae.getOperator() == ADD) { // try to simplify addition
+			e2 = simplifyAddition(pool, ae);
 		}
 		if (e2 == null && ae.getLeft().getOpcode() == ARITHMETIC) { // try to apply associative properties
 			e2 = reassociate(pool, ae);

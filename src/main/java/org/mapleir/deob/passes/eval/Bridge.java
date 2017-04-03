@@ -17,6 +17,9 @@ public class Bridge {
 		} catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
 			System.err.println(Arrays.toString(method.getParameterTypes()));
 			System.err.println(Arrays.toString(objs));
+			for (Object o : objs)
+				System.err.print(o.getClass().getName() + " ");
+			System.err.println();
 			throw new RuntimeException(e);
 		}
 	}
