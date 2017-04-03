@@ -1,16 +1,15 @@
 package org.mapleir;
 
-import org.mapleir.deobimpl2.cxt.IContext;
-import org.mapleir.deobimpl2.cxt.BasicContext;
-import org.mapleir.deobimpl2.cxt.IRCache;
-import org.mapleir.ir.cfg.ControlFlowGraph;
+import org.mapleir.context.BasicContext;
+import org.mapleir.context.IContext;
+import org.mapleir.context.IRCache;
+import org.mapleir.context.app.ApplicationClassSource;
+import org.mapleir.context.app.InstalledRuntimeClassSource;
+import org.mapleir.deob.interproc.CallTracer;
+import org.mapleir.deob.interproc.IRCallTracer;
+import org.mapleir.deob.util.InvocationResolver;
 import org.mapleir.ir.cfg.builder.ControlFlowGraphBuilder;
 import org.mapleir.ir.code.Expr;
-import org.mapleir.stdlib.app.ApplicationClassSource;
-import org.mapleir.stdlib.app.InstalledRuntimeClassSource;
-import org.mapleir.stdlib.call.CallTracer;
-import org.mapleir.stdlib.collections.KeyedValueCreator;
-import org.mapleir.stdlib.klass.InvocationResolver;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.topdank.byteengineer.commons.data.JarInfo;
