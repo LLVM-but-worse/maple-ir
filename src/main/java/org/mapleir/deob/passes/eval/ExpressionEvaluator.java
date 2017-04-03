@@ -291,7 +291,7 @@ public class ExpressionEvaluator {
 		return null;
 	}
 	
-	public Boolean evaluateConditional(ConditionalJumpStmt cond, Set<ConstantExpr> leftSet, Set<ConstantExpr> rightSet) {
+	private Boolean evaluatePrimitiveConditional(ConditionalJumpStmt cond, Set<ConstantExpr> leftSet, Set<ConstantExpr> rightSet) {
 		Boolean val = null;
 		
 		for(ConstantExpr lc : leftSet) {
@@ -325,14 +325,23 @@ public class ExpressionEvaluator {
 		return val;
 	}
 	
-	// todo: move this into the evaluator FFS
-	public Boolean simplifyConditionalBranch(IPConstAnalysisVisitor vis, ControlFlowGraph cfg, ConditionalJumpStmt cond) {
+	public Boolean evaluateConditional(IPConstAnalysisVisitor vis, ControlFlowGraph cfg, ConditionalJumpStmt cond) {
 		Expr l = cond.getLeft();
 		Expr r = cond.getRight();
 		
 		if (!TypeUtils.isPrimitive(l.getType()) || !TypeUtils.isPrimitive(r.getType())) {
 			if(l instanceof ConstantExpr && r instanceof ConstantExpr && !TypeUtils.isPrimitive(l.getType()) && !TypeUtils.isPrimitive(r.getType())) {
-				return attemptNullarityBranchElimination(cond, (ConstantExpr) l, (ConstantExpr) r);
+				ConstantExpr left = (ConstantExpr) l;
+				ConstantExpr right = (ConstantExpr) r;
+				if (left.getConstant() == null && right.getConstant() == null) {
+					return cond.getComparisonType() == ConditionalJumpStmt.ComparisonType.EQ;
+				}
+				if (cond.getComparisonType() == ConditionalJumpStmt.ComparisonType.EQ) {
+					if ((left.getConstant() == null) != (right.getConstant() == null)) {
+						return false;
+					}
+				}
+				return null;
 			}
 			return null;
 		}
@@ -351,22 +360,9 @@ public class ExpressionEvaluator {
 		Set<ConstantExpr> rSet = evalPossibleValues(resolver, r);
 		
 		if(isValidSet(lSet) && isValidSet(rSet)) {
-			Boolean result = evaluateConditional(cond, lSet, rSet);
+			Boolean result = evaluatePrimitiveConditional(cond, lSet, rSet);
 			if (result != null) {
 				return result;
-			}
-		}
-		return null;
-	}
-	
-	// todo: move this into the evaluator and join it with evaluateConditional
-	private Boolean attemptNullarityBranchElimination(ConditionalJumpStmt cond, ConstantExpr left, ConstantExpr right) {
-		if (left.getConstant() == null && right.getConstant() == null) {
-			return cond.getComparisonType() == ConditionalJumpStmt.ComparisonType.EQ;
-		}
-		if (cond.getComparisonType() == ConditionalJumpStmt.ComparisonType.EQ) {
-			if ((left.getConstant() == null) != (right.getConstant() == null)) {
-				return false;
 			}
 		}
 		return null;
