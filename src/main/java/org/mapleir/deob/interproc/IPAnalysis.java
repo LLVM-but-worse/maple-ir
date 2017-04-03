@@ -23,15 +23,15 @@ import java.util.Set;
 
 public class IPAnalysis extends IRCallTracer implements Opcode {
 	
-	public static IPAnalysis create(IContext cxt, IPtAnalysisVisitor... visitors) {
-		List<IPtAnalysisVisitor> cvs = new ArrayList<>();
-		for(IPtAnalysisVisitor v : visitors) {
+	public static IPAnalysis create(IContext cxt, IPAnalysisVisitor... visitors) {
+		List<IPAnalysisVisitor> cvs = new ArrayList<>();
+		for(IPAnalysisVisitor v : visitors) {
 			cvs.add(v);
 		}
 		return create(cxt, cvs);
 	}
 	
-	public static IPAnalysis create(IContext cxt, List<IPtAnalysisVisitor> visitors) {
+	public static IPAnalysis create(IContext cxt, List<IPAnalysisVisitor> visitors) {
 		IPAnalysis analysis = new IPAnalysis(cxt, visitors);
 		for(MethodNode mn : cxt.getIRCache().getActiveMethods()) {
 			analysis.trace(mn);
@@ -39,12 +39,12 @@ public class IPAnalysis extends IRCallTracer implements Opcode {
 		return analysis;
 	}
 	
-	private final List<IPtAnalysisVisitor> visitors;
+	private final List<IPAnalysisVisitor> visitors;
 	private final Map<MethodNode, Set<Expr>> calls;
 	private final Map<MethodNode, List<List<Expr>>> parameterInputs;
 	private final Map<MethodNode, int[]> paramIndices;
 	
-	public IPAnalysis(IContext cxt, List<IPtAnalysisVisitor> visitors) {
+	public IPAnalysis(IContext cxt, List<IPAnalysisVisitor> visitors) {
 		super(cxt);
 		this.visitors = visitors;
 		
@@ -94,7 +94,7 @@ public class IPAnalysis extends IRCallTracer implements Opcode {
 	
 	@Override
 	protected void visitMethod(MethodNode m) {
-		for(IPtAnalysisVisitor v : visitors) {
+		for(IPAnalysisVisitor v : visitors) {
 			v.preVisitMethod(this, m);
 		}
 		
@@ -147,14 +147,14 @@ public class IPAnalysis extends IRCallTracer implements Opcode {
 		parameterInputs.put(m, lists);
 		calls.put(m, new HashSet<>());
 		
-		for(IPtAnalysisVisitor v : visitors) {
+		for(IPAnalysisVisitor v : visitors) {
 			v.postVisitMethod(this, m);
 		}
 	}
 	
 	@Override
 	protected void processedInvocation(MethodNode caller, MethodNode callee, Expr e) {
-		for(IPtAnalysisVisitor v : visitors) {
+		for(IPAnalysisVisitor v : visitors) {
 			v.preProcessedInvocation(this, caller, callee, e);
 		}
 		
@@ -178,7 +178,7 @@ public class IPAnalysis extends IRCallTracer implements Opcode {
 			parameterInputs.get(callee).get(i).add(params[i]);
 		}
 		
-		for(IPtAnalysisVisitor v : visitors) {
+		for(IPAnalysisVisitor v : visitors) {
 			v.postProcessedInvocation(this, caller, callee, e);
 		}
 	}

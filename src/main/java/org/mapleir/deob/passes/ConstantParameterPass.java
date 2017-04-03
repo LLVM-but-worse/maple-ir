@@ -2,7 +2,7 @@ package org.mapleir.deob.passes;
 
 import org.mapleir.context.IContext;
 import org.mapleir.deob.IPass;
-import org.mapleir.deob.interproc.IPtAnalysisVisitor;
+import org.mapleir.deob.interproc.IPAnalysisVisitor;
 import org.mapleir.deob.interproc.IPAnalysis;
 import org.mapleir.deob.util.RenamingUtil;
 import org.mapleir.ir.cfg.BasicBlock;
@@ -48,7 +48,7 @@ public class ConstantParameterPass implements IPass, Opcode {
 		Map<MethodNode, boolean[]> chainedNonConstant = new HashMap<>();
 		Map<MethodNode, boolean[]> specificNonConstant = new HashMap<>();
 		
-		IPtAnalysisVisitor vis = new IPtAnalysisVisitor() {
+		IPAnalysisVisitor vis = new IPAnalysisVisitor() {
 			@Override
 			public void postVisitMethod(IPAnalysis analysis, MethodNode m) {
 				int pCount = Type.getArgumentTypes(m.desc).length;
