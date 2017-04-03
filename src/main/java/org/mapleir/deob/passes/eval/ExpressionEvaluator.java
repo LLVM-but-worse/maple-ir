@@ -16,6 +16,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 import static org.mapleir.ir.code.Opcode.*;
+import static org.mapleir.ir.code.expr.ArithmeticExpr.Operator.*;
 
 public class ExpressionEvaluator {
 	BridgeFactory bridgeFactory;
@@ -53,8 +54,7 @@ public class ExpressionEvaluator {
 				
 				Bridge b = bridgeFactory.getArithmeticBridge(lc.getType(), rc.getType(), ae.getType(), ae.getOperator());
 				
-				ConstantExpr cr = new ConstantExpr(b.eval(lc.getConstant(), rc.getConstant()), ae.getType());
-				return cr;
+				return new ConstantExpr(b.eval(lc.getConstant(), rc.getConstant()), ae.getType());
 			}
 		} else if(e.getOpcode() == NEGATE) {
 			NegationExpr neg = (NegationExpr) e;
@@ -64,8 +64,7 @@ public class ExpressionEvaluator {
 				ConstantExpr ce = (ConstantExpr) e2;
 				Bridge b = bridgeFactory.getNegationBridge(e2.getType());
 				
-				ConstantExpr cr = new ConstantExpr(b.eval(ce.getConstant()), ce.getType());
-				return cr;
+				return new ConstantExpr(b.eval(ce.getConstant()), ce.getType());
 			}
 		} else if(e.getOpcode() == LOCAL_LOAD) {
 			VarExpr v = (VarExpr) e;
@@ -110,8 +109,7 @@ public class ExpressionEvaluator {
 				
 				Bridge b = bridgeFactory.getCastBridge(from, to);
 				
-				ConstantExpr cr = new ConstantExpr(b.eval(ce.getConstant()), to);
-				return cr;
+				return new ConstantExpr(b.eval(ce.getConstant()), to);
 			}
 		} else if(e.getOpcode() == COMPARE) {
 			ComparisonExpr comp = (ComparisonExpr) e;
@@ -128,8 +126,7 @@ public class ExpressionEvaluator {
 				
 				Bridge b = bridgeFactory.getComparisonBridge(lc.getType(), rc.getType(), comp.getComparisonType());
 				
-				ConstantExpr cr = new ConstantExpr(b.eval(lc.getConstant(), rc.getConstant()), Type.INT_TYPE);
-				return cr;
+				return new ConstantExpr(b.eval(lc.getConstant(), rc.getConstant()), Type.INT_TYPE);
 			}
 		}
 		
@@ -159,6 +156,45 @@ public class ExpressionEvaluator {
 		}
 		
 		return null;
+	}
+	
+	public ArithmeticExpr reassociate(LocalsPool pool, ArithmeticExpr ae) {
+		ArithmeticExpr leftAe = (ArithmeticExpr) ae.getLeft();
+		Operator operatorA = leftAe.getOperator();
+		Operator operatorB = ae.getOperator();
+		
+		Expr r1 = eval(pool, leftAe.getRight());
+		Expr r2 = eval(pool, ae.getRight());
+		if (r1 != null && r2 != null) {
+			ConstantExpr cr1 = (ConstantExpr) r1;
+			ConstantExpr cr2 = (ConstantExpr) r2;
+			
+			int sign = 0;
+			if ((operatorA == MUL && operatorB == MUL)) {
+				sign = 1;
+			} else if (operatorA == ADD && (operatorB == ADD || operatorB == SUB)) {
+				sign = 1; // what about overflow?? integers mod 2^32 forms a group over addition...should be ok?
+			} else if (operatorA == SUB && (operatorB == ADD || operatorB == SUB)) {
+				sign = -1;
+			}
+			if (sign != 0) {
+				Expr cr1r2 = eval(pool, new ArithmeticExpr(cr1, sign > 0 ? cr2 : new NegationExpr(cr2), operatorB));
+				Object associated = ((ConstantExpr) cr1r2).getConstant();
+				return new ArithmeticExpr(new ConstantExpr(associated, r1.getType()), leftAe.getLeft().copy(), operatorA);
+			}
+		}
+		return null;
+	}
+	
+	public Expr simplifyArithmetic(LocalsPool pool, ArithmeticExpr ae) {
+		Expr e2 = null;
+		if (ae.getOperator() == MUL) { // try to simplify multiplication
+			e2 = simplifyMultiplication(pool, ae);
+		}
+		if (e2 == null && ae.getLeft().getOpcode() == ARITHMETIC) { // try to apply associative properties
+			e2 = reassociate(pool, ae);
+		}
+		return e2;
 	}
 	
 	public Set<ConstantExpr> evalPossibleValues(LocalValueResolver resolver, Expr e) {
