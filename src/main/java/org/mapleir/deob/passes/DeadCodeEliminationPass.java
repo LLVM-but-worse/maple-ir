@@ -12,10 +12,8 @@ import org.mapleir.ir.cfg.edge.UnconditionalJumpEdge;
 import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.code.Opcode;
 import org.mapleir.ir.code.Stmt;
-import org.mapleir.ir.code.expr.PhiExpr;
 import org.mapleir.ir.code.expr.VarExpr;
 import org.mapleir.ir.code.stmt.copy.AbstractCopyStmt;
-import org.mapleir.ir.code.stmt.copy.CopyPhiStmt;
 import org.mapleir.ir.locals.Local;
 import org.mapleir.ir.locals.LocalsPool;
 import org.mapleir.stdlib.collections.graph.algorithms.SimpleDfs;
@@ -28,26 +26,6 @@ import java.util.Iterator;
 import java.util.List;
 
 public class DeadCodeEliminationPass implements IPass {
-
-	public static void safeKill(LocalsPool pool, FlowEdge<BasicBlock> fe) {
-		for (Stmt stmt : fe.dst) {
-			if (stmt.getOpcode() == Stmt.PHI_STORE) {
-				CopyPhiStmt phs = (CopyPhiStmt) stmt;
-				PhiExpr phi = phs.getExpression();
-				
-				BasicBlock pred = fe.src;
-				VarExpr arg = (VarExpr) phi.getArgument(pred);
-				
-				Local l = arg.getLocal();
-				pool.uses.get(l).remove(arg);
-				
-				phi.removeArgument(pred);
-			} else {
-				return;
-			}
-		}
-	}
-
 	int deadBlocks = 0;
 	int immediateJumps = 0;
 	int deadLocals = 0;
@@ -66,9 +44,8 @@ public class DeadCodeEliminationPass implements IPass {
 			for(BasicBlock b : new HashSet<>(cfg.vertices())) {
 				if(!pre.contains(b)) {
 //					System.out.println("proc1: " + b);
-					LocalsPool pool = cfg.getLocals();
-					for(FlowEdge<BasicBlock> fe : cfg.getEdges(b)) {
-						safeKill(pool, fe);
+					for(FlowEdge<BasicBlock> fe : new HashSet<>(cfg.getEdges(b))) {
+						cfg.exciseEdge(fe);
 					}
 //					System.out.println("removed: ");
 					for(Stmt stmt : b) {
@@ -108,7 +85,7 @@ public class DeadCodeEliminationPass implements IPass {
 						
 						if(verts.indexOf(b) + 1 == verts.indexOf(dst)) {
 							ImmediateEdge<BasicBlock> im = new ImmediateEdge<>(b, dst);
-							cfg.removeEdge(b, uncond);
+							cfg.exciseEdge(uncond);
 							cfg.addEdge(b, im);
 							
 							Stmt stmt = b.remove(b.size() - 1);
