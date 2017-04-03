@@ -15,6 +15,7 @@ import org.mapleir.ir.code.Stmt;
 import org.mapleir.ir.code.expr.ArithmeticExpr;
 import org.mapleir.ir.code.expr.ArithmeticExpr.Operator;
 import org.mapleir.ir.code.expr.ConstantExpr;
+import org.mapleir.ir.code.expr.NegationExpr;
 import org.mapleir.ir.code.stmt.ConditionalJumpStmt;
 import org.mapleir.ir.code.stmt.NopStmt;
 import org.mapleir.ir.code.stmt.UnconditionalJumpStmt;
@@ -24,6 +25,8 @@ import org.objectweb.asm.tree.MethodNode;
 
 import java.util.HashSet;
 import java.util.List;
+
+import static org.mapleir.ir.code.expr.ArithmeticExpr.Operator.*;
 
 public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 	private ExpressionEvaluator evaluator;
@@ -114,11 +117,16 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 			
 			if(e.getOpcode() == ARITHMETIC) {
 				ArithmeticExpr ae = (ArithmeticExpr) e;
-				Expr e2 = evaluator.simplify(pool, ae); // try evaluation first
-				if (e2 == null) { // if that fails try to reassociate
+				Expr e2 = null;
+				if (ae.getOperator() == MUL) {
+					e2 = evaluator.simplifyMultiplication(pool, ae);
+				}
+				if (e2 == null && ae.getLeft().getOpcode() == ARITHMETIC) {
 					e2 = reassociate(pool, ae);
 				}
+
 				if(e2 != null) {
+					System.out.println(e + " -> " + e2);
 					cfg.overwrite(par, e, e2);
 					j++;
 				}
@@ -129,27 +137,28 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 	}
 	
 	private ArithmeticExpr reassociate(LocalsPool pool, ArithmeticExpr ae) {
-		Operator op = ae.getOperator();
+		ArithmeticExpr leftAe = (ArithmeticExpr) ae.getLeft();
+		Operator operatorA = leftAe.getOperator();
+		Operator operatorB = ae.getOperator();
 		
-		if (op == Operator.MUL) {
-			Expr l = ae.getLeft();
-			Expr r = ae.getRight();
-			Operator operator;
+		Expr r1 = evaluator.eval(pool, leftAe.getRight());
+		Expr r2 = evaluator.eval(pool, ae.getRight());
+		if (r1 != null && r2 != null) {
+			ConstantExpr cr1 = (ConstantExpr) r1;
+			ConstantExpr cr2 = (ConstantExpr) r2;
 			
-			if (l.getOpcode() == ARITHMETIC) {
-				ArithmeticExpr xcExpr = (ArithmeticExpr) l;
-				
-				if (xcExpr.getOperator() == Operator.MUL) {
-					Expr r2 = xcExpr.getRight();
-					Expr c = evaluator.eval(pool, r2);
-					Expr k = evaluator.eval(pool, r);
-					if (c != null && k != null) {
-						ConstantExpr cc = (ConstantExpr) c;
-						ConstantExpr ck = (ConstantExpr) k;
-						Object v = evaluator.eval(pool, new ArithmeticExpr(cc, ck, Operator.MUL));
-						return new ArithmeticExpr(new ConstantExpr(v, c.getType()), xcExpr.getLeft().copy(), Operator.MUL);
-					}
-				}
+			int sign = 0;
+			if ((operatorA == MUL && operatorB == MUL)) {
+				sign = 1;
+			} else if (operatorA == ADD && (operatorB == ADD || operatorB == SUB)) {
+				sign = 1; // what about overflow?? integers mod 2^32 forms a group over addition...should be ok?
+			} else if (operatorA == SUB && (operatorB == ADD || operatorB == SUB)) {
+				sign = -1;
+			}
+			if (sign != 0) {
+				Expr cr1r2 = evaluator.eval(pool, new ArithmeticExpr(cr1, sign > 0 ? cr2 : new NegationExpr(cr2), operatorB));
+				Object associated = ((ConstantExpr) cr1r2).getConstant();
+				return new ArithmeticExpr(new ConstantExpr(associated, r1.getType()), leftAe.getLeft().copy(), operatorA);
 			}
 		}
 		return null;
