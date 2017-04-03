@@ -3,7 +3,6 @@ package org.mapleir.deob.passes.eval;
 import org.mapleir.context.IContext;
 import org.mapleir.deob.IPass;
 import org.mapleir.deob.interproc.IPConstAnalysis;
-import org.mapleir.deob.passes.DeadCodeEliminationPass;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.cfg.edge.FlowEdge;
@@ -21,9 +20,9 @@ import org.mapleir.ir.code.stmt.ConditionalJumpStmt;
 import org.mapleir.ir.code.stmt.ConditionalJumpStmt.ComparisonType;
 import org.mapleir.ir.code.stmt.NopStmt;
 import org.mapleir.ir.code.stmt.UnconditionalJumpStmt;
-import org.mapleir.ir.locals.Local;
 import org.mapleir.ir.locals.LocalsPool;
 import org.mapleir.ir.locals.VersionedLocal;
+import org.mapleir.stdlib.util.TypeUtils;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
 
@@ -31,7 +30,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import static org.mapleir.deob.passes.eval.ExpressionEvaluator.isPrimitive;
 import static org.mapleir.deob.passes.eval.ExpressionEvaluator.isValidSet;
 
 public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
@@ -43,15 +41,15 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 	
 	@Override
 	public int accept(IContext cxt, IPass prev, List<IPass> completed) {
-		int k = 0;
-		int j = 0;
+		int branchesEvaluated = 0;
+		int exprsEvaluated = 0;
 		
 		IPConstAnalysisVisitor vis = new IPConstAnalysisVisitor(cxt);
 		IPConstAnalysis.create(cxt, vis);
 		
 		for(;;) {
-			int js = j;
-			int ks = k;
+			int prevExprsEval = exprsEvaluated;
+			int prevBranchesEval = branchesEvaluated;
 			
 			for(ClassNode cn : cxt.getApplication().iterate()) {
 				for(MethodNode m : cn.methods) {
@@ -64,14 +62,14 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 							Stmt stmt = b.get(i);
 							
 							if(stmt.getOpcode() == COND_JUMP && simplifyConditionalBranch(vis, cfg, (ConditionalJumpStmt)stmt, i)) {
-								 k++;
+								 branchesEvaluated++;
 							}
 
 							for(CodeUnit e : stmt.enumerateExecutionOrder()) {
 								if(e instanceof Expr) {
 									CodeUnit par = ((Expr) e).getParent();
 									if(par != null) {
-										j += simplifyArithmetic(pool, par, (Expr) e);
+										exprsEvaluated += simplifyArithmetic(pool, par, (Expr) e);
 									}
 								}
 							}
@@ -80,15 +78,15 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 				}
 			}
 			
-			if(js == j && ks == k) {
+			if(prevExprsEval == exprsEvaluated && prevBranchesEval == branchesEvaluated) {
 				break;
 			}
 		}
 		
-		System.out.printf("  evaluated %d constant expressions.%n", j);
-		System.out.printf("  eliminated %d constant branches.%n", k);
+		System.out.printf("  evaluated %d constant expressions.%n", exprsEvaluated);
+		System.out.printf("  eliminated %d constant branches.%n", branchesEvaluated);
 		
-		return j;
+		return exprsEvaluated;
 	}
 	
 	private int simplifyArithmetic(LocalsPool pool, CodeUnit par, Expr e) {
@@ -182,8 +180,8 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 		Expr l = cond.getLeft();
 		Expr r = cond.getRight();
 		
-		if (!isPrimitive(l.getType()) || !isPrimitive(r.getType())) {
-			if(l instanceof ConstantExpr && r instanceof ConstantExpr && !isPrimitive(l.getType()) && !isPrimitive(r.getType())) {
+		if (!TypeUtils.isPrimitive(l.getType()) || !TypeUtils.isPrimitive(r.getType())) {
+			if(l instanceof ConstantExpr && r instanceof ConstantExpr && !TypeUtils.isPrimitive(l.getType()) && !TypeUtils.isPrimitive(r.getType())) {
 				return attemptNullarityBranchElimination(cfg, cond.getBlock(), cond, i, (ConstantExpr) l, (ConstantExpr) r);
 			}
 			return false;
@@ -227,17 +225,6 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 		return false;
 	}
 	
-	private void killStmt(LocalsPool pool, ConditionalJumpStmt c) {
-		for(Expr e : c.enumerateOnlyChildren()) {
-			if(e.getOpcode() == Opcode.LOCAL_LOAD) {
-				VarExpr v = (VarExpr) e;
-				
-				Local l = v.getLocal();
-				pool.uses.get(l).remove(v);
-			}
-		}
-	}
-	
 	private void eliminateBranch(ControlFlowGraph cfg, BasicBlock b, ConditionalJumpStmt cond, int insnIndex, boolean val) {
 		LocalsPool pool = cfg.getLocals();
 
@@ -247,16 +234,16 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 					throw new IllegalStateException(fe + ", " + cond);
 				}
 				
+				cfg.excisePhiUses(fe);
 				cfg.removeEdge(b, fe);
-				DeadCodeEliminationPass.safeKill(pool, fe);
 			}
 		}
-		killStmt(pool, cond);
+		cfg.exciseStmt(cond);
 		if(val) {
 			// always true, jump to true successor
 			for(FlowEdge<BasicBlock> fe : new HashSet<>(cfg.getEdges(b))) {
 				if(fe.getType() == FlowEdges.IMMEDIATE) {
-					DeadCodeEliminationPass.safeKill(pool, fe);
+					cfg.excisePhiUses(fe);
 					cfg.removeEdge(b, fe);
 				}
 			}

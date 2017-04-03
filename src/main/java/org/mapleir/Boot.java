@@ -14,7 +14,6 @@ import org.mapleir.deob.passes.ClassRenamerPass;
 import org.mapleir.deob.passes.ConstantExpressionReorderPass;
 import org.mapleir.deob.passes.DeadCodeEliminationPass;
 import org.mapleir.deob.passes.FieldRenamerPass;
-import org.mapleir.deob.passes.MethodRenamerPass;
 import org.mapleir.deob.passes.eval.ConstantExpressionEvaluatorPass;
 import org.mapleir.ir.algorithms.BoissinotDestructor;
 import org.mapleir.ir.algorithms.ControlFlowGraphDumper;
@@ -275,7 +274,7 @@ public class Boot {
 //				new CallgraphPruningPass(),
 //				new ConcreteStaticInvocationPass(),
 				new ClassRenamerPass(),
-				new MethodRenamerPass(),
+//				new MethodRenamerPass(),
 //				new ConstantParameterPass()
 //				new ClassRenamerPass(),
 				new FieldRenamerPass(),
