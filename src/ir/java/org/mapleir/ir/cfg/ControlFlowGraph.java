@@ -1,13 +1,20 @@
 package org.mapleir.ir.cfg;
 
-import java.util.Iterator;
-
 import org.mapleir.ir.cfg.edge.FlowEdge;
+import org.mapleir.ir.code.CodeUnit;
+import org.mapleir.ir.code.Expr;
+import org.mapleir.ir.code.Opcode;
 import org.mapleir.ir.code.Stmt;
+import org.mapleir.ir.code.expr.PhiExpr;
+import org.mapleir.ir.code.expr.VarExpr;
+import org.mapleir.ir.code.stmt.copy.CopyPhiStmt;
 import org.mapleir.ir.locals.LocalsPool;
+import org.mapleir.ir.locals.VersionedLocal;
 import org.mapleir.stdlib.collections.graph.flow.ExceptionRange;
 import org.mapleir.stdlib.util.TabbedStringWriter;
 import org.objectweb.asm.tree.MethodNode;
+
+import java.util.Iterator;
 
 public class ControlFlowGraph extends FastBlockGraph {
 	
@@ -27,6 +34,78 @@ public class ControlFlowGraph extends FastBlockGraph {
 	
 	public MethodNode getMethod() {
 		return method;
+	}
+	
+	/**
+	 * Properly removes the edge, and cleans up phi uses in fe.dst of phi arguments from fe.src.
+	 * @param fe Edge to excise phi uses.
+	 */
+	public void exciseEdge(FlowEdge<BasicBlock> fe) {
+		if (!this.containsEdge(fe.src, fe))
+			throw new IllegalArgumentException("Graph does not contain the specified edge");
+		
+		removeEdge(fe.src, fe);
+		for (Stmt stmt : fe.dst) {
+			if (stmt.getOpcode() == Stmt.PHI_STORE) {
+				CopyPhiStmt phs = (CopyPhiStmt) stmt;
+				PhiExpr phi = phs.getExpression();
+				
+				BasicBlock pred = fe.src;
+				VarExpr arg = (VarExpr) phi.getArgument(pred);
+				
+				VersionedLocal l = (VersionedLocal) arg.getLocal();
+				locals.uses.get(l).remove(arg);
+				
+				phi.removeArgument(pred);
+			} else {
+				return;
+			}
+		}
+	}
+	
+	/**
+	 * Excises uses of a removed statement.
+	 * @param index Index of the statement within its block.
+	 * @param c Removed statement to update def/use information with respect to.
+	 */
+	public void exciseStmt(Stmt c) {
+		// delete uses
+		for(Expr e : c.enumerateOnlyChildren()) {
+			if(e.getOpcode() == Opcode.LOCAL_LOAD) {
+				VarExpr v = (VarExpr) e;
+				
+				VersionedLocal l = (VersionedLocal) v.getLocal();
+				locals.uses.get(l).remove(v);
+			}
+		}
+		
+		c.getBlock().remove(c);
+	}
+	
+	/**
+	 * Replaces an expression and updates def/use information accordingly.
+	 * @param parent Statement containing expression to be replaced.
+	 * @param from Statement to be replaced.
+	 * @param to Statement to replace old statement with.
+	 */
+	public void overwrite(CodeUnit parent, Expr from, Expr to) {
+		// remove uses in from
+		for(Expr e : from.enumerateWithSelf()) {
+			if (e.getOpcode() == Opcode.LOCAL_LOAD) {
+				VersionedLocal l = (VersionedLocal) ((VarExpr) e).getLocal();
+				locals.uses.get(l).remove(e);
+			}
+		}
+		
+		// add uses in to
+		for(Expr e : to.enumerateWithSelf()) {
+			if (e.getOpcode() == Opcode.LOCAL_LOAD) {
+				VarExpr var = (VarExpr) e;
+				locals.uses.get((VersionedLocal) var.getLocal()).add(var);
+			}
+		}
+		
+		parent.overwrite(to, parent.indexOf(from));
 	}
 	
 	@Override

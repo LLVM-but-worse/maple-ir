@@ -19,6 +19,9 @@ public class ConstantExpr extends Expr {
 		this.cst = cst;
 		this.type = type;
 		
+		if (cst instanceof ConstantExpr) {
+			throw new IllegalArgumentException("nice try cowboy");
+		}
 		if(type == Type.BOOLEAN_TYPE) {
 			throw new RuntimeException();
 		}
