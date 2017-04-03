@@ -1,12 +1,9 @@
 package org.mapleir.ir.cfg.builder;
 
-import java.util.*;
-import java.util.Map.Entry;
-
-import org.mapleir.ir.analysis.Liveness;
-import org.mapleir.ir.analysis.SSABlockLivenessAnalyser;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
+import org.mapleir.ir.cfg.algorithms.Liveness;
+import org.mapleir.ir.cfg.algorithms.SSABlockLivenessAnalyser;
 import org.mapleir.ir.cfg.builder.ssaopt.ConstraintUtil;
 import org.mapleir.ir.cfg.builder.ssaopt.LatestValue;
 import org.mapleir.ir.cfg.edge.ConditionalJumpEdge;
@@ -37,15 +34,30 @@ import org.mapleir.ir.locals.BasicLocal;
 import org.mapleir.ir.locals.Local;
 import org.mapleir.ir.locals.LocalsPool;
 import org.mapleir.ir.locals.VersionedLocal;
-import org.mapleir.stdlib.collections.NullPermeableHashMap;
-import org.mapleir.stdlib.collections.SetCreator;
 import org.mapleir.stdlib.collections.graph.GraphUtils;
 import org.mapleir.stdlib.collections.graph.algorithms.SimpleDfs;
 import org.mapleir.stdlib.collections.graph.algorithms.TarjanDominanceComputor;
 import org.mapleir.stdlib.collections.graph.flow.ExceptionRange;
+import org.mapleir.stdlib.collections.nullpermeable.NullPermeableHashMap;
+import org.mapleir.stdlib.collections.nullpermeable.SetCreator;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.LabelNode;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.ListIterator;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.Stack;
 
 public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 
