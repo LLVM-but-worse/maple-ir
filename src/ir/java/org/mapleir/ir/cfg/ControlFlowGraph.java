@@ -37,12 +37,14 @@ public class ControlFlowGraph extends FastBlockGraph {
 	}
 	
 	/**
-	 * Properly removes phi uses in fe.dst of phi arguments from fe.src.
+	 * Properly removes the edge, and cleans up phi uses in fe.dst of phi arguments from fe.src.
 	 * @param fe Edge to excise phi uses.
 	 */
-	public void excisePhiUses(FlowEdge<BasicBlock> fe) {
+	public void exciseEdge(FlowEdge<BasicBlock> fe) {
 		if (!this.containsEdge(fe.src, fe))
 			throw new IllegalArgumentException("Graph does not contain the specified edge");
+		
+		removeEdge(fe.src, fe);
 		for (Stmt stmt : fe.dst) {
 			if (stmt.getOpcode() == Stmt.PHI_STORE) {
 				CopyPhiStmt phs = (CopyPhiStmt) stmt;
@@ -63,9 +65,11 @@ public class ControlFlowGraph extends FastBlockGraph {
 	
 	/**
 	 * Excises uses of a removed statement.
+	 * @param index Index of the statement within its block.
 	 * @param c Removed statement to update def/use information with respect to.
 	 */
 	public void exciseStmt(Stmt c) {
+		// delete uses
 		for(Expr e : c.enumerateOnlyChildren()) {
 			if(e.getOpcode() == Opcode.LOCAL_LOAD) {
 				VarExpr v = (VarExpr) e;
@@ -74,6 +78,8 @@ public class ControlFlowGraph extends FastBlockGraph {
 				locals.uses.get(l).remove(v);
 			}
 		}
+		
+		c.getBlock().remove(c);
 	}
 	
 	/**

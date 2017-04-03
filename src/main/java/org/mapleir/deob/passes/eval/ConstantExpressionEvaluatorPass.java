@@ -14,7 +14,6 @@ import org.mapleir.ir.code.Opcode;
 import org.mapleir.ir.code.Stmt;
 import org.mapleir.ir.code.expr.ArithmeticExpr;
 import org.mapleir.ir.code.stmt.ConditionalJumpStmt;
-import org.mapleir.ir.code.stmt.NopStmt;
 import org.mapleir.ir.code.stmt.UnconditionalJumpStmt;
 import org.mapleir.ir.locals.LocalsPool;
 import org.objectweb.asm.tree.ClassNode;
@@ -119,33 +118,32 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 	}
 	
 	private void eliminateBranch(ControlFlowGraph cfg, BasicBlock b, ConditionalJumpStmt cond, int insnIndex, boolean val) {
-		for(FlowEdge<BasicBlock> fe : new HashSet<>(cfg.getEdges(b))) {
-			if(fe.getType() == FlowEdges.COND) {
-				if(fe.dst != cond.getTrueSuccessor()) {
-					throw new IllegalStateException(fe + ", " + cond);
-				}
-				
-				cfg.excisePhiUses(fe);
-				cfg.removeEdge(b, fe);
-			}
-		}
-		cfg.exciseStmt(cond);
-		if(val) {
-			// always true, jump to true successor
+		if(val) { // always true, jump to true successor
+			// remove immediate edge (it will never be taken)
 			for(FlowEdge<BasicBlock> fe : new HashSet<>(cfg.getEdges(b))) {
 				if(fe.getType() == FlowEdges.IMMEDIATE) {
-					cfg.excisePhiUses(fe);
-					cfg.removeEdge(b, fe);
+					cfg.exciseEdge(fe);
 				}
 			}
+			
+			// create new jump and update cfg
 			UnconditionalJumpStmt newJump = new UnconditionalJumpStmt(cond.getTrueSuccessor());
 			b.set(insnIndex, newJump);
 			UnconditionalJumpEdge<BasicBlock> uje = new UnconditionalJumpEdge<>(b, cond.getTrueSuccessor());
 			cfg.addEdge(b, uje);
-		} else {
-			// always false, keep immediate (fallthrough) and
-			// remove the conditional branch.
-			b.set(insnIndex, new NopStmt());
+		} else { // always false, keep immediate (fallthrough) and remove the conditional branch.
+			// remove statement amd uses in d/u map
+			cfg.exciseStmt(cond);
+			
+			// remove conditional edge
+			for(FlowEdge<BasicBlock> fe : new HashSet<>(cfg.getEdges(b))) {
+				if(fe.getType() == FlowEdges.COND) {
+					if(fe.dst != cond.getTrueSuccessor()) {
+						throw new IllegalStateException(fe + ", " + cond);
+					}
+					cfg.exciseEdge(fe);
+				}
+			}
 		}
 	}
 }
