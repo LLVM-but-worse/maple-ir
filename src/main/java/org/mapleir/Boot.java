@@ -22,12 +22,7 @@ import org.mapleir.ir.cfg.builder.ControlFlowGraphBuilder;
 import org.mapleir.stdlib.util.InvocationResolver;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Opcodes;
-import org.objectweb.asm.tree.ClassNode;
-import org.objectweb.asm.tree.InsnList;
-import org.objectweb.asm.tree.InsnNode;
-import org.objectweb.asm.tree.MethodInsnNode;
-import org.objectweb.asm.tree.MethodNode;
-import org.objectweb.asm.tree.VarInsnNode;
+import org.objectweb.asm.tree.*;
 import org.topdank.byteengineer.commons.data.JarInfo;
 import org.topdank.byteio.in.SingleJarDownloader;
 import org.topdank.byteio.out.JarDumper;
@@ -35,12 +30,8 @@ import org.topdank.byteio.out.JarDumper;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.Deque;
-import java.util.HashSet;
-import java.util.LinkedList;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Set;
 import java.util.jar.JarOutputStream;
 
 public class Boot {
@@ -166,7 +157,7 @@ public class Boot {
 		} */
 		
 //		File f = locateRevFile(135);
-		File f = new File("res/allatori6.1.jar");
+		File f = new File("res/gamepack135.jar");
 		section("Preparing to run on " + f.getAbsolutePath());
 		SingleJarDownloader<ClassNode> dl = new SingleJarDownloader<>(new JarInfo(f));
 		dl.download();

@@ -85,7 +85,7 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 							if (val != null) {
 								exprsEvaluated++;
 								cfg.overwrite(par, e, val);
-//								System.out.println(e + " -> " + val);
+								System.out.println("[ConstEval] " + e + " -> " + val);
 							}
 						}
 					}
