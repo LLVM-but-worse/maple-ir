@@ -1,17 +1,17 @@
 package org.mapleir.stdlib.collections.graph.algorithms;
 
+import org.mapleir.stdlib.collections.graph.FastDirectedGraph;
+import org.mapleir.stdlib.collections.graph.FastGraphEdge;
+import org.mapleir.stdlib.collections.graph.FastGraphVertex;
+import org.mapleir.stdlib.collections.nullpermeable.KeyedValueCreator;
+import org.mapleir.stdlib.collections.nullpermeable.NullPermeableHashMap;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-import org.mapleir.stdlib.collections.KeyedValueCreator;
-import org.mapleir.stdlib.collections.NullPermeableHashMap;
-import org.mapleir.stdlib.collections.graph.FastDirectedGraph;
-import org.mapleir.stdlib.collections.graph.FastGraphEdge;
-import org.mapleir.stdlib.collections.graph.FastGraphVertex;
 
 public class ExtendedDfs<N extends FastGraphVertex> implements DepthFirstSearch<N> {
 	

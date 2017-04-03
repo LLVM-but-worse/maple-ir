@@ -1,19 +1,19 @@
 package org.mapleir.ir.cfg.builder;
 
+import org.mapleir.ir.cfg.BasicBlock;
+import org.mapleir.ir.cfg.ControlFlowGraph;
+import org.mapleir.ir.cfg.edge.FlowEdge;
+import org.mapleir.ir.locals.Local;
+import org.mapleir.stdlib.collections.nullpermeable.NullPermeableHashMap;
+import org.mapleir.stdlib.collections.nullpermeable.SetCreator;
+import org.objectweb.asm.tree.MethodNode;
+
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-
-import org.mapleir.ir.cfg.BasicBlock;
-import org.mapleir.ir.cfg.ControlFlowGraph;
-import org.mapleir.ir.cfg.edge.FlowEdge;
-import org.mapleir.ir.locals.Local;
-import org.mapleir.stdlib.collections.NullPermeableHashMap;
-import org.mapleir.stdlib.collections.SetCreator;
-import org.objectweb.asm.tree.MethodNode;
 
 public class ControlFlowGraphBuilder {
 
