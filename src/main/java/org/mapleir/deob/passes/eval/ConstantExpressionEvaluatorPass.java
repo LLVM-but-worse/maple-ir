@@ -1,5 +1,8 @@
 package org.mapleir.deob.passes.eval;
 
+import java.util.HashSet;
+import java.util.List;
+
 import org.mapleir.context.IContext;
 import org.mapleir.deob.IPass;
 import org.mapleir.deob.interproc.IPAnalysis;
@@ -18,9 +21,6 @@ import org.mapleir.ir.code.stmt.UnconditionalJumpStmt;
 import org.mapleir.ir.locals.LocalsPool;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
-
-import java.util.HashSet;
-import java.util.List;
 
 public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 	private ExpressionEvaluator evaluator;
@@ -85,7 +85,7 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 							if (val != null) {
 								exprsEvaluated++;
 								cfg.overwrite(par, e, val);
-								System.out.println("[ConstEval] " + e + " -> " + val);
+								// System.out.println("[ConstEval] " + e + " -> " + val);
 							}
 						}
 					}
