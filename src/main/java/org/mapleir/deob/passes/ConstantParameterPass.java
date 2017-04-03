@@ -3,7 +3,7 @@ package org.mapleir.deob.passes;
 import org.mapleir.context.IContext;
 import org.mapleir.deob.IPass;
 import org.mapleir.deob.interproc.ChildVisitor;
-import org.mapleir.deob.interproc.IPConstAnalysis;
+import org.mapleir.deob.interproc.IPAnalysis;
 import org.mapleir.deob.util.RenamingUtil;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
@@ -50,7 +50,7 @@ public class ConstantParameterPass implements IPass, Opcode {
 		
 		ChildVisitor vis = new ChildVisitor() {
 			@Override
-			public void postVisitMethod(IPConstAnalysis analysis, MethodNode m) {
+			public void postVisitMethod(IPAnalysis analysis, MethodNode m) {
 				int pCount = Type.getArgumentTypes(m.desc).length;
 				
 				/* init map entries */
@@ -91,7 +91,7 @@ public class ConstantParameterPass implements IPass, Opcode {
 			}
 			
 			@Override
-			public void postProcessedInvocation(IPConstAnalysis analysis, MethodNode caller, MethodNode callee, Expr call) {
+			public void postProcessedInvocation(IPAnalysis analysis, MethodNode caller, MethodNode callee, Expr call) {
 				Expr[] params;
 				
 				if(call.getOpcode() == INVOKE) {
@@ -135,7 +135,7 @@ public class ConstantParameterPass implements IPass, Opcode {
 			}
 		};
 		
-		IPConstAnalysis constAnalysis = IPConstAnalysis.create(cxt, vis);
+		IPAnalysis constAnalysis = IPAnalysis.create(cxt, vis);
 		
 //		ApplicationClassSource app = cxt.getApplication();
 //		ClassTree structures = app.getStructures();
@@ -458,7 +458,7 @@ public class ConstantParameterPass implements IPass, Opcode {
 		}
 	}
 	
-	private void demoteDeadParamters(IPConstAnalysis constAnalysis, ControlFlowGraph cfg, MethodNode n, boolean[] dead) {
+	private void demoteDeadParamters(IPAnalysis constAnalysis, ControlFlowGraph cfg, MethodNode n, boolean[] dead) {
 		LocalsPool pool = cfg.getLocals();
 		BasicBlock entry = cfg.getEntries().iterator().next();
 		
