@@ -67,7 +67,9 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 			for(int i=0; i < b.size(); i++) {
 				Stmt stmt = b.get(i);
 				
+				// simplify conditional branches.
 				if(stmt.getOpcode() == COND_JUMP) {
+					// todo: satisfiability analysis
 					ConditionalJumpStmt cond = (ConditionalJumpStmt) stmt;
 					Boolean result = evaluator.evaluateConditional(vis, cfg, cond);
 					if (result != null) {
@@ -76,6 +78,7 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 					}
 				}
 
+				// evaluate arithmetic.
 				for(CodeUnit e : stmt.enumerateExecutionOrder()) {
 					if(e instanceof Expr) {
 						CodeUnit par = ((Expr) e).getParent();
@@ -92,7 +95,7 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 		LocalsPool pool = cfg.getLocals();
 		int j = 0;
 		
-		/* no point evaluating constants */
+		// no point evaluating constants
 		if(e.getOpcode() != CONST_LOAD) {
 			Expr val = evaluator.eval(pool, e);
 			if(val != null) {
@@ -109,47 +112,47 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 				}
 			}
 			
-			// TODO: fix this hack for nested exprs
 			if(e.getOpcode() == ARITHMETIC) {
 				ArithmeticExpr ae = (ArithmeticExpr) e;
-				Operator op = ae.getOperator();
-				
-				Expr e2 = evaluator.simplify(pool, ae);
-				
+				Expr e2 = evaluator.simplify(pool, ae); // try evaluation first
+				if (e2 == null) { // if that fails try to reassociate
+					e2 = reassociate(pool, ae);
+				}
 				if(e2 != null) {
 					cfg.overwrite(par, e, e2);
 					j++;
-				} else if (op == Operator.MUL) {
-					/* (x * c) * k
-					 * to
-					 * (x * ck)
-					 */
-					Expr l = ae.getLeft();
-					Expr r = ae.getRight();
-					
-					if(l.getOpcode() == ARITHMETIC) {
-						ArithmeticExpr xcExpr = (ArithmeticExpr) l;
-
-						if(xcExpr.getOperator() == Operator.MUL) {
-							Expr r2 = xcExpr.getRight();
-							Expr c = evaluator.eval(pool, r2);
-							Expr k = evaluator.eval(pool, r);
-							if(c != null && k != null) {
-								ConstantExpr cc = (ConstantExpr) c;
-								ConstantExpr ck = (ConstantExpr) k;
-								Object v = evaluator.evalMultiplication(c, cc, k, ck);
-								
-								ArithmeticExpr newAe = new ArithmeticExpr(new ConstantExpr(v, c.getType()), xcExpr.getLeft().copy(), Operator.MUL);
-								cfg.overwrite(ae.getParent(), ae, newAe);
-								j++;
-							}
-						}
-					}
 				}
 			}
 		}
 		
 		return j;
+	}
+	
+	private ArithmeticExpr reassociate(LocalsPool pool, ArithmeticExpr ae) {
+		Operator op = ae.getOperator();
+		
+		if (op == Operator.MUL) {
+			Expr l = ae.getLeft();
+			Expr r = ae.getRight();
+			Operator operator;
+			
+			if (l.getOpcode() == ARITHMETIC) {
+				ArithmeticExpr xcExpr = (ArithmeticExpr) l;
+				
+				if (xcExpr.getOperator() == Operator.MUL) {
+					Expr r2 = xcExpr.getRight();
+					Expr c = evaluator.eval(pool, r2);
+					Expr k = evaluator.eval(pool, r);
+					if (c != null && k != null) {
+						ConstantExpr cc = (ConstantExpr) c;
+						ConstantExpr ck = (ConstantExpr) k;
+						Object v = evaluator.eval(pool, new ArithmeticExpr(cc, ck, Operator.MUL));
+						return new ArithmeticExpr(new ConstantExpr(v, c.getType()), xcExpr.getLeft().copy(), Operator.MUL);
+					}
+				}
+			}
+		}
+		return null;
 	}
 	
 	private void eliminateBranch(ControlFlowGraph cfg, BasicBlock b, ConditionalJumpStmt cond, int insnIndex, boolean val) {

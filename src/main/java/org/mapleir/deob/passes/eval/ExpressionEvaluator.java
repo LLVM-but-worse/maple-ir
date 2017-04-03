@@ -23,17 +23,6 @@ public class ExpressionEvaluator {
 		bridgeFactory = new BridgeFactory();
 	}
 	
-	// todo: delete this method
-	public Object evalMultiplication(Expr c, ConstantExpr cc, Expr k, ConstantExpr ck) {
-		Bridge bridge = bridgeFactory.getArithmeticBridge(c.getType(), k.getType(), c.getType().getSort() > k.getType().getSort()? c.getType() : k.getType(), ArithmeticExpr.Operator.MUL);
-
-		/*System.out.println("eval: " + bridge.method + " " + cc.getConstant().getClass() + " " + ck.getConstant().getClass());
-		System.out.println("   actual: " + cc.getType() + ", " +  ck.getType());
-		System.out.println("      " + cc.getConstant() +"  " + ck.getConstant());*/
-		
-		return bridge.eval(cc.getConstant(), ck.getConstant());
-	}
-	
 	private static boolean isValidSet(Set<?> set) {
 		return set != null && set.size() > 0;
 	}
