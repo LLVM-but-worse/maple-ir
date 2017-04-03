@@ -157,7 +157,7 @@ public class Boot {
 		} */
 		
 //		File f = locateRevFile(135);
-		File f = new File("res/gamepack135.jar");
+		File f = new File("res/allatori6.1.jar");
 		section("Preparing to run on " + f.getAbsolutePath());
 		SingleJarDownloader<ClassNode> dl = new SingleJarDownloader<>(new JarInfo(f));
 		dl.download();

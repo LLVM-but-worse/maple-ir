@@ -54,10 +54,7 @@ public class ExpressionEvaluator {
 				ConstantExpr rc = (ConstantExpr) re;
 				
 				Bridge b = bridgeFactory.getArithmeticBridge(lc.getType(), rc.getType(), ae.getType(), ae.getOperator());
-				
-				ConstantExpr dick = new ConstantExpr(b.eval(lc.getConstant(), rc.getConstant()), ae.getType());
-				System.out.println("  " + e.getType() + " " + e + " => " + dick + " " + dick.getType());
-				return dick;
+				return new ConstantExpr(b.eval(lc.getConstant(), rc.getConstant()), ae.getType());
 			}
 		} else if(e.getOpcode() == NEGATE) {
 			NegationExpr neg = (NegationExpr) e;
