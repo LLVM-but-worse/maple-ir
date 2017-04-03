@@ -17,20 +17,15 @@ import org.mapleir.ir.code.expr.ArithmeticExpr.Operator;
 import org.mapleir.ir.code.expr.ConstantExpr;
 import org.mapleir.ir.code.expr.VarExpr;
 import org.mapleir.ir.code.stmt.ConditionalJumpStmt;
-import org.mapleir.ir.code.stmt.ConditionalJumpStmt.ComparisonType;
 import org.mapleir.ir.code.stmt.NopStmt;
 import org.mapleir.ir.code.stmt.UnconditionalJumpStmt;
 import org.mapleir.ir.locals.LocalsPool;
 import org.mapleir.ir.locals.VersionedLocal;
-import org.mapleir.stdlib.util.TypeUtils;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
 
 import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
-
-import static org.mapleir.deob.passes.eval.ExpressionEvaluator.isValidSet;
 
 public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 	ExpressionEvaluator evaluator;
@@ -61,8 +56,13 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 						for(int i=0; i < b.size(); i++) {
 							Stmt stmt = b.get(i);
 							
-							if(stmt.getOpcode() == COND_JUMP && simplifyConditionalBranch(vis, cfg, (ConditionalJumpStmt)stmt, i)) {
-								 branchesEvaluated++;
+							if(stmt.getOpcode() == COND_JUMP) {
+								ConditionalJumpStmt cond = (ConditionalJumpStmt) stmt;
+								Boolean result = evaluator.simplifyConditionalBranch(vis, cfg, cond);
+								if (result != null) {
+									eliminateBranch(cfg, cond.getBlock(), cond, i, result);
+									 branchesEvaluated++;
+								}
 							}
 
 							for(CodeUnit e : stmt.enumerateExecutionOrder()) {
@@ -173,56 +173,6 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 				pool.uses.get((VersionedLocal) var.getLocal()).add(var);
 			}
 		}
-	}
-	
-	// todo: move this into the evaluator FFS
-	private boolean simplifyConditionalBranch(IPConstAnalysisVisitor vis, ControlFlowGraph cfg, ConditionalJumpStmt cond, int i) {
-		Expr l = cond.getLeft();
-		Expr r = cond.getRight();
-		
-		if (!TypeUtils.isPrimitive(l.getType()) || !TypeUtils.isPrimitive(r.getType())) {
-			if(l instanceof ConstantExpr && r instanceof ConstantExpr && !TypeUtils.isPrimitive(l.getType()) && !TypeUtils.isPrimitive(r.getType())) {
-				return attemptNullarityBranchElimination(cfg, cond.getBlock(), cond, i, (ConstantExpr) l, (ConstantExpr) r);
-			}
-			return false;
-		}
-		
-		LocalValueResolver resolver;
-		
-		LocalsPool pool = cfg.getLocals();
-		if(vis != null) {
-			// FIXME: use
-			resolver = new LocalValueResolver.SemiConstantLocalValueResolver(cfg.getMethod(), pool, vis);
-		} else {
-			resolver = new LocalValueResolver.PooledLocalValueResolver(pool);
-		}
-		
-		Set<ConstantExpr> lSet = evaluator.evalPossibleValues(resolver, l);
-		Set<ConstantExpr> rSet = evaluator.evalPossibleValues(resolver, r);
-		
-		if(isValidSet(lSet) && isValidSet(rSet)) {
-			Boolean result = evaluator.evaluateConditional(cond, lSet, rSet);
-			if (result != null) {
-				eliminateBranch(cfg, cond.getBlock(), cond, i, result);
-				return true;
-			}
-		}
-		return false;
-	}
-	
-	// todo: move this into the evaluator and join it with evaluateConditional
-	private boolean attemptNullarityBranchElimination(ControlFlowGraph cfg, BasicBlock b, ConditionalJumpStmt cond, int insnIndex, ConstantExpr left, ConstantExpr right) {
-		if (left.getConstant() == null && right.getConstant() == null) {
-			eliminateBranch(cfg, b, cond, insnIndex, cond.getComparisonType() == ComparisonType.EQ);
-			return true;
-		}
-		if (cond.getComparisonType() == ComparisonType.EQ) {
-			if ((left.getConstant() == null) != (right.getConstant() == null)) {
-				eliminateBranch(cfg, b, cond, insnIndex, false);
-				return true;
-			}
-		}
-		return false;
 	}
 	
 	private void eliminateBranch(ControlFlowGraph cfg, BasicBlock b, ConditionalJumpStmt cond, int insnIndex, boolean val) {
