@@ -15,7 +15,7 @@ import org.mapleir.ir.code.stmt.MonitorStmt.MonitorMode;
 import org.mapleir.ir.code.stmt.ThrowStmt;
 import org.objectweb.asm.Type;
 
-public class DumbThrowsAnalysis implements ThrowsAnalysis, Opcode {
+public class DumbExceptionAnalysis implements ExceptionAnalysis, Opcode {
 
 	@Override
 	public Set<Type> getPossibleUserThrowables(CodeUnit u) {
@@ -75,6 +75,9 @@ public class DumbThrowsAnalysis implements ThrowsAnalysis, Opcode {
 				}
 				break;
 			}
+			
+			default:
+				throw new UnsupportedOperationException(String.format("%s: %s", Opcode.opname(u.getOpcode()), u));
 		}
 	}
 
@@ -121,6 +124,9 @@ public class DumbThrowsAnalysis implements ThrowsAnalysis, Opcode {
 			case DYNAMIC_INVOKE:
 				throw new UnsupportedOperationException(u.toString());
 			case INVOKE:
+				set.add(ERROR);
+				set.add(RUNTIME_EXCEPTION);
+				
 				set.add(NULL_POINTER_EXCEPTION);
 				set.add(INCOMPATIBLE_CLASS_CHANGE_ERROR);
 				set.add(ABSTRACT_METHOD_ERROR);
@@ -132,6 +138,9 @@ public class DumbThrowsAnalysis implements ThrowsAnalysis, Opcode {
 				set.add(INSTANTIATION_ERROR);
 				break;
 			case INIT_OBJ:
+				set.add(ERROR);
+				set.add(RUNTIME_EXCEPTION);
+				
 				set.add(INSTANTIATION_ERROR);
 				
 				set.add(NULL_POINTER_EXCEPTION);
@@ -141,6 +150,9 @@ public class DumbThrowsAnalysis implements ThrowsAnalysis, Opcode {
 				set.add(ILLEGAL_ACCESS_ERROR);
 				set.add(WRONG_METHOD_TYPE_EXCEPTION);
 				break;
+				
+			default:
+				throw new UnsupportedOperationException(String.format("%s: %s", Opcode.opname(u.getOpcode()), u));
 		}
 	}
 
