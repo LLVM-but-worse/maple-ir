@@ -26,7 +26,11 @@ public interface ExceptionAnalysis {
 	
 	Set<Type> VM_ERRORS = Collections.unmodifiableSet(__getIntrinsicErrors());
 	
+	Type ANY = Type.getType("L<any>;");
+	
 	Type THROWABLE = type(Throwable.class);
+	
+	Type VIRTUAL_MACHINE_ERROR = type(VirtualMachineError.class);
 	
 	Type NO_FIELD_ERROR = type(NoSuchFieldError.class);
 	Type NO_METHOD_ERROR = type(NoSuchMethodError.class);

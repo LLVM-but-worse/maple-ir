@@ -75,7 +75,16 @@ public class DumbExceptionAnalysis implements ExceptionAnalysis, Opcode {
 				}
 				break;
 			}
-			
+			/* nothing */
+			case POP:
+			case COND_JUMP:
+			case LOCAL_STORE:
+			case PHI_STORE:
+			case NOP:
+			case UNCOND_JUMP:
+			case SWITCH_JUMP:
+				break;
+				
 			default:
 				throw new UnsupportedOperationException(String.format("%s: %s", Opcode.opname(u.getOpcode()), u));
 		}
@@ -124,6 +133,8 @@ public class DumbExceptionAnalysis implements ExceptionAnalysis, Opcode {
 			case DYNAMIC_INVOKE:
 				throw new UnsupportedOperationException(u.toString());
 			case INVOKE:
+				set.add(ANY);
+				
 				set.add(ERROR);
 				set.add(RUNTIME_EXCEPTION);
 				
@@ -138,6 +149,8 @@ public class DumbExceptionAnalysis implements ExceptionAnalysis, Opcode {
 				set.add(INSTANTIATION_ERROR);
 				break;
 			case INIT_OBJ:
+				set.add(ANY);
+				
 				set.add(ERROR);
 				set.add(RUNTIME_EXCEPTION);
 				
@@ -149,6 +162,15 @@ public class DumbExceptionAnalysis implements ExceptionAnalysis, Opcode {
 				set.add(UNSATISFIED_LINK_ERROR);
 				set.add(ILLEGAL_ACCESS_ERROR);
 				set.add(WRONG_METHOD_TYPE_EXCEPTION);
+				break;
+				
+			case COMPARE:
+			case NEGATE:
+			case PHI:
+			case EPHI:
+			case LOCAL_LOAD:
+			case CONST_LOAD:
+			case CATCH:
 				break;
 				
 			default:
