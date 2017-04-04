@@ -21,11 +21,12 @@ import org.mapleir.deob.IPass;
 import org.mapleir.deob.PassGroup;
 import org.mapleir.deob.interproc.CallTracer;
 import org.mapleir.deob.interproc.IRCallTracer;
+import org.mapleir.deob.intraproc.ExceptionAnalysis;
 import org.mapleir.deob.passes.CallgraphPruningPass;
+import org.mapleir.deob.passes.ClassRenamerPass;
 import org.mapleir.deob.passes.ConstantExpressionReorderPass;
 import org.mapleir.deob.passes.DeadCodeEliminationPass;
 import org.mapleir.deob.passes.FieldRenamerPass;
-import org.mapleir.deob.passes.LiftConstructorCallsPass;
 import org.mapleir.deob.passes.eval.ConstantExpressionEvaluatorPass;
 import org.mapleir.ir.algorithms.BoissinotDestructor;
 import org.mapleir.ir.algorithms.ControlFlowGraphDumper;
@@ -157,7 +158,9 @@ public class Boot {
 //		System.out.println(cxt.getInvocationResolver().resolveVirtualCalls("org/mapleir/t/A", "m", "(I)Lorg/mapleir/t/I1;", true));
 //		
 //	}
+	
 	public static void main(String[] args) throws Exception {
+		System.out.println("her " + ExceptionAnalysis.THROWABLE);
 		sections = new LinkedList<>();
 		logging = true;
 		/* if(args.length < 1) {
@@ -274,7 +277,7 @@ public class Boot {
 		return new IPass[] {
 				new CallgraphPruningPass(),
 //				new ConcreteStaticInvocationPass(),
-//				new ClassRenamerPass(),
+				new ClassRenamerPass(),
 //				new MethodRenamerPass(),
 //				new ConstantParameterPass()
 //				new ClassRenamerPass(),
@@ -283,7 +286,7 @@ public class Boot {
 //				new FieldRSADecryptionPass(),
 //				new PassGroup("Interprocedural Optimisations")
 //					.add(new ConstantParameterPass())
-				new LiftConstructorCallsPass(),
+//				new LiftConstructorCallsPass(),
 				new ConstantExpressionReorderPass(),
 //				new FieldRSADecryptionPass(),
 //				new ConstantParameterPass(),

@@ -1,5 +1,11 @@
 package org.mapleir.ir.algorithms;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.ListIterator;
+import java.util.Set;
+
+import org.mapleir.deob.intraproc.ExceptionAnalysis;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.cfg.edge.DummyEdge;
@@ -8,13 +14,9 @@ import org.mapleir.ir.cfg.edge.FlowEdges;
 import org.mapleir.ir.code.Stmt;
 import org.mapleir.stdlib.collections.graph.flow.ExceptionRange;
 import org.objectweb.asm.Label;
+import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.LabelNode;
 import org.objectweb.asm.tree.MethodNode;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.ListIterator;
-import java.util.Set;
 
 public class ControlFlowGraphDumper {
 	public static void dump(ControlFlowGraph cfg, MethodNode m) {
@@ -60,11 +62,11 @@ public class ControlFlowGraphDumper {
 
 		for (ExceptionRange<BasicBlock> er : cfg.getRanges()) {
 //			System.out.println("RANGE: " + er);
-			String type = null;
-			Set<String> typeSet = er.getTypes();
+			Type type = null;
+			Set<Type> typeSet = er.getTypes();
 			if (typeSet.size() == 0 || typeSet.size() > 1) {
 				// TODO: fix base exception
-				type = Throwable.class.getCanonicalName().replace(".", "/");
+				type = ExceptionAnalysis.THROWABLE;
 			} else {
 				// size == 1
 				type = typeSet.iterator().next();
@@ -93,7 +95,7 @@ public class ControlFlowGraphDumper {
 				end = im.getLabel();
 			}
 			Label handler = er.getHandler().getLabel();
-			m.visitTryCatchBlock(start, end, handler, type);
+			m.visitTryCatchBlock(start, end, handler, type.getInternalName());
 		}
 		m.visitEnd();
 	}
