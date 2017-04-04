@@ -1,9 +1,14 @@
 package org.mapleir.context;
 
 import org.mapleir.context.app.ApplicationClassSource;
+import org.mapleir.deob.intraproc.DumbExceptionAnalysis;
+import org.mapleir.deob.intraproc.ExceptionAnalysis;
+import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.stdlib.util.InvocationResolver;
 
 public class BasicContext implements IContext {
+	private final DumbExceptionAnalysis exceptionAnalysis = new DumbExceptionAnalysis();
+	
 	private final ApplicationClassSource app;
 	private final InvocationResolver resolver;
 	private final IRCache cache;
@@ -26,6 +31,11 @@ public class BasicContext implements IContext {
 	@Override
 	public ApplicationClassSource getApplication() {
 		return app;
+	}
+
+	@Override
+	public ExceptionAnalysis getExceptionAnalysis(ControlFlowGraph cfg) {
+		return exceptionAnalysis;
 	}
 	
 	public static class BasicContextBuilder {
