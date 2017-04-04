@@ -8,7 +8,7 @@ import java.util.Set;
 import org.mapleir.ir.code.CodeUnit;
 import org.objectweb.asm.Type;
 
-public interface ThrowsAnalysis {
+public interface ExceptionAnalysis {
 
 	static Type type(Class<?> c) {
 		return Type.getType(c);
@@ -45,6 +45,9 @@ public interface ThrowsAnalysis {
 	Type INDEX_OUT_OF_BOUNDS_EXCEPTION = type(IndexOutOfBoundsException.class);
 	Type ILLEGAL_MONITOR_STATE_EXCEPTION = type(IllegalMonitorStateException.class);
 	Type NEGATIVE_ARRAY_SIZE_EXCEPTION = type(NegativeArraySizeException.class);
+	
+	Type RUNTIME_EXCEPTION = type(RuntimeException.class);
+	Type ERROR = type(Error.class);
 	
 	Set<Type> getPossibleUserThrowables(CodeUnit u);
 	
