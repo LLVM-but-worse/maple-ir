@@ -26,6 +26,7 @@ import org.mapleir.deob.passes.CallgraphPruningPass;
 import org.mapleir.deob.passes.ClassRenamerPass;
 import org.mapleir.deob.passes.ConstantExpressionReorderPass;
 import org.mapleir.deob.passes.DeadCodeEliminationPass;
+import org.mapleir.deob.passes.DemoteRangesPass;
 import org.mapleir.deob.passes.FieldRenamerPass;
 import org.mapleir.deob.passes.eval.ConstantExpressionEvaluatorPass;
 import org.mapleir.ir.algorithms.BoissinotDestructor;
@@ -161,6 +162,7 @@ public class Boot {
 	
 	public static void main(String[] args) throws Exception {
 		System.out.println("her " + ExceptionAnalysis.THROWABLE);
+		System.out.println(ExceptionAnalysis.ANY);
 		sections = new LinkedList<>();
 		logging = true;
 		/* if(args.length < 1) {
@@ -287,6 +289,7 @@ public class Boot {
 //				new PassGroup("Interprocedural Optimisations")
 //					.add(new ConstantParameterPass())
 //				new LiftConstructorCallsPass(),
+				new DemoteRangesPass(),
 				new ConstantExpressionReorderPass(),
 //				new FieldRSADecryptionPass(),
 //				new ConstantParameterPass(),
