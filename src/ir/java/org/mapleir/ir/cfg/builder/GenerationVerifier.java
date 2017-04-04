@@ -354,7 +354,7 @@ public class GenerationVerifier {
 				}
 				
 				if(tclass == -1) {
-					tok = Type.getType(actualType);
+					tok = Type.getType("L" + actualType + ";");
 					tclass = exact ? CLASS_TYPE_EXACT : CLASS_TYPE_SUB;
 				}
 				

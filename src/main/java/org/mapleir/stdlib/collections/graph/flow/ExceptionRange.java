@@ -9,13 +9,14 @@ import java.util.Set;
 
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.stdlib.collections.graph.FastGraphVertex;
+import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.TryCatchBlockNode;
 
 public class ExceptionRange<N extends FastGraphVertex> {
 
 	private final TryCatchBlockNode node;
 	private final List<N> nodes;
-	private final Set<String> types;
+	private final Set<Type> types;
 	private N handler;
 	private int hashcode;
 	
@@ -73,21 +74,21 @@ public class ExceptionRange<N extends FastGraphVertex> {
 		invalidate();
 	}
 	
-	public Set<String> getTypes() {
+	public Set<Type> getTypes() {
 		return new HashSet<>(types);
 	}
 	
-	public void addType(String b) {
+	public void addType(Type b) {
 		types.add(b);
 		invalidate();
 	}
 	
-	public void removeType(String b) {
+	public void removeType(Type b) {
 		types.remove(b);
 		invalidate();
 	}
 	
-	public void setTypes(Set<String> types) {
+	public void setTypes(Set<Type> types) {
 		this.types.clear();
 		this.types.addAll(types);
 		invalidate();
