@@ -6,6 +6,7 @@ import static org.objectweb.asm.tree.AbstractInsnNode.*;
 import java.util.*;
 import java.util.Map.Entry;
 
+import org.mapleir.deob.intraproc.ExceptionAnalysis;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.edge.ConditionalJumpEdge;
 import org.mapleir.ir.cfg.edge.DefaultSwitchEdge;
@@ -413,7 +414,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 				else
 					typeName = '[' + typeName;
 				_new_array(
-					new Expr[] { pop() }, 
+					new Expr[] { pop() },
 					Type.getType(typeName)
 				);
 				break;
@@ -1475,7 +1476,10 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 				builder.graph.addRange(erange);
 			}
 			
-			erange.addType(tc.type);
+			/* add L; so that the internal descriptor here matches the
+			 * one provided by Type.getType(Class) and therefore
+			 * ExceptionAnalysis.getType(Class). */
+			erange.addType(tc.type != null ? Type.getType("L" + tc.type + ";") : ExceptionAnalysis.THROWABLE);
 			
 			ListIterator<BasicBlock> lit = range.listIterator();
 			while(lit.hasNext()) {

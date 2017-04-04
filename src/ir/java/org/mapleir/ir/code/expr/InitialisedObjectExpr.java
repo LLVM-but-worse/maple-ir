@@ -51,7 +51,7 @@ public class InitialisedObjectExpr extends Expr {
 
 	@Override
 	public Type getType() {
-		return Type.getType(owner);
+		return Type.getType("L" + owner + ";");
 	}
 	
 	@Override

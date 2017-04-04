@@ -1,5 +1,7 @@
 package org.mapleir.deob.passes;
 
+import java.util.*;
+
 import org.mapleir.context.IContext;
 import org.mapleir.context.app.ApplicationClassSource;
 import org.mapleir.context.app.ClassHelper;
@@ -10,16 +12,7 @@ import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.code.Opcode;
 import org.mapleir.ir.code.Stmt;
-import org.mapleir.ir.code.expr.CastExpr;
-import org.mapleir.ir.code.expr.CaughtExceptionExpr;
-import org.mapleir.ir.code.expr.ConstantExpr;
-import org.mapleir.ir.code.expr.FieldLoadExpr;
-import org.mapleir.ir.code.expr.InitialisedObjectExpr;
-import org.mapleir.ir.code.expr.InstanceofExpr;
-import org.mapleir.ir.code.expr.InvocationExpr;
-import org.mapleir.ir.code.expr.NewArrayExpr;
-import org.mapleir.ir.code.expr.UninitialisedObjectExpr;
-import org.mapleir.ir.code.expr.VarExpr;
+import org.mapleir.ir.code.expr.*;
 import org.mapleir.ir.code.stmt.FieldStoreStmt;
 import org.mapleir.ir.code.stmt.ReturnStmt;
 import org.mapleir.ir.code.stmt.copy.AbstractCopyStmt;
@@ -30,15 +23,6 @@ import org.objectweb.asm.tree.FieldNode;
 import org.objectweb.asm.tree.LocalVariableNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.tree.TryCatchBlockNode;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 public class ClassRenamerPass implements IPass {
 
@@ -157,9 +141,15 @@ public class ClassRenamerPass implements IPass {
 				ControlFlowGraph cfg = cxt.getIRCache().getFor(m);
 				
 				for(ExceptionRange<BasicBlock> er : cfg.getRanges()) {
-					Set<String> newTypeSet = new HashSet<>();
-					for(String s : er.getTypes()) {
-						newTypeSet.add(remapping.getOrDefault(s, s));
+					Set<Type> newTypeSet = new HashSet<>();
+					for(Type t : er.getTypes()) {
+						// FIXME:
+						String s = t.getInternalName();
+						if(remapping.containsKey(s)) {
+							newTypeSet.add(Type.getType("L" + remapping.get(s) + ";"));
+						} else {
+							newTypeSet.add(t);
+						}
 					}
 					er.setTypes(newTypeSet);
 				}
