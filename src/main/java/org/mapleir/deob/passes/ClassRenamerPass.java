@@ -60,7 +60,7 @@ public class ClassRenamerPass implements IPass {
 			String s = RenamingUtil.createName(n);
 			n += step;
 			remapping.put(cn.name, s);
-			System.out.println(cn.name + " -> " + s);
+			// System.out.println(cn.name + " -> " + s);
 			cn.name = s;
 		}
 		
