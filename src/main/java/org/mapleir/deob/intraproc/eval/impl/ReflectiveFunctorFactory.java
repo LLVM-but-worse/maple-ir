@@ -1,5 +1,11 @@
-package org.mapleir.deob.passes.eval;
+package org.mapleir.deob.intraproc.eval.impl;
 
+import java.lang.reflect.Method;
+import java.util.HashMap;
+import java.util.Map;
+
+import org.mapleir.deob.intraproc.eval.EvaluationFactory;
+import org.mapleir.deob.intraproc.eval.EvaluationFunctor;
 import org.mapleir.ir.code.expr.ArithmeticExpr;
 import org.mapleir.ir.code.expr.ComparisonExpr;
 import org.mapleir.ir.code.stmt.ConditionalJumpStmt;
@@ -15,46 +21,30 @@ import org.objectweb.asm.tree.LabelNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.tree.VarInsnNode;
 
-import java.lang.reflect.Method;
-import java.util.HashMap;
-import java.util.Map;
-
-public class BridgeFactory {
-	private final BridgeClassLoader classLoader;
-	private final Map<String, Bridge> bridges;
+public class ReflectiveFunctorFactory implements EvaluationFactory {
+	private final BridgeDefiningClassLoader classLoader;
+	private final Map<String, EvaluationFunctor<?>> cache;
 	
-	public BridgeFactory() {
-		classLoader = new BridgeClassLoader();
-		bridges = new HashMap<>();
+	public ReflectiveFunctorFactory() {
+		classLoader = new BridgeDefiningClassLoader();
+		cache = new HashMap<>();
 	}
 	
-	private void cast(InsnList insns, Type from, Type to) {
-		int[] cast = TypeUtils.getPrimitiveCastOpcodes(from, to);
-		for (int i = 0; i < cast.length; i++) {
-			insns.add(new InsnNode(cast[i]));
-		}
+	@SuppressWarnings("unchecked")
+	private <T> EvaluationFunctor<T> _get(String name) {
+		return (EvaluationFunctor<T>) cache.get(name);
 	}
 	
-	private void branchReturn(InsnList insns, LabelNode trueSuccessor) {
-		// return false
-		insns.add(new InsnNode(Opcodes.ICONST_0));
-		insns.add(new InsnNode(Opcodes.IRETURN));
-		insns.add(trueSuccessor);
-		// return true
-		insns.add(new InsnNode(Opcodes.ICONST_1));
-		insns.add(new InsnNode(Opcodes.IRETURN));
-	}
-	
-	public Bridge getConditionalEvalBridge(Type lt, Type rt, ConditionalJumpStmt.ComparisonType type) {
+	@Override
+	public EvaluationFunctor<Boolean> branch(Type lt, Type rt, ConditionalJumpStmt.ComparisonType type) {
 		Type opType = TypeUtils.resolveBinOpType(lt, rt);
 		String name = lt.getClassName() + type.name() + rt.getClassName() + "OPTYPE" + opType.getClassName() + "RETbool";
 
 		String desc = "(" + lt.getDescriptor() + rt.getDescriptor() + ")Z";
 
-		if(bridges.containsKey(name)) {
-			return bridges.get(name);
+		if(cache.containsKey(name)) {
+			return _get(name);
 		}
-		
 
 		MethodNode m = makeBase(name, desc);
 		{
@@ -91,10 +81,11 @@ public class BridgeFactory {
 		return buildBridge(m);
 	}
 	
-	public Bridge getComparisonBridge(Type lt, Type rt, ComparisonExpr.ValueComparisonType type) {
+	@Override
+	public EvaluationFunctor<Number> compare(Type lt, Type rt, ComparisonExpr.ValueComparisonType type) {
 		String name = lt.getClassName() + type.name() + rt.getClassName() + "RETint";
-		if(bridges.containsKey(name)) {
-			return bridges.get(name);
+		if(cache.containsKey(name)) {
+			return _get(name);
 		}
 		
 		String desc = "(" + lt.getDescriptor() + rt.getDescriptor() + ")I";
@@ -127,11 +118,12 @@ public class BridgeFactory {
 		return buildBridge(m);
 	}
 	
-	public Bridge getCastBridge(Type from, Type to) {
+	@Override
+	public EvaluationFunctor<Number> cast(Type from, Type to) {
 		String name = "CASTFROM" + from.getClassName() + "TO" + to.getClassName();
 		
-		if(bridges.containsKey(name)) {
-			return bridges.get(name);
+		if(cache.containsKey(name)) {
+			return _get(name);
 		}
 
 		String desc = ("(" + from.getDescriptor() + ")" + to.getDescriptor());
@@ -148,11 +140,12 @@ public class BridgeFactory {
 		return buildBridge(m);
 	}
 	
-	public Bridge getNegationBridge(Type t) {
+	@Override
+	public EvaluationFunctor<Number> negate(Type t) {
 		String name = "NEG" + t.getClassName();
 		
-		if(bridges.containsKey(name)) {
-			return bridges.get(name);
+		if(cache.containsKey(name)) {
+			return _get(name);
 		}
 		
 		String desc = ("(" + t.getDescriptor() + ")" + t.getDescriptor());
@@ -169,11 +162,12 @@ public class BridgeFactory {
 		return buildBridge(m);
 	}
 	
-	public Bridge getArithmeticBridge(Type t1, Type t2, Type rt, ArithmeticExpr.Operator op) {
+	@Override
+	public EvaluationFunctor<Number> arithmetic(Type t1, Type t2, Type rt, ArithmeticExpr.Operator op) {
 		String name = t1.getClassName() + op.name() + t2.getClassName() + "RET" + rt.getClassName();
 		
-		if(bridges.containsKey(name)) {
-			return bridges.get(name);
+		if(cache.containsKey(name)) {
+			return _get(name);
 		}
 		
 		String desc = ("(" + t1.getDescriptor() + t2.getDescriptor() + ")" + rt.getDescriptor());
@@ -244,6 +238,23 @@ public class BridgeFactory {
 		return buildBridge(m);
 	}
 
+	private void cast(InsnList insns, Type from, Type to) {
+		int[] cast = TypeUtils.getPrimitiveCastOpcodes(from, to);
+		for (int i = 0; i < cast.length; i++) {
+			insns.add(new InsnNode(cast[i]));
+		}
+	}
+	
+	private void branchReturn(InsnList insns, LabelNode trueSuccessor) {
+		// return false
+		insns.add(new InsnNode(Opcodes.ICONST_0));
+		insns.add(new InsnNode(Opcodes.IRETURN));
+		insns.add(trueSuccessor);
+		// return true
+		insns.add(new InsnNode(Opcodes.ICONST_1));
+		insns.add(new InsnNode(Opcodes.IRETURN));
+	}
+	
 	private MethodNode makeBase(String name, String desc) {
 		ClassNode owner = new ClassNode();
 		owner.version = Opcodes.V1_7;
@@ -256,7 +267,7 @@ public class BridgeFactory {
 		return m;
 	}
 	
-	private Bridge buildBridge(MethodNode m) {
+	private <T> EvaluationFunctor<T> buildBridge(MethodNode m) {
 		ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
 		ClassNode owner = m.owner;
 		owner.accept(cw);
@@ -266,17 +277,17 @@ public class BridgeFactory {
 		
 		for(Method method : clazz.getDeclaredMethods()) {
 			if(method.getName().equals("eval")) {
-				Bridge b = new Bridge(method);
+				EvaluationFunctor<T> f = new ReflectiveFunctor<>(method);
 				
-				bridges.put(owner.name, b);
-				return b;
+				cache.put(owner.name, f);
+				return f;
 			}
 		}
 		
 		throw new UnsupportedOperationException();
 	}
 	
-	public static class BridgeClassLoader extends ClassLoader {
+	private static class BridgeDefiningClassLoader extends ClassLoader {
 		public Class<?> make(String name, byte[] bytes) {
 			return defineClass(name.replace("/", "."), bytes, 0, bytes.length);
 		}

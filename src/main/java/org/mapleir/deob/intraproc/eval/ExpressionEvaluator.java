@@ -1,10 +1,21 @@
-package org.mapleir.deob.passes.eval;
+package org.mapleir.deob.intraproc.eval;
+
+import static org.mapleir.ir.code.Opcode.*;
+import static org.mapleir.ir.code.expr.ArithmeticExpr.Operator.*;
+
+import java.math.BigDecimal;
+import java.util.HashSet;
+import java.util.Set;
 
 import org.mapleir.deob.passes.FieldRSADecryptionPass;
-import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.Expr;
-import org.mapleir.ir.code.expr.*;
+import org.mapleir.ir.code.expr.ArithmeticExpr;
 import org.mapleir.ir.code.expr.ArithmeticExpr.Operator;
+import org.mapleir.ir.code.expr.CastExpr;
+import org.mapleir.ir.code.expr.ComparisonExpr;
+import org.mapleir.ir.code.expr.ConstantExpr;
+import org.mapleir.ir.code.expr.NegationExpr;
+import org.mapleir.ir.code.expr.VarExpr;
 import org.mapleir.ir.code.stmt.ConditionalJumpStmt;
 import org.mapleir.ir.code.stmt.copy.AbstractCopyStmt;
 import org.mapleir.ir.locals.Local;
@@ -12,35 +23,16 @@ import org.mapleir.ir.locals.LocalsPool;
 import org.mapleir.stdlib.util.TypeUtils;
 import org.objectweb.asm.Type;
 
-import java.math.BigDecimal;
-import java.util.HashSet;
-import java.util.Set;
-
-import static org.mapleir.ir.code.Opcode.*;
-import static org.mapleir.ir.code.expr.ArithmeticExpr.Operator.*;
-
 public class ExpressionEvaluator {
-	BridgeFactory bridgeFactory;
+	private final EvaluationFactory factory;
 	
-	public ExpressionEvaluator() {
-		bridgeFactory = new BridgeFactory();
+	public ExpressionEvaluator(EvaluationFactory factory) {
+		this.factory = factory;
 	}
 	
-	private static boolean isValidSet(Set<?> set) {
-		return set != null && set.size() > 0;
-	}
-	
-	private static <T> Set<T> returnCleanSet(Set<T> set) {
-		if(set != null && set.size() > 0) {
-			return set;
-		} else {
-			return null;
-		}
-	}
-	
-	public Expr eval(LocalsPool pool, Expr e) {
+	public ConstantExpr eval(LocalsPool pool, Expr e) {
 		if(e.getOpcode() == CONST_LOAD) {
-			return e.copy();
+			return ((ConstantExpr) e).copy();
 		} else if(e.getOpcode() == ARITHMETIC) {
 			ArithmeticExpr ae = (ArithmeticExpr) e;
 			Expr l = ae.getLeft();
@@ -53,7 +45,7 @@ public class ExpressionEvaluator {
 				ConstantExpr lc = (ConstantExpr) le;
 				ConstantExpr rc = (ConstantExpr) re;
 				
-				Bridge b = bridgeFactory.getArithmeticBridge(lc.getType(), rc.getType(), ae.getType(), ae.getOperator());
+				EvaluationFunctor<Number> b = factory.arithmetic(lc.getType(), rc.getType(), ae.getType(), ae.getOperator());
 				return new ConstantExpr(b.eval(lc.getConstant(), rc.getConstant()), ae.getType());
 			}
 		} else if(e.getOpcode() == NEGATE) {
@@ -62,7 +54,7 @@ public class ExpressionEvaluator {
 			
 			if(e2 != null) {
 				ConstantExpr ce = (ConstantExpr) e2;
-				Bridge b = bridgeFactory.getNegationBridge(e2.getType());
+				EvaluationFunctor<Number> b = factory.negate(e2.getType());
 				
 				return new ConstantExpr(b.eval(ce.getConstant()), ce.getType());
 			}
@@ -107,7 +99,7 @@ public class ExpressionEvaluator {
 					return null;
 				}
 				
-				Bridge b = bridgeFactory.getCastBridge(from, to);
+				EvaluationFunctor<Number> b = factory.cast(from, to);
 				
 				return new ConstantExpr(b.eval(ce.getConstant()), to);
 			}
@@ -124,7 +116,7 @@ public class ExpressionEvaluator {
 				ConstantExpr lc = (ConstantExpr) le;
 				ConstantExpr rc = (ConstantExpr) re;
 				
-				Bridge b = bridgeFactory.getComparisonBridge(lc.getType(), rc.getType(), comp.getComparisonType());
+				EvaluationFunctor<Number> b = factory.compare(lc.getType(), rc.getType(), comp.getComparisonType());
 				
 				return new ConstantExpr(b.eval(lc.getConstant(), rc.getConstant()), Type.INT_TYPE);
 			}
@@ -133,104 +125,26 @@ public class ExpressionEvaluator {
 		return null;
 	}
 	
-	public Expr simplifyMultiplication(LocalsPool pool, ArithmeticExpr e) {
-		if (e.getOperator() != Operator.MUL)
-			throw new IllegalArgumentException("Only works on multiplication exprs");
-		
-		Expr r = e.getRight();
-		
-		Expr re = eval(pool, r);
-		
-		if(re instanceof ConstantExpr) {
-			ConstantExpr ce =(ConstantExpr) re;
-			
-			Object o = ce.getConstant();
-			
-			if(o instanceof Integer || o instanceof Long) {
-				if(FieldRSADecryptionPass.__eq((Number) o, 1, o instanceof Long)) {
-					return e.getLeft().copy();
-				} else if(FieldRSADecryptionPass.__eq((Number) o, 0, o instanceof Long)) {
-					return new ConstantExpr(0, ce.getType());
-				}
-			}
-		}
-		
-		return null;
-	}
-	
-	private ArithmeticExpr simplifyAddition(LocalsPool pool, ArithmeticExpr ae) {
-		if (ae.getOperator() != Operator.ADD)
-			throw new IllegalArgumentException("Only works on addition exprs");
-		
-		Expr rhs = ae.getRight();
-		// a + -(b) => a - b
-		if (rhs.getOpcode() == NEGATE) {
-			Expr r = eval(pool, ((NegationExpr) rhs).getExpression());
-			Object negated = ((ConstantExpr) r).getConstant();
-			return new ArithmeticExpr(new ConstantExpr(negated, rhs.getType()), ae.getLeft().copy(), SUB);
-		}
-		
-		// a + -b => a - b
-		if (rhs.getOpcode() == CONST_LOAD) {
-			if (new BigDecimal(((ConstantExpr) rhs).getConstant().toString()).signum() < 0) {
-				Expr negatedR = eval(pool, new NegationExpr(rhs.copy()));
-				if (negatedR != null) {
-					Object negated = ((ConstantExpr) negatedR).getConstant();
-					return new ArithmeticExpr(new ConstantExpr(negated, rhs.getType()), ae.getLeft().copy(), SUB);
-				}
-			}
-		}
-		return null;
-	}
-	
-	public ArithmeticExpr reassociate(LocalsPool pool, ArithmeticExpr ae) {
-		ArithmeticExpr leftAe = (ArithmeticExpr) ae.getLeft();
-		Operator operatorA = leftAe.getOperator();
-		Operator operatorB = ae.getOperator();
-		
-		Expr r1 = eval(pool, leftAe.getRight());
-		Expr r2 = eval(pool, ae.getRight());
-		if (r1 != null && r2 != null) {
-			ConstantExpr cr1 = (ConstantExpr) r1;
-			ConstantExpr cr2 = (ConstantExpr) r2;
-			
-			int sign = 0;
-			if ((operatorA == MUL && operatorB == MUL)) {
-				sign = 1;
-			} else if (operatorA == ADD && (operatorB == ADD || operatorB == SUB)) {
-				sign = 1; // what about overflow?? integers mod 2^32 forms a group over addition...should be ok?
-			} else if (operatorA == SUB && (operatorB == ADD || operatorB == SUB)) {
-				sign = -1;
-			}
-			if (sign != 0) {
-				ConstantExpr cr1r2 = (ConstantExpr) eval(pool, new ArithmeticExpr(sign > 0 ? cr2 : new NegationExpr(cr2), cr1, operatorB));
-				Object associated = cr1r2.getConstant();
-				return new ArithmeticExpr(new ConstantExpr(associated, cr1r2.getType()), leftAe.getLeft().copy(), operatorA);
-			}
-		}
-		return null;
-	}
-	
-	public Expr simplifyArithmetic(LocalsPool pool, ArithmeticExpr ae) {
-		Expr e2 = null;
-		if (ae.getOperator() == MUL) { // try to simplify multiplication
-			e2 = simplifyMultiplication(pool, ae);
-		}
-		if (e2 == null && ae.getOperator() == ADD) { // try to simplify addition
-			e2 = simplifyAddition(pool, ae);
-		}
-		if (e2 == null && ae.getLeft().getOpcode() == ARITHMETIC) { // try to apply associative properties
-			e2 = reassociate(pool, ae);
-		}
-		return e2;
-	}
-	
 	public Set<ConstantExpr> evalPossibleValues(LocalValueResolver resolver, Expr e) {
 		if(e.getOpcode() == CONST_LOAD) {
 			Set<ConstantExpr> set = new HashSet<>();
 			set.add((ConstantExpr) e);
 			return set;
-		} else if(e.getOpcode() == ARITHMETIC) {
+		} /*else if(e.getOpcode() == PHI) {
+			PhiExpr phi = (PhiExpr) e;
+			
+			Set<ConstantExpr> set = new HashSet<>();
+			
+			for(Expr pA : phi.getArguments().values()) {
+				Set<ConstantExpr> s = evalPossibleValues(resolver, pA);
+				
+				if(isValidSet(s)) {
+					set.addAll(s);
+				}
+			}
+			
+			return set;
+		}*/ else if(e.getOpcode() == ARITHMETIC) {
 			ArithmeticExpr ae = (ArithmeticExpr) e;
 			Expr l = ae.getLeft();
 			Expr r = ae.getRight();
@@ -243,7 +157,7 @@ public class ExpressionEvaluator {
 				
 				for(ConstantExpr lc : le) {
 					for(ConstantExpr rc : re) {
-						Bridge b = bridgeFactory.getArithmeticBridge(lc.getType(), rc.getType(), ae.getType(), ae.getOperator());
+						EvaluationFunctor<Number> b = factory.arithmetic(lc.getType(), rc.getType(), ae.getType(), ae.getOperator());
 						results.add(new ConstantExpr(b.eval(lc.getConstant(), rc.getConstant()), ae.getType()));
 					}
 				}
@@ -258,7 +172,7 @@ public class ExpressionEvaluator {
 				Set<ConstantExpr> results = new HashSet<>();
 				
 				for(ConstantExpr c : vals) {
-					Bridge b = bridgeFactory.getNegationBridge(c.getType());
+					EvaluationFunctor<Number> b = factory.negate(c.getType());
 					results.add(new ConstantExpr(b.eval(c.getConstant()), c.getType()));
 				}
 				
@@ -316,7 +230,7 @@ public class ExpressionEvaluator {
 						return null;
 					}
 					
-					Bridge b = bridgeFactory.getCastBridge(from, to);
+					EvaluationFunctor<Number> b = factory.cast(from, to);
 					
 					results.add(new ConstantExpr(b.eval(ce.getConstant()), to));
 				}
@@ -349,13 +263,13 @@ public class ExpressionEvaluator {
 		return null;
 	}
 	
-	private Boolean evaluatePrimitiveConditional(ConditionalJumpStmt cond, Set<ConstantExpr> leftSet, Set<ConstantExpr> rightSet) {
+	public Boolean evaluatePrimitiveConditional(ConditionalJumpStmt cond, Set<ConstantExpr> leftSet, Set<ConstantExpr> rightSet) {
 		Boolean val = null;
 		
 		for(ConstantExpr lc : leftSet) {
 			for(ConstantExpr rc : rightSet) {
 				if(TypeUtils.isPrimitive(lc.getType()) && TypeUtils.isPrimitive(rc.getType())) {
-					Bridge bridge = bridgeFactory.getConditionalEvalBridge(lc.getType(), rc.getType(), cond.getComparisonType());
+					EvaluationFunctor<Boolean> bridge = factory.branch(lc.getType(), rc.getType(), cond.getComparisonType());
 					/*System.out.println("eval: " + bridge.method + " " + lc.getConstant().getClass() + " " + rc.getConstant().getClass());
 					System.out.println("   actual: " + lc.getType() + ", " +  rc.getType());
 					System.out.println("      " + lc.getConstant() +"  " + rc.getConstant());*/
@@ -383,46 +297,107 @@ public class ExpressionEvaluator {
 		return val;
 	}
 	
-	public Boolean evaluateConditional(IPConstAnalysisVisitor vis, ControlFlowGraph cfg, ConditionalJumpStmt cond) {
-		Expr l = cond.getLeft();
-		Expr r = cond.getRight();
+	private Expr simplifyMultiplication(LocalsPool pool, ArithmeticExpr e) {
+		if (e.getOperator() != Operator.MUL)
+			throw new IllegalArgumentException("Only works on multiplication exprs");
 		
-		if (!TypeUtils.isPrimitive(l.getType()) || !TypeUtils.isPrimitive(r.getType())) {
-			if(l instanceof ConstantExpr && r instanceof ConstantExpr && !TypeUtils.isPrimitive(l.getType()) && !TypeUtils.isPrimitive(r.getType())) {
-				ConstantExpr left = (ConstantExpr) l;
-				ConstantExpr right = (ConstantExpr) r;
-				if (left.getConstant() == null && right.getConstant() == null) {
-					return cond.getComparisonType() == ConditionalJumpStmt.ComparisonType.EQ;
+		Expr r = e.getRight();
+		
+		Expr re = eval(pool, r);
+		
+		if(re instanceof ConstantExpr) {
+			ConstantExpr ce =(ConstantExpr) re;
+			
+			Object o = ce.getConstant();
+			
+			if(o instanceof Integer || o instanceof Long) {
+				if(FieldRSADecryptionPass.__eq((Number) o, 1, o instanceof Long)) {
+					return e.getLeft().copy();
+				} else if(FieldRSADecryptionPass.__eq((Number) o, 0, o instanceof Long)) {
+					return new ConstantExpr(0, ce.getType());
 				}
-				if (cond.getComparisonType() == ConditionalJumpStmt.ComparisonType.EQ) {
-					if ((left.getConstant() == null) != (right.getConstant() == null)) {
-						return false;
-					}
-				}
-				return null;
 			}
-			return null;
 		}
 		
-		LocalValueResolver resolver;
+		return null;
+	}
+	
+	private ArithmeticExpr simplifyAddition(LocalsPool pool, ArithmeticExpr ae) {
+		if (ae.getOperator() != Operator.ADD)
+			throw new IllegalArgumentException("Only works on addition exprs");
 		
-		LocalsPool pool = cfg.getLocals();
-		if(vis != null) {
-			// FIXME: use
-			resolver = new LocalValueResolver.SemiConstantLocalValueResolver(cfg.getMethod(), pool, vis);
-		} else {
-			resolver = new LocalValueResolver.PooledLocalValueResolver(pool);
+		Expr rhs = ae.getRight();
+		// a + -(b) => a - b
+		if (rhs.getOpcode() == NEGATE) {
+			Expr r = eval(pool, ((NegationExpr) rhs).getExpression());
+			Object negated = ((ConstantExpr) r).getConstant();
+			return new ArithmeticExpr(new ConstantExpr(negated, rhs.getType()), ae.getLeft().copy(), SUB);
 		}
 		
-		Set<ConstantExpr> lSet = evalPossibleValues(resolver, l);
-		Set<ConstantExpr> rSet = evalPossibleValues(resolver, r);
-		
-		if(isValidSet(lSet) && isValidSet(rSet)) {
-			Boolean result = evaluatePrimitiveConditional(cond, lSet, rSet);
-			if (result != null) {
-				return result;
+		// a + -b => a - b
+		if (rhs.getOpcode() == CONST_LOAD) {
+			if (new BigDecimal(((ConstantExpr) rhs).getConstant().toString()).signum() < 0) {
+				Expr negatedR = eval(pool, new NegationExpr(rhs.copy()));
+				if (negatedR != null) {
+					Object negated = ((ConstantExpr) negatedR).getConstant();
+					return new ArithmeticExpr(new ConstantExpr(negated, rhs.getType()), ae.getLeft().copy(), SUB);
+				}
 			}
 		}
 		return null;
+	}
+	
+	private ArithmeticExpr reassociate(LocalsPool pool, ArithmeticExpr ae) {
+		ArithmeticExpr leftAe = (ArithmeticExpr) ae.getLeft();
+		Operator operatorA = leftAe.getOperator();
+		Operator operatorB = ae.getOperator();
+		
+		Expr r1 = eval(pool, leftAe.getRight());
+		Expr r2 = eval(pool, ae.getRight());
+		if (r1 != null && r2 != null) {
+			ConstantExpr cr1 = (ConstantExpr) r1;
+			ConstantExpr cr2 = (ConstantExpr) r2;
+			
+			int sign = 0;
+			if ((operatorA == MUL && operatorB == MUL)) {
+				sign = 1;
+			} else if (operatorA == ADD && (operatorB == ADD || operatorB == SUB)) {
+				sign = 1; // what about overflow?? integers mod 2^32 forms a group over addition...should be ok?
+			} else if (operatorA == SUB && (operatorB == ADD || operatorB == SUB)) {
+				sign = -1;
+			}
+			if (sign != 0) {
+				ConstantExpr cr1r2 = (ConstantExpr) eval(pool, new ArithmeticExpr(sign > 0 ? cr2 : new NegationExpr(cr2), cr1, operatorB));
+				Object associated = cr1r2.getConstant();
+				return new ArithmeticExpr(new ConstantExpr(associated, cr1r2.getType()), leftAe.getLeft().copy(), operatorA);
+			}
+		}
+		return null;
+	}
+	
+	public Expr simplifyArithmetic(LocalsPool pool, ArithmeticExpr ae) {
+		Expr e2 = null;
+		if (ae.getOperator() == MUL) { // try to simplify multiplication
+			e2 = simplifyMultiplication(pool, ae);
+		}
+		if (e2 == null && ae.getOperator() == ADD) { // try to simplify addition
+			e2 = simplifyAddition(pool, ae);
+		}
+		if (e2 == null && ae.getLeft().getOpcode() == ARITHMETIC) { // try to apply associative properties
+			e2 = reassociate(pool, ae);
+		}
+		return e2;
+	}
+	
+	public static boolean isValidSet(Set<?> set) {
+		return set != null && set.size() > 0;
+	}
+	
+	public static <T> Set<T> returnCleanSet(Set<T> set) {
+		if(set != null && set.size() > 0) {
+			return set;
+		} else {
+			return null;
+		}
 	}
 }
