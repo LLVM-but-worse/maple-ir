@@ -4,6 +4,8 @@
     <option name="PER_PROJECT_SETTINGS">
       <value>
         <codeStyleSettings language="JAVA">
+          <option name="LINE_COMMENT_AT_FIRST_COLUMN" value="false" />
+          <option name="LINE_COMMENT_ADD_SPACE" value="true" />
           <option name="KEEP_CONTROL_STATEMENT_IN_ONE_LINE" value="false" />
           <option name="KEEP_SIMPLE_BLOCKS_IN_ONE_LINE" value="true" />
           <option name="KEEP_SIMPLE_LAMBDAS_IN_ONE_LINE" value="true" />
