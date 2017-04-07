@@ -46,7 +46,7 @@ public class ExpressionEvaluator {
 				ConstantExpr rc = (ConstantExpr) re;
 				
 				EvaluationFunctor<Number> b = factory.arithmetic(lc.getType(), rc.getType(), ae.getType(), ae.getOperator());
-				return new ConstantExpr(b.eval(lc.getConstant(), rc.getConstant()), ae.getType());
+				return new ConstantExpr(b.eval(lc.getConstant(), rc.getConstant()));
 			}
 		} else if(e.getOpcode() == NEGATE) {
 			NegationExpr neg = (NegationExpr) e;
@@ -56,7 +56,7 @@ public class ExpressionEvaluator {
 				ConstantExpr ce = (ConstantExpr) e2;
 				EvaluationFunctor<Number> b = factory.negate(e2.getType());
 				
-				return new ConstantExpr(b.eval(ce.getConstant()), ce.getType());
+				return new ConstantExpr(b.eval(ce.getConstant()));
 			}
 		} else if(e.getOpcode() == LOCAL_LOAD) {
 			VarExpr v = (VarExpr) e;
@@ -126,6 +126,10 @@ public class ExpressionEvaluator {
 	}
 	
 	public Set<ConstantExpr> evalPossibleValues(LocalValueResolver resolver, Expr e) {
+		return evalPossibleValues0(new HashSet<>(), resolver, e);
+	}
+	
+	private Set<ConstantExpr> evalPossibleValues0(Set<Local> visited, LocalValueResolver resolver, Expr e) {
 		if(e.getOpcode() == CONST_LOAD) {
 			Set<ConstantExpr> set = new HashSet<>();
 			set.add((ConstantExpr) e);
@@ -149,8 +153,8 @@ public class ExpressionEvaluator {
 			Expr l = ae.getLeft();
 			Expr r = ae.getRight();
 			
-			Set<ConstantExpr> le = evalPossibleValues(resolver, l);
-			Set<ConstantExpr> re = evalPossibleValues(resolver, r);
+			Set<ConstantExpr> le = evalPossibleValues0(visited, resolver, l);
+			Set<ConstantExpr> re = evalPossibleValues0(visited, resolver, r);
 			
 			if(isValidSet(le) && isValidSet(re)) {
 				Set<ConstantExpr> results = new HashSet<>();
@@ -158,7 +162,7 @@ public class ExpressionEvaluator {
 				for(ConstantExpr lc : le) {
 					for(ConstantExpr rc : re) {
 						EvaluationFunctor<Number> b = factory.arithmetic(lc.getType(), rc.getType(), ae.getType(), ae.getOperator());
-						results.add(new ConstantExpr(b.eval(lc.getConstant(), rc.getConstant()), ae.getType()));
+						results.add(new ConstantExpr(b.eval(lc.getConstant(), rc.getConstant())));
 					}
 				}
 				
@@ -166,14 +170,14 @@ public class ExpressionEvaluator {
 			}
 		} else if(e.getOpcode() == NEGATE) {
 			NegationExpr neg = (NegationExpr) e;
-			Set<ConstantExpr> vals = evalPossibleValues(resolver, neg.getExpression());
+			Set<ConstantExpr> vals = evalPossibleValues0(visited, resolver, neg.getExpression());
 			
 			if(isValidSet(vals)) {
 				Set<ConstantExpr> results = new HashSet<>();
 				
 				for(ConstantExpr c : vals) {
 					EvaluationFunctor<Number> b = factory.negate(c.getType());
-					results.add(new ConstantExpr(b.eval(c.getConstant()), c.getType()));
+					results.add(new ConstantExpr(b.eval(c.getConstant())));
 				}
 				
 				return returnCleanSet(results);
@@ -181,6 +185,8 @@ public class ExpressionEvaluator {
 		} else if(e.getOpcode() == LOCAL_LOAD) {
 			VarExpr v = (VarExpr) e;
 			Local l = v.getLocal();
+			
+			visited.add(l);
 			
 			Set<Expr> defExprs = resolver.getValues(l);
 
@@ -191,13 +197,20 @@ public class ExpressionEvaluator {
 					if(defE.getOpcode() == LOCAL_LOAD) {
 						VarExpr v2 = (VarExpr) defE;
 						
-						// synthetic copies lhs = rhs;
+						/*// synthetic copies lhs = rhs;
 						if(v2.getLocal() == l) {
 							continue;
+						}*/
+						
+						Local l2 = v2.getLocal();
+						
+						if(visited.contains(l2)) {
+							continue;
 						}
+						visited.add(l2);
 					}
 					
-					Set<ConstantExpr> set2 = evalPossibleValues(resolver, defE);
+					Set<ConstantExpr> set2 = evalPossibleValues0(visited, resolver, defE);
 					if(isValidSet(set2)) {
 						vals.addAll(set2);
 					}
@@ -207,15 +220,22 @@ public class ExpressionEvaluator {
 			}
 		} else if(e.getOpcode() == CAST) {
 			CastExpr cast = (CastExpr) e;
-			Set<ConstantExpr> set = evalPossibleValues(resolver, cast.getExpression());
+			Set<ConstantExpr> set = evalPossibleValues0(visited, resolver, cast.getExpression());
 			
 			if(isValidSet(set)) {
 				Set<ConstantExpr> results = new HashSet<>();
 				
 				for(ConstantExpr ce : set) {
-					if(!ce.getType().equals(cast.getExpression().getType())) {
+					// TODO: czech out::
+					// can get expressions like (double)({lvar7_1 * 4})
+					// where {lvar7_1 * 4} has type INT but the real
+					// eval consts are all bytes or shorts etc
+					
+					/*if(!ce.getType().equals(cast.getExpression().getType())) {
+						System.err.printf("want to cast %s%n", cast);
+						System.err.printf(" in: %s, death: %s%n", set, ce);
 						throw new IllegalStateException(ce.getType() + " : " + cast.getExpression().getType());
-					}
+					}*/
 					Type from = ce.getType();
 					Type to = cast.getType();
 					
@@ -232,7 +252,7 @@ public class ExpressionEvaluator {
 					
 					EvaluationFunctor<Number> b = factory.cast(from, to);
 					
-					results.add(new ConstantExpr(b.eval(ce.getConstant()), to));
+					results.add(new ConstantExpr(b.eval(ce.getConstant())));
 				}
 				
 				return returnCleanSet(results);
@@ -329,18 +349,16 @@ public class ExpressionEvaluator {
 		Expr rhs = ae.getRight();
 		// a + -(b) => a - b
 		if (rhs.getOpcode() == NEGATE) {
-			Expr r = eval(pool, ((NegationExpr) rhs).getExpression());
-			Object negated = ((ConstantExpr) r).getConstant();
-			return new ArithmeticExpr(new ConstantExpr(negated, rhs.getType()), ae.getLeft().copy(), SUB);
+			ConstantExpr r = eval(pool, ((NegationExpr) rhs).getExpression());
+			return new ArithmeticExpr(r, ae.getLeft().copy(), SUB);
 		}
 		
 		// a + -b => a - b
 		if (rhs.getOpcode() == CONST_LOAD) {
 			if (new BigDecimal(((ConstantExpr) rhs).getConstant().toString()).signum() < 0) {
-				Expr negatedR = eval(pool, new NegationExpr(rhs.copy()));
+				ConstantExpr negatedR = eval(pool, new NegationExpr(rhs.copy()));
 				if (negatedR != null) {
-					Object negated = ((ConstantExpr) negatedR).getConstant();
-					return new ArithmeticExpr(new ConstantExpr(negated, rhs.getType()), ae.getLeft().copy(), SUB);
+					return new ArithmeticExpr(negatedR, ae.getLeft().copy(), SUB);
 				}
 			}
 		}

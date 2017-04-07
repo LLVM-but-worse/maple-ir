@@ -63,7 +63,7 @@ public class ContextSensitiveIPAnalysis {
 		
 		private ArgumentFact makeFact(Expr e, LocalValueResolver valueResolver) {
 			Set<ConstantExpr> set = evaluator.evalPossibleValues(valueResolver, e);
-			if(set != null && set.size() > 0) {
+			if(e.getOpcode() != Opcode.CONST_LOAD && set != null && set.size() > 0) {
 				System.out.println(e + " -> " + set);
 			}
 			return null;

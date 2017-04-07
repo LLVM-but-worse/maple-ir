@@ -4,6 +4,7 @@ import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.CodeUnit;
 import org.mapleir.ir.code.Expr;
 import org.mapleir.stdlib.util.TabbedStringWriter;
+import org.mapleir.stdlib.util.TypeUtils;
 import org.objectweb.asm.Handle;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
@@ -13,25 +14,40 @@ public class ConstantExpr extends Expr {
 
 	private Object cst;
 	private Type type;
+		
+	public ConstantExpr(Object cst) {
+		this(cst, computeType(cst), true);
+	}
 	
 	public ConstantExpr(Object cst, Type type, boolean check) {
 		super(CONST_LOAD);
-		this.cst = cst;
-		this.type = type;
 		
 		if (cst instanceof ConstantExpr) {
 			throw new IllegalArgumentException("nice try cowboy");
 		}
 		if(type == Type.BOOLEAN_TYPE) {
-			throw new RuntimeException();
+			throw new RuntimeException("TODO");
 		}
-		if(check && !type.equals(computeType(cst))) {
-			throw new IllegalStateException(cst + ", " + type + ", " + computeType(cst));
+		
+		Type ctype = null;
+		if(check && !type.equals((ctype = computeType(cst)))) {
+			throw new IllegalStateException(cst + ", " + type + ", " + ctype);
 		}
+		
+		if(cst instanceof Number && !TypeUtils.unboxType(cst).equals(type)) {
+			if(ctype == null) {
+				ctype = computeType(cst);
+			}
+			cst = TypeUtils.rebox((Number) cst, ctype);
+			// throw new RuntimeException(String.format("rebox: %s (%s) to %s (%s)", cst, cst.getClass(), type, TypeUtils.rebox((Number)cst, computeType(cst)).getClass()));
+		}
+
+		this.cst = cst;
+		this.type = type;
 	}
 	
 	public ConstantExpr(Object cst, Type type) {
-		this(cst, type, false);
+		this(cst, type, true);
 	}
 
 	public Object getConstant() {
@@ -44,7 +60,7 @@ public class ConstantExpr extends Expr {
 
 	@Override
 	public ConstantExpr copy() {
-		return new ConstantExpr(cst, type);
+		return new ConstantExpr(cst, type, false);
 	}
 
 	public static Type computeType(Object cst) {
