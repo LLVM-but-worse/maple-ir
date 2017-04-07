@@ -1239,7 +1239,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 	protected void _inc(int index, int amt) {
 		save_stack(false);
 		VarExpr load = _var_expr(index, Type.INT_TYPE, false);
-		ArithmeticExpr inc = new ArithmeticExpr(new ConstantExpr(amt, Type.INT_TYPE), load, Operator.ADD);
+		ArithmeticExpr inc = new ArithmeticExpr(new ConstantExpr(/*allow rebox*/amt), load, Operator.ADD);
 		VarExpr var = _var_expr(index, Type.INT_TYPE, false);
 		addStmt(copy(var, inc));
 	}
@@ -1293,7 +1293,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 	protected void _jump_cmp0(BasicBlock target, ComparisonType type) {
 		save_stack(false);
 		Expr left = pop();
-		ConstantExpr right = new ConstantExpr(0, Type.INT_TYPE);
+		ConstantExpr right = new ConstantExpr((byte)0, Type.BYTE_TYPE, false);
 		_jump_cmp(target, type, left, right);
 	}
 
