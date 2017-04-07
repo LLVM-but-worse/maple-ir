@@ -43,7 +43,7 @@ public class ConstantExpr extends Expr {
 	}
 
 	@Override
-	public Expr copy() {
+	public ConstantExpr copy() {
 		return new ConstantExpr(cst, type);
 	}
 
