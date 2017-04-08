@@ -8,6 +8,7 @@ import org.mapleir.ir.code.stmt.ConditionalJumpStmt;
 import org.mapleir.ir.code.stmt.copy.AbstractCopyStmt;
 import org.mapleir.ir.locals.Local;
 import org.mapleir.ir.locals.LocalsPool;
+import org.mapleir.stdlib.collections.TaintableSet;
 import org.mapleir.stdlib.util.TypeUtils;
 import org.objectweb.asm.Type;
 
@@ -120,22 +121,22 @@ public class ExpressionEvaluator {
 		return null;
 	}
 	
-	public Set<ConstantExpr> evalPossibleValues(LocalValueResolver resolver, Expr e) {
+	public TaintableSet<ConstantExpr> evalPossibleValues(LocalValueResolver resolver, Expr e) {
 		return evalPossibleValues0(new HashSet<>(), resolver, e);
 	}
 	
-	private Set<ConstantExpr> evalPossibleValues0(Set<Local> visited, LocalValueResolver resolver, Expr e) {
+	private TaintableSet<ConstantExpr> evalPossibleValues0(Set<Local> visited, LocalValueResolver resolver, Expr e) {
 		if(e.getOpcode() == CONST_LOAD) {
-			Set<ConstantExpr> set = new HashSet<>();
+			TaintableSet<ConstantExpr> set = new TaintableSet<>();
 			set.add((ConstantExpr) e);
 			return set;
 		} /*else if(e.getOpcode() == PHI) {
 			PhiExpr phi = (PhiExpr) e;
 			
-			Set<ConstantExpr> set = new HashSet<>();
+			TaintableSet<ConstantExpr> set = new HashSet<>();
 			
 			for(Expr pA : phi.getArguments().values()) {
-				Set<ConstantExpr> s = evalPossibleValues(resolver, pA);
+				TaintableSet<ConstantExpr> s = evalPossibleValues(resolver, pA);
 				
 				if(isValidSet(s)) {
 					set.addAll(s);
@@ -148,12 +149,13 @@ public class ExpressionEvaluator {
 			Expr l = ae.getLeft();
 			Expr r = ae.getRight();
 			
-			Set<ConstantExpr> le = evalPossibleValues0(visited, resolver, l);
-			Set<ConstantExpr> re = evalPossibleValues0(visited, resolver, r);
+			TaintableSet<ConstantExpr> le = evalPossibleValues0(visited, resolver, l);
+			TaintableSet<ConstantExpr> re = evalPossibleValues0(visited, resolver, r);
 			
-			if(isValidSet(le) && isValidSet(re)) {
-				Set<ConstantExpr> results = new HashSet<>();
+			if(!le.isUnconst() && !re.isUnconst()) {
+				TaintableSet<ConstantExpr> results = new TaintableSet<>();
 				
+				// TODO cartesian product
 				for(ConstantExpr lc : le) {
 					for(ConstantExpr rc : re) {
 						EvaluationFunctor<Number> b = factory.arithmetic(lc.getType(), rc.getType(), ae.getType(), ae.getOperator());
@@ -161,21 +163,21 @@ public class ExpressionEvaluator {
 					}
 				}
 				
-				return returnCleanSet(results);
+				return results;
 			}
 		} else if(e.getOpcode() == NEGATE) {
 			NegationExpr neg = (NegationExpr) e;
-			Set<ConstantExpr> vals = evalPossibleValues0(visited, resolver, neg.getExpression());
+			TaintableSet<ConstantExpr> vals = evalPossibleValues0(visited, resolver, neg.getExpression());
 			
-			if(isValidSet(vals)) {
-				Set<ConstantExpr> results = new HashSet<>();
+			if(!vals.isUnconst()) {
+				TaintableSet<ConstantExpr> results = new TaintableSet<>();
 				
 				for(ConstantExpr c : vals) {
 					EvaluationFunctor<Number> b = factory.negate(c.getType());
 					results.add(new ConstantExpr(b.eval(c.getConstant())));
 				}
 				
-				return returnCleanSet(results);
+				return results;
 			}
 		} else if(e.getOpcode() == LOCAL_LOAD) {
 			VarExpr v = (VarExpr) e;
@@ -185,8 +187,8 @@ public class ExpressionEvaluator {
 			
 			Set<Expr> defExprs = resolver.getValues(l);
 
-			if(isValidSet(defExprs)) {
-				Set<ConstantExpr> vals = new HashSet<>();
+			if(defExprs != null && !defExprs.isEmpty()) {
+				TaintableSet<ConstantExpr> vals = new TaintableSet<>();
 				
 				for(Expr defE : defExprs) {
 					if(defE.getOpcode() == LOCAL_LOAD) {
@@ -199,26 +201,23 @@ public class ExpressionEvaluator {
 						
 						Local l2 = v2.getLocal();
 						
-						if(visited.contains(l2)) {
+						if(!visited.add(l2)) {
 							continue;
 						}
-						visited.add(l2);
 					}
 					
-					Set<ConstantExpr> set2 = evalPossibleValues0(visited, resolver, defE);
-					if(isValidSet(set2)) {
-						vals.addAll(set2);
-					}
+					TaintableSet<ConstantExpr> set2 = evalPossibleValues0(visited, resolver, defE);
+					vals.union(set2);
 				}
 				
-				return returnCleanSet(vals);
+				return vals;
 			}
 		} else if(e.getOpcode() == CAST) {
 			CastExpr cast = (CastExpr) e;
-			Set<ConstantExpr> set = evalPossibleValues0(visited, resolver, cast.getExpression());
+			TaintableSet<ConstantExpr> set = evalPossibleValues0(visited, resolver, cast.getExpression());
 			
-			if(isValidSet(set)) {
-				Set<ConstantExpr> results = new HashSet<>();
+			if(!set.isUnconst()) {
+				TaintableSet<ConstantExpr> results = new TaintableSet<>();
 				
 				for(ConstantExpr ce : set) {
 					// TODO: czech out::
@@ -242,7 +241,7 @@ public class ExpressionEvaluator {
 					}
 					
 					if(!p1 && !p2) {
-						return null;
+						return new TaintableSet<>();
 					}
 					
 					EvaluationFunctor<Number> b = factory.cast(from, to);
@@ -250,7 +249,7 @@ public class ExpressionEvaluator {
 					results.add(new ConstantExpr(b.eval(ce.getConstant())));
 				}
 				
-				return returnCleanSet(results);
+				return results;
 			}
 		} else if(e.getOpcode() == COMPARE) {
 //			throw new UnsupportedOperationException("todo lmao");
@@ -275,10 +274,10 @@ public class ExpressionEvaluator {
 //			}
 		}
 		
-		return null;
+		return new TaintableSet<>();
 	}
 	
-	public Boolean evaluatePrimitiveConditional(ConditionalJumpStmt cond, Set<ConstantExpr> leftSet, Set<ConstantExpr> rightSet) {
+	public Boolean evaluatePrimitiveConditional(ConditionalJumpStmt cond, TaintableSet<ConstantExpr> leftSet, TaintableSet<ConstantExpr> rightSet) {
 		Boolean val = null;
 		
 		for(ConstantExpr lc : leftSet) {
@@ -289,7 +288,7 @@ public class ExpressionEvaluator {
 					System.out.println("   actual: " + lc.getType() + ", " +  rc.getType());
 					System.out.println("      " + lc.getConstant() +"  " + rc.getConstant());*/
 					
-					boolean branchVal = (boolean) bridge.eval(lc.getConstant(), rc.getConstant());
+					boolean branchVal = bridge.eval(lc.getConstant(), rc.getConstant());
 					
 					if(val != null) {
 						if(val != branchVal) {
@@ -400,17 +399,5 @@ public class ExpressionEvaluator {
 			e2 = reassociate(pool, ae);
 		}
 		return e2;
-	}
-	
-	public static boolean isValidSet(Set<?> set) {
-		return set != null && set.size() > 0;
-	}
-	
-	public static <T> Set<T> returnCleanSet(Set<T> set) {
-		if(set != null && set.size() > 0) {
-			return set;
-		} else {
-			return null;
-		}
 	}
 }
