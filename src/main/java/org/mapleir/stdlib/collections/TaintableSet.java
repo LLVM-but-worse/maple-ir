@@ -27,6 +27,13 @@ public class TaintableSet<T> implements Set<T>, ITaintable {
 		return new ProductIterator<>(this, other);
 	}
 	
+	/**
+	 * Mark as tainted.
+	 */
+	public void taint() {
+		tainted = true;
+	}
+	
 	@Override
 	public boolean isTainted() {
 		return tainted;
