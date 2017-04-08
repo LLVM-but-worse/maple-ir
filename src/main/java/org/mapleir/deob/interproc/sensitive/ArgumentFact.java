@@ -1,74 +1,94 @@
 package org.mapleir.deob.interproc.sensitive;
 
-import java.util.Arrays;
+import org.mapleir.stdlib.collections.TaintableSet;
+import org.mapleir.stdlib.collections.taint.ITaintable;
 
-public abstract class ArgumentFact {
+public interface ArgumentFact extends ITaintable {
+}
 
-	public static class AnyValueFact extends ArgumentFact {
-		public static final AnyValueFact INSTANCE = new AnyValueFact();
+class AnyValueFact implements ArgumentFact {
+	public static final AnyValueFact FACT = new AnyValueFact();
+	
+	private AnyValueFact() {
+	}
+	
+	@Override
+	public boolean isTainted() {
+		return true;
+	}
+	
+	@Override
+	public boolean union(ITaintable t) {
+		return true;
+	}
+}
+
+class ConstantValueFact implements ArgumentFact {
+	private final Object value;
+
+	public ConstantValueFact(Object value) {
+		this.value = value;
+	}
+	
+	@Override
+	public int hashCode() {
+		return value != null ? value.hashCode() : 0;
+	}
+	
+	@Override
+	public boolean equals(Object o) {
+		if (this == o)
+			return true;
+		if (o == null || getClass() != o.getClass())
+			return false;
 		
-		private AnyValueFact() {
-		}
+		ConstantValueFact that = (ConstantValueFact) o;
+		
+		return value != null ? value.equals(that.value) : that.value == null;
 	}
 	
-	public static class ConstantValueFact extends ArgumentFact {
-		private final Object value;
-
-		public ConstantValueFact(Object value) {
-			this.value = value;
-		}
-
-		@Override
-		public int hashCode() {
-			int result = 1;
-			result = 31 * result + ((value == null) ? 0 : value.hashCode());
-			return result;
-		}
-
-		@Override
-		public boolean equals(Object obj) {
-			if (this == obj)
-				return true;
-			if (obj == null)
-				return false;
-			if (getClass() != obj.getClass())
-				return false;
-			ConstantValueFact other = (ConstantValueFact) obj;
-			if (value == null) {
-				if (other.value != null)
-					return false;
-			} else if (!value.equals(other.value))
-				return false;
-			return true;
-		}
+	@Override
+	public boolean isTainted() {
+		return false;
 	}
 	
-	public static class PhiValueFact extends ArgumentFact {
-		private final ArgumentFact[] phiArgs;
+	@Override
+	public boolean union(ITaintable t) {
+		throw new IllegalStateException();
+	}
+}
 
-		public PhiValueFact(ArgumentFact[] phiArgs) {
-			this.phiArgs = phiArgs;
-		}
+class PhiValueFact implements ArgumentFact {
+	private final TaintableSet<ArgumentFact> phiArgs;
 
-		@Override
-		public int hashCode() {
-			int result = 1;
-			result = 37 * result + Arrays.hashCode(phiArgs);
-			return result;
-		}
-
-		@Override
-		public boolean equals(Object obj) {
-			if (this == obj)
-				return true;
-			if (obj == null)
-				return false;
-			if (getClass() != obj.getClass())
-				return false;
-			PhiValueFact other = (PhiValueFact) obj;
-			if (!Arrays.equals(phiArgs, other.phiArgs))
-				return false;
+	public PhiValueFact(TaintableSet<ArgumentFact> phiArgs) {
+		this.phiArgs = phiArgs;
+	}
+	
+	@Override
+	public boolean isTainted() {
+		return phiArgs.isTainted();
+	}
+	
+	@Override
+	public boolean union(ITaintable t) {
+		return phiArgs.union(t);
+	}
+	
+	@Override
+	public boolean equals(Object o) {
+		if (this == o)
 			return true;
-		}
+		if (o == null || getClass() != o.getClass())
+			return false;
+		
+		PhiValueFact that = (PhiValueFact) o;
+		
+		return phiArgs.equals(that.phiArgs);
+	}
+	
+	@Override
+	public int hashCode() {
+		return phiArgs.hashCode();
 	}
 }
