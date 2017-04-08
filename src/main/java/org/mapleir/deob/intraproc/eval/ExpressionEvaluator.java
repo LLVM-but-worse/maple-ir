@@ -139,10 +139,7 @@ public class ExpressionEvaluator {
 			
 			for(Expr pA : phi.getArguments().values()) {
 				TaintableSet<ConstantExpr> s = evalPossibleValues(resolver, pA);
-				
-				if(isValidSet(s)) {
-					set.addAll(s);
-				}
+				set.union(s);
 			}
 			
 			return set;
@@ -187,9 +184,9 @@ public class ExpressionEvaluator {
 			
 			visited.add(l);
 			
-			Set<Expr> defExprs = resolver.getValues(l);
+			TaintableSet<Expr> defExprs = resolver.getValues(l);
 
-			if(defExprs != null && !defExprs.isEmpty()) {
+			if(!defExprs.isUnconst()) {
 				TaintableSet<ConstantExpr> vals = new TaintableSet<>();
 				
 				for(Expr defE : defExprs) {
@@ -321,18 +318,16 @@ public class ExpressionEvaluator {
 		
 		Expr r = e.getRight();
 		
-		Expr re = eval(pool, r);
+		ConstantExpr re = eval(pool, r);
 		
-		if(re instanceof ConstantExpr) {
-			ConstantExpr ce =(ConstantExpr) re;
-			
-			Object o = ce.getConstant();
+		if(re != null) {
+			Object o = re.getConstant();
 			
 			if(o instanceof Integer || o instanceof Long) {
 				if(FieldRSADecryptionPass.__eq((Number) o, 1, o instanceof Long)) {
 					return e.getLeft().copy();
 				} else if(FieldRSADecryptionPass.__eq((Number) o, 0, o instanceof Long)) {
-					return new ConstantExpr(0, ce.getType());
+					return new ConstantExpr(0, re.getType());
 				}
 			}
 		}
