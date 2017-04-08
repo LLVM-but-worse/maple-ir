@@ -1,5 +1,6 @@
 package org.mapleir.deob.intraproc.eval;
 
+import javafx.util.Pair;
 import org.mapleir.deob.passes.FieldRSADecryptionPass;
 import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.code.expr.*;
@@ -14,6 +15,7 @@ import org.objectweb.asm.Type;
 
 import java.math.BigDecimal;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Set;
 
 import static org.mapleir.ir.code.Opcode.*;
@@ -155,12 +157,12 @@ public class ExpressionEvaluator {
 			if(!le.isUnconst() && !re.isUnconst()) {
 				TaintableSet<ConstantExpr> results = new TaintableSet<>();
 				
-				// TODO cartesian product
-				for(ConstantExpr lc : le) {
-					for(ConstantExpr rc : re) {
-						EvaluationFunctor<Number> b = factory.arithmetic(lc.getType(), rc.getType(), ae.getType(), ae.getOperator());
-						results.add(new ConstantExpr(b.eval(lc.getConstant(), rc.getConstant())));
-					}
+				for (Iterator<Pair<ConstantExpr, ConstantExpr>> it = le.product(re); it.hasNext(); ) {
+					Pair<ConstantExpr, ConstantExpr> lcrc = it.next();
+					ConstantExpr lc = lcrc.getKey();
+					ConstantExpr rc = lcrc.getValue();
+					EvaluationFunctor<Number> b = factory.arithmetic(lc.getType(), rc.getType(), ae.getType(), ae.getOperator());
+					results.add(new ConstantExpr(b.eval(lc.getConstant(), rc.getConstant())));
 				}
 				
 				return results;
@@ -280,31 +282,33 @@ public class ExpressionEvaluator {
 	public Boolean evaluatePrimitiveConditional(ConditionalJumpStmt cond, TaintableSet<ConstantExpr> leftSet, TaintableSet<ConstantExpr> rightSet) {
 		Boolean val = null;
 		
-		for(ConstantExpr lc : leftSet) {
-			for(ConstantExpr rc : rightSet) {
-				if(TypeUtils.isPrimitive(lc.getType()) && TypeUtils.isPrimitive(rc.getType())) {
-					EvaluationFunctor<Boolean> bridge = factory.branch(lc.getType(), rc.getType(), cond.getComparisonType());
-					/*System.out.println("eval: " + bridge.method + " " + lc.getConstant().getClass() + " " + rc.getConstant().getClass());
-					System.out.println("   actual: " + lc.getType() + ", " +  rc.getType());
-					System.out.println("      " + lc.getConstant() +"  " + rc.getConstant());*/
-					
-					boolean branchVal = bridge.eval(lc.getConstant(), rc.getConstant());
-					
-					if(val != null) {
-						if(val != branchVal) {
-							return null;
-						}
-					} else {
-						val = branchVal;
+		for (Iterator<Pair<ConstantExpr, ConstantExpr>> it = leftSet.product(rightSet); it.hasNext(); ) {
+			Pair<ConstantExpr, ConstantExpr> lcrc = it.next();
+			ConstantExpr lc = lcrc.getKey();
+			ConstantExpr rc = lcrc.getValue();
+			
+			if(TypeUtils.isPrimitive(lc.getType()) && TypeUtils.isPrimitive(rc.getType())) {
+				EvaluationFunctor<Boolean> bridge = factory.branch(lc.getType(), rc.getType(), cond.getComparisonType());
+				/*System.out.println("eval: " + bridge.method + " " + lc.getConstant().getClass() + " " + rc.getConstant().getClass());
+				System.out.println("   actual: " + lc.getType() + ", " +  rc.getType());
+				System.out.println("      " + lc.getConstant() +"  " + rc.getConstant());*/
+				
+				boolean branchVal = bridge.eval(lc.getConstant(), rc.getConstant());
+				
+				if(val != null) {
+					if(val != branchVal) {
+						return null;
 					}
 				} else {
-					/*System.err.println("something::");
-					System.err.println("  " + cond);
-					System.err.println("  leftset: " + leftSet);
-					System.err.println("  rightSet: " + rightSet);|
-					return;*/
-					throw new UnsupportedOperationException();
+					val = branchVal;
 				}
+			} else {
+				/*System.err.println("something::");
+				System.err.println("  " + cond);
+				System.err.println("  leftset: " + leftSet);
+				System.err.println("  rightSet: " + rightSet);|
+				return;*/
+				throw new UnsupportedOperationException();
 			}
 		}
 
