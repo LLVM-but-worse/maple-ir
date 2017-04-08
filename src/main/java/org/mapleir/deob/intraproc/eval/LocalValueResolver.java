@@ -14,7 +14,7 @@ import java.util.Queue;
 import java.util.Set;
 
 public interface LocalValueResolver {
-	Set<Expr> getValues(Local l); // todo: convert to TaintableSet
+	Set<Expr> getValues(Local l);
 	
 	public static class PoolLocalValueResolver implements LocalValueResolver {
 		
