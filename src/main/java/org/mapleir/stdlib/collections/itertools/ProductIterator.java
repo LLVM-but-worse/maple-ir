@@ -1,10 +1,10 @@
 package org.mapleir.stdlib.collections.itertools;
 
-import org.mapleir.stdlib.collections.Pair;
+import javafx.util.Pair;
 
 import java.util.Iterator;
 
-public class ProductIterator<T> implements Iterator<Pair<T>> {
+public class ProductIterator<T> implements Iterator<Pair<T, T>> {
 	private Iterator<T> iteratorA;
 	private Iterator<T> iteratorB;
 	
@@ -33,7 +33,7 @@ public class ProductIterator<T> implements Iterator<Pair<T>> {
 	}
 	
 	@Override
-	public Pair<T> next() {
+	public Pair<T, T> next() {
 		if (curA == null)
 			curA = iteratorA.next();
 		return new Pair<>(curA, iteratorB.next());
