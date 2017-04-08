@@ -1,6 +1,6 @@
 package org.mapleir.context.app;
 
-import org.mapleir.stdlib.collections.IteratorIterator;
+import org.mapleir.stdlib.collections.itertools.ChainIterator;
 import org.objectweb.asm.tree.ClassNode;
 
 import java.util.ArrayList;
@@ -111,7 +111,7 @@ public class ApplicationClassSource extends ClassSource {
 			Iterator<LibraryClassSource> libIt = null;
 			@Override
 			public Iterator<ClassNode> iterator() {
-				return new IteratorIterator<ClassNode>() {
+				return new ChainIterator<ClassNode>() {
 					@Override
 					public Iterator<ClassNode> nextIterator() {
 						if(libIt == null) {

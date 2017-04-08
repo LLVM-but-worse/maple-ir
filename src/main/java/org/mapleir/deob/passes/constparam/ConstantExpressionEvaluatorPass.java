@@ -1,13 +1,5 @@
 package org.mapleir.deob.passes.constparam;
 
-import java.lang.reflect.Modifier;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
 import org.mapleir.context.IContext;
 import org.mapleir.deob.IPass;
 import org.mapleir.deob.interproc.IPAnalysis;
@@ -24,20 +16,20 @@ import org.mapleir.ir.code.CodeUnit;
 import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.code.Opcode;
 import org.mapleir.ir.code.Stmt;
-import org.mapleir.ir.code.expr.ArithmeticExpr;
-import org.mapleir.ir.code.expr.ConstantExpr;
-import org.mapleir.ir.code.expr.InitialisedObjectExpr;
-import org.mapleir.ir.code.expr.InvocationExpr;
-import org.mapleir.ir.code.expr.VarExpr;
+import org.mapleir.ir.code.expr.*;
 import org.mapleir.ir.code.stmt.ConditionalJumpStmt;
 import org.mapleir.ir.code.stmt.UnconditionalJumpStmt;
 import org.mapleir.ir.code.stmt.copy.AbstractCopyStmt;
 import org.mapleir.ir.locals.Local;
 import org.mapleir.ir.locals.LocalsPool;
+import org.mapleir.stdlib.collections.TaintableSet;
 import org.mapleir.stdlib.util.TypeUtils;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
+
+import java.lang.reflect.Modifier;
+import java.util.*;
 
 public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 	private ExpressionEvaluator evaluator;
@@ -195,10 +187,10 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 			resolver = new LocalValueResolver.PoolLocalValueResolver(pool);
 		}
 		
-		Set<ConstantExpr> lSet = evaluator.evalPossibleValues(resolver, l);
-		Set<ConstantExpr> rSet = evaluator.evalPossibleValues(resolver, r);
+		TaintableSet<ConstantExpr> lSet = evaluator.evalPossibleValues(resolver, l);
+		TaintableSet<ConstantExpr> rSet = evaluator.evalPossibleValues(resolver, r);
 		
-		if(ExpressionEvaluator.isValidSet(lSet) && ExpressionEvaluator.isValidSet(rSet)) {
+		if(!lSet.isUnconst() && !rSet.isUnconst()) {
 			Boolean result = evaluator.evaluatePrimitiveConditional(cond, lSet, rSet);
 			if (result != null) {
 				return result;
