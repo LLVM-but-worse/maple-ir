@@ -1,5 +1,6 @@
 package org.mapleir.stdlib.collections;
 
+import org.mapleir.stdlib.collections.itertools.ProductIterator;
 import org.mapleir.stdlib.collections.taint.ITaintable;
 
 import java.util.Collection;
@@ -21,6 +22,10 @@ public class TaintableSet<T> implements Set<T>, ITaintable {
 		tainted = other.tainted;
 	}
 
+	public Iterator<Pair<T>> product(TaintableSet<T> other) {
+		return new ProductIterator<>(this, other);
+	}
+	
 	@Override
 	public boolean isTainted() {
 		return tainted;

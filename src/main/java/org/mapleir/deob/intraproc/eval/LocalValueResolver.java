@@ -1,10 +1,5 @@
 package org.mapleir.deob.intraproc.eval;
 
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.Queue;
-import java.util.Set;
-
 import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.code.Opcode;
 import org.mapleir.ir.code.expr.PhiExpr;
@@ -13,8 +8,13 @@ import org.mapleir.ir.code.stmt.copy.AbstractCopyStmt;
 import org.mapleir.ir.locals.Local;
 import org.mapleir.ir.locals.LocalsPool;
 
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.Queue;
+import java.util.Set;
+
 public interface LocalValueResolver {
-	Set<Expr> getValues(Local l);
+	Set<Expr> getValues(Local l); // todo: convert to TaintableSet
 	
 	public static class PoolLocalValueResolver implements LocalValueResolver {
 		
