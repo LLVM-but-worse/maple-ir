@@ -7,6 +7,7 @@ import org.mapleir.ir.code.expr.VarExpr;
 import org.mapleir.ir.code.stmt.copy.AbstractCopyStmt;
 import org.mapleir.ir.locals.Local;
 import org.mapleir.ir.locals.LocalsPool;
+import org.mapleir.stdlib.collections.TaintableSet;
 
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -14,7 +15,7 @@ import java.util.Queue;
 import java.util.Set;
 
 public interface LocalValueResolver {
-	Set<Expr> getValues(Local l);
+	TaintableSet<Expr> getValues(Local l);
 	
 	public static class PoolLocalValueResolver implements LocalValueResolver {
 		
@@ -61,10 +62,10 @@ public interface LocalValueResolver {
 		}
 			
 		@Override
-		public Set<Expr> getValues(Local l) {
+		public TaintableSet<Expr> getValues(Local l) {
 			AbstractCopyStmt copy = pool.defs.get(l);
 			
-			Set<Expr> set = new HashSet<>();
+			TaintableSet<Expr> set = new TaintableSet<>();
 			if(copy.getOpcode() == Opcode.PHI_STORE) {
 				
 //				checkRecursive(l);
