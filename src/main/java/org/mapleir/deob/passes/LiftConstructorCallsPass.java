@@ -52,7 +52,7 @@ public class LiftConstructorCallsPass implements Opcode, IPass {
 						InvocationExpr invoke = (InvocationExpr) e;
 						
 						if(invoke.getOwner().equals(m.owner.superName) && invoke.getName().equals("<init>")) {
-							Expr p1 = invoke.getArgumentExpressions()[0];
+							Expr p1 = invoke.getPhysicalReceiver();
 							
 							if(p1.getOpcode() == LOCAL_LOAD && ((VarExpr) p1).getLocal() == lvar0_0) {
 								

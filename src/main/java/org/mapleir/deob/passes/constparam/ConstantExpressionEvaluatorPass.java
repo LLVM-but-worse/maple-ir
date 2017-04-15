@@ -26,8 +26,7 @@ import org.mapleir.ir.code.Stmt;
 import org.mapleir.ir.code.expr.ArithmeticExpr;
 import org.mapleir.ir.code.expr.ConstantExpr;
 import org.mapleir.ir.code.expr.VarExpr;
-import org.mapleir.ir.code.expr.invoke.InitialisedObjectExpr;
-import org.mapleir.ir.code.expr.invoke.InvocationExpr;
+import org.mapleir.ir.code.expr.invoke.Invocation;
 import org.mapleir.ir.code.stmt.ConditionalJumpStmt;
 import org.mapleir.ir.code.stmt.UnconditionalJumpStmt;
 import org.mapleir.ir.code.stmt.copy.AbstractCopyStmt;
@@ -294,16 +293,8 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 		}
 		
 		@Override
-		public void postProcessedInvocation(IPAnalysis analysis, MethodNode caller, MethodNode callee, Expr call) {	
-			Expr[] params;
-			
-			if(call.getOpcode() == Opcode.INVOKE) {
-				params = ((InvocationExpr) call).getParameterArguments();
-			} else if(call.getOpcode() == Opcode.INIT_OBJ) {
-				params = ((InitialisedObjectExpr) call).getArgumentExpressions();
-			} else {
-				throw new UnsupportedOperationException(String.format("%s -> %s (%s)", caller, callee, call));
-			}
+		public void postProcessedInvocation(IPAnalysis analysis, MethodNode caller, MethodNode callee, Invocation call) {	
+			Expr[] params = call.getParameterExprs();
 			
 			for(int i=0; i < params.length; i++) {
 				Expr e = params[i];
