@@ -1,4 +1,4 @@
-package org.mapleir.ir.code.expr;
+package org.mapleir.ir.code.expr.invoke;
 
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.CodeUnit;
@@ -74,7 +74,7 @@ public class InitialisedObjectExpr extends Expr {
 	}
 
 	@Override
-	public Expr copy() {
+	public InitialisedObjectExpr copy() {
 		Expr[] args = new Expr[argumentExpressions.length];
 		for(int i=0; i < argumentExpressions.length; i++) {
 			args[i] = argumentExpressions[i].copy();

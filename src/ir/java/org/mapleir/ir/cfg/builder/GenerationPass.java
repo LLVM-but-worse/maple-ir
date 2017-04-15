@@ -21,6 +21,7 @@ import org.mapleir.ir.code.Stmt;
 import org.mapleir.ir.code.expr.*;
 import org.mapleir.ir.code.expr.ArithmeticExpr.Operator;
 import org.mapleir.ir.code.expr.ComparisonExpr.ValueComparisonType;
+import org.mapleir.ir.code.expr.invoke.InvocationExpr;
 import org.mapleir.ir.code.stmt.*;
 import org.mapleir.ir.code.stmt.ConditionalJumpStmt.ComparisonType;
 import org.mapleir.ir.code.stmt.MonitorStmt.MonitorMode;
