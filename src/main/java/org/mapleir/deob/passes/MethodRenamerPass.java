@@ -9,7 +9,7 @@ import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.code.Opcode;
 import org.mapleir.ir.code.Stmt;
-import org.mapleir.ir.code.expr.InvocationExpr;
+import org.mapleir.ir.code.expr.invoke.InvocationExpr;
 import org.mapleir.stdlib.util.InvocationResolver;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
