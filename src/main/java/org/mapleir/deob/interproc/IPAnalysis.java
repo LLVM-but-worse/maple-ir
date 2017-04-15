@@ -1,18 +1,5 @@
 package org.mapleir.deob.interproc;
 
-import org.mapleir.context.IContext;
-import org.mapleir.ir.cfg.BasicBlock;
-import org.mapleir.ir.cfg.ControlFlowGraph;
-import org.mapleir.ir.code.Expr;
-import org.mapleir.ir.code.Opcode;
-import org.mapleir.ir.code.Stmt;
-import org.mapleir.ir.code.expr.invoke.InitialisedObjectExpr;
-import org.mapleir.ir.code.expr.invoke.InvocationExpr;
-import org.mapleir.ir.code.stmt.copy.CopyVarStmt;
-import org.objectweb.asm.Opcodes;
-import org.objectweb.asm.Type;
-import org.objectweb.asm.tree.MethodNode;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -20,6 +7,18 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import org.mapleir.context.IContext;
+import org.mapleir.ir.cfg.BasicBlock;
+import org.mapleir.ir.cfg.ControlFlowGraph;
+import org.mapleir.ir.code.Expr;
+import org.mapleir.ir.code.Opcode;
+import org.mapleir.ir.code.Stmt;
+import org.mapleir.ir.code.expr.invoke.Invocation;
+import org.mapleir.ir.code.stmt.copy.CopyVarStmt;
+import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.Type;
+import org.objectweb.asm.tree.MethodNode;
 
 public class IPAnalysis extends IRCallTracer implements Opcode {
 	
@@ -40,7 +39,7 @@ public class IPAnalysis extends IRCallTracer implements Opcode {
 	}
 	
 	private final List<IPAnalysisVisitor> visitors;
-	private final Map<MethodNode, Set<Expr>> calls;
+	private final Map<MethodNode, Set<Invocation>> calls;
 	private final Map<MethodNode, List<List<Expr>>> parameterInputs;
 	private final Map<MethodNode, int[]> paramIndices;
 	
@@ -53,7 +52,7 @@ public class IPAnalysis extends IRCallTracer implements Opcode {
 		paramIndices = new HashMap<>();
 	}
 	
-	public Set<Expr> getCallsTo(MethodNode m) {
+	public Set<Invocation> getCallsTo(MethodNode m) {
 		return calls.get(m);
 	}
 
@@ -153,7 +152,7 @@ public class IPAnalysis extends IRCallTracer implements Opcode {
 	}
 	
 	@Override
-	protected void processedInvocation(MethodNode caller, MethodNode callee, Expr e) {
+	protected void processedInvocation(MethodNode caller, MethodNode callee, Invocation e) {
 		for(IPAnalysisVisitor v : visitors) {
 			v.preProcessedInvocation(this, caller, callee, e);
 		}
@@ -164,15 +163,7 @@ public class IPAnalysis extends IRCallTracer implements Opcode {
 		
 		calls.get(callee).add(e);
 		
-		Expr[] params;
-		
-		if(e.getOpcode() == INVOKE) {
-			params = ((InvocationExpr) e).getParameterArguments();
-		} else if(e.getOpcode() == INIT_OBJ) {
-			params = ((InitialisedObjectExpr) e).getArgumentExpressions();
-		} else {
-			throw new UnsupportedOperationException(String.format("%s -> %s (%s)", caller, callee, e));
-		}
+		Expr[] params = e.getParameterExprs();
 		
 		for(int i=0; i < params.length; i++) {
 			parameterInputs.get(callee).get(i).add(params[i]);

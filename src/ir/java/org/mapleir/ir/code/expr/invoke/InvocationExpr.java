@@ -9,32 +9,25 @@ import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 
-public class InvocationExpr extends Expr {
+public class InvocationExpr extends Invocation {
 
 	private int callType;
-	private Expr[] argumentExpressions;
+	private Expr[] args;
 	private String owner;
 	private String name;
 	private String desc;
 
-	public InvocationExpr(int opcode, Expr[] argumentExpressions, String owner, String name, String desc) {
+	public InvocationExpr(int callType, Expr[] args, String owner, String name, String desc) {
 		super(INVOKE);
-		callType = opcode;
-		this.argumentExpressions = argumentExpressions;
+		
+		this.callType = callType;
+		this.args = args;
 		this.owner = owner;
 		this.name = name;
 		this.desc = desc;
 		
-		for (int i = 0; i < argumentExpressions.length; i++) {
-			overwrite(argumentExpressions[i], i);
-		}
-	}
-	
-	public Expr getInstanceExpression() {
-		if(callType == Opcodes.INVOKESTATIC) {
-			return null;
-		} else {
-			return argumentExpressions[0];
+		for (int i = 0; i < args.length; i++) {
+			overwrite(args[i], i);
 		}
 	}
 
@@ -44,44 +37,6 @@ public class InvocationExpr extends Expr {
 
 	public void setCallType(int callType) {
 		this.callType = callType;
-	}
-	
-	public Expr[] getParameterArguments() {
-		int i = (callType == Opcodes.INVOKESTATIC) ? 0 : -1;
-		Expr[] exprs = new Expr[argumentExpressions.length + i];
-		i = Math.abs(i);
-		System.arraycopy(argumentExpressions, i, exprs, 0, exprs.length);
-		return exprs;
-	}
-
-	public Expr[] getArgumentExpressions() {
-		return argumentExpressions;
-	}
-
-	public void updateArgument(int index, Expr argument) {
-		if (index < 0 || (index) >= argumentExpressions.length) {
-			throw new ArrayIndexOutOfBoundsException();
-		}
-		
-		argumentExpressions[index] = argument;
-		overwrite(argument, index);
-	}
-
-	public void setArgumentExpressions(Expr[] argumentExpressions) {
-		if (callType != Opcodes.INVOKESTATIC && argumentExpressions.length <= 0) {
-			throw new ArrayIndexOutOfBoundsException();
-		}
-
-		if (argumentExpressions.length < this.argumentExpressions.length) {
-			setChildPointer(0);
-			while (read(0) != null) {
-				deleteAt(getChildPointer());
-			}
-		}
-		this.argumentExpressions = argumentExpressions;
-		for (int i = 0; i < argumentExpressions.length; i++) {
-			overwrite(argumentExpressions[i], i);
-		}
 	}
 
 	public String getOwner() {
@@ -110,9 +65,9 @@ public class InvocationExpr extends Expr {
 
 	@Override
 	public Expr copy() {
-		Expr[] arguments = new Expr[argumentExpressions.length];
+		Expr[] arguments = new Expr[args.length];
 		for (int i = 0; i < arguments.length; i++) {
-			arguments[i] = argumentExpressions[i].copy();
+			arguments[i] = args[i].copy();
 		}
 		return new InvocationExpr(callType, arguments, owner, name, desc);
 	}
@@ -123,10 +78,16 @@ public class InvocationExpr extends Expr {
 	}
 
 	@Override
-	public void onChildUpdated(int ptr) {
-		updateArgument(ptr, read(ptr));
+	public void onChildUpdated(int index) {
+		Expr argument = read(index);
+		if (index < 0 || (index) >= args.length) {
+			throw new ArrayIndexOutOfBoundsException();
+		}
+		
+		args[index] = argument;
+		overwrite(argument, index);
 	}
-
+	
 	@Override
 	public Precedence getPrecedence0() {
 		return Precedence.METHOD_INVOCATION;
@@ -137,7 +98,7 @@ public class InvocationExpr extends Expr {
 		boolean requiresInstance = callType != Opcodes.INVOKESTATIC;
 		if (requiresInstance) {
 			int memberAccessPriority = Precedence.MEMBER_ACCESS.ordinal();
-			Expr instanceExpression = argumentExpressions[0];
+			Expr instanceExpression = args[0];
 			int instancePriority = instanceExpression.getPrecedence();
 			if (instancePriority > memberAccessPriority) {
 				printer.print('(');
@@ -151,17 +112,14 @@ public class InvocationExpr extends Expr {
 		}
 		printer.print('.');
 		printer.print(name);
-//		printer.print("  desc:" + desc + "  ");
 		printer.print('(');
-		for (int i = requiresInstance ? 1 : 0; i < argumentExpressions.length; i++) {
-			argumentExpressions[i].toString(printer);
-			if ((i + 1) < argumentExpressions.length) {
+		for (int i = requiresInstance ? 1 : 0; i < args.length; i++) {
+			args[i].toString(printer);
+			if ((i + 1) < args.length) {
 				printer.print(", ");
 			}
 		}
 		printer.print(')');
-		
-//		printer.print("  ::     " + owner + "." + name + "  " + desc);
 	}
 
 	@Override
@@ -174,14 +132,10 @@ public class InvocationExpr extends Expr {
 			argTypes[0] = Type.getType("L" + owner + ";");
 		}
 		
-//		if(name.equals("getPath")) {
-//			System.out.println(this);
-//		}
-		
-		for (int i = 0; i < argumentExpressions.length; i++) {
-			argumentExpressions[i].toCode(visitor, cfg);
-			if (TypeUtils.isPrimitive(argumentExpressions[i].getType())) {
-				int[] cast = TypeUtils.getPrimitiveCastOpcodes(argumentExpressions[i].getType(), argTypes[i]);
+		for (int i = 0; i < args.length; i++) {
+			args[i].toCode(visitor, cfg);
+			if (TypeUtils.isPrimitive(args[i].getType())) {
+				int[] cast = TypeUtils.getPrimitiveCastOpcodes(args[i].getType(), argTypes[i]);
 				for (int a = 0; a < cast.length; a++) {
 					visitor.visitInsn(cast[a]);
 				}
@@ -206,7 +160,7 @@ public class InvocationExpr extends Expr {
 			return true;
 		}
 		
-		for(Expr e : argumentExpressions) {
+		for(Expr e : args) {
 			if(e.isAffectedBy(stmt)) {
 				return true;
 			}
@@ -222,16 +176,43 @@ public class InvocationExpr extends Expr {
 			if(callType != o.callType || !name.equals(o.name) || !owner.equals(o.owner) || !desc.equals(o.desc)) {
 				return false;
 			}
-			if(argumentExpressions.length != o.argumentExpressions.length) {
+			if(args.length != o.args.length) {
 				return false;
 			}
-			for(int i=0; i < argumentExpressions.length; i++) {
-				if(!argumentExpressions[i].equivalent(o.argumentExpressions[i])) {
+			for(int i=0; i < args.length; i++) {
+				if(!args[i].equivalent(o.args[i])) {
 					return false;
 				}
 			}
 			return true;
 		}
 		return false;
+	}
+
+	@Override
+	public boolean isStatic() {
+		return callType == Opcodes.INVOKESTATIC;
+	}
+
+	@Override
+	public Expr getPhysicalReceiver() {
+		if(isStatic()) {
+			return null;
+		} else {
+			return args[0];
+		}
+	}
+
+	@Override
+	public Expr[] getParameterExprs() {
+		int i = (callType == Opcodes.INVOKESTATIC) ? 0 : 1;
+		Expr[] exprs = new Expr[args.length - i];
+		System.arraycopy(args, i, exprs, 0, exprs.length);
+		return exprs;
+	}
+
+	@Override
+	public Expr[] getArgumentExprs() {
+		return args;
 	}
 }

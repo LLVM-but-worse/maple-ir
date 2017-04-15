@@ -9,8 +9,7 @@ import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.code.Opcode;
 import org.mapleir.ir.code.expr.ConstantExpr;
-import org.mapleir.ir.code.expr.invoke.InitialisedObjectExpr;
-import org.mapleir.ir.code.expr.invoke.InvocationExpr;
+import org.mapleir.ir.code.expr.invoke.Invocation;
 import org.mapleir.stdlib.collections.graph.FastDirectedGraph;
 import org.mapleir.stdlib.collections.graph.FastGraph;
 import org.mapleir.stdlib.collections.graph.FastGraphEdge;
@@ -42,16 +41,8 @@ public class ContextSensitiveIPAnalysis {
 		}
 		
 		@Override
-		public void processedInvocation(MethodNode caller, MethodNode callee, Expr call) {
-			Expr[] params;
-			
-			if(call.getOpcode() == INVOKE) {
-				params = ((InvocationExpr) call).getParameterArguments();
-			} else if(call.getOpcode() == INIT_OBJ) {
-				params = ((InitialisedObjectExpr) call).getArgumentExpressions();
-			} else {
-				throw new UnsupportedOperationException(String.format("%s -> %s (%s)", caller, callee, call));
-			}
+		public void processedInvocation(MethodNode caller, MethodNode callee, Invocation call) {
+			Expr[] params = call.getParameterExprs();
 			
 			boolean isStatic = (callee.access & Opcodes.ACC_STATIC) != 0;
 			
