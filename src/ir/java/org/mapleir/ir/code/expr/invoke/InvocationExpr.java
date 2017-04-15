@@ -1,4 +1,4 @@
-package org.mapleir.ir.code.expr;
+package org.mapleir.ir.code.expr.invoke;
 
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.CodeUnit;
