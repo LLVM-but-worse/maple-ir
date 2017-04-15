@@ -1,25 +1,33 @@
 package org.mapleir.deob.intraproc.eval;
 
-import javafx.util.Pair;
+import static org.mapleir.ir.code.Opcode.*;
+import static org.mapleir.ir.code.expr.ArithmeticExpr.Operator.*;
+
+import java.math.BigDecimal;
+import java.util.Iterator;
+import java.util.Set;
+
 import org.mapleir.deob.passes.FieldRSADecryptionPass;
+import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.Expr;
-import org.mapleir.ir.code.expr.*;
+import org.mapleir.ir.code.expr.ArithmeticExpr;
 import org.mapleir.ir.code.expr.ArithmeticExpr.Operator;
+import org.mapleir.ir.code.expr.CastExpr;
+import org.mapleir.ir.code.expr.ComparisonExpr;
+import org.mapleir.ir.code.expr.ConstantExpr;
+import org.mapleir.ir.code.expr.NegationExpr;
+import org.mapleir.ir.code.expr.VarExpr;
 import org.mapleir.ir.code.stmt.ConditionalJumpStmt;
 import org.mapleir.ir.code.stmt.copy.AbstractCopyStmt;
 import org.mapleir.ir.locals.Local;
 import org.mapleir.ir.locals.LocalsPool;
 import org.mapleir.stdlib.collections.TaintableSet;
+import org.mapleir.stdlib.collections.map.NullPermeableHashMap;
+import org.mapleir.stdlib.collections.map.SetCreator;
 import org.mapleir.stdlib.util.TypeUtils;
 import org.objectweb.asm.Type;
 
-import java.math.BigDecimal;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Set;
-
-import static org.mapleir.ir.code.Opcode.*;
-import static org.mapleir.ir.code.expr.ArithmeticExpr.Operator.*;
+import javafx.util.Pair;
 
 public class ExpressionEvaluator {
 	private final EvaluationFactory factory;
@@ -124,10 +132,10 @@ public class ExpressionEvaluator {
 	}
 	
 	public TaintableSet<ConstantExpr> evalPossibleValues(LocalValueResolver resolver, Expr e) {
-		return evalPossibleValues0(new HashSet<>(), resolver, e);
+		return evalPossibleValues0(new NullPermeableHashMap<>(new SetCreator<>()), resolver, e);
 	}
 	
-	private TaintableSet<ConstantExpr> evalPossibleValues0(Set<Local> visited, LocalValueResolver resolver, Expr e) {
+	private TaintableSet<ConstantExpr> evalPossibleValues0(NullPermeableHashMap<ControlFlowGraph, Set<Local>> visited, LocalValueResolver resolver, Expr e) {
 		if(e.getOpcode() == CONST_LOAD) {
 			TaintableSet<ConstantExpr> set = new TaintableSet<>();
 			set.add((ConstantExpr) e);
@@ -151,105 +159,91 @@ public class ExpressionEvaluator {
 			TaintableSet<ConstantExpr> le = evalPossibleValues0(visited, resolver, l);
 			TaintableSet<ConstantExpr> re = evalPossibleValues0(visited, resolver, r);
 			
-			if(!le.isUnconst() && !re.isUnconst()) {
-				TaintableSet<ConstantExpr> results = new TaintableSet<>();
-				
-				for (Iterator<Pair<ConstantExpr, ConstantExpr>> it = le.product(re); it.hasNext(); ) {
-					Pair<ConstantExpr, ConstantExpr> lcrc = it.next();
-					ConstantExpr lc = lcrc.getKey();
-					ConstantExpr rc = lcrc.getValue();
-					EvaluationFunctor<Number> b = factory.arithmetic(lc.getType(), rc.getType(), ae.getType(), ae.getOperator());
-					results.add(new ConstantExpr(b.eval(lc.getConstant(), rc.getConstant())));
-				}
-				
-				return results;
+			TaintableSet<ConstantExpr> results = new TaintableSet<>(le.isTainted() | re.isTainted());
+			
+			for (Iterator<Pair<ConstantExpr, ConstantExpr>> it = le.product(re); it.hasNext(); ) {
+				Pair<ConstantExpr, ConstantExpr> lcrc = it.next();
+				ConstantExpr lc = lcrc.getKey();
+				ConstantExpr rc = lcrc.getValue();
+				EvaluationFunctor<Number> b = factory.arithmetic(lc.getType(), rc.getType(), ae.getType(), ae.getOperator());
+				results.add(new ConstantExpr(b.eval(lc.getConstant(), rc.getConstant())));
 			}
+			
+			return results;
 		} else if(e.getOpcode() == NEGATE) {
 			NegationExpr neg = (NegationExpr) e;
-			TaintableSet<ConstantExpr> vals = evalPossibleValues0(visited, resolver, neg.getExpression());
+			TaintableSet<ConstantExpr> inputs = evalPossibleValues0(visited, resolver, neg.getExpression());
+			TaintableSet<ConstantExpr> outputs = new TaintableSet<>(inputs.isTainted());
 			
-			if(!vals.isUnconst()) {
-				TaintableSet<ConstantExpr> results = new TaintableSet<>();
-				
-				for(ConstantExpr c : vals) {
-					EvaluationFunctor<Number> b = factory.negate(c.getType());
-					results.add(new ConstantExpr(b.eval(c.getConstant())));
-				}
-				
-				return results;
+			for(ConstantExpr c : inputs) {
+				EvaluationFunctor<Number> b = factory.negate(c.getType());
+				outputs.add(new ConstantExpr(b.eval(c.getConstant())));
 			}
+			
+			return outputs;
 		} else if(e.getOpcode() == LOCAL_LOAD) {
 			VarExpr v = (VarExpr) e;
 			Local l = v.getLocal();
 			
-			visited.add(l);
+			ControlFlowGraph g = e.getBlock().getGraph();
+			visited.getNonNull(g).add(l);
 			
-			TaintableSet<Expr> defExprs = resolver.getValues(l);
-
-			if(!defExprs.isUnconst()) {
-				TaintableSet<ConstantExpr> vals = new TaintableSet<>();
-				
-				for(Expr defE : defExprs) {
-					if(defE.getOpcode() == LOCAL_LOAD) {
-						VarExpr v2 = (VarExpr) defE;
-						
-						/*// synthetic copies lhs = rhs;
-						if(v2.getLocal() == l) {
-							continue;
-						}*/
-						
-						Local l2 = v2.getLocal();
-						
-						if(!visited.add(l2)) {
-							continue;
-						}
-					}
+			TaintableSet<Expr> defExprs = resolver.getValues(g, l);
+			TaintableSet<ConstantExpr> vals = new TaintableSet<>(defExprs.isTainted());
+			
+			for(Expr defE : defExprs) {
+				if(defE.getOpcode() == LOCAL_LOAD) {
+					VarExpr v2 = (VarExpr) defE;
 					
-					TaintableSet<ConstantExpr> set2 = evalPossibleValues0(visited, resolver, defE);
-					vals.union(set2);
+					Local l2 = v2.getLocal();
+					
+					if(visited.getNonNull(g).contains(l2)) {
+						continue;
+					}
+					visited.getNonNull(g).add(l2);
 				}
 				
-				return vals;
+				TaintableSet<ConstantExpr> defConstVals = evalPossibleValues0(visited, resolver, defE);
+				vals.union(defConstVals);
 			}
+			
+			return vals;
 		} else if(e.getOpcode() == CAST) {
 			CastExpr cast = (CastExpr) e;
-			TaintableSet<ConstantExpr> set = evalPossibleValues0(visited, resolver, cast.getExpression());
+			TaintableSet<ConstantExpr> inputs = evalPossibleValues0(visited, resolver, cast.getExpression());
+			TaintableSet<ConstantExpr> outputs = new TaintableSet<>(inputs.isTainted());
 			
-			if(!set.isUnconst()) {
-				TaintableSet<ConstantExpr> results = new TaintableSet<>();
+			for(ConstantExpr ce : inputs) {
+				// TODO: czech out::
+				// can get expressions like (double)({lvar7_1 * 4})
+				// where {lvar7_1 * 4} has type INT but the real
+				// eval consts are all bytes or shorts etc
 				
-				for(ConstantExpr ce : set) {
-					// TODO: czech out::
-					// can get expressions like (double)({lvar7_1 * 4})
-					// where {lvar7_1 * 4} has type INT but the real
-					// eval consts are all bytes or shorts etc
-					
-					/*if(!ce.getType().equals(cast.getExpression().getType())) {
-						System.err.printf("want to cast %s%n", cast);
-						System.err.printf(" in: %s, death: %s%n", set, ce);
-						throw new IllegalStateException(ce.getType() + " : " + cast.getExpression().getType());
-					}*/
-					Type from = ce.getType();
-					Type to = cast.getType();
-					
-					boolean p1 = TypeUtils.isPrimitive(from);
-					boolean p2 = TypeUtils.isPrimitive(to);
-					
-					if(p1 != p2) {
-						throw new IllegalStateException(from + " to " + to);
-					}
-					
-					if(!p1 && !p2) {
-						return new TaintableSet<>();
-					}
-					
-					EvaluationFunctor<Number> b = factory.cast(from, to);
-					
-					results.add(new ConstantExpr(b.eval(ce.getConstant())));
+				/*if(!ce.getType().equals(cast.getExpression().getType())) {
+					System.err.printf("want to cast %s%n", cast);
+					System.err.printf(" in: %s, death: %s%n", set, ce);
+					throw new IllegalStateException(ce.getType() + " : " + cast.getExpression().getType());
+				}*/
+				Type from = ce.getType();
+				Type to = cast.getType();
+				
+				boolean p1 = TypeUtils.isPrimitive(from);
+				boolean p2 = TypeUtils.isPrimitive(to);
+				
+				if(p1 != p2) {
+					throw new IllegalStateException(from + " to " + to);
 				}
 				
-				return results;
+				if(!p1 && !p2) {
+					throw new IllegalStateException(from + " to " + to);
+					// return new TaintableSet<>();
+				}
+				
+				EvaluationFunctor<Number> b = factory.cast(from, to);
+				outputs.add(new ConstantExpr(b.eval(ce.getConstant())));
 			}
+			
+			return outputs;
 		} else if(e.getOpcode() == COMPARE) {
 //			throw new UnsupportedOperationException("todo lmao");
 //			ComparisonExpr comp = (ComparisonExpr) e;
@@ -273,13 +267,15 @@ public class ExpressionEvaluator {
 //			}
 		}
 		
-		return new TaintableSet<>();
+		/* uncomputable value, i.e. non const. */
+		return new TaintableSet<>(true);
 	}
 	
 	public Boolean evaluatePrimitiveConditional(ConditionalJumpStmt cond, TaintableSet<ConstantExpr> leftSet, TaintableSet<ConstantExpr> rightSet) {
 		Boolean val = null;
 		
-		for (Iterator<Pair<ConstantExpr, ConstantExpr>> it = leftSet.product(rightSet); it.hasNext(); ) {
+		Iterator<Pair<ConstantExpr, ConstantExpr>> it = leftSet.product(rightSet);
+		while(it.hasNext()) {
 			Pair<ConstantExpr, ConstantExpr> lcrc = it.next();
 			ConstantExpr lc = lcrc.getKey();
 			ConstantExpr rc = lcrc.getValue();
@@ -293,6 +289,7 @@ public class ExpressionEvaluator {
 				boolean branchVal = bridge.eval(lc.getConstant(), rc.getConstant());
 				
 				if(val != null) {
+					/* inconsistent branch results */
 					if(val != branchVal) {
 						return null;
 					}

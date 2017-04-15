@@ -1,7 +1,5 @@
 package org.mapleir.deob.interproc.sensitive;
 
-import java.util.Set;
-
 import org.mapleir.context.IContext;
 import org.mapleir.deob.interproc.IRCallTracer;
 import org.mapleir.deob.intraproc.eval.ExpressionEvaluator;
@@ -12,6 +10,7 @@ import org.mapleir.ir.code.Opcode;
 import org.mapleir.ir.code.expr.ConstantExpr;
 import org.mapleir.ir.code.expr.InitialisedObjectExpr;
 import org.mapleir.ir.code.expr.InvocationExpr;
+import org.mapleir.stdlib.collections.TaintableSet;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.MethodNode;
@@ -62,9 +61,9 @@ public class ContextSensitiveIPAnalysis {
 		}
 		
 		private ArgumentFact makeFact(Expr e, LocalValueResolver valueResolver) {
-			Set<ConstantExpr> set = evaluator.evalPossibleValues(valueResolver, e);
+			TaintableSet<ConstantExpr> set = evaluator.evalPossibleValues(valueResolver, e);
 			if(e.getOpcode() != Opcode.CONST_LOAD && set != null && set.size() > 0) {
-				System.out.println(e + " -> " + set);
+				// System.out.println(e + " -> " + set + " " + set.isTainted());
 			}
 			return null;
 //			if(e.getOpcode() == CONST_LOAD) {

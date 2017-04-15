@@ -1,17 +1,23 @@
 package org.mapleir.stdlib.collections;
 
-import javafx.util.Pair;
-import org.mapleir.stdlib.collections.itertools.ProductIterator;
-import org.mapleir.stdlib.collections.taint.ITaintable;
-
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 
+import org.mapleir.stdlib.collections.itertools.ProductIterator;
+import org.mapleir.stdlib.collections.taint.ITaintable;
+
+import javafx.util.Pair;
+
 public class TaintableSet<T> implements Set<T>, ITaintable {
 	private final Set<T> backingSet;
 	private boolean tainted;
+	
+	public TaintableSet(boolean dirty) {
+		this();
+		tainted = dirty;
+	}
 	
 	public TaintableSet() {
 		backingSet = new HashSet<>();
@@ -24,7 +30,7 @@ public class TaintableSet<T> implements Set<T>, ITaintable {
 	}
 
 	public Iterator<Pair<T, T>> product(TaintableSet<T> other) {
-		return new ProductIterator<>(this, other);
+		return ProductIterator.getIterator(this, other);
 	}
 	
 	/**
@@ -47,13 +53,6 @@ public class TaintableSet<T> implements Set<T>, ITaintable {
 			backingSet.add((T) t);
 		}
 		return tainted |= t.isTainted();
-	}
-	
-	/**
-	 * @return true if tainted or empty.
-	 */
-	public boolean isUnconst() {
-		return isTainted() || isEmpty();
 	}
 	
 	@Override
@@ -147,5 +146,10 @@ public class TaintableSet<T> implements Set<T>, ITaintable {
 		int result = backingSet.hashCode();
 		result = 31 * result + (tainted ? 1 : 0);
 		return result;
+	}
+	
+	@Override
+	public String toString() {
+		return backingSet.toString() + " (tainted=" + tainted + ")";
 	}
 }
