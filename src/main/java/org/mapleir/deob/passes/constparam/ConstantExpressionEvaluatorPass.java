@@ -61,27 +61,7 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 			
 			for(ClassNode cn : cxt.getApplication().iterate()) {
 				for(MethodNode m : cn.methods) {
-
 					processMethod(vis, cxt.getIRCache().getFor(m));
-					
-//					if(m.toString().equals("csq.aaa(Lhau;I)Lhau;")) {
-//						boolean k = false;
-//						for(TaintableSet<ConstantExpr> s : vis.constParams.get(m)) {
-//							if(!s.isEmpty() && !s.isTainted()) {
-//								k = true;
-//							}
-//						}
-//						
-//						if(k) {
-//							System.out.println(m);
-//							int l = 0;
-//							for(TaintableSet<ConstantExpr> s : vis.constParams.get(m)) {
-//								System.out.printf("@%d:: %s%n", l++, s);
-//							}
-//						}
-//					}
-					
-					
 				}
 			}
 			
@@ -92,8 +72,7 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 		
 		System.out.printf("  evaluated %d constant expressions.%n", exprsEvaluated);
 		System.out.printf("  eliminated %d constant branches.%n", branchesEvaluated);
-		System.out.println(j);
-//		System.exit(0);
+
 		return exprsEvaluated;
 	}
 	
@@ -107,17 +86,9 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 					// todo: satisfiability analysis
 					ConditionalJumpStmt cond = (ConditionalJumpStmt) stmt;
 					Boolean result = evaluateConditional(vis, cfg, cond);
-//					if(cfg.getMethod().toString().equals("csq.aaa(Lhau;I)Lhau;")) {
-//						System.out.println("br: " + cond);
-//						System.out.println(" r: " + result);
-//						System.out.println("  lt: " + cond.getLeft().getType());
-//						System.out.println("  rt: " + cond.getRight().getType());
-//						System.out.println();
-//					}
-					
 					if (result != null) {
 						eliminateBranch(cfg, cond.getBlock(), cond, i, result);
-						 branchesEvaluated++;
+						branchesEvaluated++;
 					}
 				}
 
@@ -131,7 +102,6 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 							if (val != null) {
 								exprsEvaluated++;
 								cfg.overwrite(par, e, val);
-								// System.out.println("[ConstEval] " + e + " -> " + val);
 							}
 						}
 					}
@@ -214,29 +184,16 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 			return null;
 		}
 		
-		LocalValueResolver resolver;
-//		LocalsPool pool = cfg.getLocals();
-//		if(vis != null) {
-//			// FIXME: use
-//			
-//		} else {
-//			resolver = new LocalValueResolver.PoolLocalValueResolver(pool);
-//		}
-		resolver = new SemiConstantLocalValueResolver(vis);
+		LocalValueResolver resolver = new SemiConstantLocalValueResolver(vis);
 		
 		TaintableSet<ConstantExpr> lSet = evaluator.evalPossibleValues(resolver, l);
 		TaintableSet<ConstantExpr> rSet = evaluator.evalPossibleValues(resolver, r);
 
-		
-//		if(cfg.getMethod().toString().equals("csq.aaa(Lhau;I)Lhau;")) {
-//			System.out.println("ConstantExpressionEvaluatorPass.evaluateConditional()");
-//			System.out.println(lSet);
-//			System.out.println(rSet);
-//		}
 		/* can only evaluate branch if all vals are known. */
 		if(!lSet.isTainted() && !rSet.isTainted()) {
 			
 			if(lSet.isEmpty() || rSet.isEmpty()) {
+				
 				System.err.println("oim interested m89");
 				System.err.println("Empty:");
 				System.err.println(cfg);
@@ -250,14 +207,10 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 				System.err.println(cfg.getMethod());
 				
 				System.exit(1);
+				throw new RuntimeException();
 			}
 			
-//			System.out.println("Eval: ");
-//			System.out.println("   "+ cond);
-//			System.out.println(" l: " + lSet);
-//			System.out.println(" r: " + rSet);
 			Boolean result = evaluator.evaluatePrimitiveConditional(cond, lSet, rSet);
-			j++;
 			if (result != null) {
 				return result;
 			}
@@ -265,7 +218,6 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 		return null;
 	}
 	
-	int j = 0;
 	private class SemiConstantLocalValueResolver implements LocalValueResolver {
 		
 		private final IPConstAnalysisVisitor vis;
@@ -317,7 +269,6 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 		@Override
 		public void postVisitMethod(IPAnalysis analysis, MethodNode m) {
 			int pCount = Type.getArgumentTypes(m.desc).length;
-			// boolean[] arr = new boolean[pCount];
 			
 			if(Modifier.isStatic(m.access)) {
 				if(!constParams.containsKey(m)) {
