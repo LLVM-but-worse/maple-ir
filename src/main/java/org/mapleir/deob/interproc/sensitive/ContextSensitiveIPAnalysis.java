@@ -2,6 +2,7 @@ package org.mapleir.deob.interproc.sensitive;
 
 import org.mapleir.context.IContext;
 import org.mapleir.deob.interproc.IRCallTracer;
+import org.mapleir.deob.interproc.sensitive.ContextSensitiveIPAnalysis.CallGraph.ContextSensitiveInvocation;
 import org.mapleir.deob.intraproc.eval.ExpressionEvaluator;
 import org.mapleir.deob.intraproc.eval.LocalValueResolver;
 import org.mapleir.ir.cfg.ControlFlowGraph;
@@ -10,7 +11,9 @@ import org.mapleir.ir.code.Opcode;
 import org.mapleir.ir.code.expr.ConstantExpr;
 import org.mapleir.ir.code.expr.InitialisedObjectExpr;
 import org.mapleir.ir.code.expr.InvocationExpr;
-import org.mapleir.stdlib.collections.TaintableSet;
+import org.mapleir.stdlib.collections.graph.FastDirectedGraph;
+import org.mapleir.stdlib.collections.graph.FastGraph;
+import org.mapleir.stdlib.collections.graph.FastGraphEdge;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.MethodNode;
@@ -29,11 +32,15 @@ public class ContextSensitiveIPAnalysis {
 	}
 	
 	private class CallgraphBuilder extends IRCallTracer implements Opcode {
-
+		
+		private final CallGraph graph;
+		
 		public CallgraphBuilder(IContext context) {
 			super(context);
+			
+			graph = new CallGraph();
 		}
-	
+		
 		@Override
 		public void processedInvocation(MethodNode caller, MethodNode callee, Expr call) {
 			Expr[] params;
@@ -61,17 +68,47 @@ public class ContextSensitiveIPAnalysis {
 		}
 		
 		private ArgumentFact makeFact(Expr e, LocalValueResolver valueResolver) {
-			TaintableSet<ConstantExpr> set = evaluator.evalPossibleValues(valueResolver, e);
-			if(e.getOpcode() != Opcode.CONST_LOAD && set != null && set.size() > 0) {
-				// System.out.println(e + " -> " + set + " " + set.isTainted());
+			if(e.getOpcode() == CONST_LOAD) {
+				return new ArgumentFact.ConstantValueFact(((ConstantExpr) e).getConstant());
 			}
-			return null;
-//			if(e.getOpcode() == CONST_LOAD) {
-//				return new ArgumentFact.ConstantValueFact(((ConstantExpr) e).getConstant());
-//			} else if(e.getOpcode() == PHI) {
-//				System.out.println(e + " -> " + evaluator.evalPossibleValues(valueResolver, e));
-//			}
-//			return ArgumentFact.AnyValueFact.INSTANCE;
+			return ArgumentFact.AnyValueFact.INSTANCE;
+		}
+	}
+	
+	public static class CallGraph extends FastDirectedGraph<MethodNode, ContextSensitiveInvocation> {
+
+		public static class ContextSensitiveInvocation extends FastGraphEdge<MethodNode> {
+			public final Expr call;
+			
+			public ContextSensitiveInvocation(MethodNode src, MethodNode dst, Expr call) {
+				super(src, dst);
+				this.call = call;
+			}
+		}
+		
+		@Override
+		public boolean excavate(MethodNode n) {
+			throw new UnsupportedOperationException("TODO");
+		}
+
+		@Override
+		public boolean jam(MethodNode pred, MethodNode succ, MethodNode n) {
+			throw new UnsupportedOperationException("TODO");
+		}
+
+		@Override
+		public ContextSensitiveInvocation clone(ContextSensitiveInvocation edge, MethodNode oldN, MethodNode newN) {
+			throw new UnsupportedOperationException("TODO");
+		}
+
+		@Override
+		public ContextSensitiveInvocation invert(ContextSensitiveInvocation edge) {
+			throw new UnsupportedOperationException("TODO");
+		}
+
+		@Override
+		public FastGraph<MethodNode, ContextSensitiveInvocation> copy() {
+			throw new UnsupportedOperationException("TODO");
 		}
 	}
 }
