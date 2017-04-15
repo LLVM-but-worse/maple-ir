@@ -1127,7 +1127,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 	protected void _new(Type type) {
 		save_stack(false);
 		int index = currentStack.height();
-		UninitialisedObjectExpr e = new UninitialisedObjectExpr(type);
+		AllocObjectExpr e = new AllocObjectExpr(type);
 		assign_stack(index, e);
 		push(load_stack(index, type));
 	}

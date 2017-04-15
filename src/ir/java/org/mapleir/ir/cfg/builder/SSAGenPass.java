@@ -798,7 +798,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 			case Opcode.INVOKE:
 			case Opcode.DYNAMIC_INVOKE:
 			case Opcode.INIT_OBJ:
-			case Opcode.UNINIT_OBJ:
+			case Opcode.ALLOC_OBJ:
 			case Opcode.NEW_ARRAY:
 			case Opcode.CATCH:
 			case Opcode.EPHI:
@@ -1198,7 +1198,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 								AbstractCopyStmt def = pool.defs.get(local);
 
 								Expr rhs = def.getExpression();
-								if (rhs.getOpcode() == Opcode.UNINIT_OBJ) {
+								if (rhs.getOpcode() == Opcode.ALLOC_OBJ) {
 									// replace pop(x.<init>()) with x := new Klass();
 									// remove x := new Klass;
 									
@@ -1229,7 +1229,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 									// remove the pop statement
 									b.remove(pop);
 								}
-							} else if(inst.getOpcode() == Opcode.UNINIT_OBJ) {
+							} else if(inst.getOpcode() == Opcode.ALLOC_OBJ) {
 								// replace pop(new Klass.<init>(args)) with pop(new Klass(args))
 								// UninitialisedObjectExpr obj = (UninitialisedObjectExpr) inst;
 								
