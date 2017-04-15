@@ -1,5 +1,8 @@
 package org.mapleir.ir.cfg.builder;
 
+import java.util.*;
+import java.util.Map.Entry;
+
 import org.mapleir.ir.algorithms.Liveness;
 import org.mapleir.ir.algorithms.SSABlockLivenessAnalyser;
 import org.mapleir.ir.cfg.BasicBlock;
@@ -43,21 +46,6 @@ import org.mapleir.stdlib.collections.map.SetCreator;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.LabelNode;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.ListIterator;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.Stack;
 
 public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 
@@ -1190,7 +1178,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 					if (expr.getOpcode() == Opcode.INVOKE) {
 						InvocationExpr invoke = (InvocationExpr) expr;
 						if (invoke.getCallType() == Opcodes.INVOKESPECIAL && invoke.getName().equals("<init>")) {
-							Expr inst = invoke.getInstanceExpression();
+							Expr inst = invoke.getPhysicalReceiver();
 							if (inst.getOpcode() == Opcode.LOCAL_LOAD) {
 								VarExpr var = (VarExpr) inst;
 								VersionedLocal local = (VersionedLocal) var.getLocal();
@@ -1204,8 +1192,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 									
 									// here we are assuming that the new object
 									// can't be used until it is initialised.
-									VarExpr v = (VarExpr) invoke.getInstanceExpression();
-									Expr[] args = invoke.getParameterArguments();
+									Expr[] args = invoke.getParameterExprs();
 									
 									// we want to reuse the exprs, so free it first.
 									pop.deleteAt(0);
@@ -1223,7 +1210,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 									InitialisedObjectExpr newExpr = new InitialisedObjectExpr(invoke.getOwner(), invoke.getDesc(), newArgs);
 									CopyVarStmt newCvs = new CopyVarStmt(var, newExpr);
 									pool.defs.put(local, newCvs);
-									pool.uses.get(local).remove(v);
+									pool.uses.get(local).remove(var);
 									b.add(index, newCvs);
 
 									// remove the pop statement
@@ -1233,7 +1220,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 								// replace pop(new Klass.<init>(args)) with pop(new Klass(args))
 								// UninitialisedObjectExpr obj = (UninitialisedObjectExpr) inst;
 								
-								Expr[] args = invoke.getParameterArguments();
+								Expr[] args = invoke.getParameterExprs();
 								// we want to reuse the exprs, so free it first.
 								invoke.unlink();
 								for(Expr e : args) {
