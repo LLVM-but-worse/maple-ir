@@ -26,7 +26,7 @@ public class ConstraintUtil implements Opcode {
 			case INVOKE:
 			case DYNAMIC_INVOKE:
 			case INIT_OBJ:
-			case UNINIT_OBJ:
+			case ALLOC_OBJ:
 			case NEW_ARRAY:
 			case CATCH:
 			case EPHI:
