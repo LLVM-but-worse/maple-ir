@@ -1,5 +1,12 @@
 package org.mapleir.deob.passes.constparam;
 
+import java.lang.reflect.Modifier;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+
 import org.mapleir.context.IContext;
 import org.mapleir.deob.IPass;
 import org.mapleir.deob.interproc.IPAnalysis;
@@ -16,7 +23,11 @@ import org.mapleir.ir.code.CodeUnit;
 import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.code.Opcode;
 import org.mapleir.ir.code.Stmt;
-import org.mapleir.ir.code.expr.*;
+import org.mapleir.ir.code.expr.ArithmeticExpr;
+import org.mapleir.ir.code.expr.ConstantExpr;
+import org.mapleir.ir.code.expr.InitialisedObjectExpr;
+import org.mapleir.ir.code.expr.InvocationExpr;
+import org.mapleir.ir.code.expr.VarExpr;
 import org.mapleir.ir.code.stmt.ConditionalJumpStmt;
 import org.mapleir.ir.code.stmt.UnconditionalJumpStmt;
 import org.mapleir.ir.code.stmt.copy.AbstractCopyStmt;
@@ -27,9 +38,6 @@ import org.mapleir.stdlib.util.TypeUtils;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
-
-import java.lang.reflect.Modifier;
-import java.util.*;
 
 public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 	private ExpressionEvaluator evaluator;
@@ -53,7 +61,27 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 			
 			for(ClassNode cn : cxt.getApplication().iterate()) {
 				for(MethodNode m : cn.methods) {
+
 					processMethod(vis, cxt.getIRCache().getFor(m));
+					
+//					if(m.toString().equals("csq.aaa(Lhau;I)Lhau;")) {
+//						boolean k = false;
+//						for(TaintableSet<ConstantExpr> s : vis.constParams.get(m)) {
+//							if(!s.isEmpty() && !s.isTainted()) {
+//								k = true;
+//							}
+//						}
+//						
+//						if(k) {
+//							System.out.println(m);
+//							int l = 0;
+//							for(TaintableSet<ConstantExpr> s : vis.constParams.get(m)) {
+//								System.out.printf("@%d:: %s%n", l++, s);
+//							}
+//						}
+//					}
+					
+					
 				}
 			}
 			
@@ -64,7 +92,8 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 		
 		System.out.printf("  evaluated %d constant expressions.%n", exprsEvaluated);
 		System.out.printf("  eliminated %d constant branches.%n", branchesEvaluated);
-		
+		System.out.println(j);
+//		System.exit(0);
 		return exprsEvaluated;
 	}
 	
@@ -78,6 +107,14 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 					// todo: satisfiability analysis
 					ConditionalJumpStmt cond = (ConditionalJumpStmt) stmt;
 					Boolean result = evaluateConditional(vis, cfg, cond);
+//					if(cfg.getMethod().toString().equals("csq.aaa(Lhau;I)Lhau;")) {
+//						System.out.println("br: " + cond);
+//						System.out.println(" r: " + result);
+//						System.out.println("  lt: " + cond.getLeft().getType());
+//						System.out.println("  rt: " + cond.getRight().getType());
+//						System.out.println();
+//					}
+					
 					if (result != null) {
 						eliminateBranch(cfg, cond.getBlock(), cond, i, result);
 						 branchesEvaluated++;
@@ -178,20 +215,49 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 		}
 		
 		LocalValueResolver resolver;
-		
-		LocalsPool pool = cfg.getLocals();
-		if(vis != null) {
-			// FIXME: use
-			resolver = new SemiConstantLocalValueResolver(cfg.getMethod(), pool, vis);
-		} else {
-			resolver = new LocalValueResolver.PoolLocalValueResolver(pool);
-		}
+//		LocalsPool pool = cfg.getLocals();
+//		if(vis != null) {
+//			// FIXME: use
+//			
+//		} else {
+//			resolver = new LocalValueResolver.PoolLocalValueResolver(pool);
+//		}
+		resolver = new SemiConstantLocalValueResolver(vis);
 		
 		TaintableSet<ConstantExpr> lSet = evaluator.evalPossibleValues(resolver, l);
 		TaintableSet<ConstantExpr> rSet = evaluator.evalPossibleValues(resolver, r);
+
 		
-		if(!lSet.isUnconst() && !rSet.isUnconst()) {
+//		if(cfg.getMethod().toString().equals("csq.aaa(Lhau;I)Lhau;")) {
+//			System.out.println("ConstantExpressionEvaluatorPass.evaluateConditional()");
+//			System.out.println(lSet);
+//			System.out.println(rSet);
+//		}
+		/* can only evaluate branch if all vals are known. */
+		if(!lSet.isTainted() && !rSet.isTainted()) {
+			
+			if(lSet.isEmpty() || rSet.isEmpty()) {
+				System.err.println("oim interested m89");
+				System.err.println("Empty:");
+				System.err.println(cfg);
+				System.err.println("inputs:");
+				int k = 0;
+				for(TaintableSet<ConstantExpr> s : vis.constParams.get(cfg.getMethod())) {
+					System.err.printf("@%d:: %s%n", k++, s);
+				}
+				System.err.println(l + " -> " + lSet);
+				System.err.println(r + " -> " + rSet);
+				System.err.println(cfg.getMethod());
+				
+				System.exit(1);
+			}
+			
+//			System.out.println("Eval: ");
+//			System.out.println("   "+ cond);
+//			System.out.println(" l: " + lSet);
+//			System.out.println(" r: " + rSet);
 			Boolean result = evaluator.evaluatePrimitiveConditional(cond, lSet, rSet);
+			j++;
 			if (result != null) {
 				return result;
 			}
@@ -199,23 +265,21 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 		return null;
 	}
 	
+	int j = 0;
 	private class SemiConstantLocalValueResolver implements LocalValueResolver {
 		
-		private final MethodNode method;
-		private final LocalsPool pool;
 		private final IPConstAnalysisVisitor vis;
 		
-		public SemiConstantLocalValueResolver(MethodNode method, LocalsPool pool, IPConstAnalysisVisitor vis) {
-			this.method = method;
-			this.pool = pool;
+		public SemiConstantLocalValueResolver(IPConstAnalysisVisitor vis) {
 			this.vis = vis;
 		}
 
 		@Override
-		public TaintableSet<Expr> getValues(Local l) {
+		public TaintableSet<Expr> getValues(ControlFlowGraph cfg, Local l) {
 			TaintableSet<Expr> set = new TaintableSet<>();
 			
-			AbstractCopyStmt copy = pool.defs.get(l);
+			MethodNode method = cfg.getMethod();
+			AbstractCopyStmt copy = cfg.getLocals().defs.get(l);
 			if(copy.isSynthetic()) {
 				VarExpr vE = (VarExpr) copy.getExpression();
 				if(vE.getLocal() != l) {
@@ -253,7 +317,7 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 		@Override
 		public void postVisitMethod(IPAnalysis analysis, MethodNode m) {
 			int pCount = Type.getArgumentTypes(m.desc).length;
-			boolean[] arr = new boolean[pCount];
+			// boolean[] arr = new boolean[pCount];
 			
 			if(Modifier.isStatic(m.access)) {
 				if(!constParams.containsKey(m)) {
@@ -279,7 +343,7 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 		}
 		
 		@Override
-		public void postProcessedInvocation(IPAnalysis analysis, MethodNode caller, MethodNode callee, Expr call) {
+		public void postProcessedInvocation(IPAnalysis analysis, MethodNode caller, MethodNode callee, Expr call) {	
 			Expr[] params;
 			
 			if(call.getOpcode() == Opcode.INVOKE) {
