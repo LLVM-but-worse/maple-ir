@@ -21,15 +21,13 @@ import org.mapleir.deob.IPass;
 import org.mapleir.deob.PassGroup;
 import org.mapleir.deob.interproc.CallTracer;
 import org.mapleir.deob.interproc.IRCallTracer;
-import org.mapleir.deob.interproc.sensitive.ContextSensitiveIPAnalysis;
 import org.mapleir.deob.intraproc.ExceptionAnalysis;
-import org.mapleir.deob.intraproc.eval.ExpressionEvaluator;
-import org.mapleir.deob.intraproc.eval.impl.ReflectiveFunctorFactory;
 import org.mapleir.deob.passes.CallgraphPruningPass;
 import org.mapleir.deob.passes.ClassRenamerPass;
 import org.mapleir.deob.passes.ConstantExpressionReorderPass;
 import org.mapleir.deob.passes.DeadCodeEliminationPass;
 import org.mapleir.deob.passes.FieldRenamerPass;
+import org.mapleir.deob.passes.MethodRenamerPass;
 import org.mapleir.deob.passes.constparam.ConstantExpressionEvaluatorPass;
 import org.mapleir.ir.algorithms.BoissinotDestructor;
 import org.mapleir.ir.algorithms.ControlFlowGraphDumper;
@@ -242,8 +240,7 @@ public class Boot {
 			masterGroup.add(p);
 		}
 		run(cxt, masterGroup);
-		
-		new ContextSensitiveIPAnalysis(cxt, new ExpressionEvaluator(new ReflectiveFunctorFactory()));
+//		new ContextSensitiveIPAnalysis(cxt, new ExpressionEvaluator(new ReflectiveFunctorFactory()));
 		
 		section("Retranslating SSA IR to standard flavour.");
 		for(Entry<MethodNode, ControlFlowGraph> e : cxt.getIRCache().entrySet()) {
@@ -284,7 +281,7 @@ public class Boot {
 				new CallgraphPruningPass(),
 //				new ConcreteStaticInvocationPass(),
 				new ClassRenamerPass(),
-//				new MethodRenamerPass(),
+				new MethodRenamerPass(),
 //				new ConstantParameterPass()
 //				new ClassRenamerPass(),
 				new FieldRenamerPass(),
@@ -313,9 +310,9 @@ public class Boot {
 		/* searches only app classes. */
 		for(ClassNode cn : source.iterate())  {
 			for(MethodNode m : cn.methods) {
-//				if((m.name.length() > 2 && !m.name.equals("<init>")) || m.instructions.size() == 0) {
+				if((m.name.length() > 2 && !m.name.equals("<init>")) || m.instructions.size() == 0) {
 					set.add(m);
-//				}
+				}
 			}
 		}
 		return set;
