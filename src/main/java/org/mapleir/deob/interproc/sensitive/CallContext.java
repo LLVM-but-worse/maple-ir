@@ -1,17 +1,18 @@
 package org.mapleir.deob.interproc.sensitive;
 
+import java.util.Set;
+
 import org.mapleir.ir.code.Expr;
-import org.mapleir.stdlib.collections.TaintableSet;
 import org.objectweb.asm.tree.MethodNode;
 
 public class CallContext {
 
-	private final MethodNode caller;
-	private final MethodNode callee;
-	private final Expr callExpr;
-	private final TaintableSet<ArgumentFact> arguments;
+	public final MethodNode caller;
+	public final MethodNode callee;
+	public final Expr callExpr;
+	public final Set<ArgumentFact> arguments;
 	
-	public CallContext(MethodNode caller, MethodNode callee, Expr callExpr, TaintableSet<ArgumentFact> arguments) {
+	public CallContext(MethodNode caller, MethodNode callee, Expr callExpr, Set<ArgumentFact> arguments) {
 		this.caller = caller;
 		this.callee = callee;
 		this.callExpr = callExpr;
@@ -31,8 +32,6 @@ public class CallContext {
 			return false;
 		if (!callee.equals(that.callee))
 			return false;
-		if (!callExpr.equals(that.callExpr))
-			return false;
 		return arguments.equals(that.arguments);
 	}
 	
@@ -40,7 +39,6 @@ public class CallContext {
 	public int hashCode() {
 		int result = caller.hashCode();
 		result = 31 * result + callee.hashCode();
-		result = 31 * result + callExpr.hashCode();
 		result = 31 * result + arguments.hashCode();
 		return result;
 	}

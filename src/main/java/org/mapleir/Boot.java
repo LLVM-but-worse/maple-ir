@@ -21,7 +21,10 @@ import org.mapleir.deob.IPass;
 import org.mapleir.deob.PassGroup;
 import org.mapleir.deob.interproc.CallTracer;
 import org.mapleir.deob.interproc.IRCallTracer;
+import org.mapleir.deob.interproc.sensitive.ContextSensitiveIPAnalysis;
 import org.mapleir.deob.intraproc.ExceptionAnalysis;
+import org.mapleir.deob.intraproc.eval.ExpressionEvaluator;
+import org.mapleir.deob.intraproc.eval.impl.ReflectiveFunctorFactory;
 import org.mapleir.deob.passes.CallgraphPruningPass;
 import org.mapleir.deob.passes.ClassRenamerPass;
 import org.mapleir.deob.passes.ConstantExpressionReorderPass;
@@ -240,7 +243,7 @@ public class Boot {
 			masterGroup.add(p);
 		}
 		run(cxt, masterGroup);
-//		new ContextSensitiveIPAnalysis(cxt, new ExpressionEvaluator(new ReflectiveFunctorFactory()));
+		new ContextSensitiveIPAnalysis(cxt, new ExpressionEvaluator(new ReflectiveFunctorFactory()));
 		
 		section("Retranslating SSA IR to standard flavour.");
 		for(Entry<MethodNode, ControlFlowGraph> e : cxt.getIRCache().entrySet()) {
