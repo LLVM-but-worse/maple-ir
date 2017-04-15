@@ -253,8 +253,8 @@ public class ClassRenamerPass implements IPass {
 								if(newType != null) {
 									na.setType(Type.getType(newType));
 								}
-							} else if(e.getOpcode() == Opcode.UNINIT_OBJ) {
-								UninitialisedObjectExpr uninit = (UninitialisedObjectExpr) e;
+							} else if(e.getOpcode() == Opcode.ALLOC_OBJ) {
+								AllocObjectExpr uninit = (AllocObjectExpr) e;
 								
 								String newType = resolveType(uninit.getType(), remapping);
 								if(newType != null) {

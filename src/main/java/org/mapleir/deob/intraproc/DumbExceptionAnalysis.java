@@ -145,7 +145,7 @@ public class DumbExceptionAnalysis implements ExceptionAnalysis, Opcode {
 				set.add(ILLEGAL_ACCESS_ERROR);
 				set.add(WRONG_METHOD_TYPE_EXCEPTION);
 				break;
-			case UNINIT_OBJ:
+			case ALLOC_OBJ:
 				set.add(INSTANTIATION_ERROR);
 				break;
 			case INIT_OBJ:

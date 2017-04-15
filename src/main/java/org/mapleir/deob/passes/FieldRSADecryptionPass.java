@@ -360,7 +360,7 @@ public class FieldRSADecryptionPass implements IPass, Opcode {
 			case DYNAMIC_INVOKE:
 			case ARRAY_LOAD:
 			case ARRAY_STORE:
-			case UNINIT_OBJ:
+			case ALLOC_OBJ:
 			case INIT_OBJ:
 			case COMPARE:
 				return list;
