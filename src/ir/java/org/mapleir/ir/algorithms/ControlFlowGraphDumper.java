@@ -3,10 +3,10 @@ package org.mapleir.ir.algorithms;
 import org.mapleir.deob.intraproc.ExceptionAnalysis;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
-import org.mapleir.ir.cfg.edge.DummyEdge;
 import org.mapleir.ir.cfg.edge.FlowEdge;
 import org.mapleir.ir.cfg.edge.FlowEdges;
 import org.mapleir.ir.code.Stmt;
+import org.mapleir.stdlib.collections.IndexedList;
 import org.mapleir.stdlib.collections.graph.flow.ExceptionRange;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.Type;
@@ -26,7 +26,7 @@ public class ControlFlowGraphDumper {
 		}
 
 		// Linearize
-		List<BasicBlock> blocks = linearize(cfg);
+		IndexedList<BasicBlock> blocks = linearize(cfg);
 		
 		// Dump code
 		for (BasicBlock b : blocks) {
@@ -35,6 +35,8 @@ public class ControlFlowGraphDumper {
 				stmt.toCode(m, null);
 			}
 		}
+		LabelNode terminalLabel = new LabelNode();
+		m.visitLabel(terminalLabel.getLabel());
 		
 		// Verify
 		ListIterator<BasicBlock> it = blocks.listIterator();
@@ -59,51 +61,57 @@ public class ControlFlowGraphDumper {
 
 		for (ExceptionRange<BasicBlock> er : cfg.getRanges()) {
 //			System.out.println("RANGE: " + er);
-			dumpRange(cfg, m, blocks, er);
+			dumpRange(cfg, m, blocks, er, terminalLabel.getLabel());
 		}
 		m.visitEnd();
 	}
 	
-	private static void dumpRange(ControlFlowGraph cfg, MethodNode m, List<BasicBlock> order, ExceptionRange<BasicBlock> er) {
-		// Fixup exception type if there are multiple possible exceptions thrown
+	private static void dumpRange(ControlFlowGraph cfg, MethodNode m, IndexedList<BasicBlock> order, ExceptionRange<BasicBlock> er, Label terminalLabel) {
+		// Determine exception type
 		Type type = null;
 		Set<Type> typeSet = er.getTypes();
 		if (typeSet.size() != 1) {
 			// TODO: fix base exception
 			type = ExceptionAnalysis.THROWABLE;
 		} else {
-			// size == 1
 			type = typeSet.iterator().next();
 		}
 		
+		final Label handler = er.getHandler().getLabel();
 		List<BasicBlock> range = er.get();
 		range.sort(Comparator.comparing(order::indexOf));
 		
-		// Fixup exception if last block is at the end of the CFG (no next label)
-		Label end;
-		BasicBlock endBlock = range.get(range.size() - 1);
-		BasicBlock im = endBlock.getImmediate();
-		if (im == null) {
-			int endIndex = order.indexOf(endBlock);
-			if (endIndex + 1 < order.size()) {
-				end = order.get(order.indexOf(endBlock) + 1).getLabel();
-			} else {
-				LabelNode label = new LabelNode();
-				m.visitLabel(label.getLabel());
-				BasicBlock newExit = new BasicBlock(cfg, endBlock.getNumericId() + 1, label);
-				cfg.addVertex(newExit);
-				cfg.addEdge(endBlock, new DummyEdge<>(endBlock, newExit));
-				end = label.getLabel();
-			}
-		} else {
-			end = im.getLabel();
-		}
 		Label start = range.get(0).getLabel();
-		Label handler = er.getHandler().getLabel();
-		m.visitTryCatchBlock(start, end, handler, type.getInternalName());
+		int rangeIdx = 0, orderIdx = order.indexOf(range.get(rangeIdx));
+		for (;;) {
+			// check for endpoints
+			if (orderIdx + 1 == order.size()) { // end of method
+				m.visitTryCatchBlock(start, terminalLabel, handler, type.getInternalName());
+				break;
+			} else if (rangeIdx + 1 == range.size()) { // end of range
+				Label end = order.get(orderIdx + 1).getLabel();
+				m.visitTryCatchBlock(start, end, handler, type.getInternalName());
+				break;
+			}
+			
+			// check for discontinuity
+			BasicBlock nextBlock = range.get(rangeIdx + 1);
+			int nextOrderIdx = order.indexOf(nextBlock);
+			if (nextOrderIdx - orderIdx > 1) { // blocks in-between, end the handler and begin anew
+				System.err.println("[warn] Had to split up a range: " + m);
+				Label end = order.get(orderIdx + 1).getLabel();
+				m.visitTryCatchBlock(start, end, handler, type.getInternalName());
+				start = nextBlock.getLabel();
+			}
+
+			// next
+			rangeIdx++;
+			if (nextOrderIdx != -1)
+				orderIdx = nextOrderIdx;
+		}
 	}
 	
-	private static ArrayList<BasicBlock> linearize(ControlFlowGraph cfg) {
-		return new ArrayList<>(cfg.vertices());
+	private static IndexedList<BasicBlock> linearize(ControlFlowGraph cfg) {
+		return new IndexedList<>(new ArrayList<>(cfg.vertices()));
 	}
 }
