@@ -6,27 +6,13 @@ import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.cfg.builder.ssaopt.ConstraintUtil;
 import org.mapleir.ir.cfg.builder.ssaopt.LatestValue;
-import org.mapleir.ir.cfg.edge.ConditionalJumpEdge;
-import org.mapleir.ir.cfg.edge.FlowEdge;
-import org.mapleir.ir.cfg.edge.FlowEdges;
-import org.mapleir.ir.cfg.edge.ImmediateEdge;
-import org.mapleir.ir.cfg.edge.SwitchEdge;
-import org.mapleir.ir.cfg.edge.TryCatchEdge;
-import org.mapleir.ir.cfg.edge.UnconditionalJumpEdge;
+import org.mapleir.ir.cfg.edge.*;
 import org.mapleir.ir.code.CodeUnit;
 import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.code.Opcode;
 import org.mapleir.ir.code.Stmt;
-import org.mapleir.ir.code.expr.ConstantExpr;
-import org.mapleir.ir.code.expr.InitialisedObjectExpr;
-import org.mapleir.ir.code.expr.InvocationExpr;
-import org.mapleir.ir.code.expr.PhiExpr;
-import org.mapleir.ir.code.expr.VarExpr;
-import org.mapleir.ir.code.stmt.ConditionalJumpStmt;
-import org.mapleir.ir.code.stmt.PopStmt;
-import org.mapleir.ir.code.stmt.SwitchStmt;
-import org.mapleir.ir.code.stmt.ThrowStmt;
-import org.mapleir.ir.code.stmt.UnconditionalJumpStmt;
+import org.mapleir.ir.code.expr.*;
+import org.mapleir.ir.code.stmt.*;
 import org.mapleir.ir.code.stmt.copy.AbstractCopyStmt;
 import org.mapleir.ir.code.stmt.copy.CopyPhiStmt;
 import org.mapleir.ir.code.stmt.copy.CopyVarStmt;
@@ -44,20 +30,8 @@ import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.LabelNode;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.ListIterator;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Set;
-import java.util.Stack;
 
 public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 
@@ -296,16 +270,6 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 			if (e.getType() == FlowEdges.TRYCATCH) {
 				TryCatchEdge<BasicBlock> c = ((TryCatchEdge<BasicBlock>) e).clone(newBlock, null); // second param is discarded (?)
 				cfg.addEdge(newBlock, c);
-			}
-		}
-		if (!checkCloneHandler(b)) {
-			// remove unnecessary handler edges if this block is now all simple copies, synth copies, or simple jumps.
-			for (FlowEdge<BasicBlock> e : new HashSet<>(cfg.getEdges(b))) {
-				if (e instanceof TryCatchEdge) {
-					TryCatchEdge<BasicBlock> tce = (TryCatchEdge<BasicBlock>) e;
-					tce.erange.removeVertex(b);
-					cfg.removeEdge(b, tce);
-				}
 			}
 		}
 		
