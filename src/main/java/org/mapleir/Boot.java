@@ -12,6 +12,7 @@ import org.mapleir.deob.interproc.CallTracer;
 import org.mapleir.deob.interproc.IRCallTracer;
 import org.mapleir.deob.intraproc.ExceptionAnalysis;
 import org.mapleir.deob.passes.*;
+import org.mapleir.deob.passes.constparam.ConstantExpressionEvaluatorPass;
 import org.mapleir.ir.algorithms.BoissinotDestructor;
 import org.mapleir.ir.algorithms.ControlFlowGraphDumper;
 import org.mapleir.ir.cfg.ControlFlowGraph;
@@ -279,8 +280,8 @@ public class Boot {
 				new ConstantExpressionReorderPass(),
 //				new FieldRSADecryptionPass(),
 //				new ConstantParameterPass(),
-// 				new ConstantExpressionEvaluatorPass(),
-				// new DeadCodeEliminationPass()
+				new ConstantExpressionEvaluatorPass(),
+				new DeadCodeEliminationPass()
 //				new PassGroup("Interprocedural Optimisations")
 				
 		};
