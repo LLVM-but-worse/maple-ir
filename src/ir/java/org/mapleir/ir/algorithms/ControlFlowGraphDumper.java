@@ -99,6 +99,15 @@ public class ControlFlowGraphDumper {
 			int nextOrderIdx = order.indexOf(nextBlock);
 			if (nextOrderIdx - orderIdx > 1) { // blocks in-between, end the handler and begin anew
 				System.err.println("[warn] Had to split up a range: " + m);
+				System.err.println(cfg);
+				System.err.println(m);
+				System.err.println(er);
+				System.err.println("Range: " + range);
+				System.err.println("Order: " + order);
+				System.err.println("range, order, next: " + rangeIdx + " " + orderIdx + " " + nextOrderIdx);
+				System.err.println("corresponding blocks: " + range.get(rangeIdx) + " " + nextBlock);
+				for (int i = 0; i < 20; i++)
+					System.err.println();
 				Label end = order.get(orderIdx + 1).getLabel();
 				m.visitTryCatchBlock(start, end, handler, type.getInternalName());
 				start = nextBlock.getLabel();

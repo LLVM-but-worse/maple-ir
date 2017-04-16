@@ -15,12 +15,8 @@ import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
 
 import java.lang.reflect.Modifier;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Set;
 
 public class MethodRenamerPass implements IPass {
 
@@ -248,7 +244,7 @@ public class MethodRenamerPass implements IPass {
 		 * them using the old names during the invocation 
 		 * analysis above. */
 		for(Entry<MethodNode, String> e : remapped.entrySet()) {
-			// System.out.printf("%s -> %s%n", e.getKey(), e.getValue());
+			// System.out.printf("%s -> %s%n", e.getKey(), e.getKey().owner.name + "." + e.getValue() + e.getKey().desc);
 			e.getKey().name = e.getValue();
 		}
 	}
