@@ -1,15 +1,12 @@
 package org.mapleir.stdlib.collections.graph.algorithms;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-
 import org.mapleir.ir.cfg.edge.FlowEdge;
 import org.mapleir.stdlib.collections.graph.FastGraphVertex;
 import org.mapleir.stdlib.collections.graph.flow.FlowGraph;
 
+import java.util.*;
+
+// TODO: Convert to stack-invariant
 public class TarjanSCC <N extends FastGraphVertex> {
 	
 	final FlowGraph<N, FlowEdge<N>> graph;
