@@ -36,10 +36,11 @@ public class ControlFlowGraphDumper {
 
 		// Linearize
 		IndexedList<BasicBlock> blocks = linearize(cfg);
-		if (m.toString().equals("cmk.bfw(B)Z")) {
+		if (m.toString().equals("cmk.bgk(B)Z")) {
 			System.out.println(cfg);
 			printOrdering(new ArrayList<>(cfg.vertices()));
 			printOrdering(blocks);
+			System.exit(1);
 		}
 		
 		// Dump code
@@ -156,6 +157,10 @@ public class ControlFlowGraphDumper {
 		if (cfg.getEntries().size() != 1)
 			throw new IllegalStateException("CFG doesn't have exactly 1 entry");
 		BasicBlock entry = cfg.getEntries().iterator().next();
+		
+		if (cfg.getMethod().toString().equals("cmk.bgk(B)Z")) {
+			System.err.println("aa");
+		}
 		
 		// Build bundle graph
 		Map<BasicBlock, BlockBundle> bundles = new HashMap<>();
