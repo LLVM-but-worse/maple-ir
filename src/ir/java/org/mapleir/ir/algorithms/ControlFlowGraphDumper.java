@@ -36,6 +36,11 @@ public class ControlFlowGraphDumper {
 
 		// Linearize
 		IndexedList<BasicBlock> blocks = linearize(cfg);
+		if (m.toString().equals("cmk.bfw(B)Z")) {
+			System.out.println(cfg);
+			printOrdering(new ArrayList<>(cfg.vertices()));
+			printOrdering(blocks);
+		}
 		
 		// Dump code
 		for (BasicBlock b : blocks) {
@@ -73,6 +78,24 @@ public class ControlFlowGraphDumper {
 			dumpRange(cfg, m, blocks, er, terminalLabel.getLabel());
 		}
 		m.visitEnd();
+	}
+	
+	private static void printOrdering(List<BasicBlock> order) {
+		for (int i = 0; i < order.size(); i++) {
+			BasicBlock b = order.get(i);
+			System.out.print(b.getId());
+			BasicBlock next = b.getImmediate();
+			if (next != null) {
+				if (next == order.get(i + 1)) {
+					System.out.print("->");
+				} else {
+					throw new IllegalStateException("WTF");
+				}
+			} else {
+				System.out.print(" ");
+			}
+		}
+		System.out.println();
 	}
 	
 	private static void dumpRange(ControlFlowGraph cfg, MethodNode m, IndexedList<BasicBlock> order, ExceptionRange<BasicBlock> er, Label terminalLabel) {
@@ -175,7 +198,9 @@ public class ControlFlowGraphDumper {
 		
 		// Add entry bundles to order first
 		List<BlockBundle> entrySCC = null;
-		for (List<BlockBundle> scc : sccComputor.getComponents()) {
+		List<List<BlockBundle>> components = sccComputor.getComponents();
+		for (int i1 = components.size() - 1; i1 >= 0; i1--) {
+			List<BlockBundle> scc = components.get(i1);
 			int i = scc.indexOf(entryBundle);
 			if (i != -1) {
 				int stop = i;
@@ -190,7 +215,8 @@ public class ControlFlowGraphDumper {
 		}
 		
 		// Add other bundles
-		for (List<BlockBundle> scc : sccComputor.getComponents()) {
+		for (int i = components.size() - 1; i >= 0; i--) {
+			List<BlockBundle> scc = components.get(i);
 			if (scc == entrySCC)
 				continue;
 			scc.forEach(order::addAll);
@@ -239,82 +265,15 @@ public class ControlFlowGraphDumper {
 		}
 	}
 	
-	private static class BlockBundle implements FastGraphVertex, Collection<BasicBlock> {
-		private List<BasicBlock> blocks = new ArrayList<>();
-		
+	private static class BlockBundle extends ArrayList<BasicBlock> implements FastGraphVertex {
 		@Override
 		public String getId() {
-			return blocks.get(0).getId();
+			return get(0).getId();
 		}
 		
 		@Override
 		public int getNumericId() {
-			return blocks.get(0).getNumericId();
-		}
-		
-		@Override
-		public boolean add(BasicBlock b) {
-			return blocks.add(b);
-		}
-		
-		@Override
-		public boolean remove(Object o) {
-			throw new UnsupportedOperationException();
-		}
-		
-		@Override
-		public boolean containsAll(Collection<?> c) {
-			return blocks.contains(c);
-		}
-		
-		@Override
-		public boolean addAll(Collection<? extends BasicBlock> c) {
-			return blocks.addAll(c);
-		}
-		
-		@Override
-		public boolean removeAll(Collection<?> c) {
-			throw new UnsupportedOperationException();
-		}
-		
-		@Override
-		public boolean retainAll(Collection<?> c) {
-			throw new UnsupportedOperationException();
-		}
-		
-		@Override
-		public void clear() {
-			throw new UnsupportedOperationException();
-		}
-		
-		@Override
-		public int size() {
-			return blocks.size();
-		}
-		
-		@Override
-		public boolean isEmpty() {
-			return blocks.isEmpty();
-		}
-		
-		@Override
-		public boolean contains(Object o) {
-			return blocks.contains(o);
-		}
-		
-		@Override
-		public Iterator<BasicBlock> iterator() {
-			return blocks.iterator();
-		}
-		
-		@Override
-		public Object[] toArray() {
-			return blocks.toArray();
-		}
-		
-		@Override
-		public <T> T[] toArray(T[] a) {
-			return blocks.toArray(a);
+			return get(0).getNumericId();
 		}
 	}
 }

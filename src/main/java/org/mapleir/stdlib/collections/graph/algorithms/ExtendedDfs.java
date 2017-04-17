@@ -3,15 +3,9 @@ package org.mapleir.stdlib.collections.graph.algorithms;
 import org.mapleir.stdlib.collections.graph.FastDirectedGraph;
 import org.mapleir.stdlib.collections.graph.FastGraphEdge;
 import org.mapleir.stdlib.collections.graph.FastGraphVertex;
-import org.mapleir.stdlib.collections.map.KeyedValueCreator;
 import org.mapleir.stdlib.collections.map.NullPermeableHashMap;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 public class ExtendedDfs<N extends FastGraphVertex> implements DepthFirstSearch<N> {
 	
@@ -21,6 +15,7 @@ public class ExtendedDfs<N extends FastGraphVertex> implements DepthFirstSearch<
 							COLOUR_VISITOR = 0x20;
 	
 	private final int opt;
+	private Collection<N> mask;
 	private final FastDirectedGraph<N, ? extends FastGraphEdge<N>> graph;
 	private final NullPermeableHashMap<N, Integer> colours;
 	private final Map<Integer, Set<FastGraphEdge<N>>> edges;
@@ -31,12 +26,9 @@ public class ExtendedDfs<N extends FastGraphVertex> implements DepthFirstSearch<
 	public ExtendedDfs(FastDirectedGraph<N, ? extends FastGraphEdge<N>> graph, int opt) {
 		this.opt = opt;
 		this.graph = graph;
-		colours = new NullPermeableHashMap<>(new KeyedValueCreator<N, Integer>() {
-			@Override
-			public Integer create(N k) {
-				if(opt(COLOUR_VISITOR)) coloured(k, WHITE);
-				return WHITE;
-			}
+		colours = new NullPermeableHashMap<>(k -> {
+			if(opt(COLOUR_VISITOR)) coloured(k, WHITE);
+			return WHITE;
 		});
 		
 		parents = opt(PARENTS) ? new HashMap<>() : null;
@@ -51,11 +43,26 @@ public class ExtendedDfs<N extends FastGraphVertex> implements DepthFirstSearch<
 		} else {
 			edges = null;
 		}
+		mask = null;
 	}
 	
 	public ExtendedDfs<N> run(N entry) {
 		dfs(null, entry);
 		return this;
+	}
+	
+	/**
+	 * Sets the mask for the DFS. The DFS will only consider edges to vertices within the mask.
+	 * Note that this does not apply for the entry vertex; it is always considered.
+	 * If null, the mask is not used.
+	 * @param mask Mask to use, or null for no mask.
+	 */
+	public void setMask(Collection<N> mask) {
+		this.mask = mask;
+	}
+	
+	public void clearMask() {
+		mask = null;
 	}
 	
 	public int getColour(N b) {
@@ -89,11 +96,15 @@ public class ExtendedDfs<N extends FastGraphVertex> implements DepthFirstSearch<
 		
 		for(FastGraphEdge<N> sE : order(reverse ? graph.getReverseEdges(b) : graph.getEdges(b)))  {
 			N s = reverse ? sE.src : sE.dst;
-			if(opt(EDGES)) edges.get(colours.getNonNull(s)).add(sE);
-			
-			if(colours.getNonNull(s) == WHITE) {
-				if(opt(PARENTS)) parents.put(s, b);
-				dfs(b, s);
+			if (mask == null || mask.contains(s)) {
+				if (opt(EDGES))
+					edges.get(colours.getNonNull(s)).add(sE);
+				
+				if (colours.getNonNull(s) == WHITE) {
+					if (opt(PARENTS))
+						parents.put(s, b);
+					dfs(b, s);
+				}
 			}
 		}
 		

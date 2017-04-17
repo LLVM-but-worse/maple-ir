@@ -1,7 +1,5 @@
 package org.mapleir.deob.passes;
 
-import java.util.*;
-
 import org.mapleir.context.IContext;
 import org.mapleir.context.app.ApplicationClassSource;
 import org.mapleir.context.app.ClassHelper;
@@ -18,11 +16,9 @@ import org.mapleir.ir.code.stmt.ReturnStmt;
 import org.mapleir.ir.code.stmt.copy.AbstractCopyStmt;
 import org.mapleir.stdlib.collections.graph.flow.ExceptionRange;
 import org.objectweb.asm.Type;
-import org.objectweb.asm.tree.ClassNode;
-import org.objectweb.asm.tree.FieldNode;
-import org.objectweb.asm.tree.LocalVariableNode;
-import org.objectweb.asm.tree.MethodNode;
-import org.objectweb.asm.tree.TryCatchBlockNode;
+import org.objectweb.asm.tree.*;
+
+import java.util.*;
 
 public class ClassRenamerPass implements IPass {
 
@@ -60,7 +56,7 @@ public class ClassRenamerPass implements IPass {
 			String s = RenamingUtil.createName(n);
 			n += step;
 			remapping.put(cn.name, s);
-			// System.out.println(cn.name + " -> " + s);
+			System.out.println(cn.name + " -> " + s);
 			cn.name = s;
 		}
 		
