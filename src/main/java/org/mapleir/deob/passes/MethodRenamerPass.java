@@ -244,7 +244,7 @@ public class MethodRenamerPass implements IPass {
 		 * them using the old names during the invocation 
 		 * analysis above. */
 		for(Entry<MethodNode, String> e : remapped.entrySet()) {
-			// System.out.printf("%s -> %s%n", e.getKey(), e.getKey().owner.name + "." + e.getValue() + e.getKey().desc);
+			System.out.printf("%s -> %s%n", e.getKey(), e.getKey().owner.name + "." + e.getValue() + e.getKey().desc);
 			e.getKey().name = e.getValue();
 		}
 	}
