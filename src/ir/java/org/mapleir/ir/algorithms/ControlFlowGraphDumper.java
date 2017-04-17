@@ -155,16 +155,27 @@ public class ControlFlowGraphDumper {
 		}
 	}
 	
-	// TODO: subgraph SCCs
-	// STRATEGY:
-	// List<BlockBundle> linearize(Map bundles, BundleGraph fullGraph, List<BlockBundle> scc)
-	// 1. Construct induced subgraph (probably should impl in FastGraph)
-	// 2. Run TarjanSCC on subgraph
-	// 3. order = new ArrayList<BlockBundle>
-	// 4. For each scc:
-	// 5. If scc size > 1: order.addAll(linearize(bundles, fullGraph, scc))
-	// 6. If scc size == 1: order.add(scc.get(0))
-	// 7. Return order
+	private static List<BlockBundle> linearize(Collection<BlockBundle> bundles, BundleGraph fullGraph, BlockBundle entryBundle) {
+		BundleGraph subgraph = fullGraph.inducedSubgraph(bundles);
+		
+		TarjanSCC<BlockBundle> sccComputor = new TarjanSCC<>(subgraph);
+		sccComputor.search(entryBundle);
+		for(BlockBundle b : bundles) {
+			if(sccComputor.low(b) == -1) {
+				sccComputor.search(b);
+			}
+		}
+		
+		List<BlockBundle> order = new ArrayList<>();
+		
+		// Flatten
+		List<List<BlockBundle>> components = sccComputor.getComponents();
+		if (components.size() == 1)
+			order.addAll(components.get(0));
+		else for (List<BlockBundle> scc : sccComputor.getComponents())
+			order.addAll(linearize(scc, subgraph, scc.get(0)));
+		return order;
+	}
 	
 	private static IndexedList<BasicBlock> linearize(ControlFlowGraph cfg) {
 		if (cfg.getEntries().size() != 1)
@@ -204,39 +215,9 @@ public class ControlFlowGraphDumper {
 			}
 		}
 		
-		TarjanSCC<BlockBundle> sccComputor = new TarjanSCC<>(bundleGraph);
-		sccComputor.search(entryBundle);
-		for(BlockBundle b : bundles.values()) {
-			if(sccComputor.low(b) == -1) {
-				sccComputor.search(b);
-			}
-		}
-		
+		// Flatten
 		IndexedList<BasicBlock> order = new IndexedList<>();
-		
-		// Add entry bundles to order first
-		List<BlockBundle> entrySCC = null;
-		List<List<BlockBundle>> components = sccComputor.getComponents();
-		for (List<BlockBundle> scc : components) {
-			int i = scc.indexOf(entryBundle);
-			if (i != -1) {
-				int stop = i;
-				do {
-					entrySCC = scc;
-					BlockBundle bundle = scc.get(i);
-					order.addAll(bundle);
-					i = ++i % scc.size();
-				} while (i != stop);
-				break;
-			}
-		}
-		
-		// Add other bundles
-		for (List<BlockBundle> scc : components) {
-			if (scc == entrySCC)
-				continue;
-			scc.forEach(order::addAll);
-		}
+		linearize(bundles.values(), bundleGraph, entryBundle).forEach(order::addAll);
 		
 		// Fix immediates
 		for (int i = 0; i < order.size(); i++) {
@@ -279,6 +260,19 @@ public class ControlFlowGraphDumper {
 		@Override
 		public FastGraph<BlockBundle, FastGraphEdge<BlockBundle>> copy() {
 			throw new UnsupportedOperationException();
+		}
+		
+		// todo: move up to FastGraph!
+		public BundleGraph inducedSubgraph(Collection<BlockBundle> vertices) {
+			BundleGraph subgraph = new BundleGraph();
+			for (BlockBundle n : vertices) {
+				subgraph.addVertex(n);
+				for (FastGraphEdge<BlockBundle> e : getEdges(n)) {
+					if (vertices.contains(e.dst))
+						subgraph.addEdge(n, e);
+				}
+			}
+			return subgraph;
 		}
 	}
 	

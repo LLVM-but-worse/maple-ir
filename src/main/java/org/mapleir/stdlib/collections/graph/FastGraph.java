@@ -40,6 +40,8 @@ public interface FastGraph<N extends FastGraphVertex, E extends FastGraphEdge<N>
 	
 	FastGraph<N, E> copy();
 	
+	// FastGraph<N, E> inducedSubgraph(Collection<N> vertices);
+	
 	default Map<N, Set<E>> createMap() {
 		return new LinkedHashMap<>();
 	}
