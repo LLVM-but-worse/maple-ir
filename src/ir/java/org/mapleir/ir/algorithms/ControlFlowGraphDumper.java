@@ -36,11 +36,11 @@ public class ControlFlowGraphDumper {
 
 		// Linearize
 		IndexedList<BasicBlock> blocks = linearize(cfg);
-		if (m.toString().equals("cmk.bgk(B)Z")) {
+		if (m.toString().equals("cmk.bfw(B)Z")) {
 			System.out.println(cfg);
 			printOrdering(new ArrayList<>(cfg.vertices()));
 			printOrdering(blocks);
-			System.exit(1);
+			// System.exit(1);
 		}
 		
 		// Dump code
@@ -132,6 +132,8 @@ public class ControlFlowGraphDumper {
 			int nextOrderIdx = order.indexOf(nextBlock);
 			if (nextOrderIdx - orderIdx > 1) { // blocks in-between, end the handler and begin anew
 				System.err.println("[warn] Had to split up a range: " + m);
+				printOrdering(new ArrayList<>(cfg.vertices()));
+				printOrdering(order);
 				// System.err.println(cfg);
 				// System.err.println(m);
 				// System.err.println(er);
@@ -158,7 +160,7 @@ public class ControlFlowGraphDumper {
 			throw new IllegalStateException("CFG doesn't have exactly 1 entry");
 		BasicBlock entry = cfg.getEntries().iterator().next();
 		
-		if (cfg.getMethod().toString().equals("cmk.bgk(B)Z")) {
+		if (cfg.getMethod().toString().equals("cmk.bfw(B)Z")) {
 			System.err.println("aa");
 		}
 		
@@ -204,8 +206,7 @@ public class ControlFlowGraphDumper {
 		// Add entry bundles to order first
 		List<BlockBundle> entrySCC = null;
 		List<List<BlockBundle>> components = sccComputor.getComponents();
-		for (int i1 = components.size() - 1; i1 >= 0; i1--) {
-			List<BlockBundle> scc = components.get(i1);
+		for (List<BlockBundle> scc : components) {
 			int i = scc.indexOf(entryBundle);
 			if (i != -1) {
 				int stop = i;
@@ -220,8 +221,7 @@ public class ControlFlowGraphDumper {
 		}
 		
 		// Add other bundles
-		for (int i = components.size() - 1; i >= 0; i--) {
-			List<BlockBundle> scc = components.get(i);
+		for (List<BlockBundle> scc : components) {
 			if (scc == entrySCC)
 				continue;
 			scc.forEach(order::addAll);
