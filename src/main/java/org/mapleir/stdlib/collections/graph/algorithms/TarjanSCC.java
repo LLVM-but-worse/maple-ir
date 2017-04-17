@@ -1,22 +1,22 @@
 package org.mapleir.stdlib.collections.graph.algorithms;
 
-import org.mapleir.ir.cfg.edge.FlowEdge;
+import org.mapleir.stdlib.collections.graph.FastDirectedGraph;
+import org.mapleir.stdlib.collections.graph.FastGraphEdge;
 import org.mapleir.stdlib.collections.graph.FastGraphVertex;
-import org.mapleir.stdlib.collections.graph.flow.FlowGraph;
 
 import java.util.*;
 
 // TODO: Convert to stack-invariant
 public class TarjanSCC <N extends FastGraphVertex> {
 	
-	final FlowGraph<N, FlowEdge<N>> graph;
+	final FastDirectedGraph<N, ? extends FastGraphEdge<N>> graph;
 	final Map<N, Integer> index;
 	final Map<N, Integer> low;
 	final LinkedList<N> stack;
 	final List<List<N>> comps;
 	int cur;
 	
-	public TarjanSCC(FlowGraph<N, FlowEdge<N>> graph) {
+	public TarjanSCC(FastDirectedGraph<N, ? extends FastGraphEdge<N>> graph) {
 		this.graph = graph;
 		
 		index = new HashMap<>();
@@ -52,7 +52,7 @@ public class TarjanSCC <N extends FastGraphVertex> {
 		
 		stack.push(n);
 		
-		for(FlowEdge<N> e : graph.getEdges(n)) {
+		for(FastGraphEdge<N> e : graph.getEdges(n)) {
 			N s = e.dst;
 			if(low.containsKey(s)) {
 				low.put(n, Math.min(low.get(n), index.get(s)));
@@ -93,7 +93,7 @@ public class TarjanSCC <N extends FastGraphVertex> {
 			
 			bfs.add(n);
 			
-			for(FlowEdge<N> e : graph.getEdges(n)) {
+			for(FastGraphEdge<N> e : graph.getEdges(n)) {
 				N s = e.dst;
 				queue.addLast(s);
 			}
@@ -113,11 +113,11 @@ public class TarjanSCC <N extends FastGraphVertex> {
 		WEIGHTS.put(TryCatchEdge.class, 5);
 	}  */
 
-	/* List<FlowEdge<N>> weigh(Set<FlowEdge<N>> edges) {
-		List<FlowEdge<N>> list = new ArrayList<>(edges);
-		Collections.sort(list, new Comparator<FlowEdge<N>>() {
+	/* List<FastGraphEdge<N>> weigh(Set<FastGraphEdge<N>> edges) {
+		List<FastGraphEdge<N>> list = new ArrayList<>(edges);
+		Collections.sort(list, new Comparator<FastGraphEdge<N>>() {
 			@Override
-			public int compare(FlowEdge<N> o1, FlowEdge<N> o2) {
+			public int compare(FastGraphEdge<N> o1, FastGraphEdge<N> o2) {
 				Class<?> c1 = o1.getClass();
 				Class<?> c2 = o2.getClass();
 				
