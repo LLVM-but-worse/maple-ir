@@ -155,6 +155,17 @@ public class ControlFlowGraphDumper {
 		}
 	}
 	
+	// TODO: subgraph SCCs
+	// STRATEGY:
+	// List<BlockBundle> linearize(Map bundles, BundleGraph fullGraph, List<BlockBundle> scc)
+	// 1. Construct induced subgraph (probably should impl in FastGraph)
+	// 2. Run TarjanSCC on subgraph
+	// 3. order = new ArrayList<BlockBundle>
+	// 4. For each scc:
+	// 5. If scc size > 1: order.addAll(linearize(bundles, fullGraph, scc))
+	// 6. If scc size == 1: order.add(scc.get(0))
+	// 7. Return order
+	
 	private static IndexedList<BasicBlock> linearize(ControlFlowGraph cfg) {
 		if (cfg.getEntries().size() != 1)
 			throw new IllegalStateException("CFG doesn't have exactly 1 entry");
@@ -243,6 +254,7 @@ public class ControlFlowGraphDumper {
 		return order;
 	}
 	
+	// TODO: default graph impl
 	private static class BundleGraph extends FastDirectedGraph<BlockBundle, FastGraphEdge<BlockBundle>> {
 		@Override
 		public boolean excavate(BlockBundle basicBlocks) {
