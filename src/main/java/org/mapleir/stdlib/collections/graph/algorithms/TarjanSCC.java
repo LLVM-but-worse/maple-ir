@@ -71,8 +71,7 @@ public class TarjanSCC <N extends FastGraphVertex> {
 				c.add(w);
 			} while (w != n);
 			
-			ExtendedDfs<N> dfs = new ExtendedDfs<>(graph, ExtendedDfs.POST).run(n);
-			dfs.setMask(c);
+			ExtendedDfs<N> dfs = new ExtendedDfs<>(graph, ExtendedDfs.POST).setMask(c).run(n);
 			Collections.reverse(dfs.getPostOrder());
 			comps.add(0, dfs.getPostOrder());
 		}

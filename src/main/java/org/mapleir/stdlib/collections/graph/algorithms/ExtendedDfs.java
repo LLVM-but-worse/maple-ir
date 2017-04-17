@@ -57,8 +57,9 @@ public class ExtendedDfs<N extends FastGraphVertex> implements DepthFirstSearch<
 	 * If null, the mask is not used.
 	 * @param mask Mask to use, or null for no mask.
 	 */
-	public void setMask(Collection<N> mask) {
+	public ExtendedDfs<N> setMask(Collection<N> mask) {
 		this.mask = mask;
+		return this;
 	}
 	
 	public void clearMask() {
