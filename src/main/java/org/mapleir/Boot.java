@@ -31,7 +31,6 @@ import org.mapleir.deob.passes.ConstantExpressionReorderPass;
 import org.mapleir.deob.passes.DeadCodeEliminationPass;
 import org.mapleir.deob.passes.FieldRenamerPass;
 import org.mapleir.deob.passes.MethodRenamerPass;
-import org.mapleir.deob.passes.constparam.ConstantExpressionEvaluatorPass;
 import org.mapleir.ir.algorithms.BoissinotDestructor;
 import org.mapleir.ir.algorithms.ControlFlowGraphDumper;
 import org.mapleir.ir.cfg.ControlFlowGraph;
@@ -297,7 +296,7 @@ public class Boot {
 				new ConstantExpressionReorderPass(),
 //				new FieldRSADecryptionPass(),
 //				new ConstantParameterPass(),
-				new ConstantExpressionEvaluatorPass(),
+//				new ConstantExpressionEvaluatorPass(),
 				new DeadCodeEliminationPass()
 //				new PassGroup("Interprocedural Optimisations")
 				

@@ -1,10 +1,5 @@
 package org.mapleir.stdlib.util.dot;
 
-import org.mapleir.stdlib.collections.graph.FastGraph;
-import org.mapleir.stdlib.collections.graph.FastGraphEdge;
-import org.mapleir.stdlib.collections.graph.FastGraphVertex;
-import org.mapleir.stdlib.util.TabbedStringWriter;
-
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -19,6 +14,11 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+
+import org.mapleir.stdlib.collections.graph.FastGraph;
+import org.mapleir.stdlib.collections.graph.FastGraphEdge;
+import org.mapleir.stdlib.collections.graph.FastGraphVertex;
+import org.mapleir.stdlib.util.TabbedStringWriter;
 
 public class DotWriter<G extends FastGraph<N, E>, N extends FastGraphVertex, E extends FastGraphEdge<N>> extends TabbedStringWriter {
 	
@@ -205,7 +205,7 @@ public class DotWriter<G extends FastGraph<N, E>, N extends FastGraphVertex, E e
 				continue;
 			}
 			
-			print(n.getId()).print(" [");
+			esc(n.getId()).print(" [");
 			Map<String, Object> nprops = new HashMap<>();
 			for(String key : pipelineOrder){
 				DotPropertyDecorator<G, N, E> d = pipeline.get(key);
@@ -229,7 +229,7 @@ public class DotWriter<G extends FastGraph<N, E>, N extends FastGraphVertex, E e
 					continue;
 				}
 				
-				print(e.src.getId()).print(arrow).print(e.dst.getId()).print(" ").print("[");
+				esc(e.src.getId()).print(arrow).esc(e.dst.getId()).print(" ").print("[");
 				Map<String, Object> eprops = new HashMap<>();
 				for(String key : pipelineOrder){
 					DotPropertyDecorator<G, N, E> d = pipeline.get(key);
@@ -268,7 +268,7 @@ public class DotWriter<G extends FastGraph<N, E>, N extends FastGraphVertex, E e
 	}
 	
 	public DotWriter<G, N, E> esc(String s) {
-		return esc().print(s.replaceAll("\"", "\\\\\"")).esc();
+		return esc().print(s).esc();
 	}
 
 	public DotWriter<G, N, E> newLine() {
