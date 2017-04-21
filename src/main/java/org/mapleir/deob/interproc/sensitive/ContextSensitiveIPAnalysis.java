@@ -1,8 +1,10 @@
 package org.mapleir.deob.interproc.sensitive;
 
+import java.util.List;
+
 import org.mapleir.context.IContext;
 import org.mapleir.deob.interproc.IRCallTracer;
-import org.mapleir.deob.interproc.sensitive.ContextSensitiveIPAnalysis.CallGraph.ContextSensitiveInvocation;
+import org.mapleir.deob.interproc.sensitive.ContextSensitiveIPAnalysis.CallGraph.ContextInsensitiveInvocation;
 import org.mapleir.deob.intraproc.eval.ExpressionEvaluator;
 import org.mapleir.deob.intraproc.eval.LocalValueResolver;
 import org.mapleir.ir.cfg.ControlFlowGraph;
@@ -13,6 +15,7 @@ import org.mapleir.ir.code.expr.invoke.Invocation;
 import org.mapleir.stdlib.collections.graph.FastDirectedGraph;
 import org.mapleir.stdlib.collections.graph.FastGraph;
 import org.mapleir.stdlib.collections.graph.FastGraphEdge;
+import org.mapleir.stdlib.collections.graph.algorithms.TarjanSCC;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.MethodNode;
@@ -27,6 +30,16 @@ public class ContextSensitiveIPAnalysis {
 		CallgraphBuilder builder = new CallgraphBuilder(cxt);
 		for(MethodNode m : cxt.getIRCache().getActiveMethods()) {
 			builder.trace(m);
+		}
+		
+		TarjanSCC<MethodNode> scc = new TarjanSCC<>(builder.graph);
+		for(MethodNode b : builder.graph.vertices()) {
+			if(scc.low(b) == -1 && cxt.getIRCache().getActiveMethods().contains(b)) {
+				scc.search(b);
+			}
+		}
+		for(List<MethodNode> l : scc.getComponents()) {
+			System.out.println(l);
 		}
 	}
 	
@@ -56,6 +69,23 @@ public class ContextSensitiveIPAnalysis {
 				Expr p = params[i + off];
 				makeFact(p, valueResolver);
 			}
+			
+			if(!context.getApplication().isLibraryClass(caller.owner.name)) {
+				boolean graphed = false;
+				
+				if(graph.containsVertex(caller)) {
+					for(ContextInsensitiveInvocation i : graph.getEdges(caller)) {
+						if(i.dst == callee) {
+							graphed = true;
+							break;
+						}
+					}
+				}
+				
+				if(!graphed) {
+					graph.addEdge(caller, new ContextInsensitiveInvocation(caller, callee));
+				}
+			}
 		}
 		
 		private ArgumentFact makeFact(Expr e, LocalValueResolver valueResolver) {
@@ -66,14 +96,12 @@ public class ContextSensitiveIPAnalysis {
 		}
 	}
 	
-	public static class CallGraph extends FastDirectedGraph<MethodNode, ContextSensitiveInvocation> {
+	public static class CallGraph extends FastDirectedGraph<MethodNode, ContextInsensitiveInvocation> {
 
-		public static class ContextSensitiveInvocation extends FastGraphEdge<MethodNode> {
-			public final Expr call;
+		public static class ContextInsensitiveInvocation extends FastGraphEdge<MethodNode> {
 			
-			public ContextSensitiveInvocation(MethodNode src, MethodNode dst, Expr call) {
+			public ContextInsensitiveInvocation(MethodNode src, MethodNode dst) {
 				super(src, dst);
-				this.call = call;
 			}
 		}
 		
@@ -88,17 +116,17 @@ public class ContextSensitiveIPAnalysis {
 		}
 
 		@Override
-		public ContextSensitiveInvocation clone(ContextSensitiveInvocation edge, MethodNode oldN, MethodNode newN) {
+		public ContextInsensitiveInvocation clone(ContextInsensitiveInvocation edge, MethodNode oldN, MethodNode newN) {
 			throw new UnsupportedOperationException("TODO");
 		}
 
 		@Override
-		public ContextSensitiveInvocation invert(ContextSensitiveInvocation edge) {
+		public ContextInsensitiveInvocation invert(ContextInsensitiveInvocation edge) {
 			throw new UnsupportedOperationException("TODO");
 		}
 
 		@Override
-		public FastGraph<MethodNode, ContextSensitiveInvocation> copy() {
+		public FastGraph<MethodNode, ContextInsensitiveInvocation> copy() {
 			throw new UnsupportedOperationException("TODO");
 		}
 	}

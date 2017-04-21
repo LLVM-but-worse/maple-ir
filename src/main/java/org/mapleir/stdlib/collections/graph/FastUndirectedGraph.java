@@ -5,6 +5,10 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import org.mapleir.stdlib.util.dot.BasicDotConfiguration;
+import org.mapleir.stdlib.util.dot.DotConfiguration;
+import org.mapleir.stdlib.util.dot.DotConfiguration.GraphType;
+
 // TODO: redo this.
 public abstract class FastUndirectedGraph<N extends FastGraphVertex, E extends FastGraphEdge<N>> implements FastGraph<N, E>{
 
@@ -134,5 +138,10 @@ public abstract class FastUndirectedGraph<N extends FastGraphVertex, E extends F
 		}
 		sb.append("}");
 		return sb.toString();
+	}
+	
+	@Override
+	public DotConfiguration<FastGraph<N,E>, N, E> makeConfiguration() {
+		return new BasicDotConfiguration<>(GraphType.UNDIRECTED);
 	}
 }

@@ -6,6 +6,9 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import org.mapleir.stdlib.util.dot.DotConfiguration;
+import org.mapleir.stdlib.util.dot.DotWriter;
+
 public interface FastGraph<N extends FastGraphVertex, E extends FastGraphEdge<N>> {
 
 	Set<N> vertices();
@@ -58,5 +61,11 @@ public interface FastGraph<N extends FastGraphVertex, E extends FastGraphEdge<N>
 	
 	default Set<E> createSet(Set<E> set) {
 		return new HashSet<>(set);
+	}
+	
+	DotConfiguration<FastGraph<N,E>, N, E> makeConfiguration();
+
+	default DotWriter<FastGraph<N,E>, N, E> makeWriter() {
+		return new DotWriter<>(makeConfiguration(), this);
 	}
 }
