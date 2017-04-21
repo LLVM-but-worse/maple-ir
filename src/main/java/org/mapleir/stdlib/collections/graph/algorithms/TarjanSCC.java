@@ -58,7 +58,9 @@ public class TarjanSCC <N extends FastGraphVertex> {
 		for(FastGraphEdge<N> e : graph.getEdges(n)) {
 			N s = e.dst;
 			if(low.containsKey(s)) {
-				low.put(n, Math.min(low.get(n), index.get(s)));
+				if(index.get(s) < index.get(n) && stack.contains(s)) {
+					low.put(n, Math.min(low.get(n), index.get(s)));
+				}
 			} else {
 				search(s);
 				low.put(n, Math.min(low.get(n), low.get(s)));
