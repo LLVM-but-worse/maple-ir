@@ -862,7 +862,7 @@ public class MethodNode extends MethodVisitor implements FastGraphVertex {
 
 	@Override
 	public String getId() {
-		return toString();
+		return name;
 	}
 
 	@Override
