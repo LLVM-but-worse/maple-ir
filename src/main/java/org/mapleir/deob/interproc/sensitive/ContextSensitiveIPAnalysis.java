@@ -31,15 +31,28 @@ public class ContextSensitiveIPAnalysis {
 		for(MethodNode m : cxt.getIRCache().getActiveMethods()) {
 			builder.trace(m);
 		}
+
+		int x = 0;
+		for(MethodNode m : builder.graph.vertices()) {
+			x += builder.graph.getEdges(m).size();
+		}
 		
 		TarjanSCC<MethodNode> scc = new TarjanSCC<>(builder.graph);
-		for(MethodNode b : builder.graph.vertices()) {
-			if(scc.low(b) == -1 && cxt.getIRCache().getActiveMethods().contains(b)) {
-				scc.search(b);
+		MethodNode fakeEntry = new MethodNode(null, 0, "<VM_INV>", "", null, null);
+		builder.graph.addVertex(fakeEntry);
+		
+		for(MethodNode m : builder.graph.vertices()) {
+			if(cxt.getIRCache().getActiveMethods().contains(m)) {
+				builder.graph.addEdge(fakeEntry, new ContextInsensitiveInvocation(fakeEntry, m));
 			}
 		}
+		scc.search(fakeEntry);
+		
 		for(List<MethodNode> l : scc.getComponents()) {
-			System.out.println(l);
+			System.out.println("c:");
+			for(MethodNode m : l) {
+				System.out.println("    " + m + " .. " + builder.graph.getEdges(m).size() + " .. " + builder.graph.getReverseEdges(m).size());
+			}
 		}
 	}
 	
