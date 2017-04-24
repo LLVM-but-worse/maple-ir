@@ -1,13 +1,13 @@
 package org.mapleir.deob.passes;
 
+import java.util.List;
+import java.util.ListIterator;
+import java.util.Set;
+
 import org.mapleir.context.IContext;
 import org.mapleir.deob.IPass;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
-
-import java.util.List;
-import java.util.ListIterator;
-import java.util.Set;
 
 public class CallgraphPruningPass implements IPass {
 

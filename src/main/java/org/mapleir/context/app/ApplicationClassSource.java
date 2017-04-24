@@ -1,12 +1,13 @@
 package org.mapleir.context.app;
 
-import org.mapleir.stdlib.collections.itertools.ChainIterator;
-import org.objectweb.asm.tree.ClassNode;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
+
+import org.mapleir.stdlib.collections.ClassHelper;
+import org.mapleir.stdlib.collections.itertools.ChainIterator;
+import org.objectweb.asm.tree.ClassNode;
 
 public class ApplicationClassSource extends ClassSource {
 
@@ -65,7 +66,7 @@ public class ApplicationClassSource extends ClassSource {
 			return null;
 		}
 		
-		LocateableClassNode node = super.findClass0(name);
+		LocateableClassNode node = findClass0(name);
 		
 		if(node != null) {
 			return node;

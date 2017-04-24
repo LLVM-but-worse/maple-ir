@@ -1,7 +1,7 @@
 package org.mapleir.deob.interproc.sensitive;
 
-import org.mapleir.stdlib.collections.TaintableSet;
 import org.mapleir.stdlib.collections.taint.ITaintable;
+import org.mapleir.stdlib.collections.taint.TaintableSet;
 
 public interface ArgumentFact extends ITaintable {
 	

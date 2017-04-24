@@ -1,7 +1,6 @@
 package org.mapleir;
 
 import org.mapleir.context.app.ApplicationClassSource;
-import org.mapleir.context.app.ClassHelper;
 import org.mapleir.context.app.ClassTree;
 import org.mapleir.context.app.InstalledRuntimeClassSource;
 import org.mapleir.ir.algorithms.BoissinotDestructor;
@@ -15,6 +14,7 @@ import org.mapleir.ir.code.expr.VarExpr;
 import org.mapleir.ir.code.expr.invoke.InvocationExpr;
 import org.mapleir.ir.code.stmt.PopStmt;
 import org.mapleir.ir.locals.Local;
+import org.mapleir.stdlib.collections.ClassHelper;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
