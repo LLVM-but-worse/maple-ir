@@ -1,4 +1,4 @@
-package org.mapleir.stdlib.collections;
+package org.mapleir.stdlib.collections.taint;
 
 import java.util.Collection;
 import java.util.HashSet;
@@ -6,7 +6,6 @@ import java.util.Iterator;
 import java.util.Set;
 
 import org.mapleir.stdlib.collections.itertools.ProductIterator;
-import org.mapleir.stdlib.collections.taint.ITaintable;
 
 import javafx.util.Pair;
 

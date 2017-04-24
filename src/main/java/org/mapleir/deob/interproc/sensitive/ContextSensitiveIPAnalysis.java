@@ -49,9 +49,13 @@ public class ContextSensitiveIPAnalysis {
 		scc.search(fakeEntry);
 		
 		for(List<MethodNode> l : scc.getComponents()) {
-			System.out.println("c:");
-			for(MethodNode m : l) {
-				System.out.println("    " + m + " .. " + builder.graph.getEdges(m).size() + " .. " + builder.graph.getReverseEdges(m).size());
+			if(l.size() > 1) {
+				System.out.println("c: " + l.size());
+				for(MethodNode m : l) {
+					if(m.owner != null && !cxt.getApplication().isLibraryClass(m.owner.name)) {
+						System.out.println("    " + m + " .. " + builder.graph.getEdges(m).size() + " .. " + builder.graph.getReverseEdges(m).size());
+					}
+				}
 			}
 		}
 	}
