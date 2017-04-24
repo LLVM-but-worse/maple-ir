@@ -4,7 +4,6 @@ import java.util.*;
 
 import org.mapleir.context.IContext;
 import org.mapleir.context.app.ApplicationClassSource;
-import org.mapleir.context.app.ClassHelper;
 import org.mapleir.deob.IPass;
 import org.mapleir.deob.util.RenamingUtil;
 import org.mapleir.ir.cfg.BasicBlock;
@@ -18,6 +17,7 @@ import org.mapleir.ir.code.expr.invoke.InvocationExpr;
 import org.mapleir.ir.code.stmt.FieldStoreStmt;
 import org.mapleir.ir.code.stmt.ReturnStmt;
 import org.mapleir.ir.code.stmt.copy.AbstractCopyStmt;
+import org.mapleir.stdlib.collections.ClassHelper;
 import org.mapleir.stdlib.collections.graph.flow.ExceptionRange;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.ClassNode;

@@ -1,5 +1,6 @@
 package org.mapleir.context.app;
 
+import org.mapleir.stdlib.collections.ClassHelper;
 import org.objectweb.asm.tree.ClassNode;
 
 import java.util.Collection;

@@ -13,7 +13,7 @@ import org.mapleir.ir.code.expr.VarExpr;
 import org.mapleir.ir.code.stmt.copy.AbstractCopyStmt;
 import org.mapleir.ir.locals.Local;
 import org.mapleir.ir.locals.LocalsPool;
-import org.mapleir.stdlib.collections.TaintableSet;
+import org.mapleir.stdlib.collections.taint.TaintableSet;
 
 public interface LocalValueResolver {
 	TaintableSet<Expr> getValues(ControlFlowGraph cfg, Local l);

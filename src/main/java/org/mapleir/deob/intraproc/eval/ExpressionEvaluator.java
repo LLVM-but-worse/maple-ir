@@ -21,9 +21,9 @@ import org.mapleir.ir.code.stmt.ConditionalJumpStmt;
 import org.mapleir.ir.code.stmt.copy.AbstractCopyStmt;
 import org.mapleir.ir.locals.Local;
 import org.mapleir.ir.locals.LocalsPool;
-import org.mapleir.stdlib.collections.TaintableSet;
 import org.mapleir.stdlib.collections.map.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.map.SetCreator;
+import org.mapleir.stdlib.collections.taint.TaintableSet;
 import org.mapleir.stdlib.util.TypeUtils;
 import org.objectweb.asm.Type;
 
