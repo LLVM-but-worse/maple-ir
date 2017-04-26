@@ -1,5 +1,9 @@
 package org.mapleir.stdlib.collections.graph;
 
+import org.mapleir.stdlib.util.dot.BasicDotConfiguration;
+import org.mapleir.stdlib.util.dot.DotConfiguration;
+import org.mapleir.stdlib.util.dot.DotConfiguration.GraphType;
+
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -219,5 +223,11 @@ public abstract class FastDirectedGraph<N extends FastGraphVertex, E extends Fas
 		}
 		sb.append("}");
 		return sb.toString();
+	}
+	
+
+	@Override
+	public DotConfiguration<FastGraph<N,E>, N, E> makeConfiguration() {
+		return new BasicDotConfiguration<>(GraphType.DIRECTED);
 	}
 }

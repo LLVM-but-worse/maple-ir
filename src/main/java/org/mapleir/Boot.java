@@ -4,151 +4,48 @@ import org.mapleir.context.BasicContext;
 import org.mapleir.context.IContext;
 import org.mapleir.context.IRCache;
 import org.mapleir.context.app.ApplicationClassSource;
-import org.mapleir.context.app.CompleteResolvingJarDumper;
 import org.mapleir.context.app.InstalledRuntimeClassSource;
 import org.mapleir.deob.IPass;
 import org.mapleir.deob.PassGroup;
 import org.mapleir.deob.interproc.CallTracer;
 import org.mapleir.deob.interproc.IRCallTracer;
-import org.mapleir.deob.intraproc.ExceptionAnalysis;
-import org.mapleir.deob.passes.*;
-import org.mapleir.deob.passes.constparam.ConstantExpressionEvaluatorPass;
+import org.mapleir.deob.interproc.sensitive.ContextSensitiveIPAnalysis;
+import org.mapleir.deob.intraproc.eval.ExpressionEvaluator;
+import org.mapleir.deob.intraproc.eval.impl.ReflectiveFunctorFactory;
 import org.mapleir.ir.algorithms.BoissinotDestructor;
 import org.mapleir.ir.algorithms.ControlFlowGraphDumper;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.cfg.builder.ControlFlowGraphBuilder;
 import org.mapleir.stdlib.util.InvocationResolver;
-import org.objectweb.asm.ClassWriter;
-import org.objectweb.asm.Opcodes;
-import org.objectweb.asm.tree.*;
+import org.objectweb.asm.ClassReader;
+import org.objectweb.asm.tree.ClassNode;
+import org.objectweb.asm.tree.MethodNode;
 import org.topdank.byteengineer.commons.data.JarInfo;
 import org.topdank.byteio.in.SingleJarDownloader;
-import org.topdank.byteio.out.JarDumper;
 
 import java.io.File;
 import java.io.IOException;
-import java.lang.reflect.Method;
 import java.util.*;
 import java.util.Map.Entry;
-import java.util.jar.JarOutputStream;
 
 public class Boot {
 	
 	public static boolean logging = false;
 	private static long timer;
 	private static Deque<String> sections;
-
-	public static void main5(String[] args) throws Exception {
-		ClassNode c1 = new ClassNode();
-		c1.access = Opcodes.ACC_PUBLIC | Opcodes.ACC_ABSTRACT;
-		c1.version = Opcodes.V1_7;
-		c1.name = "r/Test";
-		c1.superName = "java/lang/Object";
-
-		{
-			MethodNode m = new MethodNode(c1, Opcodes.ACC_PUBLIC | Opcodes.ACC_ABSTRACT, "m", "(I)Lorg/mapleir/t/I0;", null, null);
-			c1.methods.add(m);
+	
+	private static Collection<ClassNode> classes(Class<?>... a) throws IOException {
+		List<ClassNode> list = new ArrayList<>();
+		for(int i=0; i < a.length; i++) {
+			ClassNode cn = new ClassNode();
+			ClassReader cr = new ClassReader(a[i].getName());
+			cr.accept(cn, 0);
+			list.add(cn);
 		}
-
-		{
-			MethodNode m = new MethodNode(c1, Opcodes.ACC_PUBLIC | Opcodes.ACC_ABSTRACT, "m", "(I)Lorg/mapleir/t/I1;", null, null);
-			c1.methods.add(m);
-		}
-		
-		{
-			MethodNode m = new MethodNode(c1, Opcodes.ACC_PUBLIC, "<init>", "()V", null, null);
-			InsnList list = new InsnList();
-			list.add(new VarInsnNode(Opcodes.ALOAD, 0));
-			list.add(new MethodInsnNode(Opcodes.INVOKESPECIAL, "java/lang/Object", "<init>", "()V", false));
-			list.add(new InsnNode(Opcodes.RETURN));
-			m.instructions = list;
-			c1.methods.add(m);
-		}
-		
-		ClassNode c2 = new ClassNode();
-		c2.access = Opcodes.ACC_PUBLIC;
-		c2.version = Opcodes.V1_7;
-		c2.name = "r/Test2";
-		c2.superName = "r/Test";
-		
-		{
-			MethodNode m = new MethodNode(c2, Opcodes.ACC_PUBLIC, "<init>", "()V", null, null);
-			InsnList list = new InsnList();
-			list.add(new VarInsnNode(Opcodes.ALOAD, 0));
-			list.add(new MethodInsnNode(Opcodes.INVOKESPECIAL, "r/Test", "<init>", "()V", false));
-			list.add(new InsnNode(Opcodes.RETURN));
-			m.instructions = list;
-			c2.methods.add(m);
-		}
-		
-		{
-			MethodNode m = new MethodNode(c2, Opcodes.ACC_PUBLIC, "m", "(I)Lorg/mapleir/t/I1;", null, null);
-			InsnList list = new InsnList();
-			list.add(new InsnNode(Opcodes.ACONST_NULL));
-			list.add(new InsnNode(Opcodes.ARETURN));
-			m.instructions = list;
-			c2.methods.add(m);
-		}
-		
-		{
-			MethodNode m = new MethodNode(c2, Opcodes.ACC_PUBLIC, "m", "(I)Lorg/mapleir/t/I0;", null, null);
-			InsnList list = new InsnList();
-			list.add(new InsnNode(Opcodes.ACONST_NULL));
-			list.add(new InsnNode(Opcodes.ARETURN));
-			m.instructions = list;
-			c2.methods.add(m);
-		}
-		
-		ClassLoader cl = new ClassLoader() {
-			{
-				{
-					ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES);
-					c1.accept(cw);
-					byte[] bs = cw.toByteArray();
-					defineClass(bs, 0, bs.length);
-				}
-				{
-					ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES);
-					c2.accept(cw);
-					byte[] bs = cw.toByteArray();
-					defineClass(bs, 0, bs.length);
-				}
-			}
-		};
-
-		System.out.println(cl.loadClass("r.Test"));
-		Object o = cl.loadClass("r.Test2").newInstance();
-		
-		for(Method m : o.getClass().getMethods()) {
-			if(m.getName().equals("m")) {
-				System.out.println(m.invoke(o, 5));
-			}
-		}
+		return list;
 	}
 	
-//	public static void main(String[] args) throws Exception {
-//		Class<?>[] cls = new Class<?>[]{I0.class, I1.class, I3.class, I4.class, A.class, B.class, C.class, I1Impl.class};
-//		
-//		List<ClassNode> classes = new ArrayList<>();
-//		for(Class<?> c : cls) {
-//			ClassReader cr = new ClassReader(c.getName());
-//			ClassNode cn = new ClassNode();
-//			cr.accept(cn, 0);
-//			classes.add(cn);
-//		}
-//		
-//		ApplicationClassSource app = new ApplicationClassSource("test", classes);
-//		InstalledRuntimeClassSource jre = new InstalledRuntimeClassSource(app);
-//		app.addLibraries(jre);
-//		
-//		IContext cxt = new MapleDB(app);
-//		System.out.println(cxt.getInvocationResolver().resolveVirtualCalls("org/mapleir/t/A", "m", "(I)Lorg/mapleir/t/I1;", true));
-//		
-//	}
-	
 	public static void main(String[] args) throws Exception {
-		System.out.println("her " + ExceptionAnalysis.THROWABLE);
-		System.out.println(ExceptionAnalysis.ANY);
 		sections = new LinkedList<>();
 		logging = true;
 		/* if(args.length < 1) {
@@ -158,26 +55,15 @@ public class Boot {
 		} */
 		
 		File f = locateRevFile(135);
-//		File f = new File("res/allatori6.1.jar");
+		// File f = new File("res/allatori6.1.jar");
 		section("Preparing to run on " + f.getAbsolutePath());
 		SingleJarDownloader<ClassNode> dl = new SingleJarDownloader<>(new JarInfo(f));
 		dl.download();
-//		
-//		for(ClassNode cn : dl.getJarContents().getClassContents()) {
-//			for(MethodNode m : cn.methods) {
-//				if(m.toString().equals("com/allatori/IIiIiiiIII.IIiIiiIiII(Ljava/lang/String;)Ljava/lang/String;")) {
-//					ControlFlowGraph cfg = ControlFlowGraphBuilder.build(m);
-//					System.out.println(cfg);
-//				}
-//			}
-//		}
-//		
-//		if("".equals("")) {
-//			return;
-//		}
+		
 		String name = f.getName().substring(0, f.getName().length() - 4);
 		
 		ApplicationClassSource app = new ApplicationClassSource(name, dl.getJarContents().getClassContents());
+//		ApplicationClassSource app = new ApplicationClassSource("tes", classes(CGExample.class));
 		InstalledRuntimeClassSource jre = new InstalledRuntimeClassSource(app);
 		app.addLibraries(jre);
 		section("Initialising context.");
@@ -189,30 +75,6 @@ public class Boot {
 				.build();
 		
 		section("Expanding callgraph and generating cfgs.");
-		
-//		for(ClassNode cn : app.iterate()) {
-//			for(MethodNode m : cn.methods) {
-//				if(m.toString().equals("com/allatori/IIiIIIiIii.IIiIiiIiII(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;")) {
-//					ControlFlowGraph cfg = cxt.getIRCache().getFor(m);
-//					
-//					BoissinotDestructor.leaveSSA(cfg);
-//					cfg.getLocals().realloc(cfg);
-//					ControlFlowGraphDumper.dump(cfg, m);
-//					
-//					ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES);
-//					cn.accept(cw);
-//					byte[] bs = cw.toByteArray();
-//					
-//					FileOutputStream fos = new FileOutputStream(new File("out/testclass.class"));
-//					fos.write(bs);
-//					fos.close();
-//				}
-//			}
-//		}
-		
-//		if("".equals("")) {
-//			return;
-//		}
 		
 		CallTracer tracer = new IRCallTracer(cxt);
 		for(MethodNode m : findEntries(app)) {
@@ -226,16 +88,13 @@ public class Boot {
 			masterGroup.add(p);
 		}
 		run(cxt, masterGroup);
-//		new ContextSensitiveIPAnalysis(cxt, new ExpressionEvaluator(new ReflectiveFunctorFactory()));
+		
+		new ContextSensitiveIPAnalysis(cxt, new ExpressionEvaluator(new ReflectiveFunctorFactory()));
 		
 		section("Retranslating SSA IR to standard flavour.");
 		for(Entry<MethodNode, ControlFlowGraph> e : cxt.getIRCache().entrySet()) {
 			MethodNode mn = e.getKey();
 			ControlFlowGraph cfg = e.getValue();
-			
-//			if(mn.owner.name.equals("brq") && mn.name.equals("adm")) {
-//				InstructionPrinter.consolePrint(mn);
-//			}
 			
 			BoissinotDestructor.leaveSSA(cfg);
 			cfg.getLocals().realloc(cfg);
@@ -243,17 +102,17 @@ public class Boot {
 		}
 		
 		section("Rewriting jar.");
-		JarDumper dumper = new CompleteResolvingJarDumper(dl.getJarContents(), app) {
-			@Override
-			public int dumpResource(JarOutputStream out, String name, byte[] file) throws IOException {
-				if(name.startsWith("META-INF")) {
-					System.out.println(" ignore " + name);
-					return 0;
-				}
-				return super.dumpResource(out, name, file);
-			}
-		};
-		dumper.dump(new File("out/osb5.jar"));
+//		JarDumper dumper = new CompleteResolvingJarDumper(dl.getJarContents(), app) {
+//			@Override
+//			public int dumpResource(JarOutputStream out, String name, byte[] file) throws IOException {
+//				if(name.startsWith("META-INF")) {
+//					System.out.println(" ignore " + name);
+//					return 0;
+//				}
+//				return super.dumpResource(out, name, file);
+//			}
+//		};
+//		dumper.dump(new File("out/osb5.jar"));
 		
 		section("Finished.");
 	}
@@ -264,25 +123,24 @@ public class Boot {
 	
 	private static IPass[] getTransformationPasses() {
 		return new IPass[] {
-				new CallgraphPruningPass(),
-//				new ConcreteStaticInvocationPass(),
-				new ClassRenamerPass(),
-				new MethodRenamerPass(),
-//				new ConstantParameterPass()
+//				new CallgraphPruningPass(),
+				// new ConcreteStaticInvocationPass(),
 //				new ClassRenamerPass(),
-				new FieldRenamerPass(),
+//				new MethodRenamerPass(),
+				// new ConstantParameterPass()
+				// new ClassRenamerPass(),
+//				new FieldRenamerPass(),
+				// new ConstantExpressionReorderPass(),
+				// new FieldRSADecryptionPass(),
+				// new PassGroup("Interprocedural Optimisations")
+				// 	.add(new ConstantParameterPass())
+				// new LiftConstructorCallsPass(),
+				// new DemoteRangesPass(),
 //				new ConstantExpressionReorderPass(),
-//				new FieldRSADecryptionPass(),
-//				new PassGroup("Interprocedural Optimisations")
-//					.add(new ConstantParameterPass())
-//				new LiftConstructorCallsPass(),
-//				new DemoteRangesPass(),
-				new ConstantExpressionReorderPass(),
-//				new FieldRSADecryptionPass(),
-//				new ConstantParameterPass(),
-				new ConstantExpressionEvaluatorPass(),
-				new DeadCodeEliminationPass()
-//				new PassGroup("Interprocedural Optimisations")
+				// new FieldRSADecryptionPass(),
+				// new ConstantParameterPass(),
+				// new ConstantExpressionEvaluatorPass(),
+//				new DeadCodeEliminationPass()
 				
 		};
 	}

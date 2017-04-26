@@ -1,7 +1,7 @@
 package org.mapleir.deob.interproc;
 
 import org.mapleir.context.app.ApplicationClassSource;
-import org.mapleir.ir.code.Expr;
+import org.mapleir.ir.code.expr.invoke.Invocation;
 import org.mapleir.stdlib.util.InvocationResolver;
 import org.objectweb.asm.tree.MethodNode;
 
@@ -41,5 +41,5 @@ public abstract class CallTracer {
 	
 	protected void visitMethod(MethodNode m) {}
 	
-	protected void processedInvocation(MethodNode caller, MethodNode callee, Expr call) {}
+	protected void processedInvocation(MethodNode caller, MethodNode callee, Invocation call) {}
 }

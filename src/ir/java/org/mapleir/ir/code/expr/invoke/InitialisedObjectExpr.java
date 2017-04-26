@@ -1,4 +1,4 @@
-package org.mapleir.ir.code.expr;
+package org.mapleir.ir.code.expr.invoke;
 
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.CodeUnit;
@@ -9,19 +9,19 @@ import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 
-public class InitialisedObjectExpr extends Expr {
+public class InitialisedObjectExpr extends Invocation {
 
 	private String owner;
 	private String desc;
-	private Expr[] argumentExpressions;
+	private Expr[] args;
 	
-	public InitialisedObjectExpr(String owner, String desc, Expr[] argumentExpressions) {
+	public InitialisedObjectExpr(String owner, String desc, Expr[] args) {
 		super(INIT_OBJ);
 		this.owner = owner;
 		this.desc = desc;
-		this.argumentExpressions = argumentExpressions;
-		for (int i = 0; i < argumentExpressions.length; i++) {
-			overwrite(argumentExpressions[i], i);
+		this.args = args;
+		for (int i = 0; i < args.length; i++) {
+			overwrite(args[i], i);
 		}
 	}
 
@@ -42,11 +42,7 @@ public class InitialisedObjectExpr extends Expr {
 	}
 
 	public Expr[] getArgumentExpressions() {
-		return argumentExpressions;
-	}
-
-	public void setArguments(Expr[] argumentExpressions) {
-		this.argumentExpressions = argumentExpressions;
+		return args;
 	}
 
 	@Override
@@ -58,28 +54,25 @@ public class InitialisedObjectExpr extends Expr {
 	public Precedence getPrecedence0() {
 		return Precedence.METHOD_INVOCATION;
 	}
-
-	public void updateArgument(int id, Expr argument) {
-		if (id < 0 || (id) >= argumentExpressions.length) {
-			throw new ArrayIndexOutOfBoundsException();
-		}
-		
-		argumentExpressions[id] = argument;
-		overwrite(argument, id);
-	}
 	
 	@Override
 	public void onChildUpdated(int ptr) {
-		updateArgument(ptr, read(ptr));
+		Expr argument = read(ptr);
+		if (ptr < 0 || (ptr) >= args.length) {
+			throw new ArrayIndexOutOfBoundsException();
+		}
+		
+		args[ptr] = argument;
+		overwrite(argument, ptr);
 	}
 
 	@Override
-	public Expr copy() {
-		Expr[] args = new Expr[argumentExpressions.length];
-		for(int i=0; i < argumentExpressions.length; i++) {
-			args[i] = argumentExpressions[i].copy();
+	public InitialisedObjectExpr copy() {
+		Expr[] exprs = new Expr[args.length];
+		for(int i=0; i < args.length; i++) {
+			exprs[i] = args[i].copy();
 		}
-		return new InitialisedObjectExpr(owner, desc, args);
+		return new InitialisedObjectExpr(owner, desc, exprs);
 	}
 
 	@Override
@@ -87,9 +80,9 @@ public class InitialisedObjectExpr extends Expr {
 		printer.print("new ");
 		printer.print(owner);
 		printer.print('(');
-		for (int i = 0; i < argumentExpressions.length; i++) {
-			boolean needsComma = (i + 1) < argumentExpressions.length;
-			argumentExpressions[i].toString(printer);
+		for (int i = 0; i < args.length; i++) {
+			boolean needsComma = (i + 1) < args.length;
+			args[i].toString(printer);
 			if (needsComma)
 				printer.print(", ");
 		}
@@ -99,7 +92,7 @@ public class InitialisedObjectExpr extends Expr {
 	@Override
 	public void toCode(MethodVisitor visitor, ControlFlowGraph cfg) {
 		Type[] argTypes = Type.getArgumentTypes(desc);
-		if (argTypes.length < argumentExpressions.length) {
+		if (argTypes.length < args.length) {
 			Type[] bck = argTypes;
 			argTypes = new Type[bck.length + 1];
 			System.arraycopy(bck, 0, argTypes, 1, bck.length);
@@ -108,10 +101,10 @@ public class InitialisedObjectExpr extends Expr {
 		
 		visitor.visitTypeInsn(Opcodes.NEW, owner);
 		visitor.visitInsn(Opcodes.DUP);
-		for (int i = 0; i < argumentExpressions.length; i++) {
-			argumentExpressions[i].toCode(visitor, cfg);
-			if (TypeUtils.isPrimitive(argumentExpressions[i].getType())) {
-				int[] cast = TypeUtils.getPrimitiveCastOpcodes(argumentExpressions[i].getType(), argTypes[i]);
+		for (int i = 0; i < args.length; i++) {
+			args[i].toCode(visitor, cfg);
+			if (TypeUtils.isPrimitive(args[i].getType())) {
+				int[] cast = TypeUtils.getPrimitiveCastOpcodes(args[i].getType(), argTypes[i]);
 				for (int a = 0; a < cast.length; a++)
 					visitor.visitInsn(cast[a]);
 			}
@@ -135,7 +128,7 @@ public class InitialisedObjectExpr extends Expr {
 			return true;
 		}
 		
-		for(Expr e : argumentExpressions) {
+		for(Expr e : args) {
 			if(e.isAffectedBy(stmt)) {
 				return true;
 			}
@@ -151,16 +144,36 @@ public class InitialisedObjectExpr extends Expr {
 			if(!owner.equals(o.owner) || !desc.equals(o.desc)) {
 				return false;
 			}
-			if(argumentExpressions.length != o.argumentExpressions.length) {
+			if(args.length != o.args.length) {
 				return false;
 			}
-			for(int i=0; i < argumentExpressions.length; i++) {
-				if(!argumentExpressions[i].equivalent(o.argumentExpressions[i])) {
+			for(int i=0; i < args.length; i++) {
+				if(!args[i].equivalent(o.args[i])) {
 					return false;
 				}
 			}
 			return true;
 		}
 		return false;
+	}
+
+	@Override
+	public boolean isStatic() {
+		return false;
+	}
+
+	@Override
+	public Expr getPhysicalReceiver() {
+		return null;
+	}
+
+	@Override
+	public Expr[] getArgumentExprs() {
+		return args;
+	}
+
+	@Override
+	public Expr[] getParameterExprs() {
+		return args;
 	}
 }
