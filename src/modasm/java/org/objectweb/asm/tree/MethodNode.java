@@ -29,12 +29,12 @@
  */
 package org.objectweb.asm.tree;
 
+import org.mapleir.stdlib.collections.graph.FastGraphVertex;
+import org.objectweb.asm.*;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-
-import org.mapleir.stdlib.collections.graph.FastGraphVertex;
-import org.objectweb.asm.*;
 
 /**
  * A node that represents a method.
@@ -862,7 +862,7 @@ public class MethodNode extends MethodVisitor implements FastGraphVertex {
 
 	@Override
 	public String getId() {
-		return toString();
+		return name;
 	}
 
 	@Override

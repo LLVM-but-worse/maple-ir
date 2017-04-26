@@ -1,19 +1,8 @@
 package org.mapleir.ir.cfg.builder;
 
-import static org.objectweb.asm.Opcodes.*;
-import static org.objectweb.asm.tree.AbstractInsnNode.*;
-
-import java.util.*;
-import java.util.Map.Entry;
-
 import org.mapleir.deob.intraproc.ExceptionAnalysis;
 import org.mapleir.ir.cfg.BasicBlock;
-import org.mapleir.ir.cfg.edge.ConditionalJumpEdge;
-import org.mapleir.ir.cfg.edge.DefaultSwitchEdge;
-import org.mapleir.ir.cfg.edge.ImmediateEdge;
-import org.mapleir.ir.cfg.edge.SwitchEdge;
-import org.mapleir.ir.cfg.edge.TryCatchEdge;
-import org.mapleir.ir.cfg.edge.UnconditionalJumpEdge;
+import org.mapleir.ir.cfg.edge.*;
 import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.code.ExpressionStack;
 import org.mapleir.ir.code.Opcode;
@@ -21,6 +10,7 @@ import org.mapleir.ir.code.Stmt;
 import org.mapleir.ir.code.expr.*;
 import org.mapleir.ir.code.expr.ArithmeticExpr.Operator;
 import org.mapleir.ir.code.expr.ComparisonExpr.ValueComparisonType;
+import org.mapleir.ir.code.expr.invoke.InvocationExpr;
 import org.mapleir.ir.code.stmt.*;
 import org.mapleir.ir.code.stmt.ConditionalJumpStmt.ComparisonType;
 import org.mapleir.ir.code.stmt.MonitorStmt.MonitorMode;
@@ -35,6 +25,12 @@ import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.*;
 import org.objectweb.asm.util.Printer;
+
+import java.util.*;
+import java.util.Map.Entry;
+
+import static org.objectweb.asm.Opcodes.*;
+import static org.objectweb.asm.tree.AbstractInsnNode.*;
 
 public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 	
@@ -1127,7 +1123,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 	protected void _new(Type type) {
 		save_stack(false);
 		int index = currentStack.height();
-		UninitialisedObjectExpr e = new UninitialisedObjectExpr(type);
+		AllocObjectExpr e = new AllocObjectExpr(type);
 		assign_stack(index, e);
 		push(load_stack(index, type));
 	}

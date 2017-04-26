@@ -55,7 +55,9 @@ public class TarjanSCC <N extends FastGraphVertex> {
 		for(FastGraphEdge<N> e : graph.getEdges(n)) {
 			N s = e.dst;
 			if(low.containsKey(s)) {
-				low.put(n, Math.min(low.get(n), index.get(s)));
+				if(index.get(s) < index.get(n) && stack.contains(s)) {
+					low.put(n, Math.min(low.get(n), index.get(s)));
+				}
 			} else {
 				search(s);
 				low.put(n, Math.min(low.get(n), low.get(s)));
@@ -92,7 +94,7 @@ public class TarjanSCC <N extends FastGraphVertex> {
 		List<FastGraphEdge<N>> list = new ArrayList<>(edges);
 		Collections.sort(list, new Comparator<FastGraphEdge<N>>() {
 			@Override
-			public int compare(FastGraphEdge<N> o1, FastGraphEdge<N> o2) {
+			public int compare(FlowEdge<N> o1, FlowEdge<N> o2) {
 				Class<?> c1 = o1.getClass();
 				Class<?> c2 = o2.getClass();
 				

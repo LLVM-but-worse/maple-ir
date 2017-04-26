@@ -8,18 +8,18 @@ import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 
-public class UninitialisedObjectExpr extends Expr {
+public class AllocObjectExpr extends Expr {
 
 	private Type type;
 
-	public UninitialisedObjectExpr(Type type) {
-		super(UNINIT_OBJ);
+	public AllocObjectExpr(Type type) {
+		super(ALLOC_OBJ);
 		this.type = type;
 	}
 
 	@Override
 	public Expr copy() {
-		return new UninitialisedObjectExpr(type);
+		return new AllocObjectExpr(type);
 	}
 
 	@Override
@@ -68,6 +68,6 @@ public class UninitialisedObjectExpr extends Expr {
 
 	@Override
 	public boolean equivalent(CodeUnit s) {
-		return s instanceof UninitialisedObjectExpr && type.equals(((UninitialisedObjectExpr) s).type);
+		return s instanceof AllocObjectExpr && type.equals(((AllocObjectExpr) s).type);
 	}
 }

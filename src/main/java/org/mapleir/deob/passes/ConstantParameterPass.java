@@ -11,9 +11,10 @@ import org.mapleir.ir.code.CodeUnit;
 import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.code.Opcode;
 import org.mapleir.ir.code.expr.ConstantExpr;
-import org.mapleir.ir.code.expr.InitialisedObjectExpr;
-import org.mapleir.ir.code.expr.InvocationExpr;
 import org.mapleir.ir.code.expr.VarExpr;
+import org.mapleir.ir.code.expr.invoke.InitialisedObjectExpr;
+import org.mapleir.ir.code.expr.invoke.Invocation;
+import org.mapleir.ir.code.expr.invoke.InvocationExpr;
 import org.mapleir.ir.code.stmt.copy.AbstractCopyStmt;
 import org.mapleir.ir.code.stmt.copy.CopyVarStmt;
 import org.mapleir.ir.locals.LocalsPool;
@@ -86,16 +87,8 @@ public class ConstantParameterPass implements IPass, Opcode {
 			}
 			
 			@Override
-			public void postProcessedInvocation(IPAnalysis analysis, MethodNode caller, MethodNode callee, Expr call) {
-				Expr[] params;
-				
-				if(call.getOpcode() == INVOKE) {
-					params = ((InvocationExpr) call).getParameterArguments();
-				} else if(call.getOpcode() == INIT_OBJ) {
-					params = ((InitialisedObjectExpr) call).getArgumentExpressions();
-				} else {
-					throw new UnsupportedOperationException(String.format("%s -> %s (%s)", caller, callee, call));
-				}
+			public void postProcessedInvocation(IPAnalysis analysis, MethodNode caller, MethodNode callee, Invocation call) {
+				Expr[] params = call.getParameterExprs();
 				
 				for(int i=0; i < params.length; i++) {
 					Expr e = params[i];
@@ -356,7 +349,7 @@ public class ConstantParameterPass implements IPass, Opcode {
 						
 						demoteDeadParamters(constAnalysis, cxt.getIRCache().getFor(n), n, dead);
 						
-						for(Expr call : constAnalysis.getCallsTo(n)) {
+						for(Invocation call : constAnalysis.getCallsTo(n)) {
 							/* since the callgrapher finds all
 							 * the methods in a hierarchy and considers
 							 * it as a single invocation, a certain
@@ -487,7 +480,7 @@ public class ConstantParameterPass implements IPass, Opcode {
 			InitialisedObjectExpr init = (InitialisedObjectExpr) call;
 
 			CodeUnit parent = init.getParent();
-			Expr[] newArgs = buildArgs(init.getArgumentExpressions(), false, dead);
+			Expr[] newArgs = buildArgs(init.getArgumentExprs(), false, dead);
 			InitialisedObjectExpr init2 = new InitialisedObjectExpr(init.getOwner(), newDesc, newArgs);
 
 			parent.overwrite(init2, parent.indexOf(init));
@@ -496,7 +489,7 @@ public class ConstantParameterPass implements IPass, Opcode {
 
 			CodeUnit parent = invoke.getParent();
 			
-			Expr[] newArgs = buildArgs(invoke.getArgumentExpressions(), invoke.getCallType() != Opcodes.INVOKESTATIC, dead);
+			Expr[] newArgs = buildArgs(invoke.getArgumentExprs(), invoke.getCallType() != Opcodes.INVOKESTATIC, dead);
 			InvocationExpr invoke2 = new InvocationExpr(invoke.getCallType(), newArgs, invoke.getOwner(), invoke.getName(), newDesc);
 			
 			parent.overwrite(invoke2, parent.indexOf(invoke));
@@ -505,8 +498,8 @@ public class ConstantParameterPass implements IPass, Opcode {
 		}
 	}
 	
-	private static Expr[] buildArgs(Expr[] oldArgs, boolean obj, boolean[] dead) {
-		int off = obj ? 1 : 0;
+	private static Expr[] buildArgs(Expr[] oldArgs, boolean virtual, boolean[] dead) {
+		int off = virtual ? 1 : 0;
 		
 		if(dead.length != (oldArgs.length - off)) {
 			throw new IllegalStateException();
@@ -521,7 +514,7 @@ public class ConstantParameterPass implements IPass, Opcode {
 			e.unlink();
 		}
 		
-		if(obj) {
+		if(virtual) {
 			Expr e = oldArgs[0];
 			newArgs.add(0, e);
 			e.unlink();
