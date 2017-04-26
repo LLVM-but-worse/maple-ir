@@ -1,12 +1,5 @@
 package org.mapleir.deob.passes.constparam;
 
-import java.lang.reflect.Modifier;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-
 import org.mapleir.context.IContext;
 import org.mapleir.deob.IPass;
 import org.mapleir.deob.interproc.IPAnalysis;
@@ -25,19 +18,21 @@ import org.mapleir.ir.code.Opcode;
 import org.mapleir.ir.code.Stmt;
 import org.mapleir.ir.code.expr.ArithmeticExpr;
 import org.mapleir.ir.code.expr.ConstantExpr;
-import org.mapleir.ir.code.expr.InitialisedObjectExpr;
-import org.mapleir.ir.code.expr.InvocationExpr;
 import org.mapleir.ir.code.expr.VarExpr;
+import org.mapleir.ir.code.expr.invoke.Invocation;
 import org.mapleir.ir.code.stmt.ConditionalJumpStmt;
 import org.mapleir.ir.code.stmt.UnconditionalJumpStmt;
 import org.mapleir.ir.code.stmt.copy.AbstractCopyStmt;
 import org.mapleir.ir.locals.Local;
 import org.mapleir.ir.locals.LocalsPool;
-import org.mapleir.stdlib.collections.TaintableSet;
+import org.mapleir.stdlib.collections.taint.TaintableSet;
 import org.mapleir.stdlib.util.TypeUtils;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
+
+import java.lang.reflect.Modifier;
+import java.util.*;
 
 public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 	private ExpressionEvaluator evaluator;
@@ -294,16 +289,8 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 		}
 		
 		@Override
-		public void postProcessedInvocation(IPAnalysis analysis, MethodNode caller, MethodNode callee, Expr call) {	
-			Expr[] params;
-			
-			if(call.getOpcode() == Opcode.INVOKE) {
-				params = ((InvocationExpr) call).getParameterArguments();
-			} else if(call.getOpcode() == Opcode.INIT_OBJ) {
-				params = ((InitialisedObjectExpr) call).getArgumentExpressions();
-			} else {
-				throw new UnsupportedOperationException(String.format("%s -> %s (%s)", caller, callee, call));
-			}
+		public void postProcessedInvocation(IPAnalysis analysis, MethodNode caller, MethodNode callee, Invocation call) {	
+			Expr[] params = call.getParameterExprs();
 			
 			for(int i=0; i < params.length; i++) {
 				Expr e = params[i];

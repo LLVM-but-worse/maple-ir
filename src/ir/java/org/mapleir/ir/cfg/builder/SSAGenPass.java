@@ -11,7 +11,11 @@ import org.mapleir.ir.code.CodeUnit;
 import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.code.Opcode;
 import org.mapleir.ir.code.Stmt;
-import org.mapleir.ir.code.expr.*;
+import org.mapleir.ir.code.expr.ConstantExpr;
+import org.mapleir.ir.code.expr.PhiExpr;
+import org.mapleir.ir.code.expr.VarExpr;
+import org.mapleir.ir.code.expr.invoke.InitialisedObjectExpr;
+import org.mapleir.ir.code.expr.invoke.InvocationExpr;
 import org.mapleir.ir.code.stmt.*;
 import org.mapleir.ir.code.stmt.copy.AbstractCopyStmt;
 import org.mapleir.ir.code.stmt.copy.CopyPhiStmt;
@@ -270,6 +274,16 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 			if (e.getType() == FlowEdges.TRYCATCH) {
 				TryCatchEdge<BasicBlock> c = ((TryCatchEdge<BasicBlock>) e).clone(newBlock, null); // second param is discarded (?)
 				cfg.addEdge(newBlock, c);
+			}
+		}
+		if (!checkCloneHandler(b)) {
+			// remove unnecessary handler edges if this block is now all simple copies, synth copies, or simple jumps.
+			for (FlowEdge<BasicBlock> e : new HashSet<>(cfg.getEdges(b))) {
+				if (e instanceof TryCatchEdge) {
+					TryCatchEdge<BasicBlock> tce = (TryCatchEdge<BasicBlock>) e;
+					tce.erange.removeVertex(b);
+					cfg.removeEdge(b, tce);
+				}
 			}
 		}
 		
@@ -762,7 +776,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 			case Opcode.INVOKE:
 			case Opcode.DYNAMIC_INVOKE:
 			case Opcode.INIT_OBJ:
-			case Opcode.UNINIT_OBJ:
+			case Opcode.ALLOC_OBJ:
 			case Opcode.NEW_ARRAY:
 			case Opcode.CATCH:
 			case Opcode.EPHI:
@@ -1154,7 +1168,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 					if (expr.getOpcode() == Opcode.INVOKE) {
 						InvocationExpr invoke = (InvocationExpr) expr;
 						if (invoke.getCallType() == Opcodes.INVOKESPECIAL && invoke.getName().equals("<init>")) {
-							Expr inst = invoke.getInstanceExpression();
+							Expr inst = invoke.getPhysicalReceiver();
 							if (inst.getOpcode() == Opcode.LOCAL_LOAD) {
 								VarExpr var = (VarExpr) inst;
 								VersionedLocal local = (VersionedLocal) var.getLocal();
@@ -1162,14 +1176,13 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 								AbstractCopyStmt def = pool.defs.get(local);
 
 								Expr rhs = def.getExpression();
-								if (rhs.getOpcode() == Opcode.UNINIT_OBJ) {
+								if (rhs.getOpcode() == Opcode.ALLOC_OBJ) {
 									// replace pop(x.<init>()) with x := new Klass();
 									// remove x := new Klass;
 									
 									// here we are assuming that the new object
 									// can't be used until it is initialised.
-									VarExpr v = (VarExpr) invoke.getInstanceExpression();
-									Expr[] args = invoke.getParameterArguments();
+									Expr[] args = invoke.getParameterExprs();
 									
 									// we want to reuse the exprs, so free it first.
 									pop.deleteAt(0);
@@ -1187,17 +1200,17 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 									InitialisedObjectExpr newExpr = new InitialisedObjectExpr(invoke.getOwner(), invoke.getDesc(), newArgs);
 									CopyVarStmt newCvs = new CopyVarStmt(var, newExpr);
 									pool.defs.put(local, newCvs);
-									pool.uses.get(local).remove(v);
+									pool.uses.get(local).remove(var);
 									b.add(index, newCvs);
 
 									// remove the pop statement
 									b.remove(pop);
 								}
-							} else if(inst.getOpcode() == Opcode.UNINIT_OBJ) {
+							} else if(inst.getOpcode() == Opcode.ALLOC_OBJ) {
 								// replace pop(new Klass.<init>(args)) with pop(new Klass(args))
 								// UninitialisedObjectExpr obj = (UninitialisedObjectExpr) inst;
 								
-								Expr[] args = invoke.getParameterArguments();
+								Expr[] args = invoke.getParameterExprs();
 								// we want to reuse the exprs, so free it first.
 								invoke.unlink();
 								for(Expr e : args) {

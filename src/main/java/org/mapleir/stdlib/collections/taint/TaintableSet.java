@@ -1,14 +1,12 @@
-package org.mapleir.stdlib.collections;
+package org.mapleir.stdlib.collections.taint;
+
+import javafx.util.Pair;
+import org.mapleir.stdlib.collections.itertools.ProductIterator;
 
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
-
-import org.mapleir.stdlib.collections.itertools.ProductIterator;
-import org.mapleir.stdlib.collections.taint.ITaintable;
-
-import javafx.util.Pair;
 
 public class TaintableSet<T> implements Set<T>, ITaintable {
 	private final Set<T> backingSet;

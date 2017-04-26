@@ -9,7 +9,7 @@ import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.code.Opcode;
 import org.mapleir.ir.code.Stmt;
-import org.mapleir.ir.code.expr.InvocationExpr;
+import org.mapleir.ir.code.expr.invoke.InvocationExpr;
 import org.mapleir.stdlib.util.InvocationResolver;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
@@ -165,7 +165,7 @@ public class MethodRenamerPass implements IPass {
 									continue;
 								}
 								
-								if(invoke.getInstanceExpression() == null) {
+								if(invoke.isStatic()) {
 									MethodNode site = resolver.resolveStaticCall(invoke.getOwner(), invoke.getName(), invoke.getDesc());
 									
 									if(site != null) {
@@ -244,7 +244,7 @@ public class MethodRenamerPass implements IPass {
 		 * them using the old names during the invocation 
 		 * analysis above. */
 		for(Entry<MethodNode, String> e : remapped.entrySet()) {
-			System.out.printf("%s -> %s%n", e.getKey(), e.getKey().owner.name + "." + e.getValue() + e.getKey().desc);
+			// System.out.printf("%s -> %s%n", e.getKey(), e.getValue());
 			e.getKey().name = e.getValue();
 		}
 	}

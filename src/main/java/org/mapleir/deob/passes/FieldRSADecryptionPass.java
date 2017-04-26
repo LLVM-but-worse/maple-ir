@@ -21,13 +21,7 @@ import org.objectweb.asm.tree.MethodNode;
 
 import java.lang.reflect.Modifier;
 import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 public class FieldRSADecryptionPass implements IPass, Opcode {
 
@@ -360,7 +354,7 @@ public class FieldRSADecryptionPass implements IPass, Opcode {
 			case DYNAMIC_INVOKE:
 			case ARRAY_LOAD:
 			case ARRAY_STORE:
-			case UNINIT_OBJ:
+			case ALLOC_OBJ:
 			case INIT_OBJ:
 			case COMPARE:
 				return list;

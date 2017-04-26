@@ -1,12 +1,9 @@
 package org.mapleir.context.app;
 
+import org.mapleir.stdlib.collections.ClassHelper;
 import org.objectweb.asm.tree.ClassNode;
 
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 public abstract class ClassSource {
 

@@ -1,5 +1,8 @@
 package org.mapleir.stdlib.collections.graph;
 
+import org.mapleir.stdlib.util.dot.DotConfiguration;
+import org.mapleir.stdlib.util.dot.DotWriter;
+
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -60,5 +63,11 @@ public interface FastGraph<N extends FastGraphVertex, E extends FastGraphEdge<N>
 	
 	default Set<E> createSet(Set<E> set) {
 		return new HashSet<>(set);
+	}
+	
+	DotConfiguration<FastGraph<N,E>, N, E> makeConfiguration();
+
+	default DotWriter<FastGraph<N,E>, N, E> makeWriter() {
+		return new DotWriter<>(makeConfiguration(), this);
 	}
 }

@@ -98,7 +98,7 @@ public interface Opcode {
 	int SWITCH_JUMP    = 0x503;
 	
 	int CLASS_OBJ      = 0x600;
-	int UNINIT_OBJ     = 0x601;
+	int ALLOC_OBJ     = 0x601;
 	int INIT_OBJ       = 0x602;
 	int NEW_ARRAY      = 0x603;
 	

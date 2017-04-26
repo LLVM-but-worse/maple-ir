@@ -1,8 +1,5 @@
 package org.mapleir.deob.intraproc;
 
-import java.util.HashSet;
-import java.util.Set;
-
 import org.mapleir.ir.code.CodeUnit;
 import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.code.Opcode;
@@ -14,6 +11,9 @@ import org.mapleir.ir.code.stmt.MonitorStmt;
 import org.mapleir.ir.code.stmt.MonitorStmt.MonitorMode;
 import org.mapleir.ir.code.stmt.ThrowStmt;
 import org.objectweb.asm.Type;
+
+import java.util.HashSet;
+import java.util.Set;
 
 public class DumbExceptionAnalysis implements ExceptionAnalysis, Opcode {
 
@@ -145,7 +145,7 @@ public class DumbExceptionAnalysis implements ExceptionAnalysis, Opcode {
 				set.add(ILLEGAL_ACCESS_ERROR);
 				set.add(WRONG_METHOD_TYPE_EXCEPTION);
 				break;
-			case UNINIT_OBJ:
+			case ALLOC_OBJ:
 				set.add(INSTANTIATION_ERROR);
 				break;
 			case INIT_OBJ:

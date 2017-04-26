@@ -1,5 +1,6 @@
 package org.mapleir.context.app;
 
+import org.mapleir.stdlib.collections.ClassHelper;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.commons.blocksplit.SplitMethodWriterDelegate;
 import org.objectweb.asm.tree.ClassNode;

@@ -1,8 +1,5 @@
 package org.mapleir.deob.passes;
 
-import java.util.List;
-import java.util.Set;
-
 import org.mapleir.context.IContext;
 import org.mapleir.deob.IPass;
 import org.mapleir.ir.cfg.BasicBlock;
@@ -12,12 +9,15 @@ import org.mapleir.ir.cfg.edge.FlowEdges;
 import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.code.Opcode;
 import org.mapleir.ir.code.Stmt;
-import org.mapleir.ir.code.expr.InvocationExpr;
 import org.mapleir.ir.code.expr.VarExpr;
+import org.mapleir.ir.code.expr.invoke.InvocationExpr;
 import org.mapleir.ir.locals.Local;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.LabelNode;
 import org.objectweb.asm.tree.MethodNode;
+
+import java.util.List;
+import java.util.Set;
 
 public class LiftConstructorCallsPass implements Opcode, IPass {
 
@@ -52,7 +52,7 @@ public class LiftConstructorCallsPass implements Opcode, IPass {
 						InvocationExpr invoke = (InvocationExpr) e;
 						
 						if(invoke.getOwner().equals(m.owner.superName) && invoke.getName().equals("<init>")) {
-							Expr p1 = invoke.getArgumentExpressions()[0];
+							Expr p1 = invoke.getPhysicalReceiver();
 							
 							if(p1.getOpcode() == LOCAL_LOAD && ((VarExpr) p1).getLocal() == lvar0_0) {
 								

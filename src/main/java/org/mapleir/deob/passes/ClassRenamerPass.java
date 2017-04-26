@@ -2,7 +2,6 @@ package org.mapleir.deob.passes;
 
 import org.mapleir.context.IContext;
 import org.mapleir.context.app.ApplicationClassSource;
-import org.mapleir.context.app.ClassHelper;
 import org.mapleir.deob.IPass;
 import org.mapleir.deob.util.RenamingUtil;
 import org.mapleir.ir.cfg.BasicBlock;
@@ -11,9 +10,12 @@ import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.code.Opcode;
 import org.mapleir.ir.code.Stmt;
 import org.mapleir.ir.code.expr.*;
+import org.mapleir.ir.code.expr.invoke.InitialisedObjectExpr;
+import org.mapleir.ir.code.expr.invoke.InvocationExpr;
 import org.mapleir.ir.code.stmt.FieldStoreStmt;
 import org.mapleir.ir.code.stmt.ReturnStmt;
 import org.mapleir.ir.code.stmt.copy.AbstractCopyStmt;
+import org.mapleir.stdlib.collections.ClassHelper;
 import org.mapleir.stdlib.collections.graph.flow.ExceptionRange;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.*;
@@ -249,8 +251,8 @@ public class ClassRenamerPass implements IPass {
 								if(newType != null) {
 									na.setType(Type.getType(newType));
 								}
-							} else if(e.getOpcode() == Opcode.UNINIT_OBJ) {
-								UninitialisedObjectExpr uninit = (UninitialisedObjectExpr) e;
+							} else if(e.getOpcode() == Opcode.ALLOC_OBJ) {
+								AllocObjectExpr uninit = (AllocObjectExpr) e;
 								
 								String newType = resolveType(uninit.getType(), remapping);
 								if(newType != null) {
