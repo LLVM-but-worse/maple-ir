@@ -37,9 +37,9 @@ public class ControlFlowGraphDumper {
 		// Linearize
 		IndexedList<BasicBlock> blocks = linearize(cfg);
 		if (m.toString().equals("cmk.bfw(B)Z")) {
-			System.out.println(cfg);
-			printOrdering(new ArrayList<>(cfg.vertices()));
-			printOrdering(blocks);
+			// System.out.println(cfg);
+			// printOrdering(new ArrayList<>(cfg.vertices()));
+			// printOrdering(blocks);
 			// System.exit(1);
 		}
 		
@@ -172,7 +172,7 @@ public class ControlFlowGraphDumper {
 		List<List<BlockBundle>> components = sccComputor.getComponents();
 		if (components.size() == 1)
 			order.addAll(components.get(0));
-		else for (List<BlockBundle> scc : sccComputor.getComponents())
+		else for (List<BlockBundle> scc : components)
 			order.addAll(linearize(scc, subgraph, scc.get(0)));
 		return order;
 	}
