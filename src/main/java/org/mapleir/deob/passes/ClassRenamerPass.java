@@ -27,10 +27,33 @@ import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.tree.TryCatchBlockNode;
 
 public class ClassRenamerPass implements IPass {
-
+	
+	private final Map<String, String> remapping = new HashMap<>();
+	
+	public boolean wasRemapped(String name) {
+		return remapping.containsKey(name);
+	}
+	
+	public String getRemappedName(String name) {
+		return remapping.getOrDefault(name, name);
+	}
+	
 	@Override
 	public boolean isQuantisedPass() {
 		return false;
+	}
+	
+	private String getPackage(String name) {
+		return name.substring(0, name.lastIndexOf('/') + 1);
+	}
+	
+	private String getClassName(String name) {
+		int i = name.lastIndexOf('/');
+		if(i == -1) {
+			return name;
+		} else {
+			return name.substring(i + 1, name.length());
+		}
 	}
 	
 	@Override
@@ -56,13 +79,11 @@ public class ClassRenamerPass implements IPass {
 			}
 		} */
 		
-		Map<String, String> remapping = new HashMap<>();
-		
 		for(ClassNode cn : classes) {
-			String s = RenamingUtil.createName(n);
+			String s = getPackage(cn.name) + RenamingUtil.createName(n);
 			n += step;
 			remapping.put(cn.name, s);
-			// System.out.println(cn.name + " -> " + s);
+//			 System.out.println(cn.name + " -> " + s);
 			cn.name = s;
 		}
 		
