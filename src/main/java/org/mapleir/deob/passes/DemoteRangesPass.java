@@ -23,6 +23,9 @@ import org.objectweb.asm.tree.MethodNode;
 
 public class DemoteRangesPass implements IPass {
 	
+	private static final String ERROR_CLASS = Error.class.getName().replace(".", "/");
+	private static final String RTE_CLASS = RuntimeException.class.getName().replace(".", "/");
+	
 	@Override
 	public int accept(IContext cxt, IPass prev, List<IPass> completed) {
 		for(ClassNode cn : cxt.getApplication().iterate()) {
@@ -111,10 +114,11 @@ public class DemoteRangesPass implements IPass {
 				
 				ClassNode t = app.findClassNode(ball.getInternalName());
 				for(;;) {
-					if(t == null || t.superName == null) {
+					if(t == null) {
 						break;
 					}
-					if(t.superName.equals(net)) {
+					
+					if(t.name.equals(net)) {
 						return true;
 					} else {
 						// TODO: add flag for app support

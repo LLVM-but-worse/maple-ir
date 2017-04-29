@@ -10,11 +10,13 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.jar.JarOutputStream;
 
 import org.mapleir.context.BasicContext;
 import org.mapleir.context.IContext;
 import org.mapleir.context.IRCache;
 import org.mapleir.context.app.ApplicationClassSource;
+import org.mapleir.context.app.CompleteResolvingJarDumper;
 import org.mapleir.context.app.InstalledRuntimeClassSource;
 import org.mapleir.deob.IPass;
 import org.mapleir.deob.PassGroup;
@@ -23,6 +25,7 @@ import org.mapleir.deob.interproc.IRCallTracer;
 import org.mapleir.deob.interproc.sensitive.ContextSensitiveIPAnalysis;
 import org.mapleir.deob.intraproc.eval.ExpressionEvaluator;
 import org.mapleir.deob.intraproc.eval.impl.ReflectiveFunctorFactory;
+import org.mapleir.deob.passes.CallgraphPruningPass;
 import org.mapleir.ir.algorithms.BoissinotDestructor;
 import org.mapleir.ir.algorithms.ControlFlowGraphDumper;
 import org.mapleir.ir.cfg.ControlFlowGraph;
@@ -33,6 +36,7 @@ import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.topdank.byteengineer.commons.data.JarInfo;
 import org.topdank.byteio.in.SingleJarDownloader;
+import org.topdank.byteio.out.JarDumper;
 
 public class Boot {
 	
@@ -108,17 +112,17 @@ public class Boot {
 		}
 		
 		section("Rewriting jar.");
-//		JarDumper dumper = new CompleteResolvingJarDumper(dl.getJarContents(), app) {
-//			@Override
-//			public int dumpResource(JarOutputStream out, String name, byte[] file) throws IOException {
-//				if(name.startsWith("META-INF")) {
-//					System.out.println(" ignore " + name);
-//					return 0;
-//				}
-//				return super.dumpResource(out, name, file);
-//			}
-//		};
-//		dumper.dump(new File("out/osb5.jar"));
+		JarDumper dumper = new CompleteResolvingJarDumper(dl.getJarContents(), app) {
+			@Override
+			public int dumpResource(JarOutputStream out, String name, byte[] file) throws IOException {
+				if(name.startsWith("META-INF")) {
+					System.out.println(" ignore " + name);
+					return 0;
+				}
+				return super.dumpResource(out, name, file);
+			}
+		};
+		dumper.dump(new File("out/osb5.jar"));
 		
 		section("Finished.");
 	}
@@ -129,7 +133,7 @@ public class Boot {
 	
 	private static IPass[] getTransformationPasses() {
 		return new IPass[] {
-//				new CallgraphPruningPass(),
+				new CallgraphPruningPass(),
 				// new ConcreteStaticInvocationPass(),
 //				new ClassRenamerPass(),
 //				new MethodRenamerPass(),
@@ -141,7 +145,7 @@ public class Boot {
 				// new PassGroup("Interprocedural Optimisations")
 				// 	.add(new ConstantParameterPass())
 				// new LiftConstructorCallsPass(),
-				// new DemoteRangesPass(),
+//				 new DemoteRangesPass(),
 //				new ConstantExpressionReorderPass(),
 				// new FieldRSADecryptionPass(),
 				// new ConstantParameterPass(),
