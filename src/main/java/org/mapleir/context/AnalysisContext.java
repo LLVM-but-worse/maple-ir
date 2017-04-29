@@ -5,7 +5,7 @@ import org.mapleir.deob.intraproc.ExceptionAnalysis;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.stdlib.util.InvocationResolver;
 
-public interface IContext {
+public interface AnalysisContext {
 
 	ApplicationClassSource getApplication();
 	
@@ -14,4 +14,6 @@ public interface IContext {
 	ExceptionAnalysis getExceptionAnalysis(ControlFlowGraph cfg);
 	
 	IRCache getIRCache();
+	
+	ApplicationContext getApplicationContext();
 }

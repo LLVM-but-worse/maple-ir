@@ -1,6 +1,6 @@
 package org.mapleir.deob;
 
-import org.mapleir.context.IContext;
+import org.mapleir.context.AnalysisContext;
 
 import java.util.List;
 
@@ -14,5 +14,5 @@ public interface IPass {
 		return true;
 	}
 
-	int accept(IContext cxt, IPass prev, List<IPass> completed);
+	int accept(AnalysisContext cxt, IPass prev, List<IPass> completed);
 }
