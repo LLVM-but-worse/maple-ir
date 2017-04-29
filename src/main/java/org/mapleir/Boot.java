@@ -65,8 +65,8 @@ public class Boot {
 			return;
 		} */
 		
-		File f = locateRevFile(135);
-		// File f = new File("res/allatori6.1.jar");
+//		File f = locateRevFile(135);
+		File f = new File("res/allatori6.1.jar");
 		section("Preparing to run on " + f.getAbsolutePath());
 		SingleJarDownloader<ClassNode> dl = new SingleJarDownloader<>(new JarInfo(f));
 		dl.download();
@@ -85,6 +85,8 @@ public class Boot {
 				.setCache(new IRCache(ControlFlowGraphBuilder::build))
 				.setApplicationContext(new SimpleApplicationContext(app))
 				.build();
+		
+		System.out.println("entry: " + cxt.getApplicationContext().getEntryPoints());
 		
 		section("Expanding callgraph and generating cfgs.");
 		
