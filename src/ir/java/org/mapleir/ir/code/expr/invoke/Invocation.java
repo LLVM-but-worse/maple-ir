@@ -25,4 +25,10 @@ public abstract class Invocation extends Expr {
 	public abstract Expr[] getArgumentExprs();
 	
 	public abstract Expr[] getParameterExprs();
+	
+	public abstract String getOwner();
+	
+	public abstract String getName();
+	
+	public abstract String getDesc();
 }

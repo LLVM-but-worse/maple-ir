@@ -142,7 +142,7 @@ public class Boot2 {
 					    	}
 					    	
 							// TODO: MUST BE CONVERTED TO ACCOUNT FOR DIRECT SUPERS, NOT ALL
-							ClassTree tree = app.getStructures();
+							ClassTree tree = app.getClassTree();
 					        Collection<ClassNode> c = tree.getAllParents(ccn);
 					        Collection<ClassNode> d = tree.getAllParents(dcn);
 					        

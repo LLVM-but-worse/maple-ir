@@ -1,6 +1,8 @@
 package org.mapleir.deob.passes;
 
-import org.mapleir.context.IContext;
+import java.util.List;
+
+import org.mapleir.context.AnalysisContext;
 import org.mapleir.deob.IPass;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
@@ -12,8 +14,6 @@ import org.mapleir.stdlib.util.InvocationResolver;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
 
-import java.util.List;
-
 public class ConcreteStaticInvocationPass implements IPass {
 
 	@Override
@@ -22,7 +22,7 @@ public class ConcreteStaticInvocationPass implements IPass {
 	}
 	
 	@Override
-	public int accept(IContext cxt, IPass prev, List<IPass> completed) {
+	public int accept(AnalysisContext cxt, IPass prev, List<IPass> completed) {
 		int fixed = 0;
 		
 		InvocationResolver resolver = cxt.getInvocationResolver();

@@ -1,6 +1,13 @@
 package org.mapleir.deob.passes.constparam;
 
-import org.mapleir.context.IContext;
+import java.lang.reflect.Modifier;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+
+import org.mapleir.context.AnalysisContext;
 import org.mapleir.deob.IPass;
 import org.mapleir.deob.interproc.IPAnalysis;
 import org.mapleir.deob.interproc.IPAnalysisVisitor;
@@ -31,9 +38,6 @@ import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
 
-import java.lang.reflect.Modifier;
-import java.util.*;
-
 public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 	private ExpressionEvaluator evaluator;
 	private int branchesEvaluated, exprsEvaluated;
@@ -43,7 +47,7 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 	}
 	
 	@Override
-	public int accept(IContext cxt, IPass prev, List<IPass> completed) {
+	public int accept(AnalysisContext cxt, IPass prev, List<IPass> completed) {
 		branchesEvaluated = 0;
 		exprsEvaluated = 0;
 		
@@ -254,10 +258,10 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 	
 	private class IPConstAnalysisVisitor implements IPAnalysisVisitor {
 
-		final IContext cxt;
+		final AnalysisContext cxt;
 		final Map<MethodNode, List<TaintableSet<ConstantExpr>>> constParams = new HashMap<>();
 		
-		public IPConstAnalysisVisitor(IContext cxt) {
+		public IPConstAnalysisVisitor(AnalysisContext cxt) {
 			this.cxt = cxt;
 		}
 		

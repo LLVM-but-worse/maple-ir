@@ -26,19 +26,11 @@ public class TarjanSCC <N extends FastGraphVertex> {
 	}
 	
 	public int low(N n) {
-		if(low.containsKey(n)) {
-			return low.get(n);
-		} else {
-			return -1;
-		}
+		return low.getOrDefault(n, -1);
 	}
 	
 	public int index(N n) {
-		if(index.containsKey(n)) {
-			return index.get(n);
-		} else {
-			return -1;
-		}
+		return index.getOrDefault(n, -1);
 	}
 	
 	public List<List<N>> getComponents() {
@@ -64,7 +56,7 @@ public class TarjanSCC <N extends FastGraphVertex> {
 			}
 		}
 		
-		if(low.get(n) == index.get(n)) {
+		if(Objects.equals(low.get(n), index.get(n))) {
 			Set<N> c = new HashSet<>();
 			
 			N w = null;
