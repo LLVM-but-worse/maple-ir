@@ -1,10 +1,18 @@
 package org.mapleir.deob;
 
-import org.mapleir.context.AnalysisContext;
-
 import java.util.List;
 
+import org.mapleir.context.AnalysisContext;
+
 public interface IPass {
+	
+	default boolean is(Class<? extends IPass> clz) {
+		return getClass() == clz;
+	}
+	
+	default boolean is(String id) {
+		return getId().equals(id);
+	}
 	
 	default String getId() {
 		return getClass().getSimpleName();
