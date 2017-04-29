@@ -75,7 +75,7 @@ public class CompleteResolvingJarDumper implements JarDumper {
 	public int dumpClass(JarOutputStream out, String name, ClassNode cn) throws IOException {
 		JarEntry entry = new JarEntry(cn.name + ".class");
 		out.putNextEntry(entry);
-		ClassTree tree = source.getStructures();
+		ClassTree tree = source.getClassTree();
 		
 		ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_FRAMES, new SplitMethodWriterDelegate()) {
 			// this method in ClassWriter uses the systemclassloader as
