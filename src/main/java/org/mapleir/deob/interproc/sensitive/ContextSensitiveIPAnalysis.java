@@ -2,7 +2,7 @@ package org.mapleir.deob.interproc.sensitive;
 
 import java.util.List;
 
-import org.mapleir.context.IContext;
+import org.mapleir.context.AnalysisContext;
 import org.mapleir.deob.interproc.IRCallTracer;
 import org.mapleir.deob.interproc.sensitive.ContextSensitiveIPAnalysis.CallGraph.ContextInsensitiveInvocation;
 import org.mapleir.deob.intraproc.eval.ExpressionEvaluator;
@@ -24,7 +24,7 @@ public class ContextSensitiveIPAnalysis {
 	
 	private final ExpressionEvaluator evaluator;
 	
-	public ContextSensitiveIPAnalysis(IContext cxt, ExpressionEvaluator evaluator) {
+	public ContextSensitiveIPAnalysis(AnalysisContext cxt, ExpressionEvaluator evaluator) {
 		this.evaluator = evaluator;
 		
 		CallgraphBuilder builder = new CallgraphBuilder(cxt);
@@ -70,11 +70,13 @@ public class ContextSensitiveIPAnalysis {
 		
 		private final CallGraph graph;
 		
-		public CallgraphBuilder(IContext context) {
+		public CallgraphBuilder(AnalysisContext context) {
 			super(context);
 			
 			graph = new CallGraph();
 		}
+		
+//		private Set<MethodNode> 
 		
 		private boolean isThreadCall(Invocation call) {
 			return call.isStatic() && call.getOwner().equals("java/lang/Thread") &&

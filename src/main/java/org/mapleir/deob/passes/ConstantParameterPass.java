@@ -10,7 +10,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import org.mapleir.context.IContext;
+import org.mapleir.context.AnalysisContext;
 import org.mapleir.deob.IPass;
 import org.mapleir.deob.interproc.IPAnalysis;
 import org.mapleir.deob.interproc.IPAnalysisVisitor;
@@ -38,7 +38,7 @@ import org.objectweb.asm.tree.MethodNode;
 public class ConstantParameterPass implements IPass, Opcode {
 	
 	@Override
-	public int accept(IContext cxt, IPass prev, List<IPass> completed) {
+	public int accept(AnalysisContext cxt, IPass prev, List<IPass> completed) {
 		Map<MethodNode, Set<MethodNode>> chainMap = new HashMap<>();
 		for(MethodNode mn : cxt.getIRCache().getActiveMethods()) {
 			makeUpChain(cxt, mn, chainMap);
@@ -554,7 +554,7 @@ public class ConstantParameterPass implements IPass, Opcode {
 		return sb.toString();
 	}
 	
-	private Set<MethodNode> computeChain(IContext cxt, MethodNode m) {
+	private Set<MethodNode> computeChain(AnalysisContext cxt, MethodNode m) {
 		Set<MethodNode> chain = new HashSet<>();
 		chain.add(m);
 		
@@ -567,7 +567,7 @@ public class ConstantParameterPass implements IPass, Opcode {
 		return chain;
 	}
 		
-	private void makeUpChain(IContext cxt, MethodNode m, Map<MethodNode, Set<MethodNode>> chainMap) {
+	private void makeUpChain(AnalysisContext cxt, MethodNode m, Map<MethodNode, Set<MethodNode>> chainMap) {
 		if(chainMap.containsKey(m)) {
 			/*Set<MethodNode> chain = chainMap.get(m);
 			Set<MethodNode> comp = computeChain(cxt, m);

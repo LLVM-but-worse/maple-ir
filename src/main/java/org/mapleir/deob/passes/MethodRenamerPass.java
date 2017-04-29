@@ -8,7 +8,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import org.mapleir.context.IContext;
+import org.mapleir.context.AnalysisContext;
 import org.mapleir.context.app.ApplicationClassSource;
 import org.mapleir.deob.IPass;
 import org.mapleir.deob.util.RenamingUtil;
@@ -30,7 +30,7 @@ public class MethodRenamerPass implements IPass {
 	}
 	
 	@Override
-	public int accept(IContext cxt, IPass prev, List<IPass> completed) {
+	public int accept(AnalysisContext cxt, IPass prev, List<IPass> completed) {
 		ApplicationClassSource source = cxt.getApplication();
 		
 		Map<MethodNode, String> remapped = new HashMap<>();
@@ -120,7 +120,7 @@ public class MethodRenamerPass implements IPass {
 		return remapped.size();
 	}
 	
-	public static void rename(IContext cxt, Map<MethodNode, String> remapped, boolean warn) {
+	public static void rename(AnalysisContext cxt, Map<MethodNode, String> remapped, boolean warn) {
 		ApplicationClassSource source = cxt.getApplication();
 		InvocationResolver resolver = cxt.getInvocationResolver();
 		
@@ -258,7 +258,7 @@ public class MethodRenamerPass implements IPass {
 		return cn == null || !tree.isLibraryClass(owner);
 	}
 	
-	private static boolean canRename(IContext cxt, Set<MethodNode> methods) {
+	private static boolean canRename(AnalysisContext cxt, Set<MethodNode> methods) {
 		for(MethodNode m : methods) {
 			if(cxt.getApplication().isLibraryClass(m.owner.name)) {
 				/* inherited from runtime class */

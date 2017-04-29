@@ -2,7 +2,7 @@ package org.mapleir.deob.passes;
 
 import java.util.*;
 
-import org.mapleir.context.IContext;
+import org.mapleir.context.AnalysisContext;
 import org.mapleir.context.app.ApplicationClassSource;
 import org.mapleir.deob.IPass;
 import org.mapleir.deob.util.RenamingUtil;
@@ -34,7 +34,7 @@ public class ClassRenamerPass implements IPass {
 	}
 	
 	@Override
-	public int accept(IContext cxt, IPass prev, List<IPass> completed) {
+	public int accept(AnalysisContext cxt, IPass prev, List<IPass> completed) {
 		ApplicationClassSource source = cxt.getApplication();
 		Collection<ClassNode> classes = ClassHelper.collate(source.iterator());
 

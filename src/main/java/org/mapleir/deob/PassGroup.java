@@ -1,7 +1,7 @@
 package org.mapleir.deob;
 
 import org.mapleir.Boot;
-import org.mapleir.context.IContext;
+import org.mapleir.context.AnalysisContext;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -26,12 +26,12 @@ public class PassGroup implements IPass {
 		return this;
 	}
 	
-	public void run(IContext cxt) {
+	public void run(AnalysisContext cxt) {
 		// TODO: threads
 	}
 
 	@Override
-	public int accept(IContext cxt, IPass __prev, List<IPass> __completed) {
+	public int accept(AnalysisContext cxt, IPass __prev, List<IPass> __completed) {
 		boolean[] passed = new boolean[passes.size()];
 		
 		List<IPass> completed = new ArrayList<>();

@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.mapleir.context.IContext;
+import org.mapleir.context.AnalysisContext;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.Expr;
@@ -22,7 +22,7 @@ import org.objectweb.asm.tree.MethodNode;
 
 public class IPAnalysis extends IRCallTracer implements Opcode {
 	
-	public static IPAnalysis create(IContext cxt, IPAnalysisVisitor... visitors) {
+	public static IPAnalysis create(AnalysisContext cxt, IPAnalysisVisitor... visitors) {
 		List<IPAnalysisVisitor> cvs = new ArrayList<>();
 		for(IPAnalysisVisitor v : visitors) {
 			cvs.add(v);
@@ -30,8 +30,9 @@ public class IPAnalysis extends IRCallTracer implements Opcode {
 		return create(cxt, cvs);
 	}
 	
-	public static IPAnalysis create(IContext cxt, List<IPAnalysisVisitor> visitors) {
+	public static IPAnalysis create(AnalysisContext cxt, List<IPAnalysisVisitor> visitors) {
 		IPAnalysis analysis = new IPAnalysis(cxt, visitors);
+		// TODO: from entry points
 		for(MethodNode mn : cxt.getIRCache().getActiveMethods()) {
 			analysis.trace(mn);
 		}
@@ -43,7 +44,7 @@ public class IPAnalysis extends IRCallTracer implements Opcode {
 	private final Map<MethodNode, List<List<Expr>>> parameterInputs;
 	private final Map<MethodNode, int[]> paramIndices;
 	
-	public IPAnalysis(IContext cxt, List<IPAnalysisVisitor> visitors) {
+	public IPAnalysis(AnalysisContext cxt, List<IPAnalysisVisitor> visitors) {
 		super(cxt);
 		this.visitors = visitors;
 		
