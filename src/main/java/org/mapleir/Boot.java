@@ -21,10 +21,10 @@ import org.mapleir.context.app.InstalledRuntimeClassSource;
 import org.mapleir.deob.IPass;
 import org.mapleir.deob.PassGroup;
 import org.mapleir.deob.interproc.IRCallTracer;
+import org.mapleir.deob.interproc.sensitive.ContextSensitiveIPAnalysis;
+import org.mapleir.deob.intraproc.eval.ExpressionEvaluator;
+import org.mapleir.deob.intraproc.eval.impl.ReflectiveFunctorFactory;
 import org.mapleir.deob.passes.ClassRenamerPass;
-import org.mapleir.deob.passes.ConcreteStaticInvocationPass;
-import org.mapleir.deob.passes.FieldRenamerPass;
-import org.mapleir.deob.passes.MethodRenamerPass;
 import org.mapleir.ir.algorithms.BoissinotDestructor;
 import org.mapleir.ir.algorithms.ControlFlowGraphDumper;
 import org.mapleir.ir.cfg.ControlFlowGraph;
@@ -54,14 +54,14 @@ public class Boot {
 		return list;
 	}
 	
-	public static void main(String[] args) {
-		b2();
-	}
-	
-	static void b2() {
-		System.out.println(new RuntimeException().getStackTrace()[1]);
-	}
-	public static void main4(String[] args) throws Exception {
+//	public static void main(String[] args) {
+//		b2();
+//	}
+//	
+//	static void b2() {
+//		System.out.println(new RuntimeException().getStackTrace()[1]);
+//	}
+	public static void main(String[] args) throws Exception {
 		sections = new LinkedList<>();
 		logging = true;
 		/* if(args.length < 1) {
@@ -106,7 +106,7 @@ public class Boot {
 		}
 		run(cxt, masterGroup);
 		
-//		new ContextSensitiveIPAnalysis(cxt, new ExpressionEvaluator(new ReflectiveFunctorFactory()));
+		new ContextSensitiveIPAnalysis(cxt, new ExpressionEvaluator(new ReflectiveFunctorFactory()));
 		
 		section("Retranslating SSA IR to standard flavour.");
 		for(Entry<MethodNode, ControlFlowGraph> e : cxt.getIRCache().entrySet()) {
@@ -127,34 +127,38 @@ public class Boot {
 //					return 0;
 //				}
 				if(name.equals("META-INF/MANIFEST.MF")) {
-					ByteArrayOutputStream baos = new ByteArrayOutputStream();
-					BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(baos));
-					BufferedReader br = new BufferedReader(new InputStreamReader(new ByteArrayInputStream(file)));
+					ClassRenamerPass renamer = (ClassRenamerPass) masterGroup.getPass(e -> e.is(ClassRenamerPass.class));
 					
-					String line;
-					while((line = br.readLine()) != null) {
-						String[] parts = line.split(": ", 2);
-						if(parts.length != 2) {
-							bw.write(line);
-							continue;
+					if(renamer != null) {
+						ByteArrayOutputStream baos = new ByteArrayOutputStream();
+						BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(baos));
+						BufferedReader br = new BufferedReader(new InputStreamReader(new ByteArrayInputStream(file)));
+						
+						String line;
+						while((line = br.readLine()) != null) {
+							String[] parts = line.split(": ", 2);
+							if(parts.length != 2) {
+								bw.write(line);
+								continue;
+							}
+							
+							if(parts[0].equals("Main-Class")) {
+								String newMain = renamer.getRemappedName(parts[1].replace(".", "/")).replace("/", ".");
+								System.out.printf("%s -> %s%n", parts[1], newMain);
+								parts[1] = newMain;
+							}
+
+							bw.write(parts[0]);
+							bw.write(": ");
+							bw.write(parts[1]);
+							bw.write(System.lineSeparator());
 						}
 						
-						if(parts[0].equals("Main-Class")) {
-							String newMain = ((ClassRenamerPass) masterGroup.getPasses(e -> e.is(ClassRenamerPass.class)).get(0)).getRemappedName(parts[1].replace(".", "/")).replace("/", ".");
-							System.out.printf("%s -> %s%n", parts[1], newMain);
-							parts[1] = newMain;
-						}
-
-						bw.write(parts[0]);
-						bw.write(": ");
-						bw.write(parts[1]);
-						bw.write(System.lineSeparator());
+						br.close();
+						bw.close();
+						
+						file = baos.toByteArray();
 					}
-					
-					br.close();
-					bw.close();
-					
-					file = baos.toByteArray();
 				}
 				return super.dumpResource(out, name, file);
 			}
@@ -170,10 +174,10 @@ public class Boot {
 	
 	private static IPass[] getTransformationPasses() {
 		return new IPass[] {
-				new ConcreteStaticInvocationPass(),
-				new ClassRenamerPass(),
-				new MethodRenamerPass(),
-				new FieldRenamerPass(),
+//				new ConcreteStaticInvocationPass(),
+//				new ClassRenamerPass(),
+//				new MethodRenamerPass(),
+//				new FieldRenamerPass(),
 //				new CallgraphPruningPass(),
 				// new ConstantParameterPass()
 				// new ClassRenamerPass(),
