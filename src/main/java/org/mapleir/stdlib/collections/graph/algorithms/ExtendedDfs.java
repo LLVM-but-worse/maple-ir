@@ -11,7 +11,7 @@ public class ExtendedDfs<N extends FastGraphVertex> implements DepthFirstSearch<
 	
 	public static final int WHITE = 0, GREY = 1, BLACK = 2;
 	public static final int TREE = WHITE, BACK = GREY, FOR_CROSS = BLACK;
-	public static final int EDGES = 0x1, PARENTS = 0x2, PRE = 0x4, POST = 0x8, REVERSE = 0x10, 
+	public static final int EDGES = 0x1, PARENTS = 0x2, PRE = 0x4, POST = 0x8, REVERSE = 0x10,
 							COLOUR_VISITOR = 0x20;
 	
 	private final int opt;

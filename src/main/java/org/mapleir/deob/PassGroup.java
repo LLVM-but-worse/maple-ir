@@ -1,10 +1,12 @@
 package org.mapleir.deob;
 
-import org.mapleir.Boot;
-import org.mapleir.context.IContext;
-
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
+
+import org.mapleir.Boot;
+import org.mapleir.context.AnalysisContext;
 
 public class PassGroup implements IPass {
 
@@ -26,12 +28,25 @@ public class PassGroup implements IPass {
 		return this;
 	}
 	
-	public void run(IContext cxt) {
+	public IPass getPass(Predicate<IPass> p) {
+		List<IPass> list = getPasses(p);
+		if(list.size() == 1) {
+			return list.get(0);
+		} else {
+			return null;
+		}
+	}
+	
+	public List<IPass> getPasses(Predicate<IPass> p) {
+		return passes.stream().filter(p).collect(Collectors.toList());
+	}
+	
+	public void run(AnalysisContext cxt) {
 		// TODO: threads
 	}
 
 	@Override
-	public int accept(IContext cxt, IPass __prev, List<IPass> __completed) {
+	public int accept(AnalysisContext cxt, IPass __prev, List<IPass> __completed) {
 		boolean[] passed = new boolean[passes.size()];
 		
 		List<IPass> completed = new ArrayList<>();

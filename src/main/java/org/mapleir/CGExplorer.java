@@ -1,7 +1,19 @@
 package org.mapleir;
 
-import org.mapleir.context.BasicContext;
-import org.mapleir.context.IContext;
+import java.awt.BorderLayout;
+import java.awt.Dimension;
+import java.awt.GridLayout;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.io.File;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+
+import org.mapleir.context.BasicAnalysisContext;
+import org.mapleir.context.AnalysisContext;
 import org.mapleir.context.IRCache;
 import org.mapleir.context.app.ApplicationClassSource;
 import org.mapleir.context.app.InstalledRuntimeClassSource;
@@ -15,22 +27,19 @@ import org.objectweb.asm.tree.MethodNode;
 import org.topdank.byteengineer.commons.data.JarInfo;
 import org.topdank.byteio.in.SingleJarDownloader;
 
-import javax.swing.*;
+import javax.swing.JFrame;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JTextField;
+import javax.swing.JTree;
+import javax.swing.UIManager;
+import javax.swing.UnsupportedLookAndFeelException;
 import javax.swing.event.TreeSelectionEvent;
 import javax.swing.event.TreeSelectionListener;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.TreePath;
 import javax.swing.tree.TreeSelectionModel;
-import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.io.File;
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
 
 public class CGExplorer {
 
@@ -60,7 +69,7 @@ public class CGExplorer {
 		
 		CGExplorer b = new CGExplorer(app);
 		
-		IContext cxt = new BasicContext.BasicContextBuilder()
+		AnalysisContext cxt = new BasicAnalysisContext.BasicContextBuilder()
 				.setApplication(app)
 				.setInvocationResolver(new InvocationResolver(app))
 				.setCache(new IRCache(ControlFlowGraphBuilder::build))

@@ -1,6 +1,8 @@
 package org.mapleir.deob.interproc.sensitive;
 
-import org.mapleir.context.IContext;
+import java.util.List;
+
+import org.mapleir.context.AnalysisContext;
 import org.mapleir.deob.interproc.IRCallTracer;
 import org.mapleir.deob.interproc.sensitive.ContextSensitiveIPAnalysis.CallGraph.ContextInsensitiveInvocation;
 import org.mapleir.deob.intraproc.eval.ExpressionEvaluator;
@@ -18,13 +20,11 @@ import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.MethodNode;
 
-import java.util.List;
-
 public class ContextSensitiveIPAnalysis {
 	
 	private final ExpressionEvaluator evaluator;
 	
-	public ContextSensitiveIPAnalysis(IContext cxt, ExpressionEvaluator evaluator) {
+	public ContextSensitiveIPAnalysis(AnalysisContext cxt, ExpressionEvaluator evaluator) {
 		this.evaluator = evaluator;
 		
 		CallgraphBuilder builder = new CallgraphBuilder(cxt);
@@ -36,25 +36,32 @@ public class ContextSensitiveIPAnalysis {
 		for(MethodNode m : builder.graph.vertices()) {
 			x += builder.graph.getEdges(m).size();
 		}
+		System.out.println("x=" + x);
 		
 		TarjanSCC<MethodNode> scc = new TarjanSCC<>(builder.graph);
-		MethodNode fakeEntry = new MethodNode(null, 0, "<VM_INV>", "", null, null);
-		builder.graph.addVertex(fakeEntry);
+//		MethodNode fakeEntry = new MethodNode(null, 0, "<VM_INV>", "", null, null);
+//		builder.graph.addVertex(fakeEntry);
+//		
+//		for(MethodNode m : builder.graph.vertices()) {
+//			if(cxt.getIRCache().getActiveMethods().contains(m)) {
+//				builder.graph.addEdge(fakeEntry, new ContextInsensitiveInvocation(fakeEntry, m));
+//			}
+//		}
+//		scc.search(fakeEntry);
 		
 		for(MethodNode m : builder.graph.vertices()) {
-			if(cxt.getIRCache().getActiveMethods().contains(m)) {
-				builder.graph.addEdge(fakeEntry, new ContextInsensitiveInvocation(fakeEntry, m));
+			if(scc.low(m) == -1) {
+				scc.search(m);
 			}
 		}
-		scc.search(fakeEntry);
 		
 		for(List<MethodNode> l : scc.getComponents()) {
 			if(l.size() > 1) {
 				System.out.println("c: " + l.size());
 				for(MethodNode m : l) {
-					if(m.owner != null && !cxt.getApplication().isLibraryClass(m.owner.name)) {
+//					if(m.owner != null && !cxt.getApplication().isLibraryClass(m.owner.name)) {
 						System.out.println("    " + m + " .. " + builder.graph.getEdges(m).size() + " .. " + builder.graph.getReverseEdges(m).size());
-					}
+//					}
 				}
 			}
 		}
@@ -64,10 +71,17 @@ public class ContextSensitiveIPAnalysis {
 		
 		private final CallGraph graph;
 		
-		public CallgraphBuilder(IContext context) {
+		public CallgraphBuilder(AnalysisContext context) {
 			super(context);
 			
 			graph = new CallGraph();
+		}
+		
+//		private Set<MethodNode> 
+		
+		private boolean isThreadCall(Invocation call) {
+			return call.isStatic() && call.getOwner().equals("java/lang/Thread") &&
+					call.getName().equals("start");
 		}
 		
 		@Override
@@ -87,12 +101,12 @@ public class ContextSensitiveIPAnalysis {
 				makeFact(p, valueResolver);
 			}
 			
-			if(!context.getApplication().isLibraryClass(caller.owner.name)) {
+			if(!context.getApplication().isLibraryClass(callee.owner.name)) {
 				boolean graphed = false;
 				
-				if(graph.containsVertex(caller)) {
-					for(ContextInsensitiveInvocation i : graph.getEdges(caller)) {
-						if(i.dst == callee) {
+				if(graph.containsVertex(callee)) {
+					for(ContextInsensitiveInvocation i : graph.getReverseEdges(callee)) {
+						if(i.src == caller) {
 							graphed = true;
 							break;
 						}

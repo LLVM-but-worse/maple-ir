@@ -1,6 +1,6 @@
 package org.mapleir.deob.passes;
 
-import org.mapleir.context.IContext;
+import org.mapleir.context.AnalysisContext;
 import org.mapleir.deob.IPass;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
@@ -32,7 +32,7 @@ public class FieldRSADecryptionPass implements IPass, Opcode {
 	private final NullPermeableHashMap<String, Set<Number>> cencs;
 	private final Map<String, Number[]> pairs;
 	
-	private IContext cxt;
+	private AnalysisContext cxt;
 	
 	public FieldRSADecryptionPass() {
 		fieldLookupCache = new HashMap<>();
@@ -52,7 +52,7 @@ public class FieldRSADecryptionPass implements IPass, Opcode {
 		return owner + "." + name + " " + desc;
 	}
 	
-	private String lookupField(IContext cxt, String owner, String name, String desc, boolean isStatic) {
+	private String lookupField(AnalysisContext cxt, String owner, String name, String desc, boolean isStatic) {
 		String oldKey = key(owner, name, desc);
 		if(fieldLookupCache.containsKey(oldKey)) {
 			return fieldLookupCache.get(oldKey);
@@ -61,7 +61,7 @@ public class FieldRSADecryptionPass implements IPass, Opcode {
 		}
 	}
 	
-	private String lookupField0(IContext cxt, String oldKey, String owner, String name, String desc, boolean isStatic) {		
+	private String lookupField0(AnalysisContext cxt, String oldKey, String owner, String name, String desc, boolean isStatic) {		
 		ClassNode cn = cxt.getApplication().findClassNode(owner);
 		
 		if(cn == null) {
@@ -87,7 +87,7 @@ public class FieldRSADecryptionPass implements IPass, Opcode {
 	}
 	
 	@Override
-	public int accept(IContext cxt, IPass prev, List<IPass> completed) {
+	public int accept(AnalysisContext cxt, IPass prev, List<IPass> completed) {
 		this.cxt = cxt;
 		
 		for(MethodNode m : cxt.getIRCache().getActiveMethods()) {
@@ -234,7 +234,7 @@ public class FieldRSADecryptionPass implements IPass, Opcode {
 		return pairs.size();
 	}
 	
-	private void transform(IContext cxt) {
+	private void transform(AnalysisContext cxt) {
 		for(ClassNode cn : cxt.getApplication().iterate()) {
 			for(MethodNode m : cn.methods) {
 				ControlFlowGraph cfg = cxt.getIRCache().getFor(m);

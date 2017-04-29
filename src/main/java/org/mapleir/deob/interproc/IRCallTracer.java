@@ -1,6 +1,6 @@
 package org.mapleir.deob.interproc;
 
-import org.mapleir.context.IContext;
+import org.mapleir.context.AnalysisContext;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.Expr;
@@ -15,9 +15,9 @@ import java.util.Set;
 
 public class IRCallTracer extends CallTracer {
 
-	protected final IContext context;
+	protected final AnalysisContext context;
 	
-	public IRCallTracer(IContext context) {
+	public IRCallTracer(AnalysisContext context) {
 		super(context.getApplication(), context.getInvocationResolver());
 		this.context = context;
 	}

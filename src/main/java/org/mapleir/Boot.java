@@ -1,18 +1,31 @@
 package org.mapleir;
 
-import org.mapleir.context.BasicContext;
-import org.mapleir.context.IContext;
+import java.io.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Deque;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.jar.JarOutputStream;
+
+import org.mapleir.context.AnalysisContext;
+import org.mapleir.context.BasicAnalysisContext;
 import org.mapleir.context.IRCache;
+import org.mapleir.context.SimpleApplicationContext;
 import org.mapleir.context.app.ApplicationClassSource;
 import org.mapleir.context.app.CompleteResolvingJarDumper;
 import org.mapleir.context.app.InstalledRuntimeClassSource;
 import org.mapleir.deob.IPass;
 import org.mapleir.deob.PassGroup;
-import org.mapleir.deob.interproc.CallTracer;
 import org.mapleir.deob.interproc.IRCallTracer;
 import org.mapleir.deob.interproc.sensitive.ContextSensitiveIPAnalysis;
 import org.mapleir.deob.intraproc.eval.ExpressionEvaluator;
 import org.mapleir.deob.intraproc.eval.impl.ReflectiveFunctorFactory;
+import org.mapleir.deob.passes.ClassRenamerPass;
+import org.mapleir.deob.passes.MethodRenamerPass;
 import org.mapleir.ir.algorithms.BoissinotDestructor;
 import org.mapleir.ir.algorithms.ControlFlowGraphDumper;
 import org.mapleir.ir.cfg.ControlFlowGraph;
@@ -24,12 +37,6 @@ import org.objectweb.asm.tree.MethodNode;
 import org.topdank.byteengineer.commons.data.JarInfo;
 import org.topdank.byteio.in.SingleJarDownloader;
 import org.topdank.byteio.out.JarDumper;
-
-import java.io.File;
-import java.io.IOException;
-import java.util.*;
-import java.util.Map.Entry;
-import java.util.jar.JarOutputStream;
 
 public class Boot {
 	
@@ -48,6 +55,13 @@ public class Boot {
 		return list;
 	}
 	
+//	public static void main(String[] args) {
+//		b2();
+//	}
+//	
+//	static void b2() {
+//		System.out.println(new RuntimeException().getStackTrace()[1]);
+//	}
 	public static void main(String[] args) throws Exception {
 		sections = new LinkedList<>();
 		logging = true;
@@ -57,8 +71,8 @@ public class Boot {
 			return;
 		} */
 		
-		File f = locateRevFile(135);
-		// File f = new File("res/allatori6.1.jar");
+//		File f = locateRevFile(135);
+		File f = new File("res/allatori6.1san.jar");
 		section("Preparing to run on " + f.getAbsolutePath());
 		SingleJarDownloader<ClassNode> dl = new SingleJarDownloader<>(new JarInfo(f));
 		dl.download();
@@ -71,16 +85,17 @@ public class Boot {
 		app.addLibraries(jre);
 		section("Initialising context.");
 		
-		IContext cxt = new BasicContext.BasicContextBuilder()
+		AnalysisContext cxt = new BasicAnalysisContext.BasicContextBuilder()
 				.setApplication(app)
 				.setInvocationResolver(new InvocationResolver(app))
 				.setCache(new IRCache(ControlFlowGraphBuilder::build))
+				.setApplicationContext(new SimpleApplicationContext(app))
 				.build();
 		
 		section("Expanding callgraph and generating cfgs.");
 		
-		CallTracer tracer = new IRCallTracer(cxt);
-		for(MethodNode m : findEntries(app)) {
+		IRCallTracer tracer = new IRCallTracer(cxt);
+		for(MethodNode m : cxt.getApplicationContext().getEntryPoints()) {
 			tracer.trace(m);
 		}
 		
@@ -108,9 +123,43 @@ public class Boot {
 		JarDumper dumper = new CompleteResolvingJarDumper(dl.getJarContents(), app) {
 			@Override
 			public int dumpResource(JarOutputStream out, String name, byte[] file) throws IOException {
-				if(name.startsWith("META-INF")) {
-					System.out.println(" ignore " + name);
-					return 0;
+//				if(name.startsWith("META-INF")) {
+//					System.out.println(" ignore " + name);
+//					return 0;
+//				}
+				if(name.equals("META-INF/MANIFEST.MF")) {
+					ClassRenamerPass renamer = (ClassRenamerPass) masterGroup.getPass(e -> e.is(ClassRenamerPass.class));
+					
+					if(renamer != null) {
+						ByteArrayOutputStream baos = new ByteArrayOutputStream();
+						BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(baos));
+						BufferedReader br = new BufferedReader(new InputStreamReader(new ByteArrayInputStream(file)));
+						
+						String line;
+						while((line = br.readLine()) != null) {
+							String[] parts = line.split(": ", 2);
+							if(parts.length != 2) {
+								bw.write(line);
+								continue;
+							}
+							
+							if(parts[0].equals("Main-Class")) {
+								String newMain = renamer.getRemappedName(parts[1].replace(".", "/")).replace("/", ".");
+								System.out.printf("%s -> %s%n", parts[1], newMain);
+								parts[1] = newMain;
+							}
+
+							bw.write(parts[0]);
+							bw.write(": ");
+							bw.write(parts[1]);
+							bw.write(System.lineSeparator());
+						}
+						
+						br.close();
+						bw.close();
+						
+						file = baos.toByteArray();
+					}
 				}
 				return super.dumpResource(out, name, file);
 			}
@@ -120,31 +169,31 @@ public class Boot {
 		section("Finished.");
 	}
 	
-	private static void run(IContext cxt, PassGroup group) {
+	private static void run(AnalysisContext cxt, PassGroup group) {
 		group.accept(cxt, null, new ArrayList<>());
 	}
 	
 	private static IPass[] getTransformationPasses() {
 		return new IPass[] {
+//				new ConcreteStaticInvocationPass(),
+				new ClassRenamerPass(),
+				new MethodRenamerPass(),
+//				new FieldRenamerPass(),
 //				new CallgraphPruningPass(),
-				// new ConcreteStaticInvocationPass(),
-//				new ClassRenamerPass(),
-//				new MethodRenamerPass(),
 				// new ConstantParameterPass()
 				// new ClassRenamerPass(),
-//				new FieldRenamerPass(),
 				// new ConstantExpressionReorderPass(),
 				// new FieldRSADecryptionPass(),
 				// new PassGroup("Interprocedural Optimisations")
 				// 	.add(new ConstantParameterPass())
 				// new LiftConstructorCallsPass(),
-				// new DemoteRangesPass(),
+//				 new DemoteRangesPass(),
 //				new ConstantExpressionReorderPass(),
 				// new FieldRSADecryptionPass(),
 				// new ConstantParameterPass(),
 				// new ConstantExpressionEvaluatorPass(),
 //				new DeadCodeEliminationPass()
-		
+				
 		};
 	}
 	
