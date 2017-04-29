@@ -51,7 +51,7 @@ public class InvocationResolver {
 		ClassNode eCn = app.findClassNode(expected.getInternalName());
 		ClassNode aCn = app.findClassNode(actual.getInternalName());
 		
-		ClassTree tree = app.getStructures();
+		ClassTree tree = app.getClassTree();
 		return tree.getAllParents(aCn).contains(eCn) ||
 				tree.getAllParents(eCn).contains(aCn);
 	}
@@ -130,9 +130,9 @@ public class InvocationResolver {
 		
 		System.err.println("eCn: " + eCn.name);
 		System.err.println("aCn: " + aCn.name);
-		System.err.println(app.getStructures().getAllParents(aCn));
-		System.err.println("eCn parent of aCn?: " + app.getStructures().getAllParents(aCn).contains(eCn));
-		System.err.println("aCn child of eCn?: " + app.getStructures().getAllChildren(eCn).contains(aCn));
+		System.err.println(app.getClassTree().getAllParents(aCn));
+		System.err.println("eCn parent of aCn?: " + app.getClassTree().getAllParents(aCn).contains(eCn));
+		System.err.println("aCn child of eCn?: " + app.getClassTree().getAllChildren(eCn).contains(aCn));
 	}
 	
 	/**
@@ -348,7 +348,7 @@ public class InvocationResolver {
 				return set;
 			}
 			
-			for(ClassNode c : app.getStructures().getAllChildren(cn)) {
+			for(ClassNode c : app.getClassTree().getAllChildren(cn)) {
 				m = findExactMethod(c, name, desc, true);
 				
 				if(m != null) {
@@ -421,7 +421,7 @@ public class InvocationResolver {
 	
 	public static Set<MethodNode> getHierarchyMethodChain(AnalysisContext cxt, ClassNode cn, String name, String desc, boolean verify) {
 		ApplicationClassSource app = cxt.getApplication();
-		ClassTree structures = app.getStructures();
+		ClassTree structures = app.getClassTree();
 		InvocationResolver resolver = cxt.getInvocationResolver();
 		
 		Set<MethodNode> foundMethods = new HashSet<>();
