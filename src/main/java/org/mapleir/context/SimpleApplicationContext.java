@@ -18,7 +18,7 @@ public class SimpleApplicationContext extends AbstractApplicationContext {
 		this.app = app;
 	}
 
-	private boolean isMainMethod(MethodNode m) {
+	public static boolean isMainMethod(MethodNode m) {
 		return Modifier.isPublic(m.access) && Modifier.isStatic(m.access) && m.name.equals("main") && m.desc.equals("([Ljava/lang/String;)V");
 	}
 	
