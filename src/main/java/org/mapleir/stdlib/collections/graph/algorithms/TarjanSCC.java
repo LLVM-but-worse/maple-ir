@@ -1,15 +1,12 @@
 package org.mapleir.stdlib.collections.graph.algorithms;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-
 import org.mapleir.stdlib.collections.graph.FastDirectedGraph;
 import org.mapleir.stdlib.collections.graph.FastGraphEdge;
 import org.mapleir.stdlib.collections.graph.FastGraphVertex;
 
+import java.util.*;
+
+// TODO: Convert to stack-invariant
 public class TarjanSCC <N extends FastGraphVertex> {
 	
 	final FastDirectedGraph<N, ? extends FastGraphEdge<N>> graph;
@@ -68,47 +65,18 @@ public class TarjanSCC <N extends FastGraphVertex> {
 		}
 		
 		if(low.get(n) == index.get(n)) {
-			List<N> c = new ArrayList<>();
+			Set<N> c = new HashSet<>();
 			
 			N w = null;
 			do {
 				w = stack.pop();
-				c.add(0, w);
+				c.add(w);
 			} while (w != n);
 			
-			comps.add(0, bfs(n, c));
+			ExtendedDfs<N> dfs = new ExtendedDfs<>(graph, ExtendedDfs.POST).setMask(c).run(n);
+			Collections.reverse(dfs.getPostOrder());
+			comps.add(0, dfs.getPostOrder());
 		}
-	}
-	
-	public List<N> bfs(N n, List<N> cand) {
-		// TODO: reverse post order
-		LinkedList<N> queue = new LinkedList<>();
-		queue.add(n);
-		
-		List<N> bfs = new ArrayList<>();
-		while(!queue.isEmpty()) {
-			n = queue.pop();
-			
-			if(bfs.contains(n)) {
-				continue;
-			} else if(!cand.contains(n)) {
-				// System.out.println(n.getId() + " jumps out of component: " + cand);
-				continue;
-			}
-			
-			bfs.add(n);
-			
-			for(FastGraphEdge<N> e : graph.getEdges(n)) {
-				N s = e.dst;
-				queue.addLast(s);
-			}
-		}
-		
-		if(bfs.size() != cand.size()) {
-			throw new RuntimeException();
-		}
-		
-		return bfs;
 	}
 	
 	/* static final Map<Class<?>, Integer> WEIGHTS = new HashMap<>();
@@ -122,9 +90,9 @@ public class TarjanSCC <N extends FastGraphVertex> {
 		WEIGHTS.put(TryCatchEdge.class, 5);
 	}  */
 
-	/* List<FlowEdge<N>> weigh(Set<FlowEdge<N>> edges) {
-		List<FlowEdge<N>> list = new ArrayList<>(edges);
-		Collections.sort(list, new Comparator<FlowEdge<N>>() {
+	/* List<FastGraphEdge<N>> weigh(Set<FastGraphEdge<N>> edges) {
+		List<FastGraphEdge<N>> list = new ArrayList<>(edges);
+		Collections.sort(list, new Comparator<FastGraphEdge<N>>() {
 			@Override
 			public int compare(FlowEdge<N> o1, FlowEdge<N> o2) {
 				Class<?> c1 = o1.getClass();
