@@ -9,6 +9,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import org.mapleir.context.AnalysisContext;
+import org.mapleir.context.SimpleApplicationContext;
 import org.mapleir.context.app.ApplicationClassSource;
 import org.mapleir.deob.IPass;
 import org.mapleir.deob.util.RenamingUtil;
@@ -52,7 +53,7 @@ public class MethodRenamerPass implements IPass {
 				}
 				
 				if(Modifier.isStatic(m.access)) {
-					if(!m.name.equals("<clinit>")) {
+					if(!m.name.equals("<clinit>") && !SimpleApplicationContext.isMainMethod(m)) {
 						String newName = RenamingUtil.createName(i++);
 						remapped.put(m, newName);
 					}
