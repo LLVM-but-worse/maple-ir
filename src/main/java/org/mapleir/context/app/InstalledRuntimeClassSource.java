@@ -61,7 +61,7 @@ public class InstalledRuntimeClassSource extends LibraryClassSource {
 			/* cache it. */
 			nodeMap.put(cn.name, cn);
 			
-			ClassTree tree = parent.getStructures();
+			ClassTree tree = parent.getClassTree();
 			if(!tree.containsVertex(cn)) {
 				tree.addVertex(cn);
 			}

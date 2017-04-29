@@ -1,6 +1,6 @@
 package org.mapleir.deob.passes;
 
-import org.mapleir.context.IContext;
+import org.mapleir.context.AnalysisContext;
 import org.mapleir.context.app.ApplicationClassSource;
 import org.mapleir.deob.IPass;
 import org.mapleir.deob.util.RenamingUtil;
@@ -31,7 +31,7 @@ public class FieldRenamerPass implements IPass {
 	}
 	
 	@Override
-	public int accept(IContext cxt, IPass prev, List<IPass> completed) {		
+	public int accept(AnalysisContext cxt, IPass prev, List<IPass> completed) {		
 		Map<FieldNode, String> remapped = new HashMap<>();
 
 //		int totalFields = 0;

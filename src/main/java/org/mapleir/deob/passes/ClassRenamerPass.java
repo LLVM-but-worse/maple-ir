@@ -1,6 +1,8 @@
 package org.mapleir.deob.passes;
 
-import org.mapleir.context.IContext;
+import java.util.*;
+
+import org.mapleir.context.AnalysisContext;
 import org.mapleir.context.app.ApplicationClassSource;
 import org.mapleir.deob.IPass;
 import org.mapleir.deob.util.RenamingUtil;
@@ -18,19 +20,44 @@ import org.mapleir.ir.code.stmt.copy.AbstractCopyStmt;
 import org.mapleir.stdlib.collections.ClassHelper;
 import org.mapleir.stdlib.collections.graph.flow.ExceptionRange;
 import org.objectweb.asm.Type;
-import org.objectweb.asm.tree.*;
-
-import java.util.*;
+import org.objectweb.asm.tree.ClassNode;
+import org.objectweb.asm.tree.FieldNode;
+import org.objectweb.asm.tree.LocalVariableNode;
+import org.objectweb.asm.tree.MethodNode;
+import org.objectweb.asm.tree.TryCatchBlockNode;
 
 public class ClassRenamerPass implements IPass {
-
+	
+	private final Map<String, String> remapping = new HashMap<>();
+	
+	public boolean wasRemapped(String name) {
+		return remapping.containsKey(name);
+	}
+	
+	public String getRemappedName(String name) {
+		return remapping.getOrDefault(name, name);
+	}
+	
 	@Override
 	public boolean isQuantisedPass() {
 		return false;
 	}
 	
+	private String getPackage(String name) {
+		return name.substring(0, name.lastIndexOf('/') + 1);
+	}
+	
+	/*private String getClassName(String name) {
+		int i = name.lastIndexOf('/');
+		if(i == -1) {
+			return name;
+		} else {
+			return name.substring(i + 1, name.length());
+		}
+	}*/
+	
 	@Override
-	public int accept(IContext cxt, IPass prev, List<IPass> completed) {
+	public int accept(AnalysisContext cxt, IPass prev, List<IPass> completed) {
 		ApplicationClassSource source = cxt.getApplication();
 		Collection<ClassNode> classes = ClassHelper.collate(source.iterator());
 
@@ -52,13 +79,11 @@ public class ClassRenamerPass implements IPass {
 			}
 		} */
 		
-		Map<String, String> remapping = new HashMap<>();
-		
 		for(ClassNode cn : classes) {
-			String s = RenamingUtil.createName(n);
+			String s = getPackage(cn.name) + RenamingUtil.createName(n);
 			n += step;
 			remapping.put(cn.name, s);
-			System.out.println(cn.name + " -> " + s);
+//			 System.out.println(cn.name + " -> " + s);
 			cn.name = s;
 		}
 		

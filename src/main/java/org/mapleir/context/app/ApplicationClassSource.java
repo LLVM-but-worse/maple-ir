@@ -25,7 +25,7 @@ public class ApplicationClassSource extends ClassSource {
 		libraries = new ArrayList<>();
 	}
 	
-	public ClassTree getStructures() {
+	public ClassTree getClassTree() {
 		if (classTree == null) {
 			classTree = new ClassTree(this);
 		}

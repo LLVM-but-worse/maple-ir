@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.mapleir.context.IContext;
+import org.mapleir.context.AnalysisContext;
 import org.mapleir.context.app.ApplicationClassSource;
 import org.mapleir.deob.IPass;
 import org.mapleir.deob.intraproc.ExceptionAnalysis;
@@ -23,8 +23,11 @@ import org.objectweb.asm.tree.MethodNode;
 
 public class DemoteRangesPass implements IPass {
 	
+	private static final String ERROR_CLASS = Error.class.getName().replace(".", "/");
+	private static final String RTE_CLASS = RuntimeException.class.getName().replace(".", "/");
+	
 	@Override
-	public int accept(IContext cxt, IPass prev, List<IPass> completed) {
+	public int accept(AnalysisContext cxt, IPass prev, List<IPass> completed) {
 		for(ClassNode cn : cxt.getApplication().iterate()) {
 			for(MethodNode m : cn.methods) {
 				ControlFlowGraph cfg = cxt.getIRCache().getFor(m);
@@ -111,10 +114,11 @@ public class DemoteRangesPass implements IPass {
 				
 				ClassNode t = app.findClassNode(ball.getInternalName());
 				for(;;) {
-					if(t == null || t.superName == null) {
+					if(t == null) {
 						break;
 					}
-					if(t.superName.equals(net)) {
+					
+					if(t.name.equals(net)) {
 						return true;
 					} else {
 						// TODO: add flag for app support
