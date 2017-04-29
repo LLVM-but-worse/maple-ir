@@ -1,5 +1,11 @@
 package org.mapleir.context.app;
 
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.Queue;
+import java.util.Set;
+
 import org.mapleir.context.app.ClassTree.InheritanceEdge;
 import org.mapleir.stdlib.collections.graph.FastDirectedGraph;
 import org.mapleir.stdlib.collections.graph.FastGraph;
@@ -7,12 +13,6 @@ import org.mapleir.stdlib.collections.graph.FastGraphEdge;
 import org.mapleir.stdlib.collections.graph.algorithms.SimpleDfs;
 import org.mapleir.stdlib.util.TabbedStringWriter;
 import org.objectweb.asm.tree.ClassNode;
-
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.Queue;
-import java.util.Set;
 
 /**
  * A graph to represent the inheritance tree.
@@ -110,15 +110,23 @@ public class ClassTree extends FastDirectedGraph<ClassNode, InheritanceEdge> {
 		}
 	}
 	
+	private ClassNode requestClass0(String name, String from) {
+		try {
+			return findClass(name);
+		} catch(RuntimeException e) {
+			throw new RuntimeException("request from " + from, e);
+		}
+	}
+	
 	@Override
 	public boolean addVertex(ClassNode cn) {
 		if (!super.addVertex(cn))
 			return false;
-		ClassNode sup = cn.superName != null ? findClass(cn.superName) : rootNode;
+		ClassNode sup = cn.superName != null ? requestClass0(cn.superName, cn.name) : rootNode;
 		super.addEdge(cn, new ExtendsEdge(cn, sup));
 		
 		for (String s : cn.interfaces) {
-			ClassNode iface = findClass(s);
+			ClassNode iface = requestClass0(s, cn.name);
 			super.addEdge(cn, new ImplementsEdge(cn, iface));
 		}
 		return true;
