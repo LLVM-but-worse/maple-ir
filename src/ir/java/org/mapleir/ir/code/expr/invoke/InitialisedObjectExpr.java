@@ -25,6 +25,7 @@ public class InitialisedObjectExpr extends Invocation {
 		}
 	}
 
+	@Override
 	public String getOwner() {
 		return owner;
 	}
@@ -33,6 +34,7 @@ public class InitialisedObjectExpr extends Invocation {
 		this.owner = owner;
 	}
 
+	@Override
 	public String getDesc() {
 		return desc;
 	}
@@ -175,5 +177,10 @@ public class InitialisedObjectExpr extends Invocation {
 	@Override
 	public Expr[] getParameterExprs() {
 		return args;
+	}
+
+	@Override
+	public String getName() {
+		return "<init>";
 	}
 }
