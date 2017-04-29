@@ -1,6 +1,7 @@
 package org.mapleir.context;
 
 import java.lang.reflect.Modifier;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -21,21 +22,34 @@ public class SimpleApplicationContext extends AbstractApplicationContext {
 		return Modifier.isPublic(m.access) && Modifier.isStatic(m.access) && m.name.equals("main") && m.desc.equals("([Ljava/lang/String;)V");
 	}
 	
-	private boolean isLibraryInheritedMethod(MethodNode m, ClassTree tree) {
+	private boolean isLibraryInheritedMethod(MethodNode m) {
+		if(Modifier.isStatic(m.access) || m.name.equals("<init>")) {
+			return false;
+		}
+		
+		ClassTree tree = app.getClassTree();
+		
+		// TODO: could probably optimise with dfs instead of getAll
+		Collection<ClassNode> parents = tree.getAllParents(m.owner);
+		for(ClassNode cn : parents) {
+			if(app.isLibraryClass(cn.name)) {
+				for(MethodNode cnM : cn.methods) {
+					if(!Modifier.isStatic(cnM.access) && cnM.name.equals(m.name) && cnM.desc.equals(m.desc)) {
+						return true;
+					}
+				}
+			}
+		}
 		return false;
 	}
 	
 	@Override
 	protected Set<MethodNode> computeEntryPoints() {
-		ClassTree tree = app.getClassTree();
-		
 		Set<MethodNode> set = new HashSet<>();
 		
 		for(ClassNode cn : app.iterate()) {
 			for(MethodNode m : cn.methods) {
-				if(isMainMethod(m)) {
-					set.add(m);
-				} else if(!Modifier.isStatic(m.access) && isLibraryInheritedMethod(m, tree)) {
+				if(isMainMethod(m) || m.name.equals("<clinit>") || isLibraryInheritedMethod(m)) {
 					set.add(m);
 				}
 			}
