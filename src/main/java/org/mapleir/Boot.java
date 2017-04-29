@@ -25,6 +25,7 @@ import org.mapleir.deob.interproc.sensitive.ContextSensitiveIPAnalysis;
 import org.mapleir.deob.intraproc.eval.ExpressionEvaluator;
 import org.mapleir.deob.intraproc.eval.impl.ReflectiveFunctorFactory;
 import org.mapleir.deob.passes.ClassRenamerPass;
+import org.mapleir.deob.passes.MethodRenamerPass;
 import org.mapleir.ir.algorithms.BoissinotDestructor;
 import org.mapleir.ir.algorithms.ControlFlowGraphDumper;
 import org.mapleir.ir.cfg.ControlFlowGraph;
@@ -175,8 +176,8 @@ public class Boot {
 	private static IPass[] getTransformationPasses() {
 		return new IPass[] {
 //				new ConcreteStaticInvocationPass(),
-//				new ClassRenamerPass(),
-//				new MethodRenamerPass(),
+				new ClassRenamerPass(),
+				new MethodRenamerPass(),
 //				new FieldRenamerPass(),
 //				new CallgraphPruningPass(),
 				// new ConstantParameterPass()
