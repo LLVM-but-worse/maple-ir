@@ -28,6 +28,15 @@ public class PassGroup implements IPass {
 		return this;
 	}
 	
+	public IPass getPass(Predicate<IPass> p) {
+		List<IPass> list = getPasses(p);
+		if(list.size() == 1) {
+			return list.get(0);
+		} else {
+			return null;
+		}
+	}
+	
 	public List<IPass> getPasses(Predicate<IPass> p) {
 		return passes.stream().filter(p).collect(Collectors.toList());
 	}
