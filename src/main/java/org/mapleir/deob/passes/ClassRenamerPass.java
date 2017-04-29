@@ -47,14 +47,14 @@ public class ClassRenamerPass implements IPass {
 		return name.substring(0, name.lastIndexOf('/') + 1);
 	}
 	
-	private String getClassName(String name) {
+	/*private String getClassName(String name) {
 		int i = name.lastIndexOf('/');
 		if(i == -1) {
 			return name;
 		} else {
 			return name.substring(i + 1, name.length());
 		}
-	}
+	}*/
 	
 	@Override
 	public int accept(AnalysisContext cxt, IPass prev, List<IPass> completed) {
