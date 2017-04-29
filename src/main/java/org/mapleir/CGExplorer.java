@@ -12,8 +12,8 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import org.mapleir.context.BasicContext;
-import org.mapleir.context.IContext;
+import org.mapleir.context.BasicAnalysisContext;
+import org.mapleir.context.AnalysisContext;
 import org.mapleir.context.IRCache;
 import org.mapleir.context.app.ApplicationClassSource;
 import org.mapleir.context.app.InstalledRuntimeClassSource;
@@ -69,7 +69,7 @@ public class CGExplorer {
 		
 		CGExplorer b = new CGExplorer(app);
 		
-		IContext cxt = new BasicContext.BasicContextBuilder()
+		AnalysisContext cxt = new BasicAnalysisContext.BasicContextBuilder()
 				.setApplication(app)
 				.setInvocationResolver(new InvocationResolver(app))
 				.setCache(new IRCache(ControlFlowGraphBuilder::build))

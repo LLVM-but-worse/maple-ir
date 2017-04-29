@@ -1,6 +1,6 @@
 package org.mapleir.stdlib.util;
 
-import org.mapleir.context.IContext;
+import org.mapleir.context.AnalysisContext;
 import org.mapleir.context.app.ApplicationClassSource;
 import org.mapleir.context.app.ClassTree;
 import org.objectweb.asm.ClassWriter;
@@ -419,7 +419,7 @@ public class InvocationResolver {
 		return set;
 	}
 	
-	public static Set<MethodNode> getHierarchyMethodChain(IContext cxt, ClassNode cn, String name, String desc, boolean verify) {
+	public static Set<MethodNode> getHierarchyMethodChain(AnalysisContext cxt, ClassNode cn, String name, String desc, boolean verify) {
 		ApplicationClassSource app = cxt.getApplication();
 		ClassTree structures = app.getStructures();
 		InvocationResolver resolver = cxt.getInvocationResolver();

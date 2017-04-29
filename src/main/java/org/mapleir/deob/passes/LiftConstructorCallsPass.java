@@ -3,7 +3,7 @@ package org.mapleir.deob.passes;
 import java.util.List;
 import java.util.Set;
 
-import org.mapleir.context.IContext;
+import org.mapleir.context.AnalysisContext;
 import org.mapleir.deob.IPass;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
@@ -22,7 +22,7 @@ import org.objectweb.asm.tree.MethodNode;
 public class LiftConstructorCallsPass implements Opcode, IPass {
 
 	@Override
-	public int accept(IContext cxt, IPass prev, List<IPass> completed) {
+	public int accept(AnalysisContext cxt, IPass prev, List<IPass> completed) {
 		int delta = 0;
 		
 		for(ClassNode cn : cxt.getApplication().iterate()) {

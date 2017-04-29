@@ -12,9 +12,10 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.jar.JarOutputStream;
 
-import org.mapleir.context.BasicContext;
-import org.mapleir.context.IContext;
+import org.mapleir.context.AnalysisContext;
+import org.mapleir.context.BasicAnalysisContext;
 import org.mapleir.context.IRCache;
+import org.mapleir.context.SimpleApplicationContext;
 import org.mapleir.context.app.ApplicationClassSource;
 import org.mapleir.context.app.CompleteResolvingJarDumper;
 import org.mapleir.context.app.InstalledRuntimeClassSource;
@@ -78,10 +79,11 @@ public class Boot {
 		app.addLibraries(jre);
 		section("Initialising context.");
 		
-		IContext cxt = new BasicContext.BasicContextBuilder()
+		AnalysisContext cxt = new BasicAnalysisContext.BasicContextBuilder()
 				.setApplication(app)
 				.setInvocationResolver(new InvocationResolver(app))
 				.setCache(new IRCache(ControlFlowGraphBuilder::build))
+				.setApplicationContext(new SimpleApplicationContext(app))
 				.build();
 		
 		section("Expanding callgraph and generating cfgs.");
@@ -127,7 +129,7 @@ public class Boot {
 		section("Finished.");
 	}
 	
-	private static void run(IContext cxt, PassGroup group) {
+	private static void run(AnalysisContext cxt, PassGroup group) {
 		group.accept(cxt, null, new ArrayList<>());
 	}
 	

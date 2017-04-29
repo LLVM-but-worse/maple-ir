@@ -1,6 +1,6 @@
 package org.mapleir.deob.passes;
 
-import org.mapleir.context.IContext;
+import org.mapleir.context.AnalysisContext;
 import org.mapleir.deob.IPass;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
@@ -23,7 +23,7 @@ public class ConstantExpressionReorderPass implements IPass, Opcode {
 	}
 	
 	@Override
-	public int accept(IContext cxt, IPass prev, List<IPass> completed) {
+	public int accept(AnalysisContext cxt, IPass prev, List<IPass> completed) {
 		int i = 0;
 		for(MethodNode m : cxt.getIRCache().getActiveMethods()) {
 			ControlFlowGraph ir = cxt.getIRCache().getFor(m);

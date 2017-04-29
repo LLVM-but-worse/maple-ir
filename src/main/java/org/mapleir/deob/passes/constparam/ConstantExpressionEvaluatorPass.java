@@ -7,7 +7,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
-import org.mapleir.context.IContext;
+import org.mapleir.context.AnalysisContext;
 import org.mapleir.deob.IPass;
 import org.mapleir.deob.interproc.IPAnalysis;
 import org.mapleir.deob.interproc.IPAnalysisVisitor;
@@ -47,7 +47,7 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 	}
 	
 	@Override
-	public int accept(IContext cxt, IPass prev, List<IPass> completed) {
+	public int accept(AnalysisContext cxt, IPass prev, List<IPass> completed) {
 		branchesEvaluated = 0;
 		exprsEvaluated = 0;
 		
@@ -258,10 +258,10 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 	
 	private class IPConstAnalysisVisitor implements IPAnalysisVisitor {
 
-		final IContext cxt;
+		final AnalysisContext cxt;
 		final Map<MethodNode, List<TaintableSet<ConstantExpr>>> constParams = new HashMap<>();
 		
-		public IPConstAnalysisVisitor(IContext cxt) {
+		public IPConstAnalysisVisitor(AnalysisContext cxt) {
 			this.cxt = cxt;
 		}
 		
