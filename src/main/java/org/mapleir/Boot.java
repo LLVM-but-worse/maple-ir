@@ -4,6 +4,7 @@ import org.mapleir.context.BasicContext;
 import org.mapleir.context.IContext;
 import org.mapleir.context.IRCache;
 import org.mapleir.context.app.ApplicationClassSource;
+import org.mapleir.context.app.CompleteResolvingJarDumper;
 import org.mapleir.context.app.InstalledRuntimeClassSource;
 import org.mapleir.deob.IPass;
 import org.mapleir.deob.PassGroup;
@@ -22,11 +23,13 @@ import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.topdank.byteengineer.commons.data.JarInfo;
 import org.topdank.byteio.in.SingleJarDownloader;
+import org.topdank.byteio.out.JarDumper;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
 import java.util.Map.Entry;
+import java.util.jar.JarOutputStream;
 
 public class Boot {
 	
@@ -102,17 +105,17 @@ public class Boot {
 		}
 		
 		section("Rewriting jar.");
-//		JarDumper dumper = new CompleteResolvingJarDumper(dl.getJarContents(), app) {
-//			@Override
-//			public int dumpResource(JarOutputStream out, String name, byte[] file) throws IOException {
-//				if(name.startsWith("META-INF")) {
-//					System.out.println(" ignore " + name);
-//					return 0;
-//				}
-//				return super.dumpResource(out, name, file);
-//			}
-//		};
-//		dumper.dump(new File("out/osb5.jar"));
+		JarDumper dumper = new CompleteResolvingJarDumper(dl.getJarContents(), app) {
+			@Override
+			public int dumpResource(JarOutputStream out, String name, byte[] file) throws IOException {
+				if(name.startsWith("META-INF")) {
+					System.out.println(" ignore " + name);
+					return 0;
+				}
+				return super.dumpResource(out, name, file);
+			}
+		};
+		dumper.dump(new File("out/osb5.jar"));
 		
 		section("Finished.");
 	}
@@ -141,7 +144,7 @@ public class Boot {
 				// new ConstantParameterPass(),
 				// new ConstantExpressionEvaluatorPass(),
 //				new DeadCodeEliminationPass()
-				
+		
 		};
 	}
 	
