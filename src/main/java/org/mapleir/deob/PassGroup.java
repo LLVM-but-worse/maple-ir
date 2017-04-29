@@ -1,10 +1,12 @@
 package org.mapleir.deob;
 
-import org.mapleir.Boot;
-import org.mapleir.context.AnalysisContext;
-
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
+
+import org.mapleir.Boot;
+import org.mapleir.context.AnalysisContext;
 
 public class PassGroup implements IPass {
 
@@ -24,6 +26,10 @@ public class PassGroup implements IPass {
 	public PassGroup remove(IPass p) {
 		passes.remove(p);
 		return this;
+	}
+	
+	public List<IPass> getPasses(Predicate<IPass> p) {
+		return passes.stream().filter(p).collect(Collectors.toList());
 	}
 	
 	public void run(AnalysisContext cxt) {
