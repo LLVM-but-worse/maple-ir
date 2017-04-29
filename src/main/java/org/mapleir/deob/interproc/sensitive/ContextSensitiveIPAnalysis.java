@@ -36,6 +36,7 @@ public class ContextSensitiveIPAnalysis {
 		for(MethodNode m : builder.graph.vertices()) {
 			x += builder.graph.getEdges(m).size();
 		}
+		System.out.println("x=" + x);
 		
 		TarjanSCC<MethodNode> scc = new TarjanSCC<>(builder.graph);
 //		MethodNode fakeEntry = new MethodNode(null, 0, "<VM_INV>", "", null, null);
