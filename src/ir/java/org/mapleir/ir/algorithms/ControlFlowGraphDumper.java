@@ -3,10 +3,7 @@ package org.mapleir.ir.algorithms;
 import org.mapleir.deob.intraproc.ExceptionAnalysis;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
-import org.mapleir.ir.cfg.edge.FlowEdge;
-import org.mapleir.ir.cfg.edge.FlowEdges;
-import org.mapleir.ir.cfg.edge.ImmediateEdge;
-import org.mapleir.ir.cfg.edge.UnconditionalJumpEdge;
+import org.mapleir.ir.cfg.edge.*;
 import org.mapleir.ir.code.Stmt;
 import org.mapleir.ir.code.stmt.UnconditionalJumpStmt;
 import org.mapleir.stdlib.collections.IndexedList;
@@ -25,6 +22,8 @@ import org.objectweb.asm.tree.MethodNode;
 import java.util.*;
 
 public class ControlFlowGraphDumper {
+	private static boolean printedIt = false;
+	
 	public static void dump(ControlFlowGraph cfg, MethodNode m) {
 		// Clear methodnode
 		m.instructions.removeAll(true);
@@ -74,6 +73,7 @@ public class ControlFlowGraphDumper {
 			}
 		}
 
+		printedIt = false;
 		for (ExceptionRange<BasicBlock> er : cfg.getRanges()) {
 //			System.out.println("RANGE: " + er);
 			dumpRange(cfg, m, blocks, er, terminalLabel.getLabel());
@@ -84,19 +84,19 @@ public class ControlFlowGraphDumper {
 	private static void printOrdering(List<BasicBlock> order) {
 		for (int i = 0; i < order.size(); i++) {
 			BasicBlock b = order.get(i);
-			System.out.print(b.getId());
+			System.err.print(b.getId());
 			BasicBlock next = b.getImmediate();
 			if (next != null) {
 				if (next == order.get(i + 1)) {
-					System.out.print("->");
+					System.err.print("->");
 				} else {
 					throw new IllegalStateException("WTF");
 				}
 			} else {
-				System.out.print(" ");
+				System.err.print(" ");
 			}
 		}
-		System.out.println();
+		System.err.println();
 	}
 	
 	private static void dumpRange(ControlFlowGraph cfg, MethodNode m, IndexedList<BasicBlock> order, ExceptionRange<BasicBlock> er, Label terminalLabel) {
@@ -130,10 +130,33 @@ public class ControlFlowGraphDumper {
 			// check for discontinuity
 			BasicBlock nextBlock = range.get(rangeIdx + 1);
 			int nextOrderIdx = order.indexOf(nextBlock);
-			if (nextOrderIdx - orderIdx > 1) { // blocks in-between, end the handler and begin anew
+			if (nextOrderIdx - orderIdx > 1 && !printedIt) { // blocks in-between, end the handler and begin anew
+				printedIt = true;
 				System.err.println("[warn] Had to split up a range: " + m);
 				printOrdering(new ArrayList<>(cfg.vertices()));
 				printOrdering(order);
+				System.out.println();
+				for (BasicBlock b : cfg.vertices()) {
+					StringBuilder s = new StringBuilder();
+					s.append(b.getId()).append("-> ");
+					for (FlowEdge<BasicBlock> e : cfg.getEdges(b)) {
+						if (e instanceof TryCatchEdge)
+							continue;
+						if (e instanceof ImmediateEdge)
+							s.append("i:");
+						s.append(e.dst.getId()).append(" ");
+					}
+					while (s.length() < 30)
+						s.append(" ");
+					s.append(" || ");
+					for (FlowEdge<BasicBlock> e : cfg.getEdges(b)) {
+						if (!(e instanceof TryCatchEdge))
+							continue;
+						s.append(e.dst.getId()).append(" ");
+					}
+					System.out.println(s);
+				}
+				System.exit(1);
 				// System.err.println(cfg);
 				// System.err.println(m);
 				// System.err.println(er);
@@ -187,13 +210,17 @@ public class ControlFlowGraphDumper {
 		}
 		
 		// Build bundle graph
+		
 		Map<BasicBlock, BlockBundle> bundles = new HashMap<>();
 		List<BasicBlock> postorder = new SimpleDfs<>(cfg, entry, SimpleDfs.POST).getPostOrder();
-		for (BasicBlock b : postorder) {
-			if (bundles.containsKey(b))
+		
+		// Build bundles
+		for (int i = 0; i < postorder.size(); i++) {
+			BasicBlock b = postorder.get(i);
+			if (bundles.containsKey(b)) // Already in a bundle
 				continue;
 			
-			if (b.getIncomingImmediateEdge() != null)
+			if (b.getIncomingImmediateEdge() != null) // Look for heads of bundles only
 				continue;
 			
 			BlockBundle bundle = new BlockBundle();
@@ -203,6 +230,13 @@ public class ControlFlowGraphDumper {
 				b = b.getImmediate();
 			}
 		}
+		
+		Set<ExceptionRange> ranges = new HashSet<>();
+		for (BlockBundle b : bundles.values()) {
+		
+		}
+		
+		
 		BundleGraph bundleGraph = new BundleGraph();
 		BlockBundle entryBundle = bundles.get(entry);
 		bundleGraph.addVertex(entryBundle);
@@ -228,6 +262,8 @@ public class ControlFlowGraphDumper {
 					b.add(new UnconditionalJumpStmt(dst));
 					cfg.removeEdge(b, e);
 					cfg.addEdge(b, new UnconditionalJumpEdge<>(b, dst));
+					
+					System.err.println("[warn] Had to fixup immediate to goto: " + cfg.getMethod());
 				}
 			}
 		}
