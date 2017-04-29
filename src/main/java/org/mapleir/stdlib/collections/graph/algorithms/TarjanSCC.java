@@ -64,7 +64,7 @@ public class TarjanSCC <N extends FastGraphVertex> {
 			}
 		}
 		
-		if(low.get(n) == index.get(n)) {
+		if(Objects.equals(low.get(n), index.get(n))) {
 			Set<N> c = new HashSet<>();
 			
 			N w = null;
