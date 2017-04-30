@@ -67,7 +67,7 @@ public interface FastGraph<N extends FastGraphVertex, E extends FastGraphEdge<N>
 	
 	DotConfiguration<FastGraph<N,E>, N, E> makeConfiguration();
 
-	default DotWriter<FastGraph<N,E>, N, E> makeWriter() {
+	default DotWriter<FastGraph<N,E>, N, E> makeDotWriter() {
 		return new DotWriter<>(makeConfiguration(), this);
 	}
 }

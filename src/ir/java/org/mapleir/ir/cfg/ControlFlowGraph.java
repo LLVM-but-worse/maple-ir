@@ -189,7 +189,7 @@ public class ControlFlowGraph extends FastBlockGraph {
 	
 	@Override
 	// TODO what the heck
-	public DotWriter<FastGraph<BasicBlock, FlowEdge<BasicBlock>>, BasicBlock, FlowEdge<BasicBlock>> makeWriter() {
-		return (DotWriter<FastGraph<BasicBlock, FlowEdge<BasicBlock>>, BasicBlock, FlowEdge<BasicBlock>>)(Object)((DotWriter<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>>)(Object)super.makeWriter()).add(new ControlFlowGraphDecorator().setFlags(ControlFlowGraphDecorator.OPT_EDGES));
+	public DotWriter<FastGraph<BasicBlock, FlowEdge<BasicBlock>>, BasicBlock, FlowEdge<BasicBlock>> makeDotWriter() {
+		return (DotWriter<FastGraph<BasicBlock, FlowEdge<BasicBlock>>, BasicBlock, FlowEdge<BasicBlock>>)(Object)((DotWriter<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>>)(Object)super.makeDotWriter()).add(new ControlFlowGraphDecorator().setFlags(ControlFlowGraphDecorator.OPT_EDGES | ControlFlowGraphDecorator.OPT_STMTS));
 	}
 }

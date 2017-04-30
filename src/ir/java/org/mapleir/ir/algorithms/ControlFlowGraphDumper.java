@@ -36,6 +36,7 @@ public class ControlFlowGraphDumper {
 	public void dump() {
 		// Clear methodnode
 		m.instructions.removeAll(true);
+		m.instructions.resetLabels();
 		m.tryCatchBlocks.clear();
 		m.visitCode();
 		for (BasicBlock b : cfg.vertices()) {
@@ -44,15 +45,16 @@ public class ControlFlowGraphDumper {
 
 		// Linearize
 		linearize();
-		// if (!new ArrayList<>(order).equals(new ArrayList<>(cfg.vertices()))) {
-			// System.err.println("[warn] Differing linearizations: " + m);
-			// printOrdering(new ArrayList<>(cfg.vertices()));
-			// printOrdering(order);
+		if (!new ArrayList<>(order).equals(new ArrayList<>(cfg.vertices()))) {
+			System.err.println("[warn] Differing linearizations: " + m);
+			printOrdering(new ArrayList<>(cfg.vertices()));
+			printOrdering(order);
 			// cfg.makeDotWriter().setName(m.owner.name + "#" + m.name + m.desc).export();
-		// }
+			// System.exit(1);
+		}
 		
 		// Fix edges
-		naturalise();
+		// naturalise();
 		
 		// Dump code
 		for (BasicBlock b : order) {
@@ -130,15 +132,23 @@ public class ControlFlowGraphDumper {
 		List<BasicBlock> range = er.get();
 		range.sort(Comparator.comparing(order::indexOf));
 		
-		Label start = range.get(0).getLabel();
-		int rangeIdx = 0, orderIdx = order.indexOf(range.get(rangeIdx));
+		Label start;
+		int rangeIdx = -1, orderIdx;
+		do {
+			rangeIdx++;
+			orderIdx = order.indexOf(range.get(rangeIdx));
+			start = range.get(rangeIdx).getLabel();
+		} while (orderIdx == -1);
+		
 		for (;;) {
 			// check for endpoints
 			if (orderIdx + 1 == order.size()) { // end of method
+				System.err.println("END handler " + er.getHandler().getId() + ", start=" + range.get(0).getId() + ", last=" + range.get(range.size() - 1).getId());
 				m.visitTryCatchBlock(start, terminalLabel.getLabel(), handler, type.getInternalName());
 				break;
 			} else if (rangeIdx + 1 == range.size()) { // end of range
 				Label end = order.get(orderIdx + 1).getLabel();
+				System.err.println("OK handler " + er.getHandler().getId() + ", start=" + range.get(0).getId() + ", last=" + range.get(range.size() - 1).getId());
 				m.visitTryCatchBlock(start, end, handler, type.getInternalName());
 				break;
 			}
@@ -148,9 +158,13 @@ public class ControlFlowGraphDumper {
 			int nextOrderIdx = order.indexOf(nextBlock);
 			if (nextOrderIdx - orderIdx > 1) { // blocks in-between, end the handler and begin anew
 				System.err.println("[warn] Had to split up a range: " + m);
+				System.err.println("handler " + er.getHandler().getId() + ", start=" + range.get(0).getId() + ", last=" + range.get(range.size() - 1).getId());
+				System.err.println("Before block " + nextBlock);
+				// cfg.makeDotWriter().setName(m.owner.name.replaceAll("I", "1") + "#" + m.name + m.desc + er.getHandler()).export();
 				Label end = order.get(orderIdx + 1).getLabel();
 				m.visitTryCatchBlock(start, end, handler, type.getInternalName());
 				start = nextBlock.getLabel();
+				System.exit(1);
 			}
 
 			// next
@@ -199,8 +213,9 @@ public class ControlFlowGraphDumper {
 	}
 	
 	private void linearize() {
-		order = new IndexedList<>();
-		order.addAll(cfg.vertices());
+		// order = new IndexedList<>();
+		// order.addAll(cfg.vertices());
+		linearizeTarjan();
 	}
 	
 	private void linearizeTarjan() {
