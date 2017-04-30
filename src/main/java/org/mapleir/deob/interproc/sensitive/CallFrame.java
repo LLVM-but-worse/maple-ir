@@ -1,18 +1,18 @@
 package org.mapleir.deob.interproc.sensitive;
 
-import org.mapleir.ir.code.Expr;
-import org.objectweb.asm.tree.MethodNode;
-
 import java.util.Set;
 
-public class CallContext {
+import org.mapleir.ir.code.expr.invoke.Invocation;
+import org.objectweb.asm.tree.MethodNode;
+
+public class CallFrame {
 
 	public final MethodNode caller;
 	public final MethodNode callee;
-	public final Expr callExpr;
+	public final Invocation callExpr;
 	public final Set<ArgumentFact> arguments;
 	
-	public CallContext(MethodNode caller, MethodNode callee, Expr callExpr, Set<ArgumentFact> arguments) {
+	public CallFrame(MethodNode caller, MethodNode callee, Invocation callExpr, Set<ArgumentFact> arguments) {
 		this.caller = caller;
 		this.callee = callee;
 		this.callExpr = callExpr;
@@ -26,7 +26,7 @@ public class CallContext {
 		if (o == null || getClass() != o.getClass())
 			return false;
 		
-		CallContext that = (CallContext) o;
+		CallFrame that = (CallFrame) o;
 		
 		if (!caller.equals(that.caller))
 			return false;
