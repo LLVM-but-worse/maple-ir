@@ -10,8 +10,11 @@ import org.mapleir.ir.code.expr.VarExpr;
 import org.mapleir.ir.code.stmt.copy.CopyPhiStmt;
 import org.mapleir.ir.locals.LocalsPool;
 import org.mapleir.ir.locals.VersionedLocal;
+import org.mapleir.stdlib.collections.graph.FastGraph;
 import org.mapleir.stdlib.collections.graph.flow.ExceptionRange;
 import org.mapleir.stdlib.util.TabbedStringWriter;
+import org.mapleir.stdlib.util.dot.ControlFlowGraphDecorator;
+import org.mapleir.stdlib.util.dot.DotWriter;
 import org.objectweb.asm.tree.MethodNode;
 
 import java.util.Iterator;
@@ -182,5 +185,11 @@ public class ControlFlowGraph extends FastBlockGraph {
 	@Override
 	public ControlFlowGraph copy() {
 		return new ControlFlowGraph(this);
+	}
+	
+	@Override
+	// TODO what the heck
+	public DotWriter<FastGraph<BasicBlock, FlowEdge<BasicBlock>>, BasicBlock, FlowEdge<BasicBlock>> makeWriter() {
+		return (DotWriter<FastGraph<BasicBlock, FlowEdge<BasicBlock>>, BasicBlock, FlowEdge<BasicBlock>>)(Object)((DotWriter<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>>)(Object)super.makeWriter()).add(new ControlFlowGraphDecorator().setFlags(ControlFlowGraphDecorator.OPT_EDGES));
 	}
 }

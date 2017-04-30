@@ -14,9 +14,8 @@ import java.util.Map;
 
 public class ControlFlowGraphDecorator implements DotPropertyDecorator<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> {
 	
-	public static final int OPT_DEEP = 0x01;
+	public static final int OPT_EDGES = 0x01;
 	public static final int OPT_HIDE_HANDLER_EDGES = 0x02;
-	@Deprecated
 	public static final int OPT_STMTS = 0x04;
 	public static final int OPT_SIMPLE_EDGES = 0x08;
 	
@@ -48,7 +47,7 @@ public class ControlFlowGraphDecorator implements DotPropertyDecorator<ControlFl
 		
 		StringBuilder sb = new StringBuilder();
 		sb.append(order.indexOf(n)).append(". ").append(n.getId());
-		if((flags & OPT_DEEP) != 0) {
+		if((flags & OPT_STMTS) != 0) {
 			sb.append("\\l");
 			StringBuilder sb2 = new StringBuilder();
 			outputBlock(n, sb2);
@@ -72,7 +71,7 @@ public class ControlFlowGraphDecorator implements DotPropertyDecorator<ControlFl
 
 	@Override
 	public void decorateEdgeProperties(ControlFlowGraph g, BasicBlock n, FlowEdge<BasicBlock> e, Map<String, Object> eprops) {
-		if((flags & OPT_DEEP) != 0)
+		if((flags & OPT_EDGES) != 0)
 			eprops.put("label", (flags & OPT_SIMPLE_EDGES) != 0 ? e.getClass().getSimpleName().replace("Edge", "") : e.toGraphString());
 	}
 	

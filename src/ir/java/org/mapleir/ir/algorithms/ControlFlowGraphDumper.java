@@ -37,8 +37,30 @@ public class ControlFlowGraphDumper {
 		IndexedList<BasicBlock> blocks = linearize(cfg);
 		if (!new ArrayList<>(blocks).equals(new ArrayList<>(cfg.vertices()))) {
 			System.err.println("[warn] Differing linearizations: " + m);
-			printOrdering(new ArrayList<>(cfg.vertices()));
+			// printOrdering(new ArrayList<>(cfg.vertices()));
 			printOrdering(blocks);
+			for (BasicBlock b : cfg.vertices()) {
+				StringBuilder s = new StringBuilder();
+				s.append(b.getId()).append("-> ");
+				for (FlowEdge<BasicBlock> e : cfg.getEdges(b)) {
+					if (e instanceof TryCatchEdge)
+						continue;
+					if (e instanceof ImmediateEdge)
+						s.append("i:");
+					s.append(e.dst.getId()).append(" ");
+				}
+				while (s.length() < 30)
+					s.append(" ");
+				s.append(" || ");
+				for (FlowEdge<BasicBlock> e : cfg.getEdges(b)) {
+					if (!(e instanceof TryCatchEdge))
+						continue;
+					s.append(e.dst.getId()).append(" ");
+				}
+				System.out.println(s);
+			}
+			cfg.makeWriter().setName("broken").export();
+			System.exit(1);
 		}
 		if (m.toString().equals("cmk.bfw(B)Z")) {
 			// System.out.println(cfg);
@@ -141,26 +163,6 @@ public class ControlFlowGraphDumper {
 				// printOrdering(new ArrayList<>(cfg.vertices()));
 				// printOrdering(order);
 				// System.out.println();
-				// for (BasicBlock b : cfg.vertices()) {
-				// 	StringBuilder s = new StringBuilder();
-				// 	s.append(b.getId()).append("-> ");
-				// 	for (FlowEdge<BasicBlock> e : cfg.getEdges(b)) {
-				// 		if (e instanceof TryCatchEdge)
-				// 			continue;
-				// 		if (e instanceof ImmediateEdge)
-				// 			s.append("i:");
-				// 		s.append(e.dst.getId()).append(" ");
-				// 	}
-				// 	while (s.length() < 30)
-				// 		s.append(" ");
-				// 	s.append(" || ");
-				// 	for (FlowEdge<BasicBlock> e : cfg.getEdges(b)) {
-				// 		if (!(e instanceof TryCatchEdge))
-				// 			continue;
-				// 		s.append(e.dst.getId()).append(" ");
-				// 	}
-				// 	System.out.println(s);
-				// }
 				// System.err.println(cfg);
 				// System.err.println(m);
 				// System.err.println(er);
@@ -200,8 +202,23 @@ public class ControlFlowGraphDumper {
 		if (components.size() == 1)
 			order.addAll(components.get(0));
 		else for (List<BlockBundle> scc : components)
-			order.addAll(linearize(scc, subgraph, scc.get(0)));
+			order.addAll(linearize(scc, subgraph, chooseEntry(subgraph, scc)));
 		return order;
+	}
+	
+	private static BlockBundle chooseEntry(BundleGraph graph, List<BlockBundle> scc) {
+		Set<BlockBundle> sccSet = new HashSet<>(scc);
+		Set<BlockBundle> candidates = new HashSet<>(scc);
+		candidates.removeIf(bundle -> { // No incoming edges from within the SCC.
+			for (FastGraphEdge<BlockBundle> e : graph.getReverseEdges(bundle)) {
+				if (sccSet.contains(e.src))
+					return true;
+			}
+			return false;
+		});
+		if (candidates.isEmpty())
+			return scc.get(0);
+		return candidates.iterator().next();
 	}
 	
 	private static IndexedList<BasicBlock> linearize(ControlFlowGraph cfg) {
@@ -290,7 +307,7 @@ public class ControlFlowGraphDumper {
 		IndexedList<BasicBlock> order = new IndexedList<>();
 		linearize(new HashSet<>(bundles.values()), bundleGraph, entryBundle).forEach(order::addAll);
 		
-		// Fix immediates
+		// Naturalise
 		for (int i = 0; i < order.size(); i++) {
 			BasicBlock b = order.get(i);
 			for (FlowEdge<BasicBlock> e : new HashSet<>(cfg.getEdges(b))) {
@@ -301,6 +318,16 @@ public class ControlFlowGraphDumper {
 					cfg.addEdge(b, new UnconditionalJumpEdge<>(b, dst));
 					
 					System.err.println("[warn] Had to fixup immediate to goto: " + cfg.getMethod());
+				} else if (e instanceof UnconditionalJumpEdge && order.indexOf(dst) == i + 1) { // Remove extraneous gotos
+					for (ListIterator<Stmt> it = b.listIterator(b.size()); it.hasPrevious(); ) {
+						if (it.previous() instanceof UnconditionalJumpStmt) {
+							it.remove();
+							break;
+						}
+						throw new IllegalStateException("Couldn't find the goto corresponding with goto edge?");
+					}
+					cfg.removeEdge(b, e);
+					cfg.addEdge(b, new ImmediateEdge<>(b, dst));
 				}
 			}
 		}
