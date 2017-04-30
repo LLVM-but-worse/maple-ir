@@ -87,7 +87,7 @@ public class Boot2 {
 					
 					BoissinotDestructor.leaveSSA(cfg);
 					cfg.getLocals().realloc(cfg);
-					ControlFlowGraphDumper.dump(cfg, m);
+					(new ControlFlowGraphDumper(cfg, m)).dump();
 				}
 //				if(m.toString().equals("client.ro()V")) {
 
