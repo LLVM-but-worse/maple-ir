@@ -22,9 +22,18 @@ import org.objectweb.asm.tree.MethodNode;
 import java.util.*;
 
 public class ControlFlowGraphDumper {
-	private static boolean printedIt = false;
+	private final ControlFlowGraph cfg;
+	private final MethodNode m;
 	
-	public static void dump(ControlFlowGraph cfg, MethodNode m) {
+	private IndexedList<BasicBlock> order;
+	private LabelNode terminalLabel;
+	
+	public ControlFlowGraphDumper(ControlFlowGraph cfg, MethodNode m) {
+		this.cfg = cfg;
+		this.m = m;
+	}
+	
+	public void dump() {
 		// Clear methodnode
 		m.instructions.removeAll(true);
 		m.tryCatchBlocks.clear();
@@ -34,53 +43,39 @@ public class ControlFlowGraphDumper {
 		}
 
 		// Linearize
-		IndexedList<BasicBlock> blocks = linearize(cfg);
-		if (!new ArrayList<>(blocks).equals(new ArrayList<>(cfg.vertices()))) {
+		linearize();
+		if (!new ArrayList<>(order).equals(new ArrayList<>(cfg.vertices()))) {
 			System.err.println("[warn] Differing linearizations: " + m);
-			// printOrdering(new ArrayList<>(cfg.vertices()));
-			printOrdering(blocks);
-			for (BasicBlock b : cfg.vertices()) {
-				StringBuilder s = new StringBuilder();
-				s.append(b.getId()).append("-> ");
-				for (FlowEdge<BasicBlock> e : cfg.getEdges(b)) {
-					if (e instanceof TryCatchEdge)
-						continue;
-					if (e instanceof ImmediateEdge)
-						s.append("i:");
-					s.append(e.dst.getId()).append(" ");
-				}
-				while (s.length() < 30)
-					s.append(" ");
-				s.append(" || ");
-				for (FlowEdge<BasicBlock> e : cfg.getEdges(b)) {
-					if (!(e instanceof TryCatchEdge))
-						continue;
-					s.append(e.dst.getId()).append(" ");
-				}
-				System.out.println(s);
-			}
-			cfg.makeWriter().setName("broken").export();
-			System.exit(1);
-		}
-		if (m.toString().equals("cmk.bfw(B)Z")) {
-			// System.out.println(cfg);
-			// printOrdering(new ArrayList<>(cfg.vertices()));
-			// printOrdering(blocks);
-			// System.exit(1);
+			printOrdering(new ArrayList<>(cfg.vertices()));
+			printOrdering(order);
 		}
 		
+		// Fix edges
+		naturalise();
+		
 		// Dump code
-		for (BasicBlock b : blocks) {
+		for (BasicBlock b : order) {
 			m.visitLabel(b.getLabel());
 			for (Stmt stmt : b) {
 				stmt.toCode(m, null);
 			}
 		}
-		LabelNode terminalLabel = new LabelNode();
+		terminalLabel = new LabelNode();
 		m.visitLabel(terminalLabel.getLabel());
 		
 		// Verify
-		ListIterator<BasicBlock> it = blocks.listIterator();
+		verify();
+
+		// Dump ranges
+		for (ExceptionRange<BasicBlock> er : cfg.getRanges()) {
+			dumpRange(er);
+		}
+		
+		m.visitEnd();
+	}
+	
+	private void verify() {
+		ListIterator<BasicBlock> it = order.listIterator();
 		while(it.hasNext()) {
 			BasicBlock b = it.next();
 			
@@ -99,16 +94,9 @@ public class ControlFlowGraphDumper {
 				}
 			}
 		}
-
-		printedIt = false;
-		for (ExceptionRange<BasicBlock> er : cfg.getRanges()) {
-//			System.out.println("RANGE: " + er);
-			dumpRange(cfg, m, blocks, er, terminalLabel.getLabel());
-		}
-		m.visitEnd();
 	}
 	
-	private static void printOrdering(List<BasicBlock> order) {
+	private void printOrdering(List<BasicBlock> order) {
 		for (int i = 0; i < order.size(); i++) {
 			BasicBlock b = order.get(i);
 			System.err.print(b.getId());
@@ -126,9 +114,9 @@ public class ControlFlowGraphDumper {
 		System.err.println();
 	}
 	
-	private static void dumpRange(ControlFlowGraph cfg, MethodNode m, IndexedList<BasicBlock> order, ExceptionRange<BasicBlock> er, Label terminalLabel) {
+	private void dumpRange(ExceptionRange<BasicBlock> er) {
 		// Determine exception type
-		Type type = null;
+		Type type;
 		Set<Type> typeSet = er.getTypes();
 		if (typeSet.size() != 1) {
 			// TODO: fix base exception
@@ -146,7 +134,7 @@ public class ControlFlowGraphDumper {
 		for (;;) {
 			// check for endpoints
 			if (orderIdx + 1 == order.size()) { // end of method
-				m.visitTryCatchBlock(start, terminalLabel, handler, type.getInternalName());
+				m.visitTryCatchBlock(start, terminalLabel.getLabel(), handler, type.getInternalName());
 				break;
 			} else if (rangeIdx + 1 == range.size()) { // end of range
 				Label end = order.get(orderIdx + 1).getLabel();
@@ -157,21 +145,8 @@ public class ControlFlowGraphDumper {
 			// check for discontinuity
 			BasicBlock nextBlock = range.get(rangeIdx + 1);
 			int nextOrderIdx = order.indexOf(nextBlock);
-			if (nextOrderIdx - orderIdx > 1 && !printedIt) { // blocks in-between, end the handler and begin anew
-				printedIt = true;
+			if (nextOrderIdx - orderIdx > 1) { // blocks in-between, end the handler and begin anew
 				System.err.println("[warn] Had to split up a range: " + m);
-				// printOrdering(new ArrayList<>(cfg.vertices()));
-				// printOrdering(order);
-				// System.out.println();
-				// System.err.println(cfg);
-				// System.err.println(m);
-				// System.err.println(er);
-				// System.err.println("Range: " + range);
-				// System.err.println("Order: " + order);
-				// System.err.println("range, order, next: " + rangeIdx + " " + orderIdx + " " + nextOrderIdx);
-				// System.err.println("corresponding blocks: " + range.get(rangeIdx) + " " + nextBlock);
-				// for (int i = 0; i < 20; i++)
-				// 	System.err.println();
 				Label end = order.get(orderIdx + 1).getLabel();
 				m.visitTryCatchBlock(start, end, handler, type.getInternalName());
 				start = nextBlock.getLabel();
@@ -184,6 +159,7 @@ public class ControlFlowGraphDumper {
 		}
 	}
 	
+	// Recursively apply Tarjan's SCC algorithm
 	private static List<BlockBundle> linearize(Collection<BlockBundle> bundles, BundleGraph fullGraph, BlockBundle entryBundle) {
 		BundleGraph subgraph = fullGraph.inducedSubgraph(bundles);
 		
@@ -221,14 +197,10 @@ public class ControlFlowGraphDumper {
 		return candidates.iterator().next();
 	}
 	
-	private static IndexedList<BasicBlock> linearize(ControlFlowGraph cfg) {
+	private void linearize() {
 		if (cfg.getEntries().size() != 1)
 			throw new IllegalStateException("CFG doesn't have exactly 1 entry");
 		BasicBlock entry = cfg.getEntries().iterator().next();
-		
-		if (cfg.getMethod().toString().equals("cmk.bfw(B)Z")) {
-			System.err.println("aa");
-		}
 		
 		// Build bundle graph
 		Map<BasicBlock, BlockBundle> bundles = new HashMap<>();
@@ -304,15 +276,17 @@ public class ControlFlowGraphDumper {
 		}
 		
 		// Flatten
-		IndexedList<BasicBlock> order = new IndexedList<>();
-		linearize(new HashSet<>(bundles.values()), bundleGraph, entryBundle).forEach(order::addAll);
-		
-		// Naturalise
+		order = new IndexedList<>();
+		Set<BlockBundle> bundlesSet = new HashSet<>(bundles.values()); // for efficiency
+		ControlFlowGraphDumper.linearize(bundlesSet, bundleGraph, entryBundle).forEach(order::addAll);
+	}
+	
+	private void naturalise() {
 		for (int i = 0; i < order.size(); i++) {
 			BasicBlock b = order.get(i);
 			for (FlowEdge<BasicBlock> e : new HashSet<>(cfg.getEdges(b))) {
 				BasicBlock dst = e.dst;
-				if (e instanceof ImmediateEdge && order.indexOf(dst) != i + 1) {
+				if (e instanceof ImmediateEdge && order.indexOf(dst) != i + 1) { // Fix immediates
 					b.add(new UnconditionalJumpStmt(dst));
 					cfg.removeEdge(b, e);
 					cfg.addEdge(b, new UnconditionalJumpEdge<>(b, dst));
@@ -324,15 +298,12 @@ public class ControlFlowGraphDumper {
 							it.remove();
 							break;
 						}
-						throw new IllegalStateException("Couldn't find the goto corresponding with goto edge?");
 					}
 					cfg.removeEdge(b, e);
 					cfg.addEdge(b, new ImmediateEdge<>(b, dst));
 				}
 			}
 		}
-		
-		return order;
 	}
 	
 	// TODO: default graph impl

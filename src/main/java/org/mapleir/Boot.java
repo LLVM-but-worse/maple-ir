@@ -116,7 +116,7 @@ public class Boot {
 			
 			BoissinotDestructor.leaveSSA(cfg);
 			cfg.getLocals().realloc(cfg);
-			ControlFlowGraphDumper.dump(cfg, mn);
+			(new ControlFlowGraphDumper(cfg, mn)).dump();
 		}
 		
 		section("Rewriting jar.");
