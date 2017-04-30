@@ -1,6 +1,6 @@
 package org.mapleir.jda;
 
-import org.mapleir.context.IContext;
+import org.mapleir.context.AnalysisContext;
 import org.mapleir.deob.IPass;
 import org.mapleir.deob.PassGroup;
 import org.mapleir.deob.passes.*;
@@ -48,7 +48,7 @@ public class MapleIRPlugin implements Plugin {
 		return 0;
 	}
 	
-	private static void run(IContext cxt, PassGroup group) {
+	private static void run(AnalysisContext cxt, PassGroup group) {
 		group.accept(cxt, null, new ArrayList<>());
 	}
 	
