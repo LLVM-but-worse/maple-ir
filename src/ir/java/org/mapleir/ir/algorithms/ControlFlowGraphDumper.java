@@ -36,7 +36,6 @@ public class ControlFlowGraphDumper {
 	public void dump() {
 		// Clear methodnode
 		m.instructions.removeAll(true);
-		m.instructions.resetLabels();
 		m.tryCatchBlocks.clear();
 		m.visitCode();
 		for (BasicBlock b : cfg.vertices()) {
