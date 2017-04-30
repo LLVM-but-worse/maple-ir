@@ -45,9 +45,10 @@ public class ControlFlowGraphDumper {
 		// Linearize
 		linearize();
 		if (!new ArrayList<>(order).equals(new ArrayList<>(cfg.vertices()))) {
-			System.err.println("[warn] Differing linearizations: " + m);
-			printOrdering(new ArrayList<>(cfg.vertices()));
-			printOrdering(order);
+			// System.err.println("[warn] Differing linearizations: " + m);
+			// printOrdering(new ArrayList<>(cfg.vertices()));
+			// printOrdering(order);
+			// cfg.makeDotWriter().setName(m.owner.name + "#" + m.name + m.desc).export();
 		}
 		
 		// Fix edges
