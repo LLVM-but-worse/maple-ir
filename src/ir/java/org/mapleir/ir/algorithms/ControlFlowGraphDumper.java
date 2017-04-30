@@ -1,9 +1,14 @@
 package org.mapleir.ir.algorithms;
 
+import java.util.*;
+
 import org.mapleir.deob.intraproc.ExceptionAnalysis;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
-import org.mapleir.ir.cfg.edge.*;
+import org.mapleir.ir.cfg.edge.FlowEdge;
+import org.mapleir.ir.cfg.edge.FlowEdges;
+import org.mapleir.ir.cfg.edge.ImmediateEdge;
+import org.mapleir.ir.cfg.edge.UnconditionalJumpEdge;
 import org.mapleir.ir.code.Stmt;
 import org.mapleir.ir.code.stmt.UnconditionalJumpStmt;
 import org.mapleir.stdlib.collections.IndexedList;
@@ -20,8 +25,6 @@ import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.LabelNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.tree.TryCatchBlockNode;
-
-import java.util.*;
 
 public class ControlFlowGraphDumper {
 	private final ControlFlowGraph cfg;
@@ -74,7 +77,7 @@ public class ControlFlowGraphDumper {
 		}
 		
 		// Verify ranges
-		verifyRanges();
+//		verifyRanges();
 		
 		m.visitEnd();
 	}
@@ -195,7 +198,7 @@ public class ControlFlowGraphDumper {
 				Label end = order.get(orderIdx + 1).getLabel();
 				m.visitTryCatchBlock(start, end, handler, type.getInternalName());
 				start = nextBlock.getLabel();
-				System.exit(1);
+//				System.exit(1);
 			}
 
 			// next
@@ -244,8 +247,8 @@ public class ControlFlowGraphDumper {
 	}
 	
 	private void linearize() {
-		// inputBasedLinearize()
-		linearizeTarjan();
+		 inputBasedLinearize();
+//		linearizeTarjan();
 	}
 	
 	/**
