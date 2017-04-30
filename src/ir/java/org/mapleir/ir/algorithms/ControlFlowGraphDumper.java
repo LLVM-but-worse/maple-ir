@@ -35,6 +35,11 @@ public class ControlFlowGraphDumper {
 
 		// Linearize
 		IndexedList<BasicBlock> blocks = linearize(cfg);
+		if (!new ArrayList<>(blocks).equals(new ArrayList<>(cfg.vertices()))) {
+			System.err.println("[warn] Differing linearizations: " + m);
+			printOrdering(new ArrayList<>(cfg.vertices()));
+			printOrdering(blocks);
+		}
 		if (m.toString().equals("cmk.bfw(B)Z")) {
 			// System.out.println(cfg);
 			// printOrdering(new ArrayList<>(cfg.vertices()));
@@ -133,30 +138,29 @@ public class ControlFlowGraphDumper {
 			if (nextOrderIdx - orderIdx > 1 && !printedIt) { // blocks in-between, end the handler and begin anew
 				printedIt = true;
 				System.err.println("[warn] Had to split up a range: " + m);
-				printOrdering(new ArrayList<>(cfg.vertices()));
-				printOrdering(order);
-				System.out.println();
-				for (BasicBlock b : cfg.vertices()) {
-					StringBuilder s = new StringBuilder();
-					s.append(b.getId()).append("-> ");
-					for (FlowEdge<BasicBlock> e : cfg.getEdges(b)) {
-						if (e instanceof TryCatchEdge)
-							continue;
-						if (e instanceof ImmediateEdge)
-							s.append("i:");
-						s.append(e.dst.getId()).append(" ");
-					}
-					while (s.length() < 30)
-						s.append(" ");
-					s.append(" || ");
-					for (FlowEdge<BasicBlock> e : cfg.getEdges(b)) {
-						if (!(e instanceof TryCatchEdge))
-							continue;
-						s.append(e.dst.getId()).append(" ");
-					}
-					System.out.println(s);
-				}
-				System.exit(1);
+				// printOrdering(new ArrayList<>(cfg.vertices()));
+				// printOrdering(order);
+				// System.out.println();
+				// for (BasicBlock b : cfg.vertices()) {
+				// 	StringBuilder s = new StringBuilder();
+				// 	s.append(b.getId()).append("-> ");
+				// 	for (FlowEdge<BasicBlock> e : cfg.getEdges(b)) {
+				// 		if (e instanceof TryCatchEdge)
+				// 			continue;
+				// 		if (e instanceof ImmediateEdge)
+				// 			s.append("i:");
+				// 		s.append(e.dst.getId()).append(" ");
+				// 	}
+				// 	while (s.length() < 30)
+				// 		s.append(" ");
+				// 	s.append(" || ");
+				// 	for (FlowEdge<BasicBlock> e : cfg.getEdges(b)) {
+				// 		if (!(e instanceof TryCatchEdge))
+				// 			continue;
+				// 		s.append(e.dst.getId()).append(" ");
+				// 	}
+				// 	System.out.println(s);
+				// }
 				// System.err.println(cfg);
 				// System.err.println(m);
 				// System.err.println(er);
@@ -210,12 +214,12 @@ public class ControlFlowGraphDumper {
 		}
 		
 		// Build bundle graph
-		
 		Map<BasicBlock, BlockBundle> bundles = new HashMap<>();
-		List<BasicBlock> postorder = new SimpleDfs<>(cfg, entry, SimpleDfs.POST).getPostOrder();
+		Map<BlockBundle, List<BlockBundle>> bunches = new HashMap<>();
 		
 		// Build bundles
-		for (int i = 0; i < postorder.size(); i++) {
+		List<BasicBlock> postorder = new SimpleDfs<>(cfg, entry, SimpleDfs.POST).getPostOrder();
+		for (int i = postorder.size() - 1; i >= 0; i--) {
 			BasicBlock b = postorder.get(i);
 			if (bundles.containsKey(b)) // Already in a bundle
 				continue;
@@ -229,13 +233,46 @@ public class ControlFlowGraphDumper {
 				bundles.put(b, bundle);
 				b = b.getImmediate();
 			}
+			
+			List<BlockBundle> bunch = new ArrayList<>();
+			bunch.add(bundle);
+			bunches.put(bundle, bunch);
 		}
 		
-		Set<ExceptionRange> ranges = new HashSet<>();
-		for (BlockBundle b : bundles.values()) {
-		
+		// Group bundles by exception ranges
+		for (ExceptionRange<BasicBlock> range : cfg.getRanges()) {
+			BlockBundle prevBundle = null;
+			for (BasicBlock b : range.getNodes()) {
+				BlockBundle curBundle = bundles.get(b);
+				if (prevBundle == null) {
+					prevBundle = curBundle;
+					continue;
+				}
+				if (curBundle != prevBundle) {
+					List<BlockBundle> bunchA = bunches.get(prevBundle);
+					List<BlockBundle> bunchB = bunches.get(curBundle);
+					if (bunchA != bunchB) {
+						bunchA.addAll(bunchB);
+						for (BlockBundle bundle : bunchB) {
+							bunches.put(bundle, bunchA);
+						}
+					}
+					prevBundle = curBundle;
+				}
+			}
 		}
 		
+		// Rebuild bundles
+		bundles.clear();
+		for (Map.Entry<BlockBundle, List<BlockBundle>> e : bunches.entrySet()) {
+			BlockBundle bundle = e.getKey();
+			if (bundles.containsKey(bundle.getFirst()))
+				continue;
+			BlockBundle bunch = new BlockBundle();
+			e.getValue().forEach(bunch::addAll);
+			for (BasicBlock b : bunch)
+				bundles.put(b, bunch);
+		}
 		
 		BundleGraph bundleGraph = new BundleGraph();
 		BlockBundle entryBundle = bundles.get(entry);
@@ -251,7 +288,7 @@ public class ControlFlowGraphDumper {
 		
 		// Flatten
 		IndexedList<BasicBlock> order = new IndexedList<>();
-		linearize(bundles.values(), bundleGraph, entryBundle).forEach(order::addAll);
+		linearize(new HashSet<>(bundles.values()), bundleGraph, entryBundle).forEach(order::addAll);
 		
 		// Fix immediates
 		for (int i = 0; i < order.size(); i++) {
@@ -313,14 +350,46 @@ public class ControlFlowGraphDumper {
 	}
 	
 	private static class BlockBundle extends ArrayList<BasicBlock> implements FastGraphVertex {
+		private BasicBlock first = null;
+		
+		private BasicBlock getFirst() {
+			if (first == null)
+				first = get(0);
+			return first;
+		}
+		
 		@Override
 		public String getId() {
-			return get(0).getId();
+			return getFirst().getId();
 		}
 		
 		@Override
 		public int getNumericId() {
-			return get(0).getNumericId();
+			return getFirst().getNumericId();
+		}
+		
+		@Override
+		public String toString() {
+			StringBuilder s = new StringBuilder();
+			for (Iterator<BasicBlock> it = this.iterator(); it.hasNext(); ) {
+				BasicBlock b = it.next();
+				s.append(b.getId());
+				if (it.hasNext())
+					s.append("->");
+			}
+			return s.toString();
+		}
+		
+		@Override
+		public int hashCode() {
+			return getFirst().hashCode();
+		}
+		
+		@Override
+		public boolean equals(Object o) {
+			if (!(o instanceof BlockBundle))
+				return false;
+			return ((BlockBundle) o).getFirst().equals(getFirst());
 		}
 	}
 }
