@@ -44,12 +44,12 @@ public class ControlFlowGraphDumper {
 
 		// Linearize
 		linearize();
-		if (!new ArrayList<>(order).equals(new ArrayList<>(cfg.vertices()))) {
+		// if (!new ArrayList<>(order).equals(new ArrayList<>(cfg.vertices()))) {
 			// System.err.println("[warn] Differing linearizations: " + m);
 			// printOrdering(new ArrayList<>(cfg.vertices()));
 			// printOrdering(order);
 			// cfg.makeDotWriter().setName(m.owner.name + "#" + m.name + m.desc).export();
-		}
+		// }
 		
 		// Fix edges
 		naturalise();
@@ -199,6 +199,11 @@ public class ControlFlowGraphDumper {
 	}
 	
 	private void linearize() {
+		order = new IndexedList<>();
+		order.addAll(cfg.vertices());
+	}
+	
+	private void linearizeTarjan() {
 		if (cfg.getEntries().size() != 1)
 			throw new IllegalStateException("CFG doesn't have exactly 1 entry");
 		BasicBlock entry = cfg.getEntries().iterator().next();
