@@ -96,8 +96,7 @@ public class Boot {
 		
 		IRCallTracer tracer = new IRCallTracer(cxt);
 		for(MethodNode m : cxt.getApplicationContext().getEntryPoints()) {
-			if (m.name.contains("findClass") && m.owner.name.contains("iiiIIIiiIi"))
-				tracer.trace(m);
+			tracer.trace(m);
 		}
 		
 		section0("...generated " + cxt.getIRCache().size() + " cfgs in %fs.%n", "Preparing to transform.");
@@ -108,7 +107,7 @@ public class Boot {
 		}
 		run(cxt, masterGroup);
 		
-		// new ContextSensitiveIPAnalysis(cxt, new ExpressionEvaluator(new ReflectiveFunctorFactory()));
+		new ContextSensitiveIPAnalysis(cxt, new ExpressionEvaluator(new ReflectiveFunctorFactory()));
 		
 		section("Retranslating SSA IR to standard flavour.");
 		for(Entry<MethodNode, ControlFlowGraph> e : cxt.getIRCache().entrySet()) {
@@ -117,8 +116,6 @@ public class Boot {
 			
 			BoissinotDestructor.leaveSSA(cfg);
 			cfg.getLocals().realloc(cfg);
-			if (!mn.name.contains("findClass") || !mn.owner.name.contains("iiiIIIiiIi"))
-				continue;
 			(new ControlFlowGraphDumper(cfg, mn)).dump();
 		}
 		
@@ -179,8 +176,8 @@ public class Boot {
 	private static IPass[] getTransformationPasses() {
 		return new IPass[] {
 //				new ConcreteStaticInvocationPass(),
-// 				new ClassRenamerPass(),
-// 				new MethodRenamerPass(),
+				new ClassRenamerPass(),
+				new MethodRenamerPass(),
 //				new FieldRenamerPass(),
 //				new CallgraphPruningPass(),
 				// new ConstantParameterPass()
