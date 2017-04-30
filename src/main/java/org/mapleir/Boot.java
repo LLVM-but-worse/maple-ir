@@ -71,8 +71,8 @@ public class Boot {
 			return;
 		} */
 		
-		File f = locateRevFile(135);
-// 		File f = new File("res/allatori6.1san.jar");
+		// File f = locateRevFile(135);
+		File f = new File("res/allatori6.1san.jar");
 		section("Preparing to run on " + f.getAbsolutePath());
 		SingleJarDownloader<ClassNode> dl = new SingleJarDownloader<>(new JarInfo(f));
 		dl.download();
@@ -176,8 +176,8 @@ public class Boot {
 	private static IPass[] getTransformationPasses() {
 		return new IPass[] {
 //				new ConcreteStaticInvocationPass(),
-// 				new ClassRenamerPass(),
-// 				new MethodRenamerPass(),
+				new ClassRenamerPass(),
+				new MethodRenamerPass(),
 //				new FieldRenamerPass(),
 //				new CallgraphPruningPass(),
 				// new ConstantParameterPass()
