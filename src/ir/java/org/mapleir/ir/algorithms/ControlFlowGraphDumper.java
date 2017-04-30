@@ -16,8 +16,10 @@ import org.mapleir.stdlib.collections.graph.algorithms.TarjanSCC;
 import org.mapleir.stdlib.collections.graph.flow.ExceptionRange;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.Type;
+import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.LabelNode;
 import org.objectweb.asm.tree.MethodNode;
+import org.objectweb.asm.tree.TryCatchBlockNode;
 
 import java.util.*;
 
@@ -46,6 +48,8 @@ public class ControlFlowGraphDumper {
 		linearize();
 		// if (!new ArrayList<>(order).equals(new ArrayList<>(cfg.vertices()))) {
 		// 	System.err.println("[warn] Differing linearizations: " + m);
+		// 	printOrdering(new ArrayList<>(cfg.vertices()));
+		// 	printOrdering(new ArrayList<>(order));
 		// }
 		
 		// Fix edges
@@ -69,7 +73,39 @@ public class ControlFlowGraphDumper {
 			dumpRange(er);
 		}
 		
+		// Verify ranges
+		verifyRanges();
+		
 		m.visitEnd();
+	}
+	
+	private void verifyRanges() {
+		for (TryCatchBlockNode tc : m.tryCatchBlocks) {
+			int start = -1, end = -1, handler = -1;
+			for (int i = 0; i < m.instructions.size(); i++) {
+				AbstractInsnNode ain = m.instructions.get(i);
+				if (!(ain instanceof LabelNode))
+					continue;
+				Label l = ((LabelNode) ain).getLabel();
+				if (l == tc.start.getLabel())
+					start = i;
+				if (l == tc.end.getLabel()) {
+					if (start == -1)
+						throw new IllegalStateException("Try block end before start " + m);
+					end = i;
+				}
+				if (l == tc.handler.getLabel()) {
+					if (start == -1)
+						throw new IllegalStateException("Catch block before try block " + m);
+					if (end == -1)
+						throw new IllegalStateException("Catch block before end of try " + m);
+					handler = i;
+					break;
+				}
+			}
+			if (start == -1 || end == -1 || handler == -1)
+				throw new IllegalStateException("Try/catch endpoints missing: " + start + " " + end + " " + handler + m);
+		}
 	}
 	
 	private void verify() {
@@ -130,9 +166,13 @@ public class ControlFlowGraphDumper {
 		Label start;
 		int rangeIdx = -1, orderIdx;
 		do {
-			rangeIdx++;
-			orderIdx = order.indexOf(range.get(rangeIdx));
-			start = range.get(rangeIdx).getLabel();
+			if (++rangeIdx == range.size()) {
+				System.err.println("[warn] range is absent: " + m);
+				return;
+			}
+			BasicBlock b = range.get(rangeIdx);
+			orderIdx = order.indexOf(b);
+			start = b.getLabel();
 		} while (orderIdx == -1);
 		
 		for (;;) {
