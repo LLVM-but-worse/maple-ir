@@ -39,4 +39,12 @@ public class RenamingUtil {
 		}
 		return r;
 	}
+	
+	public static String getPackage(String name) {
+		return name.substring(0, name.lastIndexOf('/') + 1);
+	}
+	
+	public static String getClassName(String name) {
+		return name.substring(name.lastIndexOf('/') + 1);
+	}
 }
