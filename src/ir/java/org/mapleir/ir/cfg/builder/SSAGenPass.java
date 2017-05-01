@@ -276,16 +276,6 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 				cfg.addEdge(newBlock, c);
 			}
 		}
-		if (!checkCloneHandler(b)) {
-			// remove unnecessary handler edges if this block is now all simple copies, synth copies, or simple jumps.
-			for (FlowEdge<BasicBlock> e : new HashSet<>(cfg.getEdges(b))) {
-				if (e instanceof TryCatchEdge) {
-					TryCatchEdge<BasicBlock> tce = (TryCatchEdge<BasicBlock>) e;
-					tce.erange.removeVertex(b);
-					cfg.removeEdge(b, tce);
-				}
-			}
-		}
 		
 		// create immediate to newBlock
 		cfg.addEdge(newBlock, new ImmediateEdge<>(newBlock, b));
