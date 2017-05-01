@@ -31,7 +31,7 @@ public class ControlFlowGraphDumper {
 	private final MethodNode m;
 	
 	private IndexedList<BasicBlock> order;
-	private LabelNode terminalLabel;
+	private LabelNode terminalLabel; // synthetic last label for malformed ranges
 	
 	public ControlFlowGraphDumper(ControlFlowGraph cfg, MethodNode m) {
 		this.cfg = cfg;
@@ -49,15 +49,13 @@ public class ControlFlowGraphDumper {
 
 		// Linearize
 		linearize();
-		// if (!new ArrayList<>(order).equals(new ArrayList<>(cfg.vertices()))) {
-		// 	System.err.println("[warn] Differing linearizations: " + m);
-		// 	printOrdering(new ArrayList<>(cfg.vertices()));
-		// 	printOrdering(new ArrayList<>(order));
-		// }
 		
 		// Fix edges
 		naturalise();
 		
+		// Sanity check linearization
+		verifyOrdering();
+
 		// Dump code
 		for (BasicBlock b : order) {
 			m.visitLabel(b.getLabel());
@@ -67,195 +65,19 @@ public class ControlFlowGraphDumper {
 		}
 		terminalLabel = new LabelNode();
 		m.visitLabel(terminalLabel.getLabel());
-		
-		// Verify
-		verify();
 
 		// Dump ranges
 		for (ExceptionRange<BasicBlock> er : cfg.getRanges()) {
 			dumpRange(er);
 		}
 		
-		// Verify ranges
+		// Sanity check
 		verifyRanges();
 		
 		m.visitEnd();
 	}
 	
-	private void verifyRanges() {
-		for (TryCatchBlockNode tc : m.tryCatchBlocks) {
-			int start = -1, end = -1, handler = -1;
-			for (int i = 0; i < m.instructions.size(); i++) {
-				AbstractInsnNode ain = m.instructions.get(i);
-				if (!(ain instanceof LabelNode))
-					continue;
-				Label l = ((LabelNode) ain).getLabel();
-				if (l == tc.start.getLabel())
-					start = i;
-				if (l == tc.end.getLabel()) {
-					if (start == -1)
-						throw new IllegalStateException("Try block end before start " + m);
-					end = i;
-				}
-				if (l == tc.handler.getLabel()) {
-					handler = i;
-				}
-			}
-			if (start == -1 || end == -1 || handler == -1)
-				throw new IllegalStateException("Try/catch endpoints missing: " + start + " " + end + " " + handler + m);
-		}
-	}
-	
-	private void verify() {
-		ListIterator<BasicBlock> it = order.listIterator();
-		while(it.hasNext()) {
-			BasicBlock b = it.next();
-			
-			for(FlowEdge<BasicBlock> e: cfg.getEdges(b)) {
-				if(e.getType() == FlowEdges.IMMEDIATE) {
-					if(it.hasNext()) {
-						BasicBlock n = it.next();
-						it.previous();
-						
-						if(n != e.dst) {
-							throw new IllegalStateException("Illegal flow " + e + " > " + n);
-						}
-					} else {
-						throw new IllegalStateException("Trailing " + e);
-					}
-				}
-			}
-		}
-	}
-	
-	private void printOrdering(List<BasicBlock> order) {
-		for (int i = 0; i < order.size(); i++) {
-			BasicBlock b = order.get(i);
-			System.err.print(b.getId());
-			BasicBlock next = b.getImmediate();
-			if (next != null) {
-				if (next == order.get(i + 1)) {
-					System.err.print("->");
-				} else {
-					throw new IllegalStateException("WTF");
-				}
-			} else {
-				System.err.print(" ");
-			}
-		}
-		System.err.println();
-	}
-	
-	private void dumpRange(ExceptionRange<BasicBlock> er) {
-		// Determine exception type
-		Type type;
-		Set<Type> typeSet = er.getTypes();
-		if (typeSet.size() != 1) {
-			// TODO: fix base exception
-			type = ExceptionAnalysis.THROWABLE;
-		} else {
-			type = typeSet.iterator().next();
-		}
-		
-		final Label handler = er.getHandler().getLabel();
-		List<BasicBlock> range = er.get();
-		range.sort(Comparator.comparing(order::indexOf));
-		
-		Label start;
-		int rangeIdx = -1, orderIdx;
-		do {
-			if (++rangeIdx == range.size()) {
-				System.err.println("[warn] range is absent: " + m);
-				return;
-			}
-			BasicBlock b = range.get(rangeIdx);
-			orderIdx = order.indexOf(b);
-			start = b.getLabel();
-		} while (orderIdx == -1);
-		
-		for (;;) {
-			// check for endpoints
-			if (orderIdx + 1 == order.size()) { // end of method
-				m.visitTryCatchBlock(start, terminalLabel.getLabel(), handler, type.getInternalName());
-				break;
-			} else if (rangeIdx + 1 == range.size()) { // end of range
-				Label end = order.get(orderIdx + 1).getLabel();
-				m.visitTryCatchBlock(start, end, handler, type.getInternalName());
-				break;
-			}
-			
-			// check for discontinuity
-			BasicBlock nextBlock = range.get(rangeIdx + 1);
-			int nextOrderIdx = order.indexOf(nextBlock);
-			if (nextOrderIdx - orderIdx > 1) { // blocks in-between, end the handler and begin anew
-				System.err.println("[warn] Had to split up a range: " + m);
-				// cfg.makeDotWriter().setName(m.owner.name.replaceAll("I", "1") + "#" + m.name + m.desc + er.getHandler()).export();
-				Label end = order.get(orderIdx + 1).getLabel();
-				m.visitTryCatchBlock(start, end, handler, type.getInternalName());
-				start = nextBlock.getLabel();
-//				System.exit(1);
-			}
-
-			// next
-			rangeIdx++;
-			if (nextOrderIdx != -1)
-				orderIdx = nextOrderIdx;
-		}
-	}
-	
-	// Recursively apply Tarjan's SCC algorithm
-	private static List<BlockBundle> linearize(Collection<BlockBundle> bundles, BundleGraph fullGraph, BlockBundle entryBundle) {
-		BundleGraph subgraph = fullGraph.inducedSubgraph(bundles);
-		
-		TarjanSCC<BlockBundle> sccComputor = new TarjanSCC<>(subgraph);
-		sccComputor.search(entryBundle);
-		for(BlockBundle b : bundles) {
-			if(sccComputor.low(b) == -1) {
-				sccComputor.search(b);
-			}
-		}
-		
-		List<BlockBundle> order = new ArrayList<>();
-		
-		// Flatten
-		List<List<BlockBundle>> components = sccComputor.getComponents();
-		if (components.size() == 1)
-			order.addAll(components.get(0));
-		else for (List<BlockBundle> scc : components)
-			order.addAll(linearize(scc, subgraph, chooseEntry(subgraph, scc)));
-		return order;
-	}
-	
-	private static BlockBundle chooseEntry(BundleGraph graph, List<BlockBundle> scc) {
-		Set<BlockBundle> sccSet = new HashSet<>(scc);
-		Set<BlockBundle> candidates = new HashSet<>(scc);
-		candidates.removeIf(bundle -> { // No incoming edges from within the SCC.
-			for (FastGraphEdge<BlockBundle> e : graph.getReverseEdges(bundle)) {
-				if (sccSet.contains(e.src))
-					return true;
-			}
-			return false;
-		});
-		if (candidates.isEmpty())
-			return scc.get(0);
-		return candidates.iterator().next();
-	}
-	
 	private void linearize() {
-		 // inputBasedLinearize();
-		linearizeTarjan();
-	}
-	
-	/**
-	 * Backup input-based (legacy) linearization in case tarjan breaks and you're doing something more important
-	 */
-	@Deprecated
-	private void inputBasedLinearize() {
-		order = new IndexedList<>();
-		order.addAll(cfg.vertices());
-	}
-	
-	private void linearizeTarjan() {
 		if (cfg.getEntries().size() != 1)
 			throw new IllegalStateException("CFG doesn't have exactly 1 entry");
 		BasicBlock entry = cfg.getEntries().iterator().next();
@@ -321,6 +143,7 @@ public class ControlFlowGraphDumper {
 				bundles.put(b, bunch);
 		}
 		
+		// Connect bundle graph
 		BundleGraph bundleGraph = new BundleGraph();
 		BlockBundle entryBundle = bundles.get(entry);
 		bundleGraph.addVertex(entryBundle);
@@ -333,24 +156,62 @@ public class ControlFlowGraphDumper {
 			}
 		}
 		
-		// Flatten
+		// Linearize & flatten
 		order = new IndexedList<>();
 		Set<BlockBundle> bundlesSet = new HashSet<>(bundles.values()); // for efficiency
 		ControlFlowGraphDumper.linearize(bundlesSet, bundleGraph, entryBundle).forEach(order::addAll);
 	}
 	
+	// Recursively apply Tarjan's SCC algorithm
+	private static List<BlockBundle> linearize(Collection<BlockBundle> bundles, BundleGraph fullGraph, BlockBundle entryBundle) {
+		BundleGraph subgraph = fullGraph.inducedSubgraph(bundles);
+		
+		// Find SCCs
+		TarjanSCC<BlockBundle> sccComputor = new TarjanSCC<>(subgraph);
+		sccComputor.search(entryBundle);
+		for(BlockBundle b : bundles) {
+			if(sccComputor.low(b) == -1) {
+				sccComputor.search(b);
+			}
+		}
+		
+		// Flatten
+		List<BlockBundle> order = new ArrayList<>();
+		List<List<BlockBundle>> components = sccComputor.getComponents();
+		if (components.size() == 1)
+			order.addAll(components.get(0));
+		else for (List<BlockBundle> scc : components) // Recurse
+			order.addAll(linearize(scc, subgraph, chooseEntry(subgraph, scc)));
+		return order;
+	}
+	
+	private static BlockBundle chooseEntry(BundleGraph graph, List<BlockBundle> scc) {
+		Set<BlockBundle> sccSet = new HashSet<>(scc);
+		Set<BlockBundle> candidates = new HashSet<>(scc);
+		candidates.removeIf(bundle -> { // No incoming edges from within the SCC.
+			for (FastGraphEdge<BlockBundle> e : graph.getReverseEdges(bundle)) {
+				if (sccSet.contains(e.src))
+					return true;
+			}
+			return false;
+		});
+		if (candidates.isEmpty())
+			return scc.get(0);
+		return candidates.iterator().next();
+	}
+
 	private void naturalise() {
 		for (int i = 0; i < order.size(); i++) {
 			BasicBlock b = order.get(i);
 			for (FlowEdge<BasicBlock> e : new HashSet<>(cfg.getEdges(b))) {
 				BasicBlock dst = e.dst;
-				if (e instanceof ImmediateEdge && order.indexOf(dst) != i + 1) { // Fix immediates
+				if (e instanceof ImmediateEdge && order.indexOf(dst) != i + 1) {
+					// Fix immediates
 					b.add(new UnconditionalJumpStmt(dst));
 					cfg.removeEdge(b, e);
 					cfg.addEdge(b, new UnconditionalJumpEdge<>(b, dst));
-					
-					System.err.println("[warn] Had to fixup immediate to goto: " + cfg.getMethod());
-				} else if (e instanceof UnconditionalJumpEdge && order.indexOf(dst) == i + 1) { // Remove extraneous gotos
+				} else if (e instanceof UnconditionalJumpEdge && order.indexOf(dst) == i + 1) {
+					// Remove extraneous gotos
 					for (ListIterator<Stmt> it = b.listIterator(b.size()); it.hasPrevious(); ) {
 						if (it.previous() instanceof UnconditionalJumpStmt) {
 							it.remove();
@@ -359,9 +220,109 @@ public class ControlFlowGraphDumper {
 					}
 					cfg.removeEdge(b, e);
 					cfg.addEdge(b, new ImmediateEdge<>(b, dst));
-					// System.err.println("[dank] Managed to convert a goto to immediate: " + cfg.getMethod());
 				}
 			}
+		}
+	}
+
+	private void verifyOrdering() {
+		ListIterator<BasicBlock> it = order.listIterator();
+		while(it.hasNext()) {
+			BasicBlock b = it.next();
+			
+			for(FlowEdge<BasicBlock> e: cfg.getEdges(b)) {
+				if(e.getType() == FlowEdges.IMMEDIATE) {
+					if(it.hasNext()) {
+						BasicBlock n = it.next();
+						it.previous();
+						
+						if(n != e.dst) {
+							throw new IllegalStateException("Illegal flow " + e + " > " + n);
+						}
+					} else {
+						throw new IllegalStateException("Trailing " + e);
+					}
+				}
+			}
+		}
+	}
+
+	private void dumpRange(ExceptionRange<BasicBlock> er) {
+		// Determine exception type
+		Type type;
+		Set<Type> typeSet = er.getTypes();
+		if (typeSet.size() != 1) {
+			// TODO: find base exception
+			type = ExceptionAnalysis.THROWABLE;
+		} else {
+			type = typeSet.iterator().next();
+		}
+		
+		final Label handler = er.getHandler().getLabel();
+		List<BasicBlock> range = er.get();
+		range.sort(Comparator.comparing(order::indexOf));
+		
+		Label start;
+		int rangeIdx = -1, orderIdx;
+		do {
+			if (++rangeIdx == range.size()) {
+				System.err.println("[warn] range is absent: " + m);
+				return;
+			}
+			BasicBlock b = range.get(rangeIdx);
+			orderIdx = order.indexOf(b);
+			start = b.getLabel();
+		} while (orderIdx == -1);
+		
+		for (;;) {
+			// check for endpoints
+			if (orderIdx + 1 == order.size()) { // end of method
+				m.visitTryCatchBlock(start, terminalLabel.getLabel(), handler, type.getInternalName());
+				break;
+			} else if (rangeIdx + 1 == range.size()) { // end of range
+				Label end = order.get(orderIdx + 1).getLabel();
+				m.visitTryCatchBlock(start, end, handler, type.getInternalName());
+				break;
+			}
+			
+			// check for discontinuity
+			BasicBlock nextBlock = range.get(rangeIdx + 1);
+			int nextOrderIdx = order.indexOf(nextBlock);
+			if (nextOrderIdx - orderIdx > 1) { // blocks in-between, end the handler and begin anew
+				System.err.println("[warn] Had to split up a range: " + m);
+				Label end = order.get(orderIdx + 1).getLabel();
+				m.visitTryCatchBlock(start, end, handler, type.getInternalName());
+				start = nextBlock.getLabel();
+			}
+
+			// next
+			rangeIdx++;
+			if (nextOrderIdx != -1)
+				orderIdx = nextOrderIdx;
+		}
+	}
+	
+	private void verifyRanges() {
+		for (TryCatchBlockNode tc : m.tryCatchBlocks) {
+			int start = -1, end = -1, handler = -1;
+			for (int i = 0; i < m.instructions.size(); i++) {
+				AbstractInsnNode ain = m.instructions.get(i);
+				if (!(ain instanceof LabelNode))
+					continue;
+				Label l = ((LabelNode) ain).getLabel();
+				if (l == tc.start.getLabel())
+					start = i;
+				if (l == tc.end.getLabel()) {
+					if (start == -1)
+						throw new IllegalStateException("Try block end before start " + m);
+					end = i;
+				}
+				if (l == tc.handler.getLabel()) {
+					handler = i;
+				}
+			}
+			if (start == -1 || end == -1 || handler == -1)
+				throw new IllegalStateException("Try/catch endpoints missing: " + start + " " + end + " " + handler + m);
 		}
 	}
 	
