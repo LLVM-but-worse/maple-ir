@@ -77,7 +77,7 @@ public class ControlFlowGraphDumper {
 		}
 		
 		// Verify ranges
-//		verifyRanges();
+		verifyRanges();
 		
 		m.visitEnd();
 	}
@@ -98,12 +98,7 @@ public class ControlFlowGraphDumper {
 					end = i;
 				}
 				if (l == tc.handler.getLabel()) {
-					if (start == -1)
-						throw new IllegalStateException("Catch block before try block " + m);
-					if (end == -1)
-						throw new IllegalStateException("Catch block before end of try " + m);
 					handler = i;
-					break;
 				}
 			}
 			if (start == -1 || end == -1 || handler == -1)
@@ -247,8 +242,8 @@ public class ControlFlowGraphDumper {
 	}
 	
 	private void linearize() {
-		 inputBasedLinearize();
-//		linearizeTarjan();
+		 // inputBasedLinearize();
+		linearizeTarjan();
 	}
 	
 	/**
@@ -364,7 +359,7 @@ public class ControlFlowGraphDumper {
 					}
 					cfg.removeEdge(b, e);
 					cfg.addEdge(b, new ImmediateEdge<>(b, dst));
-					System.err.println("[dank] Managed to convert a goto to immediate: " + cfg.getMethod());
+					// System.err.println("[dank] Managed to convert a goto to immediate: " + cfg.getMethod());
 				}
 			}
 		}
