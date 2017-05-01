@@ -1,4 +1,4 @@
-package org.mapleir.deob.passes;
+package org.mapleir.deob.passes.rename;
 
 import java.lang.reflect.Modifier;
 import java.util.HashMap;
@@ -12,6 +12,7 @@ import org.mapleir.context.AnalysisContext;
 import org.mapleir.context.SimpleApplicationContext;
 import org.mapleir.context.app.ApplicationClassSource;
 import org.mapleir.deob.IPass;
+import org.mapleir.deob.util.RenamingHeuristic;
 import org.mapleir.deob.util.RenamingUtil;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
@@ -25,6 +26,12 @@ import org.objectweb.asm.tree.MethodNode;
 
 public class MethodRenamerPass implements IPass {
 
+	private final RenamingHeuristic heuristic;
+	
+	public MethodRenamerPass(RenamingHeuristic heuristic) {
+		this.heuristic = heuristic;
+	}
+	
 	@Override
 	public boolean isQuantisedPass() {
 		return false;
@@ -48,6 +55,10 @@ public class MethodRenamerPass implements IPass {
 		
 		for(ClassNode cn : source.iterate()) {
 			for(MethodNode m : cn.methods) {
+				if (!heuristic.shouldRename(m.name, m.access)) {
+				// 	System.out.println("Heuristic bypass meth " + m.name);
+					continue;
+				}
 				if(remapped.containsKey(m)) {
 					continue;
 				}

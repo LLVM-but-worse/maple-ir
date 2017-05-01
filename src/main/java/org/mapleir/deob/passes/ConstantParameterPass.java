@@ -14,6 +14,7 @@ import org.mapleir.context.AnalysisContext;
 import org.mapleir.deob.IPass;
 import org.mapleir.deob.interproc.IPAnalysis;
 import org.mapleir.deob.interproc.IPAnalysisVisitor;
+import org.mapleir.deob.passes.rename.MethodRenamerPass;
 import org.mapleir.deob.util.RenamingUtil;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;

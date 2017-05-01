@@ -1,10 +1,11 @@
-package org.mapleir.deob.passes;
+package org.mapleir.deob.passes.rename;
 
 import java.util.*;
 
 import org.mapleir.context.AnalysisContext;
 import org.mapleir.context.app.ApplicationClassSource;
 import org.mapleir.deob.IPass;
+import org.mapleir.deob.util.RenamingHeuristic;
 import org.mapleir.deob.util.RenamingUtil;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
@@ -28,6 +29,12 @@ import org.objectweb.asm.tree.TryCatchBlockNode;
 
 public class ClassRenamerPass implements IPass {
 	
+	private final RenamingHeuristic heuristic;
+	
+	public ClassRenamerPass(RenamingHeuristic heuristic) {
+		this.heuristic = heuristic;
+	}
+	
 	private final Map<String, String> remapping = new HashMap<>();
 	
 	public boolean wasRemapped(String name) {
@@ -41,10 +48,6 @@ public class ClassRenamerPass implements IPass {
 	@Override
 	public boolean isQuantisedPass() {
 		return false;
-	}
-	
-	private String getPackage(String name) {
-		return name.substring(0, name.lastIndexOf('/') + 1);
 	}
 	
 	/*private String getClassName(String name) {
@@ -80,7 +83,12 @@ public class ClassRenamerPass implements IPass {
 		} */
 		
 		for(ClassNode cn : classes) {
-			String s = getPackage(cn.name) + RenamingUtil.createName(n);
+			String className = RenamingUtil.getClassName(cn.name);
+			if (!heuristic.shouldRename(className, cn.access)) {
+				System.out.println("Heuristic bypass " + cn.name);
+			}
+			String newName = heuristic.shouldRename(className, cn.access) ? RenamingUtil.createName(n) : className;
+			String s = RenamingUtil.getPackage(cn.name) + newName;
 			n += step;
 			remapping.put(cn.name, s);
 //			 System.out.println(cn.name + " -> " + s);

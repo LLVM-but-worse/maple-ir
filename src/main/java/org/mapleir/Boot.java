@@ -24,8 +24,9 @@ import org.mapleir.deob.interproc.IRCallTracer;
 import org.mapleir.deob.interproc.sensitive.ContextSensitiveIPAnalysis;
 import org.mapleir.deob.intraproc.eval.ExpressionEvaluator;
 import org.mapleir.deob.intraproc.eval.impl.ReflectiveFunctorFactory;
-import org.mapleir.deob.passes.ClassRenamerPass;
-import org.mapleir.deob.passes.MethodRenamerPass;
+import org.mapleir.deob.passes.rename.ClassRenamerPass;
+import org.mapleir.deob.passes.rename.MethodRenamerPass;
+import org.mapleir.deob.util.RenamingHeuristic;
 import org.mapleir.ir.algorithms.BoissinotDestructor;
 import org.mapleir.ir.algorithms.ControlFlowGraphDumper;
 import org.mapleir.ir.cfg.ControlFlowGraph;
@@ -174,10 +175,11 @@ public class Boot {
 	}
 	
 	private static IPass[] getTransformationPasses() {
+		RenamingHeuristic allatoriHeuristic = (name, access) -> name.toLowerCase().equals("iiiiiiiiii"); // RenamingHeuristic.RENAME_ALL;
 		return new IPass[] {
 //				new ConcreteStaticInvocationPass(),
-				new ClassRenamerPass(),
-				new MethodRenamerPass(),
+				new ClassRenamerPass(allatoriHeuristic),
+				new MethodRenamerPass(allatoriHeuristic),
 //				new FieldRenamerPass(),
 //				new CallgraphPruningPass(),
 				// new ConstantParameterPass()

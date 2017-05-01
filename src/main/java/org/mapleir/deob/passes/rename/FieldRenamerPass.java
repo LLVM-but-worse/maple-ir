@@ -1,4 +1,4 @@
-package org.mapleir.deob.passes;
+package org.mapleir.deob.passes.rename;
 
 import org.mapleir.context.AnalysisContext;
 import org.mapleir.context.app.ApplicationClassSource;
