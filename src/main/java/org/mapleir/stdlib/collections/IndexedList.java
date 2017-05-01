@@ -4,6 +4,10 @@ import org.mapleir.stdlib.collections.map.NullPermeableHashMap;
 
 import java.util.*;
 
+/**
+ *  List with index cache for fast index lookup.
+ * @param <T> Element type
+ */
 public class IndexedList<T> implements List<T> {
 	private NullPermeableHashMap<T, List<Integer>> indexMap;
 	private List<T> backingList;
