@@ -40,7 +40,7 @@ public class NaturalisationPass1 extends ControlFlowGraphBuilder.BuilderPass {
 		Map<BasicBlock, BasicBlock> remap = new HashMap<>();
 		Map<BasicBlock, List<ExceptionRange<BasicBlock>>> ranges = new HashMap<>();
 		
-		for(BasicBlock b : builder.graph.vertices()) {
+		for(BasicBlock b : builder.graph.verticesTopoOrder()) {
 			BasicBlock in = b.getIncomingImmediate();
 			if(in == null) {
 				continue;

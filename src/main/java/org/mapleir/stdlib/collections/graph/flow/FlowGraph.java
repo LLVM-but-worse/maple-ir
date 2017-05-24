@@ -6,17 +6,10 @@ import org.mapleir.stdlib.collections.bitset.BitSetIndexer;
 import org.mapleir.stdlib.collections.bitset.GenericBitSet;
 import org.mapleir.stdlib.collections.graph.FastDirectedGraph;
 import org.mapleir.stdlib.collections.graph.FastGraphVertex;
+import org.mapleir.stdlib.collections.graph.algorithms.SimpleDfs;
 import org.mapleir.stdlib.collections.map.ValueCreator;
 
-import java.util.ArrayList;
-import java.util.BitSet;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.ListIterator;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import static org.mapleir.stdlib.collections.graph.GraphUtils.FAKEHEAD_ID;
 
@@ -191,6 +184,18 @@ public abstract class FlowGraph<N extends FastGraphVertex, E extends FlowEdge<N>
 		visited.add(from);
 		
 		return visited;
+	}
+	
+	public List<N> verticesTopoOrder() {
+		List<N> order = new ArrayList<>();
+		List<N> post = new SimpleDfs<>(this, getEntries().iterator().next(), SimpleDfs.POST).getPostOrder();
+		Collections.reverse(post);
+		order.addAll(post);
+		for (N n : super.vertices()) {
+			if (!order.contains(n))
+				order.add(n);
+		}
+		return order;
 	}
 
 	public GenericBitSet<N> createBitSet() {

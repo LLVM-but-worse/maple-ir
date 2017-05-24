@@ -1519,7 +1519,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		graphSize = builder.graph.size() + 1;
 		builder.head = GraphUtils.connectHead(builder.graph);
 
-		order.addAll(builder.graph.vertices());
+		order.addAll(builder.graph.verticesTopoOrder());
 		order.remove(builder.head);
 		order.add(0, builder.head);
 		builder.naturaliseGraph(order);

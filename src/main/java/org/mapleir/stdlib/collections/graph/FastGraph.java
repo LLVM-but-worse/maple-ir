@@ -3,11 +3,8 @@ package org.mapleir.stdlib.collections.graph;
 import org.mapleir.stdlib.util.dot.DotConfiguration;
 import org.mapleir.stdlib.util.dot.DotWriter;
 
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Set;
 
 public interface FastGraph<N extends FastGraphVertex, E extends FastGraphEdge<N>> {
 
@@ -46,11 +43,27 @@ public interface FastGraph<N extends FastGraphVertex, E extends FastGraphEdge<N>
 	// FastGraph<N, E> inducedSubgraph(Collection<N> vertices);
 	
 	default Map<N, Set<E>> createMap() {
-		return new LinkedHashMap<>();
+		return new HashMap<N, Set<E>>() {
+			@Override
+			public Set<Map.Entry<N, Set<E>>> entrySet() {
+				String s = (new Throwable()).getStackTrace()[2].toString();
+				if (CallLogger.callSites.add(s))
+					System.out.println(s);
+				return super.entrySet();
+			}
+			
+			@Override
+			public Set<N> keySet() {
+				String s = (new Throwable()).getStackTrace()[2].toString();
+				if (CallLogger.callSites.add(s))
+					System.out.println(s);
+				return super.keySet();
+			}
+		};
 	}
 	
 	default Map<N, Set<E>> createMap(Map<N, Set<E>> map) {
-		LinkedHashMap<N, Set<E>> map2 = new LinkedHashMap<>();
+		Map<N, Set<E>> map2 = createMap();
 		for(Entry<N, Set<E>> e : map.entrySet()) {
 			map2.put(e.getKey(), createSet(e.getValue()));
 		}
@@ -70,4 +83,8 @@ public interface FastGraph<N extends FastGraphVertex, E extends FastGraphEdge<N>
 	default DotWriter<FastGraph<N,E>, N, E> makeDotWriter() {
 		return new DotWriter<>(makeConfiguration(), this);
 	}
+}
+
+class CallLogger {
+	public static Set<String> callSites = new HashSet<>();
 }
