@@ -24,6 +24,11 @@ import org.mapleir.deob.interproc.IRCallTracer;
 import org.mapleir.deob.interproc.sensitive.ContextSensitiveIPAnalysis;
 import org.mapleir.deob.intraproc.eval.ExpressionEvaluator;
 import org.mapleir.deob.intraproc.eval.impl.ReflectiveFunctorFactory;
+import org.mapleir.deob.passes.ConstantExpressionReorderPass;
+import org.mapleir.deob.passes.ConstantParameterPass;
+import org.mapleir.deob.passes.DeadCodeEliminationPass;
+import org.mapleir.deob.passes.FieldRSADecryptionPass;
+import org.mapleir.deob.passes.constparam.ConstantExpressionEvaluatorPass;
 import org.mapleir.deob.passes.rename.ClassRenamerPass;
 import org.mapleir.deob.passes.rename.MethodRenamerPass;
 import org.mapleir.deob.util.RenamingHeuristic;
@@ -190,11 +195,11 @@ public class Boot {
 				// 	.add(new ConstantParameterPass())
 				// new LiftConstructorCallsPass(),
 //				 new DemoteRangesPass(),
-//				new ConstantExpressionReorderPass(),
+				new ConstantExpressionReorderPass(),
 				// new FieldRSADecryptionPass(),
 				// new ConstantParameterPass(),
-				// new ConstantExpressionEvaluatorPass(),
-//				new DeadCodeEliminationPass()
+				new ConstantExpressionEvaluatorPass(),
+				new DeadCodeEliminationPass()
 				
 		};
 	}

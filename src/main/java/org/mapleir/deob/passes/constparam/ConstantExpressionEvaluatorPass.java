@@ -204,7 +204,7 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 				System.err.println(l + " -> " + lSet);
 				System.err.println(r + " -> " + rSet);
 				System.err.println(cfg.getMethod());
-				
+
 				System.exit(1);
 				throw new RuntimeException();
 			}
@@ -217,6 +217,9 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 		return null;
 	}
 	
+	/**
+	 * Provides values of locals based on constant parameter information from call trace (IPConstAnalysisVisitor)
+	 */
 	private class SemiConstantLocalValueResolver implements LocalValueResolver {
 		
 		private final IPConstAnalysisVisitor vis;
@@ -256,8 +259,10 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 		}
 	}
 	
+	/**
+	 * Stores information regarding constant parameters encountered during call tracing.
+	 */
 	private class IPConstAnalysisVisitor implements IPAnalysisVisitor {
-
 		final AnalysisContext cxt;
 		final Map<MethodNode, List<TaintableSet<ConstantExpr>>> constParams = new HashMap<>();
 		
@@ -267,6 +272,7 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 		
 		@Override
 		public void postVisitMethod(IPAnalysis analysis, MethodNode m) {
+			// Initialise possible value sets for parameters.
 			int pCount = Type.getArgumentTypes(m.desc).length;
 			
 			if(Modifier.isStatic(m.access)) {
@@ -293,7 +299,8 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 		}
 		
 		@Override
-		public void postProcessedInvocation(IPAnalysis analysis, MethodNode caller, MethodNode callee, Invocation call) {	
+		public void postProcessedInvocation(IPAnalysis analysis, MethodNode caller, MethodNode callee, Invocation call) {
+			// Update the parameter possible value sets to include the arguments of the processed call.
 			Expr[] params = call.getParameterExprs();
 			
 			for(int i=0; i < params.length; i++) {
