@@ -30,8 +30,11 @@ public class ConstantExpr extends Expr {
 		}
 		
 		Type ctype = null;
-		if(check && !type.equals((ctype = computeType(cst)))) {
-			throw new IllegalStateException(cst + ", " + type + ", " + ctype);
+		if(check) {
+			if (!(cst == null && (type.getSort() == Type.OBJECT || type.getSort() == Type.ARRAY))) {
+				if (!type.equals(ctype = computeType(cst)) && !isAcceptableSupertype(ctype, type))
+					throw new IllegalStateException(cst + ", " + type + ", " + ctype);
+			}
 		}
 		
 		if(cst instanceof Number && !TypeUtils.unboxType(cst).equals(type)) {
@@ -63,6 +66,22 @@ public class ConstantExpr extends Expr {
 		return new ConstantExpr(cst, type, false);
 	}
 
+	private static boolean isAcceptableSupertype(Type child, Type parent) {
+		if (child.equals(parent))
+			return true;
+		if (child.equals(Type.BYTE_TYPE))
+			return parent.equals(Type.INT_TYPE) || parent.equals(Type.SHORT_TYPE) || parent.equals(Type.LONG_TYPE) || parent.equals(Type.CHAR_TYPE);
+		if (child.equals(Type.SHORT_TYPE))
+			return parent.equals(Type.INT_TYPE) || parent.equals(Type.LONG_TYPE) || parent.equals(Type.CHAR_TYPE);
+		if (child.equals(Type.CHAR_TYPE))
+			return parent.equals(Type.INT_TYPE) || parent.equals(Type.LONG_TYPE);
+		if (child.equals(Type.INT_TYPE))
+			return parent.equals(Type.LONG_TYPE);
+		if (child.equals(Type.FLOAT_TYPE))
+			return parent.equals(Type.DOUBLE_TYPE);
+		return false;
+	}
+	
 	public static Type computeType(Object cst) {
 		if (cst == null) {
 			return Type.getType("Ljava/lang/Object;");
