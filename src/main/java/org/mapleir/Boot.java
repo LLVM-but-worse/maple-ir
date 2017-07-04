@@ -22,6 +22,9 @@ import org.mapleir.deob.PassGroup;
 import org.mapleir.deob.interproc.IRCallTracer;
 import org.mapleir.deob.interproc.exp2.BlockCallGraph;
 import org.mapleir.deob.interproc.exp2.BlockCallGraphBuilder;
+import org.mapleir.deob.passes.ConstantExpressionReorderPass;
+import org.mapleir.deob.passes.DeadCodeEliminationPass;
+import org.mapleir.deob.passes.constparam.ConstantExpressionEvaluatorPass;
 import org.mapleir.deob.util.RenamingHeuristic;
 import org.mapleir.ir.algorithms.BoissinotDestructor;
 import org.mapleir.ir.algorithms.ControlFlowGraphDumper;
@@ -214,11 +217,11 @@ public class Boot {
 				// 	.add(new ConstantParameterPass())
 				// new LiftConstructorCallsPass(),
 //				 new DemoteRangesPass(),
-//				new ConstantExpressionReorderPass(),
+				new ConstantExpressionReorderPass(),
 				// new FieldRSADecryptionPass(),
 				// new ConstantParameterPass(),
-				// new ConstantExpressionEvaluatorPass(),
-//				new DeadCodeEliminationPass()
+				new ConstantExpressionEvaluatorPass(),
+				new DeadCodeEliminationPass()
 				
 		};
 	}
