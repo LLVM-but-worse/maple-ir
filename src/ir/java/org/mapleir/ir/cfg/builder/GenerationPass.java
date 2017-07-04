@@ -1,8 +1,19 @@
 package org.mapleir.ir.cfg.builder;
 
+import static org.objectweb.asm.Opcodes.*;
+import static org.objectweb.asm.tree.AbstractInsnNode.*;
+
+import java.util.*;
+import java.util.Map.Entry;
+
 import org.mapleir.deob.intraproc.ExceptionAnalysis;
 import org.mapleir.ir.cfg.BasicBlock;
-import org.mapleir.ir.cfg.edge.*;
+import org.mapleir.ir.cfg.edge.ConditionalJumpEdge;
+import org.mapleir.ir.cfg.edge.DefaultSwitchEdge;
+import org.mapleir.ir.cfg.edge.ImmediateEdge;
+import org.mapleir.ir.cfg.edge.SwitchEdge;
+import org.mapleir.ir.cfg.edge.TryCatchEdge;
+import org.mapleir.ir.cfg.edge.UnconditionalJumpEdge;
 import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.code.ExpressionStack;
 import org.mapleir.ir.code.Opcode;
@@ -25,12 +36,6 @@ import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.*;
 import org.objectweb.asm.util.Printer;
-
-import java.util.*;
-import java.util.Map.Entry;
-
-import static org.objectweb.asm.Opcodes.*;
-import static org.objectweb.asm.tree.AbstractInsnNode.*;
 
 public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 	
@@ -1526,7 +1531,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 			}
 		});
 		
-		builder.naturaliseGraph(blocks);
+		builder.graph.naturalise(blocks);
 		makeRanges(blocks);
 	}
 

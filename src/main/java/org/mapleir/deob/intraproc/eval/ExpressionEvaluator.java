@@ -1,11 +1,22 @@
 package org.mapleir.deob.intraproc.eval;
 
-import javafx.util.Pair;
+import static org.mapleir.ir.code.Opcode.*;
+import static org.mapleir.ir.code.expr.ArithmeticExpr.Operator.*;
+
+import java.math.BigDecimal;
+import java.util.Iterator;
+import java.util.Set;
+
 import org.mapleir.deob.passes.FieldRSADecryptionPass;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.Expr;
-import org.mapleir.ir.code.expr.*;
+import org.mapleir.ir.code.expr.ArithmeticExpr;
 import org.mapleir.ir.code.expr.ArithmeticExpr.Operator;
+import org.mapleir.ir.code.expr.CastExpr;
+import org.mapleir.ir.code.expr.ComparisonExpr;
+import org.mapleir.ir.code.expr.ConstantExpr;
+import org.mapleir.ir.code.expr.NegationExpr;
+import org.mapleir.ir.code.expr.VarExpr;
 import org.mapleir.ir.code.stmt.ConditionalJumpStmt;
 import org.mapleir.ir.code.stmt.copy.AbstractCopyStmt;
 import org.mapleir.ir.locals.Local;
@@ -16,12 +27,7 @@ import org.mapleir.stdlib.collections.taint.TaintableSet;
 import org.mapleir.stdlib.util.TypeUtils;
 import org.objectweb.asm.Type;
 
-import java.math.BigDecimal;
-import java.util.Iterator;
-import java.util.Set;
-
-import static org.mapleir.ir.code.Opcode.*;
-import static org.mapleir.ir.code.expr.ArithmeticExpr.Operator.*;
+import javafx.util.Pair;
 
 public class ExpressionEvaluator {
 	private final EvaluationFactory factory;
@@ -126,7 +132,7 @@ public class ExpressionEvaluator {
 	}
 	
 	public TaintableSet<ConstantExpr> evalPossibleValues(LocalValueResolver resolver, Expr e) {
-		return evalPossibleValues0(new NullPermeableHashMap<>(new SetCreator<>()), resolver, e);
+		return evalPossibleValues0(new NullPermeableHashMap<>(SetCreator.getInstance()), resolver, e);
 	}
 	
 	private TaintableSet<ConstantExpr> evalPossibleValues0(NullPermeableHashMap<ControlFlowGraph, Set<Local>> visited, LocalValueResolver resolver, Expr e) {
