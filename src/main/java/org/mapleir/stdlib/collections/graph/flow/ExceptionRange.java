@@ -69,6 +69,11 @@ public class ExceptionRange<N extends FastGraphVertex> {
 		invalidate();
 	}
 	
+	public void addVertices(N pos, Collection<N> col) {
+		nodes.addAll(nodes.indexOf(pos), col);
+		invalidate();
+	}
+	
 	public void removeVertex(N b) {
 		nodes.remove(b);
 		invalidate();
