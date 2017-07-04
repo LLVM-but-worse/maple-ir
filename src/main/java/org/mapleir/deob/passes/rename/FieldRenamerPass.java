@@ -1,5 +1,10 @@
 package org.mapleir.deob.passes.rename;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+
 import org.mapleir.context.AnalysisContext;
 import org.mapleir.context.app.ApplicationClassSource;
 import org.mapleir.deob.IPass;
@@ -11,17 +16,10 @@ import org.mapleir.ir.code.Opcode;
 import org.mapleir.ir.code.Stmt;
 import org.mapleir.ir.code.expr.FieldLoadExpr;
 import org.mapleir.ir.code.stmt.FieldStoreStmt;
+import org.mapleir.stdlib.util.InvocationResolver;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.FieldNode;
 import org.objectweb.asm.tree.MethodNode;
-
-import java.lang.reflect.Modifier;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
 
 public class FieldRenamerPass implements IPass {
 
@@ -49,6 +47,8 @@ public class FieldRenamerPass implements IPass {
 			}
 		}
 		
+		InvocationResolver resolver = cxt.getInvocationResolver();
+		
 		for(ClassNode cn : source.iterate()) {
 			for(MethodNode m : cn.methods) {
 				ControlFlowGraph cfg = cxt.getIRCache().getFor(m);
@@ -59,7 +59,7 @@ public class FieldRenamerPass implements IPass {
 						if(stmt.getOpcode() == Opcode.FIELD_STORE) {
 							FieldStoreStmt fs = (FieldStoreStmt) stmt;
 							
-							FieldNode f = findField(source, fs.getOwner(), fs.getName(), fs.getDesc(), fs.getInstanceExpression() == null);
+							FieldNode f = resolver.findField(source, fs.getOwner(), fs.getName(), fs.getDesc(), fs.getInstanceExpression() == null);
 							
 							if(f != null) {
 								if(remapped.containsKey(f)) {
@@ -78,7 +78,7 @@ public class FieldRenamerPass implements IPass {
 							if(e.getOpcode() == Opcode.FIELD_LOAD) {
 								FieldLoadExpr fl = (FieldLoadExpr) e;
 								
-								FieldNode f = findField(source, fl.getOwner(), fl.getName(), fl.getDesc(), fl.getInstanceExpression() == null);
+								FieldNode f = resolver.findField(source, fl.getOwner(), fl.getName(), fl.getDesc(), fl.getInstanceExpression() == null);
 								
 								if(f != null) {
 									if(remapped.containsKey(f)) {
@@ -110,95 +110,5 @@ public class FieldRenamerPass implements IPass {
 	private boolean mustMark(ApplicationClassSource source, String owner) {
 		ClassNode cn = source.findClassNode(owner);
 		return cn == null || !source.isLibraryClass(owner);
-	}
-	
-	private FieldNode findField(ApplicationClassSource source, String owner, String name, String desc, boolean isStatic) {
-		if(isStatic) {
-			return findStaticField(source, owner, name, desc);
-		} else {
-			return findVirtualField(source, owner, name, desc);
-		}
-	}
-	
-	public FieldNode findStaticField(ApplicationClassSource app, String owner, String name, String desc) {
-		Set<FieldNode> set = new HashSet<>();
-		
-		ClassNode cn = app.findClassNode(owner);
-		
-		/* we do this because static fields can be in
-		 * interfaces. */
-		if(cn != null) {
-			Set<ClassNode> lvl = new HashSet<>();
-			lvl.add(cn);
-			for(;;) {
-				if(lvl.size() == 0) {
-					break;
-				}
-				
-				Set<FieldNode> lvlSites = new HashSet<>();
-				
-				for(ClassNode c : lvl) {
-					for(FieldNode f : c.fields) {
-						if(Modifier.isStatic(f.access) && f.name.equals(name) && f.desc.equals(desc)) {
-							lvlSites.add(f);
-						}
-					}
-				}
-				
-				if(lvlSites.size() > 1) {
-					System.out.printf("(warn) resolved %s.%s %s to %s.%n", owner, name, desc, lvlSites);
-				}
-				
-				if(lvlSites.size() > 0) {
-					set.addAll(lvlSites);
-					break;
-				}
-				
-				Set<ClassNode> newLvl = new HashSet<>();
-				for(ClassNode c : lvl) {
-					ClassNode sup = app.findClassNode(c.superName);
-					if(sup != null) {
-						newLvl.add(sup);
-					}
-					
-					for(String iface : c.interfaces) {
-						ClassNode ifaceN = app.findClassNode(iface);
-						
-						if(ifaceN != null) {
-							newLvl.add(ifaceN);
-						}
-					}
-				}
-				
-				lvl.clear();
-				lvl = newLvl;
-			}
-		}
-		
-		if(set.size() > 1) {
-			throw new UnsupportedOperationException(String.format("multi dispatch?: %s.%s %s results:%s", owner, name, desc, set));
-		} else if(set.size() == 1) {
-			return set.iterator().next();
-		} else {
-			return null;
-		}
-	}
-	
-	private FieldNode findVirtualField(ApplicationClassSource source, String owner, String name, String desc) {
-		ClassNode cn = source.findClassNode(owner);
-		
-		if(cn != null) {
-			do {
-				for(FieldNode f : cn.fields) {
-					if(!Modifier.isStatic(f.access) && f.name.equals(name) && f.desc.equals(desc)) {
-						return f;
-					}
-				}
-				
-				cn = source.findClassNode(cn.superName);
-			} while(cn != null);
-		}
-		
-		return null;
 	}
 }

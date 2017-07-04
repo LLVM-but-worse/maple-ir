@@ -18,7 +18,7 @@ import org.mapleir.ir.code.expr.invoke.InvocationExpr;
 import org.mapleir.ir.code.stmt.FieldStoreStmt;
 import org.mapleir.ir.code.stmt.ReturnStmt;
 import org.mapleir.ir.code.stmt.copy.AbstractCopyStmt;
-import org.mapleir.stdlib.collections.ClassHelper;
+import org.mapleir.stdlib.collections.CollectionUtils;
 import org.mapleir.stdlib.collections.graph.flow.ExceptionRange;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.ClassNode;
@@ -62,7 +62,7 @@ public class ClassRenamerPass implements IPass {
 	@Override
 	public int accept(AnalysisContext cxt, IPass prev, List<IPass> completed) {
 		ApplicationClassSource source = cxt.getApplication();
-		Collection<ClassNode> classes = ClassHelper.collate(source.iterator());
+		Collection<ClassNode> classes = CollectionUtils.collate(source.iterator());
 
 //		int min = RenamingUtil.computeMinimum(classes.size());
 		int n = RenamingUtil.numeric("aaa");

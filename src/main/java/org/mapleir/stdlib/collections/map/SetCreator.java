@@ -8,12 +8,15 @@ import java.util.Set;
  * @created 25 May 2015 (actually before this)
  */
 public class SetCreator<T> implements ValueCreator<Set<T>> {
+	private static final SetCreator<?> INSTANCE = new SetCreator<>();
+	
+	@SuppressWarnings("unchecked")
+	public static <T> SetCreator<T> getInstance() {
+		return (SetCreator<T>) INSTANCE;
+	}
+	
 	@Override 
 	public Set<T> create() {
 		return new HashSet<>();
-	}
-	
-	public static <T> ValueCreator<Set<T>> getInstance() {
-		return HashSet::new;
 	}
 }
