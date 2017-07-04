@@ -1,6 +1,14 @@
 package org.mapleir.ir.cfg;
 
-import org.mapleir.deob.interproc.sensitive.IFactSource;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.ListIterator;
+import java.util.Set;
+import java.util.function.Predicate;
+
 import org.mapleir.ir.cfg.edge.FlowEdge;
 import org.mapleir.ir.cfg.edge.ImmediateEdge;
 import org.mapleir.ir.cfg.edge.TryCatchEdge;
@@ -10,10 +18,7 @@ import org.mapleir.stdlib.collections.graph.flow.ExceptionRange;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.tree.LabelNode;
 
-import java.util.*;
-import java.util.function.Predicate;
-
-public class BasicBlock implements FastGraphVertex, Comparable<BasicBlock>, List<Stmt>, IFactSource {
+public class BasicBlock implements FastGraphVertex, Comparable<BasicBlock>, List<Stmt> {
 
 	public static final int FLAG_NO_MERGE = 0x1;
 	
@@ -43,6 +48,10 @@ public class BasicBlock implements FastGraphVertex, Comparable<BasicBlock>, List
 		} else {
 			flags ^= flag;
 		}
+	}
+	
+	public void setFlags(int flags) {
+		this.flags = flags;
 	}
 	
 	public ControlFlowGraph getGraph() {
