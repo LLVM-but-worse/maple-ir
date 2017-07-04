@@ -1,14 +1,5 @@
 package org.mapleir.stdlib.util;
 
-import org.mapleir.context.AnalysisContext;
-import org.mapleir.context.app.ApplicationClassSource;
-import org.mapleir.context.app.ClassTree;
-import org.objectweb.asm.ClassWriter;
-import org.objectweb.asm.Opcodes;
-import org.objectweb.asm.Type;
-import org.objectweb.asm.tree.ClassNode;
-import org.objectweb.asm.tree.MethodNode;
-
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -16,6 +7,16 @@ import java.lang.reflect.Modifier;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
+
+import org.mapleir.context.AnalysisContext;
+import org.mapleir.context.app.ApplicationClassSource;
+import org.mapleir.context.app.ClassTree;
+import org.objectweb.asm.ClassWriter;
+import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.Type;
+import org.objectweb.asm.tree.ClassNode;
+import org.objectweb.asm.tree.FieldNode;
+import org.objectweb.asm.tree.MethodNode;
 
 public class InvocationResolver {
 
@@ -439,5 +440,95 @@ public class InvocationResolver {
 //			throw new IllegalArgumentException("You must be really dense because that method doesn't even exist.");
 //		}
 		return foundMethods;
+	}
+	
+	public FieldNode findField(ApplicationClassSource source, String owner, String name, String desc, boolean isStatic) {
+		if(isStatic) {
+			return findStaticField(source, owner, name, desc);
+		} else {
+			return findVirtualField(source, owner, name, desc);
+		}
+	}
+	
+	public FieldNode findStaticField(ApplicationClassSource app, String owner, String name, String desc) {
+		Set<FieldNode> set = new HashSet<>();
+		
+		ClassNode cn = app.findClassNode(owner);
+		
+		/* we do this because static fields can be in
+		 * interfaces. */
+		if(cn != null) {
+			Set<ClassNode> lvl = new HashSet<>();
+			lvl.add(cn);
+			for(;;) {
+				if(lvl.size() == 0) {
+					break;
+				}
+				
+				Set<FieldNode> lvlSites = new HashSet<>();
+				
+				for(ClassNode c : lvl) {
+					for(FieldNode f : c.fields) {
+						if(Modifier.isStatic(f.access) && f.name.equals(name) && f.desc.equals(desc)) {
+							lvlSites.add(f);
+						}
+					}
+				}
+				
+				if(lvlSites.size() > 1) {
+					System.out.printf("(warn) resolved %s.%s %s to %s.%n", owner, name, desc, lvlSites);
+				}
+				
+				if(lvlSites.size() > 0) {
+					set.addAll(lvlSites);
+					break;
+				}
+				
+				Set<ClassNode> newLvl = new HashSet<>();
+				for(ClassNode c : lvl) {
+					ClassNode sup = app.findClassNode(c.superName);
+					if(sup != null) {
+						newLvl.add(sup);
+					}
+					
+					for(String iface : c.interfaces) {
+						ClassNode ifaceN = app.findClassNode(iface);
+						
+						if(ifaceN != null) {
+							newLvl.add(ifaceN);
+						}
+					}
+				}
+				
+				lvl.clear();
+				lvl = newLvl;
+			}
+		}
+		
+		if(set.size() > 1) {
+			throw new UnsupportedOperationException(String.format("multi dispatch?: %s.%s %s results:%s", owner, name, desc, set));
+		} else if(set.size() == 1) {
+			return set.iterator().next();
+		} else {
+			return null;
+		}
+	}
+	
+	private FieldNode findVirtualField(ApplicationClassSource source, String owner, String name, String desc) {
+		ClassNode cn = source.findClassNode(owner);
+		
+		if(cn != null) {
+			do {
+				for(FieldNode f : cn.fields) {
+					if(!Modifier.isStatic(f.access) && f.name.equals(name) && f.desc.equals(desc)) {
+						return f;
+					}
+				}
+				
+				cn = source.findClassNode(cn.superName);
+			} while(cn != null);
+		}
+		
+		return null;
 	}
 }

@@ -42,6 +42,10 @@ public class LatestValue {
 		constraints = new ArrayList<>();
 	}
 	
+	public List<Constraint> getConstraints() {
+		return constraints;
+	}
+	
 	public boolean hasConstraints() {
 		return !constraints.isEmpty();
 	}
@@ -107,6 +111,15 @@ public class LatestValue {
 		path.add(use);
 		
 		if(debug) {
+			System.out.println();
+			System.out.println("from " + def);
+			System.out.println("to " + use);
+			System.out.println(this);
+			System.out.println("constraints: " + constraints.size());
+			for(Constraint c : constraints) {
+				System.out.println(" " + c);
+			}
+			
 			System.out.println(" path:");
 			for(Stmt s : path) {
 				System.out.println("  " + s);

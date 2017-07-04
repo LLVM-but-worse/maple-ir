@@ -1,19 +1,14 @@
 package org.mapleir.ir.cfg.builder;
 
+import java.util.HashSet;
+import java.util.Set;
+
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
-import org.mapleir.ir.cfg.edge.FlowEdge;
 import org.mapleir.ir.locals.Local;
 import org.mapleir.stdlib.collections.map.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.map.SetCreator;
 import org.objectweb.asm.tree.MethodNode;
-
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
 
 public class ControlFlowGraphBuilder {
 
@@ -29,31 +24,7 @@ public class ControlFlowGraphBuilder {
 		graph = new ControlFlowGraph(method, method.maxLocals);
 		
 		locals = new HashSet<>();
-		assigns = new NullPermeableHashMap<>(new SetCreator<>());
-	}
-	
-	protected void naturaliseGraph(List<BasicBlock> order) {
-		// copy edge sets
-		Map<BasicBlock, Set<FlowEdge<BasicBlock>>> edges = new HashMap<>();
-		for(BasicBlock b : order) {
-			edges.put(b, graph.getEdges(b));
-		}
-		// clean graph
-		graph.clear();
-		
-		// rename and add blocks
-		int label = 1;
-		for(BasicBlock b : order) {
-			b.setId(label++);
-			graph.addVertex(b);
-		}
-		
-		for(Entry<BasicBlock, Set<FlowEdge<BasicBlock>>> e : edges.entrySet()) {
-			BasicBlock b = e.getKey();
-			for(FlowEdge<BasicBlock> fe : e.getValue()) {
-				graph.addEdge(b, fe);
-			}
-		}
+		assigns = new NullPermeableHashMap<>(SetCreator.getInstance());
 	}
 	
 	public static abstract class BuilderPass {

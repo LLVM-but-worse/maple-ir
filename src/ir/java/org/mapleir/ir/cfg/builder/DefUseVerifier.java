@@ -1,5 +1,10 @@
 package org.mapleir.ir.cfg.builder;
 
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.Expr;
@@ -12,11 +17,6 @@ import org.mapleir.ir.locals.LocalsPool;
 import org.mapleir.ir.locals.VersionedLocal;
 import org.mapleir.stdlib.collections.map.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.map.SetCreator;
-
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
 
 public class DefUseVerifier implements Opcode {
 
@@ -34,7 +34,7 @@ public class DefUseVerifier implements Opcode {
 		LocalsPool lp = cfg.getLocals();
 		
 		Map<Local, AbstractCopyStmt> defs = new HashMap<>();
-		NullPermeableHashMap<VersionedLocal, Set<VarExpr>> uses = new NullPermeableHashMap<>(new SetCreator<>());
+		NullPermeableHashMap<VersionedLocal, Set<VarExpr>> uses = new NullPermeableHashMap<>(SetCreator.getInstance());
 		
 		for(BasicBlock b : cfg.vertices()) {
 			for(Stmt stmt : b) {

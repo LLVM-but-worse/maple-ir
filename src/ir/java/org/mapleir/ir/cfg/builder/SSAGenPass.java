@@ -1,12 +1,22 @@
 package org.mapleir.ir.cfg.builder;
 
+import java.util.*;
+import java.util.Map.Entry;
+
 import org.mapleir.ir.algorithms.Liveness;
 import org.mapleir.ir.algorithms.SSABlockLivenessAnalyser;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
+import org.mapleir.ir.cfg.builder.ssaopt.Constraint;
 import org.mapleir.ir.cfg.builder.ssaopt.ConstraintUtil;
 import org.mapleir.ir.cfg.builder.ssaopt.LatestValue;
-import org.mapleir.ir.cfg.edge.*;
+import org.mapleir.ir.cfg.edge.ConditionalJumpEdge;
+import org.mapleir.ir.cfg.edge.FlowEdge;
+import org.mapleir.ir.cfg.edge.FlowEdges;
+import org.mapleir.ir.cfg.edge.ImmediateEdge;
+import org.mapleir.ir.cfg.edge.SwitchEdge;
+import org.mapleir.ir.cfg.edge.TryCatchEdge;
+import org.mapleir.ir.cfg.edge.UnconditionalJumpEdge;
 import org.mapleir.ir.code.CodeUnit;
 import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.code.Opcode;
@@ -16,7 +26,11 @@ import org.mapleir.ir.code.expr.PhiExpr;
 import org.mapleir.ir.code.expr.VarExpr;
 import org.mapleir.ir.code.expr.invoke.InitialisedObjectExpr;
 import org.mapleir.ir.code.expr.invoke.InvocationExpr;
-import org.mapleir.ir.code.stmt.*;
+import org.mapleir.ir.code.stmt.ConditionalJumpStmt;
+import org.mapleir.ir.code.stmt.PopStmt;
+import org.mapleir.ir.code.stmt.SwitchStmt;
+import org.mapleir.ir.code.stmt.ThrowStmt;
+import org.mapleir.ir.code.stmt.UnconditionalJumpStmt;
 import org.mapleir.ir.code.stmt.copy.AbstractCopyStmt;
 import org.mapleir.ir.code.stmt.copy.CopyPhiStmt;
 import org.mapleir.ir.code.stmt.copy.CopyVarStmt;
@@ -33,9 +47,6 @@ import org.mapleir.stdlib.collections.map.SetCreator;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.LabelNode;
-
-import java.util.*;
-import java.util.Map.Entry;
 
 public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 
@@ -94,7 +105,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 	private void splitRanges() {
 		// produce cleaner cfg
 		List<BasicBlock> order = new ArrayList<>(builder.graph.vertices());
-		NullPermeableHashMap<BasicBlock, Set<Local>> splits = new NullPermeableHashMap<>(new SetCreator<>());
+		NullPermeableHashMap<BasicBlock, Set<Local>> splits = new NullPermeableHashMap<>(SetCreator.getInstance());
 		
 		for(ExceptionRange<BasicBlock> er : builder.graph.getRanges()) {
 			BasicBlock h = er.getHandler();
@@ -143,7 +154,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 			}
 		}
 		
-		builder.naturaliseGraph(order);
+		builder.graph.naturalise(order);
 		
 		int po = 0;
 		for(BasicBlock b : SimpleDfs.preorder(builder.graph, builder.graph.getEntries().iterator().next())) {
@@ -714,7 +725,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 	}
 	
 	private Set<Set<CopyPhiStmt>> findPhiClasses(Collection<CopyPhiStmt> phis) {
-		NullPermeableHashMap<CopyPhiStmt, Set<CopyPhiStmt>> equiv = new NullPermeableHashMap<>(new SetCreator<>());
+		NullPermeableHashMap<CopyPhiStmt, Set<CopyPhiStmt>> equiv = new NullPermeableHashMap<>(SetCreator.getInstance());
 		
 		for(CopyPhiStmt cps : phis) {
 			if(equiv.containsKey(cps)) {
@@ -1195,6 +1206,19 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 
 									// remove the pop statement
 									b.remove(pop);
+									
+									// update the latestval constraints
+									LatestValue lval = latest.get(local);
+									if(lval.hasConstraints()) {
+										/* need to check this out (shouldn't happen) */
+										System.out.println("Constraints:");
+										for(Constraint c : lval.getConstraints()) {
+											System.out.println("  " + c);
+										}
+										throw new IllegalStateException(lval.toString());
+									} else {
+										lval.makeConstraints(newExpr);
+									}
 								}
 							} else if(inst.getOpcode() == Opcode.ALLOC_OBJ) {
 								// replace pop(new Klass.<init>(args)) with pop(new Klass(args))
@@ -1507,13 +1531,6 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 	
 	@Override
 	public void run() {
-//		OPTIMISE = builder.method.toString().equals("ad.h(B)V");
-		
-//		if(OPTIMISE) {
-//			System.out.println("opt: " + builder.method);
-//			System.out.println(builder.graph);
-//		}
-//		OPTIMISE = false;
 		pool = builder.graph.getLocals();
 		
 		graphSize = builder.graph.size() + 1;
@@ -1522,7 +1539,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		order.addAll(builder.graph.vertices());
 		order.remove(builder.head);
 		order.add(0, builder.head);
-		builder.naturaliseGraph(order);
+		builder.graph.naturalise(order);
 		
 		makeLiveness();
 		splitRanges();
@@ -1545,10 +1562,5 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		}
 		
 		GraphUtils.disconnectHead(builder.graph, builder.head);
-
-		
-//		if(builder.method.toString().equals("ad.h(B)V")) {
-//			System.out.println(builder.graph);
-//		}
 	}
 }

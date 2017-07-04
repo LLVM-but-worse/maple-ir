@@ -1,5 +1,10 @@
 package org.mapleir.ir.locals;
 
+import java.util.*;
+import java.util.Map.Entry;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Predicate;
+
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.Expr;
@@ -16,19 +21,6 @@ import org.mapleir.stdlib.collections.map.SetCreator;
 import org.mapleir.stdlib.collections.map.ValueCreator;
 import org.mapleir.stdlib.util.TypeUtils;
 import org.objectweb.asm.Type;
-
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Predicate;
 
 public class LocalsPool implements ValueCreator<GenericBitSet<Local>> {
 
@@ -159,7 +151,7 @@ public class LocalsPool implements ValueCreator<GenericBitSet<Local>> {
 	} */
 	
 	public int realloc(ControlFlowGraph cfg) {
-		NullPermeableHashMap<Local, Set<Type>> types = new NullPermeableHashMap<>(new SetCreator<>());
+		NullPermeableHashMap<Local, Set<Type>> types = new NullPermeableHashMap<>(SetCreator.getInstance());
 		int min = 0;
 		Set<Local> safe = new HashSet<>();
 		for(BasicBlock b : cfg.vertices()) {

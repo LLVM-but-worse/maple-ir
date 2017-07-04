@@ -1,5 +1,15 @@
 package org.mapleir.deob.passes;
 
+import java.lang.reflect.Modifier;
+import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 import org.mapleir.context.AnalysisContext;
 import org.mapleir.deob.IPass;
 import org.mapleir.ir.cfg.BasicBlock;
@@ -18,10 +28,6 @@ import org.mapleir.stdlib.collections.map.SetCreator;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.FieldNode;
 import org.objectweb.asm.tree.MethodNode;
-
-import java.lang.reflect.Modifier;
-import java.math.BigInteger;
-import java.util.*;
 
 public class FieldRSADecryptionPass implements IPass, Opcode {
 
@@ -676,6 +682,6 @@ public class FieldRSADecryptionPass implements IPass, Opcode {
 	}
 	
 	private static NullPermeableHashMap<String, Set<Number>> newMap() {
-		return new NullPermeableHashMap<>(new SetCreator<>());
+		return new NullPermeableHashMap<>(SetCreator.getInstance());
 	}
 }

@@ -1,5 +1,12 @@
 package org.mapleir.ir.cfg;
 
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+
 import org.mapleir.ir.cfg.edge.FlowEdge;
 import org.mapleir.ir.code.CodeUnit;
 import org.mapleir.ir.code.Expr;
@@ -12,12 +19,11 @@ import org.mapleir.ir.locals.LocalsPool;
 import org.mapleir.ir.locals.VersionedLocal;
 import org.mapleir.stdlib.collections.graph.FastGraph;
 import org.mapleir.stdlib.collections.graph.flow.ExceptionRange;
+import org.mapleir.stdlib.collections.itertools.ChainIterator;
 import org.mapleir.stdlib.util.TabbedStringWriter;
 import org.mapleir.stdlib.util.dot.ControlFlowGraphDecorator;
 import org.mapleir.stdlib.util.dot.DotWriter;
 import org.objectweb.asm.tree.MethodNode;
-
-import java.util.Iterator;
 
 public class ControlFlowGraph extends FastBlockGraph {
 	
@@ -160,16 +166,18 @@ public class ControlFlowGraph extends FastBlockGraph {
 		sw.tab();
 		sw.tab();
 		
-		for(FlowEdge<BasicBlock> e : cfg.getEdges(b)) {
-//			if(e.getType() != FlowEdges.TRYCATCH) {
-				sw.print("\n-> " + e.toString());
-//			}
-		}
+		if(cfg.containsVertex(b)) {
+			for(FlowEdge<BasicBlock> e : cfg.getEdges(b)) {
+//				if(e.getType() != FlowEdges.TRYCATCH) {
+					sw.print("\n-> " + e.toString());
+//				}
+			}
 
-		for(FlowEdge<BasicBlock> p : cfg.getReverseEdges(b)) {
-//			if(p.getType() != FlowEdges.TRYCATCH) {
-				sw.print("\n<- " + p.toString());
-//			}
+			for(FlowEdge<BasicBlock> p : cfg.getReverseEdges(b)) {
+//				if(p.getType() != FlowEdges.TRYCATCH) {
+					sw.print("\n<- " + p.toString());
+//				}
+			}
 		}
 
 		sw.untab();
@@ -185,6 +193,39 @@ public class ControlFlowGraph extends FastBlockGraph {
 	@Override
 	public ControlFlowGraph copy() {
 		return new ControlFlowGraph(this);
+	}
+	
+	public Iterable<Stmt> stmts() {
+		return new Iterable<Stmt>() {
+			@Override
+			public Iterator<Stmt> iterator() {
+				return new ChainIterator.CollectionChainIterator<>(vertices());
+			}
+		};
+	}
+	
+	public void naturalise(List<BasicBlock> order) {
+		// copy edge sets
+		Map<BasicBlock, Set<FlowEdge<BasicBlock>>> edges = new HashMap<>();
+		for(BasicBlock b : order) {
+			edges.put(b, getEdges(b));
+		}
+		// clean graph
+		clear();
+		
+		// rename and add blocks
+		int label = 1;
+		for(BasicBlock b : order) {
+			b.setId(label++);
+			addVertex(b);
+		}
+		
+		for(Entry<BasicBlock, Set<FlowEdge<BasicBlock>>> e : edges.entrySet()) {
+			BasicBlock b = e.getKey();
+			for(FlowEdge<BasicBlock> fe : e.getValue()) {
+				addEdge(b, fe);
+			}
+		}
 	}
 	
 	@Override
