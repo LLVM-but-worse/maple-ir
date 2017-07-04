@@ -40,7 +40,9 @@ public class IPAnalysis extends IRCallTracer implements Opcode {
 	}
 	
 	private final List<IPAnalysisVisitor> visitors;
-	private final Map<MethodNode, Set<Invocation>> calls;
+	
+	// TODO: Convert this to struct?
+	private final Map<MethodNode, Set<Invocation>> callers;
 	private final Map<MethodNode, List<List<Expr>>> parameterInputs;
 	private final Map<MethodNode, int[]> paramIndices;
 	
@@ -48,13 +50,13 @@ public class IPAnalysis extends IRCallTracer implements Opcode {
 		super(cxt);
 		this.visitors = visitors;
 		
-		calls = new HashMap<>();
+		callers = new HashMap<>();
 		parameterInputs = new HashMap<>();
 		paramIndices = new HashMap<>();
 	}
 	
 	public Set<Invocation> getCallsTo(MethodNode m) {
-		return calls.get(m);
+		return callers.get(m);
 	}
 
 	public int getLocalIndex(MethodNode m, int i) {
@@ -94,14 +96,18 @@ public class IPAnalysis extends IRCallTracer implements Opcode {
 	
 	@Override
 	protected void visitMethod(MethodNode m) {
+		// Callbacks
 		for(IPAnalysisVisitor v : visitors) {
 			v.preVisitMethod(this, m);
 		}
 		
+		// Do not trace library calls
 		if(context.getApplication().isLibraryClass(m.owner.name)) {
 			return;
 		}
 		
+		// Create a mapping between the actual variable table indices and the parameter
+		// indices in the method descriptor.
 		boolean isStatic = (m.access & Opcodes.ACC_STATIC) != 0;
 		
 		int paramCount = Type.getArgumentTypes(m.desc).length;
@@ -109,11 +115,9 @@ public class IPAnalysis extends IRCallTracer implements Opcode {
 		int synthCount = paramCount + off;
 		List<List<Expr>> lists = new ArrayList<>(synthCount);
 		
-		/* Create a mapping between the actual variable table
-		 * indices and the parameter indices in the method
-		 * descriptor. */
 		int[] idxs = new int[synthCount];
 		
+		// Scan for synthetic copies to populate indices
 		ControlFlowGraph cfg = context.getIRCache().getFor(m);
 		BasicBlock entry = cfg.getEntries().iterator().next();
 		
@@ -145,8 +149,9 @@ public class IPAnalysis extends IRCallTracer implements Opcode {
 		paramIndices.put(m, idxs);
 		
 		parameterInputs.put(m, lists);
-		calls.put(m, new HashSet<>());
+		callers.put(m, new HashSet<>());
 		
+		// Callbacks
 		for(IPAnalysisVisitor v : visitors) {
 			v.postVisitMethod(this, m);
 		}
@@ -154,22 +159,25 @@ public class IPAnalysis extends IRCallTracer implements Opcode {
 	
 	@Override
 	protected void processedInvocation(MethodNode caller, MethodNode callee, Invocation e) {
+		// Callbacks
 		for(IPAnalysisVisitor v : visitors) {
 			v.preProcessedInvocation(this, caller, callee, e);
 		}
 		
+		// Do not trace library calls.
 		if(context.getApplication().isLibraryClass(callee.owner.name)) {
 			return;
 		}
 		
-		calls.get(callee).add(e);
+		callers.get(callee).add(e);
 		
+		// Update parameter information
 		Expr[] params = e.getParameterExprs();
-		
 		for(int i=0; i < params.length; i++) {
 			parameterInputs.get(callee).get(i).add(params[i]);
 		}
 		
+		// Callbacks
 		for(IPAnalysisVisitor v : visitors) {
 			v.postProcessedInvocation(this, caller, callee, e);
 		}
