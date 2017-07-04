@@ -1,13 +1,19 @@
 package org.mapleir.ir.code.expr.invoke;
 
+import java.util.Set;
+
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.CodeUnit;
 import org.mapleir.ir.code.Expr;
+import org.mapleir.stdlib.collections.CollectionUtils;
+import org.mapleir.stdlib.collections.map.SetCreator;
+import org.mapleir.stdlib.util.InvocationResolver;
 import org.mapleir.stdlib.util.TabbedStringWriter;
 import org.mapleir.stdlib.util.TypeUtils;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
+import org.objectweb.asm.tree.MethodNode;
 
 public class InvocationExpr extends Invocation {
 
@@ -39,6 +45,7 @@ public class InvocationExpr extends Invocation {
 		this.callType = callType;
 	}
 
+	@Override
 	public String getOwner() {
 		return owner;
 	}
@@ -47,6 +54,7 @@ public class InvocationExpr extends Invocation {
 		this.owner = owner;
 	}
 
+	@Override
 	public String getName() {
 		return name;
 	}
@@ -55,6 +63,7 @@ public class InvocationExpr extends Invocation {
 		this.name = name;
 	}
 
+	@Override
 	public String getDesc() {
 		return desc;
 	}
@@ -214,5 +223,22 @@ public class InvocationExpr extends Invocation {
 	@Override
 	public Expr[] getArgumentExprs() {
 		return args;
+	}
+
+	@Override
+	public Set<MethodNode> resolveTargets(InvocationResolver res) {		
+		String owner = getOwner();
+		String name = getName();
+		String desc = getDesc();
+		
+		if(isStatic()) {
+			return CollectionUtils.asCollection(SetCreator.getInstance(), res.resolveStaticCall(owner, name, desc));
+		} else {
+			if(name.equals("<init>")) {
+				return CollectionUtils.asCollection(SetCreator.getInstance(), res.resolveVirtualInitCall(owner, desc));
+			} else {
+				return res.resolveVirtualCalls(owner, name, desc, true);
+			}
+		}
 	}
 }
