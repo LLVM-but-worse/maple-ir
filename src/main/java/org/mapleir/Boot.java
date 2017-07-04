@@ -1,6 +1,7 @@
 package org.mapleir;
 
-import java.io.*;
+import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
@@ -9,23 +10,18 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.jar.JarOutputStream;
 
 import org.mapleir.context.AnalysisContext;
 import org.mapleir.context.BasicAnalysisContext;
 import org.mapleir.context.IRCache;
 import org.mapleir.context.SimpleApplicationContext;
 import org.mapleir.context.app.ApplicationClassSource;
-import org.mapleir.context.app.CompleteResolvingJarDumper;
 import org.mapleir.context.app.InstalledRuntimeClassSource;
 import org.mapleir.deob.IPass;
 import org.mapleir.deob.PassGroup;
 import org.mapleir.deob.interproc.IRCallTracer;
-import org.mapleir.deob.interproc.sensitive.ContextSensitiveIPAnalysis;
-import org.mapleir.deob.intraproc.eval.ExpressionEvaluator;
-import org.mapleir.deob.intraproc.eval.impl.ReflectiveFunctorFactory;
-import org.mapleir.deob.passes.rename.ClassRenamerPass;
-import org.mapleir.deob.passes.rename.MethodRenamerPass;
+import org.mapleir.deob.interproc.exp2.BlockCallGraph;
+import org.mapleir.deob.interproc.exp2.BlockCallGraphBuilder;
 import org.mapleir.deob.util.RenamingHeuristic;
 import org.mapleir.ir.algorithms.BoissinotDestructor;
 import org.mapleir.ir.algorithms.ControlFlowGraphDumper;
@@ -35,9 +31,6 @@ import org.mapleir.stdlib.util.InvocationResolver;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
-import org.topdank.byteengineer.commons.data.JarInfo;
-import org.topdank.byteio.in.SingleJarDownloader;
-import org.topdank.byteio.out.JarDumper;
 
 public class Boot {
 	
@@ -63,6 +56,17 @@ public class Boot {
 //	static void b2() {
 //		System.out.println(new RuntimeException().getStackTrace()[1]);
 //	}
+	
+	public static void main5(String[] args) {
+//		TarjanSCC<MethodNode> sccComputor = new TarjanSCC<>(graph);
+//
+//		for(MethodNode m : graph.vertices()) {
+//			if(sccComputor.low(m) == -1) {
+//				sccComputor.search(m);
+//			}
+//		}	
+	}
+	
 	public static void main(String[] args) throws Exception {
 		sections = new LinkedList<>();
 		logging = true;
@@ -73,15 +77,15 @@ public class Boot {
 		} */
 		
 		// File f = locateRevFile(135);
-		File f = new File("res/allatori6.1san.jar");
-		section("Preparing to run on " + f.getAbsolutePath());
-		SingleJarDownloader<ClassNode> dl = new SingleJarDownloader<>(new JarInfo(f));
-		dl.download();
+//		File f = new File("res/allatori6.1san.jar");
+//		section("Preparing to run on " + f.getAbsolutePath());
+//		SingleJarDownloader<ClassNode> dl = new SingleJarDownloader<>(new JarInfo(f));
+//		dl.download();
+//		
+//		String name = f.getName().substring(0, f.getName().length() - 4);
 		
-		String name = f.getName().substring(0, f.getName().length() - 4);
-		
-		ApplicationClassSource app = new ApplicationClassSource(name, dl.getJarContents().getClassContents());
-//		ApplicationClassSource app = new ApplicationClassSource("tes", classes(CGExample.class));
+//		ApplicationClassSource app = new ApplicationClassSource(name, dl.getJarContents().getClassContents());
+		ApplicationClassSource app = new ApplicationClassSource("tes", classes(CGExample3.class));
 		InstalledRuntimeClassSource jre = new InstalledRuntimeClassSource(app);
 		app.addLibraries(jre);
 		section("Initialising context.");
@@ -108,7 +112,27 @@ public class Boot {
 		}
 		run(cxt, masterGroup);
 		
-		new ContextSensitiveIPAnalysis(cxt, new ExpressionEvaluator(new ReflectiveFunctorFactory()));
+
+		for(Entry<MethodNode, ControlFlowGraph> e : cxt.getIRCache().entrySet()) {
+//			if(e.getKey().toString().equals("com/allatori/iiIiIiiIii.clone()Ljava/lang/Object;"))
+				BlockCallGraph.prepareControlFlowGraph(e.getValue());
+		}
+		
+		BlockCallGraphBuilder builder = new BlockCallGraphBuilder(cxt);
+
+		for(MethodNode m : cxt.getApplicationContext().getEntryPoints()) {
+			System.out.println(m);
+			builder.visit(m);
+		}
+		
+		
+		builder.callGraph.makeDotWriter().setName("nam").export();
+		
+		for(MethodNode m : cxt.getApplicationContext().getEntryPoints()) {
+//			System.out.println(m);
+//			BlockCallGraph.prepareControlFlowGraph(cxt.getIRCache().get(m));
+		}
+//		new ContextSensitiveIPAnalysis(cxt, new ExpressionEvaluator(new ReflectiveFunctorFactory()));
 		
 		section("Retranslating SSA IR to standard flavour.");
 		for(Entry<MethodNode, ControlFlowGraph> e : cxt.getIRCache().entrySet()) {
@@ -121,51 +145,51 @@ public class Boot {
 		}
 		
 		section("Rewriting jar.");
-		JarDumper dumper = new CompleteResolvingJarDumper(dl.getJarContents(), app) {
-			@Override
-			public int dumpResource(JarOutputStream out, String name, byte[] file) throws IOException {
-//				if(name.startsWith("META-INF")) {
-//					System.out.println(" ignore " + name);
-//					return 0;
+//		JarDumper dumper = new CompleteResolvingJarDumper(dl.getJarContents(), app) {
+//			@Override
+//			public int dumpResource(JarOutputStream out, String name, byte[] file) throws IOException {
+////				if(name.startsWith("META-INF")) {
+////					System.out.println(" ignore " + name);
+////					return 0;
+////				}
+//				if(name.equals("META-INF/MANIFEST.MF")) {
+//					ClassRenamerPass renamer = (ClassRenamerPass) masterGroup.getPass(e -> e.is(ClassRenamerPass.class));
+//					
+//					if(renamer != null) {
+//						ByteArrayOutputStream baos = new ByteArrayOutputStream();
+//						BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(baos));
+//						BufferedReader br = new BufferedReader(new InputStreamReader(new ByteArrayInputStream(file)));
+//						
+//						String line;
+//						while((line = br.readLine()) != null) {
+//							String[] parts = line.split(": ", 2);
+//							if(parts.length != 2) {
+//								bw.write(line);
+//								continue;
+//							}
+//							
+//							if(parts[0].equals("Main-Class")) {
+//								String newMain = renamer.getRemappedName(parts[1].replace(".", "/")).replace("/", ".");
+//								System.out.printf("%s -> %s%n", parts[1], newMain);
+//								parts[1] = newMain;
+//							}
+//
+//							bw.write(parts[0]);
+//							bw.write(": ");
+//							bw.write(parts[1]);
+//							bw.write(System.lineSeparator());
+//						}
+//						
+//						br.close();
+//						bw.close();
+//						
+//						file = baos.toByteArray();
+//					}
 //				}
-				if(name.equals("META-INF/MANIFEST.MF")) {
-					ClassRenamerPass renamer = (ClassRenamerPass) masterGroup.getPass(e -> e.is(ClassRenamerPass.class));
-					
-					if(renamer != null) {
-						ByteArrayOutputStream baos = new ByteArrayOutputStream();
-						BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(baos));
-						BufferedReader br = new BufferedReader(new InputStreamReader(new ByteArrayInputStream(file)));
-						
-						String line;
-						while((line = br.readLine()) != null) {
-							String[] parts = line.split(": ", 2);
-							if(parts.length != 2) {
-								bw.write(line);
-								continue;
-							}
-							
-							if(parts[0].equals("Main-Class")) {
-								String newMain = renamer.getRemappedName(parts[1].replace(".", "/")).replace("/", ".");
-								System.out.printf("%s -> %s%n", parts[1], newMain);
-								parts[1] = newMain;
-							}
-
-							bw.write(parts[0]);
-							bw.write(": ");
-							bw.write(parts[1]);
-							bw.write(System.lineSeparator());
-						}
-						
-						br.close();
-						bw.close();
-						
-						file = baos.toByteArray();
-					}
-				}
-				return super.dumpResource(out, name, file);
-			}
-		};
-		dumper.dump(new File("out/osb5.jar"));
+//				return super.dumpResource(out, name, file);
+//			}
+//		};
+//		dumper.dump(new File("out/osb5.jar"));
 		
 		section("Finished.");
 	}
@@ -175,11 +199,11 @@ public class Boot {
 	}
 	
 	private static IPass[] getTransformationPasses() {
-		RenamingHeuristic allatoriHeuristic = (name, access) -> name.toLowerCase().equals("iiiiiiiiii"); // RenamingHeuristic.RENAME_ALL;
+		RenamingHeuristic heuristic = RenamingHeuristic.RENAME_ALL;
 		return new IPass[] {
 //				new ConcreteStaticInvocationPass(),
-				new ClassRenamerPass(allatoriHeuristic),
-				new MethodRenamerPass(allatoriHeuristic),
+//				new ClassRenamerPass(heuristic),
+//				new MethodRenamerPass(heuristic),
 //				new FieldRenamerPass(),
 //				new CallgraphPruningPass(),
 				// new ConstantParameterPass()
