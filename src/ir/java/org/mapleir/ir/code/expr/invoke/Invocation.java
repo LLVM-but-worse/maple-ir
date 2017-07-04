@@ -1,6 +1,10 @@
 package org.mapleir.ir.code.expr.invoke;
 
+import java.util.Set;
+
 import org.mapleir.ir.code.Expr;
+import org.mapleir.stdlib.util.InvocationResolver;
+import org.objectweb.asm.tree.MethodNode;
 
 /* Definitions:
  *   parameterExprs:= the Exprs that are actually passed to 
@@ -31,4 +35,6 @@ public abstract class Invocation extends Expr {
 	public abstract String getName();
 	
 	public abstract String getDesc();
+	
+	public abstract Set<MethodNode> resolveTargets(InvocationResolver res);
 }
