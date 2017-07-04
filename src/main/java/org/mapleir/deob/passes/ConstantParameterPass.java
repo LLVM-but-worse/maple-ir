@@ -273,7 +273,7 @@ public class ConstantParameterPass implements IPass, Opcode {
 						if(chm.name.equals("<init>")) {
 							conflicts.addAll(resolver.resolveVirtualCalls(chm.owner.name, "<init>", desc, false));
 						} else {
-							conflicts.addAll(InvocationResolver.getHierarchyMethodChain(cxt, m.owner, m.name, desc, false));
+							conflicts.addAll(InvocationResolver.getHierarchyMethodChain(cxt, m.owner, m.name, desc, true, false));
 						}
 					}
 				}
@@ -561,7 +561,7 @@ public class ConstantParameterPass implements IPass, Opcode {
 		
 		if(!Modifier.isStatic(m.access)) {
 			if(!m.name.equals("<init>")) {
-				chain.addAll(InvocationResolver.getHierarchyMethodChain(cxt, m.owner, m.name, m.desc, true));
+				chain.addAll(InvocationResolver.getHierarchyMethodChain(cxt, m.owner, m.name, m.desc, true, true));
 			}
 		}
 		

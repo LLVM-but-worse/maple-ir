@@ -78,6 +78,10 @@ public class ClassTree extends FastDirectedGraph<ClassNode, InheritanceEdge> {
 		return SimpleDfs.preorder(this, cn, true);
 	}
 	
+	/**
+	 * @param cn classnode to search out from
+	 * @return every class connected to the class in any way.
+	 */
 	public Collection<ClassNode> getAllBranches(ClassNode cn) {
 		Collection<ClassNode> results = new HashSet<>();
 		Queue<ClassNode> queue = new LinkedList<>();

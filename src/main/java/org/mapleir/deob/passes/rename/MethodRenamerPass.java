@@ -72,7 +72,7 @@ public class MethodRenamerPass implements IPass {
 					if(!m.name.equals("<init>")) {
 						// Set<ClassNode> classes = source.getStructures().dfsTree(m.owner, true, true, true);
 						// Set<MethodNode> methods = getVirtualMethods(cxt, classes, m.name, m.desc);
-						Set<MethodNode> methods = InvocationResolver.getHierarchyMethodChain(cxt, m.owner, m.name, m.desc, true);
+						Set<MethodNode> methods = InvocationResolver.getHierarchyMethodChain(cxt, m.owner, m.name, m.desc, true, true);
 						if(canRename(cxt, methods)) {
 							String newName = RenamingUtil.createName(i++);
 							
@@ -213,7 +213,7 @@ public class MethodRenamerPass implements IPass {
 //									 Set<MethodNode> sites = resolver.resolveVirtualCalls(invoke.getOwner(), invoke.getName(), invoke.getDesc());
 									// Set<ClassNode> classes = source.getStructures().dfsTree(cn, true, true, true);
 									// Set<MethodNode> sites = getVirtualMethods(cxt, classes, invoke.getName(), invoke.getDesc());
-									Set<MethodNode> sites = InvocationResolver.getHierarchyMethodChain(cxt, source.findClassNode(invoke.getOwner()), invoke.getName(), invoke.getDesc(), true);
+									Set<MethodNode> sites = InvocationResolver.getHierarchyMethodChain(cxt, source.findClassNode(invoke.getOwner()), invoke.getName(), invoke.getDesc(), true, true);
 									if(sites.size() > 0) {
 										/* all of the sites must be linked by the same name,
 										 * so we can use any to find the new name. */
