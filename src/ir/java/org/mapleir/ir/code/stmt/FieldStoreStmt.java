@@ -31,6 +31,10 @@ public class FieldStoreStmt extends Stmt {
 		overwrite(valueExpression, instanceExpression == null ? 0 : 1);
 	}
 
+	public boolean isStatic() {
+		return getInstanceExpression() == null;
+	}
+	
 	public Expr getInstanceExpression() {
 		return instanceExpression;
 	}
