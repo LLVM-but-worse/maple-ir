@@ -24,6 +24,12 @@ import org.objectweb.asm.tree.LabelNode;
 
 public class BlockCallGraph extends FastDirectedGraph<CallGraphBlock, FlowEdge<CallGraphBlock>> {
 
+	private static boolean isContainerFlowFunction(Stmt stmt) {
+		int opcode = stmt.getOpcode();
+		return opcode == Opcode.SWITCH_JUMP || opcode == Opcode.COND_JUMP || opcode == Opcode.THROW
+				|| opcode == Opcode.RETURN;
+	}
+	
 	public static void prepareControlFlowGraph(ControlFlowGraph cfg) {
 		List<BasicBlock> order = new ArrayList<>();
 		Map<BasicBlock, BasicBlock> remap = new HashMap<>();
@@ -38,13 +44,95 @@ public class BlockCallGraph extends FastDirectedGraph<CallGraphBlock, FlowEdge<C
 				currentSubBlock.add(stmt);
 				
 				if(statementContainsAnyInvocation(stmt)) {
-					/* split block */
+					/* split block::
+					 * 
+					 * later, when we add the call edge to the
+					 * call site and the return edge from it, we
+					 * need a suitable place for the edge to come
+					 * into. the most natural and probably
+					 * accurate way is to have the return edge
+					 * feed into the bottom of the block, after
+					 * the invocation, but obviously we cannot do
+					 * this traditionally as the edges can only
+					 * enter at the top of the block.
+					 * 
+					 * so instead we add an extra block in the
+					 * block list (whenever we split due to an
+					 * invocation) and it will end up being
+					 * linked in the region as normal.
+					 * 
+					 * the problem we face is regarding flow
+					 * functions which contain invocations. in
+					 * this case the block will be split here
+					 * with the flow function (eg conditional
+					 * jump) as the last statement. since there
+					 * can be multiple different jump targets, we
+					 * have to change the graph so that we have a
+					 * single return site for the call. we can
+					 * choose to either lift the invocation
+					 * expression itself into a spill or
+					 * temporary local so that the flow function
+					 * references it remotely in the second block
+					 * or we can push the entire statement down
+					 * into the next block and insert the empty
+					 * block into the space between the naturally
+					 * ending block and the flow function block.
+					 * 
+					 * A1: upon further reflection, pushing the
+					 * offending statement down won't fix the
+					 * problem as the invocation call edge would
+					 * have to be moved with it, making the move
+					 * redundant. connecting the return edge to
+					 * the successors also wouldn't work in the
+					 * case of return statements (and possibly
+					 * throws as well).
+					 * 
+					 * A2: also it is important to note that in
+					 * order to retain the edge and flow ordering
+					 * of the graph we have to maintain ordering
+					 * within the block with respect to
+					 * invocations. therefore all invocations
+					 * must be lifted into temporary locals and
+					 * kept in the block, with the use statement
+					 * pushed down into another block.
+					 * 
+					 * refining this further, the affected flow
+					 * functions are return, switch, conditional
+					 * jump and throw statements, however, any
+					 * statement or expression that holds more
+					 * than one invocation could potentially
+					 * offend here (by A2), so we must spill.
+					 * 
+					 * spilling is required. */
+
+//					/* this block stays here as normal. */
 					subBlockStmts.add(currentSubBlock);
 					
+					// FIXME: implement spilling (i'll do it later).
+					if(isContainerFlowFunction(stmt)) {
+						/* remove the statement we added, we're
+						 * going to move it into the next block
+						 * but first we will store the invoke
+						 * value in  */
+						currentSubBlock.remove(currentSubBlock.size() - 1);
+						
+						/* add the empty block. */
+						subBlockStmts.add(new ArrayList<>());
+						
+						/* create and add the flowfunc block. */
+						List<Stmt> flowFunctionBlock = new ArrayList<>();
+						flowFunctionBlock.add(stmt);
+						subBlockStmts.add(flowFunctionBlock);
+					}
+					
+					/* refresh for next block. */
 					currentSubBlock = new ArrayList<>();
 				}
 			}
 			
+			/* we don't have to consider any splitting mechanism
+			 * here as if the current sub block contained any
+			 * invocations, it would've been split above. */
 			if(!currentSubBlock.isEmpty()) {
 				subBlockStmts.add(currentSubBlock);
 			}
@@ -79,6 +167,7 @@ public class BlockCallGraph extends FastDirectedGraph<CallGraphBlock, FlowEdge<C
 				
 				BasicBlock lastBlock = firstBlock;
 				
+				/* link region via immediate edges. */
 				Iterator<List<Stmt>> subBlockIterator = subBlockStmts.iterator();
 				subBlockIterator.next(); // skip first (already done).
 				while(subBlockIterator.hasNext()) {
