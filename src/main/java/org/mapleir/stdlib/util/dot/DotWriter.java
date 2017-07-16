@@ -1,10 +1,5 @@
 package org.mapleir.stdlib.util.dot;
 
-import org.mapleir.stdlib.collections.graph.FastGraph;
-import org.mapleir.stdlib.collections.graph.FastGraphEdge;
-import org.mapleir.stdlib.collections.graph.FastGraphVertex;
-import org.mapleir.stdlib.util.TabbedStringWriter;
-
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -13,8 +8,17 @@ import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.CharsetEncoder;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
+
+import org.mapleir.stdlib.collections.graph.FastGraph;
+import org.mapleir.stdlib.collections.graph.FastGraphEdge;
+import org.mapleir.stdlib.collections.graph.FastGraphVertex;
+import org.mapleir.stdlib.util.TabbedStringWriter;
 
 public class DotWriter<G extends FastGraph<N, E>, N extends FastGraphVertex, E extends FastGraphEdge<N>> extends TabbedStringWriter {
 	
@@ -50,6 +54,10 @@ public class DotWriter<G extends FastGraph<N, E>, N extends FastGraphVertex, E e
 			name = cname + count;
 		}
 		return name;
+	}
+	
+	public int size() {
+		return pipeline.size();
 	}
 	
 	private void add0(int index, String name, DotPropertyDecorator<G, N, E> d) {

@@ -36,7 +36,7 @@ public class BlockCallGraphBuilder {
 		concreteBlockMap = new HashMap<>();
 	}
 	
-	private LibraryStubCallGraphBlock getLibraryStubNode(MethodNode method) {
+	public LibraryStubCallGraphBlock getLibraryStubNode(MethodNode method) {
 		if(generatedStubs.containsKey(method)) {
 			return generatedStubs.get(method);
 		} else {
@@ -46,7 +46,7 @@ public class BlockCallGraphBuilder {
 		}
 	}
 	
-	private ConcreteCallGraphBlock getConcreteBlockNode(BasicBlock basicBlock) {
+	public ConcreteCallGraphBlock getConcreteBlockNode(BasicBlock basicBlock) {
 		if(concreteBlockMap.containsKey(basicBlock)) {
 			return concreteBlockMap.get(basicBlock);
 		} else {
@@ -103,22 +103,24 @@ public class BlockCallGraphBuilder {
 		}
 	}
 	
-	private void linkConcreteInvocation(MethodNode caller, MethodNode callee, CallGraphBlock callerBlock) {
-		System.out.println(caller + " -> " + callee);
+	private void linkConcreteInvocation(MethodNode caller, MethodNode callee, ConcreteCallGraphBlock callerBlock) {
+//		System.out.println(caller + " -> " + callee);
 		IRCache irCache = cxt.getIRCache();
 		ControlFlowGraph callerControlFlowGraph = irCache.get(caller);
 		ControlFlowGraph calleeControlFlowGraph = irCache.get(callee);
 		
+		Set<CallGraphBlock> returnSites = new HashSet<>();
+		
 		if(calleeControlFlowGraph != null) {
-			CallEdge outgoingCallEdge = new CallEdge(callerBlock, getConcreteBlockNode(callerControlFlowGraph.getEntries().iterator().next()));
+			CallEdge outgoingCallEdge = new CallEdge(callerBlock, getConcreteBlockNode(calleeControlFlowGraph.getEntries().iterator().next()));
 			callGraph.addEdge(callerBlock, outgoingCallEdge);
 			
 			for(Stmt stmt : calleeControlFlowGraph.stmts()) {
 				if(stmt.getOpcode() == Opcode.RETURN) {
 					BasicBlock returnBlock = stmt.getBlock();
 					CallGraphBlock graphNode = getConcreteBlockNode(returnBlock);
-					CallEdge returnCallEdge = new CallEdge(graphNode, callerBlock);
-					callGraph.addEdge(graphNode, returnCallEdge);
+					
+					returnSites.add(graphNode);
 				}
 			}
 		} else {
@@ -127,8 +129,21 @@ public class BlockCallGraphBuilder {
 			CallEdge outgoingCallEdge = new CallEdge(callerBlock, libraryNode);
 			callGraph.addEdge(callerBlock, outgoingCallEdge);
 			
-			CallEdge returnCallEdge = new CallEdge(libraryNode, callerBlock);
+			returnSites.add(libraryNode);
+		}
+		
+		/* The ControlFlowGraph successors of the caller block
+		 * are the target sites for the ReturnCallEdge from the
+		 * return sites of the callee. */
+		for(FlowEdge<BasicBlock> e : callerControlFlowGraph.getEdges(callerBlock.block)) {
+			ConcreteCallGraphBlock returnTargetBlock = concreteBlockMap.get(e.dst);
+			if(returnTargetBlock == null) {
+				throw new IllegalStateException(String.format("No block for dst:> %s", e.toString()));
+			}
 			
+			for(CallGraphBlock returnSiteBlock : returnSites) {
+				callGraph.addEdge(returnSiteBlock, new ReturnEdge(returnSiteBlock, returnTargetBlock));
+			}
 		}
 	}
 	

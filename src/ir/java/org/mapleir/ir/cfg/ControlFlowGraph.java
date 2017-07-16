@@ -1,5 +1,6 @@
 package org.mapleir.ir.cfg;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -128,6 +129,16 @@ public class ControlFlowGraph extends FastBlockGraph {
 		
 		for(BasicBlock b : vertices()) {
 			blockToString(sw, this, b, insn);
+		}
+		return sw.toString();
+	}
+	
+	public static String printBlocks(Collection<BasicBlock> bbs) {
+		TabbedStringWriter sw = new TabbedStringWriter();
+		int insn = 1;
+		for(BasicBlock bb : bbs) {
+			blockToString(sw, bb.getGraph(), bb, insn);
+			insn += bb.size();
 		}
 		return sw.toString();
 	}
