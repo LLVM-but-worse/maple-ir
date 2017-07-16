@@ -9,4 +9,9 @@ public class ConcreteCallGraphBlock extends CallGraphBlock {
 		super(id);
 		this.block = block;
 	}
+	
+	@Override
+	public String toString() {
+		return block.getGraph().getMethod() + "::" + block.toString();
+	}
 }

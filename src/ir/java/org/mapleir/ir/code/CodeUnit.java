@@ -238,6 +238,12 @@ public abstract class CodeUnit implements FastGraphVertex, Opcode {
 				//   [s1, s3, s3, s4, s5, null, null, null]
 				// then we remove the second one
 				//   [s1, s3, null, s4, s5, null, null, null]
+				
+				// end of active stmts in child array.
+				if(s == null) {
+					break;
+				}
+				
 				if(s != null) {
 					s.setParent(null);
 				}

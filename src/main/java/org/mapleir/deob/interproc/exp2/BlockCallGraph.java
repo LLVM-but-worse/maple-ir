@@ -9,14 +9,20 @@ import org.mapleir.ir.cfg.edge.FlowEdge;
 import org.mapleir.ir.cfg.edge.FlowEdges;
 import org.mapleir.ir.cfg.edge.ImmediateEdge;
 import org.mapleir.ir.cfg.edge.TryCatchEdge;
+import org.mapleir.ir.code.CodeUnit;
 import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.code.Opcode;
 import org.mapleir.ir.code.Stmt;
 import org.mapleir.ir.code.expr.PhiExpr;
+import org.mapleir.ir.code.expr.VarExpr;
 import org.mapleir.ir.code.stmt.ConditionalJumpStmt;
 import org.mapleir.ir.code.stmt.SwitchStmt;
 import org.mapleir.ir.code.stmt.UnconditionalJumpStmt;
 import org.mapleir.ir.code.stmt.copy.CopyPhiStmt;
+import org.mapleir.ir.code.stmt.copy.CopyVarStmt;
+import org.mapleir.ir.locals.BasicLocal;
+import org.mapleir.ir.locals.LocalsPool;
+import org.mapleir.ir.locals.VersionedLocal;
 import org.mapleir.stdlib.collections.graph.FastDirectedGraph;
 import org.mapleir.stdlib.collections.graph.FastGraph;
 import org.mapleir.stdlib.collections.graph.flow.ExceptionRange;
@@ -31,6 +37,8 @@ public class BlockCallGraph extends FastDirectedGraph<CallGraphBlock, FlowEdge<C
 	}
 	
 	public static void prepareControlFlowGraph(ControlFlowGraph cfg) {
+		LocalsPool locals = cfg.getLocals();
+		
 		List<BasicBlock> order = new ArrayList<>();
 		Map<BasicBlock, BasicBlock> remap = new HashMap<>();
 		
@@ -39,11 +47,14 @@ public class BlockCallGraph extends FastDirectedGraph<CallGraphBlock, FlowEdge<C
 			
 			List<List<Stmt>> subBlockStmts = new ArrayList<>();
 			List<Stmt> currentSubBlock = new ArrayList<>();
+			int numInsertedCopies = 0;
 			
 			for(Stmt stmt : originalBlock) {
 				currentSubBlock.add(stmt);
 				
-				if(statementContainsAnyInvocation(stmt)) {
+				int numInvocationsInStatement = countStatementInvocations(stmt, false);
+				
+				if(numInvocationsInStatement > 0) {
 					/* split block::
 					 * 
 					 * later, when we add the call edge to the
@@ -106,34 +117,73 @@ public class BlockCallGraph extends FastDirectedGraph<CallGraphBlock, FlowEdge<C
 					 * spilling is required. */
 
 //					/* this block stays here as normal. */
-					subBlockStmts.add(currentSubBlock);
 					
-					// FIXME: implement spilling (i'll do it later).
-					if(isContainerFlowFunction(stmt)) {
+					if(numInvocationsInStatement > 1 || isContainerFlowFunction(stmt)) {
+						/* in order to efficiently spill
+						 * expressions into locals, we require
+						 * more analysis information. for now,
+						 * therefore, we will spill every sub
+						 * expression of the statement in a new
+						 * temporary local so that the runtime
+						 * semantics stay unaffected. */
+						
 						/* remove the statement we added, we're
 						 * going to move it into the next block
 						 * but first we will store the invoke
-						 * value in  */
+						 * value in temporaries. */
 						currentSubBlock.remove(currentSubBlock.size() - 1);
 						
-						/* add the empty block. */
-						subBlockStmts.add(new ArrayList<>());
+						BasicLocal baseLocal = locals.getNextFreeLocal(false);
+						
+						List<Expr> stmtDirectChildren = stmt.getChildren();
+
+						/* create a new block for each spill copy
+						 * that stores an invocation value. */
+						for(int i=0; i < stmtDirectChildren.size(); i++) {
+							VersionedLocal spillLocal = locals.get(baseLocal.getIndex(), i, false);
+							Expr expr1 = stmtDirectChildren.get(i);
+							Expr expr2 = stmt.overwrite(new VarExpr(spillLocal, expr1.getType()), i);
+							
+							if(expr1 != expr2) {
+								System.err.println(expr1);
+								System.err.println(expr2);
+								throw new RuntimeException();
+							}
+							
+							CopyVarStmt copyStmt = new CopyVarStmt(new VarExpr(spillLocal, expr1.getType()), expr1);
+							currentSubBlock.add(copyStmt);
+							numInsertedCopies++;
+							
+							if(countStatementInvocations(expr1, true) > 0) {
+								subBlockStmts.add(currentSubBlock);
+								currentSubBlock = new ArrayList<>();
+							}
+						}
+						
+						if(!currentSubBlock.isEmpty()) {
+							subBlockStmts.add(currentSubBlock);
+						}
 						
 						/* create and add the flowfunc block. */
 						List<Stmt> flowFunctionBlock = new ArrayList<>();
 						flowFunctionBlock.add(stmt);
 						subBlockStmts.add(flowFunctionBlock);
+					} else {
+						subBlockStmts.add(currentSubBlock);
 					}
 					
 					/* refresh for next block. */
 					currentSubBlock = new ArrayList<>();
+					
+					/* empty block for clean return edge */
+					subBlockStmts.add(new ArrayList<>());
 				}
 			}
 			
 			/* we don't have to consider any splitting mechanism
 			 * here as if the current sub block contained any
 			 * invocations, it would've been split above. */
-			if(!currentSubBlock.isEmpty()) {
+			if(!currentSubBlock.isEmpty() && !subBlockStmts.contains(currentSubBlock)) {
 				subBlockStmts.add(currentSubBlock);
 			}
 
@@ -154,6 +204,8 @@ public class BlockCallGraph extends FastDirectedGraph<CallGraphBlock, FlowEdge<C
 				
 				List<BasicBlock> subBlocks = new ArrayList<>();
 				
+				int totalInstructions = originalBlock.size() + numInsertedCopies;
+				
 				List<Stmt> firstList = subBlockStmts.get(0);
 				
 				BasicBlock firstBlock = new BasicBlock(cfg, blockIDCounter++, new LabelNode());
@@ -167,6 +219,8 @@ public class BlockCallGraph extends FastDirectedGraph<CallGraphBlock, FlowEdge<C
 				
 				BasicBlock lastBlock = firstBlock;
 				
+				int accountedForInstructions = firstList.size();
+				
 				/* link region via immediate edges. */
 				Iterator<List<Stmt>> subBlockIterator = subBlockStmts.iterator();
 				subBlockIterator.next(); // skip first (already done).
@@ -178,12 +232,16 @@ public class BlockCallGraph extends FastDirectedGraph<CallGraphBlock, FlowEdge<C
 					currentBlock.addAll(subBlock);
 					subBlocks.add(currentBlock);
 					
+					accountedForInstructions += subBlock.size();
+					
 					cfg.addEdge(lastBlock, new ImmediateEdge<>(lastBlock, currentBlock));
 					lastBlock = currentBlock;
 				}
 				
 				if(originalBlock.size() != 0) {
 					throw new RuntimeException(Integer.toString(originalBlock.size()));
+				} else if(accountedForInstructions != totalInstructions) {
+					throw new RuntimeException(String.format("subBlocks:%n%sremaining: %d, total: %d, accountedFor: %d", ControlFlowGraph.printBlocks(subBlocks), originalBlock.size(), totalInstructions, accountedForInstructions));
 				}
 				
 				/* lastBlock contains the last block now. */
@@ -315,7 +373,12 @@ public class BlockCallGraph extends FastDirectedGraph<CallGraphBlock, FlowEdge<C
 		}
 		
 		/* fix phi operand sources. */
+		remapPhiOperandSources(cfg, remap);
 		
+		cfg.naturalise(order);
+	}
+	
+	private static void remapPhiOperandSources(ControlFlowGraph cfg, Map<BasicBlock, BasicBlock> remap) {
 		for(BasicBlock basicBlock : cfg.vertices()) {
 			for(Stmt stmt : basicBlock) {
 				if(stmt.getOpcode() == Opcode.PHI_STORE) {
@@ -334,20 +397,24 @@ public class BlockCallGraph extends FastDirectedGraph<CallGraphBlock, FlowEdge<C
 				}
 			}
 		}
-		
-		cfg.naturalise(order);
 	}
 	
-	private static boolean statementContainsAnyInvocation(Stmt stmt) {
-		for(Expr e : stmt.enumerateOnlyChildren()) {
+	private static int countStatementInvocations(CodeUnit u, boolean includeSelf) {
+		if(includeSelf && (u.isFlagSet(CodeUnit.FLAG_STMT))) {
+			throw new RuntimeException();
+		}
+		
+		int count = 0;
+		
+		for(Expr e : includeSelf ? ((Expr) u).enumerateWithSelf() : u.enumerateOnlyChildren()) {
 			int opcode = e.getOpcode();
 			
 			if(opcode == Opcode.INIT_OBJ || opcode == Opcode.INVOKE || opcode == Opcode.DYNAMIC_INVOKE) {
-				return true;
+				count++;
 			}
 		}
 		
-		return false;
+		return count;
 	}
 
 	@Override

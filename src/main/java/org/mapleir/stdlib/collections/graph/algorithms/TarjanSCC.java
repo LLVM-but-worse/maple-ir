@@ -1,20 +1,20 @@
 package org.mapleir.stdlib.collections.graph.algorithms;
 
+import java.util.*;
+
 import org.mapleir.stdlib.collections.graph.FastDirectedGraph;
 import org.mapleir.stdlib.collections.graph.FastGraphEdge;
 import org.mapleir.stdlib.collections.graph.FastGraphVertex;
 
-import java.util.*;
-
 // TODO: Convert to stack-invariant
 public class TarjanSCC <N extends FastGraphVertex> {
 	
-	final FastDirectedGraph<N, ? extends FastGraphEdge<N>> graph;
-	final Map<N, Integer> index;
-	final Map<N, Integer> low;
-	final LinkedList<N> stack;
-	final List<List<N>> comps;
-	int cur;
+	protected final FastDirectedGraph<N, ? extends FastGraphEdge<N>> graph;
+	protected final Map<N, Integer> index;
+	protected final Map<N, Integer> low;
+	protected final LinkedList<N> stack;
+	protected final List<List<N>> comps;
+	protected int cur;
 	
 	public TarjanSCC(FastDirectedGraph<N, ? extends FastGraphEdge<N>> graph) {
 		this.graph = graph;
@@ -44,7 +44,7 @@ public class TarjanSCC <N extends FastGraphVertex> {
 		
 		stack.push(n);
 		
-		for(FastGraphEdge<N> e : graph.getEdges(n)) {
+		for(FastGraphEdge<N> e : filter(graph.getEdges(n))) {
 			N s = e.dst;
 			if(low.containsKey(s)) {
 				if(index.get(s) < index.get(n) && stack.contains(s)) {
@@ -69,6 +69,10 @@ public class TarjanSCC <N extends FastGraphVertex> {
 			Collections.reverse(dfs.getPostOrder());
 			comps.add(0, dfs.getPostOrder());
 		}
+	}
+	
+	protected Iterable<? extends FastGraphEdge<N>> filter(Set<? extends FastGraphEdge<N>> edges) {
+		return edges;
 	}
 	
 	/* static final Map<Class<?>, Integer> WEIGHTS = new HashMap<>();
