@@ -7,33 +7,47 @@ import java.util.Set;
 
 import org.mapleir.context.AnalysisContext;
 import org.mapleir.context.IRCache;
+import org.mapleir.deob.interproc.exp2.context.CallingContext;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
+import org.mapleir.ir.cfg.edge.DummyEdge;
 import org.mapleir.ir.cfg.edge.FlowEdge;
 import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.code.Opcode;
 import org.mapleir.ir.code.Stmt;
 import org.mapleir.ir.code.expr.invoke.Invocation;
+import org.mapleir.stdlib.collections.Worklist;
+import org.mapleir.stdlib.collections.Worklist.Worker;
 import org.mapleir.stdlib.util.InvocationResolver;
+import org.objectweb.asm.tree.LabelNode;
 import org.objectweb.asm.tree.MethodNode;
 
-public class BlockCallGraphBuilder {
+public class BlockCallGraphBuilder implements Worker<MethodNode> {
 	
 	private final AnalysisContext cxt;
-	private final Set<MethodNode> visitedMethods;
 	private final Map<MethodNode, LibraryStubCallGraphBlock> generatedStubs;
 	private final Map<BasicBlock, ConcreteCallGraphBlock> concreteBlockMap;
 	private int idCounter;
+	private final Set<ControlFlowGraph> initialised;
 	
 	public final BlockCallGraph callGraph;
+	private final Worklist<MethodNode> worklist;
 	
 	public BlockCallGraphBuilder(AnalysisContext cxt) {
 		this.cxt = cxt;
 		callGraph = new BlockCallGraph();
-		visitedMethods = new HashSet<>();
 		
 		generatedStubs = new HashMap<>();
 		concreteBlockMap = new HashMap<>();
+		initialised = new HashSet<>();
+		
+		worklist = new Worklist<>();
+		worklist.addWorker(this);
+	}
+	
+	public void init() {
+		worklist.queueData(cxt.getApplicationContext().getEntryPoints());
+		worklist.update();
 	}
 	
 	public LibraryStubCallGraphBlock getLibraryStubNode(MethodNode method) {
@@ -55,19 +69,24 @@ public class BlockCallGraphBuilder {
 			return concreteCallGraphBlock;
 		}
 	}
-	
-	public void visit(MethodNode callerMethod) {
+
+	@Override
+	public void process(Worklist<MethodNode> worklist, MethodNode callerMethod) {
+		if(worklist != this.worklist) {
+			throw new IllegalStateException();
+		}
+		
+		if(worklist.hasProcessed(callerMethod)) {
+			throw new UnsupportedOperationException(String.format("Already processed %s", callerMethod));
+		}
+		
 		ControlFlowGraph cfg = cxt.getIRCache().get(callerMethod);
 		
 		if(cfg == null) {
 			return;
 		}
 		
-		if(!visitedMethods.contains(callerMethod)) {
-			visitedMethods.add(callerMethod);
-			
-			initControlFlowGraphForIPCallGraph(cfg);
-		}
+		initControlFlowGraphForIPCallGraph(cfg);
 		
 		InvocationResolver resolver = cxt.getInvocationResolver();
 		
@@ -81,7 +100,16 @@ public class BlockCallGraphBuilder {
 
 						if(targets.size() != 0) {
 							for(MethodNode targetMethod : targets) {
-								visit(targetMethod);
+								worklist.queueData(targetMethod);
+								
+								/* initialise if we have to so we can
+								 * link it now (before it's officially
+								 * processed). */
+								ControlFlowGraph targetMethodCfg = cxt.getIRCache().get(targetMethod);
+								if(targetMethodCfg != null) {
+									initControlFlowGraphForIPCallGraph(targetMethodCfg);
+								}
+								
 								linkConcreteInvocation(callerMethod, targetMethod, getConcreteBlockNode(currentBlock));
 							}
 						} else {
@@ -111,8 +139,10 @@ public class BlockCallGraphBuilder {
 		
 		Set<CallGraphBlock> returnSites = new HashSet<>();
 		
+		CallingContext callingContext = new CallingContext();
+		
 		if(calleeControlFlowGraph != null) {
-			CallEdge outgoingCallEdge = new CallEdge(callerBlock, getConcreteBlockNode(calleeControlFlowGraph.getEntries().iterator().next()));
+			CallEdge outgoingCallEdge = new CallEdge(callerBlock, getConcreteBlockNode(calleeControlFlowGraph.getEntries().iterator().next()), callingContext);
 			callGraph.addEdge(callerBlock, outgoingCallEdge);
 			
 			for(Stmt stmt : calleeControlFlowGraph.stmts()) {
@@ -126,10 +156,14 @@ public class BlockCallGraphBuilder {
 		} else {
 			LibraryStubCallGraphBlock libraryNode = getLibraryStubNode(callee);
 			
-			CallEdge outgoingCallEdge = new CallEdge(callerBlock, libraryNode);
+			CallEdge outgoingCallEdge = new CallEdge(callerBlock, libraryNode, callingContext);
 			callGraph.addEdge(callerBlock, outgoingCallEdge);
 			
 			returnSites.add(libraryNode);
+		}
+		
+		if(returnSites.size() != 1) {
+			throw new UnsupportedOperationException();
 		}
 		
 		/* The ControlFlowGraph successors of the caller block
@@ -142,20 +176,61 @@ public class BlockCallGraphBuilder {
 			}
 			
 			for(CallGraphBlock returnSiteBlock : returnSites) {
-				callGraph.addEdge(returnSiteBlock, new ReturnEdge(returnSiteBlock, returnTargetBlock));
+				callGraph.addEdge(returnSiteBlock, new ReturnEdge(returnSiteBlock, returnTargetBlock, callingContext));
 			}
 		}
 	}
 	
 	private void initControlFlowGraphForIPCallGraph(ControlFlowGraph cfg) {
+		if(initialised.contains(cfg)) {
+			return;
+		}
+		initialised.add(cfg);
+		
+		/* we need to generate the wrapper for the
+		 * dummy block before we generate the wrappers
+		 * for the real method blocks, but i want to 
+		 * preserve the id ordering of the entire cfg
+		 * with the dummy as the last block, so the
+		 * id is precomputed. */
+		
+		BasicBlock dummyExitBasicBlock = new ReturnBlock(cfg, cfg.size() + 1, new LabelNode());
+		ConcreteCallGraphBlock dummyExitCallGraphBlock = new ConcreteCallGraphBlock(dummyExitBasicBlock, idCounter + cfg.vertices().size() + 1);
+		concreteBlockMap.put(dummyExitBasicBlock, dummyExitCallGraphBlock);
+		
+		cfg.addVertex(dummyExitBasicBlock);
+
+		for(BasicBlock b : cfg.vertices()) {
+			if(b != dummyExitBasicBlock && cfg.getEdges(b).size() == 0) {
+				cfg.addEdge(b, new DummyEdge<>(b, dummyExitBasicBlock));
+			}
+		}
+		
+		for(BasicBlock b : cfg.vertices()) {
+			callGraph.addVertex(getConcreteBlockNode(b));
+		}
+		
+		callGraph.addVertex(dummyExitCallGraphBlock);
+		
+
 		for(BasicBlock b : cfg.vertices()) {
 			CallGraphBlock graphNode = getConcreteBlockNode(b);
-			callGraph.addVertex(graphNode);
 			
 			for(FlowEdge<BasicBlock> e : cfg.getEdges(b)) {
 				CallGraphBasicBlockBridgeEdge newEdge = new CallGraphBasicBlockBridgeEdge(e, graphNode, getConcreteBlockNode(e.dst));
 				callGraph.addEdge(graphNode, newEdge);
 			}
+		}
+	}
+	
+	public static class ReturnBlock extends BasicBlock {
+		public ReturnBlock(ControlFlowGraph cfg, int id, LabelNode label) {
+			super(cfg, id, label);
+		}
+		
+		@Override
+		public String toString() {
+			return "RETURN_TARGET";
 		}
 	}
 }
