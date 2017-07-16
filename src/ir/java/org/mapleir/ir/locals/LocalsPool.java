@@ -140,6 +140,10 @@ public class LocalsPool implements ValueCreator<GenericBitSet<Local>> {
 		}
 	}
 	
+	public BasicLocal getNextFreeLocal(boolean isStack) {
+		return newLocal(0, isStack);
+	}
+	
 	/* public Local newLocal(boolean isStack) {
 		int index = cache.size();
 		while(true) {

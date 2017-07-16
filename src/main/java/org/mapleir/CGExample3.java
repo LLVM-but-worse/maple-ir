@@ -1,5 +1,7 @@
 package org.mapleir;
 
+import java.util.Arrays;
+
 public class CGExample3 {
 	
 	static int call1() {
@@ -45,5 +47,14 @@ public class CGExample3 {
 		z += call4();
 		
 		System.out.printf("x:%d, y:%d, z:%d%n", x, y, z);
+		
+		Arrays.copyOf(arr, 5)[x] = arr[y].toLowerCase();
+//		if(arr[x].toLowerCase().matches(arr[y].toLowerCase())) {
+//			System.out.println("ye");
+//		} else {
+//			System.out.println("ne");
+//		}
 	}
+	
+	static String[] arr = new String[0];
 }

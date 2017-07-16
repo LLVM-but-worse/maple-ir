@@ -9,4 +9,9 @@ public class LibraryStubCallGraphBlock extends CallGraphBlock {
 		super(id);
 		this.method = method;
 	}
+	
+	@Override
+	public String toString() {
+		return method.toString();
+	}
 }
