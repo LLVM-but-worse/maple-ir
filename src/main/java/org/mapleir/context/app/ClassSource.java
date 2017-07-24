@@ -1,9 +1,13 @@
 package org.mapleir.context.app;
 
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Set;
+
 import org.mapleir.stdlib.collections.ClassHelper;
 import org.objectweb.asm.tree.ClassNode;
-
-import java.util.*;
 
 public abstract class ClassSource {
 
@@ -24,6 +28,8 @@ public abstract class ClassSource {
 		
 		return nodeMap.containsKey(name);
 	}
+	
+	public abstract LocateableClassNode findClass(String name);
 	
 	/* internal method to look up a class in the current pool.*/
 	protected LocateableClassNode findClass0(String name) {
