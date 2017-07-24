@@ -1,12 +1,22 @@
 package org.mapleir.deob.interproc.exp2;
 
+import org.mapleir.deob.interproc.exp2.context.CallingContext;
 import org.mapleir.ir.cfg.edge.FlowEdge;
 
 public class ReturnEdge extends FlowEdge<CallGraphBlock> {
 
+	public static final int TYPE_ID = 9;
 	
-	public ReturnEdge(CallGraphBlock src, CallGraphBlock dst) {
-		super(9, src, dst);
+	private final CallingContext context;
+	
+	public ReturnEdge(CallGraphBlock src, CallGraphBlock dst, CallingContext context) {
+		super(TYPE_ID, src, dst);
+		
+		this.context = context;
+	}
+	
+	public CallingContext getContext() {
+		return context;
 	}
 
 	@Override
@@ -16,7 +26,7 @@ public class ReturnEdge extends FlowEdge<CallGraphBlock> {
 
 	@Override
 	public String toString() {
-		return String.format("Return #%s -> #%s", src.getId(), dst.getId());
+		return String.format("Return %s -> %s", src.toString(), dst.toString());
 	}
 
 	@Override
@@ -26,6 +36,6 @@ public class ReturnEdge extends FlowEdge<CallGraphBlock> {
 
 	@Override
 	public FlowEdge<CallGraphBlock> clone(CallGraphBlock src, CallGraphBlock dst) {
-		return new CallEdge(src, dst);
+		return new ReturnEdge(src, dst, context);
 	}
 }
