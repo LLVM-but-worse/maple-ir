@@ -369,7 +369,7 @@ public class BasicBlock implements FastGraphVertex, Comparable<BasicBlock>, List
 			buf[i] = (char) ('A' + (--n) % 26);
 			n /= 26;
 		}
-		return new String(buf);
+		return String.valueOf(buf);
 	}
 
 	public void resetLabel() {
