@@ -18,22 +18,6 @@ import org.mapleir.stdlib.collections.graph.FastGraphEdge;
 import org.mapleir.stdlib.collections.graph.FastGraphVertex;
 import org.objectweb.asm.tree.MethodNode;
 
-/* each invocation in a method, m, is labelled
- * m@idx where top 16 bits of idx
- * are the block id and low 16 bits are the
- * index of the stmt in the block. 
- * 
- * OR
- * 
- * for expr: top 16 are the block id,
- * next 13 stmt id, last 3
- * child id in stmt.
- * 
- * limitations: stmt id cannot be 
- * longer than 13 bits and expr
- * id must not be more than 3. 
- * 
- * nvm.*/
 public class CallSiteSensitiveCallGraph extends FastDirectedGraph<CallGraphNode, CallGraphEdge> implements Worker<MethodNode> {
 	
 	private final AnalysisContext context;
