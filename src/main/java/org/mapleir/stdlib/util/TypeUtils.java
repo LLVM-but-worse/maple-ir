@@ -2,6 +2,7 @@ package org.mapleir.stdlib.util;
 
 import static org.objectweb.asm.Opcodes.*;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
@@ -10,6 +11,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.mapleir.context.app.ApplicationClassSource;
+import org.mapleir.context.app.ClassTree;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.ClassNode;
@@ -17,7 +19,9 @@ import org.objectweb.asm.util.Printer;
 
 public class TypeUtils {
 
-	public static final Type OBJECT_TYPE = Type.getType("Ljava/lang/Object;");
+	public static final Type OBJECT_TYPE = Type.getType(Object.class);
+	public static final Type CLONEABLE_TYPE = Type.getType(Cloneable.class);
+	public static final Type SERIALIZABLE_TYPE = Type.getType(Serializable.class);
 	
 	public enum ArrayType {
 		INT(Type.INT_TYPE, 0),
@@ -680,5 +684,84 @@ public class TypeUtils {
 		} else {
 			throw new UnsupportedOperationException(String.format("%s (%s) to %s", cst, cst.getClass(), t));
 		}
+	}
+	
+	public static boolean castNeverFails(ApplicationClassSource source, Type rhs, Type lhs) {
+		// dst = src
+		
+		if(lhs == null || lhs == rhs || lhs.equals(rhs)) {
+			return true;
+		}
+		
+		boolean isRHSArray = rhs.getSort() == Type.ARRAY;
+		boolean isLHSArray = lhs.getSort() == Type.ARRAY;
+		
+		if(isRHSArray) {
+			if(isLHSArray) {
+				if(rhs.getDimensions() == lhs.getDimensions()) {
+					if(rhs.getElementType().equals(lhs.getElementType())) {
+						return true;
+					}
+					return canStoreClass(source, rhs.getElementType(), lhs.getElementType());
+				} else if(rhs.getDimensions() > lhs.getDimensions()) {
+					return isImplicitArraySuperType(lhs.getElementType());
+				}
+			} else {
+				// X = arr; X = {obj, cloneable, serializable}
+				return isImplicitArraySuperType(lhs);
+			}
+		} else {
+			if(lhs.equals(TypeUtils.OBJECT_TYPE)) {
+				return true;
+			}
+			
+			if(!isLHSArray) {
+				return canStoreClass(source, rhs, lhs);
+			} else {
+				// arr = obj; NO
+				return false;
+			}
+		}
+		
+		return false;
+	}
+	
+	/**
+	 * @see <a
+	 *      href=https://docs.oracle.com/javase/specs/jls/se7/html/jls-10.html>JLS
+	 *      ref</a>
+	 * @param dst The LHS type.
+	 * @return whether an array can be assigned to the given
+	 *         type due to the implicit hierarchy policy
+	 *         specified in the JLS.
+	 */
+	public static boolean isImplicitArraySuperType(Type dst) {
+		return dst.equals(TypeUtils.OBJECT_TYPE) || dst.equals(TypeUtils.CLONEABLE_TYPE)
+				|| dst.equals(TypeUtils.SERIALIZABLE_TYPE);
+	}
+
+	public static boolean canStoreClass(ApplicationClassSource source, Type src, Type dst) {
+		if(src.getSort() == Type.ARRAY || dst.getSort() == Type.ARRAY) {
+			throw new UnsupportedOperationException(String.format("%s vs %s", src, dst));
+		}
+		return canStoreClass(source.getClassTree(), source.findClassNode(src.getInternalName()), source.findClassNode(dst.getInternalName()));
+	}
+	
+	/* If child is an interface that is not a subinterface of
+	 * parent, this method will return false even though some
+	 * objects implementing the child interface may also
+	 * implement the parent interface. */
+	public static boolean canStoreClass(ClassTree tree, ClassNode src, ClassNode dst) {
+		if(src == dst) {
+			throw new IllegalStateException();
+		}
+		
+		if(src == dst) {
+			return true;
+		} else if(dst.name.equals("java/lang/Object")) {
+			return true;
+		}
+		
+		return tree.getAllParents(src).contains(dst);
 	}
 }
