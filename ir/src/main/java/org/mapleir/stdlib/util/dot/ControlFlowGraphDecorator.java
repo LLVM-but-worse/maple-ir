@@ -1,9 +1,9 @@
 package org.mapleir.stdlib.util.dot;
 
+import org.mapleir.flowgraph.edges.FlowEdge;
+import org.mapleir.flowgraph.edges.TryCatchEdge;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
-import org.mapleir.ir.cfg.edge.FlowEdge;
-import org.mapleir.ir.cfg.edge.TryCatchEdge;
 import org.mapleir.ir.code.Stmt;
 import org.mapleir.stdlib.collections.graph.dot.DotPropertyDecorator;
 import org.mapleir.stdlib.util.TabbedStringWriter;

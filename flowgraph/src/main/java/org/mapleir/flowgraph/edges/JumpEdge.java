@@ -1,4 +1,4 @@
-package org.mapleir.ir.cfg.edge;
+package org.mapleir.flowgraph.edges;
 
 import org.mapleir.stdlib.collections.graph.FastGraphVertex;
 import org.objectweb.asm.util.Printer;

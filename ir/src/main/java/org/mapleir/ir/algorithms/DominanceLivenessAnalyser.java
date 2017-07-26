@@ -1,14 +1,14 @@
 package org.mapleir.ir.algorithms;
 
+import org.mapleir.flowgraph.algorithms.TarjanDominanceComputor;
+import org.mapleir.flowgraph.edges.FlowEdge;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
-import org.mapleir.ir.cfg.edge.FlowEdge;
 import org.mapleir.ir.locals.Local;
 import org.mapleir.stdlib.collections.bitset.GenericBitSet;
 import org.mapleir.stdlib.collections.graph.FastGraphEdge;
 import org.mapleir.stdlib.collections.graph.algorithms.ExtendedDfs;
 import org.mapleir.stdlib.collections.graph.algorithms.SimpleDfs;
-import org.mapleir.stdlib.collections.graph.algorithms.TarjanDominanceComputor;
 import org.mapleir.stdlib.collections.map.NullPermeableHashMap;
 
 import java.util.Set;

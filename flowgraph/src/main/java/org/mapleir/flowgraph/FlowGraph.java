@@ -1,9 +1,9 @@
-package org.mapleir.stdlib.collections.graph.flow;
+package org.mapleir.flowgraph;
 
 import java.util.*;
 
-import org.mapleir.ir.cfg.edge.FlowEdge;
-import org.mapleir.ir.cfg.edge.TryCatchEdge;
+import org.mapleir.flowgraph.edges.FlowEdge;
+import org.mapleir.flowgraph.edges.TryCatchEdge;
 import org.mapleir.stdlib.collections.bitset.BitSetIndexer;
 import org.mapleir.stdlib.collections.bitset.GenericBitSet;
 import org.mapleir.stdlib.collections.graph.FastDirectedGraph;

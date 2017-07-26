@@ -1,4 +1,4 @@
-package org.mapleir.stdlib.collections.graph.flow;
+package org.mapleir.flowgraph;
 
 import java.util.ArrayList;
 import java.util.Collection;
