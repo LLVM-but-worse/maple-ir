@@ -1,4 +1,4 @@
-package org.mapleir.stdlib.util.dot;
+package org.mapleir.ir.utils.dot;
 
 import org.mapleir.ir.algorithms.Liveness;
 import org.mapleir.stdlib.collections.graph.FastGraph;
