@@ -12,11 +12,11 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import org.mapleir.app.service.ApplicationClassSource;
+import org.mapleir.app.service.InstalledRuntimeClassSource;
 import org.mapleir.context.AnalysisContext;
 import org.mapleir.context.BasicAnalysisContext;
 import org.mapleir.context.IRCache;
-import org.mapleir.context.app.ApplicationClassSource;
-import org.mapleir.context.app.InstalledRuntimeClassSource;
 import org.mapleir.deob.interproc.CallTracer;
 import org.mapleir.deob.interproc.IRCallTracer;
 import org.mapleir.ir.cfg.builder.ControlFlowGraphBuilder;

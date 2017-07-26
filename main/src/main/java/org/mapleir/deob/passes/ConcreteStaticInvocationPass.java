@@ -2,8 +2,8 @@ package org.mapleir.deob.passes;
 
 import java.util.List;
 
+import org.mapleir.app.service.InvocationResolver;
 import org.mapleir.context.AnalysisContext;
-import org.mapleir.context.InvocationResolver;
 import org.mapleir.deob.IPass;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;

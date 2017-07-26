@@ -11,12 +11,12 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import org.mapleir.app.client.SimpleApplicationContext;
+import org.mapleir.app.service.ApplicationClassSource;
+import org.mapleir.app.service.InstalledRuntimeClassSource;
 import org.mapleir.context.AnalysisContext;
 import org.mapleir.context.BasicAnalysisContext;
 import org.mapleir.context.IRCache;
-import org.mapleir.context.SimpleApplicationContext;
-import org.mapleir.context.app.ApplicationClassSource;
-import org.mapleir.context.app.InstalledRuntimeClassSource;
 import org.mapleir.deob.IPass;
 import org.mapleir.deob.PassGroup;
 import org.mapleir.deob.interproc.IRCallTracer;

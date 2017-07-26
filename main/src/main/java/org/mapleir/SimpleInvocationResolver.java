@@ -9,9 +9,9 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.mapleir.context.InvocationResolver;
-import org.mapleir.context.app.ApplicationClassSource;
-import org.mapleir.context.app.ClassTree;
+import org.mapleir.app.service.ApplicationClassSource;
+import org.mapleir.app.service.ClassTree;
+import org.mapleir.app.service.InvocationResolver;
 import org.mapleir.ir.TypeUtils;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Opcodes;
