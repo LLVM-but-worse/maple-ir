@@ -10,8 +10,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import org.mapleir.app.service.InvocationResolver;
 import org.mapleir.context.AnalysisContext;
-import org.mapleir.context.InvocationResolver;
 import org.mapleir.deob.IPass;
 import org.mapleir.deob.interproc.IPAnalysis;
 import org.mapleir.deob.interproc.IPAnalysisVisitor;

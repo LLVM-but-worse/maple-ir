@@ -10,8 +10,8 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import org.mapleir.context.app.ApplicationClassSource;
-import org.mapleir.context.app.ClassTree;
+import org.mapleir.app.service.ApplicationClassSource;
+import org.mapleir.app.service.ClassTree;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.ClassNode;

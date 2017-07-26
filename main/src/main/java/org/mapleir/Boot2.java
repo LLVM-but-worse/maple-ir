@@ -1,8 +1,8 @@
 package org.mapleir;
 
-import org.mapleir.context.app.ApplicationClassSource;
-import org.mapleir.context.app.ClassTree;
-import org.mapleir.context.app.InstalledRuntimeClassSource;
+import org.mapleir.app.service.ApplicationClassSource;
+import org.mapleir.app.service.ClassTree;
+import org.mapleir.app.service.InstalledRuntimeClassSource;
 import org.mapleir.ir.algorithms.BoissinotDestructor;
 import org.mapleir.ir.algorithms.ControlFlowGraphDumper;
 import org.mapleir.ir.cfg.BasicBlock;

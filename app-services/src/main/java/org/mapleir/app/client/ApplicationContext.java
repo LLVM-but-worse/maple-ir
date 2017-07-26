@@ -1,4 +1,4 @@
-package org.mapleir.context;
+package org.mapleir.app.client;
 
 import java.util.Set;
 

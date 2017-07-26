@@ -1,4 +1,4 @@
-package org.mapleir.context.app;
+package org.mapleir.app.service;
 
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.tree.ClassNode;

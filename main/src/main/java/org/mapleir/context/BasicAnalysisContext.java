@@ -1,6 +1,8 @@
 package org.mapleir.context;
 
-import org.mapleir.context.app.ApplicationClassSource;
+import org.mapleir.app.client.ApplicationContext;
+import org.mapleir.app.service.ApplicationClassSource;
+import org.mapleir.app.service.InvocationResolver;
 import org.mapleir.deob.intraproc.DumbExceptionAnalysis;
 import org.mapleir.deob.intraproc.ExceptionAnalysis;
 import org.mapleir.ir.cfg.ControlFlowGraph;

@@ -3,7 +3,7 @@ package org.mapleir.deob.interproc.geompa;
 import java.util.Collections;
 import java.util.Set;
 
-import org.mapleir.context.app.ApplicationClassSource;
+import org.mapleir.app.service.ApplicationClassSource;
 import org.objectweb.asm.Type;
 
 public class EmptyPointsToSet extends AbstractPointsToSet {

@@ -5,9 +5,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.mapleir.app.service.ApplicationClassSource;
+import org.mapleir.app.service.InvocationResolver;
 import org.mapleir.context.AnalysisContext;
-import org.mapleir.context.InvocationResolver;
-import org.mapleir.context.app.ApplicationClassSource;
 import org.mapleir.deob.IPass;
 import org.mapleir.deob.util.RenamingUtil;
 import org.mapleir.ir.cfg.BasicBlock;

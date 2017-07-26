@@ -1,12 +1,12 @@
-package org.mapleir.context;
+package org.mapleir.app.client;
 
 import java.lang.reflect.Modifier;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.mapleir.context.app.ApplicationClassSource;
-import org.mapleir.context.app.ClassTree;
+import org.mapleir.app.service.ApplicationClassSource;
+import org.mapleir.app.service.ClassTree;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
 

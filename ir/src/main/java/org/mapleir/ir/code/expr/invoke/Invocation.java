@@ -2,7 +2,7 @@ package org.mapleir.ir.code.expr.invoke;
 
 import java.util.Set;
 
-import org.mapleir.context.InvocationResolver;
+import org.mapleir.app.service.InvocationResolver;
 import org.mapleir.ir.code.Expr;
 import org.objectweb.asm.tree.MethodNode;
 

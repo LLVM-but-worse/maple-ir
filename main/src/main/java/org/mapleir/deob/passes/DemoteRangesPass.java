@@ -7,8 +7,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.mapleir.app.service.ApplicationClassSource;
 import org.mapleir.context.AnalysisContext;
-import org.mapleir.context.app.ApplicationClassSource;
 import org.mapleir.deob.IPass;
 import org.mapleir.deob.intraproc.ExceptionAnalysis;
 import org.mapleir.flowgraph.ExceptionRange;
