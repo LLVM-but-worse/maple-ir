@@ -9,7 +9,7 @@ import org.mapleir.deob.interproc.exp2.CallGraphBasicBlockBridgeEdge;
 import org.mapleir.deob.interproc.exp2.CallGraphBlock;
 import org.mapleir.deob.interproc.exp2.ReturnEdge;
 import org.mapleir.deob.interproc.exp2.context.CallingContext;
-import org.mapleir.ir.cfg.edge.FlowEdge;
+import org.mapleir.flowgraph.edges.FlowEdge;
 import org.mapleir.stdlib.util.TabbedStringWriter;
 
 import javax.swing.JFrame;

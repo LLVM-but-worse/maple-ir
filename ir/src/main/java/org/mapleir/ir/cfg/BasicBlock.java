@@ -11,12 +11,12 @@ import java.util.ListIterator;
 import java.util.Set;
 import java.util.function.Predicate;
 
-import org.mapleir.ir.cfg.edge.FlowEdge;
-import org.mapleir.ir.cfg.edge.ImmediateEdge;
-import org.mapleir.ir.cfg.edge.TryCatchEdge;
+import org.mapleir.flowgraph.ExceptionRange;
+import org.mapleir.flowgraph.edges.FlowEdge;
+import org.mapleir.flowgraph.edges.ImmediateEdge;
+import org.mapleir.flowgraph.edges.TryCatchEdge;
 import org.mapleir.ir.code.Stmt;
 import org.mapleir.stdlib.collections.graph.FastGraphVertex;
-import org.mapleir.stdlib.collections.graph.flow.ExceptionRange;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.tree.LabelNode;
 

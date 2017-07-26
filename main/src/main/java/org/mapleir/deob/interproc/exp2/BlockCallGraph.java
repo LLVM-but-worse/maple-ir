@@ -3,12 +3,13 @@ package org.mapleir.deob.interproc.exp2;
 import java.util.*;
 import java.util.Map.Entry;
 
+import org.mapleir.flowgraph.ExceptionRange;
+import org.mapleir.flowgraph.edges.FlowEdge;
+import org.mapleir.flowgraph.edges.FlowEdges;
+import org.mapleir.flowgraph.edges.ImmediateEdge;
+import org.mapleir.flowgraph.edges.TryCatchEdge;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
-import org.mapleir.ir.cfg.edge.FlowEdge;
-import org.mapleir.ir.cfg.edge.FlowEdges;
-import org.mapleir.ir.cfg.edge.ImmediateEdge;
-import org.mapleir.ir.cfg.edge.TryCatchEdge;
 import org.mapleir.ir.code.CodeUnit;
 import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.code.Opcode;
@@ -25,7 +26,6 @@ import org.mapleir.ir.locals.LocalsPool;
 import org.mapleir.ir.locals.VersionedLocal;
 import org.mapleir.stdlib.collections.graph.FastDirectedGraph;
 import org.mapleir.stdlib.collections.graph.FastGraph;
-import org.mapleir.stdlib.collections.graph.flow.ExceptionRange;
 import org.objectweb.asm.tree.LabelNode;
 
 public class BlockCallGraph extends FastDirectedGraph<CallGraphBlock, FlowEdge<CallGraphBlock>> {

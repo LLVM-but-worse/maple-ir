@@ -1,7 +1,7 @@
 package org.mapleir.deob.interproc.exp2;
 
 import org.mapleir.deob.interproc.exp2.context.CallingContext;
-import org.mapleir.ir.cfg.edge.FlowEdge;
+import org.mapleir.flowgraph.edges.FlowEdge;
 
 public class ReturnEdge extends FlowEdge<CallGraphBlock> {
 

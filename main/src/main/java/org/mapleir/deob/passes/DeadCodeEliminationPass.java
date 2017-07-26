@@ -2,13 +2,13 @@ package org.mapleir.deob.passes;
 
 import org.mapleir.context.AnalysisContext;
 import org.mapleir.deob.IPass;
+import org.mapleir.flowgraph.edges.FlowEdge;
+import org.mapleir.flowgraph.edges.FlowEdges;
+import org.mapleir.flowgraph.edges.ImmediateEdge;
+import org.mapleir.flowgraph.edges.UnconditionalJumpEdge;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.cfg.builder.ssaopt.ConstraintUtil;
-import org.mapleir.ir.cfg.edge.FlowEdge;
-import org.mapleir.ir.cfg.edge.FlowEdges;
-import org.mapleir.ir.cfg.edge.ImmediateEdge;
-import org.mapleir.ir.cfg.edge.UnconditionalJumpEdge;
 import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.code.Opcode;
 import org.mapleir.ir.code.Stmt;

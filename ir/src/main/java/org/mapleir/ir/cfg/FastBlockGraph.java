@@ -1,8 +1,8 @@
 package org.mapleir.ir.cfg;
 
-import org.mapleir.ir.cfg.edge.FlowEdge;
-import org.mapleir.ir.cfg.edge.TryCatchEdge;
-import org.mapleir.stdlib.collections.graph.flow.FlowGraph;
+import org.mapleir.flowgraph.FlowGraph;
+import org.mapleir.flowgraph.edges.FlowEdge;
+import org.mapleir.flowgraph.edges.TryCatchEdge;
 import org.objectweb.asm.tree.LabelNode;
 
 import java.util.HashMap;
