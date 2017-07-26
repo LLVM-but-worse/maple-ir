@@ -1,4 +1,4 @@
-package org.mapleir.stdlib.util.dot;
+package org.mapleir.ir.utils.dot;
 
 import org.mapleir.flowgraph.edges.FlowEdge;
 import org.mapleir.flowgraph.edges.TryCatchEdge;
