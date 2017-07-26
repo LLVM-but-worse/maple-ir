@@ -3,8 +3,8 @@ package org.mapleir.deob.interproc;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.mapleir.context.InvocationResolver;
-import org.mapleir.context.app.ApplicationClassSource;
+import org.mapleir.app.service.ApplicationClassSource;
+import org.mapleir.app.service.InvocationResolver;
 import org.mapleir.ir.code.expr.invoke.Invocation;
 import org.objectweb.asm.tree.MethodNode;
 

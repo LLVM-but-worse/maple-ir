@@ -5,9 +5,9 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import org.mapleir.app.service.InvocationResolver;
 import org.mapleir.context.AnalysisContext;
 import org.mapleir.context.IRCache;
-import org.mapleir.context.InvocationResolver;
 import org.mapleir.deob.interproc.exp2.context.CallingContext;
 import org.mapleir.flowgraph.edges.DummyEdge;
 import org.mapleir.flowgraph.edges.FlowEdge;

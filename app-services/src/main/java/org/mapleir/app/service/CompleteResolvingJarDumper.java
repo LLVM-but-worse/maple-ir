@@ -1,4 +1,4 @@
-package org.mapleir.context.app;
+package org.mapleir.app.service;
 
 import org.mapleir.stdlib.collections.ClassHelper;
 import org.objectweb.asm.ClassWriter;

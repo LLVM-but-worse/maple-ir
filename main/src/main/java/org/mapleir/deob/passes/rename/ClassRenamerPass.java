@@ -2,8 +2,8 @@ package org.mapleir.deob.passes.rename;
 
 import java.util.*;
 
+import org.mapleir.app.service.ApplicationClassSource;
 import org.mapleir.context.AnalysisContext;
-import org.mapleir.context.app.ApplicationClassSource;
 import org.mapleir.deob.IPass;
 import org.mapleir.deob.util.RenamingHeuristic;
 import org.mapleir.deob.util.RenamingUtil;

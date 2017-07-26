@@ -5,7 +5,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 
-import org.mapleir.context.app.ApplicationClassSource;
+import org.mapleir.app.service.ApplicationClassSource;
 import org.mapleir.ir.TypeUtils;
 import org.objectweb.asm.Type;
 
