@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/app-services/app-services.iml" filepath="$PROJECT_DIR$/app-services/app-services.iml" />
+      <module fileurl="file://$PROJECT_DIR$/flowgraph/flowgraph.iml" filepath="$PROJECT_DIR$/flowgraph/flowgraph.iml" />
+      <module fileurl="file://$PROJECT_DIR$/gson/gson.iml" filepath="$PROJECT_DIR$/gson/gson.iml" />
+      <module fileurl="file://$PROJECT_DIR$/ir/ir.iml" filepath="$PROJECT_DIR$/ir/ir.iml" />
+      <module fileurl="file://$PROJECT_DIR$/main/main.iml" filepath="$PROJECT_DIR$/main/main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/modasm/modasm.iml" filepath="$PROJECT_DIR$/modasm/modasm.iml" />
+      <module fileurl="file://$PROJECT_DIR$/parent.iml" filepath="$PROJECT_DIR$/parent.iml" />
+      <module fileurl="file://$PROJECT_DIR$/stdlib/stdlib.iml" filepath="$PROJECT_DIR$/stdlib/stdlib.iml" />
+      <module fileurl="file://$PROJECT_DIR$/topdank-services/topdank-services.iml" filepath="$PROJECT_DIR$/topdank-services/topdank-services.iml" />
+    </modules>
+  </component>
+</project>
