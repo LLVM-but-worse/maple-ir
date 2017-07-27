@@ -29,6 +29,7 @@
  */
 package org.objectweb.asm.tree;
 
+import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -306,6 +307,10 @@ public class FieldNode extends FieldVisitor {
             fv.visitAttribute(attrs.get(i));
         }
         fv.visitEnd();
+    }
+    
+    public boolean isStatic() {
+    	return Modifier.isStatic(access);
     }
     
     @Override
