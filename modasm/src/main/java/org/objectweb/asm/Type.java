@@ -347,7 +347,6 @@ public class Type {
         }
         return args;
     }
-
     /**
      * Returns the Java types corresponding to the argument types of the given
      * method.
