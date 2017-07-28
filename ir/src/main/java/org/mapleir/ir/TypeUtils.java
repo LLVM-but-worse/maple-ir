@@ -66,6 +66,9 @@ public class TypeUtils {
 	public static final Type RUNTIME_EXCEPTION = type(RuntimeException.class);
 	public static final Type ERROR = type(Error.class);
 	
+	public static final Type CLASS = type(Class.class);
+	public static final Type STRING = type(String.class);
+	
 	public enum ArrayType {
 		INT(Type.INT_TYPE, 0),
 		LONG(Type.LONG_TYPE, 1),
