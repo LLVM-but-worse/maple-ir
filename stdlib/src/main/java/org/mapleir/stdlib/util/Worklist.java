@@ -38,7 +38,7 @@ public class Worklist<N> {
 		worklist.addAll(ns);
 	}
 	
-	public void update() {
+	public void processQueue() {
 		while(!worklist.isEmpty()) {
 			N m = worklist.removeFirst();
 			
