@@ -5,15 +5,11 @@ import java.util.Map;
 import java.util.Set;
 
 import org.mapleir.context.AnalysisContext;
-import org.mapleir.deob.interproc.callgraph.CallSiteSensitiveCallGraph.CallGraphEdge;
-import org.mapleir.deob.interproc.callgraph.CallSiteSensitiveCallGraph.CallGraphNode;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.code.Stmt;
 import org.mapleir.ir.code.expr.invoke.Invocation;
 import org.mapleir.stdlib.collections.graph.FastDirectedGraph;
-import org.mapleir.stdlib.collections.graph.FastGraphEdge;
-import org.mapleir.stdlib.collections.graph.FastGraphVertex;
 import org.mapleir.stdlib.util.Worklist;
 import org.mapleir.stdlib.util.Worklist.Worker;
 import org.objectweb.asm.tree.MethodNode;
@@ -21,7 +17,7 @@ import org.objectweb.asm.tree.MethodNode;
 public class CallSiteSensitiveCallGraph extends FastDirectedGraph<CallGraphNode, CallGraphEdge> implements Worker<MethodNode> {
 	
 	private final AnalysisContext context;
-	private final Map<MethodNode, CallReceiverNode> receiverCache;
+	private final Map<MethodNode, CallGraphNode.CallReceiverNode> receiverCache;
 	private final Worklist<MethodNode> worklist;
 	
 	public CallSiteSensitiveCallGraph(AnalysisContext context) {
@@ -30,6 +26,7 @@ public class CallSiteSensitiveCallGraph extends FastDirectedGraph<CallGraphNode,
 		worklist = makeWorklist();
 	}
 	
+	// Copy constructor.
 	protected CallSiteSensitiveCallGraph(CallSiteSensitiveCallGraph g) {
 		super(g);
 		
@@ -46,8 +43,8 @@ public class CallSiteSensitiveCallGraph extends FastDirectedGraph<CallGraphNode,
 		return worklist;
 	}
 	
-	public void updateWorklist() {
-		worklist.update();
+	public void processWorklist() {
+		worklist.processQueue();
 	}
 	
 	protected Worklist<MethodNode> makeWorklist() {
@@ -67,7 +64,7 @@ public class CallSiteSensitiveCallGraph extends FastDirectedGraph<CallGraphNode,
 		}
 		
 		/* this is not the same as getNode*/
-		CallReceiverNode currentReceiverNode = getNode(n, false);
+		CallGraphNode.CallReceiverNode currentReceiverNode = createNode(n, false);
 		
 		ControlFlowGraph cfg = context.getIRCache().get(n);
 		
@@ -80,20 +77,20 @@ public class CallSiteSensitiveCallGraph extends FastDirectedGraph<CallGraphNode,
 				if(e instanceof Invocation) {
 					Invocation invoke = (Invocation) e;
 					
-					CallSiteNode thisCallSiteNode = new CallSiteNode(getNextNodeId(), invoke);
+					CallGraphNode.CallSiteNode thisCallSiteNode = new CallGraphNode.CallSiteNode(getNextNodeId(), invoke);
 					addVertex(thisCallSiteNode);
 					
 					/* link the current receiver to this call site. */
-					FunctionOwnershipEdge foe = new FunctionOwnershipEdge(currentReceiverNode, thisCallSiteNode);
+					CallGraphEdge.FunctionOwnershipEdge foe = new CallGraphEdge.FunctionOwnershipEdge(currentReceiverNode, thisCallSiteNode);
 					addEdge(currentReceiverNode, foe);
 					
 					Set<MethodNode> targets = invoke.resolveTargets(context.getInvocationResolver());
 					
-					for(MethodNode tgt : targets) {
-						CallReceiverNode targetReceiverNode = getNode(tgt, true);
+					for(MethodNode target : targets) {
+						CallGraphNode.CallReceiverNode targetReceiverNode = createNode(target, true);
 						
 						/* link each target to the call site. */
-						SiteInvocationEdge sie = new SiteInvocationEdge(thisCallSiteNode, targetReceiverNode);
+						CallGraphEdge.SiteInvocationEdge sie = new CallGraphEdge.SiteInvocationEdge(thisCallSiteNode, targetReceiverNode);
 						addEdge(thisCallSiteNode, sie);
 					}
 				}
@@ -105,24 +102,24 @@ public class CallSiteSensitiveCallGraph extends FastDirectedGraph<CallGraphNode,
 		return size() + 1;
 	}
 	
-	private CallReceiverNode makeNode(MethodNode m) {
-		CallReceiverNode currentReceiverNode = new CallReceiverNode(getNextNodeId(), m);
+	private CallGraphNode.CallReceiverNode makeNode(MethodNode m) {
+		CallGraphNode.CallReceiverNode currentReceiverNode = new CallGraphNode.CallReceiverNode(getNextNodeId(), m);
 		receiverCache.put(m, currentReceiverNode);
 		addVertex(currentReceiverNode);
 		return currentReceiverNode;
 	}
 
-	public CallReceiverNode getNode(MethodNode m) {
+	public CallGraphNode.CallReceiverNode getNode(MethodNode m) {
 		return receiverCache.get(m);
 	}
 	
 	/* either get a pre built node or
 	 * make one and add it to the worklist. */
-	protected CallReceiverNode getNode(MethodNode m, boolean queue) {
+	protected CallGraphNode.CallReceiverNode createNode(MethodNode m, boolean queue) {
 		if(receiverCache.containsKey(m)) {
 			return receiverCache.get(m);
 		} else {
-			CallReceiverNode currentReceiverNode = makeNode(m);
+			CallGraphNode.CallReceiverNode currentReceiverNode = makeNode(m);
 			if(queue) {
 				worklist.queueData(m);
 			}
@@ -150,107 +147,10 @@ public class CallSiteSensitiveCallGraph extends FastDirectedGraph<CallGraphNode,
 	private int intBitLen(int val) {
 		return Integer.SIZE - Integer.numberOfLeadingZeros(val);
 	}*/
-
-	public static class CallReceiverNode extends CallGraphNode {
-
-		private final MethodNode method;
-		
-		public CallReceiverNode(int id, MethodNode method) {
-			super(id);
-			this.method = method;
-		}
-
-		@Override
-		public String toString() {
-			return method.toString();
-		}
-	}
-
-	public static class CallSiteNode extends CallGraphNode {
-
-		private final Expr invoke;
-		
-		public CallSiteNode(int id, Expr invoke) {
-			super(id);
-			this.invoke = invoke;
-		}
-
-		@Override
-		public String toString() {
-			MethodNode m = invoke.getBlock().getGraph().getMethod();
-			return m.owner + "." + m.name + "@" + invoke.getBlock().indexOf(invoke.getRootParent()) + ":" + invoke.getParent().indexOf(invoke);
-		}
-	}
-
-	public abstract static class CallGraphNode implements FastGraphVertex {
-
-		private final int id;
-
-		public CallGraphNode(int id) {
-			this.id = id;
-		}
-
-		@Override
-		public String getId() {
-			return Integer.toString(id);
-		}
-
-		@Override
-		public int getNumericId() {
-			return id;
-		}
-
-		@Override
-		public abstract String toString();
-	}
-
-	public abstract static class CallGraphEdge extends FastGraphEdge<CallGraphNode> {
-		public CallGraphEdge(CallGraphNode src, CallGraphNode dst) {
-			super(src, dst);
-		}
-
-		public abstract boolean canClone(CallGraphNode src, CallGraphNode dst);
-
-		public abstract CallGraphEdge clone(CallGraphNode src, CallGraphNode dst);
-	}
-
-	public static class FunctionOwnershipEdge extends CallGraphEdge {
-		public FunctionOwnershipEdge(CallReceiverNode src, CallSiteNode dst) {
-			super(src, dst);
-		}
-
-		@Override
-		public boolean canClone(CallGraphNode src, CallGraphNode dst) {
-			return src instanceof CallReceiverNode && dst instanceof CallSiteNode;
-		}
-
-		@Override
-		public CallGraphEdge clone(CallGraphNode src, CallGraphNode dst) {
-			return new FunctionOwnershipEdge((CallReceiverNode) src, (CallSiteNode) dst);
-		}
-	}
 	
-	public static class SiteInvocationEdge extends CallGraphEdge {
-
-		public SiteInvocationEdge(CallSiteNode src, CallReceiverNode dst) {
-			super(src, dst);
-		}
-
-		@Override
-		public boolean canClone(CallGraphNode src, CallGraphNode dst) {
-			return src instanceof CallSiteNode && dst instanceof CallReceiverNode;
-		}
-
-		@Override
-		public CallGraphEdge clone(CallGraphNode src, CallGraphNode dst) {
-			return new SiteInvocationEdge((CallSiteNode) src, (CallReceiverNode) dst);
-		}
-		
-	}
-
 	@Override
 	public boolean excavate(CallGraphNode n) {
-		throw new UnsupportedOperationException();
+		throw new UnsupportedOperationException("Induced subgraph not supported.");
 	}
 
 	@Override

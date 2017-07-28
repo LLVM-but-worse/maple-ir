@@ -22,8 +22,8 @@ import org.mapleir.deob.IPass;
 import org.mapleir.deob.PassGroup;
 import org.mapleir.deob.interproc.IRCallTracer;
 import org.mapleir.deob.interproc.callgraph.CallSiteSensitiveCallGraph;
-import org.mapleir.deob.interproc.callgraph.CallSiteSensitiveCallGraph.CallGraphNode;
-import org.mapleir.deob.interproc.callgraph.CallSiteSensitiveCallGraph.CallReceiverNode;
+import org.mapleir.deob.interproc.callgraph.CallGraphNode;
+import org.mapleir.deob.interproc.callgraph.CallGraphNode.CallReceiverNode;
 import org.mapleir.deob.interproc.exp2.BlockCallGraph;
 import org.mapleir.deob.passes.ConstantExpressionReorderPass;
 import org.mapleir.deob.passes.DeadCodeEliminationPass;
@@ -37,9 +37,7 @@ import org.mapleir.stdlib.collections.graph.algorithms.TarjanSCC;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
-import org.topdank.byteengineer.commons.data.JarInfo;
 import org.topdank.byteio.in.SingleJarDownloader;
-import org.topdank.byteio.out.JarDumper;
 
 public class Boot {
 	
@@ -148,7 +146,7 @@ public class Boot {
 		
 		CallSiteSensitiveCallGraph cg = new CallSiteSensitiveCallGraph(cxt);
 		cg.getWorklist().queueData(cxt.getApplicationContext().getEntryPoints());
-		cg.updateWorklist();
+		cg.processWorklist();
 		
 		TarjanSCC<CallGraphNode> scc = new TarjanSCC<>(cg);
 		

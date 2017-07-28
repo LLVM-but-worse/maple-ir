@@ -47,7 +47,7 @@ public class BlockCallGraphBuilder implements Worker<MethodNode> {
 	
 	public void init() {
 		worklist.queueData(cxt.getApplicationContext().getEntryPoints());
-		worklist.update();
+		worklist.processQueue();
 	}
 	
 	public LibraryStubCallGraphBlock getLibraryStubNode(MethodNode method) {
