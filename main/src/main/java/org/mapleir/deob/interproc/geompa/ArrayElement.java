@@ -1,15 +1,14 @@
 package org.mapleir.deob.interproc.geompa;
 
+import org.mapleir.ir.TypeUtils;
+import org.objectweb.asm.Type;
+
 public class ArrayElement implements SparkField {
-	public ArrayElement(Singletons.Global g) {
-	}
-
-	public static ArrayElement v() {
-		return G.v().soot_jimple_spark_pag_ArrayElement();
-	}
-
+	
+	public static final ArrayElement INSTANCE = new ArrayElement();
+	
 	public ArrayElement() {
-		Scene.v().getFieldNumberer().add(this);
+		// Scene.v().getFieldNumberer().add(this);
 	}
 
 	public final int getNumber() {
@@ -20,8 +19,10 @@ public class ArrayElement implements SparkField {
 		this.number = number;
 	}
 
+	@Override
 	public Type getType() {
-		return RefType.v("java.lang.Object");
+		return TypeUtils.OBJECT_TYPE;
+		// return RefType.v("java.lang.Object");
 	}
 
 	private int number = 0;

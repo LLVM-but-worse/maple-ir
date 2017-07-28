@@ -10,9 +10,12 @@ import org.mapleir.ir.locals.Local;
 import org.mapleir.stdlib.collections.map.KeyedValueCreator;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.FieldNode;
+import org.objectweb.asm.tree.MethodNode;
 
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Table;
+
+import javax.swing.text.html.HTML.Tag;
 
 public class PAG {
 
@@ -24,6 +27,8 @@ public class PAG {
 	public static final boolean FIELD_BASED = false;
 	
 	public static final boolean ALIAS_PROP = false;
+	
+	public static final boolean ADD_TAGS = false;
 	
 	private final AnalysisContext context;
 	private KeyedValueCreator<Type, AbstractPointsToSet> pointsToSetCreator;
@@ -51,10 +56,16 @@ public class PAG {
 	protected Map<VarNode, Object> assignInstanceInv = new HashMap<>();
 
 	protected boolean somethingMerged = false;
+	
+	private Map<PointsToNode, Tag> nodeToTag;
 
 	public PAG(AnalysisContext context) {
 		this.context = context;
 		pointsToSetCreator = (k) -> new DefaultPointsToSet(context.getApplication(), k);
+		
+		if(ADD_TAGS) {
+			nodeToTag = new HashMap<>();
+		}
 	}
 
 	public KeyedValueCreator<Type, AbstractPointsToSet> getSetFactory() {
@@ -141,6 +152,34 @@ public class PAG {
 		return ret;
 	}
 
+	public FieldRefNode makeFieldRefNode(VarNode base, SparkField field) {
+		FieldRefNode ret = base.dot(field);
+		if (ret == null) {
+			ret = new FieldRefNode(this, base, field);
+			if (base instanceof LocalVarNode) {
+				addNodeTag(ret, ((LocalVarNode) base).getMethod());
+			} else {
+				addNodeTag(ret, null);
+			}
+
+		}
+		return ret;
+	}
+	
+	/* looks like class file annotations */
+	private void addNodeTag(PointsToNode node, MethodNode m) {
+		if (nodeToTag != null) {
+			/*Tag tag;
+			if (m == null) {
+				tag = new StringTag(node.toString());
+			} else {
+				tag = new LinkTag(node.toString(), m, m.getDeclaringClass().getName());
+			}
+			nodeToTag.put(node, tag);*/
+			throw new UnsupportedOperationException();
+		}
+}
+	
 	private final ArrayNumberer<AllocNode> allocNodeNumberer = new ArrayNumberer<AllocNode>();
 
 	public ArrayNumberer<AllocNode> getAllocNodeNumberer() {
