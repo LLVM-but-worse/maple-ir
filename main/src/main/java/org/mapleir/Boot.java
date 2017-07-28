@@ -24,6 +24,7 @@ import org.mapleir.deob.interproc.IRCallTracer;
 import org.mapleir.deob.interproc.callgraph.CallSiteSensitiveCallGraph;
 import org.mapleir.deob.interproc.callgraph.CallGraphNode;
 import org.mapleir.deob.interproc.callgraph.CallGraphNode.CallReceiverNode;
+import org.mapleir.deob.interproc.callgraph.SensitiveCallGraphBuilder;
 import org.mapleir.deob.interproc.exp2.BlockCallGraph;
 import org.mapleir.deob.passes.ConstantExpressionReorderPass;
 import org.mapleir.deob.passes.DeadCodeEliminationPass;
@@ -144,9 +145,8 @@ public class Boot {
 
 //		builder.init();
 		
-		CallSiteSensitiveCallGraph cg = new CallSiteSensitiveCallGraph(cxt);
-		cg.getWorklist().queueData(cxt.getApplicationContext().getEntryPoints());
-		cg.processWorklist();
+		SensitiveCallGraphBuilder builder = new SensitiveCallGraphBuilder(cxt);
+		CallSiteSensitiveCallGraph cg = builder.build(cxt.getApplicationContext().getEntryPoints());
 		
 		TarjanSCC<CallGraphNode> scc = new TarjanSCC<>(cg);
 		
