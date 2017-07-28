@@ -1,130 +1,55 @@
 package org.mapleir.deob.interproc.callgraph;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
-
-import org.mapleir.context.AnalysisContext;
-import org.mapleir.ir.cfg.ControlFlowGraph;
-import org.mapleir.ir.code.Expr;
-import org.mapleir.ir.code.Stmt;
+import org.mapleir.deob.interproc.callgraph.CallGraphNode.CallReceiverNode;
+import org.mapleir.deob.interproc.callgraph.CallGraphNode.CallSiteNode;
 import org.mapleir.ir.code.expr.invoke.Invocation;
 import org.mapleir.stdlib.collections.graph.FastDirectedGraph;
-import org.mapleir.stdlib.util.Worklist;
-import org.mapleir.stdlib.util.Worklist.Worker;
 import org.objectweb.asm.tree.MethodNode;
 
-public class CallSiteSensitiveCallGraph extends FastDirectedGraph<CallGraphNode, CallGraphEdge> implements Worker<MethodNode> {
+import java.util.HashMap;
+import java.util.Map;
+
+public class CallSiteSensitiveCallGraph extends FastDirectedGraph<CallGraphNode, CallGraphEdge> {
 	
-	private final AnalysisContext context;
-	private final Map<MethodNode, CallGraphNode.CallReceiverNode> receiverCache;
-	private final Worklist<MethodNode> worklist;
+	private final Map<MethodNode, CallReceiverNode> receiverCache;
 	
-	public CallSiteSensitiveCallGraph(AnalysisContext context) {
-		this.context = context;
+	public CallSiteSensitiveCallGraph() {
 		receiverCache = new HashMap<>();
-		worklist = makeWorklist();
 	}
 	
 	// Copy constructor.
 	protected CallSiteSensitiveCallGraph(CallSiteSensitiveCallGraph g) {
 		super(g);
 		
-		if(g.worklist.pending() != 0) {
-			throw new IllegalStateException();
-		}
-		
-		context = g.context;
 		receiverCache = new HashMap<>(g.receiverCache);
-		worklist = makeWorklist();
 	}
 	
-	public Worklist<MethodNode> getWorklist() {
-		return worklist;
-	}
-	
-	public void processWorklist() {
-		worklist.processQueue();
-	}
-	
-	protected Worklist<MethodNode> makeWorklist() {
-		Worklist<MethodNode> worklist = new Worklist<>();
-		worklist.addWorker(this);
-		return worklist;
-	}
-
-	@Override
-	public void process(Worklist<MethodNode> worklist, MethodNode n) {
-		if(worklist != this.worklist) {
-			throw new IllegalStateException();
-		}
-		
-		if(worklist.hasProcessed(n)) {
-			throw new UnsupportedOperationException(String.format("Already processed %s", n));
-		}
-		
-		/* this is not the same as getNode*/
-		CallGraphNode.CallReceiverNode currentReceiverNode = createNode(n, false);
-		
-		ControlFlowGraph cfg = context.getIRCache().get(n);
-		
-		if(cfg == null) {
-			return;
-		}
-		
-		for(Stmt stmt : cfg.stmts()) {
-			for(Expr e : stmt.enumerateOnlyChildren()) {
-				if(e instanceof Invocation) {
-					Invocation invoke = (Invocation) e;
-					
-					CallGraphNode.CallSiteNode thisCallSiteNode = new CallGraphNode.CallSiteNode(getNextNodeId(), invoke);
-					addVertex(thisCallSiteNode);
-					
-					/* link the current receiver to this call site. */
-					CallGraphEdge.FunctionOwnershipEdge foe = new CallGraphEdge.FunctionOwnershipEdge(currentReceiverNode, thisCallSiteNode);
-					addEdge(currentReceiverNode, foe);
-					
-					Set<MethodNode> targets = invoke.resolveTargets(context.getInvocationResolver());
-					
-					for(MethodNode target : targets) {
-						CallGraphNode.CallReceiverNode targetReceiverNode = createNode(target, true);
-						
-						/* link each target to the call site. */
-						CallGraphEdge.SiteInvocationEdge sie = new CallGraphEdge.SiteInvocationEdge(thisCallSiteNode, targetReceiverNode);
-						addEdge(thisCallSiteNode, sie);
-					}
-				}
-			}
-		}
-	}
-	
+	// Used for builder.
 	private int getNextNodeId() {
 		return size() + 1;
 	}
 	
-	private CallGraphNode.CallReceiverNode makeNode(MethodNode m) {
-		CallGraphNode.CallReceiverNode currentReceiverNode = new CallGraphNode.CallReceiverNode(getNextNodeId(), m);
+	// Used for builder.
+	CallReceiverNode addMethod(MethodNode m) {
+		CallReceiverNode currentReceiverNode = new CallReceiverNode(getNextNodeId(), m);
 		receiverCache.put(m, currentReceiverNode);
 		addVertex(currentReceiverNode);
 		return currentReceiverNode;
 	}
-
-	public CallGraphNode.CallReceiverNode getNode(MethodNode m) {
+	
+	// Used for builder.
+	CallSiteNode addInvocation(Invocation invoke) {
+		CallSiteNode thisCallSiteNode = new CallSiteNode(getNextNodeId(), invoke);
+		addVertex(thisCallSiteNode);
+		return thisCallSiteNode;
+	}
+	
+	public CallReceiverNode getNode(MethodNode m) {
 		return receiverCache.get(m);
 	}
 	
-	/* either get a pre built node or
-	 * make one and add it to the worklist. */
-	protected CallGraphNode.CallReceiverNode createNode(MethodNode m, boolean queue) {
-		if(receiverCache.containsKey(m)) {
-			return receiverCache.get(m);
-		} else {
-			CallGraphNode.CallReceiverNode currentReceiverNode = makeNode(m);
-			if(queue) {
-				worklist.queueData(m);
-			}
-			return currentReceiverNode;
-		}
+	public boolean containsMethod(MethodNode m) {
+		return receiverCache.containsKey(m);
 	}
 	
 	/*private int encodeId(Expr e) {
