@@ -212,12 +212,7 @@ public class ControlFlowGraph extends FastBlockGraph {
 	}
 	
 	public Iterable<Stmt> stmts() {
-		return new Iterable<Stmt>() {
-			@Override
-			public Iterator<Stmt> iterator() {
-				return new ChainIterator.CollectionChainIterator<>(vertices());
-			}
-		};
+		return () -> new ChainIterator.CollectionChainIterator<>(vertices());
 	}
 	
 	public void naturalise(List<BasicBlock> order) {
