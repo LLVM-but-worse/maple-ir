@@ -4,7 +4,7 @@ import org.mapleir.deob.interproc.geompa.util.Numberable;
 import org.objectweb.asm.Type;
 
 public abstract class PointsToNode implements Numberable {
-	private PAG pag;
+	protected PAG pag;
 	private Type type;
 	private int number = 0;
 	protected PointsToNode replacement;

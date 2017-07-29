@@ -1,13 +1,11 @@
 package org.mapleir.deob.interproc.geompa;
 
-import org.objectweb.asm.tree.FieldNode;
-
 public class FieldRefNode extends ValNode {
 
 	protected VarNode base;
-	protected FieldNode field;
+	protected SparkField field;
 
-	FieldRefNode(PAG pag, VarNode base, FieldNode field) {
+	FieldRefNode(PAG pag, VarNode base, SparkField field) {
 		super(pag, null);
 		if (field == null)
 			throw new RuntimeException("null field");
@@ -35,7 +33,7 @@ public class FieldRefNode extends ValNode {
 		}
 	}
 
-	public FieldNode getField() {
+	public SparkField getField() {
 		return field;
 	}
 
