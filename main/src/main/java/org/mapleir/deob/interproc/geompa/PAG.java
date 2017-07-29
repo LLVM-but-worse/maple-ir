@@ -15,7 +15,7 @@ import org.mapleir.ir.code.expr.AllocObjectExpr;
 import org.mapleir.ir.code.expr.invoke.InitialisedObjectExpr;
 import org.mapleir.ir.locals.Local;
 import org.mapleir.stdlib.collections.map.KeyedValueCreator;
-import org.mapleir.stdlib.collections.map.KeyedValueCreator.CachedKeyedValueCreator;
+import org.mapleir.stdlib.collections.map.CachedKeyedValueCreator;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.FieldNode;
 import org.objectweb.asm.tree.MethodNode;
