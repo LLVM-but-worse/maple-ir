@@ -6,12 +6,11 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.objectweb.asm.Type;
-import org.objectweb.asm.tree.FieldNode;
 
 public class VarNode extends ValNode implements Comparable<VarNode> {
 
 	protected Object variable;
-	protected Map<FieldNode, FieldRefNode> fields;
+	protected Map<SparkField, FieldRefNode> fields;
 	protected int finishingNumber = 0;
 	protected boolean interProcTarget = false;
 	protected boolean interProcSource = false;
@@ -45,12 +44,12 @@ public class VarNode extends ValNode implements Comparable<VarNode> {
 		return fields == null ? null : fields.get(field);
 	}
 
-	public int compareTo(Object o) {
-		VarNode other = (VarNode) o;
+	@Override
+	public int compareTo(VarNode other) {
 		if (other.finishingNumber == finishingNumber && other != this) {
-			G.v().out.println("This is: " + this + " with id " + getNumber() + " and number " + finishingNumber);
-			G.v().out.println(
-					"Other is: " + other + " with id " + other.getNumber() + " and number " + other.finishingNumber);
+//			G.v().out.println("This is: " + this + " with id " + getNumber() + " and number " + finishingNumber);
+//			G.v().out.println(
+//					"Other is: " + other + " with id " + other.getNumber() + " and number " + other.finishingNumber);
 			throw new RuntimeException("Comparison error");
 		}
 		return other.finishingNumber - finishingNumber;
@@ -96,17 +95,17 @@ public class VarNode extends ValNode implements Comparable<VarNode> {
 	}
 
 	/** Returns true if this VarNode represents the THIS pointer */
-	public boolean isThisPtr() {
+	/*public boolean isThisPtr() {
 		if (variable instanceof Pair) {
 			Pair o = (Pair) variable;
 			return o.isThisParameter();
 		}
 
 		return false;
-	}
+	}*/
 
 	/** Registers a frn as having this node as its base. */
-	void addField(FieldRefNode frn, FieldNode field) {
+	void addField(FieldRefNode frn, SparkField field) {
 		if (fields == null)
 			fields = new HashMap<>();
 		fields.put(field, frn);
