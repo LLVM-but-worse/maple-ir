@@ -1,7 +1,7 @@
 package org.mapleir.deob.interproc.geompa;
 
 import org.mapleir.stdlib.collections.map.KeyedValueCreator;
-import org.mapleir.stdlib.collections.map.KeyedValueCreator.CachedKeyedValueCreator;
+import org.mapleir.stdlib.collections.map.CachedKeyedValueCreator;
 import org.objectweb.asm.tree.MethodNode;
 
 public class MapleMethod implements MapleMethodOrMethodContext {
