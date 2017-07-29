@@ -1,5 +1,11 @@
 package org.mapleir.deob.interproc.geompa;
 
-public class GeomPointsTo {
+import org.mapleir.context.AnalysisContext;
+
+public class GeomPointsTo extends PAG {
+
+	public GeomPointsTo(AnalysisContext context) {
+		super(context);
+	}
 
 }
