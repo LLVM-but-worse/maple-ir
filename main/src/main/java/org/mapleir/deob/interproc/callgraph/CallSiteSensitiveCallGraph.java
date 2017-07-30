@@ -7,7 +7,9 @@ import org.mapleir.stdlib.collections.graph.FastDirectedGraph;
 import org.objectweb.asm.tree.MethodNode;
 
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
+import java.util.Set;
 
 public class CallSiteSensitiveCallGraph extends FastDirectedGraph<CallGraphNode, CallGraphEdge> {
 	
@@ -72,6 +74,16 @@ public class CallSiteSensitiveCallGraph extends FastDirectedGraph<CallGraphNode,
 	private int intBitLen(int val) {
 		return Integer.SIZE - Integer.numberOfLeadingZeros(val);
 	}*/
+
+	@Override
+	public Set<CallGraphEdge> createSet() {
+		return new LinkedHashSet<>();
+	}
+
+	@Override
+	public Set<CallGraphEdge> createSet(Set<CallGraphEdge> set) {
+		return new LinkedHashSet<>(set);
+	}
 	
 	@Override
 	public boolean excavate(CallGraphNode n) {
