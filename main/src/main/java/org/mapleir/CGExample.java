@@ -20,18 +20,19 @@ public class CGExample {
 		head2();
 	}
 	
-	void head2() {
-		body2();
+	CGExample head2() {
+		return body2();
 	}
 	
-	void body2() {
-		exit2();
+	CGExample body2() {
+		return exit2();
 	}
 	
-	void exit2() {
+	CGExample exit2() {
 		if(b) {
-			head2();
+			return head2();
 		}
+		return null;
 	}
 	
 	void exit() {

@@ -756,4 +756,8 @@ public class TypeUtils {
 		
 		return tree.getAllParents(src).contains(dst);
 	}
+	
+	public static boolean isRefLikeType(Type t) {
+		return t.getSort() == Type.ARRAY || t.getSort() == Type.OBJECT;
+	}
 }
