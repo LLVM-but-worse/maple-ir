@@ -3,8 +3,6 @@ package org.mapleir.deob.interproc.callgraph;
 import org.mapleir.context.AnalysisContext;
 import org.mapleir.deob.interproc.callgraph.CallGraphEdge.FunctionOwnershipEdge;
 import org.mapleir.deob.interproc.callgraph.CallGraphEdge.SiteInvocationEdge;
-import org.mapleir.deob.interproc.callgraph.CallGraphNode.CallReceiverNode;
-import org.mapleir.deob.interproc.callgraph.CallGraphNode.CallSiteNode;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.code.Stmt;
@@ -54,7 +52,7 @@ public class SensitiveCallGraphBuilder implements Worklist.Worker<MethodNode> {
 		}
 		
 		/* this is not the same as getNode*/
-		CallReceiverNode currentReceiverNode = createNode(n, false);
+		CallGraphNode.CallReceiverNode currentReceiverNode = createNode(n, false);
 		
 		ControlFlowGraph cfg = context.getIRCache().get(n);
 		
@@ -67,7 +65,7 @@ public class SensitiveCallGraphBuilder implements Worklist.Worker<MethodNode> {
 				if(e instanceof Invocation) {
 					Invocation invoke = (Invocation) e;
 					
-					CallSiteNode thisCallSiteNode = callGraph.addInvocation(invoke);
+					CallGraphNode.CallSiteNode thisCallSiteNode = callGraph.addInvocation(invoke);
 					
 					/* link the current receiver to this call site. */
 					FunctionOwnershipEdge foe = new FunctionOwnershipEdge(currentReceiverNode, thisCallSiteNode);
@@ -76,7 +74,7 @@ public class SensitiveCallGraphBuilder implements Worklist.Worker<MethodNode> {
 					Set<MethodNode> targets = invoke.resolveTargets(context.getInvocationResolver());
 					
 					for(MethodNode target : targets) {
-						CallReceiverNode targetReceiverNode = createNode(target, true);
+						CallGraphNode.CallReceiverNode targetReceiverNode = createNode(target, true);
 						
 						/* link each target to the call site. */
 						SiteInvocationEdge sie = new SiteInvocationEdge(thisCallSiteNode, targetReceiverNode);
@@ -89,11 +87,11 @@ public class SensitiveCallGraphBuilder implements Worklist.Worker<MethodNode> {
 	
 	/* either get a pre built node or
 	 * make one and add it to the worklist. */
-	protected CallReceiverNode createNode(MethodNode m, boolean queue) {
+	protected CallGraphNode.CallReceiverNode createNode(MethodNode m, boolean queue) {
 		if(callGraph.containsMethod(m)) {
 			return callGraph.getNode(m);
 		} else {
-			CallReceiverNode currentReceiverNode = callGraph.addMethod(m);
+			CallGraphNode.CallReceiverNode currentReceiverNode = callGraph.addMethod(m);
 			if(queue) {
 				worklist.queueData(m);
 			}
