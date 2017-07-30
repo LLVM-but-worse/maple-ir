@@ -1,14 +1,8 @@
 package org.mapleir;
 
 import java.io.*;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Deque;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Set;
 import java.util.jar.JarOutputStream;
 
 import org.mapleir.app.client.SimpleApplicationContext;
@@ -21,10 +15,8 @@ import org.mapleir.context.IRCache;
 import org.mapleir.deob.IPass;
 import org.mapleir.deob.PassGroup;
 import org.mapleir.deob.interproc.IRCallTracer;
-import org.mapleir.deob.interproc.callgraph.CallSiteSensitiveCallGraph;
-import org.mapleir.deob.interproc.callgraph.CallGraphNode;
+import org.mapleir.deob.interproc.callgraph.*;
 import org.mapleir.deob.interproc.callgraph.CallGraphNode.CallReceiverNode;
-import org.mapleir.deob.interproc.callgraph.SensitiveCallGraphBuilder;
 import org.mapleir.deob.interproc.exp2.BlockCallGraph;
 import org.mapleir.deob.passes.ConstantExpressionReorderPass;
 import org.mapleir.deob.passes.DeadCodeEliminationPass;
@@ -34,6 +26,7 @@ import org.mapleir.ir.algorithms.BoissinotDestructor;
 import org.mapleir.ir.algorithms.ControlFlowGraphDumper;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.cfg.builder.ControlFlowGraphBuilder;
+import org.mapleir.stdlib.collections.graph.algorithms.SimpleDfs;
 import org.mapleir.stdlib.collections.graph.algorithms.TarjanSCC;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.tree.ClassNode;
@@ -148,7 +141,7 @@ public class Boot {
 		SensitiveCallGraphBuilder builder = new SensitiveCallGraphBuilder(cxt);
 		CallSiteSensitiveCallGraph cg = builder.build(cxt.getApplicationContext().getEntryPoints());
 		
-		TarjanSCC<CallGraphNode> scc = new TarjanSCC<>(cg);
+		TarjanSCC<CallGraphNode> sccComputor = new TarjanSCC<>(cg);
 		
 		for(MethodNode m : cxt.getApplicationContext().getEntryPoints()) {
 			CallReceiverNode node = cg.getNode(m);
@@ -157,16 +150,24 @@ public class Boot {
 				throw new RuntimeException("entry called?");
 			}
 			
-			scc.search(node);
+			sccComputor.search(node);
 		}
 		
-		for(List<CallGraphNode> c : scc.getComponents()) {
+		for(List<CallGraphNode> c : sccComputor.getComponents()) {
 			if(c.size() > 1) {
 				System.out.println(c);
 			}
 		}
-		
-		
+
+		CallGraphReducer sccEliminator = new CallGraphReducer(cxt);
+		SiteSensitiveCallDAG reducedCallGraph = sccEliminator.eliminateSCCs(cg);
+		SiteSensitiveCallDAG.MultiCallGraphNode entrySCC = reducedCallGraph.findSCCOf(cg.getNode(cxt.getApplicationContext().getEntryPoints().iterator().next()));
+		SimpleDfs<SiteSensitiveCallDAG.MultiCallGraphNode> dfs = new SimpleDfs<>(reducedCallGraph, entrySCC, SimpleDfs.POST);
+		System.out.println("\nScc DAG toposort:");
+		for (ListIterator it = dfs.getPostOrder().listIterator(dfs.getPostOrder().size()); it.hasPrevious();) {
+			System.out.println(it.previous());
+		}
+
 		for(MethodNode m : cxt.getApplicationContext().getEntryPoints()) {
 //			System.out.println(m);
 //			System.out.println(cxt.getIRCache().get(m));
