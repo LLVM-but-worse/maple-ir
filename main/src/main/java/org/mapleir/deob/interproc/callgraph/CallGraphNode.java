@@ -26,7 +26,7 @@ public abstract class CallGraphNode implements FastGraphVertex {
 	public abstract String toString();
 	
 	// A call receiver; e.g. a MethodNode.
-	public static class CallReceiverNode extends CallGraphNode implements InvocationEndpoint {
+	public static class CallReceiverNode extends CallGraphNode {
 
 		private final MethodNode method;
 		
@@ -39,20 +39,10 @@ public abstract class CallGraphNode implements FastGraphVertex {
 		public String toString() {
 			return method.toString();
 		}
-
-		@Override
-		public CallReceiverNode getReceiver() {
-			return this;
-		}
-
-		@Override
-		public CallSiteNode getSite() {
-			return null;
-		}
 	}
 	
 	// A call site; e.g. an invocation.
-	public static class CallSiteNode extends CallGraphNode implements InvocationEndpoint {
+	public static class CallSiteNode extends CallGraphNode {
 
 		private final Expr invoke;
 		
@@ -65,16 +55,6 @@ public abstract class CallGraphNode implements FastGraphVertex {
 		public String toString() {
 			MethodNode m = invoke.getBlock().getGraph().getMethod();
 			return m.owner + "." + m.name + "@" + invoke.getBlock().indexOf(invoke.getRootParent()) + ":" + invoke.getParent().indexOf(invoke);
-		}
-		
-		@Override
-		public CallReceiverNode getReceiver() {
-			return null;
-		}
-
-		@Override
-		public CallSiteNode getSite() {
-			return this;
 		}
 	}
 }
