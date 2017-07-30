@@ -87,17 +87,7 @@ public interface DelegatingList<T> extends List<T> {
 	default void clear() {
 		getBackingCollection().clear();
 	}
-	
-	@Override
-	default boolean equals(Object o) {
-		return getBackingCollection().equals(o);
-	}
-	
-	@Override
-	default int hashCode() {
-		return getBackingCollection().hashCode();
-	}
-	
+
 	@Override
 	default T get(int index) {
 		return getBackingCollection().get(index);
