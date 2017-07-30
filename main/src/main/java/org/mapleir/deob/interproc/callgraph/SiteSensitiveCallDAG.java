@@ -6,10 +6,7 @@ import org.mapleir.stdlib.collections.graph.FastGraphEdge;
 import org.mapleir.stdlib.util.DelegatingCollection;
 import org.mapleir.stdlib.util.DelegatingList;
 
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class SiteSensitiveCallDAG extends FastDirectedGraph<SiteSensitiveCallDAG.MultiCallGraphNode, SiteSensitiveCallDAG.SiteSensitiveCallDAGEdge> {
 	private final Map<CallGraphNode, MultiCallGraphNode> sccCache;
@@ -35,6 +32,16 @@ public class SiteSensitiveCallDAG extends FastDirectedGraph<SiteSensitiveCallDAG
 		for (CallGraphNode endpt : v)
 			sccCache.remove(endpt);
 		super.removeVertex(v);
+	}
+
+	@Override
+	public Set<SiteSensitiveCallDAGEdge> createSet() {
+		return new LinkedHashSet<>();
+	}
+
+	@Override
+	public Set<SiteSensitiveCallDAGEdge> createSet(Set<SiteSensitiveCallDAGEdge> set) {
+		return new LinkedHashSet<>(set);
 	}
 
 	public MultiCallGraphNode findSCCOf(CallGraphNode endpoint) {
