@@ -7,10 +7,10 @@ import java.util.List;
 
 public class AcyclicSiteSensitiveCallGraph extends CallSiteSensitiveCallGraph {
 	// Represents an SCC in the DAG
-	public class MultiCallGraphNode extends CallGraphNode implements DelegatingCollection<CallGraphNode> {
-		private final List<CallGraphNode> backingCollection;
+	public class MultiCallGraphNode extends CallGraphNode implements DelegatingCollection<InvocationEndpoint> {
+		private final List<InvocationEndpoint> backingCollection;
 		
-		public MultiCallGraphNode(int id, List<CallGraphNode> scc) {
+		public MultiCallGraphNode(int id, List<InvocationEndpoint> scc) {
 			super(id);
 			backingCollection = scc;
 		}
@@ -22,7 +22,7 @@ public class AcyclicSiteSensitiveCallGraph extends CallSiteSensitiveCallGraph {
 		}
 		
 		@Override
-		public Collection<CallGraphNode> getBackingCollection() {
+		public Collection<InvocationEndpoint> getBackingCollection() {
 			return backingCollection;
 		}
 	}
