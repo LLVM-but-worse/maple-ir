@@ -8,8 +8,8 @@ public class MapleMethod implements MapleMethodOrMethodContext {
 
 	public static final KeyedValueCreator<MethodNode, MapleMethod> CREATOR = new CachedKeyedValueCreator<MethodNode, MapleMethod>() {
 		@Override
-		protected MapleMethod create0(MethodNode k) {
-			return new MapleMethod(k);
+		protected MapleMethod create0(MethodNode mn) {
+			return new MapleMethod(mn);
 		}
 	};
 	
@@ -31,5 +31,10 @@ public class MapleMethod implements MapleMethodOrMethodContext {
 	@Override
 	public Context context() {
 		return null;
+	}
+	
+	@Override
+	public String toString() {
+		return getMethodNode().toString();
 	}
 }

@@ -23,7 +23,7 @@ import org.objectweb.asm.tree.MethodNode;
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Table;
 
-
+// Pointer Assignment Graph
 public class PAG implements PointsToAnalysis  {
 
 	// not final so asshole compiler doesnt cry 
