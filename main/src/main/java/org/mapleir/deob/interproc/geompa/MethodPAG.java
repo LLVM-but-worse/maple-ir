@@ -12,6 +12,6 @@ public class MethodPAG {
 	protected MethodPAG(PAG pag, MapleMethod m) {
 		this.pag = pag;
 		this.method = m;
-		this.nodeFacory = new MethodNodeFactory(pag, this);
+		// this.nodeFacory = new MethodNodeFactory(pag, this);
 	}
 }

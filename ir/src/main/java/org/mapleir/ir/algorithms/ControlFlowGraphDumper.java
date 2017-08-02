@@ -326,7 +326,6 @@ public class ControlFlowGraphDumper {
 		}
 	}
 	
-	// TODO: default graph impl
 	private static class BundleGraph extends FastDirectedGraph<BlockBundle, FastGraphEdge<BlockBundle>> {
 		@Override
 		public boolean excavate(BlockBundle basicBlocks) {
