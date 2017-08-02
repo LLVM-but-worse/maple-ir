@@ -63,7 +63,7 @@ public class InvocationResolver2 implements InvocationResolver {
 	}
 
 	@Override
-	public Set<MethodNode> resolveVirtualCalls(String owner, String name, String desc, boolean strict) {
+	public Set<MethodNode> resolveVirtualCalls(String owner, String name, String desc, @Deprecated  boolean strict) {
 		return resolveVirtualCalls(name, desc, classTree.getAllChildren(app.findClassNode(owner)));
 	}
 
