@@ -4,6 +4,8 @@ import java.io.IOException;
 import java.net.JarURLConnection;
 import java.net.URL;
 import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
@@ -34,14 +36,20 @@ public class SingleJarDownloader<C extends ClassNode> extends AbstractJarDownloa
 		JarURLConnection connection = (JarURLConnection) (url = new URL(jarInfo.formattedURL())).openConnection();
 		JarFile jarFile = connection.getJarFile();
 		Enumeration<JarEntry> entries = jarFile.entries();
-		contents = new LocateableJarContents<C>(url);
+		contents = new LocateableJarContents<>(url);
+		
+		Map<String, ClassNode> map = new HashMap<>();
+		
 		while (entries.hasMoreElements()) {
 			JarEntry entry = entries.nextElement();
 			byte[] bytes = IOUtil.read(jarFile.getInputStream(entry));
 			if (entry.getName().endsWith(".class")) {
 				C cn = factory.create(bytes, entry.getName());
-				if(!contents.getClassContents().namedMap().containsKey(cn.name))
+				if(!map.containsKey(cn.name)) {
 					contents.getClassContents().add(cn);
+				} else {
+					throw new IllegalStateException("duplicate: " + cn.name);
+				}
 				
 				//if(cn.name.equals("org/xmlpull/v1/XmlPullParser")) {
 				//	System.out.println("SingleJarDownloader.download() " +entry.getName() + " " + bytes.length);
