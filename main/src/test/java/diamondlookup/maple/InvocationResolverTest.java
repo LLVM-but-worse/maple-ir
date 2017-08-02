@@ -1,19 +1,17 @@
 package diamondlookup.maple;
 
+import static org.hamcrest.CoreMatchers.hasItem;
+import static org.junit.Assert.assertThat;
+
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.stream.Collectors;
 
-import com.google.common.collect.Sets;
-import diamondlookup.*;
-import org.hamcrest.CoreMatchers;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mapleir.InvocationResolver2;
-import org.mapleir.SimpleInvocationResolver;
 import org.mapleir.app.service.ApplicationClassSource;
 import org.mapleir.app.service.InstalledRuntimeClassSource;
 import org.mapleir.app.service.InvocationResolver;
@@ -28,10 +26,7 @@ import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
 
-import static junit.framework.Assert.assertEquals;
-import static junit.framework.Assert.assertTrue;
-import static org.hamcrest.CoreMatchers.hasItem;
-import static org.junit.Assert.assertThat;
+import diamondlookup.*;
 
 public class InvocationResolverTest {
 
@@ -75,8 +70,9 @@ public class InvocationResolverTest {
 								InvocationExpr arg1 = (InvocationExpr) ie.getArgumentExprs()[0];
 								String arg2 = (String) ((ConstantExpr) ie.getArgumentExprs()[1]).getConstant();
 
-								Class correctResolution;
+//								Class correctResolution;
 								List<String> callResults = arg1.resolveTargets(resolver).stream().map(mn -> mn.owner.name.substring(mn.owner.name.lastIndexOf('/') + 1) + " Speaking!").collect(Collectors.toList());
+								System.out.println(callResults);
 								assertThat(callResults, hasItem(arg2));
 							}
 						}
