@@ -36,7 +36,6 @@ public class InvocationResolver2 implements InvocationResolver {
 	public MethodNode resolveVirtualCall(String name, String desc, ClassNode receiver) {
 		List<ClassNode> topoorder = classTree.getAllParents(receiver);
 		Collections.reverse(topoorder);
-		System.out.println(topoorder);
 
 		// sanity check parent chain back up to Object before anything else.
 		int idx = 0;
