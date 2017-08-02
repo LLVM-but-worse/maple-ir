@@ -30,6 +30,8 @@ public class ClassTree extends FastDirectedGraph<ClassNode, InheritanceEdge> {
 		for (ClassNode node : source.iterateWithLibraries()) {
 			addVertex(node);
 		}
+		
+		new Exception().printStackTrace();
 	}
 
 	public ClassNode getRootNode() {
@@ -126,10 +128,23 @@ public class ClassTree extends FastDirectedGraph<ClassNode, InheritanceEdge> {
 		}
 	}
 	
+	boolean k = false;
+	
 	@Override
 	public boolean addVertex(ClassNode cn) {
 		if (!super.addVertex(cn))
 			return false;
+		
+		if(cn.name.equals("java/lang/Object")) {
+			System.out.println("add " + cn + this.hashCode());
+			
+			if(k) {
+				throw new RuntimeException();
+			}
+			
+			k = true;
+		}
+		
 		ClassNode sup = cn.superName != null ? requestClass0(cn.superName, cn.name) : rootNode;
 		super.addEdge(cn, new ExtendsEdge(cn, sup));
 		
