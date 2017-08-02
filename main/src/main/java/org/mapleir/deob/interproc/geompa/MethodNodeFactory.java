@@ -16,7 +16,7 @@ public class MethodNodeFactory {
 	public MethodNodeFactory(PAG pag, MethodPAG mpag) {
 		this.pag = pag;
 		this.mpag = mpag;
-		setCurrentMethod(mpag.getMethod());
+		// setCurrentMethod(mpag.getMethod());
 	}
 	
 	private void setCurrentMethod(MapleMethod m) {
@@ -26,17 +26,17 @@ public class MethodNodeFactory {
 			if (c == null) {
 				throw new RuntimeException("Method " + m + " has no declaring class");
 			}
-			caseThis();
+			// caseThis();
 		}
 		Type[] params = Type.getArgumentTypes(m.getMethodNode().desc);
 		for (int i = 0 ; i < params.length; i++) {
 			if (TypeUtils.isRefLikeType(params[i])) {
-				caseParm(i);
+				// caseParm(i);
 			}
 		}
 		Type retType = Type.getReturnType(m.getMethodNode().desc);
 		if (TypeUtils.isRefLikeType(retType)) {
-			caseRet();
+			// caseRet();
 		}
 	}
 	
