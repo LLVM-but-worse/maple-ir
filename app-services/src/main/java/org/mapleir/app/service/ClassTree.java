@@ -1,10 +1,6 @@
 package org.mapleir.app.service;
 
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.Queue;
-import java.util.Set;
+import java.util.*;
 
 import org.mapleir.app.service.ClassTree.InheritanceEdge;
 import org.mapleir.stdlib.collections.graph.FastDirectedGraph;
@@ -32,6 +28,10 @@ public class ClassTree extends FastDirectedGraph<ClassNode, InheritanceEdge> {
 		for (ClassNode node : source.iterateWithLibraries()) {
 			addVertex(node);
 		}
+	}
+
+	public ClassNode getRootNode() {
+		return rootNode;
 	}
 	
 	public Iterable<ClassNode> iterateParents(ClassNode cn) {
@@ -63,19 +63,21 @@ public class ClassTree extends FastDirectedGraph<ClassNode, InheritanceEdge> {
 		}
 		return set;
 	}
-	
-	public Collection<ClassNode> getAllParents(ClassNode cn) {
+
+	// returns a postorder traversal of the graph starting from cn.
+	public List<ClassNode> getAllParents(ClassNode cn) {
 		if(!containsVertex(cn)) {
-			return new HashSet<>();
+			return new ArrayList<>();
 		}
-		return SimpleDfs.preorder(this, cn, false);
+		return SimpleDfs.postorder(this, cn, false);
 	}
-	
-	public Collection<ClassNode> getAllChildren(ClassNode cn) {
+
+	// returns a postorder traversal of the graph starting from cn following edges in opposite direction.
+	public List<ClassNode> getAllChildren(ClassNode cn) {
 		if(!containsVertex(cn)) {
-			return new HashSet<>();
+			return new ArrayList<>();
 		}
-		return SimpleDfs.preorder(this, cn, true);
+		return SimpleDfs.postorder(this, cn, true);
 	}
 	
 	/**
@@ -134,31 +136,6 @@ public class ClassTree extends FastDirectedGraph<ClassNode, InheritanceEdge> {
 			super.addEdge(cn, new ImplementsEdge(cn, iface));
 		}
 		return true;
-	}
-	
-	@Override
-	public boolean excavate(ClassNode classNode) {
-		throw new UnsupportedOperationException();
-	}
-	
-	@Override
-	public boolean jam(ClassNode pred, ClassNode succ, ClassNode classNode) {
-		throw new UnsupportedOperationException();
-	}
-	
-	@Override
-	public InheritanceEdge clone(InheritanceEdge edge, ClassNode oldN, ClassNode newN) {
-		throw new UnsupportedOperationException();
-	}
-	
-	@Override
-	public InheritanceEdge invert(InheritanceEdge edge) {
-		throw new UnsupportedOperationException();
-	}
-	
-	@Override
-	public FastGraph<ClassNode, InheritanceEdge> copy() {
-		throw new UnsupportedOperationException();
 	}
 	
 	@Override
@@ -230,5 +207,11 @@ public class ClassTree extends FastDirectedGraph<ClassNode, InheritanceEdge> {
 		public String toString() {
 			return String.format("#%s implements #%s", src.getId(), dst.getId());
 		}
+	}
+
+	// Ensure extends edges are traversed first.
+	@Override
+	public Set<InheritanceEdge> createSet() {
+		return new TreeSet<>((e1, e2) -> -Boolean.compare(!(e1 instanceof ExtendsEdge), !(e2 instanceof ExtendsEdge)));
 	}
 }
