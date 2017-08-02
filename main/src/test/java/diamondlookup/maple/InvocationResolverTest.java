@@ -2,7 +2,9 @@ package diamondlookup.maple;
 
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import com.google.common.collect.Sets;
 import diamondlookup.*;
@@ -40,7 +42,8 @@ public class InvocationResolverTest {
 	public void setUp() throws Exception {
 		Collection<ClassNode> classes = new HashSet<>();
 		/* load the app code */
-		for (Class<?> c : new Class<?>[] { ISpeak.class, ISpeak2.class, EmptySpeakImpl.class, EmptySpeakImplChild.class,
+		for (Class<?> c : new Class<?>[] { ISpeak.class, ISpeak2.class, ISpeak3.class, ISpeak4.class, ISpeak5.class,
+				EmptySpeakImpl.class, EmptySpeakImplChild.class, EmptySpeakImplChild2.class, EmptySpeakImplChild3.class,
 				DiamondLookupTest.class }) {
 			
 			ClassReader cr = new ClassReader(name(c));
@@ -54,17 +57,12 @@ public class InvocationResolverTest {
 		app.addLibraries(new InstalledRuntimeClassSource(app));
 		app.getClassTree();
 		
-		resolver = new SimpleInvocationResolver(app);
+		resolver = new InvocationResolver2(app);
 	}
 
 	@Test
 	public void testResolveVirtualCalls() {
-		ClassNode cn2 = app.findClassNode(name(EmptySpeakImplChild.class));
-		InvocationResolver2 resolver2 = new InvocationResolver2(app);
-		System.out.println(resolver2.resolveVirtualCall("speak", "()Ljava/lang/String;", cn2));
-
 		ClassNode cn = app.findClassNode(name(DiamondLookupTest.class));
-		
 		for(MethodNode m : cn.methods) {
 			if(m.name.equals("test")) {
 				ControlFlowGraph cfg = ControlFlowGraphBuilder.build(m);
@@ -78,20 +76,8 @@ public class InvocationResolverTest {
 								String arg2 = (String) ((ConstantExpr) ie.getArgumentExprs()[1]).getConstant();
 
 								Class correctResolution;
-								switch(arg1.getOwner()) {
-									case "diamondlookup/EmptySpeakImpl":
-									case "diamondlookup/EmptySpeakImplChild":
-										correctResolution = ISpeak2.class;
-										break;
-									case "diamondlookup/EmptySpeakImplChild2":
-									case "diamondlookup/EmptySpeakImplChild3":
-										correctResolution = EmptySpeakImplChild2.class;
-										break;
-									default:
-											throw new IllegalArgumentException();
-								}
-								System.out.println("checking " + arg1.getOwner());
-								assertThat(arg1.resolveTargets(resolver2), hasItem(app.findClassNode(name(correctResolution)).getMethod("speak", "()Ljava/lang/String;", false)));
+								List<String> callResults = arg1.resolveTargets(resolver).stream().map(mn -> mn.owner.name.substring(mn.owner.name.lastIndexOf('/') + 1) + " Speaking!").collect(Collectors.toList());
+								assertThat(callResults, hasItem(arg2));
 							}
 						}
 					}
