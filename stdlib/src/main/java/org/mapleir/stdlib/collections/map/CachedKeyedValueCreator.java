@@ -26,4 +26,30 @@ public abstract class CachedKeyedValueCreator<K, V> implements KeyedValueCreator
 			return v;
 		}
 	}
+	
+	public static class DelegatingCachedKeyedValueCreator<K, V> extends CachedKeyedValueCreator<K, V> {
+		
+		private final KeyedValueCreator<K, V> child;
+
+		@SuppressWarnings("unchecked")
+		public DelegatingCachedKeyedValueCreator(ValueCreator<V> child) {
+			/* implying the retard doesn't pass in something that
+			 * depends on the key XD */
+			this((KeyedValueCreator<K, V>)child);
+		}
+		
+		public DelegatingCachedKeyedValueCreator(KeyedValueCreator<K, V> child) {
+			this.child = child;
+			
+			if(child == null) {
+				throw new NullPointerException();
+			}
+		}
+
+
+		@Override
+		protected V create0(K k) {
+			return child.create(k);
+		}
+	}
 }

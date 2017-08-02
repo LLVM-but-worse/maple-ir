@@ -12,10 +12,10 @@ import org.mapleir.deob.interproc.geompa.util.ChunkedQueue;
 import org.mapleir.deob.interproc.geompa.util.QueueReader;
 import org.mapleir.ir.TypeUtils;
 import org.mapleir.ir.code.expr.AllocObjectExpr;
+import org.mapleir.ir.code.expr.VarExpr;
 import org.mapleir.ir.code.expr.invoke.InitialisedObjectExpr;
-import org.mapleir.ir.locals.Local;
-import org.mapleir.stdlib.collections.map.KeyedValueCreator;
 import org.mapleir.stdlib.collections.map.CachedKeyedValueCreator;
+import org.mapleir.stdlib.collections.map.KeyedValueCreator;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.FieldNode;
 import org.objectweb.asm.tree.MethodNode;
@@ -46,7 +46,7 @@ public class PAG implements PointsToAnalysis  {
 	
 	private final AnalysisContext context;
 	private KeyedValueCreator<Type, AbstractPointsToSet> pointsToSetCreator;
-	private final Map<Local, LocalVarNode> localToNodeMap = new HashMap<>();
+	private final Map<VarExpr, LocalVarNode> localToNodeMap = new HashMap<>();
 	// protected Map<Pair<Node, Node>, Set<Edge>> assign2edges = new HashMap<Pair<Node, Node>, Set<Edge>>();
 	private final Map<Object, LocalVarNode> valToLocalVarNode = new HashMap<>(1000);
 	private final Map<Object, GlobalVarNode> valToGlobalVarNode = new HashMap<>(1000);
@@ -110,7 +110,7 @@ public class PAG implements PointsToAnalysis  {
 	
 	/** Returns the set of objects pointed to by variable l. */
 	@Override
-	public AbstractPointsToSet reachingObjects(Local l) {
+	public AbstractPointsToSet reachingObjects(VarExpr l) {
 		PointsToNode n = findLocalVarNode(l);
 		if (n == null) {
 			return EmptyPointsToSet.INSTANCE;
@@ -120,7 +120,7 @@ public class PAG implements PointsToAnalysis  {
 	
 	/** Returns the set of objects pointed to by variable l in context c. */
 	@Override
-	public AbstractPointsToSet reachingObjects(Context c, Local l) {
+	public AbstractPointsToSet reachingObjects(Context c, VarExpr l) {
 		VarNode n = findContextVarNode(l, c);
 		if (n == null) {
 			return EmptyPointsToSet.INSTANCE;
@@ -186,7 +186,7 @@ public class PAG implements PointsToAnalysis  {
 	}
 	
 	@Override
-	public AbstractPointsToSet reachingObjects(Local l, FieldNode f) {
+	public AbstractPointsToSet reachingObjects(VarExpr l, FieldNode f) {
 		return reachingObjects(reachingObjects(l), f);
 	}
 
@@ -195,7 +195,7 @@ public class PAG implements PointsToAnalysis  {
 	 * pointed to by l in context c.
 	 */
 	@Override
-	public AbstractPointsToSet reachingObjects(Context c, Local l, FieldNode f) {
+	public AbstractPointsToSet reachingObjects(Context c, VarExpr l, FieldNode f) {
 		return reachingObjects(reachingObjects(c, l), f);
 	}
 	
@@ -288,14 +288,14 @@ public class PAG implements PointsToAnalysis  {
 			value = null;
 			type = TypeUtils.OBJECT_TYPE;
 			method = null;
-		} else if (value instanceof Local) {
-			Local val = (Local) value;
+		} else if (value instanceof VarExpr) {
+			VarExpr val = (VarExpr) value;
 			// FIXME: impact of numbering?
 			//if (val.getNumber() == 0)
 			//	Scene.v().getLocalNumberer().add(val);
 			LocalVarNode ret = localToNodeMap.get(val);
 			if (ret == null) {
-				localToNodeMap.put((Local) value, ret = new LocalVarNode(this, value, type, method));
+				localToNodeMap.put(val, ret = new LocalVarNode(this, value, type, method));
 				addNodeTag(ret, method);
 			} else if (!(ret.getType().equals(type))) {
 				throw new RuntimeException(
@@ -396,8 +396,8 @@ public class PAG implements PointsToAnalysis  {
 	public LocalVarNode findLocalVarNode(Object value) {
 		if (RTA) {
 			value = null;
-		} else if (value instanceof Local) {
-			return localToNodeMap.get((Local) value);
+		} else if (value instanceof VarExpr) {
+			return localToNodeMap.get((VarExpr) value);
 		}
 		return valToLocalVarNode.get(value);
 	}

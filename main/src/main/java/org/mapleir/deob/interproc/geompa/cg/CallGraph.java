@@ -10,6 +10,7 @@ import org.mapleir.deob.interproc.geompa.MapleMethod;
 import org.mapleir.deob.interproc.geompa.MapleMethodOrMethodContext;
 import org.mapleir.deob.interproc.geompa.util.ChunkedQueue;
 import org.mapleir.deob.interproc.geompa.util.QueueReader;
+import org.mapleir.ir.code.Stmt;
 import org.mapleir.ir.code.expr.invoke.Invocation;
 
 public class CallGraph implements Iterable<Edge> {
@@ -17,7 +18,7 @@ public class CallGraph implements Iterable<Edge> {
 	protected ChunkedQueue<Edge> stream = new ChunkedQueue<>();
 	protected QueueReader<Edge> reader = stream.reader();
 	protected Map<MapleMethodOrMethodContext, Edge> srcMethodToEdge = new HashMap<>();
-	protected Map<Invocation, Edge> srcUnitToEdge = new HashMap<>();
+	protected Map<Stmt, Edge> srcUnitToEdge = new HashMap<>();
 	protected Map<MapleMethodOrMethodContext, Edge> tgtToEdge = new HashMap<>();
 	protected Edge dummy = new Edge(null, null, null, Kind.INVALID);
 
@@ -32,7 +33,7 @@ public class CallGraph implements Iterable<Edge> {
 
 		position = srcUnitToEdge.get(e.srcUnit());
 		if (position == null) {
-			srcUnitToEdge.put(e.srcUnit(), e);
+			srcUnitToEdge.put(e.srcStmt(), e);
 			position = dummy;
 		}
 		e.insertAfterByUnit(position);
@@ -102,9 +103,9 @@ public class CallGraph implements Iterable<Edge> {
 
 		if (srcUnitToEdge.get(e.srcUnit()) == e) {
 			if (e.nextByUnit().srcUnit() == e.srcUnit()) {
-				srcUnitToEdge.put(e.srcUnit(), e.nextByUnit());
+				srcUnitToEdge.put(e.srcStmt(), e.nextByUnit());
 			} else {
-				srcUnitToEdge.put(e.srcUnit(), null);
+				srcUnitToEdge.put(e.srcStmt(), null);
 			}
 		}
 
@@ -144,7 +145,7 @@ public class CallGraph implements Iterable<Edge> {
 	 * @param callee
 	 * @return
 	 */
-	public Edge findEdge(Invocation u, MapleMethod callee) {
+	public Edge findEdge(Stmt u, MapleMethod callee) {
 		Edge e = srcUnitToEdge.get(u);
 		while (e.srcUnit() == u && e.kind() != Kind.INVALID) {
 			if (e.tgt() == callee)
@@ -162,15 +163,15 @@ public class CallGraph implements Iterable<Edge> {
 	}
 
 	/** Returns an iterator over all edges that have u as their source unit. */
-	public Iterator<Edge> edgesOutOf(Invocation u) {
+	public Iterator<Edge> edgesOutOf(Stmt u) {
 		return new TargetsOfUnitIterator(u);
 	}
 
 	class TargetsOfUnitIterator implements Iterator<Edge> {
 		private Edge position = null;
-		private Invocation u;
+		private Stmt u;
 
-		TargetsOfUnitIterator(Invocation u) {
+		TargetsOfUnitIterator(Stmt u) {
 			this.u = u;
 			if (u == null)
 				throw new RuntimeException();

@@ -14,6 +14,16 @@ public interface InvocationResolver {
 	
 	Set<MethodNode> resolveVirtualCalls(String owner, String name, String desc, boolean strict);
 	
+	default MethodNode resolveVirtualCallForType(String owner, String name, String desc) {
+		Set<MethodNode> set = resolveVirtualCalls(owner, name, desc, false);
+		
+		if(set.size() != 1) {
+			return null;
+		} else {
+			return set.iterator().next();
+		}
+	}
+	
 	default Set<MethodNode> resolveVirtualCalls(MethodNode m, boolean strict) {
 		return resolveVirtualCalls(m.owner.name, m.name, m.desc, strict);
 	}
