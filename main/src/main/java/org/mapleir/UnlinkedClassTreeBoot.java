@@ -1,14 +1,11 @@
 package org.mapleir;
 
 import java.io.File;
-import java.io.IOException;
 
 import org.mapleir.app.service.ApplicationClassSource;
 import org.mapleir.app.service.ClassTree;
 import org.mapleir.app.service.InstalledRuntimeClassSource;
-import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.tree.ClassNode;
-import org.topdank.byteengineer.commons.asm.ASMFactory;
 import org.topdank.byteengineer.commons.data.JarInfo;
 import org.topdank.byteio.in.SingleJarDownloader;
 
@@ -33,28 +30,12 @@ public class UnlinkedClassTreeBoot {
 	}
 	
 	public static void main(String[] args) throws Exception {
-//		File f = new File("res/allatori6.1san.jar");
-		System.in.read();
-		File f = new File("res/rt.jar");
+		File f = new File("res/allatori6.1san.jar");
+//		File f = new File("res/rt.jar");
 		System.out.println("Preparing to run on " + f.getAbsolutePath());
 		
 		start();
-		SingleJarDownloader<ClassNode> dl = new SingleJarDownloader<>(new ASMFactory<ClassNode>() {
-			@Override
-			public ClassNode create(byte[] bytes, String name) throws IOException {
-//				System.out.println(name);
-				ClassReader cr = new ClassReader(bytes);
-				ClassNode cn = new ClassNode();
-				cr.accept(cn,0);
-				return cn;
-			}
-
-			@Override
-			public byte[] write(ClassNode c) {
-				// TODO Auto-generated method stub
-				return null;
-			}
-		}, new JarInfo(f));
+		SingleJarDownloader<ClassNode> dl = new SingleJarDownloader<>(new JarInfo(f));
 		dl.download();
 		System.out.println("loading: " + conv(stop()) + "ms");
 		String name = f.getName().substring(0, f.getName().length() - 4);
@@ -79,6 +60,8 @@ public class UnlinkedClassTreeBoot {
 // with SKIP_CODE
 // loading: 22652.387614ms
 // loading: 15570.655749ms
+// fixed namedMap()
+//	loading: 2960.928411ms
 	private static double[] testClassTree(ApplicationClassSource app) {
 		long start = System.nanoTime();
 		for(int i=0; i < k; i++) {

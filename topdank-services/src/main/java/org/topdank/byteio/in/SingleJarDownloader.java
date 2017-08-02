@@ -1,6 +1,7 @@
 package org.topdank.byteio.in;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.JarURLConnection;
 import java.net.URL;
 import java.util.Enumeration;
@@ -14,7 +15,8 @@ import org.topdank.byteengineer.commons.asm.ASMFactory;
 import org.topdank.byteengineer.commons.data.JarInfo;
 import org.topdank.byteengineer.commons.data.JarResource;
 import org.topdank.byteengineer.commons.data.LocateableJarContents;
-import org.topdank.byteio.util.IOUtil;
+
+import com.google.common.io.ByteStreams;
 
 public class SingleJarDownloader<C extends ClassNode> extends AbstractJarDownloader<C> {
 
@@ -42,7 +44,7 @@ public class SingleJarDownloader<C extends ClassNode> extends AbstractJarDownloa
 		
 		while (entries.hasMoreElements()) {
 			JarEntry entry = entries.nextElement();
-			byte[] bytes = IOUtil.read(jarFile.getInputStream(entry));
+			byte[] bytes = read(jarFile.getInputStream(entry));
 			if (entry.getName().endsWith(".class")) {
 				C cn = factory.create(bytes, entry.getName());
 				if(!map.containsKey(cn.name)) {
@@ -59,5 +61,9 @@ public class SingleJarDownloader<C extends ClassNode> extends AbstractJarDownloa
 				contents.getResourceContents().add(resource);
 			}
 		}
+	}
+
+	private byte[] read(InputStream inputStream) throws IOException {
+		return ByteStreams.toByteArray(inputStream);
 	}
 }

@@ -1,22 +1,33 @@
 package org.mapleir;
 
 import java.io.*;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Deque;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.jar.JarOutputStream;
 
 import org.mapleir.app.client.SimpleApplicationContext;
 import org.mapleir.app.service.ApplicationClassSource;
 import org.mapleir.app.service.CompleteResolvingJarDumper;
 import org.mapleir.app.service.InstalledRuntimeClassSource;
+import org.mapleir.app.service.LibraryClassSource;
 import org.mapleir.context.AnalysisContext;
 import org.mapleir.context.BasicAnalysisContext;
 import org.mapleir.context.IRCache;
 import org.mapleir.deob.IPass;
 import org.mapleir.deob.PassGroup;
 import org.mapleir.deob.interproc.IRCallTracer;
-import org.mapleir.deob.interproc.callgraph.*;
+import org.mapleir.deob.interproc.callgraph.CallGraphNode;
 import org.mapleir.deob.interproc.callgraph.CallGraphNode.CallReceiverNode;
+import org.mapleir.deob.interproc.callgraph.CallGraphReducer;
+import org.mapleir.deob.interproc.callgraph.CallSiteSensitiveCallGraph;
+import org.mapleir.deob.interproc.callgraph.SensitiveCallGraphBuilder;
+import org.mapleir.deob.interproc.callgraph.SiteSensitiveCallDAG;
 import org.mapleir.deob.interproc.exp2.BlockCallGraph;
 import org.mapleir.deob.passes.ConstantExpressionReorderPass;
 import org.mapleir.deob.passes.DeadCodeEliminationPass;
@@ -31,6 +42,7 @@ import org.mapleir.stdlib.collections.graph.algorithms.TarjanSCC;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
+import org.topdank.byteengineer.commons.data.JarInfo;
 import org.topdank.byteio.in.SingleJarDownloader;
 
 public class Boot {
@@ -50,28 +62,19 @@ public class Boot {
 		return list;
 	}
 	
-//	public static void main(String[] args) {
-//		b2();
-//	}
-//	
-//	static void b2() {
-//		System.out.println(new RuntimeException().getStackTrace()[1]);
-//	}
-	
-	public static void main5(String[] args) {
-//		TarjanSCC<MethodNode> sccComputor = new TarjanSCC<>(graph);
-//
-//		for(MethodNode m : graph.vertices()) {
-//			if(sccComputor.low(m) == -1) {
-//				sccComputor.search(m);
-//			}
-//		}	
+	private static LibraryClassSource rt(ApplicationClassSource app, File rtjar) throws IOException {
+		section("Loading rt.jar from " + rtjar.getAbsolutePath());
+		SingleJarDownloader<ClassNode> dl = new SingleJarDownloader<>(new JarInfo(rtjar));
+		dl.download();
+		
+		return new LibraryClassSource(app, dl.getJarContents().getClassContents());
 	}
 	
 	public static void main(String[] args) throws Exception {
 		sections = new LinkedList<>();
 		logging = true;
 		
+		File rtjar = new File("res/rt.jar");
 		// Load input jar
 		// File f = locateRevFile(135);
 //		File f = new File("res/allatori6.1san.jar");
@@ -82,8 +85,7 @@ public class Boot {
 //		ApplicationClassSource app = new ApplicationClassSource(name, dl.getJarContents().getClassContents());
 		
 		ApplicationClassSource app = new ApplicationClassSource("test", classes(CGExample.class));
-		InstalledRuntimeClassSource jre = new InstalledRuntimeClassSource(app);
-		app.addLibraries(jre);
+		app.addLibraries(rt(app, rtjar), new InstalledRuntimeClassSource(app));
 		section("Initialising context.");
 		
 		AnalysisContext cxt = new BasicAnalysisContext.BasicContextBuilder()
