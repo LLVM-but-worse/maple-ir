@@ -4,11 +4,10 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import org.mapleir.stdlib.collections.graph.dot.DotConfiguration;
 import org.mapleir.stdlib.collections.graph.dot.DotWriter;
-
-import java.util.Set;
 
 public interface FastGraph<N extends FastGraphVertex, E extends FastGraphEdge<N>> {
 
@@ -30,19 +29,29 @@ public interface FastGraph<N extends FastGraphVertex, E extends FastGraphEdge<N>
 	
 	int size();
 	
-	boolean excavate(N n);
+	default boolean excavate(N n) {
+		throw new UnsupportedOperationException();
+	}
 	
-	boolean jam(N pred, N succ, N n);
+	default boolean jam(N pred, N succ, N n) {
+		throw new UnsupportedOperationException();
+	}
 	
-	E clone(E edge, N oldN, N newN);
+	default E clone(E edge, N oldN, N newN) {
+		throw new UnsupportedOperationException();
+	}
 	
-	E invert(E edge);
+	default E invert(E edge) {
+		throw new UnsupportedOperationException();
+	}
 	
 	void replace(N old, N n);
 	
 	void clear();
 	
-	FastGraph<N, E> copy();
+	default FastGraph<N, E> copy() {
+		throw new UnsupportedOperationException();
+	}
 	
 	// FastGraph<N, E> inducedSubgraph(Collection<N> vertices);
 	

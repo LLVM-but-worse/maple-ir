@@ -21,6 +21,10 @@ public class NewArrayExpr extends Expr {
 			overwrite(bounds[i], i);
 		}
 		this.type = type;
+		
+		if(type.getSort() == Type.ARRAY) {
+			throw new RuntimeException(type.toString());
+		}
 	}
 
 	public Expr[] getBounds() {
