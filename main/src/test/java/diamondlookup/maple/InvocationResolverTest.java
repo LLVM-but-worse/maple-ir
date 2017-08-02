@@ -6,9 +6,11 @@ import java.util.Set;
 
 import com.google.common.collect.Sets;
 import diamondlookup.*;
+import org.hamcrest.CoreMatchers;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.mapleir.InvocationResolver2;
 import org.mapleir.SimpleInvocationResolver;
 import org.mapleir.app.service.ApplicationClassSource;
 import org.mapleir.app.service.InstalledRuntimeClassSource;
@@ -25,6 +27,9 @@ import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
 
 import static junit.framework.Assert.assertEquals;
+import static junit.framework.Assert.assertTrue;
+import static org.hamcrest.CoreMatchers.hasItem;
+import static org.junit.Assert.assertThat;
 
 public class InvocationResolverTest {
 
@@ -54,6 +59,10 @@ public class InvocationResolverTest {
 
 	@Test
 	public void testResolveVirtualCalls() {
+		ClassNode cn2 = app.findClassNode(name(EmptySpeakImplChild.class));
+		InvocationResolver2 resolver2 = new InvocationResolver2(app);
+		System.out.println(resolver2.resolveVirtualCall("speak", "()Ljava/lang/String;", cn2));
+
 		ClassNode cn = app.findClassNode(name(DiamondLookupTest.class));
 		
 		for(MethodNode m : cn.methods) {
@@ -75,13 +84,14 @@ public class InvocationResolverTest {
 										correctResolution = ISpeak2.class;
 										break;
 									case "diamondlookup/EmptySpeakImplChild2":
-										correctResolution = ISpeak3.class;
+									case "diamondlookup/EmptySpeakImplChild3":
+										correctResolution = EmptySpeakImplChild2.class;
 										break;
 									default:
 											throw new IllegalArgumentException();
 								}
-								Set<MethodNode> resolutionTargets = Sets.newHashSet(app.findClassNode(name(correctResolution)).getMethod("speak", "()Ljava/lang/String;", false));
-								assertEquals(arg1.resolveTargets(resolver), resolutionTargets);
+								System.out.println("checking " + arg1.getOwner());
+								assertThat(arg1.resolveTargets(resolver2), hasItem(app.findClassNode(name(correctResolution)).getMethod("speak", "()Ljava/lang/String;", false)));
 							}
 						}
 					}
