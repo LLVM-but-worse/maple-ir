@@ -251,7 +251,7 @@ public class BoissinotDestructor {
 		FastBlockGraph dominatorTree = new FastBlockGraph();
 		resolver.domc.makeTree(dominatorTree);
 		dominatorTree.getEntries().add(dummyHead);
-		return new SimpleDfs<>(dominatorTree, dummyHead, SimpleDfs.PRE | SimpleDfs.POST);
+		return new SimpleDfs<>(dominatorTree, dummyHead, SimpleDfs.PRE | SimpleDfs.TOPO);
 	}
 
 	private SSADefUseMap createDuChains() {
@@ -288,10 +288,9 @@ public class BoissinotDestructor {
 	}
 
 	private void computeValueInterference() {
-		List<BasicBlock> postorder = dom_dfs.getPostOrder();
+		List<BasicBlock> topoorder = dom_dfs.getTopoOrder();
 		
-		for (int i = postorder.size() - 1; i >= 0; i--) {
-			BasicBlock bl = postorder.get(i);
+		for (BasicBlock bl : topoorder) {
 			for (Stmt stmt : bl) {
 				int opcode = stmt.getOpcode();
 				if (opcode == Opcode.LOCAL_STORE) {

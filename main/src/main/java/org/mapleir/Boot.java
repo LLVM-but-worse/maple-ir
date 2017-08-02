@@ -162,10 +162,10 @@ public class Boot {
 		CallGraphReducer sccEliminator = new CallGraphReducer(cxt);
 		SiteSensitiveCallDAG reducedCallGraph = sccEliminator.eliminateSCCs(cg);
 		SiteSensitiveCallDAG.MultiCallGraphNode entrySCC = reducedCallGraph.findSCCOf(cg.getNode(cxt.getApplicationContext().getEntryPoints().iterator().next()));
-		SimpleDfs<SiteSensitiveCallDAG.MultiCallGraphNode> dfs = new SimpleDfs<>(reducedCallGraph, entrySCC, SimpleDfs.POST);
+		SimpleDfs<SiteSensitiveCallDAG.MultiCallGraphNode> dfs = new SimpleDfs<>(reducedCallGraph, entrySCC, SimpleDfs.TOPO);
 		System.out.println("\nScc DAG toposort:");
-		for (ListIterator it = dfs.getPostOrder().listIterator(dfs.getPostOrder().size()); it.hasPrevious();) {
-			System.out.println(it.previous());
+		for (SiteSensitiveCallDAG.MultiCallGraphNode scc : dfs.getTopoOrder()) {
+			System.out.println(scc);
 		}
 
 		for(MethodNode m : cxt.getApplicationContext().getEntryPoints()) {
