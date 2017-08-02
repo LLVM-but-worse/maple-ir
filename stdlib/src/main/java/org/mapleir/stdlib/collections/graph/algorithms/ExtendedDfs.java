@@ -12,7 +12,7 @@ public class ExtendedDfs<N extends FastGraphVertex> implements DepthFirstSearch<
 	public static final int WHITE = 0, GREY = 1, BLACK = 2;
 	public static final int TREE = WHITE, BACK = GREY, FOR_CROSS = BLACK;
 	public static final int EDGES = 0x1, PARENTS = 0x2, PRE = 0x4, POST = 0x8, REVERSE = 0x10,
-							COLOUR_VISITOR = 0x20;
+							COLOUR_VISITOR = 0x20, TOPO = 0x40;
 	
 	private final int opt;
 	private Collection<N> mask;
@@ -22,7 +22,8 @@ public class ExtendedDfs<N extends FastGraphVertex> implements DepthFirstSearch<
 	private final Map<N, N> parents;
 	private final List<N> preorder;
 	private final List<N> postorder;
-	
+	private final List<N> topoorder;
+
 	public ExtendedDfs(FastDirectedGraph<N, ? extends FastGraphEdge<N>> graph, int opt) {
 		this.opt = opt;
 		this.graph = graph;
@@ -34,7 +35,8 @@ public class ExtendedDfs<N extends FastGraphVertex> implements DepthFirstSearch<
 		parents = opt(PARENTS) ? new HashMap<>() : null;
 		preorder = opt(PRE) ? new ArrayList<>() : null;
 		postorder = opt(POST) ? new ArrayList<>() : null;
-		
+		topoorder = opt(TOPO) ? new LinkedList<>() : null;
+
 		if(opt(EDGES)) {
 			edges = new HashMap<>();
 			edges.put(TREE, new HashSet<>());
@@ -110,7 +112,8 @@ public class ExtendedDfs<N extends FastGraphVertex> implements DepthFirstSearch<
 		}
 		
 		if(opt(POST)) postorder.add(b);
-		
+		if(opt(TOPO)) topoorder.add(0, b);
+
 		colours.put(b, BLACK);
 		if(cvisit) coloured(b, BLACK);
 	}
@@ -130,5 +133,10 @@ public class ExtendedDfs<N extends FastGraphVertex> implements DepthFirstSearch<
 	@Override
 	public List<N> getPostOrder() {
 		return postorder;
+	}
+
+	@Override
+	public List<N> getTopoOrder() {
+		return topoorder;
 	}
 }

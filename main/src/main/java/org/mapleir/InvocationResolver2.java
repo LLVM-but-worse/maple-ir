@@ -10,6 +10,7 @@ import java.util.stream.Collectors;
 import org.mapleir.app.service.ApplicationClassSource;
 import org.mapleir.app.service.ClassTree;
 import org.mapleir.app.service.InvocationResolver;
+import org.mapleir.stdlib.collections.graph.algorithms.SimpleDfs;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.FieldNode;
 import org.objectweb.asm.tree.MethodNode;
@@ -39,7 +40,6 @@ public class InvocationResolver2 implements InvocationResolver {
 	// receiver should be equal to or a subclass of the method's owner.
 	public MethodNode resolveVirtualCall(String name, String desc, ClassNode receiver) {
 		List<ClassNode> topoorder = classTree.getAllParents(receiver);
-		Collections.reverse(topoorder);
 
 		// sanity check parent chain back up to Object before anything else.
 		int idx = 0;
