@@ -7,4 +7,6 @@ public interface DepthFirstSearch<N> {
 	List<N> getPreOrder();
 	
 	List<N> getPostOrder();
+
+	List<N> getTopoOrder();
 }

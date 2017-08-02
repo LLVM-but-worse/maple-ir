@@ -66,12 +66,12 @@ public class ClassTree extends FastDirectedGraph<ClassNode, InheritanceEdge> {
 		return set;
 	}
 
-	// returns a postorder traversal of the graph starting from cn.
+	// returns a topoorder (supers first) traversal of the graph starting from cn.
 	public List<ClassNode> getAllParents(ClassNode cn) {
 		if(!containsVertex(cn)) {
 			return new ArrayList<>();
 		}
-		return SimpleDfs.postorder(this, cn, false);
+		return SimpleDfs.topoorder(this, cn, false);
 	}
 
 	// returns a postorder traversal of the graph starting from cn following edges in opposite direction.

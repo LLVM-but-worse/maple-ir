@@ -87,9 +87,8 @@ public class ControlFlowGraphDumper {
 		Map<BlockBundle, List<BlockBundle>> bunches = new HashMap<>();
 		
 		// Build bundles
-		List<BasicBlock> postorder = new SimpleDfs<>(cfg, entry, SimpleDfs.POST).getPostOrder();
-		for (int i = postorder.size() - 1; i >= 0; i--) {
-			BasicBlock b = postorder.get(i);
+		List<BasicBlock> topoorder = new SimpleDfs<>(cfg, entry, SimpleDfs.TOPO).getTopoOrder();
+		for (BasicBlock b : topoorder) {
 			if (bundles.containsKey(b)) // Already in a bundle
 				continue;
 			
@@ -147,7 +146,7 @@ public class ControlFlowGraphDumper {
 		BundleGraph bundleGraph = new BundleGraph();
 		BlockBundle entryBundle = bundles.get(entry);
 		bundleGraph.addVertex(entryBundle);
-		for (BasicBlock b : postorder) {
+		for (BasicBlock b : topoorder) {
 			for (FlowEdge<BasicBlock> e : cfg.getEdges(b)) {
 				if (e instanceof ImmediateEdge)
 					continue;
