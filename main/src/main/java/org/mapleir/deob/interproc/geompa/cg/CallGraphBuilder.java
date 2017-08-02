@@ -65,11 +65,11 @@ public final class CallGraphBuilder {
 			if (receivers != null) {
 				for (Iterator<Expr> receiverIt = receivers.iterator(); receiverIt.hasNext();) {
 					final Expr receiver = receiverIt.next();
-					final PointsToSet p2set = pa.reachingObjects(receiver);
-					for (Iterator<Type> typeIt = p2set.possibleTypes().iterator(); typeIt.hasNext();) {
-						final Type type = typeIt.next();
-						ofcgb.addType(receiver, momc.context(), type, null);
-					}
+					// final PointsToSet p2set = pa.reachingObjects(receiver);
+					// for (Iterator<Type> typeIt = p2set.possibleTypes().iterator(); typeIt.hasNext();) {
+					// 	final Type type = typeIt.next();
+					// 	ofcgb.addType(receiver, momc.context(), type, null);
+					// }
 				}
 			}
 //			List<Local> bases = ofcgb.methodToInvokeArgs().get(momc.method());
@@ -128,6 +128,6 @@ public final class CallGraphBuilder {
 //					}
 //				}
 //			}
-//		}
+		}
 	}
 }

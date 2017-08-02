@@ -2,7 +2,10 @@ package diamondlookup.maple;
 
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.Set;
 
+import com.google.common.collect.Sets;
+import diamondlookup.*;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -21,11 +24,7 @@ import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
 
-import diamondlookup.DiamondLookupTest;
-import diamondlookup.EmptySpeakImpl;
-import diamondlookup.EmptySpeakImplChild;
-import diamondlookup.ISpeak;
-import diamondlookup.ISpeak2;
+import static junit.framework.Assert.assertEquals;
 
 public class InvocationResolverTest {
 
@@ -68,8 +67,21 @@ public class InvocationResolverTest {
 							if(ie.getOwner().equals("org/junit/Assert") && ie.getName().equals("assertEquals") && ie.getDesc().equals("(Ljava/lang/Object;Ljava/lang/Object;)V")) {
 								InvocationExpr arg1 = (InvocationExpr) ie.getArgumentExprs()[0];
 								String arg2 = (String) ((ConstantExpr) ie.getArgumentExprs()[1]).getConstant();
-								
-								System.out.println(arg1.resolveTargets(resolver));
+
+								Class correctResolution;
+								switch(arg1.getOwner()) {
+									case "diamondlookup/EmptySpeakImpl":
+									case "diamondlookup/EmptySpeakImplChild":
+										correctResolution = ISpeak2.class;
+										break;
+									case "diamondlookup/EmptySpeakImplChild2":
+										correctResolution = ISpeak3.class;
+										break;
+									default:
+											throw new IllegalArgumentException();
+								}
+								Set<MethodNode> resolutionTargets = Sets.newHashSet(app.findClassNode(name(correctResolution)).getMethod("speak", "()Ljava/lang/String;", false));
+								assertEquals(arg1.resolveTargets(resolver), resolutionTargets);
 							}
 						}
 					}
