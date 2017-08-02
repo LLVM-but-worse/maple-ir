@@ -26,6 +26,11 @@
     <orderEntry type="module" module-name="stdlib" />
     <orderEntry type="module" module-name="topdank-services" />
     <orderEntry type="module" module-name="gson" />
+    <orderEntry type="library" name="Maven: com.google.guava:guava:22.0" level="project" />
+    <orderEntry type="library" name="Maven: com.google.code.findbugs:jsr305:1.3.9" level="project" />
+    <orderEntry type="library" name="Maven: com.google.errorprone:error_prone_annotations:2.0.18" level="project" />
+    <orderEntry type="library" name="Maven: com.google.j2objc:j2objc-annotations:1.1" level="project" />
+    <orderEntry type="library" name="Maven: org.codehaus.mojo:animal-sniffer-annotations:1.14" level="project" />
     <orderEntry type="library" scope="TEST" name="Maven: junit:junit:3.8.1" level="project" />
   </component>
 </module>
