@@ -1,17 +1,17 @@
 package org.mapleir.app.service;
 
-import org.mapleir.stdlib.collections.ClassHelper;
-import org.objectweb.asm.tree.ClassNode;
-
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+
+import org.mapleir.stdlib.collections.ClassHelper;
+import org.objectweb.asm.tree.ClassNode;
 
 public class LibraryClassSource extends ClassSource {
 
 	protected final ApplicationClassSource parent;
 	
-	public LibraryClassSource(ApplicationClassSource parent) {
+	protected LibraryClassSource(ApplicationClassSource parent) {
 		this(parent, new HashMap<>());
 	}
 		
@@ -27,6 +27,7 @@ public class LibraryClassSource extends ClassSource {
 	
 	/* public lookup method, polls parent first (which can
 	 * call it's children to look for the */
+	@Override
 	public LocateableClassNode findClass(String name) {
 		if(name == null) {
 			return null;

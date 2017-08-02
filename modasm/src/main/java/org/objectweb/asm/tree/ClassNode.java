@@ -50,6 +50,8 @@ import org.objectweb.asm.TypePath;
  */
 public class ClassNode extends ClassVisitor implements FastGraphVertex {
 
+	public boolean isInitialised;
+	
     /**
      * The class version.
      */
@@ -318,6 +320,7 @@ public class ClassNode extends ClassVisitor implements FastGraphVertex {
 
     @Override
     public void visitEnd() {
+    	isInitialised = true;
     }
 
     // ------------------------------------------------------------------------
