@@ -70,7 +70,7 @@ public class InvocationResolverTest {
 								InvocationExpr arg1 = (InvocationExpr) ie.getArgumentExprs()[0];
 								String arg2 = (String) ((ConstantExpr) ie.getArgumentExprs()[1]).getConstant();
 
-//								Class correctResolution;
+								System.out.println("Testing " + arg2);
 								List<String> callResults = arg1.resolveTargets(resolver).stream().map(mn -> mn.owner.name.substring(mn.owner.name.lastIndexOf('/') + 1) + " Speaking!").collect(Collectors.toList());
 								System.out.println(callResults);
 								assertThat(callResults, hasItem(arg2));
