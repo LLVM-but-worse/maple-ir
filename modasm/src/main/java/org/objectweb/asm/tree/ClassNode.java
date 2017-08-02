@@ -444,4 +444,12 @@ public class ClassNode extends ClassVisitor implements FastGraphVertex {
         return numericId;
     }
     // maple-ir end //
+    
+    public boolean isInterface() {
+    	return Modifier.isInterface(access);
+    }
+    
+    public boolean isAbstract() {
+    	return Modifier.isAbstract(access);
+    }
 }

@@ -4,7 +4,6 @@ import java.util.*;
 
 import org.mapleir.app.service.ClassTree.InheritanceEdge;
 import org.mapleir.stdlib.collections.graph.FastDirectedGraph;
-import org.mapleir.stdlib.collections.graph.FastGraph;
 import org.mapleir.stdlib.collections.graph.FastGraphEdge;
 import org.mapleir.stdlib.collections.graph.algorithms.SimpleDfs;
 import org.mapleir.stdlib.util.TabbedStringWriter;
@@ -15,6 +14,9 @@ import org.objectweb.asm.tree.ClassNode;
  * The graph follows the convention of anti-arborescence, i.e. edges point towards the root (Object).
  * @see <a href=https://en.wikipedia.org/wiki/Tree_(graph_theory)>Wikipedia: Tree</a>
  */
+// nodes point to their super interfaces/classes
+// edge = (c, super)
+// so a dfs goes through edges towards the root
 public class ClassTree extends FastDirectedGraph<ClassNode, InheritanceEdge> {
 	private final ApplicationClassSource source;
 	private final ClassNode rootNode;
