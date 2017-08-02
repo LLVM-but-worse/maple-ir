@@ -1,6 +1,6 @@
 package org.mapleir.deob.interproc.geompa;
 
-import org.mapleir.ir.locals.Local;
+import org.mapleir.ir.code.expr.VarExpr;
 import org.objectweb.asm.tree.FieldNode;
 
 public interface PointsToAnalysis {
@@ -32,10 +32,10 @@ public interface PointsToAnalysis {
     public static final String PHI_NODE = "PHI_NODE";
     
     /** Returns the set of objects pointed to by variable l. */
-    public AbstractPointsToSet reachingObjects( Local l );
+    public AbstractPointsToSet reachingObjects( VarExpr l );
 
     /** Returns the set of objects pointed to by variable l in context c. */
-    public AbstractPointsToSet reachingObjects( Context c, Local l );
+    public AbstractPointsToSet reachingObjects( Context c, VarExpr l );
 
     /** Returns the set of objects pointed to by static field f. */
     public AbstractPointsToSet reachingObjects( FieldNode f );
@@ -46,11 +46,11 @@ public interface PointsToAnalysis {
 
     /** Returns the set of objects pointed to by instance field f
      * of the objects pointed to by l. */
-    public AbstractPointsToSet reachingObjects( Local l, FieldNode f );
+    public AbstractPointsToSet reachingObjects( VarExpr l, FieldNode f );
 
     /** Returns the set of objects pointed to by instance field f
      * of the objects pointed to by l in context c. */
-    public AbstractPointsToSet reachingObjects( Context c, Local l, FieldNode f );
+    public AbstractPointsToSet reachingObjects( Context c, VarExpr l, FieldNode f );
 
     /** Returns the set of objects pointed to by elements of the arrays
      * in the AbstractPointsToSet s. */

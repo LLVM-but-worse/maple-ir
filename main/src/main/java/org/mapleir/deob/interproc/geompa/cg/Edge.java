@@ -3,6 +3,8 @@ package org.mapleir.deob.interproc.geompa.cg;
 import org.mapleir.deob.interproc.geompa.Context;
 import org.mapleir.deob.interproc.geompa.MapleMethod;
 import org.mapleir.deob.interproc.geompa.MapleMethodOrMethodContext;
+import org.mapleir.ir.code.CodeUnit;
+import org.mapleir.ir.code.Stmt;
 import org.mapleir.ir.code.expr.invoke.InitialisedObjectExpr;
 import org.mapleir.ir.code.expr.invoke.Invocation;
 import org.mapleir.ir.code.expr.invoke.InvocationExpr;
@@ -17,7 +19,7 @@ public final class Edge {
 	/**
 	 * The unit at which the call occurs; may be null for calls not occurring at a specific statement (eg. calls in native code)
 	 */
-	private Invocation srcUnit;
+	private CodeUnit srcUnit;
 	/** The target method of the call edge. */
 	private MapleMethodOrMethodContext tgt;
 	/**
@@ -32,7 +34,7 @@ public final class Edge {
 	private Edge nextByTgt = this;
 	private Edge prevByTgt = this;
 
-	public Edge(MapleMethodOrMethodContext src, Invocation srcUnit, MapleMethodOrMethodContext tgt, Kind kind) {
+	public Edge(MapleMethodOrMethodContext src, CodeUnit srcUnit, MapleMethodOrMethodContext tgt, Kind kind) {
 		this.src = src;
 		this.srcUnit = srcUnit;
 		this.tgt = tgt;
@@ -65,7 +67,7 @@ public final class Edge {
 		} else if(e instanceof InitialisedObjectExpr) {
 			return Kind.SPECIAL;
 		} else {
-			throw new RuntimeException(e.toString());
+			throw new RuntimeException();
 		}
 	}
 
@@ -87,12 +89,12 @@ public final class Edge {
 		return src;
 	}
 
-	public Invocation srcUnit() {
+	public CodeUnit srcUnit() {
 		return srcUnit;
 	}
 
-	public Invocation srcStmt() {
-		return srcUnit;
+	public Stmt srcStmt() {
+		return (Stmt)srcUnit;
 	}
 
 
