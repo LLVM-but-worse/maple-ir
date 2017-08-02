@@ -1,10 +1,6 @@
 package org.mapleir;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import org.mapleir.app.service.ApplicationClassSource;
@@ -64,7 +60,11 @@ public class InvocationResolver2 implements InvocationResolver {
 
 	@Override
 	public Set<MethodNode> resolveVirtualCalls(String owner, String name, String desc, @Deprecated  boolean strict) {
-		return resolveVirtualCalls(name, desc, classTree.getAllChildren(app.findClassNode(owner)));
+		ClassNode ownerCn = app.findClassNode(owner);
+		Set<MethodNode> result = new HashSet<>();
+		result.add(resolveVirtualCall(name, desc, ownerCn));
+		classTree.getAllChildren(ownerCn).stream().map(childCn -> childCn.getMethod(name, desc, false)).filter(Objects::nonNull).forEach(result::add);
+		return result;
 	}
 
 	@Override
