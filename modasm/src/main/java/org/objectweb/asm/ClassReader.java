@@ -103,6 +103,8 @@ public class ClassReader {
      * ClassWriter which degrades performances quite a lot).
      */
     public static final int EXPAND_FRAMES = 8;
+    
+    public static final int ONLY_HEADER = 0x10;
 
     /**
      * The class to be parsed. <i>The content of this array must not be
@@ -546,6 +548,16 @@ public class ClassReader {
         for (int i = 0; i < interfaces.length; ++i) {
             interfaces[i] = readClass(u, c);
             u += 2;
+        }
+        
+        if((flags & ONLY_HEADER) != 0) {
+        	/* returning here means that cv.visitEnd is not called.
+        	 * in the case of ClassNode, isInitialised is not set to
+        	 * true. */
+        	//classVisitor.visit(readInt(items[1] - 7), access, name, /*nosig*/null,
+            //        superClass, interfaces);
+        	//return;
+        	throw new UnsupportedOperationException("no");
         }
 
         // reads the class attributes
@@ -1871,7 +1883,7 @@ public class ClassReader {
                 return readAnnotationValues(v - 2, buf, false,
                         av.visitArray(name));
             }
-            switch (this.b[v++] & 0xFF) {
+            switch (b[v++] & 0xFF) {
             case 'B':
                 byte[] bv = new byte[size];
                 for (i = 0; i < size; i++) {
