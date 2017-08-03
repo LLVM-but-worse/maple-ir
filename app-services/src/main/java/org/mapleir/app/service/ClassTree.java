@@ -150,7 +150,7 @@ public class ClassTree extends FastDirectedGraph<ClassNode, InheritanceEdge> {
 
 		for (String s : cn.interfaces) {
 			ClassNode iface = requestClass0(s, cn.name);
-			addEdge(cn, new ImplementsEdge(cn, iface));
+			super.addEdge(cn, new ImplementsEdge(cn, iface));
 		}
 		return true;
 	}
