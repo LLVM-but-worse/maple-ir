@@ -31,7 +31,7 @@ public class InvocationResolverTest4 {
 		
 		app = new ApplicationClassSource("diamond-lookup-testapp", classes);
 		app.addLibraries(new InstalledRuntimeClassSource(app));
-		app.getClassTree();
+		System.out.println(app.getClassTree());
 		
 		resolver = new InvocationResolver4(app);
 	}
