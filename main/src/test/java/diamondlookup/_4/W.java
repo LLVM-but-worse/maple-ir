@@ -1,7 +1,9 @@
 package diamondlookup._4;
 
-public abstract class W implements L2, L3 {
+public class W implements L2, L3 {
 
 	@Override
-	public abstract String speak();
+	public String speak() {
+		return "W:hi";
+	}
 }

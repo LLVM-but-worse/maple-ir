@@ -38,14 +38,15 @@ public class TarjanSCC <N extends FastGraphVertex> {
 	}
 	
 	public void search(N n) {
+		System.out.println("x: " + n);
 		index.put(n, cur);
 		low.put(n, cur);
 		cur++;
 		
 		stack.push(n);
 		
-		for(FastGraphEdge<N> e : filter(graph.getEdges(n))) {
-			N s = e.dst;
+		for(FastGraphEdge<N> e : filter(getEdges(n))) {
+			N s = dst(e);
 			if(low.containsKey(s)) {
 				if(index.get(s) < index.get(n) && stack.contains(s)) {
 					low.put(n, Math.min(low.get(n), index.get(s)));
@@ -65,11 +66,23 @@ public class TarjanSCC <N extends FastGraphVertex> {
 				c.add(w);
 			} while (w != n);
 			
-			ExtendedDfs<N> dfs = new ExtendedDfs<>(graph, ExtendedDfs.TOPO).setMask(c).run(n);
-			comps.add(0, dfs.getTopoOrder());
+			comps.add(0, formComponent(c, n));
 		}
 	}
 	
+	protected N dst(FastGraphEdge<N> e) {
+		return e.dst;
+	}
+
+	protected List<N> formComponent(Set<N> s, N found) {
+		ExtendedDfs<N> dfs = new ExtendedDfs<>(graph, ExtendedDfs.TOPO).setMask(s).run(found);
+		return dfs.getTopoOrder();
+	}
+	
+	protected Set<? extends FastGraphEdge<N>> getEdges(N n) {
+		return graph.getEdges(n);
+	}
+
 	protected Iterable<? extends FastGraphEdge<N>> filter(Set<? extends FastGraphEdge<N>> edges) {
 		return edges;
 	}
