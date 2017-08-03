@@ -1,10 +1,10 @@
 package org.mapleir.app.service;
 
-import org.objectweb.asm.ClassReader;
-import org.objectweb.asm.tree.ClassNode;
-
 import java.io.IOException;
 import java.util.HashSet;
+
+import org.objectweb.asm.ClassReader;
+import org.objectweb.asm.tree.ClassNode;
 
 public class InstalledRuntimeClassSource extends LibraryClassSource {
 
@@ -61,9 +61,15 @@ public class InstalledRuntimeClassSource extends LibraryClassSource {
 			/* cache it. */
 			nodeMap.put(cn.name, cn);
 			
-			ClassTree tree = parent.getClassTree();
-			if(!tree.containsVertex(cn)) {
-				tree.addVertex(cn);
+			ClassTree tree = parent._getClassTree();
+			if(tree == null) {
+				if(!cn.name.equals("java/lang/Object")) {
+					throw new IllegalStateException("Only Object may be loaded during tree initialisation.");
+				}
+			} else {
+				if(!tree.containsVertex(cn)) {
+					tree.addVertex(cn);
+				}
 			}
 			
 			LocateableClassNode node = new LocateableClassNode(this, cn);

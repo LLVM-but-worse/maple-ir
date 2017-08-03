@@ -19,19 +19,22 @@ import org.objectweb.asm.tree.ClassNode;
 // so a dfs goes through edges towards the root
 public class ClassTree extends FastDirectedGraph<ClassNode, InheritanceEdge> {
 	private final ApplicationClassSource source;
-	private final ClassNode rootNode;
+	private ClassNode rootNode;
 //	private final Set<ClassNode> unsupported;
 	
 	public ClassTree(ApplicationClassSource source) {
 		this.source = source;
-		addVertex(rootNode = findClass("java/lang/Object"));
+		init();
+	}
+
+	protected void init() {
+		rootNode = findClass("java/lang/Object");
+		addVertex(rootNode);
 //		unsupported = new HashSet<>();
 
 		for (ClassNode node : source.iterateWithLibraries()) {
 			addVertex(node);
 		}
-
-		new Exception().printStackTrace();
 	}
 
 	public ClassNode getRootNode() {
@@ -147,7 +150,7 @@ public class ClassTree extends FastDirectedGraph<ClassNode, InheritanceEdge> {
 
 		for (String s : cn.interfaces) {
 			ClassNode iface = requestClass0(s, cn.name);
-			super.addEdge(cn, new ImplementsEdge(cn, iface));
+			addEdge(cn, new ImplementsEdge(cn, iface));
 		}
 		return true;
 	}
