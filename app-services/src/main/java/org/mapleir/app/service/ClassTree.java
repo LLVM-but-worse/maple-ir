@@ -24,13 +24,13 @@ public class ClassTree extends FastDirectedGraph<ClassNode, InheritanceEdge> {
 	
 	public ClassTree(ApplicationClassSource source) {
 		this.source = source;
-		rootNode = findClass("java/lang/Object");
+		addVertex(rootNode = findClass("java/lang/Object"));
 //		unsupported = new HashSet<>();
-		
+
 		for (ClassNode node : source.iterateWithLibraries()) {
 			addVertex(node);
 		}
-		
+
 		new Exception().printStackTrace();
 	}
 
@@ -134,38 +134,47 @@ public class ClassTree extends FastDirectedGraph<ClassNode, InheritanceEdge> {
 	public boolean addVertex(ClassNode cn) {
 		if (!super.addVertex(cn))
 			return false;
-		
+
 		if(cn.name.equals("java/lang/Object")) {
 			System.out.println("add " + cn + this.hashCode());
-			
-			if(k) {
-				throw new RuntimeException();
-			}
-			
-			k = true;
+			System.out.println(cn.superName);
+
+			return false;
 		}
-		
+
 		ClassNode sup = cn.superName != null ? requestClass0(cn.superName, cn.name) : rootNode;
 		super.addEdge(cn, new ExtendsEdge(cn, sup));
-		
+
 		for (String s : cn.interfaces) {
 			ClassNode iface = requestClass0(s, cn.name);
 			super.addEdge(cn, new ImplementsEdge(cn, iface));
 		}
 		return true;
 	}
-	
+
+	@Override
+	public void addEdge(ClassNode v, InheritanceEdge e) {
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
+	public void removeEdge(ClassNode v, InheritanceEdge e) {
+		throw new UnsupportedOperationException();
+	}
+
 	@Override
 	public Set<InheritanceEdge> getEdges(ClassNode cn) {
 		if(!containsVertex(cn)) {
+			System.err.println("warn: implicit add of " + cn);
 			addVertex(cn);
 		}
 		return super.getEdges(cn);
 	}
-	
+
 	@Override
 	public Set<InheritanceEdge> getReverseEdges(ClassNode cn) {
 		if(!containsVertex(cn)) {
+			System.err.println("warn(2): implicit add of " + cn);
 			addVertex(cn);
 		}
 		return super.getReverseEdges(cn);
@@ -202,6 +211,17 @@ public class ClassTree extends FastDirectedGraph<ClassNode, InheritanceEdge> {
 		public String toString() {
 			return String.format("#%s inherits #%s", src.getId(), dst.getId());
 		}
+
+		@Override
+		public int compareTo(FastGraphEdge<ClassNode> arg0) {
+			if (!(arg0 instanceof InheritanceEdge))
+				throw new IllegalArgumentException();
+			if (this.equals(arg0))
+				return 0;
+			else
+				return (int) Math.signum(2 * Integer.compare(src.getNumericId(), arg0.src.getNumericId())
+										   + Integer.compare(dst.getNumericId(), arg0.dst.getNumericId()));
+		}
 	}
 
 	public static class ExtendsEdge extends InheritanceEdge {
@@ -229,6 +249,9 @@ public class ClassTree extends FastDirectedGraph<ClassNode, InheritanceEdge> {
 	// Ensure extends edges are traversed first.
 	@Override
 	public Set<InheritanceEdge> createSet() {
-		return new TreeSet<>((e1, e2) -> -Boolean.compare(!(e1 instanceof ExtendsEdge), !(e2 instanceof ExtendsEdge)));
+		return new TreeSet<>((e1, e2) -> {
+			int result = -Boolean.compare(!(e1 instanceof ExtendsEdge), !(e2 instanceof ExtendsEdge));
+			return result == 0 ? e1.compareTo(e2) : result;
+		});
 	}
 }
