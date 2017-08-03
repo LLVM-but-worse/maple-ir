@@ -19,24 +19,18 @@ import org.objectweb.asm.tree.ClassNode;
 // so a dfs goes through edges towards the root
 public class ClassTree extends FastDirectedGraph<ClassNode, InheritanceEdge> {
 	private final ApplicationClassSource source;
-	private ClassNode rootNode;
-//	private final Set<ClassNode> unsupported;
+	private final ClassNode rootNode;
 	
 	public ClassTree(ApplicationClassSource source) {
 		this.source = source;
-		init();
-	}
-
-	protected void init() {
 		rootNode = findClass("java/lang/Object");
 		addVertex(rootNode);
-//		unsupported = new HashSet<>();
 
 		for (ClassNode node : source.iterateWithLibraries()) {
 			addVertex(node);
 		}
 	}
-
+	
 	public ClassNode getRootNode() {
 		return rootNode;
 	}
@@ -131,27 +125,28 @@ public class ClassTree extends FastDirectedGraph<ClassNode, InheritanceEdge> {
 		}
 	}
 	
-	boolean k = false;
-	
 	@Override
 	public boolean addVertex(ClassNode cn) {
 		if (!super.addVertex(cn))
 			return false;
 
-		if(cn.name.equals("java/lang/Object")) {
+		/*if(cn.name.equals("java/lang/Object")) {
 			System.out.println("add " + cn + this.hashCode());
 			System.out.println(cn.superName);
 
 			return false;
-		}
+		}*/
 
-		ClassNode sup = cn.superName != null ? requestClass0(cn.superName, cn.name) : rootNode;
-		super.addEdge(cn, new ExtendsEdge(cn, sup));
+		if(cn != rootNode) {
+			ClassNode sup = cn.superName != null ? requestClass0(cn.superName, cn.name) : rootNode;
+			super.addEdge(cn, new ExtendsEdge(cn, sup));
 
-		for (String s : cn.interfaces) {
-			ClassNode iface = requestClass0(s, cn.name);
-			super.addEdge(cn, new ImplementsEdge(cn, iface));
+			for (String s : cn.interfaces) {
+				ClassNode iface = requestClass0(s, cn.name);
+				super.addEdge(cn, new ImplementsEdge(cn, iface));
+			}	
 		}
+		
 		return true;
 	}
 
