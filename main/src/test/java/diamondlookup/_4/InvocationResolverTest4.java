@@ -7,6 +7,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mapleir.app.service.ApplicationClassSource;
+import org.mapleir.app.service.ClassTree.InheritanceEdge;
 import org.mapleir.app.service.InstalledRuntimeClassSource;
 import org.mapleir.res.InvocationResolver4;
 import org.objectweb.asm.ClassReader;
@@ -39,8 +40,17 @@ public class InvocationResolverTest4 {
 	@Test
 	public void chaintests() {
 		System.out.println(app.findClassNode("java/lang/Object") == app.getClassTree().getRootNode());
-//		for(ClassNode c : app.getClassTree().vertices()) {
-//			System.out.println(c);
+		System.out.println(app.getClassTree());
+		for(ClassNode c : app.getClassTree().vertices()) {
+			System.out.println(c);
+			for(InheritanceEdge e : app.getClassTree().getReverseEdges(c)) {
+//				if(e.dst.name.equals("java/lang/Object")) {
+//					System.out.println(e + " " + (e.dst == app.getClassTree().getRootNode()));
+//				}
+			}
+		}
+		
+		System.out.println(app.getClassTree().getAllChildren(app.getClassTree().getRootNode()));
 //			
 //			for(InheritanceEdge e : app.getClassTree().getEdges(c)) {
 //				System.out.println(e);
