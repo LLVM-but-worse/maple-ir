@@ -12,7 +12,8 @@ public class DiamondLookupTest {
 		assertEquals(new EmptySpeakImplChild().speak(), "ISpeak2 Speaking!");
 		assertEquals(new EmptySpeakImplChild2().speak(), "EmptySpeakImplChild2 Speaking!");
 		assertEquals(new EmptySpeakImplChild3().speak(), "EmptySpeakImplChild2 Speaking!");
-
+		System.out.println(new BB().speak());
+		
 		ISpeak speaker;
 
 		speaker = new EmptySpeakImpl();
