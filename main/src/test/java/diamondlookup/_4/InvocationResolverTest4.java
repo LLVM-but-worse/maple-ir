@@ -1,5 +1,8 @@
 package diamondlookup._4;
 
+import static org.junit.Assert.assertTrue;
+
+import java.lang.reflect.Modifier;
 import java.util.Collection;
 import java.util.HashSet;
 
@@ -11,6 +14,7 @@ import org.mapleir.app.service.InstalledRuntimeClassSource;
 import org.mapleir.res.InvocationResolver4;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.tree.ClassNode;
+import org.objectweb.asm.tree.MethodNode;
 
 import diamondlookup.*;
 
@@ -19,26 +23,32 @@ public class InvocationResolverTest4 {
 
 	ApplicationClassSource app;
 	InvocationResolver4 resolver;
+	Class<?>[] classes;
 	
 	@Before
 	public void setUp() throws Exception {
-		Collection<ClassNode> classes = new HashSet<>();
+		Collection<ClassNode> nodes = new HashSet<>();
 		/* load the app code */
-		for (Class<?> c : new Class<?>[] { ISpeak.class, ISpeak2.class, ISpeak3.class, ISpeak4.class, ISpeak5.class,
-			EmptySpeakImpl.class, EmptySpeakImplChild.class, EmptySpeakImplChild2.class, EmptySpeakImplChild3.class}) {
-//		for (Class<?> c : new Class<?>[] { diamondlookup._5.A.class, diamondlookup._5.B.class,
-//				diamondlookup._5.I1.class, diamondlookup._5.I2.class, diamondlookup._5.I3.class,
-//				diamondlookup._5.J.class, diamondlookup._5.K.class, diamondlookup._5.X.class,
-//				diamondlookup._5.Y.class }) {
-			//		for (Class<?> c : new Class<?>[] {A.class, B.class, K.class, L1.class, L2.class, L3.class, R1.class, R2.class, R3.class, W.class, X.class}) {
+		 classes = new Class<?>[] { ISpeak.class, ISpeak2.class,
+		 ISpeak3.class, ISpeak4.class, ISpeak5.class,
+		 EmptySpeakImpl.class, EmptySpeakImplChild.class,
+		 EmptySpeakImplChild2.class, EmptySpeakImplChild3.class};
+//		classes = new Class<?>[] { diamondlookup._5.A.class, diamondlookup._5.B.class, diamondlookup._5.I1.class,
+//				diamondlookup._5.I2.class, diamondlookup._5.I3.class, diamondlookup._5.J.class,
+//				diamondlookup._5.K.class, diamondlookup._5.X.class, diamondlookup._5.Y.class, diamondlookup._5.M.class,
+//				diamondlookup._5.N.class, diamondlookup._5.O.class, V.class, V2.class };
+//		classes = new Class<?>[] { A.class, B.class, K.class, L1.class, L2.class, L3.class, R1.class, R2.class,
+//				R3.class, W.class, X.class };
+				
+		for (Class<?> c : classes) {
 			ClassReader cr = new ClassReader(name(c));
 			ClassNode cn = new ClassNode();
 			cr.accept(cn, 0);
-			
-			classes.add(cn);
+
+			nodes.add(cn);
 		}
 		
-		app = new ApplicationClassSource("diamond-lookup-testapp", classes);
+		app = new ApplicationClassSource("diamond-lookup-testapp", nodes);
 		app.addLibraries(new InstalledRuntimeClassSource(app));
 		app.getClassTree();
 		
@@ -49,8 +59,13 @@ public class InvocationResolverTest4 {
 		return resolver.isSuperOf(app.findClassNode(name(c1)), app.findClassNode(name(c2)));
 	}
 	
+
+	public MethodNode resolve(Class<?> receiver, String name, String desc) {
+		return resolver.resolve(app.findClassNode(name(receiver)), name, desc);
+	}
+	
 	@Test
-	public void chaintests() {
+	public void chaintests() throws Exception {
 		
 //		assertTrue(isSuperOf(R3.class, R1.class));
 //		assertTrue(isSuperOf(R3.class, R2.class));
@@ -69,6 +84,17 @@ public class InvocationResolverTest4 {
 //		resolver.computeTimes();
 //		resolver.computeStats();
 		resolver.v3();
+		
+		for(Class<?> c : classes) {
+			if(!Modifier.isAbstract(c.getModifiers())) {
+				Class<?> real = c.getMethod("speak", new Class<?>[0]).getDeclaringClass();
+				MethodNode res = resolve(c, "speak", "()Ljava/lang/String;");
+				
+				System.out.println(c + " -> " + res);
+				assertTrue(res.owner.name.equals(real.getName().replace(".", "/")));
+			}
+		}
+		
 //		System.out.println(app.getClassTree());
 //		for(ClassNode c : app.getClassTree().vertices()) {
 //			System.out.println(c + " " + resolver.colours.get(c));
