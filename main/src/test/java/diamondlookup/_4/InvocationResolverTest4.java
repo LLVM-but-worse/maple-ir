@@ -16,7 +16,8 @@ import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
 
-import diamondlookup.*;
+import diamondlookup._5.V;
+import diamondlookup._5.V2;
 
 
 public class InvocationResolverTest4 {
@@ -29,14 +30,14 @@ public class InvocationResolverTest4 {
 	public void setUp() throws Exception {
 		Collection<ClassNode> nodes = new HashSet<>();
 		/* load the app code */
-		 classes = new Class<?>[] { ISpeak.class, ISpeak2.class,
-		 ISpeak3.class, ISpeak4.class, ISpeak5.class,
-		 EmptySpeakImpl.class, EmptySpeakImplChild.class,
-		 EmptySpeakImplChild2.class, EmptySpeakImplChild3.class};
-//		classes = new Class<?>[] { diamondlookup._5.A.class, diamondlookup._5.B.class, diamondlookup._5.I1.class,
-//				diamondlookup._5.I2.class, diamondlookup._5.I3.class, diamondlookup._5.J.class,
-//				diamondlookup._5.K.class, diamondlookup._5.X.class, diamondlookup._5.Y.class, diamondlookup._5.M.class,
-//				diamondlookup._5.N.class, diamondlookup._5.O.class, V.class, V2.class };
+//		 classes = new Class<?>[] { ISpeak.class, ISpeak2.class,
+//		 ISpeak3.class, ISpeak4.class, ISpeak5.class,
+//		 EmptySpeakImpl.class, EmptySpeakImplChild.class,
+//		 EmptySpeakImplChild2.class, EmptySpeakImplChild3.class};
+		classes = new Class<?>[] { diamondlookup._5.A.class, diamondlookup._5.B.class, diamondlookup._5.I1.class,
+				diamondlookup._5.I2.class, diamondlookup._5.I3.class, diamondlookup._5.J.class,
+				diamondlookup._5.K.class, diamondlookup._5.X.class, diamondlookup._5.Y.class, diamondlookup._5.M.class,
+				diamondlookup._5.N.class, diamondlookup._5.O.class, V.class, V2.class };
 //		classes = new Class<?>[] { A.class, B.class, K.class, L1.class, L2.class, L3.class, R1.class, R2.class,
 //				R3.class, W.class, X.class };
 				
