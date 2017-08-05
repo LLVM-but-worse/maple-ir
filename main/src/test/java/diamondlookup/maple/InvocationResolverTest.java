@@ -93,8 +93,6 @@ public class InvocationResolverTest {
 		cn = app.findClassNode(name(ArrayListChild.class));
 		resolutionTarget = app.findClassNode("java/util/ArrayList").getMethod("spliterator", "()Ljava/util/Spliterator;", false);
 		assertEquals(resolver.resolveVirtualCalls(cn.name, "spliterator", "()Ljava/util/Spliterator;", true), Sets.newHashSet(resolutionTarget));
-
-		System.out.println(app.getClassTree().getAllChildren(app.getClassTree().getRootNode()));
 	}
 
 	@After
