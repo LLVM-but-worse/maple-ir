@@ -3,27 +3,18 @@ package org.mapleir.flowgraph.edges;
 import org.mapleir.stdlib.collections.graph.FastGraphEdge;
 import org.mapleir.stdlib.collections.graph.FastGraphVertex;
 
-public abstract class FlowEdge<N extends FastGraphVertex> extends FastGraphEdge<N> implements FlowEdges {
+public interface FlowEdge<N extends FastGraphVertex> extends FastGraphEdge<N>, FlowEdges {
 	
-	private final int type;
-
-	public FlowEdge(int type, N src, N dst) {
-		super(src, dst);
-		this.type = type;
-	}
+	int getType();
 	
-	public int getType() {
-		return type;
-	}
-	
-	public abstract String toGraphString();
+	String toGraphString();
 	
 	@Override
-	public abstract String toString();
+	String toString();
 	
-	public abstract String toInverseString();
+	String toInverseString();
 	
-	public abstract FlowEdge<N> clone(N src, N dst);
+	FlowEdge<N> clone(N src, N dst);
 
 	// compareTo has been moved to FlowGraph#createSet.
 }
