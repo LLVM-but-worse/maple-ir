@@ -29,7 +29,9 @@ import org.objectweb.asm.tree.InsnList;
 import org.objectweb.asm.tree.InsnNode;
 import org.objectweb.asm.tree.MethodNode;
 
+import diamondlookup._5.G;
 import diamondlookup._5.J2;
+import diamondlookup._5.K2;
 import diamondlookup._5.V;
 import diamondlookup._5.V2;
 
@@ -52,7 +54,8 @@ public class InvocationResolverTest4 {
 		classes = new Class<?>[] { diamondlookup._5.A.class, diamondlookup._5.B.class, diamondlookup._5.I1.class,
 				diamondlookup._5.I2.class, diamondlookup._5.I3.class, diamondlookup._5.J.class,
 				diamondlookup._5.K.class, diamondlookup._5.X.class, diamondlookup._5.Y.class, diamondlookup._5.M.class,
-				diamondlookup._5.N.class, diamondlookup._5.O.class, V.class, V2.class, J2.class };
+				diamondlookup._5.N.class, diamondlookup._5.O.class, V.class, V2.class, J2.class, K2.class, J2.class,
+				G.class};
 //		classes = new Class<?>[] { A.class, B.class, K.class, L1.class, L2.class, L3.class, R1.class, R2.class,
 //				R3.class, W.class, X.class };
 				
@@ -154,7 +157,12 @@ public class InvocationResolverTest4 {
 					 if(real != Object.class) {
 						 System.out.println(m + " -> " + res);
 					 }
-					 assertTrue(res.owner.name.equals(real.getName().replace(".", "/")));
+					 if(col.size() > 1) {
+						 // miranda
+						 assertTrue(res.owner.name.equals(c.getName().replace(".", "/")));
+					 } else {
+						 assertTrue(res.owner.name.equals(real.getName().replace(".", "/")));
+					 }
 				}
 			}
 			System.out.println();
