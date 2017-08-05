@@ -1,1 +1,7 @@
 /target/
+
+# Dot exporter autogen
+/cfg testing/
+
+# Transformer output
+/out/
