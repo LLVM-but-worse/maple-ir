@@ -150,7 +150,7 @@ public class TarjanDominanceComputor<N extends FastGraphVertex> {
 			for(FlowEdge<N> e : graph.getEdges(n)) {
 				// svar data isn't propagated across exception edges.
 				// if(!(e instanceof TryCatchEdge)) {
-					N succ = e.dst;
+					N succ = e.dst();
 					if(idoms.get(succ) != n) {
 						df.add(succ);
 					}	
@@ -174,7 +174,7 @@ public class TarjanDominanceComputor<N extends FastGraphVertex> {
 			propagationMap.put(n, n);
 
 			for (FlowEdge<N> succEdge : graph.getEdges(n)) {
-				N succ = succEdge.dst;
+				N succ = succEdge.dst();
 				if(!semiIndices.containsKey(succ)) {
 					parents.put(succ, n);
 				}
@@ -191,7 +191,7 @@ public class TarjanDominanceComputor<N extends FastGraphVertex> {
 			
 			int newIndex = semiIndices.get(n);
 			for(FastGraphEdge<N> e : graph.getReverseEdges(n)) {
-				N sd = calcSemiDom(e.src);
+				N sd = calcSemiDom(e.src());
 				newIndex = Math.min(newIndex, semiIndices.get(sd));
 			}
 			semiIndices.put(n, newIndex);

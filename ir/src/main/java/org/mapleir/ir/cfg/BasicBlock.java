@@ -267,10 +267,10 @@ public class BasicBlock implements FastGraphVertex, Comparable<BasicBlock>, List
 	public boolean isHandler() {
 		for(FlowEdge<BasicBlock> e : cfg.getReverseEdges(this)) {
 			if(e instanceof TryCatchEdge) {
-				if(e.dst == this) {
+				if(e.dst() == this) {
 					return true;
 				} else {
-					throw new IllegalStateException("incoming throw edge for " + getId() + " with dst " + e.dst.getId());
+					throw new IllegalStateException("incoming throw edge for " + getId() + " with dst " + e.dst().getId());
 				}
 			}
 		}
@@ -301,7 +301,7 @@ public class BasicBlock implements FastGraphVertex, Comparable<BasicBlock>, List
 		List<BasicBlock> jes = new ArrayList<>();
 		for (FlowEdge<BasicBlock> e : cfg.getEdges(this)) {
 			if (!(e instanceof ImmediateEdge)) {
-				jes.add(e.dst);
+				jes.add(e.dst());
 			}
 		}
 		return jes;
@@ -336,7 +336,7 @@ public class BasicBlock implements FastGraphVertex, Comparable<BasicBlock>, List
 	public BasicBlock getImmediate() {
 		FlowEdge<BasicBlock> e =  findSingleImmediateImpl(cfg.getEdges(this));
 		if(e != null) {
-			return e.dst;
+			return e.dst();
 		} else {
 			return null;
 		}
@@ -349,7 +349,7 @@ public class BasicBlock implements FastGraphVertex, Comparable<BasicBlock>, List
 	public BasicBlock getIncomingImmediate() {
 		FlowEdge<BasicBlock> e =  findSingleImmediateImpl(cfg.getReverseEdges(this));
 		if(e != null) {
-			return e.src;
+			return e.src();
 		} else {
 			return null;
 		}

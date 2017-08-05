@@ -5,6 +5,7 @@ import java.util.*;
 import org.mapleir.app.service.ClassTree.InheritanceEdge;
 import org.mapleir.stdlib.collections.graph.FastDirectedGraph;
 import org.mapleir.stdlib.collections.graph.FastGraphEdge;
+import org.mapleir.stdlib.collections.graph.FastGraphEdgeImpl;
 import org.mapleir.stdlib.collections.graph.algorithms.SimpleDfs;
 import org.mapleir.stdlib.util.TabbedStringWriter;
 import org.objectweb.asm.tree.ClassNode;
@@ -40,15 +41,15 @@ public class ClassTree extends FastDirectedGraph<ClassNode, InheritanceEdge> {
 	public Iterable<ClassNode> iterateParents(ClassNode cn) {
 		// this avoids any stupid anonymous Iterable<ClassNode> and Iterator bullcrap
 		// and also avoids computing a temporary set, so it is performant
-		return () -> getEdges(cn).stream().map(e -> e.dst).iterator();
+		return () -> getEdges(cn).stream().map(e -> e.dst()).iterator();
 	}
 	
 	public Iterable<ClassNode> iterateInterfaces(ClassNode cn) {
-		return () -> getEdges(cn).stream().filter(e -> e instanceof ImplementsEdge).map(e -> e.dst).iterator();
+		return () -> getEdges(cn).stream().filter(e -> e instanceof ImplementsEdge).map(e -> e.dst()).iterator();
 	}
 	
 	public Iterable<ClassNode> iterateChildren(ClassNode cn) {
-		return () -> getReverseEdges(cn).stream().map(e -> e.src).iterator();
+		return () -> getReverseEdges(cn).stream().map(e -> e.src()).iterator();
 	}
 	
 	public Collection<ClassNode> getParents(ClassNode cn) {
@@ -62,7 +63,7 @@ public class ClassTree extends FastDirectedGraph<ClassNode, InheritanceEdge> {
 	private Collection<ClassNode> __getnodes(Collection<? extends FastGraphEdge<ClassNode>> edges, boolean dst) {
 		Set<ClassNode> set = new HashSet<>();
 		for(FastGraphEdge<ClassNode> e : edges) {
-			set.add(dst ? e.dst : e.src);
+			set.add(dst ? e.dst() : e.src());
 		}
 		return set;
 	}
@@ -106,7 +107,7 @@ public class ClassTree extends FastDirectedGraph<ClassNode, InheritanceEdge> {
 			return null;
 		for (InheritanceEdge edge : getEdges(cn))
 			if (edge instanceof ExtendsEdge)
-				return edge.dst;
+				return edge.dst();
 		throw new IllegalStateException("Couldn't find parent class?");
 	}
 	
@@ -202,7 +203,7 @@ public class ClassTree extends FastDirectedGraph<ClassNode, InheritanceEdge> {
 		sw.print("\n");
 	}
 	
-	public static abstract class InheritanceEdge extends FastGraphEdge<ClassNode> {
+	public static abstract class InheritanceEdge extends FastGraphEdgeImpl<ClassNode> {
 		public InheritanceEdge(ClassNode child, ClassNode parent) {
 			super(child, parent);
 		}

@@ -2,9 +2,9 @@ package org.mapleir.deob.interproc.callgraph;
 
 import org.mapleir.deob.interproc.callgraph.CallGraphNode.CallReceiverNode;
 import org.mapleir.deob.interproc.callgraph.CallGraphNode.CallSiteNode;
-import org.mapleir.stdlib.collections.graph.FastGraphEdge;
+import org.mapleir.stdlib.collections.graph.FastGraphEdgeImpl;
 
-public abstract class CallGraphEdge extends FastGraphEdge<CallGraphNode> {
+public abstract class CallGraphEdge extends FastGraphEdgeImpl<CallGraphNode> {
 	public CallGraphEdge(CallGraphNode src, CallGraphNode dst) {
 		super(src, dst);
 	}

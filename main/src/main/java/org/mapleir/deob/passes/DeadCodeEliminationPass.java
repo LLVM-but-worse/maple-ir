@@ -79,7 +79,7 @@ public class DeadCodeEliminationPass implements IPass {
 					}
 					
 					if(uncond != null) {
-						BasicBlock dst = uncond.dst;
+						BasicBlock dst = uncond.dst();
 						
 						List<BasicBlock> verts = new ArrayList<>(cfg.vertices());
 						

@@ -259,7 +259,7 @@ public class BlockCallGraph extends FastDirectedGraph<CallGraphBlock, FlowEdge<C
 				Iterator<FlowEdge<BasicBlock>> predEdgesIterator = new HashSet<>(cfg.getReverseEdges(originalBlock)).iterator();
 				while(predEdgesIterator.hasNext()) {
 					FlowEdge<BasicBlock> predEdge = predEdgesIterator.next();
-					BasicBlock src = predEdge.src;
+					BasicBlock src = predEdge.src();
 					
 					boolean isExceptionEdge = predEdge.getType() == FlowEdges.TRYCATCH;
 					
@@ -330,7 +330,7 @@ public class BlockCallGraph extends FastDirectedGraph<CallGraphBlock, FlowEdge<C
 				while(succEdgesIterator.hasNext()) {
 					FlowEdge<BasicBlock> succEdge = succEdgesIterator.next();
 
-					BasicBlock dst = succEdge.dst;
+					BasicBlock dst = succEdge.dst();
 					
 					if(succEdge.getType() != FlowEdges.TRYCATCH) {
 						if(dst == firstBlock) {

@@ -1,9 +1,10 @@
 package org.mapleir.deob.interproc.exp2;
 
+import org.mapleir.flowgraph.edges.AbstractFlowEdge;
 import org.mapleir.flowgraph.edges.FlowEdge;
 import org.mapleir.ir.cfg.BasicBlock;
 
-public class CallGraphBasicBlockBridgeEdge extends FlowEdge<CallGraphBlock> {
+public class CallGraphBasicBlockBridgeEdge extends AbstractFlowEdge<CallGraphBlock> {
 
 	private final FlowEdge<BasicBlock> basicBlockEdge;
 	

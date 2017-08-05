@@ -29,7 +29,7 @@ public class BreadthFirstSorterImpl<N extends FastGraphVertex> {
 			bfs.add(entry);
 			
 			for(FastGraphEdge<N> e : graph.getEdges(entry)) {
-				N s = e.dst;
+				N s = e.dst();
 				queue.addLast(s);
 			}
 		}

@@ -5,8 +5,8 @@ import java.util.List;
 import org.mapleir.flowgraph.ExceptionRange;
 import org.mapleir.stdlib.collections.graph.FastGraphVertex;
 
-public class TryCatchEdge<N extends FastGraphVertex> extends FlowEdge<N> {
-	
+public class TryCatchEdge<N extends FastGraphVertex> extends AbstractFlowEdge<N> {
+
 	public final ExceptionRange<N> erange;
 	private int hashcode;
 	

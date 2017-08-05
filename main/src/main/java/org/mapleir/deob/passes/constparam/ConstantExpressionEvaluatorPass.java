@@ -153,7 +153,7 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 			// remove conditional edge
 			for(FlowEdge<BasicBlock> fe : new HashSet<>(cfg.getEdges(b))) {
 				if(fe.getType() == FlowEdges.COND) {
-					if(fe.dst != cond.getTrueSuccessor()) {
+					if(fe.dst() != cond.getTrueSuccessor()) {
 						throw new IllegalStateException(fe + ", " + cond);
 					}
 					cfg.exciseEdge(fe);

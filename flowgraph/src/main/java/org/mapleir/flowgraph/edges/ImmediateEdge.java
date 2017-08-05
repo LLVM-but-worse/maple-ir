@@ -2,7 +2,7 @@ package org.mapleir.flowgraph.edges;
 
 import org.mapleir.stdlib.collections.graph.FastGraphVertex;
 
-public class ImmediateEdge<N extends FastGraphVertex> extends FlowEdge<N> {
+public class ImmediateEdge<N extends FastGraphVertex> extends AbstractFlowEdge<N> {
 	
 	public ImmediateEdge(N src, N dst) {
 		super(IMMEDIATE, src, dst);

@@ -1,9 +1,10 @@
 package org.mapleir.deob.interproc.exp2;
 
 import org.mapleir.deob.interproc.exp2.context.CallingContext;
+import org.mapleir.flowgraph.edges.AbstractFlowEdge;
 import org.mapleir.flowgraph.edges.FlowEdge;
 
-public class CallEdge extends FlowEdge<CallGraphBlock> {
+public class CallEdge extends AbstractFlowEdge<CallGraphBlock> {
 	
 	public static final int TYPE_ID = 8;
 	

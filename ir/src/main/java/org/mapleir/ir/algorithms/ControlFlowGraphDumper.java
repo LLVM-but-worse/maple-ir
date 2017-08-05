@@ -12,10 +12,7 @@ import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.Stmt;
 import org.mapleir.ir.code.stmt.UnconditionalJumpStmt;
-import org.mapleir.stdlib.collections.graph.FastDirectedGraph;
-import org.mapleir.stdlib.collections.graph.FastGraph;
-import org.mapleir.stdlib.collections.graph.FastGraphEdge;
-import org.mapleir.stdlib.collections.graph.FastGraphVertex;
+import org.mapleir.stdlib.collections.graph.*;
 import org.mapleir.stdlib.collections.graph.algorithms.SimpleDfs;
 import org.mapleir.stdlib.collections.graph.algorithms.TarjanSCC;
 import org.mapleir.stdlib.util.IndexedList;
@@ -151,7 +148,7 @@ public class ControlFlowGraphDumper {
 				if (e instanceof ImmediateEdge)
 					continue;
 				BlockBundle src = bundles.get(b);
-				bundleGraph.addEdge(src, new FastGraphEdge<>(src, bundles.get(e.dst)));
+				bundleGraph.addEdge(src, new FastGraphEdgeImpl<>(src, bundles.get(e.dst())));
 			}
 		}
 		
@@ -189,7 +186,7 @@ public class ControlFlowGraphDumper {
 		Set<BlockBundle> candidates = new HashSet<>(scc);
 		candidates.removeIf(bundle -> { // No incoming edges from within the SCC.
 			for (FastGraphEdge<BlockBundle> e : graph.getReverseEdges(bundle)) {
-				if (sccSet.contains(e.src))
+				if (sccSet.contains(e.src()))
 					return true;
 			}
 			return false;
@@ -203,7 +200,7 @@ public class ControlFlowGraphDumper {
 		for (int i = 0; i < order.size(); i++) {
 			BasicBlock b = order.get(i);
 			for (FlowEdge<BasicBlock> e : new HashSet<>(cfg.getEdges(b))) {
-				BasicBlock dst = e.dst;
+				BasicBlock dst = e.dst();
 				if (e instanceof ImmediateEdge && order.indexOf(dst) != i + 1) {
 					// Fix immediates
 					b.add(new UnconditionalJumpStmt(dst));
@@ -235,7 +232,7 @@ public class ControlFlowGraphDumper {
 						BasicBlock n = it.next();
 						it.previous();
 						
-						if(n != e.dst) {
+						if(n != e.dst()) {
 							throw new IllegalStateException("Illegal flow " + e + " > " + n);
 						}
 					} else {
@@ -357,7 +354,7 @@ public class ControlFlowGraphDumper {
 			for (BlockBundle n : vertices) {
 				subgraph.addVertex(n);
 				for (FastGraphEdge<BlockBundle> e : getEdges(n)) {
-					if (vertices.contains(e.dst))
+					if (vertices.contains(e.dst()))
 						subgraph.addEdge(n, e);
 				}
 			}

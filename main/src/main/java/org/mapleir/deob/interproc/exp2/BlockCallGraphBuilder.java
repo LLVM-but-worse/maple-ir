@@ -170,7 +170,7 @@ public class BlockCallGraphBuilder implements Worker<MethodNode> {
 		 * are the target sites for the ReturnCallEdge from the
 		 * return sites of the callee. */
 		for(FlowEdge<BasicBlock> e : callerControlFlowGraph.getEdges(callerBlock.block)) {
-			ConcreteCallGraphBlock returnTargetBlock = concreteBlockMap.get(e.dst);
+			ConcreteCallGraphBlock returnTargetBlock = concreteBlockMap.get(e.dst());
 			if(returnTargetBlock == null) {
 				throw new IllegalStateException(String.format("No block for dst:> %s", e.toString()));
 			}
@@ -217,7 +217,7 @@ public class BlockCallGraphBuilder implements Worker<MethodNode> {
 			CallGraphBlock graphNode = getConcreteBlockNode(b);
 			
 			for(FlowEdge<BasicBlock> e : cfg.getEdges(b)) {
-				CallGraphBasicBlockBridgeEdge newEdge = new CallGraphBasicBlockBridgeEdge(e, graphNode, getConcreteBlockNode(e.dst));
+				CallGraphBasicBlockBridgeEdge newEdge = new CallGraphBasicBlockBridgeEdge(e, graphNode, getConcreteBlockNode(e.dst()));
 				callGraph.addEdge(graphNode, newEdge);
 			}
 		}
