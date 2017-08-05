@@ -446,4 +446,16 @@ public abstract class CodeUnit implements FastGraphVertex, Opcode {
 		node.toString(printer);
 		return printer.toString();
 	}
+
+	@Override
+	public boolean equals(Object o) {
+		if (this == o)
+			return true;
+		if (o == null || getClass() != o.getClass())
+			return false;
+
+		CodeUnit codeUnit = (CodeUnit) o;
+
+		return id == codeUnit.id;
+	}
 }

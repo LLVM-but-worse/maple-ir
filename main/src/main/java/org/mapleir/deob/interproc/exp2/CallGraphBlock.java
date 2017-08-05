@@ -19,4 +19,21 @@ public abstract class CallGraphBlock implements FastGraphVertex {
 	public int getNumericId() {
 		return id;
 	}
+
+	@Override
+	public boolean equals(Object o) {
+		if (this == o)
+			return true;
+		if (o == null || getClass() != o.getClass())
+			return false;
+
+		CallGraphBlock that = (CallGraphBlock) o;
+
+		return id == that.id;
+	}
+
+	@Override
+	public int hashCode() {
+		return id;
+	}
 }

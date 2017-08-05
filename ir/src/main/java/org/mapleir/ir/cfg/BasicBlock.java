@@ -365,6 +365,23 @@ public class BasicBlock implements FastGraphVertex, Comparable<BasicBlock>, List
 		return Integer.compare(id, o.id);
 	}
 
+	@Override
+	public boolean equals(Object o) {
+		if (this == o)
+			return true;
+		if (o == null || getClass() != o.getClass())
+			return false;
+
+		BasicBlock stmts = (BasicBlock) o;
+
+		return id == stmts.id;
+	}
+
+	@Override
+	public int hashCode() {
+		return id;
+	}
+
 	public void resetLabel() {
 		label = new LabelNode();
 	}

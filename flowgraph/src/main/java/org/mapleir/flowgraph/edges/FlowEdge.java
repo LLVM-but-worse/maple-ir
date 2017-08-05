@@ -3,10 +3,10 @@ package org.mapleir.flowgraph.edges;
 import org.mapleir.stdlib.collections.graph.FastGraphEdge;
 import org.mapleir.stdlib.collections.graph.FastGraphVertex;
 
-public abstract class FlowEdge<N extends FastGraphVertex> extends FastGraphEdge<N> implements FlowEdges, Comparable<FlowEdge<N>> {
+public abstract class FlowEdge<N extends FastGraphVertex> extends FastGraphEdge<N> implements FlowEdges {
 	
 	private final int type;
-	
+
 	public FlowEdge(int type, N src, N dst) {
 		super(src, dst);
 		this.type = type;
@@ -25,14 +25,5 @@ public abstract class FlowEdge<N extends FastGraphVertex> extends FastGraphEdge<
 	
 	public abstract FlowEdge<N> clone(N src, N dst);
 
-	@Override
-	public int compareTo(FlowEdge<N> o) {
-		if (getType() == FlowEdges.DUMMY) {
-			return 1;
-		} else if (o.getType() == FlowEdges.DUMMY) {
-			return -1;
-		}
-		// TODO: THIS IS DANGEROUS, 0 implies equals()
-		return 0;
-	}
+	// compareTo has been moved to FlowGraph#createSet.
 }

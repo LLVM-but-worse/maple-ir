@@ -202,7 +202,7 @@ public class ClassTree extends FastDirectedGraph<ClassNode, InheritanceEdge> {
 		sw.print("\n");
 	}
 	
-	public static abstract class InheritanceEdge extends FastGraphEdge<ClassNode> implements Comparable<InheritanceEdge> {
+	public static abstract class InheritanceEdge extends FastGraphEdge<ClassNode> {
 		public InheritanceEdge(ClassNode child, ClassNode parent) {
 			super(child, parent);
 		}
@@ -210,15 +210,6 @@ public class ClassTree extends FastDirectedGraph<ClassNode, InheritanceEdge> {
 		@Override
 		public String toString() {
 			return String.format("#%s inherits #%s", src.getId(), dst.getId());
-		}
-
-		@Override
-		public int compareTo(InheritanceEdge arg0) {
-			if (this.equals(arg0))
-				return 0;
-			else
-				return (int) Math.signum(2 * Integer.compare(src.getNumericId(), arg0.src.getNumericId())
-										   + Integer.compare(dst.getNumericId(), arg0.dst.getNumericId()));
 		}
 	}
 
