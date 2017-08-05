@@ -72,7 +72,7 @@ public class InstalledRuntimeClassSource extends LibraryClassSource {
 				}
 			}
 			
-			LocateableClassNode node = new LocateableClassNode(this, cn);
+			LocateableClassNode node = new LocateableClassNode(this, cn, true);
 			return node;
 		} catch(IOException e) {
 			// TODO: logger
@@ -89,6 +89,6 @@ public class InstalledRuntimeClassSource extends LibraryClassSource {
 	
 	@Override
 	public String toString() {
-		return System.getProperty("java.version");
+		return "JRE " + System.getProperty("java.version");
 	}
 }

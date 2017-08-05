@@ -29,6 +29,14 @@ public abstract class ClassSource {
 		return nodeMap.containsKey(name);
 	}
 	
+	public LocateableClassNode findIfLoaded(String name) {
+		if(nodeMap.containsKey(name)) {
+			return new LocateableClassNode(this, nodeMap.get(name), false);
+		} else {
+			return null;
+		}
+	}
+	
 	public abstract LocateableClassNode findClass(String name);
 	
 	/* internal method to look up a class in the current pool.*/
@@ -36,7 +44,7 @@ public abstract class ClassSource {
 		if(contains(name)) {
 			ClassNode node = nodeMap.get(name);
 			if(node != null) {
-				return new LocateableClassNode(this, node);
+				return new LocateableClassNode(this, node, false);
 			}
 		}
 		return null;

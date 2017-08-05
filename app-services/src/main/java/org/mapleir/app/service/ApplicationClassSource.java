@@ -3,6 +3,7 @@ package org.mapleir.app.service;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
 import org.mapleir.stdlib.collections.ClassHelper;
@@ -12,7 +13,7 @@ import org.objectweb.asm.tree.ClassNode;
 public class ApplicationClassSource extends ClassSource {
 
 	private final String name;
-	private final Collection<LibraryClassSource> libraries;
+	private final List<LibraryClassSource> libraries;
 	private ClassTree classTree;
 	
 	public ApplicationClassSource(String name, Collection<ClassNode> classes) {
@@ -25,6 +26,9 @@ public class ApplicationClassSource extends ClassSource {
 		libraries = new ArrayList<>();
 	}
 	
+	public List<LibraryClassSource> getLibraries() {
+		return libraries;
+	}
 
 	protected ClassTree _getClassTree() {
 		return classTree;
@@ -33,7 +37,7 @@ public class ApplicationClassSource extends ClassSource {
 	public ClassTree getClassTree() {
 		if (classTree == null) {
 			classTree = new ClassTree(this);
-//			classTree.init();
+			classTree.init();
 		}
 		return classTree;
 	}
@@ -113,8 +117,12 @@ public class ApplicationClassSource extends ClassSource {
 		
 		return contains(name);
 	}
-	
+
 	public Iterable<ClassNode> iterateWithLibraries() {
+		return iterateWithLibraries(false);
+	}
+	
+	public Iterable<ClassNode> iterateWithLibraries(boolean force) {
 		return new Iterable<ClassNode>() {
 			Iterator<LibraryClassSource> libIt = null;
 			@Override
@@ -128,7 +136,7 @@ public class ApplicationClassSource extends ClassSource {
 						} else {
 							if(libIt.hasNext()) {
 								LibraryClassSource lib = libIt.next();
-								if(lib.isIterable()) {
+								if(lib.isIterable() || force) {
 									return lib.iterator();
 								} else {
 									return nextIterator();
@@ -141,6 +149,10 @@ public class ApplicationClassSource extends ClassSource {
 				};
 			}
 		};
+	}
+	
+	public String getName() {
+		return name;
 	}
 	
 	@Override

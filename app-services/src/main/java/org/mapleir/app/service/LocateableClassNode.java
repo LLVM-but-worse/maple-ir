@@ -6,14 +6,16 @@ public class LocateableClassNode {
 
 	public final ClassSource source;
 	public final ClassNode node;
+	public final boolean isVMKlass;
 	
-	public LocateableClassNode(ClassSource source, ClassNode node) {
+	public LocateableClassNode(ClassSource source, ClassNode node, boolean isVMKlass) {
 		this.source = source;
 		this.node = node;
+		this.isVMKlass = isVMKlass;
 	}
 	
 	@Override
 	public String toString() {
-		return node.name + " from " + source;
+		return String.format("%s from %s%s", node.name, source, isVMKlass ? "(vm)" : "");
 	}
 }
