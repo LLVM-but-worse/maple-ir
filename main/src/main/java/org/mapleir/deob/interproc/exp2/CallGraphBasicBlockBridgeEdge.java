@@ -4,14 +4,19 @@ import org.mapleir.flowgraph.edges.AbstractFlowEdge;
 import org.mapleir.flowgraph.edges.FlowEdge;
 import org.mapleir.ir.cfg.BasicBlock;
 
-public class CallGraphBasicBlockBridgeEdge extends AbstractFlowEdge<CallGraphBlock> {
-
+public class CallGraphBasicBlockBridgeEdge implements FlowEdge<CallGraphBlock> {
 	private final FlowEdge<BasicBlock> basicBlockEdge;
-	
+	protected final CallGraphBlock src, dst;
+
 	public CallGraphBasicBlockBridgeEdge(FlowEdge<BasicBlock> basicBlockEdge, CallGraphBlock src, CallGraphBlock dst) {
-		super(basicBlockEdge.getType(), src, dst);
-		
 		this.basicBlockEdge = basicBlockEdge;
+		this.src = src;
+		this.dst = dst;
+	}
+
+	@Override
+	public int getType() {
+		return basicBlockEdge.getType();
 	}
 
 	@Override
@@ -41,5 +46,15 @@ public class CallGraphBasicBlockBridgeEdge extends AbstractFlowEdge<CallGraphBlo
 		FlowEdge<BasicBlock> clonedEdge = basicBlockEdge.clone(srcBlockNode.block, dstBlockNode.block);
 		
 		return new CallGraphBasicBlockBridgeEdge(clonedEdge, src, dst);
+	}
+
+	@Override
+	public CallGraphBlock src() {
+		return src;
+	}
+
+	@Override
+	public CallGraphBlock dst() {
+		return dst;
 	}
 }

@@ -2,19 +2,16 @@ package org.mapleir.deob.interproc.callgraph;
 
 import org.mapleir.deob.interproc.callgraph.CallGraphNode.CallReceiverNode;
 import org.mapleir.deob.interproc.callgraph.CallGraphNode.CallSiteNode;
+import org.mapleir.stdlib.collections.graph.FastGraphEdge;
 import org.mapleir.stdlib.collections.graph.FastGraphEdgeImpl;
 
-public abstract class CallGraphEdge extends FastGraphEdgeImpl<CallGraphNode> {
-	public CallGraphEdge(CallGraphNode src, CallGraphNode dst) {
-		super(src, dst);
-	}
+public interface CallGraphEdge extends FastGraphEdge<CallGraphNode> {
+	boolean canClone(CallGraphNode src, CallGraphNode dst);
 
-	public abstract boolean canClone(CallGraphNode src, CallGraphNode dst);
-
-	public abstract CallGraphEdge clone(CallGraphNode src, CallGraphNode dst);
+	CallGraphEdge clone(CallGraphNode src, CallGraphNode dst);
 	
 	// The source receiver (method) contains the destination call site (invocation).
-	public static class FunctionOwnershipEdge extends CallGraphEdge {
+	class FunctionOwnershipEdge extends FastGraphEdgeImpl<CallGraphNode> implements CallGraphEdge {
 		public FunctionOwnershipEdge(CallReceiverNode src, CallSiteNode dst) {
 			super(src, dst);
 		}
@@ -31,7 +28,7 @@ public abstract class CallGraphEdge extends FastGraphEdgeImpl<CallGraphNode> {
 	}
 	
 	// The source call site (invocation) resolves to the destination method (receiver).
-	public static class SiteInvocationEdge extends CallGraphEdge {
+	class SiteInvocationEdge extends FastGraphEdgeImpl<CallGraphNode> implements CallGraphEdge {
 
 		public SiteInvocationEdge(CallSiteNode src, CallReceiverNode dst) {
 			super(src, dst);
