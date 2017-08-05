@@ -1,13 +1,6 @@
 # Compiled classfiles
 /bin/
 
-# Dot exporter autogen
-/cfg testing/
-
-# Transformer output
-/out/
-
-
 # Created by https://www.gitignore.io/api/intellij
 
 ### Intellij ###
