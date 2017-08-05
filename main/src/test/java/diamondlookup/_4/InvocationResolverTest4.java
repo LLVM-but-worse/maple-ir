@@ -74,11 +74,6 @@ public class InvocationResolverTest4 {
 		resolver = new InvocationResolver4(app);
 	}
 
-	public boolean isSuperOf(Class<?> c1, Class<?> c2) {
-		return resolver.isSuperOf(app.findClassNode(name(c1)), app.findClassNode(name(c2)));
-	}
-	
-
 	public MethodNode resolve(Class<?> receiver, String name, String desc) {
 		return resolver.resolve(app.findClassNode(name(receiver)), name, desc, false);
 	}
