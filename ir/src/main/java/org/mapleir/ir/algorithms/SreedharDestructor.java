@@ -57,7 +57,7 @@ public class SreedharDestructor {
 		defuse.compute();
 		succsCache = new NullPermeableHashMap<>(key -> {
 			GenericBitSet<BasicBlock> succs = cfg.createBitSet();
-			cfg.getEdges(key).stream().map(e -> e.dst).forEach(succs::add);
+			cfg.getEdges(key).stream().map(e -> e.dst()).forEach(succs::add);
 			return succs;
 		});
 		candidateResourceSet = phiResSetCreator.create();

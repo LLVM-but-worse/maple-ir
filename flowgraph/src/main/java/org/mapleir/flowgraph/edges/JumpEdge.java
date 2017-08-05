@@ -3,7 +3,7 @@ package org.mapleir.flowgraph.edges;
 import org.mapleir.stdlib.collections.graph.FastGraphVertex;
 import org.objectweb.asm.util.Printer;
 
-public abstract class JumpEdge<N extends FastGraphVertex> extends FlowEdge<N> {
+public abstract class JumpEdge<N extends FastGraphVertex> extends AbstractFlowEdge<N> {
 	
 	public final int opcode;
 	

@@ -58,7 +58,7 @@ public class LiftConstructorCallsPass implements Opcode, IPass {
 								
 								Set<FlowEdge<BasicBlock>> predsEdges = cfg.getReverseEdges(b);
 								FlowEdge<BasicBlock> incoming;
-								if(predsEdges.size() == 1 && ((incoming = predsEdges.iterator().next()).getType() == FlowEdges.IMMEDIATE) && incoming.src == entry) {
+								if(predsEdges.size() == 1 && ((incoming = predsEdges.iterator().next()).getType() == FlowEdges.IMMEDIATE) && incoming.src() == entry) {
 									// BasicBlock liftBlock = new BasicBlock(cfg, cfg.vertices().size() + 1, new LabelNode());
 									
 									/* split the block before the invocation and 

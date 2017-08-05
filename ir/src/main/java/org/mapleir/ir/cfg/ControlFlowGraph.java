@@ -31,6 +31,8 @@ import org.mapleir.stdlib.collections.itertools.ChainIterator;
 import org.mapleir.stdlib.util.TabbedStringWriter;
 import org.objectweb.asm.tree.MethodNode;
 
+import static org.mapleir.ir.code.Opcode.PHI_STORE;
+
 public class ControlFlowGraph extends FastBlockGraph {
 	
 	private final MethodNode method;
@@ -56,16 +58,16 @@ public class ControlFlowGraph extends FastBlockGraph {
 	 * @param fe Edge to excise phi uses.
 	 */
 	public void exciseEdge(FlowEdge<BasicBlock> fe) {
-		if (!this.containsEdge(fe.src, fe))
+		if (!this.containsEdge(fe.src(), fe))
 			throw new IllegalArgumentException("Graph does not contain the specified edge");
 		
-		removeEdge(fe.src, fe);
-		for (Stmt stmt : fe.dst) {
-			if (stmt.getOpcode() == Stmt.PHI_STORE) {
+		removeEdge(fe.src(), fe);
+		for (Stmt stmt : fe.dst()) {
+			if (stmt.getOpcode() == PHI_STORE) {
 				CopyPhiStmt phs = (CopyPhiStmt) stmt;
 				PhiExpr phi = phs.getExpression();
 				
-				BasicBlock pred = fe.src;
+				BasicBlock pred = fe.src();
 				VarExpr arg = (VarExpr) phi.getArgument(pred);
 				
 				VersionedLocal l = (VersionedLocal) arg.getLocal();
@@ -285,11 +287,11 @@ public class ControlFlowGraph extends FastBlockGraph {
 			}
 
 			for (FlowEdge<BasicBlock> fe : getEdges(b)) {
-				if (fe.src != b) {
+				if (fe.src() != b) {
 					throw new RuntimeException(fe + " from " + b);
 				}
 
-				BasicBlock dst = fe.dst;
+				BasicBlock dst = fe.dst();
 
 				if (!containsVertex(dst) || !containsReverseVertex(dst)) {
 					throw new RuntimeException(
@@ -332,7 +334,7 @@ public class ControlFlowGraph extends FastBlockGraph {
 						TryCatchEdge<BasicBlock> tce = (TryCatchEdge<BasicBlock>) fe;
 
 						if (tce.erange == er) {
-							if (tce.dst != er.getHandler()) {
+							if (tce.dst() != er.getHandler()) {
 								throw new RuntimeException("false tce: " + tce + ", er: " + er);
 							} else {
 								found = true;

@@ -37,7 +37,7 @@ public class CallGraphReducer {
 		for(SiteSensitiveCallDAG.MultiCallGraphNode srcSccNode : result.vertices()) {
 			for (CallGraphNode srcCgNode : srcSccNode) {
 				for (CallGraphEdge e : cg.getEdges(srcCgNode)) {
-					CallGraphNode dstCgNode = e.dst;
+					CallGraphNode dstCgNode = e.dst();
 					SiteSensitiveCallDAG.MultiCallGraphNode dstSccNode = result.findSCCOf(dstCgNode);
 					if (dstSccNode != srcSccNode)
 						result.addEdge(srcSccNode, new SiteSensitiveCallDAG.SiteSensitiveCallDAGEdge(srcSccNode, dstSccNode));

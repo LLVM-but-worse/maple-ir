@@ -79,7 +79,7 @@ public class NaturalisationPass1 extends ControlFlowGraphBuilder.BuilderPass {
 				// since the ranges are the same, we don't need
 				// to clone these.
 				if(e.getType() != FlowEdges.TRYCATCH) {
-					BasicBlock edst = e.dst;
+					BasicBlock edst = e.dst();
 					edst = remap.getOrDefault(edst, edst);
 					builder.graph.addEdge(src, e.clone(src, edst));
 				}

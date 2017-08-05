@@ -233,7 +233,7 @@ public class DotWriter<G extends FastGraph<N, E>, N extends FastGraphVertex, E e
 					continue;
 				}
 				
-				esc(e.src.getId()).print(arrow).esc(e.dst.getId()).print(" ").print("[");
+				esc(e.src().getId()).print(arrow).esc(e.dst().getId()).print(" ").print("[");
 				Map<String, Object> eprops = new HashMap<>();
 				for(String key : pipelineOrder){
 					DotPropertyDecorator<G, N, E> d = pipeline.get(key);

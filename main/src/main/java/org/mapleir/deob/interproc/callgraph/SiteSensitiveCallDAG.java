@@ -3,6 +3,7 @@ package org.mapleir.deob.interproc.callgraph;
 import org.mapleir.stdlib.collections.graph.FastDirectedGraph;
 import org.mapleir.stdlib.collections.graph.FastGraph;
 import org.mapleir.stdlib.collections.graph.FastGraphEdge;
+import org.mapleir.stdlib.collections.graph.FastGraphEdgeImpl;
 import org.mapleir.stdlib.util.DelegatingCollection;
 import org.mapleir.stdlib.util.DelegatingList;
 
@@ -107,7 +108,7 @@ public class SiteSensitiveCallDAG extends FastDirectedGraph<SiteSensitiveCallDAG
 		}
 	}
 
-	public static class SiteSensitiveCallDAGEdge extends FastGraphEdge<MultiCallGraphNode> {
+	public static class SiteSensitiveCallDAGEdge extends FastGraphEdgeImpl<MultiCallGraphNode> {
 		public SiteSensitiveCallDAGEdge(MultiCallGraphNode src, MultiCallGraphNode dst) {
 			super(src, dst);
 		}
@@ -121,9 +122,9 @@ public class SiteSensitiveCallDAG extends FastDirectedGraph<SiteSensitiveCallDAG
 
 			FastGraphEdge<?> that = (FastGraphEdge<?>) o;
 
-			if (!src.equals(that.src))
+			if (!src.equals(that.src()))
 				return false;
-			return dst.equals(that.dst);
+			return dst.equals(that.dst());
 		}
 
 		@Override

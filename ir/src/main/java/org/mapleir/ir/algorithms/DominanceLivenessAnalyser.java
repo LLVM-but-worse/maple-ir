@@ -77,7 +77,7 @@ public class DominanceLivenessAnalyser {
 		for (BasicBlock b : reducedDfs.getPostOrder()) {
 			rv.getNonNull(b).add(b);
 			for (FlowEdge<BasicBlock> e : reducedCfg.getReverseEdges(b)) {
-				rv.getNonNull(e.src).addAll(rv.get(b));
+				rv.getNonNull(e.src()).addAll(rv.get(b));
 			}
 		}
 	}
@@ -97,9 +97,9 @@ public class DominanceLivenessAnalyser {
 	private ControlFlowGraph reduce(ControlFlowGraph cfg, Set<FastGraphEdge<BasicBlock>> back) {
 		ControlFlowGraph reducedCfg = cfg.copy();
 		for (FastGraphEdge<BasicBlock> e : back) {
-			reducedCfg.removeEdge(e.src, (FlowEdge<BasicBlock>) e);
-			backTargets.add(e.dst);
-			backEdges.getNonNull(e.src).add(e.dst);
+			reducedCfg.removeEdge(e.src(), (FlowEdge<BasicBlock>) e);
+			backTargets.add(e.dst());
+			backEdges.getNonNull(e.src()).add(e.dst());
 		}
 		return reducedCfg;
 	}

@@ -97,8 +97,8 @@ public class CallSiteSensitiveCallGraph extends FastDirectedGraph<CallGraphNode,
 
 	@Override
 	public CallGraphEdge clone(CallGraphEdge edge, CallGraphNode oldN, CallGraphNode newN) {
-		CallGraphNode src = edge.src;
-		CallGraphNode dst = edge.dst;
+		CallGraphNode src = edge.src();
+		CallGraphNode dst = edge.dst();
 
 		if (src == oldN) {
 			src = newN;
@@ -117,8 +117,8 @@ public class CallSiteSensitiveCallGraph extends FastDirectedGraph<CallGraphNode,
 
 	@Override
 	public CallGraphEdge invert(CallGraphEdge edge) {
-		CallGraphNode src = edge.dst;
-		CallGraphNode dst = edge.src;
+		CallGraphNode src = edge.dst();
+		CallGraphNode dst = edge.src();
 
 		if (edge.canClone(src, dst)) {
 			return edge.clone(src, dst);
