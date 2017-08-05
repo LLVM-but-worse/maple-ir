@@ -41,12 +41,13 @@ public abstract class CallGraphNode implements FastGraphVertex {
 
 	@Override
 	public abstract String toString();
-	
+
 	// A call receiver; e.g. a MethodNode.
+	// TODO: why don't we just use a methodnode instead directly?
 	public static class CallReceiverNode extends CallGraphNode {
 
 		private final MethodNode method;
-		
+
 		public CallReceiverNode(int id, MethodNode method) {
 			super(id);
 			this.method = method;

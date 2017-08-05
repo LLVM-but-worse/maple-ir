@@ -203,18 +203,10 @@ public class ClassTree extends FastDirectedGraph<ClassNode, InheritanceEdge> {
 		sw.print("\n");
 	}
 	
-	public static abstract class InheritanceEdge extends FastGraphEdgeImpl<ClassNode> {
-		public InheritanceEdge(ClassNode child, ClassNode parent) {
-			super(child, parent);
-		}
-		
-		@Override
-		public String toString() {
-			return String.format("#%s inherits #%s", src.getId(), dst.getId());
-		}
+	public interface InheritanceEdge extends FastGraphEdge<ClassNode> {
 	}
 
-	public static class ExtendsEdge extends InheritanceEdge {
+	public static class ExtendsEdge extends FastGraphEdgeImpl<ClassNode> implements InheritanceEdge {
 		public ExtendsEdge(ClassNode child, ClassNode parent) {
 			super(child, parent);
 		}
@@ -225,7 +217,7 @@ public class ClassTree extends FastDirectedGraph<ClassNode, InheritanceEdge> {
 		}
 	}
 
-	public static class ImplementsEdge extends InheritanceEdge {
+	public static class ImplementsEdge extends FastGraphEdgeImpl<ClassNode> implements InheritanceEdge {
 		public ImplementsEdge(ClassNode child, ClassNode parent) {
 			super(child, parent);
 		}

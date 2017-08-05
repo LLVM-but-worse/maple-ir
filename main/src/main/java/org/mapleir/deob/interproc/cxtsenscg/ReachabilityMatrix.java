@@ -9,7 +9,7 @@ import org.mapleir.deob.interproc.geompa.util.QueueReader;
 import org.mapleir.stdlib.collections.graph.FastGraphEdge;
 import org.objectweb.asm.tree.MethodNode;
 
-public class RM {
+public class ReachabilityMatrix {
 
 	private final ContextInsensitiveCallGraph callGraph;
 	private final Iterator<MethodNode> nodeSource;
@@ -20,7 +20,7 @@ public class RM {
 	private final QueueReader<MethodNode> reachableListener; // external reader
 	private final QueueReader<MethodNode> unprocessedMethods; // our reader
 
-	public RM(ContextInsensitiveCallGraph callGraph, Iterator<MethodNode> entryPoints) {
+	public ReachabilityMatrix(ContextInsensitiveCallGraph callGraph, Iterator<MethodNode> entryPoints) {
 		this.callGraph = callGraph;
 		nodeSource = callGraph.getNodeListener();
 
