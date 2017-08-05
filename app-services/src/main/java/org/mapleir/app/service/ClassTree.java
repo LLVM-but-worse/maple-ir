@@ -25,7 +25,9 @@ public class ClassTree extends FastDirectedGraph<ClassNode, InheritanceEdge> {
 		this.source = source;
 		rootNode = findClass("java/lang/Object");
 		addVertex(rootNode);
-
+	}
+	
+	protected void init() {
 		for (ClassNode node : source.iterateWithLibraries()) {
 			addVertex(node);
 		}
