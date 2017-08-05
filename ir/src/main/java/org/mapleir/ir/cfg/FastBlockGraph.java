@@ -66,8 +66,8 @@ public class FastBlockGraph extends FlowGraph<BasicBlock, FlowEdge<BasicBlock>> 
 
 	@Override
 	public FlowEdge<BasicBlock> clone(FlowEdge<BasicBlock> edge, BasicBlock old, BasicBlock newN) {
-		BasicBlock src = edge.src;
-		BasicBlock dst = edge.dst;
+		BasicBlock src = edge.src();
+		BasicBlock dst = edge.dst();
 		
 		// remap edges
 		if(src == old) {
@@ -91,7 +91,7 @@ public class FastBlockGraph extends FlowGraph<BasicBlock, FlowEdge<BasicBlock>> 
 		
 		Set<BasicBlock> preds = new HashSet<>();
 		for(FlowEdge<BasicBlock> e : predEdges) {
-			preds.add(e.src);
+			preds.add(e.src());
 		}
 		
 		Set<FlowEdge<BasicBlock>> succs = getEdges(n);
@@ -100,7 +100,7 @@ public class FastBlockGraph extends FlowGraph<BasicBlock, FlowEdge<BasicBlock>> 
 		// Set<TryCatchEdge<BasicBlock>> tcs = new HashSet<>();
 		for(FlowEdge<BasicBlock> p : succs) {
 			if(!(p instanceof TryCatchEdge)) {
-				realSuccs.add(p.dst);
+				realSuccs.add(p.dst());
 			}
 			/* else {
 				tcs.add((TryCatchEdge<BasicBlock>) p);
@@ -112,7 +112,7 @@ public class FastBlockGraph extends FlowGraph<BasicBlock, FlowEdge<BasicBlock>> 
 			
 			// clone the real edges
 			for(FlowEdge<BasicBlock> pe : predEdges) {
-				BasicBlock pred = pe.src;
+				BasicBlock pred = pe.src();
 				if(!(pe instanceof TryCatchEdge)) {
 					FlowEdge<BasicBlock> newEdge = clone(pe, n, succ);
 					addEdge(pred, newEdge);
@@ -149,7 +149,7 @@ public class FastBlockGraph extends FlowGraph<BasicBlock, FlowEdge<BasicBlock>> 
 
 	@Override
 	public FlowEdge<BasicBlock> invert(FlowEdge<BasicBlock> edge) {
-		return edge.clone(edge.dst, edge.src);
+		return edge.clone(edge.dst(), edge.src());
 	}
 
 	@Override

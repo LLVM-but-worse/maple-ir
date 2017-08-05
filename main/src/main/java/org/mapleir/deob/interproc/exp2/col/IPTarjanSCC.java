@@ -126,7 +126,7 @@ public class IPTarjanSCC {
 		stack.push(n);
 		
 		for(FlowEdge<CallGraphBlock> e : weigh(graph.getEdges(n))) {
-			CallGraphBlock s = e.dst;
+			CallGraphBlock s = e.dst();
 			
 			DefaultMutableTreeNode sn = new DefaultMutableTreeNode(e);
 			parentNode.add(sn);

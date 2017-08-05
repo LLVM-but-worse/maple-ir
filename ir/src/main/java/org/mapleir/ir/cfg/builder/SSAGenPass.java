@@ -216,11 +216,11 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		// redirect b preds into newBlock and remove them.
 		Set<FlowEdge<BasicBlock>> oldEdges = new HashSet<>(cfg.getReverseEdges(b));
 		for (FlowEdge<BasicBlock> e : oldEdges) {
-			BasicBlock p = e.src;
+			BasicBlock p = e.src();
 			FlowEdge<BasicBlock> c;
 			if (e instanceof TryCatchEdge) { // b is ehandler
 				TryCatchEdge<BasicBlock> tce = (TryCatchEdge<BasicBlock>) e;
-				if (tce.dst != tce.erange.getHandler()) {
+				if (tce.dst() != tce.erange.getHandler()) {
 					System.err.println(cfg.getMethod().owner.name + "#" + cfg.getMethod().name);
 					System.err.println(cfg);
 					System.err.println("Very odd split case. please investigate");
@@ -231,8 +231,8 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 				}
 				if (tce.erange.getHandler() != newBlock) {
 					tce.erange.setHandler(newBlock);
-					cfg.addEdge(tce.src, tce.clone(tce.src, null));
-					cfg.removeEdge(tce.src, tce);
+					cfg.addEdge(tce.src(), tce.clone(tce.src(), null));
+					cfg.removeEdge(tce.src(), tce);
 				}
 			} else {
 				c = e.clone(p, newBlock);
@@ -439,7 +439,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 					if(builder.graph.getReverseEdges(x).size() > 1) {
 						Map<BasicBlock, Expr> vls = new HashMap<>();
 						for(FlowEdge<BasicBlock> fe : builder.graph.getReverseEdges(x)) {
-							vls.put(fe.src, new VarExpr(newl, null));
+							vls.put(fe.src(), new VarExpr(newl, null));
 						}
 						PhiExpr phi = new PhiExpr(vls);
 						CopyPhiStmt assign = new CopyPhiStmt(new VarExpr(l, null), phi);
@@ -509,15 +509,15 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 			succs.add(succE);
 		}
 		
-		succs.sort(Comparator.comparing(o -> o.dst));
+		succs.sort(Comparator.comparing(o -> o.dst()));
 		
 		for(FlowEdge<BasicBlock> succE : succs) {
-			BasicBlock succ = succE.dst;
+			BasicBlock succ = succE.dst();
 			fixPhiArgs(b, succ);
 		}
 		
 		for(FlowEdge<BasicBlock> succE : succs) {
-			BasicBlock succ = succE.dst;
+			BasicBlock succ = succE.dst();
 			search(succ, vis);
 		}
 		

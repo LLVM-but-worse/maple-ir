@@ -48,11 +48,11 @@ public abstract class FastUndirectedGraph<N extends FastGraphVertex, E extends F
 	@Override
 	public void removeVertex(N n) {
 		for(E e : map.remove(n)) {
-			reverseMap.get(/*getDestination(v, e)*/ e.dst).remove(e);
+			reverseMap.get(/*getDestination(v, e)*/ e.dst()).remove(e);
 		}
 		
 		for(E e : reverseMap.remove(n)) {
-			map.get(/*getSource(v, e)*/ e.src).remove(e);
+			map.get(/*getSource(v, e)*/ e.src()).remove(e);
 		}
 	}
 
@@ -68,7 +68,7 @@ public abstract class FastUndirectedGraph<N extends FastGraphVertex, E extends F
 		}
 		map.get(n).add(e);
 		
-		N dst = e.dst;
+		N dst = e.dst();
 		if(!reverseMap.containsKey(dst)) {
 			reverseMap.put(dst, createSet());
 		}
@@ -81,7 +81,7 @@ public abstract class FastUndirectedGraph<N extends FastGraphVertex, E extends F
 		if(map.containsKey(n)) {
 			map.get(n).remove(e);
 		}
-		N dst = e.dst;
+		N dst = e.dst();
 		if(reverseMap.containsKey(dst)) {
 			reverseMap.get(dst).remove(e);
 		}
@@ -117,8 +117,8 @@ public abstract class FastUndirectedGraph<N extends FastGraphVertex, E extends F
 		
 		for(E pred : new HashSet<>(preds)) {
 			E newEdge = clone(pred, old, n);
-			removeEdge(pred.src, pred);
-			addEdge(pred.src, newEdge);
+			removeEdge(pred.src(), pred);
+			addEdge(pred.src(), newEdge);
 		}
 		
 		removeVertex(old);

@@ -90,11 +90,11 @@ public abstract class FastDirectedGraph<N extends FastGraphVertex, E extends Fas
 		// D = {(C->D)}
 
 		for(E e : map.remove(v)) {
-			reverseMap.get(/*getDestination(v, e)*/ e.dst).remove(e);
+			reverseMap.get(/*getDestination(v, e)*/ e.dst()).remove(e);
 		}
 		
 		for(E e : reverseMap.remove(v)) {
-			map.get(/*getSource(v, e)*/ e.src).remove(e);
+			map.get(/*getSource(v, e)*/ e.src()).remove(e);
 		}
 	}
 
@@ -112,7 +112,7 @@ public abstract class FastDirectedGraph<N extends FastGraphVertex, E extends Fas
 		addVertex(v);
 		map.get(v).add(e);
 		
-		N dst = /*getDestination(v, e)*/ e.dst;
+		N dst = /*getDestination(v, e)*/ e.dst();
 		addVertex(dst);
 		
 		reverseMap.get(dst).add(e);
@@ -124,7 +124,7 @@ public abstract class FastDirectedGraph<N extends FastGraphVertex, E extends Fas
 			map.get(v).remove(e);
 		}
 		// we need to remove the edge from dst <- src map
-		N dst = e.dst /*getDestination(v, e)*/;
+		N dst = e.dst() /*getDestination(v, e)*/;
 		if(reverseMap.containsKey(dst)) {
 			reverseMap.get(dst).remove(e);
 		}
@@ -195,8 +195,8 @@ public abstract class FastDirectedGraph<N extends FastGraphVertex, E extends Fas
 		
 		for(E pred : new HashSet<>(preds)) {
 			E newEdge = clone(pred, old, n);
-			removeEdge(pred.src, pred);
-			addEdge(pred.src, newEdge);
+			removeEdge(pred.src(), pred);
+			addEdge(pred.src(), newEdge);
 		}
 		
 		removeVertex(old);

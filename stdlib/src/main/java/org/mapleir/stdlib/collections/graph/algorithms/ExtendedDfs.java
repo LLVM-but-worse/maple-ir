@@ -98,7 +98,7 @@ public class ExtendedDfs<N extends FastGraphVertex> implements DepthFirstSearch<
 		if(cvisit) coloured(b, GREY);
 		
 		for(FastGraphEdge<N> sE : order(reverse ? graph.getReverseEdges(b) : graph.getEdges(b)))  {
-			N s = reverse ? sE.src : sE.dst;
+			N s = reverse ? sE.src() : sE.dst();
 			if (mask == null || mask.contains(s)) {
 				if (opt(EDGES))
 					edges.get(colours.getNonNull(s)).add(sE);

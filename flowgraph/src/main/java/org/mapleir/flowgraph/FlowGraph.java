@@ -149,7 +149,7 @@ public abstract class FlowGraph<N extends FastGraphVertex, E extends FlowEdge<N>
 			for(FlowEdge<N> e : edges) {
 				if(e instanceof TryCatchEdge && !followExceptions)
 					continue;
-				N next = forward ? e.dst : e.src;
+				N next = forward ? e.dst() : e.src();
 				if(next != to && !visited.contains(next)) {
 					stack.add(next);
 					visited.add(next);
@@ -172,7 +172,7 @@ public abstract class FlowGraph<N extends FastGraphVertex, E extends FlowEdge<N>
 			
 			Set<E> edges = getEdges(s);
 			for(FlowEdge<N> e : edges) {
-				N next = e.dst;
+				N next = e.dst();
 				if(!visited.contains(next)) {
 					stack.add(next);
 					visited.add(next);

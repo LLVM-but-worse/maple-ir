@@ -71,7 +71,7 @@ public class TarjanSCC <N extends FastGraphVertex> {
 	}
 	
 	protected N dst(FastGraphEdge<N> e) {
-		return e.dst;
+		return e.dst();
 	}
 
 	protected List<N> formComponent(Set<N> s, N found) {

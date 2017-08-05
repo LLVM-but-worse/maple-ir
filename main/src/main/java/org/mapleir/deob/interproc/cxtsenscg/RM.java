@@ -58,7 +58,7 @@ public class RM {
 			MethodNode m = unprocessedMethods.next();
 
 			for (FastGraphEdge<MethodNode> e : callGraph.getEdges(m)) {
-				addMethod(e.dst);
+				addMethod(e.dst());
 			}
 		}
 	}
