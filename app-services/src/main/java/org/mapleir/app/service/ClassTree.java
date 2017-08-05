@@ -202,7 +202,7 @@ public class ClassTree extends FastDirectedGraph<ClassNode, InheritanceEdge> {
 		sw.print("\n");
 	}
 	
-	public static abstract class InheritanceEdge extends FastGraphEdge<ClassNode> {
+	public static abstract class InheritanceEdge extends FastGraphEdge<ClassNode> implements Comparable<InheritanceEdge> {
 		public InheritanceEdge(ClassNode child, ClassNode parent) {
 			super(child, parent);
 		}
@@ -213,9 +213,7 @@ public class ClassTree extends FastDirectedGraph<ClassNode, InheritanceEdge> {
 		}
 
 		@Override
-		public int compareTo(FastGraphEdge<ClassNode> arg0) {
-			if (!(arg0 instanceof InheritanceEdge))
-				throw new IllegalArgumentException();
+		public int compareTo(InheritanceEdge arg0) {
 			if (this.equals(arg0))
 				return 0;
 			else
@@ -250,7 +248,7 @@ public class ClassTree extends FastDirectedGraph<ClassNode, InheritanceEdge> {
 	@Override
 	public Set<InheritanceEdge> createSet() {
 		return new TreeSet<>((e1, e2) -> {
-			int result = -Boolean.compare(!(e1 instanceof ExtendsEdge), !(e2 instanceof ExtendsEdge));
+			int result = Boolean.compare(!(e1 instanceof ExtendsEdge), !(e2 instanceof ExtendsEdge));
 			return result == 0 ? e1.compareTo(e2) : result;
 		});
 	}

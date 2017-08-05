@@ -43,8 +43,11 @@ public class SimpleDfs<N extends FastGraphVertex> implements DepthFirstSearch<N>
 				preorder.add(current);
 			if (post || topo)
 				postStack.push(current);
-			for (FastGraphEdge<N> succ : GraphUtils.weigh(direction ? graph.getEdges(current) : graph.getReverseEdges(current)))
-				preStack.push(direction? succ.dst : succ.src);
+			List<? extends FastGraphEdge<N>> order = GraphUtils.weigh(direction ? graph.getEdges(current) : graph.getReverseEdges(current));
+			for (ListIterator<? extends FastGraphEdge<N>> iterator = order.listIterator(order.size()); iterator.hasPrevious(); ) {
+				FastGraphEdge<N> succ = iterator.previous();
+				preStack.add(direction ? succ.dst : succ.src);
+			}
 		}
 		if (topo)
 			topoorder.addAll(postStack);
