@@ -1,6 +1,7 @@
 package org.mapleir.app.service;
 
 import java.util.*;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.mapleir.app.service.ClassTree.InheritanceEdge;
 import org.mapleir.stdlib.collections.graph.FastDirectedGraph;
@@ -50,6 +51,22 @@ public class ClassTree extends FastDirectedGraph<ClassNode, InheritanceEdge> {
 	
 	public Iterable<ClassNode> iterateChildren(ClassNode cn) {
 		return () -> getReverseEdges(cn).stream().map(e -> e.src()).iterator();
+	}
+
+	// rip beautiful do/while loop.
+	public Iterable<ClassNode> iterateInheritanceChain(ClassNode cn) {
+		final AtomicReference<ClassNode> pCn = new AtomicReference<>(cn);
+		return () -> new Iterator<ClassNode>() {
+			@Override
+			public boolean hasNext() {
+				return pCn.get() != rootNode;
+			}
+
+			@Override
+			public ClassNode next() {
+				return pCn.getAndSet(getSuper(pCn.get()));
+			}
+		};
 	}
 	
 	public Collection<ClassNode> getParents(ClassNode cn) {
