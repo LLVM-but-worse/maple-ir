@@ -214,12 +214,4 @@ public abstract class FlowGraph<N extends FastGraphVertex, E extends FlowEdge<N>
 	private static int translateBlockIndex(int i) {
 		return i == GraphUtils.FAKEHEAD_ID ? 0 : ++i;
 	}
-
-	@Override
-	public Set<E> createSet() {
-		return new TreeSet<>((e1, e2) -> {
-			int result = Boolean.compare(!(e1 instanceof DummyEdge), !(e2 instanceof DummyEdge));
-			return result == 0 ? e1.compareTo(e2) : result;
-		});
-	}
 }

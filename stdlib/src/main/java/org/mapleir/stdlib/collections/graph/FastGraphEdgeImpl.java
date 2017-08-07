@@ -19,15 +19,6 @@ public class FastGraphEdgeImpl<N extends FastGraphVertex> implements FastGraphEd
 	}
 
 	@Override
-	public int compareTo(FastGraphEdge<N> o) {
-		if (this.equals(o))
-			return 0;
-		else
-			return (int) Math.signum(2 * Integer.compare(src.getNumericId(), o.src().getNumericId())
-					+ Integer.compare(dst.getNumericId(), o.dst().getNumericId()));
-	}
-
-	@Override
 	public boolean equals(Object o) {
 		if (o == null)
 			return false;

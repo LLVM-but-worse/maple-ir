@@ -505,18 +505,14 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		searchImpl(b);
 		
 		List<FlowEdge<BasicBlock>> succs = new ArrayList<>();
-//		System.out.println("b: " + b);
 		for(FlowEdge<BasicBlock> succE : builder.graph.getEdges(b)) {
 			succs.add(succE);
-//			System.out.println("  e: " + succE);
 		}
 		
 		succs.sort(Comparator.comparing(o -> o.dst()));
-//		System.out.println(succs);
+		
 		for(FlowEdge<BasicBlock> succE : succs) {
 			BasicBlock succ = succE.dst();
-//			System.out.println("  e1" + succE);
-//			System.out.println("   dst: " + succ);
 			fixPhiArgs(b, succ);
 		}
 		
@@ -539,7 +535,6 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 				PhiExpr phi = copy.getExpression();
 				Expr e = phi.getArgument(b);
 				
-				System.out.println(phi);
 				if(e.getOpcode() == Opcode.LOCAL_LOAD) {
 					VarExpr v = (VarExpr) e;
 					
