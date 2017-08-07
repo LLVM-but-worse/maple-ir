@@ -22,9 +22,9 @@ public class NewArrayExpr extends Expr {
 		}
 		this.type = type;
 		
-		if(type.getSort() == Type.ARRAY) {
-			throw new RuntimeException(type.toString());
-		}
+//		if(type.getSort() == Type.ARRAY) {
+//			throw new RuntimeException(type.toString());
+//		}
 	}
 
 	public Expr[] getBounds() {

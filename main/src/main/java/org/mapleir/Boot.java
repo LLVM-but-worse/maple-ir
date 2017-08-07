@@ -76,15 +76,15 @@ public class Boot {
 		
 		File rtjar = new File("res/rt.jar");
 		// Load input jar
-		// File f = locateRevFile(135);
+		 File f = locateRevFile(135);
 //		File f = new File("res/allatori6.1san.jar");
-//		section("Preparing to run on " + f.getAbsolutePath());
-//		SingleJarDownloader<ClassNode> dl = new SingleJarDownloader<>(new JarInfo(f));
-//		dl.download();
-//		String name = f.getName().substring(0, f.getName().length() - 4);
-//		ApplicationClassSource app = new ApplicationClassSource(name, dl.getJarContents().getClassContents());
+		section("Preparing to run on " + f.getAbsolutePath());
+		SingleJarDownloader<ClassNode> dl = new SingleJarDownloader<>(new JarInfo(f));
+		dl.download();
+		String name = f.getName().substring(0, f.getName().length() - 4);
+		ApplicationClassSource app = new ApplicationClassSource(name, dl.getJarContents().getClassContents());
 		
-		ApplicationClassSource app = new ApplicationClassSource("test", classes(CGExample.class));
+//		ApplicationClassSource app = new ApplicationClassSource("test", classes(CGExample.class));
 		app.addLibraries(rt(app, rtjar), new InstalledRuntimeClassSource(app));
 		section("Initialising context.");
 		
@@ -99,6 +99,7 @@ public class Boot {
 		
 		IRCallTracer tracer = new IRCallTracer(cxt);
 		for(MethodNode m : cxt.getApplicationContext().getEntryPoints()) {
+			System.out.println(m);
 			tracer.trace(m);
 		}
 		
@@ -111,6 +112,11 @@ public class Boot {
 		}
 		run(cxt, masterGroup);
 		
+		for(MethodNode m : cxt.getIRCache().getActiveMethods()) {
+			if(m.instructions.size() > 100 && m.instructions.size() < 500) {
+				System.out.println(cxt.getIRCache().get(m));
+			}
+		}
 
 		for(Entry<MethodNode, ControlFlowGraph> e : cxt.getIRCache().entrySet()) {
 				BlockCallGraph.prepareControlFlowGraph(e.getValue());
