@@ -4,11 +4,40 @@ import java.util.HashSet;
 import java.util.Set;
 
 import org.mapleir.app.service.ApplicationClassSource;
+import org.mapleir.deob.interproc.geompa.PointsToAnalysis;
+import org.mapleir.deob.interproc.geompa.util.QueueReader;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
 
 public class CGBuilder {
+	
+	private final PointsToAnalysis pa;
+	private final ReachabilityMatrix rm;
+	private final OFCGB ofcgb;
+	private final ContextInsensitiveCallGraph cg;
+	
+	public CGBuilder(ApplicationClassSource app, PointsToAnalysis pa) {
+		this.pa = pa;
+		cg = new ContextInsensitiveCallGraph();
+		rm = new ReachabilityMatrix(cg, getEntryPoints(app).iterator());
+		ofcgb = new OFCGB(rm);
+	}
+	
+	public void build() {
+		QueueReader<MethodNode> worklist = rm.listener();
+		while(true) {
+			ofcgb.processReachables();
+			rm.update();
+			
+			if(!worklist.hasNext()) {
+				break;
+			}
+			
+			MethodNode next = worklist.next();
+			
+		}
+	}
 	
 	private static Set<MethodNode> getEntryPoints(ApplicationClassSource app) {		
 		Set<MethodNode> set = new HashSet<>();

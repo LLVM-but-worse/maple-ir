@@ -22,14 +22,14 @@ public class ReachabilityMatrix {
 
 	public ReachabilityMatrix(ContextInsensitiveCallGraph callGraph, Iterator<MethodNode> entryPoints) {
 		this.callGraph = callGraph;
-		nodeSource = callGraph.getNodeListener();
 
 		reachables = new ChunkedQueue<>();
 		reachableListener = reachables.reader();
+		
+		addMethods(entryPoints);
 
 		unprocessedMethods = reachables.reader();
-
-		addMethods(entryPoints);
+		nodeSource = callGraph.listener();
 	}
 
 	private void addMethods(Iterator<? extends MethodNode> methods) {
@@ -63,7 +63,11 @@ public class ReachabilityMatrix {
 		}
 	}
 
-	public QueueReader<MethodNode> getReachableListener() {
-		return reachableListener;
+	public QueueReader<MethodNode> listener() {
+		return reachableListener.clone();
+	}
+
+	public QueueReader<MethodNode> newListener() {
+		return reachables.reader();
 	}
 }
