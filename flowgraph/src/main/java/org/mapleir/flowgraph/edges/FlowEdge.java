@@ -16,5 +16,13 @@ public interface FlowEdge<N extends FastGraphVertex> extends FastGraphEdge<N>, F
 	
 	FlowEdge<N> clone(N src, N dst);
 
-	// compareTo has been moved to FlowGraph#createSet.
+	@Override
+	default int compareTo(FastGraphEdge<N> o) {
+		if (getType() == FlowEdges.DUMMY) {
+			return 1;
+		} else if (((FlowEdge<N>)o).getType() == FlowEdges.DUMMY) {
+			return -1;
+		}
+		return FastGraphEdge.super.compareTo(o);
+	}
 }
