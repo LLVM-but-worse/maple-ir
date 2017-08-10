@@ -86,7 +86,6 @@ public class InvocationResolver2 implements InvocationResolver {
 
 	@Override
 	public Set<MethodNode> getHierarchyMethodChain(ClassNode cn, String name, String desc, boolean exact) {
-		// TODO Auto-generated method stub
-		return null;
+		return (new SimpleInvocationResolver(app)).getHierarchyMethodChain(cn, name, desc, exact);
 	}
 }

@@ -344,9 +344,6 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 			i++;
 			
 			LinkedList<BasicBlock> queue = new LinkedList<>();
-			if(builder.method.toString().equals("bo.b(Ljava/awt/Component;)V")) {
-				System.out.println(l);
-			}
 			for(BasicBlock b : builder.assigns.get(l)) {
 				process.put(b, i);
 				queue.add(b);
