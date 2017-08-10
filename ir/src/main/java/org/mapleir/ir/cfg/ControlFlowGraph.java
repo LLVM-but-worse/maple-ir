@@ -221,6 +221,7 @@ public class ControlFlowGraph extends FastBlockGraph {
 		// copy edge sets
 		Map<BasicBlock, Set<FlowEdge<BasicBlock>>> edges = new HashMap<>();
 		for(BasicBlock b : order) {
+			assert (containsVertex(b));
 			edges.put(b, getEdges(b));
 		}
 		// clean graph

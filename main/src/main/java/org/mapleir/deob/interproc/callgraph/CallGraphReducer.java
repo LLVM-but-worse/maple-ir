@@ -1,5 +1,6 @@
 package org.mapleir.deob.interproc.callgraph;
 
+import org.mapleir.app.client.SimpleApplicationContext;
 import org.mapleir.context.AnalysisContext;
 import org.mapleir.stdlib.collections.graph.algorithms.TarjanSCC;
 import org.objectweb.asm.tree.MethodNode;
@@ -19,7 +20,8 @@ public class CallGraphReducer {
 		for(MethodNode m : cxt.getApplicationContext().getEntryPoints()) {
 			CallGraphNode.CallReceiverNode node = cg.getNode(m);
 
-			if(cg.getReverseEdges(node).size() > 0) {
+			// need to check for main method or clinit, since otherwise we throw on library inherited methods
+			if(cg.getReverseEdges(node).size() > 0 && (SimpleApplicationContext.isMainMethod(m) || m.name.equals("<clinit>"))) {
 				throw new RuntimeException("entry called?");
 			}
 

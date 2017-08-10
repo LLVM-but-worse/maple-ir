@@ -90,7 +90,7 @@ public class Boot {
 		
 		AnalysisContext cxt = new BasicAnalysisContext.BasicContextBuilder()
 				.setApplication(app)
-				.setInvocationResolver(new SimpleInvocationResolver(app))
+				.setInvocationResolver(new InvocationResolver2(app))
 				.setCache(new IRCache(ControlFlowGraphBuilder::build))
 				.setApplicationContext(new SimpleApplicationContext(app))
 				.build();
@@ -112,12 +112,13 @@ public class Boot {
 		}
 		run(cxt, masterGroup);
 		
-		for(MethodNode m : cxt.getIRCache().getActiveMethods()) {
-			if(m.instructions.size() > 100 && m.instructions.size() < 500) {
-				System.out.println(cxt.getIRCache().get(m));
-			}
-		}
+		// for(MethodNode m : cxt.getIRCache().getActiveMethods()) {
+		// 	if(m.instructions.size() > 100 && m.instructions.size() < 500) {
+		// 		System.out.println(cxt.getIRCache().get(m));
+		// 	}
+		// }
 
+		section("Preparing BlockGallGraphs.");
 		for(Entry<MethodNode, ControlFlowGraph> e : cxt.getIRCache().entrySet()) {
 				BlockCallGraph.prepareControlFlowGraph(e.getValue());
 		}
@@ -153,8 +154,9 @@ public class Boot {
 		
 		for(MethodNode m : cxt.getApplicationContext().getEntryPoints()) {
 			CallReceiverNode node = cg.getNode(m);
-			
-			if(cg.getReverseEdges(node).size() > 0) {
+
+			// need to check for main method or clinit, since otherwise we throw on library inherited methods
+			if(cg.getReverseEdges(node).size() > 0 && (SimpleApplicationContext.isMainMethod(m) || m.name.equals("<clinit>"))) {
 				throw new RuntimeException("entry called?");
 			}
 			
