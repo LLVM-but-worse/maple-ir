@@ -43,6 +43,7 @@ public class BlockCallGraph extends FastDirectedGraph<CallGraphBlock, FlowEdge<C
 		Map<BasicBlock, BasicBlock> remap = new HashMap<>();
 		
 		for(BasicBlock originalBlock : new TreeSet<>(cfg.vertices())) {
+			assert(cfg.containsVertex(originalBlock));
 			order.add(originalBlock);
 			
 			List<List<Stmt>> subBlockStmts = new ArrayList<>();
@@ -209,6 +210,7 @@ public class BlockCallGraph extends FastDirectedGraph<CallGraphBlock, FlowEdge<C
 				List<Stmt> firstList = subBlockStmts.get(0);
 				
 				BasicBlock firstBlock = new BasicBlock(cfg, blockIDCounter++, new LabelNode());
+				cfg.addVertex(firstBlock);
 				remap.put(originalBlock, firstBlock);
 				
 				/* copy flags in case of special block (such as entry). */
@@ -216,6 +218,7 @@ public class BlockCallGraph extends FastDirectedGraph<CallGraphBlock, FlowEdge<C
 				originalBlock.removeAll(firstList);
 				firstBlock.addAll(firstList);
 				subBlocks.add(firstBlock);
+				assert(cfg.containsVertex(firstBlock));
 				
 				BasicBlock lastBlock = firstBlock;
 				
@@ -228,9 +231,11 @@ public class BlockCallGraph extends FastDirectedGraph<CallGraphBlock, FlowEdge<C
 					List<Stmt> subBlock = subBlockIterator.next();
 					
 					BasicBlock currentBlock = new BasicBlock(cfg, blockIDCounter++, new LabelNode());
+					cfg.addVertex(currentBlock);
 					originalBlock.removeAll(subBlock);
 					currentBlock.addAll(subBlock);
 					subBlocks.add(currentBlock);
+					assert(cfg.containsVertex(currentBlock));
 					
 					accountedForInstructions += subBlock.size();
 					
@@ -366,9 +371,17 @@ public class BlockCallGraph extends FastDirectedGraph<CallGraphBlock, FlowEdge<C
 				
 				/* finally remove the original block completely. */
 				cfg.removeVertex(originalBlock);
+				// subBlocks.remove(originalBlock);
+				for (BasicBlock b : subBlocks) {
+					assert(cfg.containsVertex(b));
+				}
 				order.addAll(subBlocks);
 				order.remove(originalBlock);
-				
+
+				assert(!order.contains(originalBlock));
+				for (BasicBlock b : order) {
+					assert(cfg.containsVertex(b));
+				}
 			}
 		}
 		

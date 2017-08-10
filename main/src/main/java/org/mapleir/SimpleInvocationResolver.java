@@ -420,16 +420,7 @@ public class SimpleInvocationResolver implements InvocationResolver {
 	public Set<MethodNode> resolveVirtualCalls(MethodNode m, boolean strict) {
 		return resolveVirtualCalls(m.owner.name, m.name, m.desc, strict);
 	}
-	
-	/**
-	 * Find methods matching the name and desc in all branches related to the class. Note this is much broader
-	 * than actual resolution, and is best used for renaming purposes.
-	 * @param cn base class
-	 * @param name method name
-	 * @param desc method descriptor
-	 * @param exact if true, match return types exactly; otherwise congruent types are also matched
-	 * @return all matching methods
-	 */
+
 	@Override
 	public Set<MethodNode> getHierarchyMethodChain(ClassNode cn, String name, String desc, boolean exact) {
 		ClassTree structures = app.getClassTree();
