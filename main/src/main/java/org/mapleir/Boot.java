@@ -113,7 +113,14 @@ public class Boot {
 			masterGroup.add(p);
 		}
 		run(cxt, masterGroup);
+		
+		// for(MethodNode m : cxt.getIRCache().getActiveMethods()) {
+		// 	if(m.instructions.size() > 100 && m.instructions.size() < 500) {
+		// 		System.out.println(cxt.getIRCache().get(m));
+		// 	}
+		// }
 
+		section("Preparing BlockGallGraphs.");
 		for(Entry<MethodNode, ControlFlowGraph> e : cxt.getIRCache().entrySet()) {
 				BlockCallGraph.prepareControlFlowGraph(e.getValue());
 		}
@@ -149,8 +156,9 @@ public class Boot {
 		
 		for(MethodNode m : cxt.getApplicationContext().getEntryPoints()) {
 			CallReceiverNode node = cg.getNode(m);
-			
-			if(cg.getReverseEdges(node).size() > 0) {
+
+			// need to check for main method or clinit, since otherwise we throw on library inherited methods
+			if(cg.getReverseEdges(node).size() > 0 && (SimpleApplicationContext.isMainMethod(m) || m.name.equals("<clinit>"))) {
 				throw new RuntimeException("entry called?");
 			}
 			

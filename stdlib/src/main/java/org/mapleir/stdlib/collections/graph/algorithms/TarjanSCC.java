@@ -38,7 +38,7 @@ public class TarjanSCC <N extends FastGraphVertex> {
 	}
 	
 	public void search(N n) {
-		System.out.println("x: " + n);
+		// System.out.println("x: " + n);
 		index.put(n, cur);
 		low.put(n, cur);
 		cur++;

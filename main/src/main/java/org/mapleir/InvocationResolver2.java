@@ -22,14 +22,13 @@ public class InvocationResolver2 implements InvocationResolver {
 
 	@Override
 	public MethodNode resolveStaticCall(String owner, String name, String desc) {
-		// TODO Auto-generated method stub
-		return null;
+		// static methods resolve absolutely.
+		return app.findClassNode(owner).getMethod(name, desc, true);
 	}
 
 	@Override
 	public MethodNode resolveVirtualInitCall(String owner, String desc) {
-		// TODO Auto-generated method stub
-		return null;
+		return resolveVirtualCall("<init>", desc, app.findClassNode(owner));
 	}
 
 	// resolve a virtual call matching owner+name+desc to a receiver instance of type receiver.
@@ -39,12 +38,10 @@ public class InvocationResolver2 implements InvocationResolver {
 
 		// sanity check parent chain back up to Object before anything else.
 		int idx = 0;
-		ClassNode checkCn = receiver;
-		do {
+		for (ClassNode checkCn : classTree.iterateInheritanceChain(receiver)) {
 			assert(topoorder.get(idx) == checkCn);
-			checkCn = classTree.getSuper(checkCn);
 			idx++;
-		} while (checkCn != classTree.getRootNode());
+		}
 
 		for (ClassNode cn : topoorder) {
 			MethodNode m = cn.getMethod(name, desc, false);
@@ -67,21 +64,28 @@ public class InvocationResolver2 implements InvocationResolver {
 		return result;
 	}
 
+	private FieldNode findExactField(ClassNode cn, String name, String desc) {
+		return cn.fields.stream().filter(field -> field.name.equals(name) && field.desc.equals(desc)).findFirst().orElse(null);
+	}
+
 	@Override
 	public FieldNode findStaticField(String owner, String name, String desc) {
-		// TODO Auto-generated method stub
-		return null;
+		return findExactField(app.findClassNode(owner), name, desc);
 	}
 
 	@Override
 	public FieldNode findVirtualField(String owner, String name, String desc) {
-		// TODO Auto-generated method stub
+		// interfaces are not an issue here because all interface fields are public static final.
+		for (ClassNode cn : classTree.iterateInheritanceChain(app.findClassNode(owner))) {
+			FieldNode f = findExactField(cn, name, desc);
+			if (f != null)
+				return f;
+		}
 		return null;
 	}
 
 	@Override
 	public Set<MethodNode> getHierarchyMethodChain(ClassNode cn, String name, String desc, boolean exact) {
-		// TODO Auto-generated method stub
-		return null;
+		return (new SimpleInvocationResolver(app)).getHierarchyMethodChain(cn, name, desc, exact);
 	}
 }
