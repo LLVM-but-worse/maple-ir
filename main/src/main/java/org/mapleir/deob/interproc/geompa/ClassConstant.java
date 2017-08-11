@@ -6,7 +6,7 @@ import org.objectweb.asm.Type;
 public class ClassConstant {
 	public final String value;
 
-	private ClassConstant(String s) {
+	public ClassConstant(String s) {
 		value = s;
 	}
 	

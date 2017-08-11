@@ -1,5 +1,7 @@
 package org.mapleir.ir.cfg;
 
+import static org.mapleir.ir.code.Opcode.PHI_STORE;
+
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -30,8 +32,6 @@ import org.mapleir.stdlib.collections.graph.dot.DotWriter;
 import org.mapleir.stdlib.collections.itertools.ChainIterator;
 import org.mapleir.stdlib.util.TabbedStringWriter;
 import org.objectweb.asm.tree.MethodNode;
-
-import static org.mapleir.ir.code.Opcode.PHI_STORE;
 
 public class ControlFlowGraph extends FastBlockGraph {
 	
@@ -245,7 +245,8 @@ public class ControlFlowGraph extends FastBlockGraph {
 	@Override
 	// TODO what the heck
 	public DotWriter<FastGraph<BasicBlock, FlowEdge<BasicBlock>>, BasicBlock, FlowEdge<BasicBlock>> makeDotWriter() {
-		return (DotWriter<FastGraph<BasicBlock, FlowEdge<BasicBlock>>, BasicBlock, FlowEdge<BasicBlock>>)(Object)((DotWriter<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>>)(Object)super.makeDotWriter()).add(new ControlFlowGraphDecorator().setFlags(ControlFlowGraphDecorator.OPT_EDGES | ControlFlowGraphDecorator.OPT_STMTS));
+		return (DotWriter<FastGraph<BasicBlock, FlowEdge<BasicBlock>>, BasicBlock, FlowEdge<BasicBlock>>)(Object)((DotWriter<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>>)(Object)super.makeDotWriter())
+				.add(new ControlFlowGraphDecorator().setFlags(ControlFlowGraphDecorator.OPT_EDGES | ControlFlowGraphDecorator.OPT_STMTS));
 	}
 	
 	public BasicBlock connectHead() {

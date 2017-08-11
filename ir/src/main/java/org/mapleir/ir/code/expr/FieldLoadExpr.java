@@ -22,6 +22,10 @@ public class FieldLoadExpr extends Expr {
 		this.name = name;
 		this.desc = desc;
 	}
+	
+	public boolean isStatic() {
+		return instanceExpression == null;
+	}
 
 	public Expr getInstanceExpression() {
 		return instanceExpression;
