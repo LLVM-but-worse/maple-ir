@@ -27,6 +27,10 @@ public class NewArrayExpr extends Expr {
 //		}
 	}
 
+	public int getDimensions() {
+		return bounds.length;
+	}
+	
 	public Expr[] getBounds() {
 		return bounds;
 	}
