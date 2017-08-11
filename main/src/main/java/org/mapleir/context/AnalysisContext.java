@@ -6,9 +6,6 @@ import org.mapleir.app.service.InvocationResolver;
 import org.mapleir.deob.intraproc.ExceptionAnalysis;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 
-/**
- * Top-level interface responsible for holding global exception information
- */
 public interface AnalysisContext {
 
 	ApplicationClassSource getApplication();

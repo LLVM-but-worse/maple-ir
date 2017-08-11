@@ -14,7 +14,7 @@ import org.mapleir.ir.TypeUtils;
 import org.mapleir.ir.code.expr.AllocObjectExpr;
 import org.mapleir.ir.code.expr.VarExpr;
 import org.mapleir.ir.code.expr.invoke.InitialisedObjectExpr;
-import org.mapleir.stdlib.collections.map.CachedKeyedValueCreator;
+import org.mapleir.ir.locals.Local;
 import org.mapleir.stdlib.collections.map.KeyedValueCreator;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.FieldNode;
@@ -33,6 +33,7 @@ public class PAG implements PointsToAnalysis  {
 	public static boolean VTA = true;
 	public static boolean SIMPLIFY_SCCS = true;
 	public static boolean TYPES_FOR_SITES = true;
+	public static boolean TYPES_FOR_INVOKE = true;
 	public static boolean ON_FLY_CG = false;
 	public static boolean FIELD_BASED = false;
 	
@@ -42,18 +43,22 @@ public class PAG implements PointsToAnalysis  {
 	public static boolean LIBRARY = false;
 	public static boolean LIBRARY_DISABLED = false;
 	
+	public static boolean SIMULATE_NATIVES = false;
+	public static boolean MERGE_STRINGBUILDERS = true;
+	public static boolean STRING_CONSTANTS = true;
+	
 	public static final boolean ADD_TAGS = false;
 	
 	private final AnalysisContext context;
 	private KeyedValueCreator<Type, AbstractPointsToSet> pointsToSetCreator;
-	private final Map<VarExpr, LocalVarNode> localToNodeMap = new HashMap<>();
+	private final Map<Local, LocalVarNode> localToNodeMap = new HashMap<>();
 	// protected Map<Pair<Node, Node>, Set<Edge>> assign2edges = new HashMap<Pair<Node, Node>, Set<Edge>>();
 	private final Map<Object, LocalVarNode> valToLocalVarNode = new HashMap<>(1000);
 	private final Map<Object, GlobalVarNode> valToGlobalVarNode = new HashMap<>(1000);
 	private final Map<Object, AllocNode> valToAllocNode = new HashMap<>(1000);
 	private final Table<Object, Type, AllocNode> valToReflAllocNode = HashBasedTable.create();
 
-	private final KeyedValueCreator<FieldNode, SparkField> sparkFieldFinder;
+	public final KeyedValueCreator<FieldNode, SparkField> sparkFieldFinder;
 	protected ChunkedQueue<PointsToNode> edgeQueue = new ChunkedQueue<>();
 	protected ChunkedQueue<AllocNode> newAllocNodes = new ChunkedQueue<>();
 	
@@ -83,17 +88,15 @@ public class PAG implements PointsToAnalysis  {
 	public PAG(AnalysisContext context) {
 		this.context = context;
 		pointsToSetCreator = (k) -> new DefaultPointsToSet(context.getApplication(), k);
-		
-		sparkFieldFinder = new CachedKeyedValueCreator<FieldNode, SparkField>() {
-			@Override
-			protected SparkField create0(FieldNode k) {
-				return new SparkFieldNodeImpl(k);
-			}
-		};
+		sparkFieldFinder = (k) -> new SparkFieldNodeImpl(k);
 		
 		if(ADD_TAGS) {
 			nodeToTag = new HashMap<>();
 		}
+	}
+	
+	public AnalysisContext getAnalysisContext() {
+		return context;
 	}
 
 	public QueueReader<PointsToNode> edgeReader() {
@@ -288,7 +291,21 @@ public class PAG implements PointsToAnalysis  {
 			value = null;
 			type = TypeUtils.OBJECT_TYPE;
 			method = null;
-		} else if (value instanceof VarExpr) {
+		} else if(value instanceof Local) {
+			Local l = (Local) value;
+			
+			LocalVarNode ret = localToNodeMap.get(l);
+			if(ret == null) {
+				localToNodeMap.put(l, ret = new LocalVarNode(this, l, type, method));
+			} else if (!(ret.getType().equals(type))) {
+				throw new RuntimeException(
+						"Value " + value + " of type " + type + " previously had type " + ret.getType());
+			}
+			return ret;
+		}  else if(value instanceof VarExpr) {
+			throw new RuntimeException(value.toString());
+		}
+		/*} else if (value instanceof VarExpr) {
 			VarExpr val = (VarExpr) value;
 			// FIXME: impact of numbering?
 			//if (val.getNumber() == 0)
@@ -302,7 +319,7 @@ public class PAG implements PointsToAnalysis  {
 						"Value " + value + " of type " + type + " previously had type " + ret.getType());
 			}
 			return ret;
-		}
+		}*/
 		LocalVarNode ret = valToLocalVarNode.get(value);
 		if (ret == null) {
 			valToLocalVarNode.put(value, ret = new LocalVarNode(this, value, type, method));

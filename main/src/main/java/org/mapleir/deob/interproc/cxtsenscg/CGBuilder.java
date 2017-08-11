@@ -39,7 +39,7 @@ public class CGBuilder {
 		}
 	}
 	
-	private static Set<MethodNode> getEntryPoints(ApplicationClassSource app) {		
+	public static Set<MethodNode> getEntryPoints(ApplicationClassSource app) {		
 		Set<MethodNode> set = new HashSet<>();
 		
 		// explicit entry points
