@@ -1,23 +1,20 @@
 package org.mapleir.deob.interproc.geompa;
 
-import java.util.Collections;
-import java.util.Set;
-
 import org.mapleir.app.service.ApplicationClassSource;
-import org.objectweb.asm.Type;
+import org.mapleir.ir.TypeCone;
 
 public class EmptyPointsToSet extends AbstractPointsToSet {
 
 	public static final EmptyPointsToSet INSTANCE = new EmptyPointsToSet(null, null);
 	
-	private EmptyPointsToSet(ApplicationClassSource source, Type type) {
-		super(source, type);
+	private EmptyPointsToSet(ApplicationClassSource source, TypeCone tc) {
+		super(source, tc);
 	}
 
-	@Override
+	/*@Override
 	public Set<Type> getPossibleTypes() {
 		return Collections.emptySet();
-	}
+	}*/
 	
 	@Override
 	public boolean forAll(PointsToFunctor<Boolean> f) {

@@ -7,10 +7,17 @@ import java.util.Map;
 import java.util.Set;
 
 import org.mapleir.context.AnalysisContext;
+import org.mapleir.deob.interproc.cxtsenscg.Edge;
+import org.mapleir.deob.interproc.cxtsenscg.GlobalNodeFactory;
+import org.mapleir.deob.interproc.cxtsenscg.Kind;
+import org.mapleir.deob.interproc.cxtsenscg.MethodPAG;
+import org.mapleir.deob.interproc.cxtsenscg.MethodPAGNodeFactory;
 import org.mapleir.deob.interproc.geompa.PointsToFunctor.BooleanPointsToFunctor;
 import org.mapleir.deob.interproc.geompa.util.ChunkedQueue;
 import org.mapleir.deob.interproc.geompa.util.QueueReader;
+import org.mapleir.ir.TypeCone;
 import org.mapleir.ir.TypeUtils;
+import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.code.expr.AllocObjectExpr;
 import org.mapleir.ir.code.expr.VarExpr;
 import org.mapleir.ir.code.expr.invoke.InitialisedObjectExpr;
@@ -30,11 +37,11 @@ public class PAG implements PointsToAnalysis  {
 	public static boolean VERBOSE = true;
 	
 	public static boolean RTA = false;
-	public static boolean VTA = true;
-	public static boolean SIMPLIFY_SCCS = true;
-	public static boolean TYPES_FOR_SITES = true;
+	public static boolean VTA = false;
+	public static boolean SIMPLIFY_SCCS = false;
+	public static boolean TYPES_FOR_SITES = false;
 	public static boolean TYPES_FOR_INVOKE = true;
-	public static boolean ON_FLY_CG = false;
+	public static boolean ON_FLY_CG = true;
 	public static boolean FIELD_BASED = false;
 	
 	public static boolean ALIAS_PROP = false;
@@ -50,13 +57,13 @@ public class PAG implements PointsToAnalysis  {
 	public static final boolean ADD_TAGS = false;
 	
 	private final AnalysisContext context;
-	private KeyedValueCreator<Type, AbstractPointsToSet> pointsToSetCreator;
+	private KeyedValueCreator<TypeCone, AbstractPointsToSet> pointsToSetCreator;
 	private final Map<Local, LocalVarNode> localToNodeMap = new HashMap<>();
 	// protected Map<Pair<Node, Node>, Set<Edge>> assign2edges = new HashMap<Pair<Node, Node>, Set<Edge>>();
 	private final Map<Object, LocalVarNode> valToLocalVarNode = new HashMap<>(1000);
 	private final Map<Object, GlobalVarNode> valToGlobalVarNode = new HashMap<>(1000);
 	private final Map<Object, AllocNode> valToAllocNode = new HashMap<>(1000);
-	private final Table<Object, Type, AllocNode> valToReflAllocNode = HashBasedTable.create();
+	private final Table<Object, TypeCone, AllocNode> valToReflAllocNode = HashBasedTable.create();
 
 	public final KeyedValueCreator<FieldNode, SparkField> sparkFieldFinder;
 	protected ChunkedQueue<PointsToNode> edgeQueue = new ChunkedQueue<>();
@@ -84,15 +91,21 @@ public class PAG implements PointsToAnalysis  {
 	protected boolean somethingMerged = false;
 	
 	private Map<PointsToNode, Tag> nodeToTag;
-
+	private final GlobalNodeFactory nodeFactory;
+	
 	public PAG(AnalysisContext context) {
 		this.context = context;
 		pointsToSetCreator = (k) -> new DefaultPointsToSet(context.getApplication(), k);
 		sparkFieldFinder = (k) -> new SparkFieldNodeImpl(k);
+		nodeFactory = new GlobalNodeFactory(this);
 		
 		if(ADD_TAGS) {
 			nodeToTag = new HashMap<>();
 		}
+	}
+	
+	public GlobalNodeFactory getNodeFactory() {
+		return nodeFactory;
 	}
 	
 	public AnalysisContext getAnalysisContext() {
@@ -107,7 +120,7 @@ public class PAG implements PointsToAnalysis  {
 		return newAllocNodes.reader();
 	}
 
-	public KeyedValueCreator<Type, AbstractPointsToSet> getSetFactory() {
+	public KeyedValueCreator<TypeCone, AbstractPointsToSet> getSetFactory() {
 		return pointsToSetCreator;
 	}
 	
@@ -175,7 +188,7 @@ public class PAG implements PointsToAnalysis  {
 					"The alias edge propagator does not compute points-to information for instance fields! Use a different propagator.");
 		}
 		AbstractPointsToSet bases = (AbstractPointsToSet) s;
-		final AbstractPointsToSet ret = pointsToSetCreator.create((f instanceof SparkFieldNodeImpl) ? f.getType() : null);
+		final AbstractPointsToSet ret = pointsToSetCreator.create((f instanceof SparkFieldNodeImpl) ? TypeCone.get(f.getType()) : null);
 		bases.forAll(new BooleanPointsToFunctor() {
 			@Override
 			public void apply(PointsToNode n) {
@@ -202,9 +215,12 @@ public class PAG implements PointsToAnalysis  {
 		return reachingObjects(reachingObjects(c, l), f);
 	}
 	
-	public AllocNode makeAllocNode(Object newExpr, Type type, MethodNode m) {
+	public AllocNode makeAllocNode(Object newExpr, Type _t, MethodNode m) {
 		if (TYPES_FOR_SITES || VTA)
-			newExpr = type;
+//			newExpr = type;
+			throw new RuntimeException();
+		
+		TypeCone tc = TypeCone.get(_t);
 		
 		AllocNode ret = valToAllocNode.get(newExpr);
 		if(newExpr instanceof AllocObjectExpr) {
@@ -212,20 +228,20 @@ public class PAG implements PointsToAnalysis  {
 		} else if (newExpr instanceof InitialisedObjectExpr) {
 			// Do we need to create a new allocation node?
 			if (ret == null) {
-				valToAllocNode.put(newExpr, ret = new AllocNode(this, newExpr, type, m));
+				valToAllocNode.put(newExpr, ret = new AllocNode(this, newExpr, tc, m));
 				newAllocNodes.add(ret);
 				addNodeTag(ret, m);
 			}
 			// For a normal "new" expression, there may only be one type
-			else if (!(ret.getType().equals(type)))
+			else if (!(ret.getTypeCone().equals(tc)))
 				throw new RuntimeException(
-						"NewExpr " + newExpr + " of type " + type + " previously had type " + ret.getType());
+						"NewExpr " + newExpr + " of type " + tc + " previously had type " + ret.getTypeCone());
 		}
 		// Check for reflective allocation sites
 		else {
-			ret = valToReflAllocNode.get(newExpr, type);
+			ret = valToReflAllocNode.get(newExpr, tc);
 			if (ret == null) {
-				valToReflAllocNode.put(newExpr, type, ret = new AllocNode(this, newExpr, type, m));
+				valToReflAllocNode.put(newExpr, tc, ret = new AllocNode(this, newExpr, tc, m));
 				newAllocNodes.add(ret);
 				addNodeTag(ret, m);
 			}
@@ -257,14 +273,16 @@ public class PAG implements PointsToAnalysis  {
 		return ret;
 	}
 	
-	public GlobalVarNode makeGlobalVarNode(Object value, Type type) {
+	public GlobalVarNode makeGlobalVarNode(Object value, Type _t) {
 		if (RTA) {
 			value = null;
-			type = TypeUtils.OBJECT_TYPE;
+			_t = TypeUtils.OBJECT_TYPE;
 		}
+		TypeCone tc = TypeCone.get(_t);
+		
 		GlobalVarNode ret = valToGlobalVarNode.get(value);
 		if (ret == null) {
-			valToGlobalVarNode.put(value, ret = new GlobalVarNode(this, value, type));
+			valToGlobalVarNode.put(value, ret = new GlobalVarNode(this, value, tc));
 
 			// if library mode is activated, add allocation of every possible
 			// type to accessible fields
@@ -280,26 +298,27 @@ public class PAG implements PointsToAnalysis  {
 				throw new RuntimeException("fix my ass");
 			}
 			addNodeTag(ret, null);
-		} else if (!(ret.getType().equals(type))) {
-			throw new RuntimeException("Value " + value + " of type " + type + " previously had type " + ret.getType());
+		} else if (!(ret.getTypeCone().equals(tc))) {
+			throw new RuntimeException("Value " + value + " of type " + tc + " previously had type " + ret.getTypeCone());
 		}
 		return ret;
 	}
 	
-	public LocalVarNode makeLocalVarNode(Object value, Type type, MethodNode method) {
+	public LocalVarNode makeLocalVarNode(Object value, Type _t, MethodNode method) {
 		if (RTA) {
 			value = null;
-			type = TypeUtils.OBJECT_TYPE;
+			_t = TypeUtils.OBJECT_TYPE;
 			method = null;
 		} else if(value instanceof Local) {
 			Local l = (Local) value;
 			
+			TypeCone tc = TypeCone.get(_t);
 			LocalVarNode ret = localToNodeMap.get(l);
 			if(ret == null) {
-				localToNodeMap.put(l, ret = new LocalVarNode(this, l, type, method));
-			} else if (!(ret.getType().equals(type))) {
+				localToNodeMap.put(l, ret = new LocalVarNode(this, l, tc, method));
+			} else if (!(ret.getTypeCone().equals(tc))) {
 				throw new RuntimeException(
-						"Value " + value + " of type " + type + " previously had type " + ret.getType());
+						"Value " + value + " of type " + tc + " previously had type " + ret.getTypeCone());
 			}
 			return ret;
 		}  else if(value instanceof VarExpr) {
@@ -320,12 +339,13 @@ public class PAG implements PointsToAnalysis  {
 			}
 			return ret;
 		}*/
+		TypeCone tc = TypeCone.get(_t);
 		LocalVarNode ret = valToLocalVarNode.get(value);
 		if (ret == null) {
-			valToLocalVarNode.put(value, ret = new LocalVarNode(this, value, type, method));
+			valToLocalVarNode.put(value, ret = new LocalVarNode(this, value, tc, method));
 			addNodeTag(ret, method);
-		} else if (!(ret.getType().equals(type))) {
-			throw new RuntimeException("Value " + value + " of type " + type + " previously had type " + ret.getType());
+		} else if (!(ret.getTypeCone().equals(tc))) {
+			throw new RuntimeException("Value " + value + " of type " + tc + " previously had type " + ret.getTypeCone());
 		}
 		return ret;
 	}
@@ -334,7 +354,7 @@ public class PAG implements PointsToAnalysis  {
 	public NewInstanceNode makeNewInstanceNode(Object value, Type type, MethodNode method) {
 		NewInstanceNode node = newInstToNodeMap.get(value);
 		if (node == null) {
-			node = new NewInstanceNode(this, value, type);
+			node = new NewInstanceNode(this, value, TypeCone.get(type));
 			newInstToNodeMap.put(value, node);
 			addNodeTag(node, method);
 		}
@@ -537,7 +557,7 @@ public class PAG implements PointsToAnalysis  {
 	}
 
 	public boolean addAllocEdge(AllocNode from, VarNode to) {
-		if (to.getType() == null || TypeUtils.canStoreClass(context.getApplication(), from.getType(), to.getType())) {
+		if (to.getTypeCone() == null || TypeUtils.canStoreClass(context.getApplication(), from.getTypeCone(), to.getTypeCone())) {
 			if (doAddAllocEdge(from, to)) {
 				edgeQueue.add(from);
 				edgeQueue.add(to);
@@ -591,8 +611,29 @@ public class PAG implements PointsToAnalysis  {
 		} else {
 			return addAllocEdge((AllocNode) from, (VarNode) to);
 		}
-}
+	}
+
+	public void addCallTarget(Edge e) {
+		if(!e.passesParameters()) {
+			return;
+		}
+		
+		MethodPAG srcMPAG = MethodPAG.get(this, e.src());
+		MethodPAG tgtMPAG = MethodPAG.get(this, e.tgt());
+		
+		Pair<PointsToNode, PointsToNode> pval;
+
+		if (e.isExplicit() || e.kind() == Kind.THREAD || e.kind() == Kind.ASYNCTASK) {
+			addCallTarget(srcMPAG, tgtMPAG, e.srcUnit(), e);
+		}
+	}
 	
+	private void addCallTarget(MethodPAG srcMPAG, MethodPAG tgtMPAG, Expr srcUnit, Edge e) {
+		MethodPAGNodeFactory srcFactory = srcMPAG.getNodeFactory();
+		MethodPAGNodeFactory tgtFactory = tgtMPAG.getNodeFactory();
+		
+	}
+
 	private final ArrayNumberer<AllocNode> allocNodeNumberer = new ArrayNumberer<>();
 
 	public ArrayNumberer<AllocNode> getAllocNodeNumberer() {

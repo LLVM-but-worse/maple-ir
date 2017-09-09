@@ -4,7 +4,7 @@ public class ContextVarNode extends LocalVarNode {
 	private Context context;
 
 	ContextVarNode(PAG pag, LocalVarNode base, Context context) {
-		super(pag, base.getVariable(), base.getType(), base.getMethod());
+		super(pag, base.getVariable(), base.getTypeCone(), base.getMethod());
 		this.context = context;
 		base.addContext(this, context);
 	}

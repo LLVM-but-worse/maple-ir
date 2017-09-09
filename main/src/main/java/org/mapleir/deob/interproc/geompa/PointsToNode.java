@@ -1,18 +1,18 @@
 package org.mapleir.deob.interproc.geompa;
 
 import org.mapleir.deob.interproc.geompa.util.Numberable;
-import org.objectweb.asm.Type;
+import org.mapleir.ir.TypeCone;
 
 public abstract class PointsToNode implements Numberable {
 	protected PAG pag;
-	private Type type;
+	private TypeCone typeCone;
 	private int number = 0;
 	protected PointsToNode replacement;
 	protected AbstractPointsToSet p2set;
 
-	public PointsToNode(PAG pag, Type type) {
+	public PointsToNode(PAG pag, TypeCone typeCone) {
 		this.pag = pag;
-		this.type = type;
+		this.typeCone = typeCone;
 		replacement = this;
 	}
 
@@ -39,7 +39,7 @@ public abstract class PointsToNode implements Numberable {
 		}
 		PointsToNode rep = getReplacement();
 		if (rep == this) {
-			p2set = pag.getSetFactory().create(type);
+			p2set = pag.getSetFactory().create(typeCone);
 		}
 		return rep.makeP2Set();
 	}
@@ -79,12 +79,12 @@ public abstract class PointsToNode implements Numberable {
 		}
 	}
 
-	public Type getType() {
-		return type;
+	public TypeCone getTypeCone() {
+		return typeCone;
 	}
 
-	public void setType(Type type) {
-		this.type = type;
+	public void setType(TypeCone typeCone) {
+		this.typeCone = typeCone;
 	}
 
 	@Override
