@@ -1,21 +1,17 @@
 package org.mapleir.deob.interproc.geompa;
 
-import java.lang.reflect.Modifier;
-import java.util.HashSet;
-import java.util.Set;
-
 import org.mapleir.app.service.ApplicationClassSource;
 import org.mapleir.deob.interproc.geompa.PointsToFunctor.BooleanPointsToFunctor;
-import org.objectweb.asm.Type;
+import org.mapleir.ir.TypeCone;
 
 public abstract class AbstractPointsToSet {
 
 	protected final ApplicationClassSource source;
-	protected Type type;
+	protected TypeCone typeCone;
 
-	public AbstractPointsToSet(ApplicationClassSource source, Type type) {
+	public AbstractPointsToSet(ApplicationClassSource source, TypeCone typeCone) {
 		this.source = source;
-		this.type = type;
+		this.typeCone = typeCone;
 	}
 	
 	public abstract boolean forAll(PointsToFunctor<Boolean> f);
@@ -26,12 +22,12 @@ public abstract class AbstractPointsToSet {
 
 	public abstract boolean isEmpty();
 
-	public Type getType() {
-		return type;
+	public TypeCone getTypeCone() {
+		return typeCone;
 	}
 
-	public void setType(Type type) {
-		this.type = type;
+	public void setTypeCone(TypeCone typeCone) {
+		this.typeCone = typeCone;
 	}
 
 	public boolean hasNonEmptyIntersection(AbstractPointsToSet other) {
@@ -45,7 +41,7 @@ public abstract class AbstractPointsToSet {
 		});
 	}
 
-	public Set<Type> getPossibleTypes() {
+	/*public Set<Type> getPossibleTypes() {
 		Set<Type> result = new HashSet<>();
 		forAll(new BooleanPointsToFunctor() {
 			@Override
@@ -57,7 +53,7 @@ public abstract class AbstractPointsToSet {
 			}
 		});
 		return result;
-	}
+	}*/
 
 	public int size() {
 		final int[] ret = new int[1];

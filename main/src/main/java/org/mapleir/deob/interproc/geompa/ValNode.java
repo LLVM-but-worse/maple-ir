@@ -1,10 +1,10 @@
 package org.mapleir.deob.interproc.geompa;
 
-import org.objectweb.asm.Type;
+import org.mapleir.ir.TypeCone;
 
 public class ValNode extends PointsToNode {
 
-	public ValNode(PAG pointsTo, Type type) {
-		super(pointsTo, type);
+	public ValNode(PAG pointsTo, TypeCone tc) {
+		super(pointsTo, tc);
 	}
 }

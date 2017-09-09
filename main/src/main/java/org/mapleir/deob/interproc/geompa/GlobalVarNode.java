@@ -1,12 +1,12 @@
 package org.mapleir.deob.interproc.geompa;
 
-import org.objectweb.asm.Type;
+import org.mapleir.ir.TypeCone;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.FieldNode;
 
 public class GlobalVarNode extends VarNode {
-	GlobalVarNode(PAG pag, Object variable, Type t) {
-		super(pag, variable, t);
+	GlobalVarNode(PAG pag, Object variable, TypeCone tc) {
+		super(pag, variable, tc);
 	}
 
 	public ClassNode getDeclaringClass() {

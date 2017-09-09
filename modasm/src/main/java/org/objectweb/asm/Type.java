@@ -31,6 +31,8 @@ package org.objectweb.asm;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * A Java field or method type. This class can be used to make it easier to
@@ -41,6 +43,46 @@ import java.lang.reflect.Method;
  */
 public class Type {
 
+	private static final Map<String, Type> cache = new HashMap<>();
+	
+	private static Type _get(int sort, String v) {
+		switch(sort) {
+			case OBJECT:
+			case ARRAY:
+			case METHOD:
+				if(cache.containsKey(v)) {
+					return cache.get(v);
+				} else {
+					char[] buf = v.toCharArray();
+					Type t = new Type(sort, buf, 0, buf.length);
+					cache.put(v, t);
+					return t;
+				}
+			default:
+				throw new IllegalArgumentException(String.format("Unsupported sort: %d", sort));
+		}
+	}
+	
+	private static Type _get(int sort, char[] buf, int off, int len) {
+		// TODO: locks
+		
+		switch(sort) {
+			case OBJECT:
+			case ARRAY:
+			case METHOD:
+				String v = String.valueOf(buf, off, len);
+				if(cache.containsKey(v)) {
+					return cache.get(v);
+				} else {
+					Type t = new Type(sort, buf, off, len);
+					cache.put(v, t);
+					return t;
+				}
+			default:
+				throw new IllegalArgumentException(String.format("Unsupported sort: %d", sort));
+		}
+	}
+	
     /**
      * The sort of the <tt>void</tt> type. See {@link #getSort getSort}.
      */
@@ -225,8 +267,9 @@ public class Type {
      * @return the Java type corresponding to the given internal name.
      */
     public static Type getObjectType(final String internalName) {
-        char[] buf = internalName.toCharArray();
-        return new Type(buf[0] == '[' ? ARRAY : OBJECT, buf, 0, buf.length);
+    	return _get(internalName.charAt(0) == '[' ? ARRAY : OBJECT, internalName);
+//        char[] buf = internalName.toCharArray();
+//        return new Type(buf[0] == '[' ? ARRAY : OBJECT, buf, 0, buf.length);
     }
 
     /**
@@ -475,16 +518,18 @@ public class Type {
                     ++len;
                 }
             }
-            return new Type(ARRAY, buf, off, len + 1);
+            return _get(ARRAY, buf, off, len + 1);
         case 'L':
             len = 1;
             while (buf[off + len] != ';') {
                 ++len;
             }
-            return new Type(OBJECT, buf, off + 1, len - 1);
-            // case '(':
+            return _get(OBJECT, buf, off + 1, len - 1);
+        case '(':
+//        default:
+            return _get(METHOD, buf, off, buf.length - off);
         default:
-            return new Type(METHOD, buf, off, buf.length - off);
+            throw new UnsupportedOperationException(String.format("c:%c, str:%s", buf[off], String.valueOf(buf, off, buf.length)));
         }
     }
 

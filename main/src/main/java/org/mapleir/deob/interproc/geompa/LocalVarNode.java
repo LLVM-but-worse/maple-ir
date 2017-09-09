@@ -3,7 +3,7 @@ package org.mapleir.deob.interproc.geompa;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.objectweb.asm.Type;
+import org.mapleir.ir.TypeCone;
 import org.objectweb.asm.tree.MethodNode;
 
 public class LocalVarNode extends VarNode {
@@ -11,8 +11,8 @@ public class LocalVarNode extends VarNode {
 	protected Map<Object, ContextVarNode> cvns;
 	protected MethodNode method;
 
-	LocalVarNode(PAG pag, Object variable, Type t, MethodNode m) {
-		super(pag, variable, t);
+	LocalVarNode(PAG pag, Object variable, TypeCone tc, MethodNode m) {
+		super(pag, variable, tc);
 		method = m;
 		// if( m == null ) throw new RuntimeException( "method shouldn't be null" );
 	}

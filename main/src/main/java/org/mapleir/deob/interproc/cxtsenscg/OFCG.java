@@ -46,7 +46,7 @@ public class OFCG {
 	private void processCallEdges() {
 		while (callEdges.hasNext()) {
 			Edge e = callEdges.next();
-			MethodPAG amp = MethodPAG.v(pag, e.tgt());
+			MethodPAG amp = MethodPAG.get(pag, e.tgt());
 			amp.build();
 			amp.addToPAG();
 			pag.addCallTarget(e);

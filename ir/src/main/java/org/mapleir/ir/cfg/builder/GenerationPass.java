@@ -1521,7 +1521,12 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 			
 			/* add L; so that the internal descriptor here matches the
 			 * one provided by Type.getType(Class) and therefore
-			 * ExceptionAnalysis.getType(Class). */
+			 * ExceptionAnalysis.getType(Class). 
+			 * 
+			 * 26/08/17: changed Type.getType to return consistent
+			 * object refs and to not create Types of sort METHOD
+			 * if the given descriptor isn't intended for getType
+			 * (getObjectType instead), shouldn't have this problem now.*/
 			erange.addType(tc.type != null ? Type.getType("L" + tc.type + ";") : TypeUtils.THROWABLE);
 			
 			ListIterator<BasicBlock> lit = range.listIterator();

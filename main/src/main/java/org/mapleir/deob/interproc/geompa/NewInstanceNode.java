@@ -1,14 +1,14 @@
 package org.mapleir.deob.interproc.geompa;
 
-import org.objectweb.asm.Type;
+import org.mapleir.ir.TypeCone;
 
 public class NewInstanceNode extends PointsToNode {
 	
 	// TODO: originally soot.Value
 	private final Object value;
 
-    NewInstanceNode( PAG pag, Object value, Type type ) {
-    	super(pag, type);
+    NewInstanceNode( PAG pag, Object value, TypeCone tc ) {
+    	super(pag, tc);
     	this.value = value;
     }
     

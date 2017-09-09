@@ -45,8 +45,6 @@ import org.objectweb.asm.tree.MethodNode;
 import org.topdank.byteengineer.commons.data.JarInfo;
 import org.topdank.byteio.in.SingleJarDownloader;
 
-import g.TestClass;
-
 public class Boot {
 	
 	public static boolean logging = false;
@@ -84,9 +82,9 @@ public class Boot {
 		SingleJarDownloader<ClassNode> dl = new SingleJarDownloader<>(new JarInfo(f));
 		dl.download();
 		String name = f.getName().substring(0, f.getName().length() - 4);
-//		ApplicationClassSource app = new ApplicationClassSource(name, dl.getJarContents().getClassContents());
+		ApplicationClassSource app = new ApplicationClassSource(name, dl.getJarContents().getClassContents());
 		
-		ApplicationClassSource app = new ApplicationClassSource("test", classes(TestClass.class));
+//		ApplicationClassSource app = new ApplicationClassSource("test", classes(TestClass.class));
 		app.addLibraries(rt(app, rtjar), new InstalledRuntimeClassSource(app));
 		section("Initialising context.");
 		
@@ -126,7 +124,7 @@ public class Boot {
 		}
 		
 		section("Performing IPA.");
-		doIPAnalysis(cxt);
+//		doIPAnalysis(cxt);
 		
 		section("Retranslating SSA IR to standard flavour.");
 		for(Entry<MethodNode, ControlFlowGraph> e : cxt.getIRCache().entrySet()) {
