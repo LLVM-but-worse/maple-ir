@@ -125,7 +125,7 @@ public class MethodPAGNodeFactory implements Opcode {
 		} else if(op == THROW) {
 			ThrowStmt thr = (ThrowStmt) stmt;
 			PointsToNode n = vis(thr.getExpression());
-			mpag.addOutEdge(n, caseThrow());
+			mpag.addOutEdge(n, mpag.getPAG().getNodeFactory().caseThrow());
 		} else if(op == NOP || op == UNCOND_JUMP) {
 			// nothing
 		} else if(op == MONITOR) {
@@ -150,6 +150,12 @@ public class MethodPAGNodeFactory implements Opcode {
 		VarNode ret = mpag.getPAG().makeLocalVarNode(new Pair<>(method, PointsToAnalysis.THIS_NODE), Type.getType(method.owner.name), method);
 		ret.setInterProcTarget();
 		return ret;
+	}
+	
+
+	public PointsToNode caseParm(int i) {
+		Type[] args = Type.getArgumentTypes(method.desc);
+		return caseParm(i, args[i]);
 	}
 	
 	public PointsToNode caseParm(int i, Type t) {
@@ -301,12 +307,5 @@ public class MethodPAGNodeFactory implements Opcode {
 		} else {
 			return null;
 		}
-	}
-	
-	public PointsToNode caseThrow() {
-		VarNode ret = mpag.getPAG().makeGlobalVarNode(PointsToAnalysis.EXCEPTION_NODE, TypeUtils.THROWABLE);
-		ret.setInterProcTarget();
-		ret.setInterProcSource();
-		return ret;
 	}
 }

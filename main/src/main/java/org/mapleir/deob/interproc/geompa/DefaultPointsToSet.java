@@ -6,21 +6,20 @@ import java.util.Iterator;
 import java.util.Set;
 
 import org.mapleir.app.service.ApplicationClassSource;
-import org.mapleir.ir.TypeUtils;
-import org.objectweb.asm.Type;
+import org.mapleir.ir.TypeCone;
 
 public class DefaultPointsToSet extends AbstractPointsToSet {
 
 	private final Set<PointsToNode> set;
 	
-	public DefaultPointsToSet(ApplicationClassSource source, Type type) {
-		super(source, type);
+	public DefaultPointsToSet(ApplicationClassSource source, TypeCone tc) {
+		super(source, tc);
 		set = new HashSet<>(4);
 	}
 	
 	@Override
 	public final boolean addAll(AbstractPointsToSet other, AbstractPointsToSet exclude) {
-		if (other instanceof DefaultPointsToSet && exclude == null && (type == null || type.equals(other.type))) {
+		if (other instanceof DefaultPointsToSet && exclude == null && (typeCone == null || typeCone.equals(other.typeCone))) {
 			return set.addAll(((DefaultPointsToSet) other).set);
 		} else {
 			return super.addAll(other, exclude);
@@ -39,11 +38,11 @@ public class DefaultPointsToSet extends AbstractPointsToSet {
 	public boolean add(PointsToNode n) {
 		// i.e. [this.type] = [n.type] is a statically
 		// determinable valid class cast. 
-		if(TypeUtils.castNeverFails(source, n.getType(), type)) {
+//		if(TypeUtils.castNeverFails(source, n.getType(), type)) {
 			return set.add(n);
-		} else {
-			return false;
-		}
+//		} else {
+//			return false;
+//		}
 	}
 
 	@Override

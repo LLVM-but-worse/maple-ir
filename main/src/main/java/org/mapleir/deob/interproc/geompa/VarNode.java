@@ -5,7 +5,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.objectweb.asm.Type;
+import org.mapleir.ir.TypeCone;
 
 public class VarNode extends ValNode implements Comparable<VarNode> {
 
@@ -16,8 +16,8 @@ public class VarNode extends ValNode implements Comparable<VarNode> {
 	protected boolean interProcSource = false;
 	protected int numDerefs = 0;
 
-	VarNode(PAG pag, Object variable, Type t) {
-		super(pag, t);
+	VarNode(PAG pag, Object variable, TypeCone tc) {
+		super(pag, tc);
 		/*if (!(t instanceof RefLikeType) || t instanceof AnySubType) {
 			throw new RuntimeException("Attempt to create VarNode of type " + t);
 		}*/

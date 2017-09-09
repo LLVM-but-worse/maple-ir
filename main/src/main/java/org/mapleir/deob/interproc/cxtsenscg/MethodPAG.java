@@ -55,11 +55,15 @@ public class MethodPAG {
 		nodeFactory = new MethodPAGNodeFactory(this);
 	}
 	
+	public MethodPAGNodeFactory getNodeFactory() {
+		return nodeFactory;
+	}
+	
 	public PAG getPAG() {
 		return pag;
 	}
 
-	public void addToPag() {
+	public void addToPAG() {
 		if (!hasBeenBuilt) {
 			throw new IllegalStateException(method.toString());
 		}
@@ -109,14 +113,40 @@ public class MethodPAG {
 	}
 	
 	private void buildNormal() {
-		ControlFlowGraph cfg = cxt.getIRCache().get(method);
+		ControlFlowGraph cfg = pag.getAnalysisContext().getIRCache().get(method);
 		for(Stmt stmt : cfg.stmts()) {
 			nodeFactory.handleStmt(stmt);
 		}
 	}
 	
 	private void addMiscEdges() {
+		String owner = method.owner.name;
+		String name = method.name;
+		String desc = method.desc;
 		
+		if(name.equals("main") && desc.equals("([Ljava/lang/String;)V")) {
+			addInEdge(pag.getNodeFactory().caseArgv(), nodeFactory.caseParm(0));
+		} else if(owner.equals("java/lang/Thread")) {
+			if(name.equalsIgnoreCase("<init>") && desc.equalsIgnoreCase("(Ljava/lang/ThreadGroup;Ljava/lang/String;)V")) {
+				addInEdge(pag.getNodeFactory().caseMainThread(), nodeFactory.caseThis());
+				addInEdge(pag.getNodeFactory().caseMainThreadGroup(), nodeFactory.caseParm(0));
+			} else if(name.equals("exit") && desc.equals("()V")) {
+				addInEdge(pag.getNodeFactory().caseMainThread(), nodeFactory.caseThis());
+			}
+		} else if(owner.equalsIgnoreCase("java/lang/ref/Finalizer")) {
+			if(name.equals("<init>") && desc.equals("(Ljava/lang/Object;)V")) {
+				addInEdge(nodeFactory.caseThis(), pag.getNodeFactory().caseFinalizeQueue());
+			} else if(name.equals("runFinalizer") && desc.equals("()V")) {
+				addInEdge(pag.getNodeFactory().caseFinalizeQueue(), nodeFactory.caseThis());
+			} else if(name.equals("access$100") && desc.equals("(Ljava/lang/Object;)V")) {
+				addInEdge(pag.getNodeFactory().caseFinalizeQueue(), nodeFactory.caseParm(0));
+			}
+		} else if(owner.equals("java/lang/ClassLoader") && name.equals("<init>") && desc.equals("()V")) {
+			addInEdge(pag.getNodeFactory().caseDefaultClassLoader(), nodeFactory.caseThis());
+		} else if(owner.equals("java/security/PrivilegedActionException") && name.equals("<init>") && desc.equals("(Ljava/lang/Exception;)V")) {
+			addInEdge(pag.getNodeFactory().caseThrow(), nodeFactory.caseParm(0));
+			addInEdge(pag.getNodeFactory().casePrivilegedActionException(), nodeFactory.caseThis());
+		}
 	}
 	
 	public void addInternalEdge(PointsToNode src, PointsToNode dst) {

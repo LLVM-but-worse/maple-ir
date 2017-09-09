@@ -58,4 +58,15 @@ public class GlobalNodeFactory {
 //		pag.addEdge(a, v);
 //		return v;
 	}
+
+	public PointsToNode caseThrow() {
+		VarNode ret = pag.makeGlobalVarNode(PointsToAnalysis.EXCEPTION_NODE, TypeUtils.THROWABLE);
+		ret.setInterProcTarget();
+		ret.setInterProcSource();
+		return ret;
+	}
+
+	public PointsToNode casePrivilegedActionException() {
+		AllocNode a = pag.makeAllocNode(PointsToAnalysis.PRIVILEGED_ACTION_EXCEPTION, type, m)
+	}
 }

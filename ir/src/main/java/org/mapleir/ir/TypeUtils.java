@@ -3,10 +3,10 @@ package org.mapleir.ir;
 import static org.objectweb.asm.Opcodes.*;
 
 import java.io.Serializable;
-import java.lang.invoke.WrongMethodTypeException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.Map;
 import java.util.Set;
 
@@ -19,55 +19,27 @@ import org.objectweb.asm.util.Printer;
 
 public class TypeUtils {
 	
-	private static Type type(Class<?> c) {
-		return Type.getType(c);
-	}
-	
 	private static Set<Type> __getIntrinsicErrors() {
 		/* all extend VirtualMachineError */
 		Set<Type> set = new HashSet<>();
-		set.add(type(InternalError.class));
-		set.add(type(OutOfMemoryError.class));
-		set.add(type(StackOverflowError.class));
-		set.add(type(UnknownError.class));
+		set.add(Type.getType(InternalError.class));
+		set.add(Type.getType(OutOfMemoryError.class));
+		set.add(Type.getType(StackOverflowError.class));
+		set.add(Type.getType(UnknownError.class));
 		return set;
 	}
 
+	public static final Set<Type> VM_ERRORS = Collections.unmodifiableSet(__getIntrinsicErrors());
+	public static final Type CLASS = Type.getType(Class.class);
+	public static final Type STRING = Type.getType(String.class);
 	public static final Type OBJECT_TYPE = Type.getType(Object.class);
 	public static final Type CLONEABLE_TYPE = Type.getType(Cloneable.class);
 	public static final Type SERIALIZABLE_TYPE = Type.getType(Serializable.class);
+	public static final Type THROWABLE = Type.getType(Throwable.class);
 	
-	public static final Set<Type> VM_ERRORS = Collections.unmodifiableSet(__getIntrinsicErrors());
-	
+	// TODO: remove
 	public static final Type ANY = Type.getType("L<any>;");
 	
-	public static final Type THROWABLE = type(Throwable.class);
-	
-	public static final Type VIRTUAL_MACHINE_ERROR = type(VirtualMachineError.class);
-	
-	public static final Type NO_FIELD_ERROR = type(NoSuchFieldError.class);
-	public static final Type NO_METHOD_ERROR = type(NoSuchMethodError.class);
-	public static final Type ABSTRACT_METHOD_ERROR = type(AbstractMethodError.class);
-	public static final Type UNSATISFIED_LINK_ERROR = type(UnsatisfiedLinkError.class);
-	public static final Type ILLEGAL_ACCESS_ERROR = type(IllegalAccessError.class);
-	public static final Type WRONG_METHOD_TYPE_EXCEPTION = type(WrongMethodTypeException.class);
-	public static final Type INSTANTIATION_ERROR = type(InstantiationError.class);
-	
-	public static final Type INCOMPATIBLE_CLASS_CHANGE_ERROR = type(IncompatibleClassChangeError.class);
-	
-	public static final Type CLASS_CAST_EXCEPTION = type(ClassCastException.class);
-	public static final Type ARITHMETIC_EXCEPTION = type(ArithmeticException.class);
-	
-	public static final Type NULL_POINTER_EXCEPTION = type(NullPointerException.class);
-	public static final Type INDEX_OUT_OF_BOUNDS_EXCEPTION = type(IndexOutOfBoundsException.class);
-	public static final Type ILLEGAL_MONITOR_STATE_EXCEPTION = type(IllegalMonitorStateException.class);
-	public static final Type NEGATIVE_ARRAY_SIZE_EXCEPTION = type(NegativeArraySizeException.class);
-	
-	public static final Type RUNTIME_EXCEPTION = type(RuntimeException.class);
-	public static final Type ERROR = type(Error.class);
-	
-	public static final Type CLASS = type(Class.class);
-	public static final Type STRING = type(String.class);
 	
 	public enum ArrayType {
 		INT(Type.INT_TYPE, 0),
@@ -635,7 +607,7 @@ public class TypeUtils {
 		unboxTable.put(Float.class, Type.FLOAT_TYPE);
 		unboxTable.put(Double.class, Type.DOUBLE_TYPE);
 		unboxTable.put(Long.class, Type.LONG_TYPE);
-		unboxTable.put(String.class, type(String.class));
+		unboxTable.put(String.class, Type.getType(String.class));
 	}
 	
 	public static Type unboxType(Object cst) {
@@ -678,10 +650,92 @@ public class TypeUtils {
 		}
 	}
 	
-	public static boolean castNeverFails(ApplicationClassSource source, Type rhs, Type lhs) {
+	public static boolean castNeverFails1(ApplicationClassSource source, TypeCone rhs, TypeCone lhs) {
 		// dst = src
+		// lhs = rhs
+		if(lhs == null) return true;
+		if(lhs == rhs) return true;
+		if(rhs == null) return false;
+		if(lhs.equals(rhs)) return true;
+		if(rhs.isCone()) return true; // ??
+		if(lhs.isCone()) throw new IllegalArgumentException(String.format("%s = %s", lhs, rhs));
+		return castNeverFails2(source, rhs, lhs);
+	}
+	
+	public static boolean canStoreType(ApplicationClassSource app, TypeCone c, TypeCone p) {
+		// p = c;
+		if(c.equals(p)) return true;
 		
-		if(lhs == null || lhs == rhs || lhs.equals(rhs)) {
+		boolean cCone = c.isCone();
+		boolean pCone = p.isCone();
+		
+		Type ct = c.getBase();
+		int ctSort = ct.getSort();
+		Type pt = p.getBase();
+		int ptSort = ct.getSort();
+		
+		if(cCone) {
+			// not RefLikeType
+			if(!(pCone || ptSort == Type.OBJECT || ptSort == Type.ARRAY)) {
+				throw new IllegalArgumentException(String.format("Unhandled type: %s", pt));
+			}
+			
+			if(ptSort == Type.ARRAY) {
+				return isImplicitArraySuperType(ct);
+			} else {
+				
+				if(ctSort == Type.ARRAY || ptSort == Type.ARRAY) {
+					throw new IllegalStateException();
+				}
+				
+				// pCone/pSort==obj
+				ClassNode base = app.findClassNode(ct.getInternalName());
+				ClassNode pKlass = app.findClassNode(pt.getInternalName());
+				
+				LinkedList<ClassNode> worklist = new LinkedList<>();
+				if(base.isInterface()) {
+					worklist.addAll(app.getClassTree().getAllChildren(base));
+				} else {
+					worklist.add(base);
+				}
+				
+				Set<ClassNode> processed = new HashSet<>();
+				
+				while(!worklist.isEmpty()) {
+					ClassNode klass = worklist.removeFirst();
+					
+					if(!processed.add(klass)) continue;
+					if(!klass.isInterface() && canStoreClass(klass, pKlass)) return true;
+					
+					worklist.addAll(c)
+				}
+			}
+		} else {
+			if(ctSort == Type.OBJECT) {
+				if(pt.equals(TypeUtils.OBJECT_TYPE)) {
+					return true;
+				}
+				// if pt is a RefType, i.e. not array, not anySub, only obj
+				if(ptSort == Type.OBJECT && !pCone) {
+					return canStoreClass(ct, pt); // both bases are the real types
+				} else {
+					return false;
+				}
+			} else if(ctSort == Type.ARRAY) {
+				
+			} else {
+				throw new IllegalArgumentException(String.format("Illegal type: %s(%d) = %s", c, ct.getSort(), p, p.getBase()));
+			}
+		}
+	}
+	
+	public static boolean castNeverFails2(ApplicationClassSource source, Type rhs, Type lhs) {
+		// dst = src
+		if(lhs == null) {
+			throw new NullPointerException();
+		}
+		
+		if(lhs == rhs || lhs.equals(rhs)) {
 			return true;
 		}
 		

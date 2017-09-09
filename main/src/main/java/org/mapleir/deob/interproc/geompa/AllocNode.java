@@ -7,7 +7,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import org.objectweb.asm.Type;
+import org.mapleir.ir.TypeCone;
 import org.objectweb.asm.tree.MethodNode;
 
 public class AllocNode extends PointsToNode implements Context {
@@ -16,8 +16,8 @@ public class AllocNode extends PointsToNode implements Context {
 	protected Map<SparkField, AllocDotField> fields;
 	private MethodNode method;
 
-	AllocNode(PAG pag, Object newExpr, Type t, MethodNode m) {
-		super(pag, t);
+	AllocNode(PAG pag, Object newExpr, TypeCone tc, MethodNode m) {
+		super(pag, tc);
 		method = m;
 		// TODO: check it
 		/*if (t instanceof RefType) {
