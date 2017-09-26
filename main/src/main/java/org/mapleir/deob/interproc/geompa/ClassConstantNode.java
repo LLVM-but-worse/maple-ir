@@ -6,7 +6,7 @@ import org.mapleir.ir.TypeUtils;
 public class ClassConstantNode extends AllocNode {
 
 	ClassConstantNode(PAG pag, ClassConstant cc) {
-		super(pag, cc, TypeCone.get(TypeUtils.CLASS), null);
+		super(pag, cc, TypeCone.getType(TypeUtils.CLASS), null);
 	}
 
 	public ClassConstant getClassConstant() {

@@ -188,7 +188,7 @@ public class PAG implements PointsToAnalysis  {
 					"The alias edge propagator does not compute points-to information for instance fields! Use a different propagator.");
 		}
 		AbstractPointsToSet bases = (AbstractPointsToSet) s;
-		final AbstractPointsToSet ret = pointsToSetCreator.create((f instanceof SparkFieldNodeImpl) ? TypeCone.get(f.getType()) : null);
+		final AbstractPointsToSet ret = pointsToSetCreator.create((f instanceof SparkFieldNodeImpl) ? TypeCone.getType(f.getType()) : null);
 		bases.forAll(new BooleanPointsToFunctor() {
 			@Override
 			public void apply(PointsToNode n) {
@@ -215,12 +215,13 @@ public class PAG implements PointsToAnalysis  {
 		return reachingObjects(reachingObjects(c, l), f);
 	}
 	
-	public AllocNode makeAllocNode(Object newExpr, Type _t, MethodNode m) {
+	public AllocNode makeAllocNode(Object newExpr, TypeCone _t, MethodNode m) {
 		if (TYPES_FOR_SITES || VTA)
 //			newExpr = type;
 			throw new RuntimeException();
 		
-		TypeCone tc = TypeCone.get(_t);
+//		TypeCone tc = TypeCone.get(_t);
+		TypeCone tc = _t;
 		
 		AllocNode ret = valToAllocNode.get(newExpr);
 		if(newExpr instanceof AllocObjectExpr) {
@@ -251,7 +252,7 @@ public class PAG implements PointsToAnalysis  {
 	
 	public AllocNode makeStringConstantNode(String s) {
 		if (TYPES_FOR_SITES || VTA)
-			return makeAllocNode(TypeUtils.STRING, TypeUtils.STRING, null);
+			return makeAllocNode(TypeUtils.STRING, TypeCone.getType(TypeUtils.STRING), null);
 		StringConstantNode ret = (StringConstantNode) valToAllocNode.get(s);
 		if (ret == null) {
 			valToAllocNode.put(s, ret = new StringConstantNode(this, s));
@@ -263,7 +264,7 @@ public class PAG implements PointsToAnalysis  {
 	
 	public AllocNode makeClassConstantNode(ClassConstant cc) {
 		if (TYPES_FOR_SITES || VTA)
-			return makeAllocNode(TypeUtils.CLASS, TypeUtils.CLASS, null);
+			return makeAllocNode(TypeUtils.CLASS, TypeCone.getType(TypeUtils.CLASS), null);
 		ClassConstantNode ret = (ClassConstantNode) valToAllocNode.get(cc);
 		if (ret == null) {
 			valToAllocNode.put(cc, ret = new ClassConstantNode(this, cc));
@@ -273,12 +274,13 @@ public class PAG implements PointsToAnalysis  {
 		return ret;
 	}
 	
-	public GlobalVarNode makeGlobalVarNode(Object value, Type _t) {
+	public GlobalVarNode makeGlobalVarNode(Object value, TypeCone _t) {
 		if (RTA) {
 			value = null;
-			_t = TypeUtils.OBJECT_TYPE;
+			_t = TypeCone.getType(TypeUtils.OBJECT_TYPE);
 		}
-		TypeCone tc = TypeCone.get(_t);
+//		TypeCone tc = TypeCone.get(_t);
+		TypeCone tc = _t;
 		
 		GlobalVarNode ret = valToGlobalVarNode.get(value);
 		if (ret == null) {
@@ -304,15 +306,17 @@ public class PAG implements PointsToAnalysis  {
 		return ret;
 	}
 	
-	public LocalVarNode makeLocalVarNode(Object value, Type _t, MethodNode method) {
+	public LocalVarNode makeLocalVarNode(Object value, TypeCone _t, MethodNode method) {
 		if (RTA) {
 			value = null;
-			_t = TypeUtils.OBJECT_TYPE;
+//			_t = TypeUtils.OBJECT_TYPE;
+			_t = TypeCone.getType(TypeUtils.OBJECT_TYPE);
 			method = null;
 		} else if(value instanceof Local) {
 			Local l = (Local) value;
 			
-			TypeCone tc = TypeCone.get(_t);
+//			TypeCone tc = TypeCone.get(_t);
+			TypeCone tc = _t;
 			LocalVarNode ret = localToNodeMap.get(l);
 			if(ret == null) {
 				localToNodeMap.put(l, ret = new LocalVarNode(this, l, tc, method));
@@ -322,6 +326,7 @@ public class PAG implements PointsToAnalysis  {
 			}
 			return ret;
 		}  else if(value instanceof VarExpr) {
+			// TODO: temp
 			throw new RuntimeException(value.toString());
 		}
 		/*} else if (value instanceof VarExpr) {
@@ -339,7 +344,8 @@ public class PAG implements PointsToAnalysis  {
 			}
 			return ret;
 		}*/
-		TypeCone tc = TypeCone.get(_t);
+//		TypeCone tc = TypeCone.get(_t);
+		TypeCone tc = _t;
 		LocalVarNode ret = valToLocalVarNode.get(value);
 		if (ret == null) {
 			valToLocalVarNode.put(value, ret = new LocalVarNode(this, value, tc, method));
@@ -354,7 +360,7 @@ public class PAG implements PointsToAnalysis  {
 	public NewInstanceNode makeNewInstanceNode(Object value, Type type, MethodNode method) {
 		NewInstanceNode node = newInstToNodeMap.get(value);
 		if (node == null) {
-			node = new NewInstanceNode(this, value, TypeCone.get(type));
+			node = new NewInstanceNode(this, value, TypeCone.getCone(type));
 			newInstToNodeMap.put(value, node);
 			addNodeTag(node, method);
 		}
