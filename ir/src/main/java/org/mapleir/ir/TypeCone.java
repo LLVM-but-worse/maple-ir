@@ -4,7 +4,11 @@ import org.objectweb.asm.Type;
 
 public class TypeCone {
 
-	public static TypeCone get(Type t) {
+	public static TypeCone getType(Type t) {
+		throw new UnsupportedOperationException();
+	}
+	
+	public static TypeCone getCone(Type t) {
 		throw new UnsupportedOperationException();
 	}
 	

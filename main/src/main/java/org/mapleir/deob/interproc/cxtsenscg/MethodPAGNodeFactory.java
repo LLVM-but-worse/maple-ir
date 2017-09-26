@@ -3,6 +3,7 @@ package org.mapleir.deob.interproc.cxtsenscg;
 import java.lang.reflect.Modifier;
 
 import org.mapleir.deob.interproc.geompa.*;
+import org.mapleir.ir.TypeCone;
 import org.mapleir.ir.TypeUtils;
 import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.code.Opcode;
@@ -147,7 +148,7 @@ public class MethodPAGNodeFactory implements Opcode {
 	}
 	
 	public PointsToNode caseThis() {
-		VarNode ret = mpag.getPAG().makeLocalVarNode(new Pair<>(method, PointsToAnalysis.THIS_NODE), Type.getType(method.owner.name), method);
+		VarNode ret = mpag.getPAG().makeLocalVarNode(new Pair<>(method, PointsToAnalysis.THIS_NODE), TypeCone.getType(Type.getType(method.owner.name)), method);
 		ret.setInterProcTarget();
 		return ret;
 	}
@@ -159,24 +160,24 @@ public class MethodPAGNodeFactory implements Opcode {
 	}
 	
 	public PointsToNode caseParm(int i, Type t) {
-		VarNode ret = mpag.getPAG().makeLocalVarNode(new Pair<>(method, new Integer(i)), t, method);
+		VarNode ret = mpag.getPAG().makeLocalVarNode(new Pair<>(method, new Integer(i)), TypeCone.getType(t), method);
 		ret.setInterProcTarget();
 		return ret;
 	}
 	
 	public PointsToNode caseRet(Type t) {
-		VarNode ret = mpag.getPAG().makeLocalVarNode(Parm.v(method, PointsToAnalysis.RETURN_NODE), t, method);
+		VarNode ret = mpag.getPAG().makeLocalVarNode(Parm.v(method, PointsToAnalysis.RETURN_NODE), TypeCone.getType(t), method);
 		ret.setInterProcSource();
 		return ret;
 	}
 	
 	public PointsToNode caseVarNode(VarNode vn) {
-		return mpag.getPAG().makeLocalVarNode(vn, vn.getType(), method);
+		return mpag.getPAG().makeLocalVarNode(vn, vn.getTypeCone(), method);
 	}
 	
 	public PointsToNode casePhi(PhiExpr e) {
 		Pair<Expr, String> phiPair = new Pair<>(e, PointsToAnalysis.PHI_NODE);
-		PointsToNode phiNode = mpag.getPAG().makeLocalVarNode(phiPair, e.getType(), method);
+		PointsToNode phiNode = mpag.getPAG().makeLocalVarNode(phiPair, TypeCone.getType(e.getType()), method);
 		for(Expr v : e.getArguments().values()) {
 			PointsToNode n = vis(v);
 			mpag.addInternalEdge(n, phiNode);
@@ -199,7 +200,7 @@ public class MethodPAGNodeFactory implements Opcode {
 	}
 	
 	public PointsToNode caseLocal(VarExpr ve) {
-		return mpag.getPAG().makeLocalVarNode(ve.getLocal(), ve.getType(), method);
+		return mpag.getPAG().makeLocalVarNode(ve.getLocal(), TypeCone.getType(ve.getType()), method);
 	}
 	
 	public PointsToNode caseField(String owner, String name, String desc, VarNode base) {
@@ -210,7 +211,7 @@ public class MethodPAGNodeFactory implements Opcode {
 			// addDereference(base)
 			res = mpag.getPAG().makeFieldRefNode((VarNode) base, mpag.getPAG().sparkFieldFinder.create(f));
 		} else {
-			res = mpag.getPAG().makeGlobalVarNode(f, Type.getType(f.desc));
+			res = mpag.getPAG().makeGlobalVarNode(f, TypeCone.getCone(Type.getType(f.desc)));
 		}
 		return res;
 	}

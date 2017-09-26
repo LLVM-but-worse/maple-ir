@@ -6,7 +6,7 @@ import org.mapleir.ir.TypeUtils;
 public class StringConstantNode extends AllocNode {
 
 	StringConstantNode(PAG pag, String sc) {
-		super(pag, sc, TypeCone.get(TypeUtils.STRING), null);
+		super(pag, sc, TypeCone.getType(TypeUtils.STRING), null);
 	}
 
 	@Override
