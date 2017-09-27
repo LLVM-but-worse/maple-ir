@@ -30,6 +30,7 @@ public interface InvocationResolver {
 		}
 	}
 
+	// FIXME: revise
 	/**
 	 * Find methods matching the name and desc in all branches related to the class. Note this is much broader
 	 * than actual resolution, and is best used for renaming purposes.

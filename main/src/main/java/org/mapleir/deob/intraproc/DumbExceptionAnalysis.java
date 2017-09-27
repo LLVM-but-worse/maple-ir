@@ -1,7 +1,8 @@
 package org.mapleir.deob.intraproc;
 
-import static org.mapleir.ir.TypeUtils.*;
+import static org.mapleir.ir.TypeUtils.ANY;
 
+import java.lang.invoke.WrongMethodTypeException;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -42,15 +43,15 @@ public class DumbExceptionAnalysis implements ExceptionAnalysis, Opcode {
 	private void canThrowStmt(Stmt u, Set<Type> set) {
 		switch(u.getOpcode()) {
 			case FIELD_STORE:
-				set.add(INCOMPATIBLE_CLASS_CHANGE_ERROR);
-				set.add(ILLEGAL_ACCESS_ERROR);
+				set.add(Type.getType(IncompatibleClassChangeError.class));
+				set.add(Type.getType(IllegalAccessError.class));
 				break;
 			case ARRAY_STORE:
-				set.add(NULL_POINTER_EXCEPTION);
-				set.add(INDEX_OUT_OF_BOUNDS_EXCEPTION);
+				set.add(Type.getType(NullPointerException.class));
+				set.add(Type.getType(IndexOutOfBoundsException.class));
 				break;
 			case RETURN:
-				set.add(ILLEGAL_MONITOR_STATE_EXCEPTION);
+				set.add(Type.getType(IllegalMonitorStateException.class));
 				break;
 			case THROW: {
 				ThrowStmt thr = (ThrowStmt) u;
@@ -59,21 +60,21 @@ public class DumbExceptionAnalysis implements ExceptionAnalysis, Opcode {
 				if(e.getOpcode() == Opcode.CONST_LOAD) {
 					ConstantExpr c = (ConstantExpr) e;
 					if(c.getConstant() == null) {
-						set.add(NULL_POINTER_EXCEPTION);
+						set.add(Type.getType(NullPointerException.class));
 					} else {
 						throw new IllegalStateException(String.format("%s", thr));
 					}
 				} else {
 					set.add(e.getType());
 				}
-				set.add(ILLEGAL_MONITOR_STATE_EXCEPTION);
+				set.add(Type.getType(IllegalMonitorStateException.class));
 				
 				break;
 			}
 			case MONITOR: {
-				set.add(NULL_POINTER_EXCEPTION);
+				set.add(Type.getType(NullPointerException.class));
 				if(((MonitorStmt) u).getMode() == MonitorMode.EXIT) {
-					set.add(ILLEGAL_MONITOR_STATE_EXCEPTION);
+					set.add(Type.getType(IllegalMonitorStateException.class));
 				}
 				break;
 			}
@@ -95,28 +96,28 @@ public class DumbExceptionAnalysis implements ExceptionAnalysis, Opcode {
 	private void canThrowExpr(Expr u, Set<Type> set) {
 		switch(u.getOpcode()) {
 			case ARRAY_LOAD:
-				set.add(NULL_POINTER_EXCEPTION);
-				set.add(INDEX_OUT_OF_BOUNDS_EXCEPTION);
+				set.add(Type.getType(NullPointerException.class));
+				set.add(Type.getType(IndexOutOfBoundsException.class));
 				break;
 			case NEW_ARRAY:
-				set.add(NEGATIVE_ARRAY_SIZE_EXCEPTION);
-				set.add(ILLEGAL_ACCESS_ERROR);
+				set.add(Type.getType(NegativeArraySizeException.class));
+				set.add(Type.getType(IllegalAccessError.class));
 				break;
 			case ARRAY_LEN:
-				set.add(NULL_POINTER_EXCEPTION);
+				set.add(Type.getType(NullPointerException.class));
 				break;
 			case CAST:
-				set.add(NULL_POINTER_EXCEPTION);
-				set.add(CLASS_CAST_EXCEPTION);
+				set.add(Type.getType(NullPointerException.class));
+				set.add(Type.getType(ClassCastException.class));
 				break;
 			case INSTANCEOF:
-				set.add(CLASS_CAST_EXCEPTION);
+				set.add(Type.getType(ClassCastException.class));
 				break;
 			case FIELD_LOAD:{
 				// FIXME: depends on the lookup method
 				// and field access
-				set.add(INCOMPATIBLE_CLASS_CHANGE_ERROR);
-				set.add(NULL_POINTER_EXCEPTION);
+				set.add(Type.getType(IncompatibleClassChangeError.class));
+				set.add(Type.getType(NullPointerException.class));
 				break;
 			}
 			case ARITHMETIC: {
@@ -127,7 +128,7 @@ public class DumbExceptionAnalysis implements ExceptionAnalysis, Opcode {
 					Type t = ar.getType();
 					
 					if(t == Type.INT_TYPE || t == Type.LONG_TYPE) {
-						set.add(ARITHMETIC_EXCEPTION);
+						set.add(Type.getType(ArithmeticException.class));
 					}
 				}
 				break;
@@ -137,33 +138,33 @@ public class DumbExceptionAnalysis implements ExceptionAnalysis, Opcode {
 			case INVOKE:
 				set.add(ANY);
 				
-				set.add(ERROR);
-				set.add(RUNTIME_EXCEPTION);
+				set.add(Type.getType(Error.class));
+				set.add(Type.getType(RuntimeException.class));
 				
-				set.add(NULL_POINTER_EXCEPTION);
-				set.add(INCOMPATIBLE_CLASS_CHANGE_ERROR);
-				set.add(ABSTRACT_METHOD_ERROR);
-				set.add(UNSATISFIED_LINK_ERROR);
-				set.add(ILLEGAL_ACCESS_ERROR);
-				set.add(WRONG_METHOD_TYPE_EXCEPTION);
+				set.add(Type.getType(NullPointerException.class));
+				set.add(Type.getType(IncompatibleClassChangeError.class));
+				set.add(Type.getType(AbstractMethodError.class));
+				set.add(Type.getType(UnsatisfiedLinkError.class));
+				set.add(Type.getType(IllegalAccessError.class));
+				set.add(Type.getType(WrongMethodTypeException.class));
 				break;
 			case ALLOC_OBJ:
-				set.add(INSTANTIATION_ERROR);
+				set.add(Type.getType(InstantiationError.class));
 				break;
 			case INIT_OBJ:
 				set.add(ANY);
 				
-				set.add(ERROR);
-				set.add(RUNTIME_EXCEPTION);
+				set.add(Type.getType(Error.class));
+				set.add(Type.getType(RuntimeException.class));
 				
-				set.add(INSTANTIATION_ERROR);
+				set.add(Type.getType(InstantiationError.class));
 				
-				set.add(NULL_POINTER_EXCEPTION);
-				set.add(INCOMPATIBLE_CLASS_CHANGE_ERROR);
-				set.add(ABSTRACT_METHOD_ERROR);
-				set.add(UNSATISFIED_LINK_ERROR);
-				set.add(ILLEGAL_ACCESS_ERROR);
-				set.add(WRONG_METHOD_TYPE_EXCEPTION);
+				set.add(Type.getType(NullPointerException.class));
+				set.add(Type.getType(IncompatibleClassChangeError.class));
+				set.add(Type.getType(AbstractMethodError.class));
+				set.add(Type.getType(UnsatisfiedLinkError.class));
+				set.add(Type.getType(IllegalAccessError.class));
+				set.add(Type.getType(WrongMethodTypeException.class));
 				break;
 				
 			case COMPARE:

@@ -5,7 +5,6 @@ import java.util.ArrayList;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.LinkedList;
-import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.jar.JarOutputStream;
@@ -21,13 +20,6 @@ import org.mapleir.context.IRCache;
 import org.mapleir.deob.IPass;
 import org.mapleir.deob.PassGroup;
 import org.mapleir.deob.interproc.IRCallTracer;
-import org.mapleir.deob.interproc.callgraph.CallGraphNode;
-import org.mapleir.deob.interproc.callgraph.CallGraphNode.CallReceiverNode;
-import org.mapleir.deob.interproc.callgraph.CallGraphReducer;
-import org.mapleir.deob.interproc.callgraph.CallSiteSensitiveCallGraph;
-import org.mapleir.deob.interproc.callgraph.SensitiveCallGraphBuilder;
-import org.mapleir.deob.interproc.callgraph.SiteSensitiveCallDAG;
-import org.mapleir.deob.interproc.exp2.BlockCallGraph;
 import org.mapleir.deob.passes.ConstantExpressionReorderPass;
 import org.mapleir.deob.passes.DeadCodeEliminationPass;
 import org.mapleir.deob.passes.rename.ClassRenamerPass;
@@ -36,8 +28,6 @@ import org.mapleir.ir.algorithms.BoissinotDestructor;
 import org.mapleir.ir.algorithms.ControlFlowGraphDumper;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.cfg.builder.ControlFlowGraphBuilder;
-import org.mapleir.stdlib.collections.graph.algorithms.SimpleDfs;
-import org.mapleir.stdlib.collections.graph.algorithms.TarjanSCC;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.topdank.byteengineer.commons.data.JarInfo;
@@ -77,7 +67,7 @@ public class Boot {
 		
 		AnalysisContext cxt = new BasicAnalysisContext.BasicContextBuilder()
 				.setApplication(app)
-				.setInvocationResolver(new SimpleInvocationResolver(app))
+				.setInvocationResolver(new DefaultInvocationResolver(app))
 				.setCache(new IRCache(ControlFlowGraphBuilder::build))
 				.setApplicationContext(new SimpleApplicationContext(app))
 				.build();
@@ -104,14 +94,6 @@ public class Boot {
 		// 		System.out.println(cxt.getIRCache().get(m));
 		// 	}
 		// }
-
-		section("Preparing BlockGallGraphs.");
-		for(Entry<MethodNode, ControlFlowGraph> e : cxt.getIRCache().entrySet()) {
-				BlockCallGraph.prepareControlFlowGraph(e.getValue());
-		}
-		
-		section("Performing IPA.");
-//		doIPAnalysis(cxt);
 		
 		section("Retranslating SSA IR to standard flavour.");
 		for(Entry<MethodNode, ControlFlowGraph> e : cxt.getIRCache().entrySet()) {
@@ -127,196 +109,6 @@ public class Boot {
 		// dumpJar(app, dl, masterGroup, "out/osb5.jar");
 		
 		section("Finished.");
-	}
-	
-	private static void doIPAnalysis(AnalysisContext cxt) {
-		//		BlockCallGraphBuilder builder = new BlockCallGraphBuilder(cxt);
-
-//		builder.init();
-		
-		SensitiveCallGraphBuilder builder = new SensitiveCallGraphBuilder(cxt);
-		CallSiteSensitiveCallGraph cg = builder.build(cxt.getApplicationContext().getEntryPoints());
-		
-		TarjanSCC<CallGraphNode> sccComputor = new TarjanSCC<>(cg);
-		
-		for(MethodNode m : cxt.getApplicationContext().getEntryPoints()) {
-			CallReceiverNode node = cg.getNode(m);
-
-			// need to check for main method or clinit, since otherwise we throw on library inherited methods
-			if(cg.getReverseEdges(node).size() > 0 && (SimpleApplicationContext.isMainMethod(m) || m.name.equals("<clinit>"))) {
-				throw new RuntimeException("entry called?");
-			}
-			
-			sccComputor.search(node);
-		}
-		
-		for(List<CallGraphNode> c : sccComputor.getComponents()) {
-			if(c.size() > 1) {
-				System.out.println(c);
-			}
-		}
-
-		CallGraphReducer sccEliminator = new CallGraphReducer(cxt);
-		SiteSensitiveCallDAG reducedCallGraph = sccEliminator.eliminateSCCs(cg);
-		SiteSensitiveCallDAG.MultiCallGraphNode entrySCC = reducedCallGraph.findSCCOf(cg.getNode(cxt.getApplicationContext().getEntryPoints().iterator().next()));
-		SimpleDfs<SiteSensitiveCallDAG.MultiCallGraphNode> dfs = new SimpleDfs<>(reducedCallGraph, entrySCC, SimpleDfs.TOPO);
-		System.out.println("\nScc DAG toposort:");
-		for (SiteSensitiveCallDAG.MultiCallGraphNode scc : dfs.getTopoOrder()) {
-			System.out.println(scc);
-		}
-
-		for(MethodNode m : cxt.getApplicationContext().getEntryPoints()) {
-//			System.out.println(m);
-//			System.out.println(cxt.getIRCache().get(m));
-//			builder.visit(m);
-
-//			if(m.name.equals("main")) {
-//				cxt.getIRCache().get(m).makeDotWriter().setName("main").export();
-//			}
-		}
-
-//		TarjanSCC<CallGraphNode> scc = new TarjanSCC<>(csscg);
-//		for(MethodNode m : cxt.getApplicationContext().getEntryPoints()) {
-//			scc.search(csscg.getNode(m));
-//		}
-//
-//		for(List<CallGraphNode> c : scc.getComponents()) {
-//			System.out.println("   "+ c);
-//		}
-
-
-//		DotWriter<FastGraph<CallGraphNode, CallGraphEdge>, CallGraphNode, CallGraphEdge> writer = cg.makeDotWriter();
-//		writer.add(new DotPropertyDecorator<FastGraph<CallGraphNode,CallGraphEdge>, CallSiteSensitiveCallGraph.CallGraphNode, CallSiteSensitiveCallGraph.CallGraphEdge>() {
-//
-//			@Override
-//			public void decorateNodeProperties(FastGraph<CallGraphNode, CallGraphEdge> g, CallGraphNode n,
-//					Map<String, Object> nprops) {
-//				nprops.put("label", n.toString());
-//			}
-//		});
-//		writer.setName("cg22 5").export();
-
-//		builder.callGraph.makeDotWriter().add(new DotPropertyDecorator<FastGraph<CallGraphBlock,FlowEdge<CallGraphBlock>>, CallGraphBlock, FlowEdge<CallGraphBlock>>() {
-//
-//			@Override
-//			public void decorateNodeProperties(FastGraph<CallGraphBlock, FlowEdge<CallGraphBlock>> g, CallGraphBlock n,
-//					Map<String, Object> nprops) {
-//
-//				if(n instanceof ConcreteCallGraphBlock) {
-//					BasicBlock bb = ((ConcreteCallGraphBlock) n).block;
-//
-//					nprops.put("shape", "box");
-////					nprops.put("labeljust", "l");
-//
-//					if(bb.getGraph().getEntries().contains(n)) {
-//						nprops.put("style", "filled");
-//						nprops.put("fillcolor", "red");
-//					} else if(g.getEdges(n).size() == 0) {
-//						nprops.put("style", "filled");
-//						nprops.put("fillcolor", "green");
-//					}
-//
-//					StringBuilder sb = new StringBuilder();
-//					sb.append(((ConcreteCallGraphBlock) n).block.getId());
-//					sb.append("\\l\\l");
-//
-//					if(((ConcreteCallGraphBlock) n).block instanceof ReturnBlock) {
-//						sb.append("RETURN_TARG\\l");
-//					} else {
-//						StringBuilder sb2 = new StringBuilder();
-//						{
-//							Iterator<Stmt> it = (((ConcreteCallGraphBlock) n).block).iterator();
-//							TabbedStringWriter sw = new TabbedStringWriter();
-//							int insn = 0;
-//							while(it.hasNext()) {
-//								Stmt stmt = it.next();
-//								sw.print(insn++ + ". ");
-//								stmt.toString(sw);
-//								sw.print("\n");
-//							}
-//							sb2.append(sw.toString());
-//						}
-//						sb.append(sb2.toString().replace("\n", "\\l"));
-//					}
-//
-//					nprops.put("label", sb.toString());
-//				}
-//			}
-//		}).setName("nam6").export();
-		
-		for(MethodNode m : cxt.getApplicationContext().getEntryPoints()) {
-			System.out.println(m);
-			
-//			ExtendedDfs<CallGraphBlock> dfs = new ExtendedDfs<CallGraphBlock>(builder.callGraph, ExtendedDfs.PRE){
-//				@Override
-//				protected Iterable<? extends FastGraphEdge<CallGraphBlock>> order(Set<? extends FastGraphEdge<CallGraphBlock>> edges) {
-//					List<FastGraphEdge<CallGraphBlock>> list = new ArrayList<>();
-//					list.addAll(edges);
-//					Collections.sort(list, new Comparator<FastGraphEdge<CallGraphBlock>>() {
-//						@Override
-//						public int compare(FastGraphEdge<CallGraphBlock> o1, FastGraphEdge<CallGraphBlock> o2) {
-//							boolean l1 = o1 instanceof CallEdge;
-//							boolean l2 = o2 instanceof CallEdge;
-//
-//							if(l1 && l2) {
-//								System.err.println(o1);
-//								System.err.println(o2);
-//								throw new UnsupportedOperationException();
-//							} else if(l1) {
-//								return -1;
-//							} else if(l2) {
-//								return 1;
-//							} else {
-//								return 0;
-//							}
-//						}
-//					});
-//					return list;
-//				}
-//			};
-			ControlFlowGraph cfg = cxt.getIRCache().get(m);
-			
-//			dfs.run(builder.getConcreteBlockNode(cfg.getEntries().iterator().next()));
-
-//			TarjanSCC<CallGraphBlock> scc = new TarjanSCC<CallGraphBlock>(builder.callGraph) {
-//				@Override
-//				protected Iterable<? extends FastGraphEdge<CallGraphBlock>> filter(Set<? extends FastGraphEdge<CallGraphBlock>> edges) {
-//					Set<FastGraphEdge<CallGraphBlock>> set = new HashSet<>();
-//					for(FastGraphEdge<CallGraphBlock> e : edges) {
-//						if(e instanceof ReturnEdge) {
-//							ReturnEdge re = (ReturnEdge) e;
-//						}
-//					}
-//					return set;
-//				}
-//			};
-//			IPTarjanSCC scc = new IPTarjanSCC(builder.callGraph);
-//			TabbedStringWriter sw = new TabbedStringWriter();
-//			try {
-//				scc.search(builder.getConcreteBlockNode(cfg.getEntries().iterator().next()), sw, null);
-//			} catch(Throwable t) {
-//				System.out.println(sw.toString());
-//				System.err.flush();
-//				System.out.flush();
-//				throw t;
-//			}
-//
-//			for (List<CallGraphBlock> c : scc.comps) {
-//				System.out.println("   " + c);
-//			}
-
-//			scc.search(builder.getConcreteBlockNode(cfg.getEntries().iterator().next()));
-//			System.out.println("sccs:");
-//			for(List<CallGraphBlock> c : scc.comps) {
-//				System.out.println("   "+ c);
-//			}
-//			System.out.println("trace:");
-//			for(CallGraphBlock cgb : dfs.getPreOrder()) {
-//				System.out.println("  " + cgb);
-//			}
-//			BlockCallGraph.prepareControlFlowGraph(cxt.getIRCache().get(m));
-		}
-//		new ContextSensitiveIPAnalysis(cxt, new ExpressionEvaluator(new ReflectiveFunctorFactory()));
 	}
 	
 	private static void dumpJar(ApplicationClassSource app, SingleJarDownloader<ClassNode> dl, PassGroup masterGroup, String outputFile) throws IOException {

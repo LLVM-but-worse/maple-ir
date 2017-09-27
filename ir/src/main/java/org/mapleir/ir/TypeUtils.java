@@ -6,7 +6,6 @@ import java.io.Serializable;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.Map;
 import java.util.Set;
 
@@ -648,128 +647,6 @@ public class TypeUtils {
 		} else {
 			throw new UnsupportedOperationException(String.format("%s (%s) to %s", cst, cst.getClass(), t));
 		}
-	}
-	
-	public static boolean castNeverFails1(ApplicationClassSource source, TypeCone rhs, TypeCone lhs) {
-		// dst = src
-		// lhs = rhs
-		if(lhs == null) return true;
-		if(lhs == rhs) return true;
-		if(rhs == null) return false;
-		if(lhs.equals(rhs)) return true;
-		if(rhs.isCone()) return true; // ??
-		if(lhs.isCone()) throw new IllegalArgumentException(String.format("%s = %s", lhs, rhs));
-		return castNeverFails2(source, rhs, lhs);
-	}
-	
-	public static boolean canStoreType(ApplicationClassSource app, TypeCone c, TypeCone p) {
-		// p = c;
-		if(c.equals(p)) return true;
-		
-		boolean cCone = c.isCone();
-		boolean pCone = p.isCone();
-		
-		Type ct = c.getBase();
-		int ctSort = ct.getSort();
-		Type pt = p.getBase();
-		int ptSort = ct.getSort();
-		
-		if(cCone) {
-			// not RefLikeType
-			if(!(pCone || ptSort == Type.OBJECT || ptSort == Type.ARRAY)) {
-				throw new IllegalArgumentException(String.format("Unhandled type: %s", pt));
-			}
-			
-			if(ptSort == Type.ARRAY) {
-				return isImplicitArraySuperType(ct);
-			} else {
-				
-				if(ctSort == Type.ARRAY || ptSort == Type.ARRAY) {
-					throw new IllegalStateException();
-				}
-				
-				// pCone/pSort==obj
-				ClassNode base = app.findClassNode(ct.getInternalName());
-				ClassNode pKlass = app.findClassNode(pt.getInternalName());
-				
-				LinkedList<ClassNode> worklist = new LinkedList<>();
-				if(base.isInterface()) {
-					worklist.addAll(app.getClassTree().getAllChildren(base));
-				} else {
-					worklist.add(base);
-				}
-				
-				Set<ClassNode> processed = new HashSet<>();
-				
-				while(!worklist.isEmpty()) {
-					ClassNode klass = worklist.removeFirst();
-					
-					if(!processed.add(klass)) continue;
-					if(!klass.isInterface() && canStoreClass(klass, pKlass)) return true;
-					
-					worklist.addAll(c)
-				}
-			}
-		} else {
-			if(ctSort == Type.OBJECT) {
-				if(pt.equals(TypeUtils.OBJECT_TYPE)) {
-					return true;
-				}
-				// if pt is a RefType, i.e. not array, not anySub, only obj
-				if(ptSort == Type.OBJECT && !pCone) {
-					return canStoreClass(ct, pt); // both bases are the real types
-				} else {
-					return false;
-				}
-			} else if(ctSort == Type.ARRAY) {
-				
-			} else {
-				throw new IllegalArgumentException(String.format("Illegal type: %s(%d) = %s", c, ct.getSort(), p, p.getBase()));
-			}
-		}
-	}
-	
-	public static boolean castNeverFails2(ApplicationClassSource source, Type rhs, Type lhs) {
-		// dst = src
-		if(lhs == null) {
-			throw new NullPointerException();
-		}
-		
-		if(lhs == rhs || lhs.equals(rhs)) {
-			return true;
-		}
-		
-		boolean isRHSArray = rhs.getSort() == Type.ARRAY;
-		boolean isLHSArray = lhs.getSort() == Type.ARRAY;
-		
-		if(isRHSArray) {
-			if(isLHSArray) {
-				if(rhs.getDimensions() == lhs.getDimensions()) {
-					if(rhs.getElementType().equals(lhs.getElementType())) {
-						return true;
-					}
-					return canStoreClass(source, rhs.getElementType(), lhs.getElementType());
-				} else if(rhs.getDimensions() > lhs.getDimensions()) {
-					return isImplicitArraySuperType(lhs.getElementType());
-				}
-			} else {
-				// X = arr; X = {obj, cloneable, serializable}
-				return isImplicitArraySuperType(lhs);
-			}
-		} else {
-			if(lhs.equals(TypeUtils.OBJECT_TYPE)) {
-				return true;
-			}
-			
-			if(!isLHSArray) {
-				return canStoreClass(source, rhs, lhs);
-			} else {
-				// arr = obj; NO
-				return false;
-			}
-		}
-		
-		return false;
 	}
 	
 	/**
