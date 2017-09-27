@@ -3,7 +3,7 @@
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <modelVersion>4.0.0</modelVersion>
   <parent>
-    <groupId>org.mapleir</groupId>
+    <groupId>org.mapleir.parent</groupId>
     <artifactId>parent</artifactId>
     <version>0.0.1-ALPHA</version>
   </parent>
@@ -11,4 +11,5 @@
   <artifactId>gson</artifactId>
   <name>gson</name>
 
+  <groupId>org.mapleir.gson</groupId>
 </project>

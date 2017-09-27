@@ -1,27 +1,28 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <parent>
-    <groupId>org.mapleir</groupId>
+    <groupId>org.mapleir.parent</groupId>
     <artifactId>parent</artifactId>
     <version>0.0.1-ALPHA</version>
   </parent>
   <name>topdank-services</name>
   <artifactId>topdank-services</artifactId>
   <dependencies>
-  	<dependency>
-  		<groupId>org.mapleir</groupId>
-  		<artifactId>modasm</artifactId>
-  		<version>0.0.1-ALPHA</version>
-  	</dependency>
-  	<dependency>
-  		<groupId>org.mapleir</groupId>
-  		<artifactId>gson</artifactId>
-  		<version>0.0.1-ALPHA</version>
-  	</dependency>
 	<dependency>
 		<groupId>com.google.guava</groupId>
 		<artifactId>guava</artifactId>
 		<version>22.0</version>
 	</dependency>
+	<dependency>
+		<groupId>org.mapleir.gson</groupId>
+		<artifactId>gson</artifactId>
+		<version>0.0.1-ALPHA</version>
+	</dependency>
+	<dependency>
+		<groupId>org.mapleir.modasm</groupId>
+		<artifactId>modasm</artifactId>
+		<version>0.0.1-ALPHA</version>
+	</dependency>
   </dependencies>
+  <groupId>org.mapleir.topdank-services</groupId>
 </project>
