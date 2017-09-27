@@ -2,8 +2,10 @@ package org.mapleir.stdlib.collections;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.objectweb.asm.ClassReader;
@@ -15,6 +17,17 @@ import org.objectweb.asm.tree.ClassNode;
  */
 public class ClassHelper {
 
+	public static Collection<ClassNode> parseClasses(Class<?>... a) throws IOException {
+		List<ClassNode> list = new ArrayList<>();
+		for(int i=0; i < a.length; i++) {
+			ClassNode cn = new ClassNode();
+			ClassReader cr = new ClassReader(a[i].getName());
+			cr.accept(cn, 0);
+			list.add(cn);
+		}
+		return list;
+	}
+	
 	public static Map<String, ClassNode> convertToMap(Collection<ClassNode> classes) {
 		Map<String, ClassNode> map = new HashMap<>();
 		for (ClassNode cn : classes) {
