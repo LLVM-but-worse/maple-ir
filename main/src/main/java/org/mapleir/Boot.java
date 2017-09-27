@@ -2,7 +2,6 @@ package org.mapleir;
 
 import java.io.*;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -39,7 +38,6 @@ import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.cfg.builder.ControlFlowGraphBuilder;
 import org.mapleir.stdlib.collections.graph.algorithms.SimpleDfs;
 import org.mapleir.stdlib.collections.graph.algorithms.TarjanSCC;
-import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.topdank.byteengineer.commons.data.JarInfo;
@@ -50,17 +48,6 @@ public class Boot {
 	public static boolean logging = false;
 	private static long timer;
 	private static Deque<String> sections;
-	
-	private static Collection<ClassNode> classes(Class<?>... a) throws IOException {
-		List<ClassNode> list = new ArrayList<>();
-		for(int i=0; i < a.length; i++) {
-			ClassNode cn = new ClassNode();
-			ClassReader cr = new ClassReader(a[i].getName());
-			cr.accept(cn, 0);
-			list.add(cn);
-		}
-		return list;
-	}
 	
 	private static LibraryClassSource rt(ApplicationClassSource app, File rtjar) throws IOException {
 		section("Loading rt.jar from " + rtjar.getAbsolutePath());
