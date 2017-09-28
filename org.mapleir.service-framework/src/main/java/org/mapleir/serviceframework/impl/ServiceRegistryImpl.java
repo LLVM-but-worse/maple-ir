@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.log4j.Logger;
+import org.mapleir.propertyframework.api.IPropertyDictionary;
 import org.mapleir.serviceframework.api.IServiceContext;
 import org.mapleir.serviceframework.api.IServiceFactory;
 import org.mapleir.serviceframework.api.IServiceQuery;
@@ -74,10 +75,10 @@ public class ServiceRegistryImpl implements IServiceRegistry {
 	}
 
 	@Override
-	public <T> T getService(IServiceReference<T> ref) {
+	public <T> T getService(IServiceReference<T> ref, IPropertyDictionary dict) {
 		if (ref != null) {
 			IServiceReferenceHandler handler = serviceReferenceFactoryHandler.findReferenceHandler(ref);
-			return handler.loadService(ref);
+			return handler.loadService(ref, dict);
 		} else {
 			LOGGER.error("Tried to get service without reference");
 		}

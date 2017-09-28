@@ -3,6 +3,7 @@ package org.mapleir.serviceframework.impl;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.mapleir.propertyframework.api.IPropertyDictionary;
 import org.mapleir.serviceframework.api.IServiceContext;
 import org.mapleir.serviceframework.api.IServiceFactory;
 import org.mapleir.serviceframework.api.IServiceReference;
@@ -73,9 +74,9 @@ public class ServiceReferenceHandlerFactoryImpl implements IServiceReferenceHand
 			implements IServiceReferenceHandler {
 
 		@Override
-		public <T> T loadService(IServiceReference<T> _ref) {
+		public <T> T loadService(IServiceReference<T> _ref, IPropertyDictionary dict) {
 			AbstractInternalServiceReference<T> ref = (AbstractInternalServiceReference<T>) _ref;
-			T o = ref.get();
+			T o = ref.get(dict);
 			ref.lock();
 
 			return o;

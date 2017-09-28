@@ -11,4 +11,11 @@
   <artifactId>service-framework</artifactId>
   <version>0.0.1-SNAPSHOT</version>
   <name>Service provider API and implementation</name>
+  <dependencies>
+  	<dependency>
+  		<groupId>org.mapleir.property-framework</groupId>
+  		<artifactId>property-framework</artifactId>
+  		<version>0.0.1-SNAPSHOT</version>
+  	</dependency>
+  </dependencies>
 </project>

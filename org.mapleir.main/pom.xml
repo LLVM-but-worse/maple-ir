@@ -38,6 +38,16 @@
   		<artifactId>topdank-services</artifactId>
   		<version>0.0.1-ALPHA</version>
   	</dependency>
+  	<dependency>
+  		<groupId>org.mapleir.service-framework</groupId>
+  		<artifactId>service-framework</artifactId>
+  		<version>0.0.1-SNAPSHOT</version>
+  	</dependency>
+  	<dependency>
+  		<groupId>org.mapleir.service-util</groupId>
+  		<artifactId>service-util</artifactId>
+  		<version>0.0.1-SNAPSHOT</version>
+  	</dependency>
   </dependencies>
   <groupId>org.mapleir.main</groupId>
 </project>
