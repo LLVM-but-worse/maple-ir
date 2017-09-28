@@ -2,6 +2,7 @@ package org.mapleir.serviceframework.impl;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.mapleir.propertyframework.api.IPropertyDictionary;
 import org.mapleir.serviceframework.api.IServiceContext;
 import org.mapleir.serviceframework.api.IServiceRegistry;
 
@@ -21,7 +22,7 @@ public abstract class AbstractInternalServiceReference<T> implements IInternalSe
 	}
 
 	@Override
-	public abstract T get();
+	public abstract T get(IPropertyDictionary dict);
 
 	@Override
 	public IServiceRegistry getServiceRegistry() {
