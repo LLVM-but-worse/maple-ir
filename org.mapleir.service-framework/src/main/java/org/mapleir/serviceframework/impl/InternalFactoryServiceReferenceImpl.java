@@ -1,5 +1,6 @@
 package org.mapleir.serviceframework.impl;
 
+import org.mapleir.propertyframework.api.IPropertyDictionary;
 import org.mapleir.serviceframework.api.IServiceContext;
 import org.mapleir.serviceframework.api.IServiceFactory;
 import org.mapleir.serviceframework.api.IServiceRegistry;
@@ -15,7 +16,7 @@ public class InternalFactoryServiceReferenceImpl<T> extends AbstractInternalServ
 	}
 
 	@Override
-	public T get() {
-		return factory.get();
+	public T get(IPropertyDictionary dict) {
+		return factory.create(dict);
 	}
 }

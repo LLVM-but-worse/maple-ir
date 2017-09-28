@@ -1,5 +1,6 @@
 package org.mapleir.serviceframework.impl;
 
+import org.mapleir.propertyframework.api.IPropertyDictionary;
 import org.mapleir.serviceframework.api.IServiceContext;
 import org.mapleir.serviceframework.api.IServiceRegistry;
 
@@ -14,7 +15,7 @@ public class InternalServiceReferenceImpl<T> extends AbstractInternalServiceRefe
 	}
 
 	@Override
-	public T get() {
+	public T get(IPropertyDictionary dict) {
 		return obj;
 	}
 }
