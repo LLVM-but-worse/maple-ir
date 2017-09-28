@@ -38,5 +38,6 @@
   	<module>../org.mapleir.stdlib</module>
   	<module>../org.mapleir.topdank-services</module>
   	<module>../org.mapleir.service-framework</module>
+  	<module>../org.mapleir.service-util</module>
   </modules>
 </project>
