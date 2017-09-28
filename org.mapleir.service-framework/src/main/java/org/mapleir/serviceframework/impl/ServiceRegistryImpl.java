@@ -4,23 +4,29 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
+import org.apache.log4j.Logger;
 import org.mapleir.serviceframework.api.IServiceContext;
 import org.mapleir.serviceframework.api.IServiceFactory;
 import org.mapleir.serviceframework.api.IServiceQuery;
 import org.mapleir.serviceframework.api.IServiceReference;
+import org.mapleir.serviceframework.api.IServiceReferenceHandler;
+import org.mapleir.serviceframework.api.IServiceReferenceHandlerFactory;
 import org.mapleir.serviceframework.api.IServiceRegistry;
 
+// FIXME: synchronise data structures
 public class ServiceRegistryImpl implements IServiceRegistry {
-	
-//	private static final Log
-	
-	private final ServiceMap map = new ServiceMap();
-	
+
+	private static final Logger LOGGER = Logger.getLogger(ServiceRegistryImpl.class);
+
+	private final ContextLookupHelper map = new ContextLookupHelper();
+	private final IServiceReferenceHandlerFactory serviceReferenceFactoryHandler = new ServiceReferenceHandlerFactoryImpl();
+
 	@Override
-	public <T> IServiceReference<T> getServiceReference(Class<T> clazz) {
-		Collection<IServiceReference<T>> col = getServiceReferences(clazz, new ClassServiceQuery<T>(clazz));
-		if(col != null && !col.isEmpty()) {
+	public <T> IServiceReference<T> getServiceReference(IServiceContext context, Class<T> clazz) {
+		Collection<IServiceReference<T>> col = getServiceReferences(context, clazz, new ClassServiceQuery<>(clazz));
+		if (col != null && !col.isEmpty()) {
 			return col.iterator().next();
 		} else {
 			return null;
@@ -28,75 +34,97 @@ public class ServiceRegistryImpl implements IServiceRegistry {
 	}
 
 	@Override
-	public <T> Collection<IServiceReference<T>> getServiceReferences(Class<T> clazz, IServiceQuery<T> query) {
-		List<IServiceReference<T>> refs = map.get(clazz);
-		if(refs.isEmpty()) {
+	public <T> Collection<IServiceReference<T>> getServiceReferences(IServiceContext context, Class<T> clazz,
+			IServiceQuery<T> query) {
+		List<IServiceReference<T>> refs = map.get(context, clazz);
+		if (refs == null || refs.isEmpty()) {
 			return null;
 		}
-		
-		List<IServiceReference<T>> newList = new ArrayList<IServiceReference<T>>();
-		for(IServiceReference<T> ref : refs) {
-			if(query.accept(this, clazz, ref)) {
+
+		List<IServiceReference<T>> newList = new ArrayList<>();
+		for (IServiceReference<T> ref : refs) {
+			if (query.accept(ref)) {
 				newList.add(ref);
 			}
 		}
-		
+
 		return newList;
 	}
 
 	@Override
-	public <T> void registerService(Class<T> klass, T obj) {
-		map.get(klass).add(new InternalServiceReferenceImpl<T>(obj));
-	}
-
-	@Override
-	public <T> void registerServiceFactory(Class<T> klass,
-			IServiceFactory<T> factory) {
-		map.get(klass).add(new InternalFactoryServiceReferenceImpl<>(factory));
-	}
-
-	@SuppressWarnings("unchecked")
-	@Override
-	public <T> T getService(IServiceContext context, IServiceReference<T> _ref) {
-		if(_ref instanceof IInternalServiceReference) {
-			IInternalServiceReference<?> ref = ((IInternalServiceReference<?>) _ref);
-			Object o = ref.get();
-			ref.lock();
-			
-			try {
-				return (T) o;
-			} catch(ClassCastException e) {
-				
-			}
+	public <T> void registerService(IServiceContext context, Class<T> clazz, T obj) {
+		IServiceReference<T> ref = serviceReferenceFactoryHandler.createReference(this, context, clazz, obj);
+		if (ref != null) {
+			map.get(context, clazz).add(ref);
 		} else {
-			System.err.println("ServiceRef: " + (_ref == null ? "null" : _ref.getClass().getCanonicalName()));
+			LOGGER.error(
+					String.format("Couldn't create service reference for %s (%s), context=%s", obj, clazz, context));
 		}
+	}
+
+	@Override
+	public <T> void registerServiceFactory(IServiceContext context, Class<T> clazz, IServiceFactory<T> factory) {
+		IServiceReference<T> ref = serviceReferenceFactoryHandler.createFactoryReference(this, context, clazz, factory);
+		if (ref != null) {
+			map.get(context, clazz).add(ref);
+		} else {
+			LOGGER.error(String.format("Couldn't create service factory reference for %s (%s), context=%s", factory,
+					clazz, context));
+		}
+	}
+
+	@Override
+	public <T> T getService(IServiceReference<T> ref) {
+		if (ref != null) {
+			IServiceReferenceHandler handler = serviceReferenceFactoryHandler.findReferenceHandler(ref);
+			return handler.loadService(ref);
+		} else {
+			LOGGER.error("Tried to get service without reference");
+		}
+
 		return null;
 	}
 
 	@Override
-	public void ungetService(IServiceContext context, IServiceReference<?> _ref) {
-		if(_ref instanceof IInternalServiceReference) {
-			((IInternalServiceReference) _ref).unlock();
+	public void ungetService(IServiceReference<?> ref) {
+		if (ref != null) {
+			IServiceReferenceHandler handler = serviceReferenceFactoryHandler.findReferenceHandler(ref);
+			handler.unloadService(ref);
 		} else {
-			System.err.println("ServiceRef: " + (_ref == null ? "null" : _ref.getClass().getCanonicalName()));
+			LOGGER.error("Tried to unget service without reference");
 		}
 	}
-	
-	@SuppressWarnings("serial")
-	private static class ServiceMap extends HashMap<Class<?>, List<IServiceReference<?>>> {
-		
-		public <T> List<IServiceReference<T>> get(Class<T> key) {
-			if(!(key instanceof Class))
-				throw new IllegalArgumentException();
-			
-			Class<T> clazz = (Class<T>) key;
-			List<IServiceReference<T>> list = (List) super.get(clazz);
-			if(list != null) {
-				return list;
-			} else {
-				list = new ArrayList<IServiceReference<T>>();
-				super.put(clazz, (List) list);
+
+	private static class ContextLookupHelper {
+		private final Map<IServiceContext, ServiceMap> contextMaps = new HashMap<>();
+
+		public <T> List<IServiceReference<T>> get(IServiceContext context, Class<T> key) {
+			if (context == null)
+				throw new NullPointerException("Need context for lookup");
+			if (key == null)
+				throw new NullPointerException("No key for service maps");
+
+			ServiceMap map = contextMaps.get(context);
+			if (map == null) {
+				map = new ServiceMap();
+				contextMaps.put(context, map);
+			}
+			return map.get(key);
+		}
+
+		private static class ServiceMap {
+			private final Map<Class<?>, List<IServiceReference<?>>> registeredServiceReferences = new HashMap<>();
+
+			@SuppressWarnings({ "rawtypes", "unchecked" })
+			public <T> List<IServiceReference<T>> get(Class<T> key) {
+				if (key == null)
+					throw new NullPointerException("No key for service list");
+
+				List<IServiceReference<T>> list = (List) registeredServiceReferences.get(key);
+				if (list == null) {
+					list = new ArrayList<>();
+					registeredServiceReferences.put(key, (List) list);
+				}
 				return list;
 			}
 		}
