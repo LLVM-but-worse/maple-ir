@@ -39,13 +39,13 @@
   		<version>0.0.1-ALPHA</version>
   	</dependency>
   	<dependency>
-  		<groupId>org.mapleir.service-framework</groupId>
-  		<artifactId>service-framework</artifactId>
+  		<groupId>org.mapleir.service-util</groupId>
+  		<artifactId>service-util</artifactId>
   		<version>0.0.1-SNAPSHOT</version>
   	</dependency>
   	<dependency>
-  		<groupId>org.mapleir.service-util</groupId>
-  		<artifactId>service-util</artifactId>
+  		<groupId>org.mapleir.service-framework.api</groupId>
+  		<artifactId>service-framework-api</artifactId>
   		<version>0.0.1-SNAPSHOT</version>
   	</dependency>
   </dependencies>
