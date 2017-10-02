@@ -1,5 +1,6 @@
 package org.mapleir.serviceframework.util;
 
+import org.mapleir.propertyframework.api.IPropertyDictionary;
 import org.mapleir.serviceframework.api.IServiceContext;
 import org.mapleir.serviceframework.api.IServiceReference;
 import org.mapleir.serviceframework.api.IServiceRegistry;
@@ -32,9 +33,17 @@ public class ServiceHelper {
 	}
 	
 	public static <T> T attemptGet(IServiceRegistry registry, IServiceContext context, Class<T> serviceClazz) {
+		return attemptGet(registry, context, serviceClazz, null);
+	}
+	
+	public static <T> T attemptGet(IServiceRegistry registry, IServiceContext context, Class<T> serviceClazz, IPropertyDictionary dict) {
 		IServiceReference<T> ref = registry.getServiceReference(context, serviceClazz);
 		try {
-			return registry.getService(ref);
+			if(dict != null) {
+				return registry.getService(ref, dict);
+			} else {
+				return registry.getService(ref);
+			}
 		} finally {
 			if(ref != null) {
 				registry.ungetService(ref);
