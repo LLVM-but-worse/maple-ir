@@ -15,6 +15,7 @@ import org.mapleir.serviceframework.api.IServiceReference;
 import org.mapleir.serviceframework.api.IServiceReferenceHandler;
 import org.mapleir.serviceframework.api.IServiceReferenceHandlerFactory;
 import org.mapleir.serviceframework.api.IServiceRegistry;
+import org.mapleir.serviceframework.util.ClassServiceQuery;
 
 // FIXME: synchronise data structures
 public class ServiceRegistryImpl implements IServiceRegistry {

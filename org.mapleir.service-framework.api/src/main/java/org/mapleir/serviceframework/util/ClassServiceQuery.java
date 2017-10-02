@@ -1,4 +1,4 @@
-package org.mapleir.serviceframework.impl;
+package org.mapleir.serviceframework.util;
 
 import org.mapleir.serviceframework.api.IServiceQuery;
 import org.mapleir.serviceframework.api.IServiceReference;
