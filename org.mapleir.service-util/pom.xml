@@ -12,8 +12,13 @@
   </parent>
   <dependencies>
   	<dependency>
-  		<groupId>org.mapleir.service-framework</groupId>
-  		<artifactId>service-framework</artifactId>
+  		<groupId>org.mapleir.service-framework.api</groupId>
+  		<artifactId>service-framework-api</artifactId>
+  		<version>0.0.1-SNAPSHOT</version>
+  	</dependency>
+  	<dependency>
+  		<groupId>org.mapleir.service-framework.impl</groupId>
+  		<artifactId>service-framework-impl</artifactId>
   		<version>0.0.1-SNAPSHOT</version>
   	</dependency>
   </dependencies>

@@ -40,5 +40,7 @@
   	<module>../org.mapleir.service-framework</module>
   	<module>../org.mapleir.service-util</module>
   	<module>../org.mapleir.property-framework</module>
+  	<module>../org.mapleir.service-framework.api</module>
+  	<module>../org.mapleir.service-framework.impl</module>
   </modules>
 </project>
