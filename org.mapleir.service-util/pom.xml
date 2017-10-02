@@ -3,19 +3,7 @@
   <groupId>org.mapleir.service-util</groupId>
   <artifactId>service-util</artifactId>
   <version>0.0.1-SNAPSHOT</version>
-  <build>
-    <sourceDirectory>src</sourceDirectory>
-    <plugins>
-      <plugin>
-        <artifactId>maven-compiler-plugin</artifactId>
-        <version>3.6.1</version>
-        <configuration>
-          <source/>
-          <target/>
-        </configuration>
-      </plugin>
-    </plugins>
-  </build>
+
   <parent>
   	<groupId>org.mapleir.parent</groupId>
   	<artifactId>parent</artifactId>
