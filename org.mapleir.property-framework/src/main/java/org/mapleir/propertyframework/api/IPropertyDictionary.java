@@ -2,6 +2,10 @@ package org.mapleir.propertyframework.api;
 
 import java.util.Map;
 
+import org.mapleir.propertyframework.api.event.IPropertyContainerListener;
+import org.mapleir.propertyframework.api.event.IPropertyUpdateListener;
+import org.mapleir.propertyframework.api.event.update.IPropertyUpdateEvent;
+
 /**
  * This class acts as the generic base of the property framework. The
  * functionality is similar to that of the {@link Map} interface in the standard
@@ -87,4 +91,12 @@ public interface IPropertyDictionary {
 	 *            The property
 	 */
 	void put(String key, IProperty<?> property);
+	
+	void registerPropertyContainerListener(IPropertyContainerListener l);
+	
+	void registerPropertyUpdateListener(IPropertyUpdateListener l);
+	
+	void unregisterPropertyContainerListener(IPropertyContainerListener l);
+	
+	void unregisterPropertyUpdateListener(IPropertyUpdateListener l);
 }
