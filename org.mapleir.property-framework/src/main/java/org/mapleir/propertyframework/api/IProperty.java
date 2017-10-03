@@ -1,7 +1,5 @@
 package org.mapleir.propertyframework.api;
 
-import org.mapleir.propertyframework.api.event.IPropertyContainerListener;
-
 /**
  * This is one of the fundamental interfaces for the property framework. It
  * contains information regarding the extensible and type consistent properties.
@@ -23,17 +21,13 @@ import org.mapleir.propertyframework.api.event.IPropertyContainerListener;
  * is imposed so that complicated parent-child relations do not develop when
  * managing properties and dictionaries, allowing for safer and easier use of
  * the framework.
- * <p>
- * This interface also implements the {@link IPropertyContainerListener} interface,
- * exposing external information and events for the lifecycle and management
- * of it.
  * 
  * @see IPropertyDictionary
  * @author Bibl
  * @param <T>
  *            The internal type of the property as described earlier
  */
-public interface IProperty<T> extends IPropertyContainerListener {
+public interface IProperty<T> {
 
 	String getKey();
 

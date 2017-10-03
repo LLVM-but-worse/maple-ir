@@ -1,9 +1,9 @@
-package org.mapleir.propertyframework.impl.event.update;
+package org.mapleir.propertyframework.api.event.update;
 
 import org.mapleir.propertyframework.api.IProperty;
-import org.mapleir.propertyframework.api.event.update.IPropertyValueChangedEvent;
+import org.mapleir.propertyframework.api.event.AbstractPropertyEvent;
 
-public class PropertyValueChangedEvent extends AbstractPropertyUpdateEvent implements IPropertyValueChangedEvent {
+public class PropertyValueChangedEvent extends AbstractPropertyEvent {
 
 	private final Object oldValue;
 	private final Object newValue;

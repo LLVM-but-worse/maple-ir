@@ -5,14 +5,25 @@ import java.util.Map;
 
 import org.mapleir.propertyframework.api.IProperty;
 import org.mapleir.propertyframework.api.IPropertyDictionary;
-import org.mapleir.propertyframework.api.event.IPropertyContainerListener;
-import org.mapleir.propertyframework.api.event.IPropertyUpdateListener;
+import org.mapleir.propertyframework.api.event.container.PropertyAddedEvent;
+import org.mapleir.propertyframework.api.event.container.PropertyRemovedEvent;
 import org.mapleir.propertyframework.util.PropertyHelper;
+
+import com.google.common.eventbus.EventBus;
 
 public class BasicPropertyDictionary implements IPropertyDictionary {
 
 	private final Map<String, IProperty<?>> map = new HashMap<>();
-	
+	private final EventBus bus;
+
+	public BasicPropertyDictionary() {
+		this(PropertyHelper.getFrameworkBus());
+	}
+
+	public BasicPropertyDictionary(EventBus bus) {
+		this.bus = bus;
+	}
+
 	@SuppressWarnings("unchecked")
 	@Override
 	public <T> IProperty<T> find(String key) {
@@ -36,47 +47,45 @@ public class BasicPropertyDictionary implements IPropertyDictionary {
 			return (IProperty<T>) prop;
 		} else {
 			Class<?> rebasedType = PropertyHelper.rebasePrimitiveType(type);
-			if(prop.getType().equals(rebasedType)) {
+			if (prop.getType().equals(rebasedType)) {
 				return (IProperty<T>) prop;
 			} else {
-				/* New specification compliant: see IPropertyDictionary.find(Class, Key) docs
+				/*
+				 * New specification compliant: see IPropertyDictionary.find(Class, Key) docs
 				 * throw new IllegalStateException(String.format("Cannot coerce %s to %s",
-				 *    prop.getType(), type)); */
+				 * prop.getType(), type));
+				 */
 				return null;
 			}
 		}
 	}
 
+	private void checkNotHeld(IProperty<?> p) {
+		if(p.getDictionary() != null && p.getDictionary() != this) {
+			throw new UnsupportedOperationException("Cannot link property to another dictionary");
+		}
+	}
+	
 	@Override
 	public void put(String key, IProperty<?> property) {
 		if (key == null || property == null) {
 			throw new NullPointerException(String.format("Cannot map %s to %s", key, property));
 		}
 
-		map.put(key, property);
+		checkNotHeld(property);
+		IProperty<?> prev = map.put(key, property);
+		
+		if(prev != null) {
+			bus.post(new PropertyRemovedEvent(prev, this, key));
+			bus.unregister(prev);
+		}
+		
+		bus.register(property);
+		bus.post(new PropertyAddedEvent(property, this, key));
 	}
 
 	@Override
-	public void registerPropertyContainerListener(IPropertyContainerListener l) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void registerPropertyUpdateListener(IPropertyUpdateListener l) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void unregisterPropertyContainerListener(IPropertyContainerListener l) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void unregisterPropertyUpdateListener(IPropertyUpdateListener l) {
-		// TODO Auto-generated method stub
-		
+	public EventBus getContainerEventBus() {
+		return bus;
 	}
 }
