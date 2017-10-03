@@ -2,6 +2,8 @@ package org.mapleir.propertyframework.impl;
 
 import org.mapleir.propertyframework.api.IProperty;
 import org.mapleir.propertyframework.api.IPropertyDictionary;
+import org.mapleir.propertyframework.api.event.container.IPropertyContainerEvent;
+import org.mapleir.propertyframework.api.event.container.IPropertyContainerEvent.Operation;
 
 public abstract class AbstractProperty<T> implements IProperty<T> {
 
@@ -62,6 +64,28 @@ public abstract class AbstractProperty<T> implements IProperty<T> {
 			return null;
 		} else {
 			return prop;
+		}
+	}
+	
+	@Override
+	public void onPropertyContainerEvent(IPropertyContainerEvent e) {
+		if(e.getProperty() != this) {
+			return;
+		}
+		
+		Operation op = e.getOperation();
+		if(op == Operation.ADDED) {
+			if(container != null) {
+				throw new UnsupportedOperationException("Tried to add container-held property to another container");
+			} else {
+				container = e.getDictionary();
+			}
+		} else if(op == Operation.REMOVED) {
+			if(container != null) {
+				throw new UnsupportedOperationException("Tried to remove containerless property from container");
+			} else {
+				container = null;
+			}
 		}
 	}
 	

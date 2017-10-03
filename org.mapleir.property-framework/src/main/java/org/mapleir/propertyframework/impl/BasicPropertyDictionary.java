@@ -5,12 +5,14 @@ import java.util.Map;
 
 import org.mapleir.propertyframework.api.IProperty;
 import org.mapleir.propertyframework.api.IPropertyDictionary;
+import org.mapleir.propertyframework.api.event.IPropertyContainerListener;
+import org.mapleir.propertyframework.api.event.IPropertyUpdateListener;
 import org.mapleir.propertyframework.util.PropertyHelper;
 
 public class BasicPropertyDictionary implements IPropertyDictionary {
 
 	private final Map<String, IProperty<?>> map = new HashMap<>();
-
+	
 	@SuppressWarnings("unchecked")
 	@Override
 	public <T> IProperty<T> find(String key) {
@@ -52,5 +54,29 @@ public class BasicPropertyDictionary implements IPropertyDictionary {
 		}
 
 		map.put(key, property);
+	}
+
+	@Override
+	public void registerPropertyContainerListener(IPropertyContainerListener l) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void registerPropertyUpdateListener(IPropertyUpdateListener l) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void unregisterPropertyContainerListener(IPropertyContainerListener l) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void unregisterPropertyUpdateListener(IPropertyUpdateListener l) {
+		// TODO Auto-generated method stub
+		
 	}
 }
