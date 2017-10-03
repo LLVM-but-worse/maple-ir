@@ -10,11 +10,6 @@
   <artifactId>topdank-services</artifactId>
   <dependencies>
 	<dependency>
-		<groupId>com.google.guava</groupId>
-		<artifactId>guava</artifactId>
-		<version>22.0</version>
-	</dependency>
-	<dependency>
 		<groupId>org.mapleir.gson</groupId>
 		<artifactId>gson</artifactId>
 		<version>0.0.1-ALPHA</version>
