@@ -7,6 +7,6 @@ public class BooleanProperty extends DefaultValueProperty<Boolean> {
 	}
 	
 	public BooleanProperty(String key, boolean dflt) {
-		super(key, Boolean.TYPE, dflt);
+		super(key, Boolean.class, dflt);
 	}
 }
