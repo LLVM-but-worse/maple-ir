@@ -30,7 +30,7 @@ public class STest {
 			@Override
 			public Person create(IPropertyDictionary dict) {
 				IProperty<String> nameProp = dict.find(String.class, "name");
-				IProperty<Boolean> genderProp = dict.find(Boolean.TYPE, "ismale");
+				IProperty<Boolean> genderProp = dict.find(boolean.class, "ismale");
 				String name = nameProp.getValue();
 				
 				if(genderProp.getValue()) {
