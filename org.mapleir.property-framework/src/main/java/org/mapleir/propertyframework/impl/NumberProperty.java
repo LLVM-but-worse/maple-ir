@@ -1,5 +1,7 @@
 package org.mapleir.propertyframework.impl;
 
+import org.mapleir.propertyframework.api.IPropertyDictionary;
+
 public class NumberProperty extends DefaultValueProperty<Number> {
 
 	public NumberProperty(String key) {
@@ -62,5 +64,12 @@ public class NumberProperty extends DefaultValueProperty<Number> {
 		} else {
 			return 0;
 		}
+	}
+	
+	@Override
+	public NumberProperty clone(IPropertyDictionary newDict) {
+		NumberProperty n = new NumberProperty(getKey(), getDefault());
+		n.setValue(getValue());
+		return n;
 	}
 }
