@@ -2,9 +2,7 @@ package org.mapleir.propertyframework.api;
 
 import java.util.Map;
 
-import org.mapleir.propertyframework.api.event.IPropertyContainerListener;
-import org.mapleir.propertyframework.api.event.IPropertyUpdateListener;
-import org.mapleir.propertyframework.api.event.update.IPropertyUpdateEvent;
+import com.google.common.eventbus.EventBus;
 
 /**
  * This class acts as the generic base of the property framework. The
@@ -14,9 +12,9 @@ import org.mapleir.propertyframework.api.event.update.IPropertyUpdateEvent;
  * be the only exposed classes to client applications, with no references to the
  * underlying implementations of either.
  * <p>
- * Methods that could possibly throw runtime exceptions are documented where
- * applicable as there is no policy for possibly invalid input and output values
- * in this interface.
+ * Dictionaries must make sure that they do not capture a property that another
+ * dictionary is currently holding, as there should only ever be at most one
+ * dictionary associated with a property.
  * 
  * @author Bibl
  */
@@ -91,12 +89,6 @@ public interface IPropertyDictionary {
 	 *            The property
 	 */
 	void put(String key, IProperty<?> property);
-	
-	void registerPropertyContainerListener(IPropertyContainerListener l);
-	
-	void registerPropertyUpdateListener(IPropertyUpdateListener l);
-	
-	void unregisterPropertyContainerListener(IPropertyContainerListener l);
-	
-	void unregisterPropertyUpdateListener(IPropertyUpdateListener l);
+
+	EventBus getContainerEventBus();
 }

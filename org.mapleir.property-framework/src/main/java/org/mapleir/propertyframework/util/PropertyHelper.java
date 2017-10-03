@@ -5,7 +5,15 @@ import org.mapleir.propertyframework.api.IPropertyDictionary;
 import org.mapleir.propertyframework.impl.BasicPropertyDictionary;
 import org.mapleir.propertyframework.impl.BasicSynchronisedPropertyDictionary;
 
+import com.google.common.eventbus.EventBus;
+
 public class PropertyHelper {
+	
+	private static final EventBus PROPERTY_FRAMEWORK_BUS = new EventBus();
+	
+	public static EventBus getFrameworkBus() {
+		return PROPERTY_FRAMEWORK_BUS;
+	}
 
 	/**
 	 * The dictionary should handle operations from multiple threads safely.

@@ -1,7 +1,6 @@
-package org.mapleir.propertyframework.impl.event;
+package org.mapleir.propertyframework.api.event;
 
 import org.mapleir.propertyframework.api.IProperty;
-import org.mapleir.propertyframework.api.event.IPropertyEvent;
 
 public abstract class AbstractPropertyEvent implements IPropertyEvent {
 
