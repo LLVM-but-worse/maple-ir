@@ -1,11 +1,10 @@
-package org.mapleir.propertyframework.impl.event.container;
+package org.mapleir.propertyframework.api.event.container;
 
 import org.mapleir.propertyframework.api.IProperty;
 import org.mapleir.propertyframework.api.IPropertyDictionary;
-import org.mapleir.propertyframework.api.event.container.IPropertyContainerEvent;
-import org.mapleir.propertyframework.impl.event.AbstractPropertyEvent;
+import org.mapleir.propertyframework.api.event.AbstractPropertyEvent;
 
-public abstract class AbstractPropertyContainerEvent extends AbstractPropertyEvent implements IPropertyContainerEvent {
+public abstract class AbstractPropertyContainerEvent extends AbstractPropertyEvent {
 
 	private final IPropertyDictionary dictionary;
 	private final String key;

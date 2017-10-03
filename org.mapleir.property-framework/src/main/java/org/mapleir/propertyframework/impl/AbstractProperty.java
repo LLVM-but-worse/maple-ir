@@ -2,8 +2,11 @@ package org.mapleir.propertyframework.impl;
 
 import org.mapleir.propertyframework.api.IProperty;
 import org.mapleir.propertyframework.api.IPropertyDictionary;
-import org.mapleir.propertyframework.api.event.container.IPropertyContainerEvent;
-import org.mapleir.propertyframework.api.event.container.IPropertyContainerEvent.Operation;
+import org.mapleir.propertyframework.api.event.container.PropertyAddedEvent;
+import org.mapleir.propertyframework.api.event.container.PropertyRemovedEvent;
+import org.mapleir.propertyframework.api.event.update.PropertyValueChangedEvent;
+
+import com.google.common.eventbus.Subscribe;
 
 public abstract class AbstractProperty<T> implements IProperty<T> {
 
@@ -40,6 +43,10 @@ public abstract class AbstractProperty<T> implements IProperty<T> {
 			return del.getValue();
 		} else if(value == null) {
 			value = getDefault();
+			
+			if(container != null) {
+				container.getContainerEventBus().post(new PropertyValueChangedEvent(this, null, value));
+			}
 		}
 		return value;
 	}
@@ -50,7 +57,12 @@ public abstract class AbstractProperty<T> implements IProperty<T> {
 		if(del != null) {
 			del.setValue(t);
 		} else {
+			T old = value;
 			value = t;
+			
+			if(container != null) {
+				container.getContainerEventBus().post(new PropertyValueChangedEvent(this, old, value));
+			}
 		}
 	}
 	
@@ -67,25 +79,31 @@ public abstract class AbstractProperty<T> implements IProperty<T> {
 		}
 	}
 	
-	@Override
-	public void onPropertyContainerEvent(IPropertyContainerEvent e) {
+	@Subscribe
+	public void onPropertyAddedEvent(PropertyAddedEvent e) {
 		if(e.getProperty() != this) {
 			return;
 		}
 		
-		Operation op = e.getOperation();
-		if(op == Operation.ADDED) {
-			if(container != null) {
-				throw new UnsupportedOperationException("Tried to add container-held property to another container");
-			} else {
-				container = e.getDictionary();
-			}
-		} else if(op == Operation.REMOVED) {
-			if(container != null) {
-				throw new UnsupportedOperationException("Tried to remove containerless property from container");
-			} else {
-				container = null;
-			}
+		if(container != null) {
+			// TODO: log
+			// throw new UnsupportedOperationException("Tried to add container-held property to another container");
+		} else {
+			container = e.getDictionary();
+		}
+	}
+	
+	@Subscribe
+	public void onPropertyRemovedEvent(PropertyRemovedEvent e) {
+		if(e.getProperty() != this) {
+			return;
+		}
+		
+		if(container != null) {
+			container = null;
+		} else {
+			// TODO: log
+			// throw new UnsupportedOperationException("Tried to remove containerless property from container");
 		}
 	}
 	
