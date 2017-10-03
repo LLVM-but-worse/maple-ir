@@ -4,6 +4,7 @@ import org.mapleir.propertyframework.api.IProperty;
 import org.mapleir.propertyframework.api.IPropertyDictionary;
 import org.mapleir.propertyframework.impl.BasicPropertyDictionary;
 import org.mapleir.propertyframework.impl.BasicSynchronisedPropertyDictionary;
+import org.mapleir.propertyframework.impl.FixedStoreDictionary;
 
 import com.google.common.eventbus.EventBus;
 
@@ -38,6 +39,10 @@ public class PropertyHelper {
 
 	public static IPropertyDictionary getImmutableDictionary() {
 		return EMPTY_DICTIONARY;
+	}
+	
+	public static IPropertyDictionary makeFixedStoreDictionary(IPropertyDictionary dict) {
+		return new FixedStoreDictionary(dict);
 	}
 	
 	public static IPropertyDictionary createDictionary() {

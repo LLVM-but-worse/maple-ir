@@ -38,4 +38,6 @@ public interface IProperty<T> {
 	T getValue();
 
 	void setValue(T t);
+	
+	IProperty<T> clone(IPropertyDictionary newDict);
 }

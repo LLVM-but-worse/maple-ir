@@ -1,7 +1,9 @@
 package org.mapleir.propertyframework.impl;
 
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import org.mapleir.propertyframework.api.IProperty;
 import org.mapleir.propertyframework.api.IPropertyDictionary;
@@ -87,5 +89,10 @@ public class BasicPropertyDictionary implements IPropertyDictionary {
 	@Override
 	public EventBus getContainerEventBus() {
 		return bus;
+	}
+
+	@Override
+	public Iterator<Entry<String, IProperty<?>>> iterator() {
+		return map.entrySet().iterator();
 	}
 }
