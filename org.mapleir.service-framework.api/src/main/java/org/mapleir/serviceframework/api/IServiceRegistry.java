@@ -16,7 +16,7 @@ public interface IServiceRegistry {
 	<T> void registerServiceFactory(IServiceContext cxt, Class<T> clazz, IServiceFactory<T> factory);
 
 	default <T> T getService(IServiceReference<T> ref) {
-		return getService(ref, PropertyHelper.getEmptyDictionary());
+		return getService(ref, PropertyHelper.getImmutableDictionary());
 	}
 	
 	<T> T getService(IServiceReference<T> ref, IPropertyDictionary dict);

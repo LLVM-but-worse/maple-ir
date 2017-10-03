@@ -28,7 +28,7 @@ public class PropertyHelper {
 		}
 	};
 
-	public static IPropertyDictionary getEmptyDictionary() {
+	public static IPropertyDictionary getImmutableDictionary() {
 		return EMPTY_DICTIONARY;
 	}
 	
