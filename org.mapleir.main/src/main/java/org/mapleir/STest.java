@@ -46,8 +46,11 @@ public class STest {
 		// some other module that doesnt have impl (male/female/base) classes, only Person
 		IServiceReference<Person> ref = reg.getServiceReference(cxt, Person.class);
 		
+		IPropertyDictionary settings = PropertyHelper.createDictionary();
+		settings.put(new BooleanProperty(PropertyHelper.BASIC_SYNCHRONISED_DICTIONARY_OPT, true));
 		{
-			IPropertyDictionary dict = PropertyHelper.createDictionary();
+			IPropertyDictionary dict = PropertyHelper.createDictionary(settings);
+			System.out.println(dict);
 			dict.put(new StringProperty("name", "bilb"));
 			dict.put(new BooleanProperty("ismale", true));
 			Person p = reg.getService(ref, dict);
@@ -56,6 +59,7 @@ public class STest {
 		
 		{
 			IPropertyDictionary dict = PropertyHelper.createDictionary();
+			System.out.println(dict);
 			dict.put(new StringProperty("name", "theresa NAY"));
 			dict.put(new BooleanProperty("ismale", false));
 			Person p = reg.getService(ref, dict);
