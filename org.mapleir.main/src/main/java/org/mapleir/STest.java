@@ -51,7 +51,7 @@ public class STest {
 		{
 			IPropertyDictionary dict = PropertyHelper.createDictionary(settings);
 			System.out.println(dict);
-			dict.put(new StringProperty("name", "bilb"));
+			dict.put(new StringProperty("name", "", "bilb"));
 			dict.put(new BooleanProperty("ismale", true));
 			Person p = reg.getService(ref, dict);
 			System.out.println(p);
@@ -60,7 +60,7 @@ public class STest {
 		{
 			IPropertyDictionary dict = PropertyHelper.createDictionary();
 			System.out.println(dict);
-			dict.put(new StringProperty("name", "theresa NAY"));
+			dict.put(new StringProperty("name", "", "theresa NAY"));
 			dict.put(new BooleanProperty("ismale", false));
 			Person p = reg.getService(ref, dict);
 			System.out.println(p);

@@ -1,6 +1,7 @@
 package org.mapleir.propertyframework.api;
 
 import java.util.Map;
+import java.util.Map.Entry;
 
 import com.google.common.eventbus.EventBus;
 
@@ -18,7 +19,7 @@ import com.google.common.eventbus.EventBus;
  * 
  * @author Bibl
  */
-public interface IPropertyDictionary {
+public interface IPropertyDictionary extends Iterable<Entry<String, IProperty<?>>> {
 
 	/**
 	 * Performs some sort of lookup or traversal of values to find the
