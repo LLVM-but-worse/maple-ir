@@ -34,6 +34,8 @@ public class DefaultInvocationResolver implements InvocationResolver {
 		hierarchyMethodsHelper = new HierarchyMethods(app);
 		
 		computeVTables();
+		
+		System.out.println("build vtables for " + concreteVTables.size() + " classes.");
 	}
 	
 	protected boolean hasVisited(ClassNode c) {
@@ -46,6 +48,25 @@ public class DefaultInvocationResolver implements InvocationResolver {
 				// also implies getAllChildren.size() == 0
 				computeVTable(c);
 			}
+		}
+	}
+	
+	static class CompFrame {
+		final ClassNode c;
+		final Map<Selector, MethodNode> thisMethodSet;
+		final Map<Selector, MethodNode> thisAbstractSet;
+		final Map<Selector, MethodNode> globalCVT;
+		final Map<Selector, MethodNode> globalAVT;
+		final NullPermeableHashMap<Selector, Set<MethodNode>> mergeMap;
+		
+		public CompFrame(ClassNode c) {
+			this.c = c;
+			
+			this.thisMethodSet = new HashMap<>();
+			this.thisAbstractSet = new HashMap<>();
+			this.globalAVT = new HashMap<>();
+			this.globalCVT = new HashMap<>();
+			this.mergeMap = new NullPermeableHashMap<>(new SetCreator<>());
 		}
 	}
 	
@@ -164,7 +185,7 @@ public class DefaultInvocationResolver implements InvocationResolver {
 			/* we shouldn't ever get merge errors from considering the
 			 * current class with it's super. (this can happen with
 			 * interfaces, however) */
-			// assertIntersection(globalAVT.entrySet(), globalCVT.entrySet(), Collections.emptySet());
+			assertIntersection(globalAVT.entrySet(), globalCVT.entrySet(), Collections.emptySet());
 			
 			/* add our own declarations to the tables. this could possibly
 			 * override methods from the super class and we're happy
@@ -232,7 +253,6 @@ public class DefaultInvocationResolver implements InvocationResolver {
 				if(conflictingMethods.size() > 1) {
 					/* conflict, C must explicitly declare m. */
 					
-					
 					if(debugLevel >= 2) {
 						System.out.println("    conflicts: " + conflictingMethods.size());
 						System.out.println("      " + selector);
@@ -241,12 +261,15 @@ public class DefaultInvocationResolver implements InvocationResolver {
 						}
 					}
 					
-					
 					/* if we have any sort of declaration, we can easily say that
 					 * that is the target without having to check the hierarchy
-					 * and contention rules. */
-					if(thisMethodSet.containsKey(selector)) {
-						resolve = thisMethodSet.get(selector);
+					 * and globalCVT rules. 
+					 * 
+					 * 05/10/17: globalCVT should contain super defs as well or ours
+					 *           so surely we use this as it doesn't contain any
+					 *           abstracts?*/
+					if(globalCVT.containsKey(selector)) {
+						resolve = globalCVT.get(selector);
 						
 						if(debugLevel >= 2) {
 							System.out.println("    (1)resolved to " + resolve);
@@ -259,6 +282,20 @@ public class DefaultInvocationResolver implements InvocationResolver {
 						}
 					} else {
 						/* here is where it gets tricky. */
+						
+						/* 05/10/17: weird bug? example:
+						 *    javax/swing/LayoutComparator implements Comparable
+						 *    Comparable extends Object by OUR own definition.
+						 *    Comparable reabstracts equals(Object) but LayoutComparator
+						 *    extends Object implicitly, so the Object definition is
+						 *    reaching unless it is redefined in LayoutComparator.
+						 *    Note that you can't have default methods for Object methods.
+						 *    
+						 *    So do we check for it here or inherit Objects methods before we
+						 *    do anything else?
+						 *    solution: use global vtable merge interface merges above?
+						 */
+						
 						Collection<MethodNode> contenders = getMaximallySpecific(conflictingMethods);
 						if(contenders.isEmpty()) {
 							throw new IllegalStateException();
@@ -268,7 +305,7 @@ public class DefaultInvocationResolver implements InvocationResolver {
 							/* design decision: if there is only 1 contender but multiple
 							 * conflicting methods, all of the conflicting methods are
 							 * defaults, then we have a clear target method, but if any of
-							 * them are abstract, we are actually propagated a
+							 * them are abstract, we are actually propagating a
 							 * reabstraction through this class, so we can insert a
 							 * miranda. */
 							
@@ -278,7 +315,7 @@ public class DefaultInvocationResolver implements InvocationResolver {
 							}
 							
 							if(anyAbstract) {
-								/* valid: miranda */
+								/* valid: miranda (reabstraction) */
 								resolve = null;
 							} else {
 								resolve = contenders.iterator().next();
@@ -366,7 +403,7 @@ public class DefaultInvocationResolver implements InvocationResolver {
 			}
 			
 			assertIntersection(concreteVTables.get(c).entrySet(), abstractVTables.get(c).entrySet(), Collections.emptySet());
-			validateTables();
+//			validateTables();
 			
 			if(debugLevel >= 2) {
 				System.out.println(" cvtable: ");
@@ -476,7 +513,7 @@ public class DefaultInvocationResolver implements InvocationResolver {
 			while(it.hasNext()) {
 				List<String> lst = it.next().exceptions;
 				
-				if(lst.size() != set.size() || (lst.size() != 0 && lst.containsAll(set))) {
+				if(lst.size() != set.size() || (lst.size() != 0 && !lst.containsAll(set))) {
 					throw new IllegalStateException(String.format("set: %s, lst: %s for %s", set, lst, col));
 				}
 			}
