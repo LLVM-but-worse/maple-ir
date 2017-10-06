@@ -1164,7 +1164,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 					Expr expr = pop.getExpression();
 					if (expr.getOpcode() == Opcode.INVOKE) {
 						InvocationExpr invoke = (InvocationExpr) expr;
-						if (invoke.getCallType() == Opcodes.INVOKESPECIAL && invoke.getName().equals("<init>")) {
+						if (invoke.getCallType() == InvocationExpr.CallType.SPECIAL && invoke.getName().equals("<init>")) {
 							Expr inst = invoke.getPhysicalReceiver();
 							if (inst.getOpcode() == Opcode.LOCAL_LOAD) {
 								VarExpr var = (VarExpr) inst;
