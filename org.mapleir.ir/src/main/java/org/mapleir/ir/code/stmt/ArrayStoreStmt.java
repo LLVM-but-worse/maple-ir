@@ -114,17 +114,6 @@ public class ArrayStoreStmt extends Stmt {
 	}
 
 	@Override
-	public boolean canChangeLogic() {
-		return true;
-	}
-
-	@Override
-	public boolean isAffectedBy(CodeUnit stmt) {
-		return stmt.canChangeLogic() || arrayExpression.isAffectedBy(stmt) || indexExpression.isAffectedBy(stmt)
-				|| valueExpression.isAffectedBy(stmt);
-	}
-
-	@Override
 	public ArrayStoreStmt copy() {
 		return new ArrayStoreStmt(arrayExpression.copy(), indexExpression.copy(), valueExpression.copy(), type);
 	}

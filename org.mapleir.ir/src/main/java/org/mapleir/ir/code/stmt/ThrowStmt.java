@@ -50,16 +50,6 @@ public class ThrowStmt extends Stmt {
 	}
 
 	@Override
-	public boolean canChangeLogic() {
-		return expression.canChangeLogic();
-	}
-
-	@Override
-	public boolean isAffectedBy(CodeUnit stmt) {
-		return expression.isAffectedBy(stmt);
-	}
-
-	@Override
 	public ThrowStmt copy() {
 		return new ThrowStmt(expression.copy());
 	}

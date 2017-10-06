@@ -45,16 +45,6 @@ public class UnconditionalJumpStmt extends Stmt {
 	}
 
 	@Override
-	public boolean canChangeLogic() {
-		return false;
-	}
-
-	@Override
-	public boolean isAffectedBy(CodeUnit stmt) {
-		return false;
-	}
-
-	@Override
 	public Stmt copy() {
 		return new UnconditionalJumpStmt(target);
 	}

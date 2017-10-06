@@ -88,16 +88,6 @@ public class CastExpr extends Expr {
 	}
 
 	@Override
-	public boolean canChangeLogic() {
-		return expression.canChangeLogic();
-	}
-
-	@Override
-	public boolean isAffectedBy(CodeUnit stmt) {
-		return expression.isAffectedBy(stmt);
-	}
-
-	@Override
 	public boolean equivalent(CodeUnit s) {
 		if(s instanceof CastExpr) {
 			CastExpr cast = (CastExpr) s;

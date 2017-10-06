@@ -54,17 +54,7 @@ public class PopStmt extends Stmt {
 	public boolean canChangeFlow() {
 		return false;
 	}
-
-	@Override
-	public boolean canChangeLogic() {
-		return expression.canChangeLogic();
-	}
-
-	@Override
-	public boolean isAffectedBy(CodeUnit stmt) {
-		return expression.isAffectedBy(stmt);
-	}
-
+	
 	@Override
 	public PopStmt copy() {
 		return new PopStmt(expression.copy());

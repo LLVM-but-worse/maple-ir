@@ -371,10 +371,6 @@ public abstract class CodeUnit implements FastGraphVertex, Opcode {
 
 	public abstract boolean canChangeFlow();
 
-	public abstract boolean canChangeLogic();
-
-	public abstract boolean isAffectedBy(CodeUnit stmt);
-
 	public abstract boolean equivalent(CodeUnit s);
 
 	public abstract CodeUnit copy();

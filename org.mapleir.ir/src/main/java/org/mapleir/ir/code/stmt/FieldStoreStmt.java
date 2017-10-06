@@ -136,18 +136,6 @@ public class FieldStoreStmt extends Stmt {
 	}
 
 	@Override
-	public boolean canChangeLogic() {
-		return true;
-	}
-
-	@Override
-	public boolean isAffectedBy(CodeUnit stmt) {
-		return stmt.canChangeLogic()
-				|| (instanceExpression != null && instanceExpression.isAffectedBy(stmt)) 
-				|| valueExpression.isAffectedBy(stmt);
-	}
-
-	@Override
 	public FieldStoreStmt copy() {
 		return new FieldStoreStmt(instanceExpression == null ? null : instanceExpression.copy(), valueExpression.copy(), owner, name, desc);
 	}
