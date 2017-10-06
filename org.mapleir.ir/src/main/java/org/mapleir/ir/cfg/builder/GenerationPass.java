@@ -1170,7 +1170,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		for (int i = args.length - 1; i >= 0; i--) {
 			args[i] = pop();
 		}
-		InvocationExpr callExpr = new InvocationExpr(op, args, owner, name, desc);
+		InvocationExpr callExpr = new InvocationExpr(InvocationExpr.CallType.resolveCallType(op), args, owner, name, desc);
 		if(callExpr.getType() == Type.VOID_TYPE) {
 			addStmt(new PopStmt(callExpr));
 		} else {
