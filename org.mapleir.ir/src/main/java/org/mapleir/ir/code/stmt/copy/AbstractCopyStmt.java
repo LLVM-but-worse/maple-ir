@@ -120,17 +120,7 @@ public abstract class AbstractCopyStmt extends Stmt {
 	public boolean canChangeFlow() {
 		return false;
 	}
-
-	@Override
-	public boolean canChangeLogic() {
-		return expression.canChangeLogic() || variable.isAffectedBy(this);
-	}
-
-	@Override
-	public boolean isAffectedBy(CodeUnit stmt) {
-		return expression.isAffectedBy(stmt);
-	}
-
+	
 	public boolean isRedundant() {
 		if(!synthetic && expression instanceof VarExpr) {
 			return ((VarExpr) expression).getLocal() == variable.getLocal();

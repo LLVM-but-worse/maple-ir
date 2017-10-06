@@ -163,16 +163,6 @@ public class SwitchStmt extends Stmt {
 	}
 
 	@Override
-	public boolean canChangeLogic() {
-		return expression.canChangeLogic();
-	}
-
-	@Override
-	public boolean isAffectedBy(CodeUnit stmt) {
-		return expression.isAffectedBy(stmt);
-	}
-
-	@Override
 	public SwitchStmt copy() {
 		return new SwitchStmt(expression.copy(), new LinkedHashMap<>(targets), defaultTarget);
 	}

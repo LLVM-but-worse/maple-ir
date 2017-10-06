@@ -28,17 +28,7 @@ public class NopStmt extends Stmt {
 	public boolean canChangeFlow() {
 		return false;
 	}
-
-	@Override
-	public boolean canChangeLogic() {
-		return false;
-	}
-
-	@Override
-	public boolean isAffectedBy(CodeUnit stmt) {
-		return false;
-	}
-
+	
 	@Override
 	public NopStmt copy() {
 		return new NopStmt();

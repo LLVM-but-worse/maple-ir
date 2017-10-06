@@ -110,16 +110,6 @@ public class FieldLoadExpr extends Expr {
 	}
 
 	@Override
-	public boolean canChangeLogic() {
-		return instanceExpression != null && instanceExpression.canChangeLogic();
-	}
-
-	@Override
-	public boolean isAffectedBy(CodeUnit stmt) {
-		return stmt.canChangeLogic() || (instanceExpression != null && instanceExpression.isAffectedBy(stmt));
-	}
-
-	@Override
 	public boolean equivalent(CodeUnit s) {
 		if(s instanceof FieldLoadExpr) {
 			FieldLoadExpr load = (FieldLoadExpr) s;

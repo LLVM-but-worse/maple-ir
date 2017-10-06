@@ -79,16 +79,6 @@ public class ReturnStmt extends Stmt {
 	}
 
 	@Override
-	public boolean canChangeLogic() {
-		return expression != null && expression.canChangeLogic();
-	}
-
-	@Override
-	public boolean isAffectedBy(CodeUnit stmt) {
-		return expression != null && expression.isAffectedBy(stmt);
-	}
-
-	@Override
 	public ReturnStmt copy() {
 		return new ReturnStmt(type, expression == null ? null : expression.copy());
 	}

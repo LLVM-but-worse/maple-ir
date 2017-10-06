@@ -70,16 +70,6 @@ public class ArrayLengthExpr extends Expr {
 	}
 
 	@Override
-	public boolean canChangeLogic() {
-		return expression.canChangeLogic();
-	}
-
-	@Override
-	public boolean isAffectedBy(CodeUnit stmt) {
-		return stmt.canChangeLogic() || expression.isAffectedBy(stmt);
-	}
-
-	@Override
 	public boolean equivalent(CodeUnit s) {
 		return (s instanceof ArrayLengthExpr) && expression.equivalent(((ArrayLengthExpr)s).expression);
 	}

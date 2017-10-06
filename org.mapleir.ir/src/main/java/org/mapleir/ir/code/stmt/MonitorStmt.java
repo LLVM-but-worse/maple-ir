@@ -62,16 +62,6 @@ public class MonitorStmt extends Stmt {
 	}
 
 	@Override
-	public boolean canChangeLogic() {
-		return true;
-	}
-
-	@Override
-	public boolean isAffectedBy(CodeUnit stmt) {
-		return stmt.canChangeLogic() || expression.isAffectedBy(stmt);
-	}
-
-	@Override
 	public MonitorStmt copy() {
 		return new MonitorStmt(expression.copy(), mode);
 	}

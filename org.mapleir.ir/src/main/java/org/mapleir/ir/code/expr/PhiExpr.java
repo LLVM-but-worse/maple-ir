@@ -110,16 +110,6 @@ public class PhiExpr extends Expr {
 	}
 
 	@Override
-	public boolean canChangeLogic() {
-		return true;
-	}
-
-	@Override
-	public boolean isAffectedBy(CodeUnit stmt) {
-		return false;
-	}
-
-	@Override
 	public boolean equivalent(CodeUnit s) {
 		if(s instanceof PhiExpr) {
 			PhiExpr phi = (PhiExpr) s;

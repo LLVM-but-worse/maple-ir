@@ -210,17 +210,7 @@ public class ConditionalJumpStmt extends Stmt {
 	public boolean canChangeFlow() {
 		return true;
 	}
-
-	@Override
-	public boolean canChangeLogic() {
-		return left.canChangeLogic() || right.canChangeLogic();
-	}
-
-	@Override
-	public boolean isAffectedBy(CodeUnit stmt) {
-		return left.isAffectedBy(stmt) || right.isAffectedBy(stmt);
-	}
-
+	
 	@Override
 	public ConditionalJumpStmt copy() {
 		return new ConditionalJumpStmt(left.copy(), right.copy(), trueSuccessor, type);
