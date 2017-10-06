@@ -883,16 +883,6 @@ public class BoissinotDestructor {
 		}
 
 		@Override
-		public boolean canChangeLogic() {
-			return false;
-		}
-
-		@Override
-		public boolean isAffectedBy(CodeUnit stmt) {
-			throw new UnsupportedOperationException();
-		}
-
-		@Override
 		public ParallelCopyVarStmt copy() {
 			return new ParallelCopyVarStmt(new ArrayList<>(pairs));
 		}
