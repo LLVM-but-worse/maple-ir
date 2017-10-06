@@ -268,16 +268,6 @@ public class ArithmeticExpr extends Expr {
 	}
 
 	@Override
-	public boolean canChangeLogic() {
-		return left.canChangeLogic() || right.canChangeLogic();
-	}
-
-	@Override
-	public boolean isAffectedBy(CodeUnit stmt) {
-		return left.isAffectedBy(stmt) || right.isAffectedBy(stmt);
-	}
-
-	@Override
 	public boolean equivalent(CodeUnit s) {
 		if(s instanceof ArithmeticExpr) {
 			ArithmeticExpr arith = (ArithmeticExpr) s;

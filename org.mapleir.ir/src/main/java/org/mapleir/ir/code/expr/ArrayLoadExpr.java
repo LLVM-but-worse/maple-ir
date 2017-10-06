@@ -107,16 +107,6 @@ public class ArrayLoadExpr extends Expr {
 	}
 
 	@Override
-	public boolean canChangeLogic() {
-		return array.canChangeLogic() || index.canChangeLogic();
-	}
-
-	@Override
-	public boolean isAffectedBy(CodeUnit stmt) {
-		return stmt.canChangeLogic() || array.isAffectedBy(stmt) || index.isAffectedBy(stmt);
-	}
-
-	@Override
 	public boolean equivalent(CodeUnit s) {
 		if(s instanceof ArrayLoadExpr) {
 			ArrayLoadExpr load = (ArrayLoadExpr) s;

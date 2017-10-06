@@ -156,26 +156,6 @@ public class DynamicInvocationExpr extends Expr {
 	}
 
 	@Override
-	public boolean canChangeLogic() {
-		return true;
-	}
-
-	@Override
-	public boolean isAffectedBy(CodeUnit stmt) {
-		if(stmt.canChangeLogic()) {
-			return true;
-		}
-		
-		for(Expr e : args) {
-			if(e.isAffectedBy(stmt)) {
-				return true;
-			}
-		}
-		
-		return false;
-	}
-
-	@Override
 	public boolean equivalent(CodeUnit s) {
 		if(s.getOpcode() == DYNAMIC_INVOKE) {
 			DynamicInvocationExpr o = (DynamicInvocationExpr) s;

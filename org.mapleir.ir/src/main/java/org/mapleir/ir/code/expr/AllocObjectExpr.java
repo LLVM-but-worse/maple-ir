@@ -57,16 +57,6 @@ public class AllocObjectExpr extends Expr {
 	}
 
 	@Override
-	public boolean canChangeLogic() {
-		return true;
-	}
-
-	@Override
-	public boolean isAffectedBy(CodeUnit stmt) {
-		return false;
-	}
-
-	@Override
 	public boolean equivalent(CodeUnit s) {
 		return s instanceof AllocObjectExpr && type.equals(((AllocObjectExpr) s).type);
 	}

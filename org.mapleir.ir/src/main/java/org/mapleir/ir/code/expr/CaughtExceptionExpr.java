@@ -61,16 +61,6 @@ public class CaughtExceptionExpr extends Expr {
 	}
 
 	@Override
-	public boolean canChangeLogic() {
-		return false;
-	}
-
-	@Override
-	public boolean isAffectedBy(CodeUnit stmt) {
-		return true;
-	}
-
-	@Override
 	public boolean equivalent(CodeUnit s) {
 		if(s.getOpcode() == CATCH) {
 			CaughtExceptionExpr e = (CaughtExceptionExpr) s;

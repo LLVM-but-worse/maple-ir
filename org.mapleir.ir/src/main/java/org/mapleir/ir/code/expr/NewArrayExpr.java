@@ -135,27 +135,7 @@ public class NewArrayExpr extends Expr {
 	public boolean canChangeFlow() {
 		return false;
 	}
-
-	@Override
-	public boolean canChangeLogic() {
-		for(Expr e : bounds) {
-			if(e.canChangeLogic()) {
-				return true;
-			}
-		}
-		return false;
-	}
-
-	@Override
-	public boolean isAffectedBy(CodeUnit stmt) {
-		for(Expr e : bounds) {
-			if(e.isAffectedBy(stmt)) {
-				return true;
-			}
-		}
-		return false;
-	}
-
+	
 	@Override
 	public boolean equivalent(CodeUnit s) {
 		if(s instanceof NewArrayExpr) {

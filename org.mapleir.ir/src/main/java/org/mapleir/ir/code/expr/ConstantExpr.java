@@ -236,16 +236,6 @@ public class ConstantExpr extends Expr {
 	}
 
 	@Override
-	public boolean canChangeLogic() {
-		return false;
-	}
-
-	@Override
-	public boolean isAffectedBy(CodeUnit stmt) {
-		return false;
-	}
-
-	@Override
 	public boolean equivalent(CodeUnit s) {
 		if(s instanceof ConstantExpr) {
 			ConstantExpr c = (ConstantExpr) s;

@@ -4,7 +4,6 @@ import org.mapleir.ir.TypeUtils;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.CodeUnit;
 import org.mapleir.ir.code.Expr;
-import org.mapleir.ir.code.stmt.copy.CopyVarStmt;
 import org.mapleir.ir.locals.Local;
 import org.mapleir.stdlib.util.TabbedStringWriter;
 import org.objectweb.asm.MethodVisitor;
@@ -68,22 +67,7 @@ public class VarExpr extends Expr {
 	public boolean canChangeFlow() {
 		return false;
 	}
-
-	@Override
-	public boolean canChangeLogic() {
-		return false;
-	}
-
-	@Override
-	public boolean isAffectedBy(CodeUnit stmt) {
-		if(stmt instanceof CopyVarStmt) {
-			if(((CopyVarStmt) stmt).getVariable().getLocal() == local) {
-				return true;
-			}
-		}
-		return false;
-	}
-
+	
 	@Override
 	public boolean equivalent(CodeUnit s) {
 		if(s instanceof VarExpr) {
