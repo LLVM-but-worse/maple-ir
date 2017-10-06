@@ -17,13 +17,51 @@ import org.objectweb.asm.tree.MethodNode;
 
 public class InvocationExpr extends Invocation {
 
-	private int callType;
+	public enum CallType {
+		STATIC, SPECIAL, VIRTUAL, INTERFACE, DYANMIC;
+
+		public static CallType resolveCallType(int asmOpcode) {
+			switch (asmOpcode) {
+				case Opcodes.INVOKEVIRTUAL:
+					return CallType.VIRTUAL;
+				case Opcodes.INVOKESPECIAL:
+					return CallType.SPECIAL;
+				case Opcodes.INVOKESTATIC:
+					return CallType.STATIC;
+				case Opcodes.INVOKEINTERFACE:
+					return CallType.INTERFACE;
+				case Opcodes.INVOKEDYNAMIC:
+					return DYANMIC;
+				default:
+					throw new IllegalArgumentException(String.valueOf(asmOpcode));
+			}
+		}
+		
+		public static int resolveASMOpcode(CallType t) {
+			switch (t) {
+				case STATIC:
+					return Opcodes.INVOKESTATIC;
+				case SPECIAL:
+					return Opcodes.INVOKESPECIAL;
+				case VIRTUAL:
+					return Opcodes.INVOKEVIRTUAL;
+				case INTERFACE:
+					return Opcodes.INVOKEINTERFACE;
+				case DYANMIC:
+					return Opcodes.INVOKEDYNAMIC;
+				default:
+					throw new IllegalArgumentException(t.toString());
+			}
+		}
+	}
+	
+	private CallType callType;
 	private Expr[] args;
 	private String owner;
 	private String name;
 	private String desc;
 
-	public InvocationExpr(int callType, Expr[] args, String owner, String name, String desc) {
+	public InvocationExpr(CallType callType, Expr[] args, String owner, String name, String desc) {
 		super(INVOKE);
 		
 		this.callType = callType;
@@ -37,11 +75,11 @@ public class InvocationExpr extends Invocation {
 		}
 	}
 
-	public int getCallType() {
+	public CallType getCallType() {
 		return callType;
 	}
 
-	public void setCallType(int callType) {
+	public void setCallType(CallType callType) {
 		this.callType = callType;
 	}
 
@@ -104,7 +142,7 @@ public class InvocationExpr extends Invocation {
 
 	@Override
 	public void toString(TabbedStringWriter printer) {
-		boolean requiresInstance = callType != Opcodes.INVOKESTATIC;
+		boolean requiresInstance = callType != CallType.STATIC;
 		if (requiresInstance) {
 			int memberAccessPriority = Precedence.MEMBER_ACCESS.ordinal();
 			Expr instanceExpression = args[0];
@@ -134,7 +172,7 @@ public class InvocationExpr extends Invocation {
 	@Override
 	public void toCode(MethodVisitor visitor, ControlFlowGraph cfg) {
 		Type[] argTypes = Type.getArgumentTypes(desc);
-		if (callType != Opcodes.INVOKESTATIC) {
+		if (callType != CallType.STATIC) {
 			Type[] bck = argTypes;
 			argTypes = new Type[bck.length + 1];
 			System.arraycopy(bck, 0, argTypes, 1, bck.length);
@@ -150,7 +188,7 @@ public class InvocationExpr extends Invocation {
 				}
 			}
 		}
-		visitor.visitMethodInsn(callType, owner, name, desc, callType == Opcodes.INVOKEINTERFACE);
+		visitor.visitMethodInsn(CallType.resolveASMOpcode(callType), owner, name, desc, callType == CallType.INTERFACE);
 	}
 
 	@Override
@@ -180,7 +218,7 @@ public class InvocationExpr extends Invocation {
 
 	@Override
 	public boolean isStatic() {
-		return callType == Opcodes.INVOKESTATIC;
+		return callType == CallType.STATIC;
 	}
 
 	@Override
@@ -194,7 +232,7 @@ public class InvocationExpr extends Invocation {
 
 	@Override
 	public Expr[] getParameterExprs() {
-		int i = (callType == Opcodes.INVOKESTATIC) ? 0 : 1;
+		int i = (callType == CallType.STATIC) ? 0 : 1;
 		Expr[] exprs = new Expr[args.length - i];
 		System.arraycopy(args, i, exprs, 0, exprs.length);
 		return exprs;
