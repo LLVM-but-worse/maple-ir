@@ -1,6 +1,13 @@
 package org.mapleir;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.HashSet;
@@ -28,6 +35,7 @@ import org.mapleir.ir.algorithms.BoissinotDestructor;
 import org.mapleir.ir.algorithms.ControlFlowGraphDumper;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.cfg.builder.ControlFlowGraphBuilder;
+import org.mapleir.stdlib.collections.ClassHelper;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.topdank.byteengineer.commons.data.JarInfo;
@@ -56,13 +64,14 @@ public class Boot {
 		 File f = locateRevFile(135);
 //		File f = new File("res/allatori6.1san.jar");
 		section("Preparing to run on " + f.getAbsolutePath());
-		SingleJarDownloader<ClassNode> dl = new SingleJarDownloader<>(new JarInfo(f));
-		dl.download();
-		String name = f.getName().substring(0, f.getName().length() - 4);
-		ApplicationClassSource app = new ApplicationClassSource(name, dl.getJarContents().getClassContents());
-		
-//		ApplicationClassSource app = new ApplicationClassSource("test", classes(TestClass.class));
-		app.addLibraries(rt(app, rtjar), new InstalledRuntimeClassSource(app));
+//		SingleJarDownloader<ClassNode> dl = new SingleJarDownloader<>(new JarInfo(f));
+//		dl.download();
+//		String name = f.getName().substring(0, f.getName().length() - 4);
+//		ApplicationClassSource app = new ApplicationClassSource(name, dl.getJarContents().getClassContents());
+//		
+		ApplicationClassSource app = new ApplicationClassSource("test", ClassHelper.parseClasses(DynamicExample.class));
+		app.addLibraries(new InstalledRuntimeClassSource(app));
+//		app.addLibraries(rt(app, rtjar), new InstalledRuntimeClassSource(app));
 		section("Initialising context.");
 		
 		AnalysisContext cxt = new BasicAnalysisContext.BasicContextBuilder()
@@ -73,6 +82,11 @@ public class Boot {
 				.build();
 		
 		section("Expanding callgraph and generating cfgs.");
+		
+		for(MethodNode mn : app.findClassNode(DynamicExample.class.getName().replace(".", "/")).methods) {
+			System.out.println(mn);
+			System.out.println(cxt.getIRCache().getFor(mn));
+		}
 		
 		IRCallTracer tracer = new IRCallTracer(cxt);
 		for(MethodNode m : cxt.getApplicationContext().getEntryPoints()) {
