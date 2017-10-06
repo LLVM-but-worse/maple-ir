@@ -73,16 +73,8 @@ public abstract class CodeUnit implements FastGraphVertex, Opcode {
 
 	public void setBlock(BasicBlock block) {
 		this.block = block;
-
-		//FIXME:
-		// i.e. removed, so invalidate this statement.
-		if(block == null) {
-			//			if(Test.temp) {
-			//				System.out.println("Statement.setBlock() " + this);
-			//			}
-			//			markDirty();
-			//			setParent(null);
-		}
+		
+		// TODO: may invalidate the statement if block is null
 
 		for(Expr s : children) {
 			if(s != null) {
@@ -323,46 +315,6 @@ public abstract class CodeUnit implements FastGraphVertex, Opcode {
 		return ptr;
 	}
 
-	// TODO:
-	//	protected Set<CodeUnit> _enumerate() {
-	//		Set<Statement> set = new HashSet<>();
-	//		set.add(this);
-	//		
-	//		if(opcode == Opcode.PHI_STORE) {
-	//			CopyPhiStmt phi = (CopyPhiStmt) this;
-	//			for(Expression e : phi.getExpression().getArguments().values()) {
-	//				set.addAll(e._enumerate());
-	//			}
-	//		} else {
-	//			for(Statement c : children) {
-	//				if(c != null) {
-	//					set.addAll(c._enumerate());
-	//				}
-	//			}
-	//		}
-	//		
-	//		return set;
-	//	}
-	//	
-	//	public Iterable<Statement> enumerate() {
-	//		return _enumerate();
-	//	}
-	//	
-	//	protected void dfsStmt(List<Statement> list) {
-	//		for(Statement c : children) {
-	//			if(c != null) {
-	//				c.dfsStmt(list);
-	//			}
-	//		}
-	//		list.add(this);
-	//	}
-	//	
-	//	public List<Statement> execEnumerate() {
-	//		List<Statement> list = new ArrayList<>();
-	//		dfsStmt(list);
-	//		return list;
-	//	}
-
 	public abstract void onChildUpdated(int ptr);
 
 	public abstract void toString(TabbedStringWriter printer);
@@ -427,10 +379,6 @@ public abstract class CodeUnit implements FastGraphVertex, Opcode {
 		dfsStmt(list);
 		return list;
 	}
-
-	//	public Iterable<Statement> enumerate() {
-	//		return _enumerate();
-	//	}
 
 	@Override
 	public String toString() {
