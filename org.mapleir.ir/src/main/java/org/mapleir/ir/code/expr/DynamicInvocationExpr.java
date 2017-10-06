@@ -117,6 +117,7 @@ public class DynamicInvocationExpr extends Expr {
 		printer.print(provider.getOwner() + "." + provider.getName() + " (");
 		for(int i=0; i < providerArgs.length; i++) {
 			Object o = providerArgs[i];
+			System.out.println(o + " " + o.getClass());
 			printer.print(o.toString());
 			if(i != (providerArgs.length -1)) {
 				printer.print(", ");
