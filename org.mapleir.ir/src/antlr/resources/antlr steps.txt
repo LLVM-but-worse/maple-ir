@@ -1,0 +1,5 @@
+java -cp antlr.jar org.antlr.v4.Tool -package mypackage GYOO.g4
+java -Xlint:deprecation -cp ".;antlr.jar" *.java -d mypackage
+
+from under mypackage:
+java -cp ".;..antlr.jar" mypackage.Main "..sample.txt"
