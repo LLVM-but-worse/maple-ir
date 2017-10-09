@@ -9,6 +9,32 @@
   
   <name>ir</name>
   <artifactId>ir</artifactId>
+  
+  <build>
+  	<plugins>
+  	  <plugin>
+  	  	<groupId>org.antlr</groupId>
+  	  	<artifactId>antlr4-maven-plugin</artifactId>
+  	  	<version>4.7</version>
+  	  	<configuration>
+  	  	  <arguments>
+  	  	    <argument>-package</argument>
+  	  	    <argument>org.mapleir.ir.antlr</argument>
+  	  	  </arguments>
+  	  	  <outputDirectory>${project.build.directory}/generated-sources/antlr4/org/mapleir/ir/antlr</outputDirectory>
+  	  	</configuration>
+  	  	<executions>
+  	  	  <execution>
+  	  	  	<id>antlr</id>
+  	  	  	<goals>
+  	  	  	  <goal>antlr4</goal>
+  	  	  	</goals>
+  	  	  </execution>
+  	  	</executions>
+  	  </plugin>
+  	</plugins>
+  </build>
+  
   <dependencies>
   	<dependency>
   		<groupId>org.mapleir.stdlib</groupId>
@@ -29,6 +55,11 @@
   		<groupId>org.mapleir.app-services</groupId>
   		<artifactId>app-services</artifactId>
   		<version>0.0.1-ALPHA</version>
+  	</dependency>
+  	<dependency>
+  		<groupId>org.antlr</groupId>
+  		<artifactId>antlr4</artifactId>
+  		<version>4.7</version>
   	</dependency>
   </dependencies>
   <groupId>org.mapleir.ir</groupId>
