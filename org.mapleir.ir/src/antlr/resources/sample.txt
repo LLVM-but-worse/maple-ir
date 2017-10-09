@@ -1,9 +1,9 @@
 begin
-    let a be 5
+    let a_variable_12_234 = 5.1
     let b be 10
     add 3 to b
-    add b to a
-    add a to b
+    add b to a_variable_12_234
+    add a_variable_12_234 to b
     print b
-    print 3
+    print 2L
 end

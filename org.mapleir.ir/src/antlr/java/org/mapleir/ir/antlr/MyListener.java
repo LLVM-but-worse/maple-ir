@@ -9,7 +9,7 @@ import org.mapleir.ir.antlr.GYOOParser.PrintContext;
 
 public class MyListener extends GYOOBaseListener {
 
-    private Map<String, Integer> variables;
+    private Map<String, Float> variables;
     
     public MyListener() {
         variables = new HashMap<>();
@@ -21,17 +21,17 @@ public class MyListener extends GYOOBaseListener {
         // parsing the assign statement
         
         // Get variable name
-        String variableName = ctx.ID(0).getText();
+        String variableName = ctx.Identifier(0).getText();
         
         // Get value from variable or number
-        String value = ctx.ID().size() > 1 ? ctx.ID(1).getText() 
-                : ctx.NUMBER().getText();
+        String value = ctx.Identifier().size() > 1 ? ctx.Identifier(1).getText() 
+                : ctx.number().getText();
         
         // Add variable to map		
-        if(ctx.ID().size() > 1)
+        if(ctx.Identifier().size() > 1)
             variables.put(variableName, variables.get(value));
         else
-            variables.put(variableName, Integer.parseInt(value));
+            variables.put(variableName, Float.parseFloat(value));
     }
     
     @Override
@@ -39,10 +39,10 @@ public class MyListener extends GYOOBaseListener {
         // This method is called when the parser has finished
         // parsing the add statement
         
-        String variableName = ctx.ID().size() > 1 ? ctx.ID(1).getText() 
-                : ctx.ID(0).getText();
-        int value = ctx.ID().size() > 1 ? variables.get(ctx.ID(0).getText()) 
-                : Integer.parseInt(ctx.NUMBER().getText());
+        String variableName = ctx.Identifier().size() > 1 ? ctx.Identifier(1).getText() 
+                : ctx.Identifier(0).getText();
+        float value = ctx.Identifier().size() > 1 ? variables.get(ctx.Identifier(0).getText()) 
+                : Float.parseFloat(ctx.number().getText());
         
         variables.put(variableName, variables.get(variableName) + value);
     }
@@ -52,8 +52,8 @@ public class MyListener extends GYOOBaseListener {
         // This method is called when the parser has finished
         // parsing the print statement
         
-        String output = ctx.ID() == null ? ctx.NUMBER().getText() 
-                : variables.get(ctx.ID().getText()).toString();
+        String output = ctx.Identifier() == null ? ctx.number().getText() 
+                : variables.get(ctx.Identifier().getText()).toString();
         System.out.println(output);
     }
 }
