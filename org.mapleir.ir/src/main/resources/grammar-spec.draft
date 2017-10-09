@@ -1,0 +1,25 @@
+Expression types:
+  AllocObject: new K
+  InitialisedObject: new K(), new J(p1,..,pn)
+  InvocationExpr: obj.vmethod(p1, ..., pn)
+                  smethod(p0, ..., pn)
+  Arithmetic: x (OP) y
+     OPs: +, -, *, /, %, <<, >>, >>>, |, &, ^
+  ArrayLength: (array_obj).length
+  ArrayLoad: x = a[i]
+  Cast: (T) o
+  CaughtException: catch() but should only appear in a copy statement
+  Comparison: _compare_(l, r, type)
+  Constant: numeric types, Strings, chars
+  FieldLoad: x.f
+  Instanceof: x instanceof T
+  Negation: -x
+  NewArray: new T[b1]...[bi]...[bn]
+  PhiException: No impl yet
+  PhiExpr: '\u0278'{B0:L0, ... , Bn:Ln}
+  
+Stmt types:
+  
+Array notation is the same as java:
+ x = a[i]
+ b[j] = y
