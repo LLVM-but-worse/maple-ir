@@ -16,6 +16,8 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.jar.JarOutputStream;
 
+import org.apache.log4j.BasicConfigurator;
+import org.apache.log4j.Logger;
 import org.mapleir.app.client.SimpleApplicationContext;
 import org.mapleir.app.service.ApplicationClassSource;
 import org.mapleir.app.service.CompleteResolvingJarDumper;
@@ -43,6 +45,8 @@ import org.topdank.byteio.in.SingleJarDownloader;
 
 public class Boot {
 	
+	private static final Logger LOGGER = Logger.getLogger(Boot.class);
+	
 	public static boolean logging = false;
 	private static long timer;
 	private static Deque<String> sections;
@@ -56,6 +60,7 @@ public class Boot {
 	}
 	
 	public static void main(String[] args) throws Exception {
+		
 		sections = new LinkedList<>();
 		logging = true;
 		
@@ -64,14 +69,14 @@ public class Boot {
 		 File f = locateRevFile(135);
 //		File f = new File("res/allatori6.1san.jar");
 		section("Preparing to run on " + f.getAbsolutePath());
-//		SingleJarDownloader<ClassNode> dl = new SingleJarDownloader<>(new JarInfo(f));
-//		dl.download();
-//		String name = f.getName().substring(0, f.getName().length() - 4);
-//		ApplicationClassSource app = new ApplicationClassSource(name, dl.getJarContents().getClassContents());
+		SingleJarDownloader<ClassNode> dl = new SingleJarDownloader<>(new JarInfo(f));
+		dl.download();
+		String name = f.getName().substring(0, f.getName().length() - 4);
+		ApplicationClassSource app = new ApplicationClassSource(name, dl.getJarContents().getClassContents());
 //		
-		ApplicationClassSource app = new ApplicationClassSource("test", ClassHelper.parseClasses(DynamicExample.class));
-		app.addLibraries(new InstalledRuntimeClassSource(app));
-//		app.addLibraries(rt(app, rtjar), new InstalledRuntimeClassSource(app));
+//		ApplicationClassSource app = new ApplicationClassSource("test", ClassHelper.parseClasses(DynamicExample.class));
+//		app.addLibraries(new InstalledRuntimeClassSource(app));
+		app.addLibraries(rt(app, rtjar), new InstalledRuntimeClassSource(app));
 		section("Initialising context.");
 		
 		AnalysisContext cxt = new BasicAnalysisContext.BasicContextBuilder()
@@ -82,16 +87,16 @@ public class Boot {
 				.build();
 		
 		section("Expanding callgraph and generating cfgs.");
-		
-		for(MethodNode mn : app.findClassNode(DynamicExample.class.getName().replace(".", "/")).methods) {
-			System.out.println(mn);
-			System.out.println(cxt.getIRCache().getFor(mn));
-		}
-		
+				
 		IRCallTracer tracer = new IRCallTracer(cxt);
 		for(MethodNode m : cxt.getApplicationContext().getEntryPoints()) {
 //			System.out.println(m);
 			tracer.trace(m);
+			
+			if(m.instructions.size() > 500 && m.instructions.size() < 100) {
+				System.out.println(m);
+				System.out.println(cxt.getIRCache().get(m));
+			}
 		}
 		
 		section0("...generated " + cxt.getIRCache().size() + " cfgs in %fs.%n", "Preparing to transform.");
@@ -151,7 +156,7 @@ public class Boot {
 
 							if(parts[0].equals("Main-Class")) {
 								String newMain = renamer.getRemappedName(parts[1].replace(".", "/")).replace("/", ".");
-								System.out.printf("%s -> %s%n", parts[1], newMain);
+								LOGGER.info(String.format("%s -> %s%n", parts[1], newMain));
 								parts[1] = newMain;
 							}
 
@@ -227,13 +232,13 @@ public class Boot {
 		if(sections.isEmpty()) {
 			lap();
 			if(!quiet)
-				System.out.println(sectionText);
+				LOGGER.info(sectionText);
 		} else {
 			/* remove last section. */
 			sections.pop();
 			if(!quiet) {
-				System.out.printf(endText, lap());
-				System.out.println("\n" + sectionText);
+				LOGGER.info(String.format(endText, lap()));
+				LOGGER.info(sectionText);
 			} else {
 				lap();
 			}
@@ -246,12 +251,12 @@ public class Boot {
 	public static void section0(String endText, String sectionText) {
 		if(sections.isEmpty()) {
 			lap();
-			System.out.println(sectionText);
+			LOGGER.info(sectionText);
 		} else {
 			/* remove last section. */
 			sections.pop();
-			System.out.printf(endText, lap());
-			System.out.println("\n" + sectionText);
+			LOGGER.info(String.format(endText, lap()));
+			LOGGER.info(sectionText);
 		}
 
 		/* push the new one. */
@@ -259,6 +264,6 @@ public class Boot {
 	}
 	
 	private static void section(String text) {
-		section0("...took %fs.%n", text);
+		section0("...took %fs.", text);
 	}
 }
