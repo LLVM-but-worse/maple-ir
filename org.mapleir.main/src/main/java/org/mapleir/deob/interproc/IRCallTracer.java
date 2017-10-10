@@ -2,6 +2,7 @@ package org.mapleir.deob.interproc;
 
 import java.util.Set;
 
+import org.apache.log4j.Logger;
 import org.mapleir.context.AnalysisContext;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.Expr;
@@ -14,8 +15,10 @@ import org.objectweb.asm.tree.MethodNode;
  */
 public class IRCallTracer extends CallTracer {
 
+	private static final Logger LOGGER = Logger.getLogger(IRCallTracer.class);
+
 	protected final AnalysisContext context;
-	
+
 	public IRCallTracer(AnalysisContext context) {
 		super(context.getApplication(), context.getInvocationResolver());
 		this.context = context;
@@ -24,39 +27,32 @@ public class IRCallTracer extends CallTracer {
 	@Override
 	protected void traceImpl(MethodNode m) {
 		ControlFlowGraph cfg = context.getIRCache().getFor(m);
-		if(cfg == null) {
-			throw new UnsupportedOperationException("No cfg for " + m + " [" + m.instructions.size() + "]");
+		if (cfg == null) {
+			throw new UnsupportedOperationException(
+					String.format("Cannot trace, no cfg for %s (%d)", m, m.instructions.size()));
 		}
-		
-		for(Stmt stmt : cfg.stmts()) {
-			for(Expr c : stmt.enumerateOnlyChildren()) {
-				if(c instanceof Invocation) {
+
+		for (Stmt stmt : cfg.stmts()) {
+			for (Expr c : stmt.enumerateOnlyChildren()) {
+				if (c instanceof Invocation) {
 					traceInvocation(m, (Invocation) c);
 				}
 			}
 		}
 	}
-	
+
 	private void traceInvocation(MethodNode m, Invocation invoke) {
 		Set<MethodNode> targets = invoke.resolveTargets(resolver);
-		
-		if(targets.size() != 0) {
-			for(MethodNode vtarg : targets) {
+
+		if (targets.size() != 0) {
+			for (MethodNode vtarg : targets) {
 				trace(vtarg);
 				processedInvocation(m, vtarg, invoke);
 			}
 		} else {
-			String owner = invoke.getOwner(), name = invoke.getName(), desc = invoke.getDesc();
-			//FIXME:better print
-			if(owner.equals("<init>")) {
-				System.err.printf("(warn): can't resolve constructor: %s.<init> %s.%n", owner, desc);
-			} else if(!invoke.isStatic()) {
-				if(!owner.contains("java")) {
-					System.err.printf("(warn): can't resolve vcall: %s.%s %s.%n", owner, name, desc);
-					System.err.println("  call from " + m);
-					System.err.println(context.getApplication().findClassNode(owner).methods);
-				}
-			}
+			LOGGER.error(String.format("can't resolve call to %s.%s %s%s", invoke.getOwner(),
+					invoke.getName(), invoke.getDesc(), invoke.isStatic() ? "(static)" : ""));
+			LOGGER.error(String.format("   call from %s", m));
 		}
 	}
 }
