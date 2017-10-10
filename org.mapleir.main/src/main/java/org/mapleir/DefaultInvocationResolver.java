@@ -4,6 +4,7 @@ import java.lang.reflect.Modifier;
 import java.util.*;
 import java.util.Map.Entry;
 
+import org.apache.log4j.Logger;
 import org.mapleir.app.service.ApplicationClassSource;
 import org.mapleir.app.service.InvocationResolver;
 import org.mapleir.stdlib.collections.map.NullPermeableHashMap;
@@ -14,6 +15,8 @@ import org.objectweb.asm.tree.FieldNode;
 import org.objectweb.asm.tree.MethodNode;
 
 public class DefaultInvocationResolver implements InvocationResolver {
+	
+	private static final Logger LOGGER = Logger.getLogger(DefaultInvocationResolver.class);
 	
 	/* trick for no IDE warning */
 	private static int __debug_level() { return 0; }
@@ -35,7 +38,7 @@ public class DefaultInvocationResolver implements InvocationResolver {
 		
 		computeVTables();
 		
-		System.out.println("build vtables for " + concreteVTables.size() + " classes.");
+		LOGGER.info(String.format("built vtables for %s classes", concreteVTables.size()));
 	}
 	
 	protected boolean hasVisited(ClassNode c) {
@@ -124,13 +127,12 @@ public class DefaultInvocationResolver implements InvocationResolver {
 		}
 		
 		if(debugLevel >= 2) {
-			System.out.println();
-			System.out.println("Class: " + c);
-			System.out.println("  super: " + c.superName);
-			System.out.println("  interfaces: " + c.interfaces.toString());
-			System.out.println(" implSet: ");
+			LOGGER.debug("Class: " + c);
+			LOGGER.debug("  super: " + c.superName);
+			LOGGER.debug("  interfaces: " + c.interfaces.toString());
+			LOGGER.debug(" implSet: ");
 			print(thisMethodSet);
-			System.out.println(" absSet: " );
+			LOGGER.debug(" absSet: " );
 			print(thisAbstractSet);
 		}
 		
@@ -198,21 +200,21 @@ public class DefaultInvocationResolver implements InvocationResolver {
 			abstractVTables.put(c, globalAVT);
 			
 			if(debugLevel >= 3) {
-				System.out.println(" globalCVT: ");
+				LOGGER.debug(" globalCVT: ");
 				print(globalCVT);
-				System.out.println(" globalAVT: ");
+				LOGGER.debug(" globalAVT: ");
 				print(globalAVT);
 			}
 
 			NullPermeableHashMap<Selector, Set<MethodNode>> mergeMap = new NullPermeableHashMap<>(new SetCreator<>());
 			
 			if(debugLevel >= 2) {
-				System.out.println(" process interfaces:");
+				LOGGER.debug(" process interfaces:");
 			}
 			
 			for(String i : c.interfaces) {
 				if(debugLevel >= 2) {
-					System.out.println("  " + i);
+					LOGGER.debug("  " + i);
 				}
 				ClassNode interfaceKlass = app.findClassNode(i);
 				/* An abstract interface method cannot kill
@@ -240,7 +242,7 @@ public class DefaultInvocationResolver implements InvocationResolver {
 			}
 
 			if(debugLevel >= 3) {
-				System.out.println("   mergeMap:");
+				LOGGER.debug("   mergeMap:");
 				printMap(mergeMap);
 			}
 			
@@ -254,10 +256,10 @@ public class DefaultInvocationResolver implements InvocationResolver {
 					/* conflict, C must explicitly declare m. */
 					
 					if(debugLevel >= 2) {
-						System.out.println("    conflicts: " + conflictingMethods.size());
-						System.out.println("      " + selector);
+						LOGGER.debug("    conflicts: " + conflictingMethods.size());
+						LOGGER.debug("      " + selector);
 						for(MethodNode m : conflictingMethods) {
-							System.out.println("      ^" + m);
+							LOGGER.debug("      ^" + m);
 						}
 					}
 					
@@ -272,13 +274,13 @@ public class DefaultInvocationResolver implements InvocationResolver {
 						resolve = globalCVT.get(selector);
 						
 						if(debugLevel >= 2) {
-							System.out.println("    (1)resolved to " + resolve);
+							LOGGER.debug("    (1)resolved to " + resolve);
 						}
 					} else if(thisAbstractSet.containsKey(selector)) {
 						resolve = thisAbstractSet.get(selector);
 						
 						if(debugLevel >= 2) {
-							System.out.println("    (2)resolved to " + resolve);
+							LOGGER.debug("    (2)resolved to " + resolve);
 						}
 					} else {
 						/* here is where it gets tricky. */
@@ -323,7 +325,7 @@ public class DefaultInvocationResolver implements InvocationResolver {
 							
 							
 							if(debugLevel >= 2) {
-								System.out.println("    (3)resolved to " + resolve);
+								LOGGER.debug("    (3)resolved to " + resolve);
 							}
 						} else {
 							/* if there are multiple maximally specific declarations of
@@ -391,7 +393,7 @@ public class DefaultInvocationResolver implements InvocationResolver {
 					resolve = new MethodNode(c, Opcodes.ACC_PUBLIC | Opcodes.ACC_ABSTRACT, selector.name, selector.desc, null, getExceptionClasses(conflictingMethods));
 					c.methods.add(resolve);
 					if(debugLevel >= 2) {
-						System.out.println("  generated miranda " + resolve);
+						LOGGER.debug("  generated miranda " + resolve);
 					}
 				}
 				
@@ -406,9 +408,9 @@ public class DefaultInvocationResolver implements InvocationResolver {
 //			validateTables();
 			
 			if(debugLevel >= 2) {
-				System.out.println(" cvtable: ");
+				LOGGER.debug(" cvtable: ");
 				print(concreteVTables.get(c));
-				System.out.println(" avtable: " );
+				LOGGER.debug(" avtable: " );
 				print(abstractVTables.get(c));
 			}
 		}
@@ -536,13 +538,13 @@ public class DefaultInvocationResolver implements InvocationResolver {
 	}
 	
 	public MethodNode resolve(ClassNode receiver, String name, String desc, boolean strict) {
-		if(strict && receiver.isAbstract()) {
-			throw new UnsupportedOperationException();
-		}
+		/*if(strict && receiver.isAbstract()) {
+			throw new UnsupportedOperationException(String.format("Tried to call method on abstract receiver: %s.%s %s", receiver, name, desc));
+		}*/
 		Selector selector = new Selector(name, desc);
 		
 		if(!hasVisited(receiver)) {
-			throw new UnsupportedOperationException();
+			throw new UnsupportedOperationException(String.format("No table for %s", receiver));
 		} else {
 			Map<Selector, MethodNode> cvtable = concreteVTables.get(receiver);
 			Map<Selector, MethodNode> avtable = abstractVTables.get(receiver);
@@ -601,7 +603,7 @@ public class DefaultInvocationResolver implements InvocationResolver {
 		} else if(!mn.owner.name.equals(owner)) {
 			throw new UnsupportedOperationException(mn.toString());
 		} else {
-			return null;
+			return mn;
 		}
 	}
 
@@ -659,7 +661,7 @@ public class DefaultInvocationResolver implements InvocationResolver {
 				}
 				
 				if(lvlSites.size() > 1) {
-					System.out.printf("(warn) resolved %s.%s %s to %s.%n", owner, name, desc, lvlSites);
+					LOGGER.info(String.format("(warn) resolved %s.%s %s to %s", owner, name, desc, lvlSites));
 				}
 				
 				if(lvlSites.size() > 0) {
@@ -739,15 +741,15 @@ public class DefaultInvocationResolver implements InvocationResolver {
 	
 	protected void print(Map<Selector, MethodNode> m) {
 		for(Entry<Selector, MethodNode> e : m.entrySet()) {
-			System.out.println("   " + e.getValue());
+			LOGGER.debug("   " + e.getValue());
 		}
 	}
 	
 	protected void printMap(Map<Selector, Set<MethodNode>> m) {
 		for (Entry<Selector, Set<MethodNode>> e : m.entrySet()) {
-			System.out.println("     " + e.getKey());
+			LOGGER.debug("     " + e.getKey());
 			for (MethodNode n : e.getValue()) {
-				System.out.println("       " + n);
+				LOGGER.debug("       " + n);
 			}
 		}
 	}
