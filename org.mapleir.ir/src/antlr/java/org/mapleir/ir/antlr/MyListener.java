@@ -3,11 +3,11 @@ package org.mapleir.ir.antlr;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.mapleir.ir.antlr.GYOOParser.AddContext;
-import org.mapleir.ir.antlr.GYOOParser.AssignContext;
-import org.mapleir.ir.antlr.GYOOParser.PrintContext;
+import org.mapleir.ir.antlr.mapleirParser.AddContext;
+import org.mapleir.ir.antlr.mapleirParser.AssignContext;
+import org.mapleir.ir.antlr.mapleirParser.PrintContext;
 
-public class MyListener extends GYOOBaseListener {
+public class MyListener extends mapleirBaseListener {
 
     private Map<String, Float> variables;
     
@@ -25,7 +25,7 @@ public class MyListener extends GYOOBaseListener {
         
         // Get value from variable or number
         String value = ctx.Identifier().size() > 1 ? ctx.Identifier(1).getText() 
-                : ctx.number().getText();
+                : ctx.Number().getText();
         
         // Add variable to map		
         if(ctx.Identifier().size() > 1)
@@ -42,7 +42,7 @@ public class MyListener extends GYOOBaseListener {
         String variableName = ctx.Identifier().size() > 1 ? ctx.Identifier(1).getText() 
                 : ctx.Identifier(0).getText();
         float value = ctx.Identifier().size() > 1 ? variables.get(ctx.Identifier(0).getText()) 
-                : Float.parseFloat(ctx.number().getText());
+                : Float.parseFloat(ctx.Number().getText());
         
         variables.put(variableName, variables.get(variableName) + value);
     }
@@ -52,7 +52,7 @@ public class MyListener extends GYOOBaseListener {
         // This method is called when the parser has finished
         // parsing the print statement
         
-        String output = ctx.Identifier() == null ? ctx.number().getText() 
+        String output = ctx.Identifier() == null ? ctx.Number().getText() 
                 : variables.get(ctx.Identifier().getText()).toString();
         System.out.println(output);
     }
