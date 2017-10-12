@@ -1,9 +1,26 @@
-begin
-    let a_variable_12_234 = 5.1
-    let b be 10
-    add 3 to b
-    add b to a_variable_12_234
-    add a_variable_12_234 to b
-    print b
-    print 2L
-end
+//.set compilerver 1.8
+
+.begin class B
+   .begin method (I)Ljava/lang/String; get
+     .code
+       A:
+		.consume java/lang/System.exit(1)
+		lvar3_0 = lvar0_0.invoke ("str")
+		
+		lvar2_2 = ɸ{A:lvar2_0, B:lvar2_1}
+		
+	   B:
+          lvar2_0 = .new I[5]
+          lvar3_0 = .new java/lang/String("xd", 5, 'c', ".new",
+          	.new I[1][2]
+          )
+       C:
+          .if (lvar0_0.var != null)
+          	.goto C
+          lvar0_0.var = "hey"
+       D:
+          .return lvar0_0
+     .end
+   .end
+.end
+

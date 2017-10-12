@@ -1,17 +1,243 @@
 grammar mapleir;
-program   : 'begin' statement+ 'end';
-          
-statement : assign | add | print ;
 
-assign    : 'let' Identifier ('='|'be') (Number | Identifier) ;
-print     : 'print' (Number | Identifier) ;
-add       : 'add' (Number | Identifier) 'to' Identifier ;
+compilationUnit
+	:	setcmd* class_decl EOF
+	;
 
-Number
+setcmd
+	:	'.set' Identifier cmdvaluelist
+	;
+	
+cmdvalue
+	:	(LITERAL|Identifier)
+	;
+
+cmdvaluelist
+	:	cmdvalue (COMMA cmdvalue)*?
+	;
+
+class_decl
+	: BEGINCLASS fqcn
+	setcmd*
+	(decls)*
+	END
+	;
+
+BEGINCLASS
+	:	'.begin class'
+	;
+	
+END
+	:	'.end'
+	;
+
+decls
+	:
+	(class_decl
+	|	member_decl
+	)
+	;
+
+member_decl
+	:	field_decl
+	|	method_decl
+	;
+
+modifiers
+	:	MODIFIER*
+	;
+
+field_decl
+	:	'.field' modifiers? desc Identifier (ASSIGN constant)?
+	;
+
+method_decl
+	:	'.method' methoddesc Identifier
+	|	'.begin method' methoddesc Identifier
+	setcmd*
+	codebody?
+	END
+	;
+
+// this needs to be parsed in the compiler
+desc
+	:	'['*? fqcn ';'?
+	;
+
+// this needs to be parsed in the compiler
+methoddesc
+	// want to match the whole descriptor so we can parse it later
+	// as antlr is too crap to handle this nicely. therefore pretty
+	// much everything is optional until later.
+	:	LPAREN (desc)* RPAREN (~WS|(desc))
+	;
+	
+fqcn
+	// DIV? because they might end with / and we need it to match
+	// catch class names with dots instead of slashes, handle later
+	:	(Identifier) ((DIV|DOT) Identifier)* DIV?
+	;
+
+codebody
+	:	BEGINCODE block+ END
+	;
+
+BEGINCODE
+	:	'.code'
+	;
+	
+block
+	:	Identifier ':' statement*
+	;
+
+phiPair
+	:	Identifier COLON Identifier
+	;
+	
+statement
+	/* Copy statement */
+	:	Identifier ASSIGN expr
+	|	Identifier ASSIGN PHI LBRACE (phiPair (COMMA phiPair)*)? RBRACE
+	/* If statement: .if (x OP Y) .goto B */
+	|	IF LPAREN expr (LE|GE|LT|GT|EQ|NOTEQ) expr RPAREN GOTO Identifier
+	/* Unconditional jump: .goto B*/
+	|	GOTO Identifier
+	/* Pop/consume statement: .consume expr */
+	|	CONSUME expr
+	/* Return statement: .return expr*/
+	|   RETURN expr
+
+	/* virtual/static field store statements:
+	 *	expr1.f = expr2
+	 *	Klass.f = expr */
+	|
+		(	expr DOT Identifier ASSIGN expr
+		|	fqcn DOT Identifier ASSIGN expr
+		)
+
+	/* Throw statement: .throw expr*/
+	|	THROW expr
+	/* Monitor state statements:
+			.monitor_enter expr
+			.monitor_exit expr */
+	|	MONENTER LPAREN expr
+	|	MONEXIT  expr
+	
+	/* Array store statement:
+	 *	expr1[expr2] = expr3 */
+	|	expr LBRACK expr RBRACK ASSIGN expr
+	
+	/* Switch statement: .switch ((expr))
+	 *					 	.case expr: goto B
+	 *		 				.default: goto B
+	 *					 .end
+	 */
+	|	SWITCH LPAREN expr RPAREN switchCaseStatement* END
+	;
+
+switchCaseStatement
+	:	CASE expr COLON GOTO Identifier
+	|	DEFAULT COLON GOTO Identifier
+	;
+
+constant
+	:	LITERAL
+	;
+
+exprlist
+	:	expr (COMMA expr)*
+	;
+
+expr
+	:	primary
+	/* Field get/ array length*/
+	|	expr DOT Identifier
+	/* Array get */
+	|	expr LBRACK expr RBRACK
+	/* alloc/new obj/array*/
+	|	NEW creator
+	|	CMP arguments
+	// |	LPAREN fqcn RPAREN expr
+	/* invokes */
+	|
+	(	Identifier DOT Identifier arguments
+	|	fqcn DOT Identifier arguments
+	)
+	|	TILDE expr
+	|	(ADD|SUB) expr // neg/pos
+	|	expr (MUL|DIV|MOD|ADD|SUB) expr
+	|	expr (LT LT |GT GT GT| GT GT) expr
+	|	expr (BITAND|CARET|BITOR) expr
+	|	expr INSTANCEOF fqcn
+	|	CATCH
+	;
+	
+arguments
+	:	LPAREN exprlist? RPAREN
+	;
+
+creator
+	:	fqcn
+	|	fqcn (arguments | arrayCreator)
+	|	
+	;
+
+arrayCreator
+	:	LBRACK
+	( expr RBRACK (LBRACK expr RBRACK)* (LBRACK RBRACK)*
+	)
+	;
+	
+primary
+	: LPAREN expr RPAREN
+	| LITERAL
+	| Identifier
+	;
+
+CONSUME :	'.consume' ;
+IF 		:	'.if' ;
+GOTO 	:	'.goto' ;
+SWITCH	:	'.switch' ;
+CASE	:	'.case' ;
+DEFAULT	:	'.default' ;
+RETURN	:	'.return' ;
+THROW	:	'.throw' ;
+MONENTER:	'.monitor_enter' ;
+MONEXIT :	'.monitor_exit' ;
+
+NEW		:	'.new' ;
+INSTANCEOF:	'.instanceof' ;
+CATCH	:	'.catch' ;
+CMP		:	'.compare' ;
+PHI		:	'\u0278' ;
+
+LITERAL
     :   IntegerLiteral
     |   FloatingPointLiteral
-    ;
-    
+    |   CharacterLiteral
+    |   StringLiteral
+    |   BooleanLiteral
+    |   'null'
+	;
+
+MODIFIER
+	:   CLASSMODIFIER
+	|   'native'
+	|   'synchronized'
+	|   'transient'
+	|   'volatile'
+	;
+
+CLASSMODIFIER
+	:	'public'
+	|	'protected'
+	|	'private'
+	|	'abstract'
+	|	'static'
+	|	'final'
+	|	'strictfp'
+	;
+
     
 // §3.10.1 Integer Literals
 
@@ -291,10 +517,10 @@ LT : '<';
 BANG : '!';
 TILDE : '~';
 COLON : ':';
-EQUAL : '==';
+EQ : '==';
 LE : '<=';
 GE : '>=';
-NOTEQUAL : '!=';
+NOTEQ : '!=';
 ADD : '+';
 SUB : '-';
 MUL : '*';
@@ -305,11 +531,11 @@ CARET : '^';
 MOD : '%';
 
 // Identifers after keywords and numbers
-
+	 
 Identifier
-    :   JavaLetter JavaLetterOrDigit*
+    :  JavaLetter JavaLetterOrDigit*
     ;
-
+	
 fragment
 JavaLetter
     :   [a-zA-Z$_] // these are the "java letters" below 0x7F
@@ -326,7 +552,22 @@ JavaLetterOrDigit
         ~[\u0000-\u007F\uD800-\uDBFF]
     |   // covers UTF-16 surrogate pairs encodings for U+10000 to U+10FFFF
         [\uD800-\uDBFF] [\uDC00-\uDFFF]
-;
+	;
 
+PRIMITIVES
+	:	[IBSCJFDZ]
+	;
+	
+VOID
+	:	'V'
+	;
 
 WS     : [ \n\t\r]+ -> skip;
+
+COMMENT
+    :   '/*' .*? '*/' -> channel(HIDDEN)
+    ;
+
+LINE_COMMENT
+    :   '//' ~[\r\n]* -> channel(HIDDEN)
+	;
