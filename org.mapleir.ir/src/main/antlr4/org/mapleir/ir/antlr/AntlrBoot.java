@@ -35,7 +35,7 @@ public class AntlrBoot {
 			mapleirLexer lexer = new mapleirLexer(input);
 			CommonTokenStream tokens = new CommonTokenStream(lexer);
 			mapleirParser parser = new mapleirParser(tokens);
-			parser.addParseListener(new MyListener());
+			parser.addParseListener(new MapleIRCompiler());
 
 			// Start parsing
 //			parser.program();
@@ -46,7 +46,7 @@ public class AntlrBoot {
 	        CompilationUnitContext cu = parser.compilationUnit();
 	        
 	        for(Token t : tokens.getTokens()) {
-	        	System.out.println(t);
+//	        	System.out.println(t);
 	        }
 	        
 	        TreeViewer viewr = new TreeViewer(Arrays.asList(
