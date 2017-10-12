@@ -1,67 +1,56 @@
 grammar mapleir;
 
 compilationUnit
-	:	setcmd* class_decl EOF
+	:	setDirective* classDeclaration EOF
 	;
 
-setcmd
-	:	'.set' Identifier cmdvaluelist
+setDirective
+	:	SET Identifier setCommandValueList
 	;
-	
-cmdvalue
+
+setCommandValue
 	:	(LITERAL|Identifier)
 	;
 
-cmdvaluelist
-	:	cmdvalue (COMMA cmdvalue)*?
+setCommandValueList
+	:	setCommandValue (COMMA setCommandValue)*?
 	;
 
-class_decl
-	: BEGINCLASS fqcn
-	setcmd*
-	(decls)*
+classDeclaration
+	: BEGINCLASS jtype
+	setDirective*
+	(declarations)*
 	END
 	;
 
-BEGINCLASS
-	:	'.begin class'
-	;
-	
-END
-	:	'.end'
-	;
-
-decls
+declarations
 	:
-	(class_decl
-	|	member_decl
+	(classDeclaration
+	|	memberDeclaration
 	)
 	;
 
-member_decl
-	:	field_decl
-	|	method_decl
+memberDeclaration
+	:	fieldDeclaration
+	|	methodDeclaration
 	;
 
 modifiers
 	:	MODIFIER*
 	;
 
-field_decl
+fieldDeclaration
 	:	'.field' modifiers? desc Identifier (ASSIGN constant)?
 	;
 
-method_decl
-	:	'.method' methoddesc Identifier
-	|	'.begin method' methoddesc Identifier
-	setcmd*
-	codebody?
-	END
+methodDeclaration
+	:	SIMPLE_METHOD methoddesc Identifier
+	|	COMPLEX_METHOD methoddesc Identifier setDirective* codebody? END
 	;
 
 // this needs to be parsed in the compiler
 desc
-	:	'['*? fqcn ';'?
+	:	'['*? jtype ';'?
 	;
 
 // this needs to be parsed in the compiler
@@ -72,7 +61,7 @@ methoddesc
 	:	LPAREN (desc)* RPAREN (~WS|(desc))
 	;
 	
-fqcn
+jtype
 	// DIV? because they might end with / and we need it to match
 	// catch class names with dots instead of slashes, handle later
 	:	(Identifier) ((DIV|DOT) Identifier)* DIV?
@@ -80,10 +69,6 @@ fqcn
 
 codebody
 	:	BEGINCODE block+ END
-	;
-
-BEGINCODE
-	:	'.code'
 	;
 	
 block
@@ -112,7 +97,7 @@ statement
 	 *	Klass.f = expr */
 	|
 		(	expr DOT Identifier ASSIGN expr
-		|	fqcn DOT Identifier ASSIGN expr
+		|	jtype DOT Identifier ASSIGN expr
 		)
 
 	/* Throw statement: .throw expr*/
@@ -157,18 +142,18 @@ expr
 	/* alloc/new obj/array*/
 	|	NEW creator
 	|	CMP arguments
-	// |	LPAREN fqcn RPAREN expr
+	|	LPAREN jtype RPAREN expr
 	/* invokes */
 	|
 	(	Identifier DOT Identifier arguments
-	|	fqcn DOT Identifier arguments
+	|	jtype DOT Identifier arguments
 	)
 	|	TILDE expr
 	|	(ADD|SUB) expr // neg/pos
 	|	expr (MUL|DIV|MOD|ADD|SUB) expr
 	|	expr (LT LT |GT GT GT| GT GT) expr
 	|	expr (BITAND|CARET|BITOR) expr
-	|	expr INSTANCEOF fqcn
+	|	expr INSTANCEOF jtype
 	|	CATCH
 	;
 	
@@ -177,8 +162,8 @@ arguments
 	;
 
 creator
-	:	fqcn
-	|	fqcn (arguments | arrayCreator)
+	:	jtype
+	|	jtype (arguments | arrayCreator)
 	|	
 	;
 
@@ -189,10 +174,20 @@ arrayCreator
 	;
 	
 primary
-	: LPAREN expr RPAREN
-	| LITERAL
+	: LITERAL
 	| Identifier
+	| LPAREN expr RPAREN
 	;
+
+FIELD			:	'.field' ;
+SIMPLE_METHOD	:	'.method' ;
+COMPLEX_METHOD  :	'.begin method' ;
+
+SET				:	'.set' ;
+
+BEGINCLASS 		:	'.begin class' ;
+END				:	'.end' ;
+BEGINCODE 		:	'.code' ;
 
 CONSUME :	'.consume' ;
 IF 		:	'.if' ;
@@ -552,14 +547,6 @@ JavaLetterOrDigit
         ~[\u0000-\u007F\uD800-\uDBFF]
     |   // covers UTF-16 surrogate pairs encodings for U+10000 to U+10FFFF
         [\uD800-\uDBFF] [\uDC00-\uDFFF]
-	;
-
-PRIMITIVES
-	:	[IBSCJFDZ]
-	;
-	
-VOID
-	:	'V'
 	;
 
 WS     : [ \n\t\r]+ -> skip;

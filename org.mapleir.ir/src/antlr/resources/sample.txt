@@ -1,7 +1,9 @@
-//.set compilerver 1.8
+.set compilerver 1.8
 
 .begin class B
+	.set compilerver 1.8
    .begin method (I)Ljava/lang/String; get
+  		.set compilerver 1.8
      .code
        A:
 		.consume java/lang/System.exit(1)
