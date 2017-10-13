@@ -1,13 +1,5 @@
 package org.mapleir.flowgraph.algorithms;
 
-import org.mapleir.flowgraph.FlowGraph;
-import org.mapleir.flowgraph.edges.FlowEdge;
-import org.mapleir.flowgraph.edges.ImmediateEdge;
-import org.mapleir.stdlib.collections.graph.FastGraph;
-import org.mapleir.stdlib.collections.graph.FastGraphEdge;
-import org.mapleir.stdlib.collections.graph.FastGraphVertex;
-import org.mapleir.stdlib.collections.map.NullPermeableHashMap;
-
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -18,8 +10,16 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.Stack;
 
+import org.mapleir.flowgraph.edges.FlowEdge;
+import org.mapleir.flowgraph.edges.ImmediateEdge;
+import org.mapleir.stdlib.collections.graph.FastDirectedGraph;
+import org.mapleir.stdlib.collections.graph.FastGraph;
+import org.mapleir.stdlib.collections.graph.FastGraphEdge;
+import org.mapleir.stdlib.collections.graph.FastGraphVertex;
+import org.mapleir.stdlib.collections.map.NullPermeableHashMap;
+
 public class TarjanDominanceComputor<N extends FastGraphVertex> {
-	private final FlowGraph<N, ?> graph;
+	private final FastDirectedGraph<N, ?> graph;
 	private final List<N> preOrder;
 	private final Map<N, Integer> semiIndices;
 	private final Map<N, N> parents;
@@ -27,11 +27,11 @@ public class TarjanDominanceComputor<N extends FastGraphVertex> {
 	private final Map<N, N> ancestors;
 	private final Map<N, N> idoms;
 	private final NullPermeableHashMap<N, Set<N>> semiDoms;
-	private final NullPermeableHashMap<N, Set<N>> domChildren;
+	private final NullPermeableHashMap<N, Set<N>> treeChildren;
 	private final NullPermeableHashMap<N, Set<N>> frontiers;
 	private final NullPermeableHashMap<N, Set<N>> iteratedFrontiers;
 	
-	public TarjanDominanceComputor(FlowGraph<N, ?> graph, List<N> preOrder) {
+	public TarjanDominanceComputor(FastDirectedGraph<N, ?> graph, List<N> preOrder) {
 		this.graph = graph;
 		this.preOrder = preOrder;
 		semiIndices = new HashMap<>();
@@ -40,7 +40,7 @@ public class TarjanDominanceComputor<N extends FastGraphVertex> {
 		ancestors = new HashMap<>();
 		idoms = new HashMap<>();
 		semiDoms = new NullPermeableHashMap<>(HashSet::new);
-		domChildren = new NullPermeableHashMap<>(HashSet::new);
+		treeChildren = new NullPermeableHashMap<>(HashSet::new);
 		frontiers = new NullPermeableHashMap<>(HashSet::new);
 		iteratedFrontiers = new NullPermeableHashMap<>(HashSet::new);
 		
@@ -65,16 +65,17 @@ public class TarjanDominanceComputor<N extends FastGraphVertex> {
 	}
 	
 	public Map<N, Set<N>> getTree() {
-		return domChildren;
+		return treeChildren;
 	}
 	
-	public Set<N> children(N n) {
-		return domChildren.getNonNull(n);
+	public Set<N> getTreeChildren(N n) {
+		return treeChildren.getNonNull(n);
 	}
 	
-	public Set<N> semiDoms(N n) {
-		return semiDoms.getNonNull(n);
-	}
+	// FIXME: doesn't seem to hold what is expected
+	//private Set<N> semiDoms(N n) {
+	//	return semiDoms.getNonNull(n);
+	//}
 	
 	public Set<N> frontier(N n) {
 		return frontiers.getNonNull(n);
@@ -90,7 +91,7 @@ public class TarjanDominanceComputor<N extends FastGraphVertex> {
 
 	private void touchTree() {
 		for(N n : idoms.keySet()) {
-			domChildren.getNonNull(idoms.get(n)).add(n);
+			treeChildren.getNonNull(idoms.get(n)).add(n);
 		}
 	}
 	
@@ -147,7 +148,7 @@ public class TarjanDominanceComputor<N extends FastGraphVertex> {
 			Set<N> df = frontiers.getNonNull(n);
 			
 			// DF(local)
-			for(FlowEdge<N> e : graph.getEdges(n)) {
+			for(FastGraphEdge<N> e : graph.getEdges(n)) {
 				// svar data isn't propagated across exception edges.
 				// if(!(e instanceof TryCatchEdge)) {
 					N succ = e.dst();
@@ -158,7 +159,7 @@ public class TarjanDominanceComputor<N extends FastGraphVertex> {
 			}
 			
 			// DF(up)
-			for(N forest : domChildren.getNonNull(n)) {
+			for(N forest : treeChildren.getNonNull(n)) {
 				for(N forestFrontier : frontiers.getNonNull(forest)) {
 					if(idoms.get(forestFrontier) != n) {
 						df.add(forestFrontier);
@@ -173,7 +174,7 @@ public class TarjanDominanceComputor<N extends FastGraphVertex> {
 			semiIndices.put(n, semiIndices.size());
 			propagationMap.put(n, n);
 
-			for (FlowEdge<N> succEdge : graph.getEdges(n)) {
+			for (FastGraphEdge<N> succEdge : graph.getEdges(n)) {
 				N succ = succEdge.dst();
 				if(!semiIndices.containsKey(succ)) {
 					parents.put(succ, n);
