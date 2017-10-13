@@ -50,4 +50,12 @@ public class GraphUtils {
 
 		return lst;
 	}
+	
+	public static int getEdgeCount(FastGraph<FastGraphVertex, ?> g) {
+		int c = 0;		
+		for(FastGraphVertex v : g.vertices()) {
+			c += g.getEdges(v).size();
+		}
+		return c;
+	}
 }
