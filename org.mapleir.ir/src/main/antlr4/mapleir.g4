@@ -33,7 +33,7 @@ memberDeclaration
 	;
 
 fieldDeclaration
-	:	'.field' desc Identifier (ASSIGN constant)?
+	:	FIELD desc Identifier (ASSIGN constant)? (LBRACE setDirective* RBRACE)?
 	;
 
 methodDeclaration
@@ -174,13 +174,13 @@ primary
 	| LPAREN expr RPAREN
 	;
 
-FIELD			:	'.field' ;
+FIELD	:	'.field' ;
 METHOD  :	'.method' ;
 
-SET				:	'.set' ;
+SET		:	'.set' ;
 
-CLASS			:	'class' ;
-CODE 		:	'.code' ;
+CLASS	:	'.class' ;
+CODE 	:	'.code' ;
 
 CONSUME :	'.consume' ;
 IF 		:	'.if' ;
