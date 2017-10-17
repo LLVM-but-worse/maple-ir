@@ -1,6 +1,6 @@
 package org.mapleir.ir.antlr;
 
-public class CompilationException extends Exception {
+public class CompilationException extends RuntimeException {
 	private static final long serialVersionUID = -8960623322577410119L;
 
 	private final int line, col;

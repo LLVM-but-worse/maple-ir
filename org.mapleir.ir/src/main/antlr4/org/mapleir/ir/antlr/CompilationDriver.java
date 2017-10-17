@@ -7,7 +7,6 @@ import java.util.Deque;
 import java.util.LinkedList;
 import java.util.List;
 
-import org.antlr.v4.runtime.Parser;
 import org.antlr.v4.runtime.Token;
 import org.apache.log4j.Logger;
 import org.mapleir.ir.antlr.mapleirParser.ClassDeclarationContext;
@@ -29,7 +28,7 @@ public class CompilationDriver extends mapleirBaseListener {
 		scopes = new LinkedList<>();
 	}
 
-	public void process(mapleirParser parser) throws CompilationException {
+	public void process(mapleirParser parser) {
 		parser.addParseListener(this);
 		unit = parser.compilationUnit();
 		
@@ -46,11 +45,11 @@ public class CompilationDriver extends mapleirBaseListener {
 		parser.removeParseListener(this);
 	}
 	
-	private void processClassDecl(ClassDeclarationContext cdecl) throws CompilationException {
+	private void processClassDecl(ClassDeclarationContext cdecl) {
 		checkClassName(cdecl.jclass());
 	}
 	
-	private void processSetDirectives(List<SetDirectiveContext> directives) throws CompilationException {
+	private void processSetDirectives(List<SetDirectiveContext> directives) {
 		if(directives != null && !directives.isEmpty()) {
 			for(SetDirectiveContext sdctx : directives) {
 				processSetDirective(sdctx);
@@ -58,7 +57,7 @@ public class CompilationDriver extends mapleirBaseListener {
 		}
 	}
 
-	private void processSetDirective(SetDirectiveContext ctx) throws CompilationException {
+	private void processSetDirective(SetDirectiveContext ctx) {
 		Scope currentScope = scopes.peek();
 
 		if (currentScope == null) {
@@ -86,19 +85,19 @@ public class CompilationDriver extends mapleirBaseListener {
 		}
 	}
 	
-	private void error(int line, int col, String msg) throws CompilationException {
+	private void error(int line, int col, String msg) {
 		error(line, col, msg, null);
 	}
 	
-	private void error(int line, int col, String msg, Exception t) throws CompilationException {
+	private void error(int line, int col, String msg, Exception t) {
 		throw new CompilationException(line, col, msg, t);
 	}
 	
-	private void error(String msg) throws CompilationException {
+	private void error(String msg) {
 		error(msg, 0);
 	}
 	
-	private void error(String msg, int colOff) throws CompilationException {
+	private void error(String msg, int colOff) {
 		if(token == null) {
 			throw new IllegalStateException("internal error on no token");
 		} else {
@@ -106,7 +105,7 @@ public class CompilationDriver extends mapleirBaseListener {
 		}
 	}
 	
-	private void checkClassName(JclassContext jclass) throws CompilationException {
+	private void checkClassName(JclassContext jclass) {
 		token = jclass.getStart();
 		
 		String input = jclass.getText();
@@ -122,8 +121,11 @@ public class CompilationDriver extends mapleirBaseListener {
 		
 		int lastslash = input.lastIndexOf('/');
 		if(lastslash != -1) {
-			/* input ends with / */
-			if(lastslash == (input.length() - 1)) {
+			if(lastslash == 0) {
+				/* input starts with / */
+				error("leading '/'", 1);
+			} else if(lastslash == (input.length() - 1)) {
+				/* input ends with / */
 				error("no class name (only packages declared)", input.length()/*-1+1*/);
 			}
 		}
