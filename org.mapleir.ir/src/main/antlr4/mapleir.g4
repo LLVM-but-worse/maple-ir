@@ -56,7 +56,7 @@ methoddesc
 jclass
 	// DIV? because they might end with / and we need it to match
 	// catch class names with dots instead of slashes, handle later
-	:	(Identifier) ((DIV|DOT) Identifier)* DIV?
+	:	(DIV|DOT|Identifier) (DIV|DOT|Identifier)*
 	;
 
 codebody
@@ -112,7 +112,7 @@ statement
 	 *		 				.default: goto B
 	 *					 .end
 	 */
-	|	SWITCH LPAREN expr RPAREN switchCaseStatement* END
+	|	SWITCH LPAREN expr RPAREN LBRACE switchCaseStatement* RBRACE
 	;
 
 switchCaseStatement
