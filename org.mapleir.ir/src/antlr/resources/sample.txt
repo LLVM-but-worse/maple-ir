@@ -1,6 +1,6 @@
 .set compilerver 1.8
 
-.class org/B {
+.class java.lang.Class {
 
 	.field Ljava/lang/String; myString
 	.field I myInt = 5 {

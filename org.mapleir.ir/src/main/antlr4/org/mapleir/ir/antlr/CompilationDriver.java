@@ -17,6 +17,8 @@ import org.mapleir.ir.antlr.mapleirParser.SetDirectiveContext;
 
 public class CompilationDriver extends mapleirBaseListener {
 
+	private static final boolean BAIL_FAST = false;
+	
 	private static final Logger LOGGER = Logger.getLogger(CompilationDriver.class);
 	private Deque<Scope> scopes;
 	public CompilationUnitContext unit;
@@ -26,6 +28,7 @@ public class CompilationDriver extends mapleirBaseListener {
 	
 	public CompilationDriver() {
 		scopes = new LinkedList<>();
+		exceptions = new LinkedList<>();
 	}
 
 	public void process(mapleirParser parser) {
@@ -43,10 +46,19 @@ public class CompilationDriver extends mapleirBaseListener {
 		processClassDecl(unit.classDeclaration());
 		
 		parser.removeParseListener(this);
+		
+		if(!exceptions.isEmpty()) {
+			LOGGER.error("Compilation errors occured while processing file");
+			
+			for(CompilationException e : exceptions) {
+				LOGGER.error("  * " + e.toString());
+			}
+		}
 	}
 	
 	private void processClassDecl(ClassDeclarationContext cdecl) {
 		checkClassName(cdecl.jclass());
+		processSetDirectives(cdecl.setDirective());
 	}
 	
 	private void processSetDirectives(List<SetDirectiveContext> directives) {
@@ -73,7 +85,7 @@ public class CompilationDriver extends mapleirBaseListener {
 				values.add(o);
 			} catch (ParseException e) {
 				Token t = v.getStart();
-				error(t.getLine(), t.getCharPositionInLine(),
+				error(t.getLine(), t.getCharPositionInLine() + e.getErrorOffset() + 1,
 						String.format("Malformed input: %s", v.getText()), e);
 			}
 		}
@@ -85,12 +97,20 @@ public class CompilationDriver extends mapleirBaseListener {
 		}
 	}
 	
-	private void error(int line, int col, String msg) {
-		error(line, col, msg, null);
+	private void error(int line, int col, String msg, Exception t) {
+		CompilationException e = new CompilationException(line, col, msg, t);
+		
+		if(BAIL_FAST) {
+			throw e;
+		} else {
+			synchronized (exceptions) {
+				exceptions.add(e);	
+			}
+		}
 	}
 	
-	private void error(int line, int col, String msg, Exception t) {
-		throw new CompilationException(line, col, msg, t);
+	private void error(int line, int col, String msg) {
+		error(line, col, msg, null);
 	}
 	
 	private void error(String msg) {
@@ -105,6 +125,16 @@ public class CompilationDriver extends mapleirBaseListener {
 		}
 	}
 	
+	private void checkClassNameChar(char ch, char prevCh, int i) {
+		if(ch == '.') {
+			error("'.' instead of '/'", i+1);
+		} else if(ch == '/') {
+			if(prevCh == '/' || prevCh == '.') {
+				error("no package name inbetween separators", i+1);
+			}
+		}
+	}
+	
 	private void checkClassName(JclassContext jclass) {
 		token = jclass.getStart();
 		
@@ -114,20 +144,26 @@ public class CompilationDriver extends mapleirBaseListener {
 			error("missing identifier");
 		}
 		
-		int dotIndex = input.indexOf('.');
-		if(dotIndex != -1) {
-			error("'.' instead of '/'", dotIndex+1);
+		char[] chars = input.toCharArray();
+		char prevCh = 0;
+		int i = 0;
+		
+		char ch = chars[i++];
+		checkClassNameChar(ch, prevCh, 0);
+		/* input starts with / or . */
+		if(ch == '/' || ch == '.') {
+			error("leading '/'", 1);
 		}
 		
-		int lastslash = input.lastIndexOf('/');
-		if(lastslash != -1) {
-			if(lastslash == 0) {
-				/* input starts with / */
-				error("leading '/'", 1);
-			} else if(lastslash == (input.length() - 1)) {
-				/* input ends with / */
-				error("no class name (only packages declared)", input.length()/*-1+1*/);
-			}
+		prevCh = ch;
+		
+		for(;i < chars.length; i++, prevCh = ch) {
+			checkClassNameChar(ch = chars[i], prevCh, i);
+		}
+		
+		if(ch == '/' || ch == '.') {
+			/* input ends with / */
+			error("no class name (only packages declared)", input.length()/*-1+1*/);
 		}
 	}
 

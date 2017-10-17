@@ -14,6 +14,7 @@ import org.antlr.v4.gui.TreeViewer;
 import org.antlr.v4.runtime.ANTLRInputStream;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.Token;
+import org.apache.log4j.BasicConfigurator;
 import org.mapleir.ir.antlr.mapleirParser.CompilationUnitContext;
 import org.mapleir.ir.code.expr.PhiExpr;
 import org.mapleir.ir.code.expr.VarExpr;
@@ -23,8 +24,7 @@ import org.objectweb.asm.Type;
 
 public class AntlrBoot {
 
-	public static void main(String[] args) {
-		
+	public static void main(String[] args) {		
 		VarExpr v = new VarExpr(new VersionedLocal(new AtomicInteger(0), 1, 0), Type.INT_TYPE);
 		CopyPhiStmt copy = new CopyPhiStmt(v, new PhiExpr(new HashMap<>()));
 		System.out.println(copy);
