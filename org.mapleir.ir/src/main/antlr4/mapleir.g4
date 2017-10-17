@@ -17,7 +17,7 @@ setCommandValueList
 	;
 
 classDeclaration
-	: CLASS jtype LBRACE setDirective* (declarations)* RBRACE
+	: CLASS jclass LBRACE setDirective* (declarations)* RBRACE
 	;
 
 declarations
@@ -42,7 +42,7 @@ methodDeclaration
 
 // this needs to be parsed in the compiler
 desc
-	:	'['*? jtype ';'?
+	:	'['*? jclass ';'?
 	;
 
 // this needs to be parsed in the compiler
@@ -53,7 +53,7 @@ methoddesc
 	:	LPAREN (desc)* RPAREN (~WS|(desc))
 	;
 	
-jtype
+jclass
 	// DIV? because they might end with / and we need it to match
 	// catch class names with dots instead of slashes, handle later
 	:	(Identifier) ((DIV|DOT) Identifier)* DIV?
@@ -92,7 +92,7 @@ statement
 	 *	Klass.f = expr */
 	|
 		(	expr DOT Identifier ASSIGN expr
-		|	jtype DOT Identifier ASSIGN expr
+		|	jclass DOT Identifier ASSIGN expr
 		)
 
 	/* Throw statement: .throw expr*/
@@ -137,18 +137,18 @@ expr
 	/* alloc/new obj/array*/
 	|	NEW creator
 	|	CMP arguments
-	|	LPAREN jtype RPAREN expr
+	|	LPAREN jclass RPAREN expr
 	/* invokes */
 	|
 	(	Identifier DOT Identifier arguments
-	|	jtype DOT Identifier arguments
+	|	jclass DOT Identifier arguments
 	)
 	|	TILDE expr
 	|	(ADD|SUB) expr // neg/pos
 	|	expr (MUL|DIV|MOD|ADD|SUB) expr
 	|	expr (LT LT |GT GT GT| GT GT) expr
 	|	expr (BITAND|CARET|BITOR) expr
-	|	expr INSTANCEOF jtype
+	|	expr INSTANCEOF jclass
 	|	CATCH
 	;
 	
@@ -157,8 +157,8 @@ arguments
 	;
 
 creator
-	:	jtype
-	|	jtype (arguments | arrayCreator)
+	:	jclass
+	|	jclass (arguments | arrayCreator)
 	|	
 	;
 

@@ -7,39 +7,63 @@ import java.util.Deque;
 import java.util.LinkedList;
 import java.util.List;
 
+import org.antlr.v4.runtime.Parser;
 import org.antlr.v4.runtime.Token;
 import org.apache.log4j.Logger;
+import org.mapleir.ir.antlr.mapleirParser.ClassDeclarationContext;
 import org.mapleir.ir.antlr.mapleirParser.CompilationUnitContext;
+import org.mapleir.ir.antlr.mapleirParser.JclassContext;
 import org.mapleir.ir.antlr.mapleirParser.SetCommandValueContext;
+import org.mapleir.ir.antlr.mapleirParser.SetDirectiveContext;
 
-public class CompilerDriver extends mapleirBaseListener {
+public class CompilationDriver extends mapleirBaseListener {
 
-	private static final Logger LOGGER = Logger.getLogger(CompilerDriver.class);
+	private static final Logger LOGGER = Logger.getLogger(CompilationDriver.class);
 	private Deque<Scope> scopes;
-	private CompilationUnitContext compilationUnit;
+	public CompilationUnitContext unit;
 	private Deque<CompilationException> exceptions;
-
-	public CompilerDriver() {
+	
+	private Token token;
+	
+	public CompilationDriver() {
 		scopes = new LinkedList<>();
 	}
 
-	@Override
-	public void enterCompilationUnit(mapleirParser.CompilationUnitContext ctx) {
-		if (compilationUnit != null) {
-			throw new IllegalStateException("Can only process one compilation unit per file");
+	public void process(mapleirParser parser) throws CompilationException {
+		parser.addParseListener(this);
+		unit = parser.compilationUnit();
+		
+		if (unit == null) {
+			throw new CompilationException(0, 0, "No compilation unit to process");
 		}
 
-		compilationUnit = ctx;
+		/* push our global scope and process global directives */
 		scopes.push(new Scope());
+		
+		processSetDirectives(unit.setDirective());
+		processClassDecl(unit.classDeclaration());
+		
+		parser.removeParseListener(this);
+	}
+	
+	private void processClassDecl(ClassDeclarationContext cdecl) throws CompilationException {
+		checkClassName(cdecl.jclass());
+	}
+	
+	private void processSetDirectives(List<SetDirectiveContext> directives) throws CompilationException {
+		if(directives != null && !directives.isEmpty()) {
+			for(SetDirectiveContext sdctx : directives) {
+				processSetDirective(sdctx);
+			}
+		}
 	}
 
-	@Override
-	public void exitSetDirective(mapleirParser.SetDirectiveContext ctx) {
+	private void processSetDirective(SetDirectiveContext ctx) throws CompilationException {
 		Scope currentScope = scopes.peek();
 
 		if (currentScope == null) {
 			Token t = ctx.getStart();
-			throw new CompilationException(t.getLine(), -1, "Tried to use set directive outside of active scopes");
+			error(t.getLine(), -1, "Tried to use set directive outside of an active scope");
 		}
 
 		List<SetCommandValueContext> commands = ctx.setCommandValueList().setCommandValue();
@@ -50,7 +74,7 @@ public class CompilerDriver extends mapleirBaseListener {
 				values.add(o);
 			} catch (ParseException e) {
 				Token t = v.getStart();
-				throw new CompilationException(t.getLine(), t.getCharPositionInLine(),
+				error(t.getLine(), t.getCharPositionInLine(),
 						String.format("Malformed input: %s", v.getText()), e);
 			}
 		}
@@ -59,6 +83,49 @@ public class CompilerDriver extends mapleirBaseListener {
 			currentScope.setProperty(ctx.Identifier().getText(), values.iterator().next());
 		} else {
 			currentScope.setProperty(ctx.Identifier().getText(), values);
+		}
+	}
+	
+	private void error(int line, int col, String msg) throws CompilationException {
+		error(line, col, msg, null);
+	}
+	
+	private void error(int line, int col, String msg, Exception t) throws CompilationException {
+		throw new CompilationException(line, col, msg, t);
+	}
+	
+	private void error(String msg) throws CompilationException {
+		error(msg, 0);
+	}
+	
+	private void error(String msg, int colOff) throws CompilationException {
+		if(token == null) {
+			throw new IllegalStateException("internal error on no token");
+		} else {
+			error(token.getLine(), token.getCharPositionInLine() + colOff, msg);
+		}
+	}
+	
+	private void checkClassName(JclassContext jclass) throws CompilationException {
+		token = jclass.getStart();
+		
+		String input = jclass.getText();
+		
+		if(input == null || input.isEmpty()) {
+			error("missing identifier");
+		}
+		
+		int dotIndex = input.indexOf('.');
+		if(dotIndex != -1) {
+			error("'.' instead of '/'", dotIndex+1);
+		}
+		
+		int lastslash = input.lastIndexOf('/');
+		if(lastslash != -1) {
+			/* input ends with / */
+			if(lastslash == (input.length() - 1)) {
+				error("no class name (only packages declared)", input.length()/*-1+1*/);
+			}
 		}
 	}
 

@@ -2,13 +2,13 @@
 
 .class org/B {
 
-	field Ljava/lang/String; myString
-	field I myInt = 5 {
+	.field Ljava/lang/String; myString
+	.field I myInt = 5 {
 	 	// idk
 		.set linenum 10
 	}
 	
-	method (I)Ljava/lang/String; get {
+	.method (I)Ljava/lang/String; get {
   		.set compilerver 1.8
   		.set compilerver 0x1
   		.set name "hey", "yo"
