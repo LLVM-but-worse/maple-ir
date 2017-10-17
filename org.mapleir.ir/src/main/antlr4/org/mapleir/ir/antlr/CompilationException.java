@@ -27,7 +27,6 @@ public class CompilationException extends RuntimeException {
 
 	@Override
 	public String toString() {
-		return String.format("Error compiling at line %d%s, %s", line, col == -1 ? "" : (" (col:" + col + ")"),
-				super.toString());
+		return String.format("%s at line %d%s", getMessage(), line, col == -1 ? "" : (" (col:" + col + ")"));
 	}
 }
