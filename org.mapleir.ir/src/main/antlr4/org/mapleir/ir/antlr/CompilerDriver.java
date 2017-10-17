@@ -12,14 +12,14 @@ import org.apache.log4j.Logger;
 import org.mapleir.ir.antlr.mapleirParser.CompilationUnitContext;
 import org.mapleir.ir.antlr.mapleirParser.SetCommandValueContext;
 
-public class MapleIRCompiler extends mapleirBaseListener {
+public class CompilerDriver extends mapleirBaseListener {
 
-	private static final Logger LOGGER = Logger.getLogger(MapleIRCompiler.class);
+	private static final Logger LOGGER = Logger.getLogger(CompilerDriver.class);
 	private Deque<Scope> scopes;
 	private CompilationUnitContext compilationUnit;
 	private Deque<CompilationException> exceptions;
 
-	public MapleIRCompiler() {
+	public CompilerDriver() {
 		scopes = new LinkedList<>();
 	}
 
@@ -30,12 +30,7 @@ public class MapleIRCompiler extends mapleirBaseListener {
 		}
 
 		compilationUnit = ctx;
-		scopes.push(new BasicScope());
-	}
-
-	@Override
-	public void exitCompilationUnit(mapleirParser.CompilationUnitContext ctx) {
-		compilationUnit = null;
+		scopes.push(new Scope());
 	}
 
 	@Override
