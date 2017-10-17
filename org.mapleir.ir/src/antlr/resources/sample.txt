@@ -1,12 +1,30 @@
-.set l 1.8
-.set l 0x5
-.set l 55L
-.set l 0x5p10
-.set s "\u0278my strin\u0278g ey"
-.set phi '\u0278'
+.set compilerver 1.8
 
-.begin class B
- // the placeholder string
+class org/B {
+
 	.field Ljava/lang/String; myString
-.end
-
+	
+	.method (I)Ljava/lang/String; get {
+  		.set compilerver 1.8
+  		.set compilerver 0x1
+  		.set name "hey", "yo"
+  		.set chars 'c'
+     	.code {
+     		// this one can go in a block
+     		A: {
+     			.consume java/lang/System.exit(1)
+				lvar3_0 = lvar0_0.invoke ("str")
+				lvar2_2 = ɸ{A:lvar2_0, B:lvar2_1}
+     		}		
+			B:
+				lvar2_0 = .new I[5]
+				lvar3_0 = .new java/lang/String("xd", 5, 'c', ".new", .new I[1][2])
+			C:
+				.if (lvar0_0.var != null)
+					.goto C
+				lvar0_0.var = "hey"
+			D:
+				.return lvar0_0
+     	}
+	}
+}

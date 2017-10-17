@@ -17,16 +17,13 @@ setCommandValueList
 	;
 
 classDeclaration
-	: BEGINCLASS jtype
-	setDirective*
-	(declarations)*
-	END
+	: CLASS jtype LBRACE setDirective* (declarations)* RBRACE
 	;
 
 declarations
 	:
 	(classDeclaration
-	|	memberDeclaration
+	| memberDeclaration
 	)
 	;
 
@@ -35,17 +32,12 @@ memberDeclaration
 	|	methodDeclaration
 	;
 
-modifiers
-	:	MODIFIER*
-	;
-
 fieldDeclaration
-	:	'.field' modifiers? desc Identifier (ASSIGN constant)?
+	:	'.field' desc Identifier (ASSIGN constant)?
 	;
 
 methodDeclaration
-	:	SIMPLE_METHOD methoddesc Identifier
-	|	COMPLEX_METHOD methoddesc Identifier setDirective* codebody? END
+	:	METHOD methoddesc Identifier LBRACE setDirective* codebody? RBRACE
 	;
 
 // this needs to be parsed in the compiler
@@ -68,11 +60,14 @@ jtype
 	;
 
 codebody
-	:	BEGINCODE block+ END
+	:	CODE LBRACE block+ RBRACE
 	;
 	
+
+/* blocks may be inside brackets */
 block
-	:	Identifier ':' statement*
+	:	Identifier COLON LBRACE statement* RBRACE
+	|	Identifier COLON statement*
 	;
 
 phiPair
@@ -180,14 +175,12 @@ primary
 	;
 
 FIELD			:	'.field' ;
-SIMPLE_METHOD	:	'.method' ;
-COMPLEX_METHOD  :	'.begin method' ;
+METHOD  :	'.method' ;
 
 SET				:	'.set' ;
 
-BEGINCLASS 		:	'.begin class' ;
-END				:	'.end' ;
-BEGINCODE 		:	'.code' ;
+CLASS			:	'class' ;
+CODE 		:	'.code' ;
 
 CONSUME :	'.consume' ;
 IF 		:	'.if' ;
@@ -214,25 +207,6 @@ LITERAL
     |   BooleanLiteral
     |   'null'
 	;
-
-MODIFIER
-	:   CLASSMODIFIER
-	|   'native'
-	|   'synchronized'
-	|   'transient'
-	|   'volatile'
-	;
-
-CLASSMODIFIER
-	:	'public'
-	|	'protected'
-	|	'private'
-	|	'abstract'
-	|	'static'
-	|	'final'
-	|	'strictfp'
-	;
-
     
 // §3.10.1 Integer Literals
 
@@ -552,9 +526,9 @@ JavaLetterOrDigit
 WS     : [ \n\t\r]+ -> skip;
 
 COMMENT
-    :   '/*' .*? '*/' -> channel(HIDDEN)
+    :   '/*' .*? '*/' -> channel(2)
     ;
 
 LINE_COMMENT
-    :   '//' ~[\r\n]* -> channel(HIDDEN)
+    :   '//' ~[\r\n]* -> channel(2)
 	;
