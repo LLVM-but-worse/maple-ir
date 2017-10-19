@@ -30,7 +30,7 @@ import org.mapleir.ir.code.expr.invoke.InvocationExpr;
 import org.mapleir.ir.code.stmt.copy.AbstractCopyStmt;
 import org.mapleir.ir.code.stmt.copy.CopyVarStmt;
 import org.mapleir.ir.locals.LocalsPool;
-import org.mapleir.ir.locals.VersionedLocal;
+import org.mapleir.ir.locals.impl.VersionedLocal;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.MethodNode;

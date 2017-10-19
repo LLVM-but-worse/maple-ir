@@ -40,8 +40,8 @@ public class CallSiteSensitiveCallGraph extends FastDirectedGraph<CallGraphNode,
 	}
 	
 	// Used for builder.
-	CallSiteNode addInvocation(Invocation invoke) {
-		CallSiteNode thisCallSiteNode = new CallSiteNode(getNextNodeId(), invoke);
+	CallSiteNode addInvocation(MethodNode sourceMethod, Invocation invoke) {
+		CallSiteNode thisCallSiteNode = new CallSiteNode(getNextNodeId(), sourceMethod, invoke);
 		addVertex(thisCallSiteNode);
 		return thisCallSiteNode;
 	}

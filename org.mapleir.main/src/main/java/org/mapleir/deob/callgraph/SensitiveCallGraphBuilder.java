@@ -64,7 +64,7 @@ public class SensitiveCallGraphBuilder implements Worklist.Worker<MethodNode> {
 				if (e instanceof Invocation) {
 					Invocation invoke = (Invocation) e;
 
-					CallGraphNode.CallSiteNode thisCallSiteNode = callGraph.addInvocation(invoke);
+					CallGraphNode.CallSiteNode thisCallSiteNode = callGraph.addInvocation(n, invoke);
 
 					/* link the current receiver to this call site. */
 					FunctionOwnershipEdge foe = new FunctionOwnershipEdge(currentReceiverNode, thisCallSiteNode);
