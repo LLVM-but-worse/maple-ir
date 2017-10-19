@@ -14,7 +14,7 @@ import org.mapleir.ir.code.expr.VarExpr;
 import org.mapleir.ir.code.stmt.copy.AbstractCopyStmt;
 import org.mapleir.ir.locals.Local;
 import org.mapleir.ir.locals.LocalsPool;
-import org.mapleir.ir.locals.VersionedLocal;
+import org.mapleir.ir.locals.impl.VersionedLocal;
 import org.mapleir.stdlib.collections.map.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.map.SetCreator;
 
@@ -25,7 +25,6 @@ public class DefUseVerifier implements Opcode {
 			verify0(cfg);
 		} catch(RuntimeException e) {
 			System.err.println(cfg);
-			System.err.println(cfg.getMethod());
 			throw e;
 		}
 	}

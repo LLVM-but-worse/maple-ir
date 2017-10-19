@@ -62,17 +62,18 @@ public abstract class CallGraphNode implements FastGraphVertex {
 	// A call site; e.g. an invocation.
 	public static class CallSiteNode extends CallGraphNode {
 
+		private final MethodNode sourceMethod;
 		private final Expr invoke;
 		
-		public CallSiteNode(int id, Expr invoke) {
+		public CallSiteNode(int id, MethodNode sourceMethod, Expr invoke) {
 			super(id);
+			this.sourceMethod = sourceMethod;
 			this.invoke = invoke;
 		}
 
 		@Override
 		public String toString() {
-			MethodNode m = invoke.getBlock().getGraph().getMethod();
-			return m.owner + "." + m.name + "@" + invoke.getBlock().indexOf(invoke.getRootParent()) + ":" + invoke.getParent().indexOf(invoke);
+			return sourceMethod.owner + "." + sourceMethod.name + "@" + invoke.getBlock().indexOf(invoke.getRootParent()) + ":" + invoke.getParent().indexOf(invoke);
 		}
 	}
 }

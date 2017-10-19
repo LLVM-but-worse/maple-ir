@@ -24,33 +24,25 @@ import org.mapleir.ir.code.expr.PhiExpr;
 import org.mapleir.ir.code.expr.VarExpr;
 import org.mapleir.ir.code.stmt.copy.CopyPhiStmt;
 import org.mapleir.ir.locals.LocalsPool;
-import org.mapleir.ir.locals.VersionedLocal;
+import org.mapleir.ir.locals.impl.VersionedLocal;
 import org.mapleir.ir.utils.dot.ControlFlowGraphDecorator;
 import org.mapleir.stdlib.collections.graph.FastGraph;
 import org.mapleir.stdlib.collections.graph.GraphUtils;
 import org.mapleir.stdlib.collections.graph.dot.DotWriter;
 import org.mapleir.stdlib.collections.itertools.ChainIterator;
 import org.mapleir.stdlib.util.TabbedStringWriter;
-import org.objectweb.asm.tree.MethodNode;
 
 public class ControlFlowGraph extends FastBlockGraph {
 	
-	private final MethodNode method;
 	private final LocalsPool locals;
 	
-	public ControlFlowGraph(MethodNode method, int base) {
-		this.method = method;
-		locals = new LocalsPool(base);
+	public ControlFlowGraph(LocalsPool locals) {
+		this.locals = locals;
 	}
 	
 	public ControlFlowGraph(ControlFlowGraph cfg) {
 		super(cfg);
-		method = cfg.method;
 		locals = cfg.locals;
-	}
-	
-	public MethodNode getMethod() {
-		return method;
 	}
 	
 	/**

@@ -36,14 +36,13 @@ import org.mapleir.ir.code.stmt.UnconditionalJumpStmt;
 import org.mapleir.ir.code.stmt.copy.AbstractCopyStmt;
 import org.mapleir.ir.code.stmt.copy.CopyPhiStmt;
 import org.mapleir.ir.code.stmt.copy.CopyVarStmt;
-import org.mapleir.ir.locals.BasicLocal;
 import org.mapleir.ir.locals.Local;
 import org.mapleir.ir.locals.LocalsPool;
-import org.mapleir.ir.locals.VersionedLocal;
+import org.mapleir.ir.locals.impl.BasicLocal;
+import org.mapleir.ir.locals.impl.VersionedLocal;
 import org.mapleir.stdlib.collections.graph.algorithms.SimpleDfs;
 import org.mapleir.stdlib.collections.map.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.map.SetCreator;
-import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.LabelNode;
 
@@ -221,7 +220,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 			if (e instanceof TryCatchEdge) { // b is ehandler
 				TryCatchEdge<BasicBlock> tce = (TryCatchEdge<BasicBlock>) e;
 				if (tce.dst() != tce.erange.getHandler()) {
-					System.err.println(cfg.getMethod().owner.name + "#" + cfg.getMethod().name);
+					System.err.println(builder.method.owner + "#" + builder.method.name);
 					System.err.println(cfg);
 					System.err.println("Very odd split case. please investigate");
 					System.err.println("Offending postsplit block: " + b);

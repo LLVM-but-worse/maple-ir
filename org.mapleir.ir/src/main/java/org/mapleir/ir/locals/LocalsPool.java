@@ -14,6 +14,8 @@ import org.mapleir.ir.code.Stmt;
 import org.mapleir.ir.code.expr.VarExpr;
 import org.mapleir.ir.code.stmt.copy.AbstractCopyStmt;
 import org.mapleir.ir.code.stmt.copy.CopyVarStmt;
+import org.mapleir.ir.locals.impl.BasicLocal;
+import org.mapleir.ir.locals.impl.VersionedLocal;
 import org.mapleir.stdlib.collections.bitset.BitSetIndexer;
 import org.mapleir.stdlib.collections.bitset.GenericBitSet;
 import org.mapleir.stdlib.collections.bitset.IncrementalBitSetIndexer;
@@ -22,7 +24,7 @@ import org.mapleir.stdlib.collections.map.SetCreator;
 import org.mapleir.stdlib.collections.map.ValueCreator;
 import org.objectweb.asm.Type;
 
-public class LocalsPool implements ValueCreator<GenericBitSet<Local>> {
+public abstract class LocalsPool implements ValueCreator<GenericBitSet<Local>> {
 
 	private final AtomicInteger base;
 	private final Map<String, Local> cache;
@@ -41,6 +43,10 @@ public class LocalsPool implements ValueCreator<GenericBitSet<Local>> {
 		defs = new HashMap<>();
 		uses = new NullPermeableHashMap<>(HashSet::new);
 	}
+
+	public abstract boolean isReservedRegister(Local l);
+	
+	public abstract boolean isImplicitRegister(Local l);
 	
 	public Set<Local> getAll(Predicate<Local> p)  {
 		Set<Local> set = new HashSet<>();

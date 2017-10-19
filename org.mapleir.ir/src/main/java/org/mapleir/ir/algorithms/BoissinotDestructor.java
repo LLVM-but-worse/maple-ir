@@ -17,7 +17,7 @@ import org.mapleir.ir.code.stmt.copy.CopyPhiStmt;
 import org.mapleir.ir.code.stmt.copy.CopyVarStmt;
 import org.mapleir.ir.locals.Local;
 import org.mapleir.ir.locals.LocalsPool;
-import org.mapleir.ir.locals.VersionedLocal;
+import org.mapleir.ir.locals.impl.VersionedLocal;
 import org.mapleir.stdlib.collections.bitset.GenericBitSet;
 import org.mapleir.stdlib.collections.graph.GraphUtils;
 import org.mapleir.stdlib.collections.graph.algorithms.SimpleDfs;
@@ -25,7 +25,6 @@ import org.mapleir.stdlib.collections.map.ListCreator;
 import org.mapleir.stdlib.collections.map.NullPermeableHashMap;
 import org.mapleir.stdlib.util.TabbedStringWriter;
 import org.objectweb.asm.MethodVisitor;
-import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 
 public class BoissinotDestructor {
@@ -33,24 +32,7 @@ public class BoissinotDestructor {
 	// private boolean DO_SHARE_COALESCE = true;
 	
 	public static void leaveSSA(ControlFlowGraph cfg) {
-		if(cfg.getMethod().toString().equals("dr.asa(Ljava/lang/String;Ljava/lang/String;I)Ljava/io/File;")) {
-//			System.out.println(cfg);
-//			try {
-//
-////				System.out.println(cfg);
-//				GraphUtils.debug = true;
-//				GraphUtils.verifyCfg(cfg);
-//			} catch(RuntimeException e) {
-//				throw new RuntimeException(cfg.getMethod().toString(), e);
-//			}
-			
-//			DotConfiguration<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> config = new BasicDotConfiguration<>(GraphType.DIRECTED);
-//			DotWriter<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> writer = new DotWriter<>(config, cfg);
-//			writer.add(new ControlFlowGraphDecorator().setFlags(ControlFlowGraphDecorator.OPT_HIDE_HANDLER_EDGES));
-//			writer.setName("n2").export();
-		}
 		new BoissinotDestructor(cfg);
-//		System.out.println(cfg.getMethod());
 	}
 
 	private final ControlFlowGraph cfg;
@@ -412,8 +394,7 @@ public class BoissinotDestructor {
 	}
 
 	private boolean isReservedRegister(VersionedLocal l) {
-		return (cfg.getMethod().access & Opcodes.ACC_STATIC) == 0
-				&& (!l.isStack() && l.getIndex() == 0 && l.getSubscript() == 0);
+		return locals.isReservedRegister(l);
 	}
 
 	// Process the copy a = b. Returns true if a and b can be coalesced via value.

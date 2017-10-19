@@ -60,7 +60,7 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 			
 			for(ClassNode cn : cxt.getApplication().iterate()) {
 				for(MethodNode m : cn.methods) {
-					processMethod(vis, cxt.getIRCache().getFor(m));
+					processMethod(m, vis, cxt.getIRCache().getFor(m));
 				}
 			}
 			
@@ -75,7 +75,7 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 		return exprsEvaluated;
 	}
 	
-	private void processMethod(IPConstAnalysisVisitor vis, ControlFlowGraph cfg) {
+	private void processMethod(MethodNode m, IPConstAnalysisVisitor vis, ControlFlowGraph cfg) {
 		for(BasicBlock b : new HashSet<>(cfg.vertices())) {
 			for(int i=0; i < b.size(); i++) {
 				Stmt stmt = b.get(i);
@@ -198,12 +198,12 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 				System.err.println(cfg);
 				System.err.println("inputs:");
 				int k = 0;
-				for(TaintableSet<ConstantExpr> s : vis.constParams.get(cfg.getMethod())) {
+				for(TaintableSet<ConstantExpr> s : vis.constParams.get(cfg)) {
 					System.err.printf("@%d:: %s%n", k++, s);
 				}
 				System.err.println(l + " -> " + lSet);
 				System.err.println(r + " -> " + rSet);
-				System.err.println(cfg.getMethod());
+				System.err.println(cfg);
 
 				System.exit(1);
 				throw new RuntimeException();
@@ -228,12 +228,18 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 			this.vis = vis;
 		}
 
+		
+		private boolean isVirtual(LocalsPool pool) {
+			Local lvar0_0 = pool.get(0, 0, false);
+			return pool.isImplicitRegister(lvar0_0);
+		}
+		
 		@Override
 		public TaintableSet<Expr> getValues(ControlFlowGraph cfg, Local l) {
 			TaintableSet<Expr> set = new TaintableSet<>();
 			
-			MethodNode method = cfg.getMethod();
-			AbstractCopyStmt copy = cfg.getLocals().defs.get(l);
+			LocalsPool pool = cfg.getLocals();
+			AbstractCopyStmt copy = pool.defs.get(l);
 			if(copy.isSynthetic()) {
 				VarExpr vE = (VarExpr) copy.getExpression();
 				if(vE.getLocal() != l) {
@@ -241,7 +247,7 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 				}
 				
 				int paramNum = copy.getBlock().indexOf(copy);
-				if(!Modifier.isStatic(method.access)) {
+				if(isVirtual(pool)) {
 					/* for a virtual call, the implicit
 					 * this object isn't considered a
 					 * parameter, so the current computed
@@ -250,7 +256,7 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 					paramNum -= 1;
 				}
 				
-				set.union(vis.constParams.get(method).get(paramNum));
+				set.union(vis.constParams.get(cfg).get(paramNum));
 			} else {
 				set.add(copy.getExpression());
 			}
@@ -264,7 +270,7 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 	 */
 	private class IPConstAnalysisVisitor implements IPAnalysisVisitor {
 		final AnalysisContext cxt;
-		final Map<MethodNode, List<TaintableSet<ConstantExpr>>> constParams = new HashMap<>();
+		final Map<ControlFlowGraph, List<TaintableSet<ConstantExpr>>> constParams = new HashMap<>();
 		
 		public IPConstAnalysisVisitor(AnalysisContext cxt) {
 			this.cxt = cxt;
@@ -275,10 +281,12 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 			// Initialise possible value sets for parameters.
 			int pCount = Type.getArgumentTypes(m.desc).length;
 			
+			ControlFlowGraph cfg = cxt.getIRCache().getFor(m);
+			
 			if(Modifier.isStatic(m.access)) {
-				if(!constParams.containsKey(m)) {
+				if(!constParams.containsKey(cfg)) {
 					List<TaintableSet<ConstantExpr>> l = new ArrayList<>();
-					constParams.put(m, l);
+					constParams.put(cfg, l);
 					
 					for(int i=0; i < pCount; i++) {
 						l.add(new TaintableSet<>());
@@ -286,9 +294,11 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 				}
 			} else {
 				for(MethodNode site : cxt.getInvocationResolver().resolveVirtualCalls(m, true)) {
-					if(!constParams.containsKey(site)) {
+					ControlFlowGraph siteCfg = cxt.getIRCache().getFor(site);
+					
+					if(!constParams.containsKey(siteCfg)) {
 						List<TaintableSet<ConstantExpr>> l = new ArrayList<>();
-						constParams.put(site, l);
+						constParams.put(siteCfg, l);
 						
 						for(int i=0; i < pCount; i++) {
 							l.add(new TaintableSet<>());
@@ -308,21 +318,21 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 				
 				if(e.getOpcode() == Opcode.CONST_LOAD) {
 					if(Modifier.isStatic(callee.access)) {
-						constParams.get(callee).get(i).add((ConstantExpr) e);
+						constParams.get(cxt.getIRCache().getFor(callee)).get(i).add((ConstantExpr) e);
 					} else {
 						/* only chain callsites *can* have this input */
 						for(MethodNode site : cxt.getInvocationResolver().resolveVirtualCalls(callee, true)) {
-							constParams.get(site).get(i).add((ConstantExpr) e);
+							constParams.get(cxt.getIRCache().getFor(site)).get(i).add((ConstantExpr) e);
 						}
 					}
 				} else {
 					/* callsites tainted */
 					if(Modifier.isStatic(callee.access)) {
-						constParams.get(callee).get(i).taint();
+						constParams.get(cxt.getIRCache().getFor(callee)).get(i).taint();
 					} else {
 						/* only chain callsites *can* have this input */
 						for(MethodNode site : cxt.getInvocationResolver().resolveVirtualCalls(callee, true)) {
-							constParams.get(site).get(i).taint();
+							constParams.get(cxt.getIRCache().getFor(site)).get(i).taint();
 						}
 					}
 				}

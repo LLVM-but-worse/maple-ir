@@ -6,7 +6,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.mapleir.ir.cfg.BasicBlock;
-import org.mapleir.ir.cfg.builder.GenerationVerifier.VerifyException.ExceptionStage;
 import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.code.ExpressionStack;
 import org.mapleir.ir.code.Opcode;
@@ -571,6 +570,12 @@ public class GenerationVerifier {
 		}
 	}
 	
+	private final ControlFlowGraphBuilder builder;
+	
+	public GenerationVerifier(ControlFlowGraphBuilder builder) {
+		this.builder = builder;
+	}
+	
 	List<VerifierRule> find_verify_matches() {
 		throwNoContext();
 		
@@ -683,18 +688,18 @@ public class GenerationVerifier {
 		}
 	}
 	
-	public static class VerifyException extends RuntimeException {
+	public enum ExceptionStage {
+		PRE, POST
+	}
+	
+	public class VerifyException extends RuntimeException {
 		private static final long serialVersionUID = 1L;
-		
-		public enum ExceptionStage {
-			PRE, POST
-		}
 		
 		private final ExceptionStage stage;
 		private final GenerationContext context;
 		
 		public VerifyException(ExceptionStage stage, GenerationContext context) {
-			super(String.format("error during %s / %s for %s%n%s", context.block.getGraph().getMethod(), stage, __vrules.get(context.insn.opcode()), context));
+			super(String.format("error during %s / %s for %s%n%s", builder.method, stage, __vrules.get(context.insn.opcode()), context));
 			this.stage = stage;
 			this.context = context;
 		}

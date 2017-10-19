@@ -85,7 +85,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		insns = builder.method.instructions;
 		
 		if(GenerationVerifier.VERIFY) {
-			verifier = new GenerationVerifier();
+			verifier = new GenerationVerifier(builder);
 		} else {
 			verifier = null;
 		}
