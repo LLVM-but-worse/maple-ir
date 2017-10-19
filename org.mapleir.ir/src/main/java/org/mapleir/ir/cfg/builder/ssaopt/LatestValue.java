@@ -15,7 +15,7 @@ import org.mapleir.ir.code.expr.FieldLoadExpr;
 import org.mapleir.ir.code.expr.VarExpr;
 import org.mapleir.ir.code.stmt.copy.AbstractCopyStmt;
 import org.mapleir.ir.locals.Local;
-import org.mapleir.ir.locals.VersionedLocal;
+import org.mapleir.ir.locals.impl.VersionedLocal;
 
 public class LatestValue {
 	

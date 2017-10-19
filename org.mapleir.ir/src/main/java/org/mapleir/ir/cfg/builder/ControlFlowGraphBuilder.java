@@ -6,6 +6,7 @@ import java.util.Set;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.locals.Local;
+import org.mapleir.ir.locals.impl.MethodNodeLocalsPool;
 import org.mapleir.stdlib.collections.map.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.map.SetCreator;
 import org.objectweb.asm.tree.MethodNode;
@@ -21,7 +22,7 @@ public class ControlFlowGraphBuilder {
 	
 	public ControlFlowGraphBuilder(MethodNode method) {
 		this.method = method;
-		graph = new ControlFlowGraph(method, method.maxLocals);
+		graph = new ControlFlowGraph(new MethodNodeLocalsPool(method.maxLocals, method));
 		
 		locals = new HashSet<>();
 		assigns = new NullPermeableHashMap<>(SetCreator.getInstance());
