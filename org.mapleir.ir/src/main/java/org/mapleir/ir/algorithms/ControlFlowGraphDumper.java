@@ -12,7 +12,11 @@ import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.Stmt;
 import org.mapleir.ir.code.stmt.UnconditionalJumpStmt;
-import org.mapleir.stdlib.collections.graph.*;
+import org.mapleir.stdlib.collections.graph.FastDirectedGraph;
+import org.mapleir.stdlib.collections.graph.FastGraph;
+import org.mapleir.stdlib.collections.graph.FastGraphEdge;
+import org.mapleir.stdlib.collections.graph.FastGraphEdgeImpl;
+import org.mapleir.stdlib.collections.graph.FastGraphVertex;
 import org.mapleir.stdlib.collections.graph.algorithms.SimpleDfs;
 import org.mapleir.stdlib.collections.graph.algorithms.TarjanSCC;
 import org.mapleir.stdlib.util.IndexedList;
@@ -373,8 +377,8 @@ public class ControlFlowGraphDumper {
 		}
 		
 		@Override
-		public String getId() {
-			return getFirst().getId();
+		public String getDisplayName() {
+			return getFirst().getDisplayName();
 		}
 		
 		@Override
@@ -387,7 +391,7 @@ public class ControlFlowGraphDumper {
 			StringBuilder s = new StringBuilder();
 			for (Iterator<BasicBlock> it = this.iterator(); it.hasNext(); ) {
 				BasicBlock b = it.next();
-				s.append(b.getId());
+				s.append(b.getDisplayName());
 				if (it.hasNext())
 					s.append("->");
 			}

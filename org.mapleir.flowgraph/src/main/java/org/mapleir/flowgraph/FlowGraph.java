@@ -2,7 +2,6 @@ package org.mapleir.flowgraph;
 
 import java.util.*;
 
-import org.mapleir.flowgraph.edges.DummyEdge;
 import org.mapleir.flowgraph.edges.FlowEdge;
 import org.mapleir.flowgraph.edges.TryCatchEdge;
 import org.mapleir.stdlib.collections.bitset.BitSetIndexer;
@@ -16,7 +15,6 @@ public abstract class FlowGraph<N extends FastGraphVertex, E extends FlowEdge<N>
 	
 	protected final List<ExceptionRange<N>> ranges;
 	protected final Set<N> entries;
-	protected final Map<String, N> vertexIds;
 	
 	protected final BitSetIndexer<N> indexer;
 	protected final Map<Integer, N> indexMap;
@@ -25,7 +23,6 @@ public abstract class FlowGraph<N extends FastGraphVertex, E extends FlowEdge<N>
 	public FlowGraph() {
 		ranges = new ArrayList<>();
 		entries = new HashSet<>();
-		vertexIds = new HashMap<>();
 
 		indexer = new FastGraphVertexBitSetIndexer();
 		indexMap = new HashMap<>();
@@ -37,20 +34,11 @@ public abstract class FlowGraph<N extends FastGraphVertex, E extends FlowEdge<N>
 		
 		ranges = new ArrayList<>(g.ranges);
 		entries = new HashSet<>(g.entries);
-		vertexIds = new HashMap<>(g.vertexIds);
 
 		indexer = g.indexer;
 		indexMap = new HashMap<>(g.indexMap);
 		indexedSet = g.indexedSet;
 	}
-	
-	public N getBlock(String id) {
-		return vertexIds.get(id);
-	}
-
-//	public N getBlock(int index) {
-//		return indexMap.get(index);
-//	}
 	
 	public Set<N> getEntries() {
 		return entries;
@@ -73,14 +61,12 @@ public abstract class FlowGraph<N extends FastGraphVertex, E extends FlowEdge<N>
 	@Override
 	public void clear() {
 		super.clear();
-		vertexIds.clear();
 		indexMap.clear();
 		indexedSet.clear();
 	}
 	
 	@Override
 	public boolean addVertex(N v) {
-		vertexIds.put(v.getId(), v);
 		boolean ret = super.addVertex(v);
 		
 		int index = translateBlockIndex(v.getNumericId());
@@ -91,7 +77,6 @@ public abstract class FlowGraph<N extends FastGraphVertex, E extends FlowEdge<N>
 	
 	@Override
 	public void addEdge(N v, E e) {
-		vertexIds.put(v.getId(), v);
 		super.addEdge(v, e);
 		
 		int index = translateBlockIndex(v.getNumericId());
@@ -121,7 +106,6 @@ public abstract class FlowGraph<N extends FastGraphVertex, E extends FlowEdge<N>
 		}
 		
 		entries.remove(v);
-		vertexIds.remove(v.getId());
 		super.removeVertex(v);
 
 		int index = translateBlockIndex(v.getNumericId());

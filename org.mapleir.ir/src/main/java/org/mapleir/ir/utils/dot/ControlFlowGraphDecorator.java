@@ -1,5 +1,10 @@
 package org.mapleir.ir.utils.dot;
 
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+
 import org.mapleir.flowgraph.edges.FlowEdge;
 import org.mapleir.flowgraph.edges.TryCatchEdge;
 import org.mapleir.ir.cfg.BasicBlock;
@@ -7,11 +12,6 @@ import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.Stmt;
 import org.mapleir.stdlib.collections.graph.dot.DotPropertyDecorator;
 import org.mapleir.stdlib.util.TabbedStringWriter;
-
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
 
 public class ControlFlowGraphDecorator implements DotPropertyDecorator<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> {
 	
@@ -47,7 +47,7 @@ public class ControlFlowGraphDecorator implements DotPropertyDecorator<ControlFl
 		}
 		
 		StringBuilder sb = new StringBuilder();
-		sb.append(order.indexOf(n)).append(". ").append(n.getId());
+		sb.append(order.indexOf(n)).append(". ").append(n.getDisplayName());
 		if((flags & OPT_STMTS) != 0) {
 			sb.append("\\l");
 			StringBuilder sb2 = new StringBuilder();

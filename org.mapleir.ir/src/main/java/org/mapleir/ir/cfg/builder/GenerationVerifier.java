@@ -684,7 +684,7 @@ public class GenerationVerifier {
 			for(GenerationEvent e : events) {
 				msglog.append(e).append(System.lineSeparator());
 			}
-			return String.format("%s, b: #%s, stack: %s%n  Eventlog(%d):%s", Printer.OPCODES[insn.opcode()].toLowerCase(), block.getId(), stack, events.size(), msglog);
+			return String.format("%s, b: #%s, stack: %s%n  Eventlog(%d):%s", Printer.OPCODES[insn.opcode()].toLowerCase(), block.getDisplayName(), stack, events.size(), msglog);
 		}
 	}
 	

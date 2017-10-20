@@ -88,7 +88,7 @@ public class PhiExpr extends Expr {
 		while(it.hasNext()) {
 			Entry<BasicBlock, Expr> e = it.next();
 			
-			printer.print(e.getKey().getId());
+			printer.print(e.getKey().getDisplayName());
 			printer.print(":");
 			e.getValue().toString(printer);
 			

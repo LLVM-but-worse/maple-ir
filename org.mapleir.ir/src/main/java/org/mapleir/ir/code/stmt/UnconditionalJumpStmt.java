@@ -31,7 +31,7 @@ public class UnconditionalJumpStmt extends Stmt {
 
 	@Override
 	public void toString(TabbedStringWriter printer) {
-		printer.print("goto " + target.getId());
+		printer.print("goto " + target.getDisplayName());
 	}
 
 	@Override

@@ -19,11 +19,11 @@ public abstract class JumpEdge<N extends FastGraphVertex> extends AbstractFlowEd
 	
 	@Override
 	public String toString() {
-		return String.format("Jump[%s] #%s -> #%s", Printer.OPCODES[opcode], src.getId(), dst.getId());
+		return String.format("Jump[%s] #%s -> #%s", Printer.OPCODES[opcode], src.getDisplayName(), dst.getDisplayName());
 	}
 	
 	@Override
 	public String toInverseString() {
-		return String.format("Jump[%s] #%s <- #%s", Printer.OPCODES[opcode], dst.getId(), src.getId());
+		return String.format("Jump[%s] #%s <- #%s", Printer.OPCODES[opcode], dst.getDisplayName(), src.getDisplayName());
 	}
 }
