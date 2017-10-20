@@ -273,8 +273,8 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		
 		if (!checkCloneHandler(newBlock)) {
 			System.err.println(cfg);
-			System.err.println(newBlock.getId());
-			System.err.println(b.getId());
+			System.err.println(newBlock.getDisplayName());
+			System.err.println(b.getDisplayName());
 			throw new IllegalStateException("the new block should always need a handler..?");
 		}
 			
@@ -333,7 +333,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		if(t != b) {
 			System.err.println(builder.graph);
 			System.err.println(s.getBlock());
-			throw new IllegalStateException(s + ", "+ t.getId() + " != " + b.getId());
+			throw new IllegalStateException(s + ", "+ t.getDisplayName() + " != " + b.getDisplayName());
 		}
 	}
 	
@@ -413,7 +413,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 								 * catch copies, and this block cannot
 								 * be visited twice to insert a phi or
 								 * psi(ephi) node. */
-								throw new IllegalStateException(x.getId());
+								throw new IllegalStateException(x.getDisplayName());
 							}
 							
 							// TODO: actually handle.
@@ -1234,7 +1234,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 								pop.setExpression(newExpr);
 							} else {
 								System.err.println(b);
-								System.err.println("Stmt: " + stmt.getId() + ". " + stmt);
+								System.err.println("Stmt: " + stmt.getDisplayName() + ". " + stmt);
 								System.err.println("Inst: " + inst);
 								System.err.println(builder.graph);
 								throw new RuntimeException("interesting1 " + inst.getClass());

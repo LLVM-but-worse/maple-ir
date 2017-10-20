@@ -29,8 +29,8 @@ public class FastGraphEdgeImpl<N extends FastGraphVertex> implements FastGraphEd
 		FastGraphEdge v = (FastGraphEdge) o;
 
 		// assert id/numericId are consistent
-		assert ((v.src().getNumericId() == src.getNumericId()) == (v.src().getId().equals(src.getId())));
-		assert ((v.dst().getNumericId() == dst.getNumericId()) == (v.dst().getId().equals(dst.getId())));
+		assert ((v.src().getNumericId() == src.getNumericId()) == (v.src().getDisplayName().equals(src.getDisplayName())));
+		assert ((v.dst().getNumericId() == dst.getNumericId()) == (v.dst().getDisplayName().equals(dst.getDisplayName())));
 
 		return v.src().getNumericId() == src.getNumericId() && v.dst().getNumericId() == dst.getNumericId();
 	}

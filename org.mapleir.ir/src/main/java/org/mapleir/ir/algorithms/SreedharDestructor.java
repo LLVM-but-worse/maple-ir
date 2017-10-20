@@ -1,5 +1,13 @@
 package org.mapleir.ir.algorithms;
 
+import static org.mapleir.ir.code.Opcode.LOCAL_LOAD;
+
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.ListIterator;
+import java.util.Map;
+import java.util.Map.Entry;
+
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.Expr;
@@ -17,14 +25,6 @@ import org.mapleir.stdlib.collections.bitset.IncrementalBitSetIndexer;
 import org.mapleir.stdlib.collections.map.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.map.ValueCreator;
 import org.objectweb.asm.Type;
-
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.ListIterator;
-import java.util.Map;
-import java.util.Map.Entry;
-
-import static org.mapleir.ir.code.Opcode.LOCAL_LOAD;
 
 public class SreedharDestructor {
 
@@ -528,7 +528,7 @@ public class SreedharDestructor {
 
 		@Override
 		public String toString() {
-			return block.getId() + ":" + local + (isTarget? "(targ)" : "");
+			return block.getDisplayName() + ":" + local + (isTarget? "(targ)" : "");
 		}
 	}
 

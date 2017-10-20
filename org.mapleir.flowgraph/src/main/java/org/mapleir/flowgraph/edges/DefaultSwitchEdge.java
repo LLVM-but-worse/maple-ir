@@ -19,12 +19,12 @@ public class DefaultSwitchEdge<N extends FastGraphVertex> extends AbstractFlowEd
 	
 	@Override
 	public String toString() {
-		return String.format("DefaultSwitch #%s -> #%s", src.getId(), dst.getId());
+		return String.format("DefaultSwitch #%s -> #%s", src.getDisplayName(), dst.getDisplayName());
 	}
 	
 	@Override
 	public String toInverseString() {
-		return String.format("DefaultSwitch #%s <- #%s", dst.getId(), src.getId());
+		return String.format("DefaultSwitch #%s <- #%s", dst.getDisplayName(), src.getDisplayName());
 	}
 
 	@Override

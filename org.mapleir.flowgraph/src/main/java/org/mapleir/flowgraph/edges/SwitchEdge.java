@@ -21,12 +21,12 @@ public class SwitchEdge<N extends FastGraphVertex> extends AbstractFlowEdge<N> {
 	
 	@Override
 	public String toString() {
-		return String.format("Switch[%d] #%s -> #%s", value, src.getId(), dst.getId());
+		return String.format("Switch[%d] #%s -> #%s", value, src.getDisplayName(), dst.getDisplayName());
 	}
 
 	@Override
 	public String toInverseString() {
-		return String.format("Switch[%d] #%s <- #%s", value, dst.getId(), src.getId());
+		return String.format("Switch[%d] #%s <- #%s", value, dst.getDisplayName(), src.getDisplayName());
 	}
 
 	@Override

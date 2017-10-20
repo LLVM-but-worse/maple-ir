@@ -226,7 +226,7 @@ public class BasicBlock implements FastGraphVertex, Comparable<BasicBlock>, List
 	}
 
 	@Override
-	public String getId() {
+	public String getDisplayName() {
 		return createBlockName(id);
 	}
 
@@ -270,7 +270,7 @@ public class BasicBlock implements FastGraphVertex, Comparable<BasicBlock>, List
 				if(e.dst() == this) {
 					return true;
 				} else {
-					throw new IllegalStateException("incoming throw edge for " + getId() + " with dst " + e.dst().getId());
+					throw new IllegalStateException("incoming throw edge for " + getDisplayName() + " with dst " + e.dst().getDisplayName());
 				}
 			}
 		}
