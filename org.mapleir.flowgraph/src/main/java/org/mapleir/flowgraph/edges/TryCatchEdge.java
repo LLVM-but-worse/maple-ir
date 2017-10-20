@@ -23,7 +23,8 @@ public class TryCatchEdge<N extends FastGraphVertex> extends AbstractFlowEdge<N>
 	
 	private void recalcHashcode() {
 		hashcode = 31 + (erange == null ? 0 : erange.hashCode());
-		hashcode += (src.getId() + " " + dst.getId()).hashCode();
+		hashcode += 31 * hashcode + src.getNumericId();
+		hashcode += 31 * hashcode + dst.getNumericId();
 	}
 
 	@Override
@@ -34,12 +35,12 @@ public class TryCatchEdge<N extends FastGraphVertex> extends AbstractFlowEdge<N>
 	@Override
 	public String toString() {
 		List<N> l = erange.get();
-		return String.format("TryCatch range: [%s...%s] -> %s (%s)", l.get(0).getId(), l.get(l.size() - 1).getId()/*ExceptionRange.rangetoString(erange.get())*/, dst.getId(), erange.getTypes());
+		return String.format("TryCatch range: [%s...%s] -> %s (%s)", l.get(0).getDisplayName(), l.get(l.size() - 1).getDisplayName()/*ExceptionRange.rangetoString(erange.get())*/, dst.getDisplayName(), erange.getTypes());
 	}
 
 	@Override
 	public String toInverseString() {
-		return String.format("TryCatch handler: %s <- range: [%s...%s] (%s)", dst.getId(), erange.get().iterator().next()/*ExceptionRange.rangetoString(erange.get())*/, src.getId(), erange.getTypes());
+		return String.format("TryCatch handler: %s <- range: [%s...%s] (%s)", dst.getDisplayName(), erange.get().iterator().next()/*ExceptionRange.rangetoString(erange.get())*/, src.getDisplayName(), erange.getTypes());
 	}
 
 	@Override

@@ -125,7 +125,7 @@ public class ExceptionRange<N extends FastGraphVertex> {
 			N prev = lit.next();
 			if(lit.hasNext()) {
 				N b = lit.next();
-				if(StringHelper.numeric(prev.getId()) >= StringHelper.numeric(b.getId())) {
+				if(prev.getNumericId() >= b.getNumericId()) {
 					return false;
 				}
 			}
@@ -165,9 +165,10 @@ public class ExceptionRange<N extends FastGraphVertex> {
 			return set.toString();
 		}
 		
-		int last = StringHelper.numeric(set.get(0).getId()) - 1;
+		// FIXME: verify this works as intended after getId removed
+		int last = set.get(0).getNumericId() - 1;
 		for(int i=0; i < set.size(); i++) {
-			int num = StringHelper.numeric(set.get(i).getId());
+			int num = set.get(i).getNumericId();
 			if((last + 1) == num) {
 				last++;
 				continue;
@@ -176,7 +177,7 @@ public class ExceptionRange<N extends FastGraphVertex> {
 			}
 		}
 		
-		return String.format("[#%s...#%s]", set.get(0).getId(), StringHelper.createBlockName(last));
+		return String.format("[#%s...#%s]", set.get(0).getDisplayName(), StringHelper.createBlockName(last));
 	}
 	
 	public List<N> getNodes() {

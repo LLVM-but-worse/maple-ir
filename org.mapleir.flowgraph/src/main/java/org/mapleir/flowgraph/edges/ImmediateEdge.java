@@ -15,12 +15,12 @@ public class ImmediateEdge<N extends FastGraphVertex> extends AbstractFlowEdge<N
 
 	@Override
 	public String toString() {
-		return String.format("Immediate #%s -> #%s", src.getId(), dst.getId());
+		return String.format("Immediate #%s -> #%s", src.getDisplayName(), dst.getDisplayName());
 	}
 
 	@Override
 	public String toInverseString() {
-		return String.format("Immediate #%s <- #%s", dst.getId(), src.getId());
+		return String.format("Immediate #%s <- #%s", dst.getDisplayName(), src.getDisplayName());
 	}
 	
 	@Override

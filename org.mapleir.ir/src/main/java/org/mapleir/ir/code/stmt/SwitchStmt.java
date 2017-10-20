@@ -122,10 +122,10 @@ public class SwitchStmt extends Stmt {
 		printer.print(" {");
 		printer.tab();
 		for(Entry<Integer, BasicBlock> e : targets.entrySet()) {
-			printer.print("\ncase " + e.getKey() + ":\n\t goto\t#" + e.getValue().getId());
+			printer.print("\ncase " + e.getKey() + ":\n\t goto\t#" + e.getValue().getDisplayName());
 
 		}
-		printer.print("\ndefault:\n\t goto\t#" + defaultTarget.getId());
+		printer.print("\ndefault:\n\t goto\t#" + defaultTarget.getDisplayName());
 		printer.untab();
 		printer.print("\n}");		
 	}

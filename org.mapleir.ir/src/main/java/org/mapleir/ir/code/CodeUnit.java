@@ -50,8 +50,8 @@ public abstract class CodeUnit implements FastGraphVertex, Opcode {
 	}
 
 	@Override
-	public String getId() {
-		return Long.toString(id);
+	public String getDisplayName() {
+		return Integer.toString(id);
 	}
 
 	@Override

@@ -108,7 +108,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 	
 	protected void setInputStack(BasicBlock b, ExpressionStack s) {
 		if(inputStacks.containsKey(b)) {
-			throw new UnsupportedOperationException(b.getId() + " already has inputstack: " + inputStacks.get(b) + " vs. " + s);
+			throw new UnsupportedOperationException(b.getDisplayName() + " already has inputstack: " + inputStacks.get(b) + " vs. " + s);
 		}
 		
 		inputStacks.put(b, s);
@@ -1345,7 +1345,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 	protected void save_stack(boolean check) {
 		// System.out.println("Saving " + currentBlock.getId());
 		if (!currentBlock.isEmpty() && currentBlock.get(currentBlock.size() - 1).canChangeFlow()) {
-			throw new IllegalStateException("Flow instruction already added to block; cannot save stack: "  + currentBlock.getId());
+			throw new IllegalStateException("Flow instruction already added to block; cannot save stack: "  + currentBlock.getDisplayName());
 		}
 		
 		// System.out.println("\n   Befor: " + currentStack);
@@ -1435,10 +1435,10 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 			// DotWriter<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> writer = new DotWriter<>(config, builder.graph);
 			// writer.removeAll().add(new ControlFlowGraphDecorator().setFlags(ControlFlowGraphDecorator.OPT_DEEP)).setName("6996").export();
 			
-			System.err.println("Current: " + stack + " in " + b.getId());
-			System.err.println("Target : " + getInputStackFor(target) + " in " + target.getId());
+			System.err.println("Current: " + stack + " in " + b.getDisplayName());
+			System.err.println("Target : " + getInputStackFor(target) + " in " + target.getDisplayName());
 			System.err.println(builder.graph);
-			throw new IllegalStateException("Stack coherency mismatch into #" + target.getId());
+			throw new IllegalStateException("Stack coherency mismatch into #" + target.getDisplayName());
 		}
 	}
 	
@@ -1448,15 +1448,15 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		}
 		BasicBlock startBlock = null, endBlock = null;
 		int startIndex = 0, endIndex = 0;
-		String startName = StringHelper.createBlockName(start);
-		String endName = StringHelper.createBlockName(end);
+//		String startName = StringHelper.createBlockName(start);
+//		String endName = StringHelper.createBlockName(end);
 		int blockIndex = 0;
 		for(BasicBlock b : gblocks) {
-			if(b.getId().equals(startName)) {
+			if(b.getNumericId() == start) {
 				startBlock = b;
 				startIndex = blockIndex;
 			}
-			if(b.getId().equals(endName)) {
+			if(b.getNumericId() == end) {
 				endBlock = b;
 				endIndex = blockIndex;
 			}
@@ -1502,7 +1502,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 			
 			List<BasicBlock> range = range(order, start, end);
 			BasicBlock handler = builder.graph.getBlock(tc.handler);
-			String key = String.format("%s:%s:%s", StringHelper.createBlockName(start), StringHelper.createBlockName(end), handler.getId());
+			String key = String.format("%d:%d:%s", start, end, handler.getNumericId());
 			
 			ExceptionRange<BasicBlock> erange;
 			if(ranges.containsKey(key)) {

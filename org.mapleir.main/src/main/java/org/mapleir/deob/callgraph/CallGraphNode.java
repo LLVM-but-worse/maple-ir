@@ -13,7 +13,7 @@ public abstract class CallGraphNode implements FastGraphVertex {
 	}
 
 	@Override
-	public String getId() {
+	public String getDisplayName() {
 		return Integer.toString(id);
 	}
 

@@ -122,7 +122,7 @@ public class ConditionalJumpStmt extends Stmt {
 		right.toString(printer);
 		printer.print(')');
 		printer.tab();
-		printer.print("\ngoto " + trueSuccessor.getId());
+		printer.print("\ngoto " + trueSuccessor.getDisplayName());
 		printer.untab();
 	}
 

@@ -1,7 +1,12 @@
 package org.mapleir.stdlib.collections.graph;
 
-
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
+import java.util.SortedSet;
 
 public class GraphUtils {
 	public static final int FAKEHEAD_ID = Integer.MAX_VALUE -1;
@@ -15,7 +20,7 @@ public class GraphUtils {
 			if(b == null) {
 				sb.append("null");
 			} else {
-				sb.append(b.getId());
+				sb.append(b.getDisplayName());
 			}
 			
 			if(it.hasNext()) {

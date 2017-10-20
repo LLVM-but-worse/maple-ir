@@ -208,7 +208,7 @@ public class ClassTree extends FastDirectedGraph<ClassNode, InheritanceEdge> {
 	}
 	
 	public static void blockToString(TabbedStringWriter sw, ClassTree ct, ClassNode cn) {
-		sw.print(String.format("%s", cn.getId()));
+		sw.print(String.format("%s", cn.getDisplayName()));
 		sw.tab();
 		for(InheritanceEdge e : ct.getEdges(cn)) {
 			sw.print("\n^ " + e.toString());
@@ -230,7 +230,7 @@ public class ClassTree extends FastDirectedGraph<ClassNode, InheritanceEdge> {
 		
 		@Override
 		public String toString() {
-			return String.format("#%s extends #%s", src.getId(), dst.getId());
+			return String.format("#%s extends #%s", src.getDisplayName(), dst.getDisplayName());
 		}
 	}
 
@@ -241,7 +241,7 @@ public class ClassTree extends FastDirectedGraph<ClassNode, InheritanceEdge> {
 		
 		@Override
 		public String toString() {
-			return String.format("#%s implements #%s", src.getId(), dst.getId());
+			return String.format("#%s implements #%s", src.getDisplayName(), dst.getDisplayName());
 		}
 	}
 

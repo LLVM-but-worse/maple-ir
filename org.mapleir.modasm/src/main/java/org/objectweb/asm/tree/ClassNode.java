@@ -438,7 +438,7 @@ public class ClassNode extends ClassVisitor implements FastGraphVertex {
    	private final int numericId = ID_COUNTER++;
     
     @Override
-    public String getId() {
+    public String getDisplayName() {
         return name.replace("/", "_");
     }
     
