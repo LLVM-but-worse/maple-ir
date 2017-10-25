@@ -10,52 +10,9 @@
 
 	<name>ir</name>
 	<artifactId>ir</artifactId>
-
-	<build>
-		<plugins>
-			<plugin>
-				<groupId>org.antlr</groupId>
-				<artifactId>antlr4-maven-plugin</artifactId>
-				<version>4.7</version>
-				<configuration>
-					<arguments>
-						<argument>-package</argument>
-						<argument>org.mapleir.ir.antlr</argument>
-					</arguments>
-					<outputDirectory>${project.build.directory}/generated-sources/antlr4/org/mapleir/ir/antlr</outputDirectory>
-				</configuration>
-				<executions>
-					<execution>
-						<id>antlr</id>
-						<goals>
-							<goal>antlr4</goal>
-						</goals>
-					</execution>
-				</executions>
-			</plugin>
-
-			<plugin>
-				<groupId>org.codehaus.mojo</groupId>
-				<artifactId>build-helper-maven-plugin</artifactId>
-				<version>1.7</version>
-				<executions>
-					<execution>
-						<id>add-source</id>
-						<phase>generate-sources</phase>
-						<goals>
-							<goal>add-source</goal>
-						</goals>
-						<configuration>
-							<sources>
-								<source>target/generated-sources/antlr4/</source>
-							</sources>
-						</configuration>
-					</execution>
-				</executions>
-			</plugin>
-		</plugins>
-	</build>
-
+	<groupId>org.mapleir.ir</groupId>
+	
+	
 	<dependencies>
 		<dependency>
 			<groupId>org.mapleir.stdlib</groupId>
@@ -83,5 +40,4 @@
 			<version>4.7</version>
 		</dependency>
 	</dependencies>
-	<groupId>org.mapleir.ir</groupId>
 </project>
