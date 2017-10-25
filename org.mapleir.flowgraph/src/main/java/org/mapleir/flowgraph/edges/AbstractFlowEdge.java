@@ -11,7 +11,30 @@ public abstract class AbstractFlowEdge<N extends FastGraphVertex> extends FastGr
 		this.type = type;
 	}
 
+	@Override
 	public int getType() {
 		return type;
+	}
+
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = super.hashCode();
+		result = prime * result + type;
+		return result;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (!super.equals(obj))
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		AbstractFlowEdge<?> other = (AbstractFlowEdge<?>) obj;
+		if (type != other.type)
+			return false;
+		return true;
 	}
 }
