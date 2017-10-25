@@ -190,17 +190,38 @@ public class CompilationDriver extends mapleirBaseListener {
 		}
 	}
 	
-	private void logProblem(CompilationProblem p, Consumer<String> printConsumer) {
+	private void logProblem(CompilationProblem p,
+			Consumer<String> printConsumer) {
 		SourcePosition pos = p.getPosition();
-		
-		int spacerWidth = 3;
-		
-		printConsumer.accept(String.format("%s at line %d (col:%d)", p.getMessage(), pos.line, pos.column));
-		
+
 		String ptext = pos.getText();
-		if(ptext != null) {
-			printConsumer.accept(String.format("%s%s", makeSpacer(spacerWidth, ' '), ptext));
-			printConsumer.accept(String.format("%s^", makeSpacer(spacerWidth + pos.tokenOffset, ' ')));
+
+		String pointer = "(ツ)_/";
+		int spacerWidth;
+
+		/* if the pointer is shorter than the token, move the token
+		 * over, so the pointer can fit and point to the correct
+		 * character. */
+		if (ptext.length() < (pointer.length() - pos.tokenOffset)) {
+			spacerWidth = pointer.length();
+		} else {
+			spacerWidth = 0;
+		}
+		
+		/* move away from the lhs */
+		spacerWidth += 3;
+
+		printConsumer.accept(String.format("%s at line %d (col:%d)",
+				p.getMessage(), pos.line, pos.column));
+
+		/* autoformatter wth */
+		if (ptext != null) {
+			printConsumer.accept(
+					String.format("%s%s", makeSpacer(spacerWidth, ' '), ptext));
+			printConsumer.accept(String.format("%s%s",
+					makeSpacer(spacerWidth + pos.tokenOffset - pointer.length(),
+							' '),
+					pointer));
 		}
 	}
 	
