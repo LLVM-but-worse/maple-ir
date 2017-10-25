@@ -24,6 +24,10 @@ public class PhiExpr extends Expr {
 		super(opcode);
 		this.arguments = arguments;
 	}
+
+	public PhiExpr() {
+		this(new HashMap<>());
+	}
 	
 	public PhiExpr(Map<BasicBlock, Expr> arguments) {
 		super(PHI);
