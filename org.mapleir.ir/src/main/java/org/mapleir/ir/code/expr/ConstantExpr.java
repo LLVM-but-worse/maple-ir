@@ -1,6 +1,5 @@
 package org.mapleir.ir.code.expr;
 
-import org.mapleir.ir.TypeUtils;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.CodeUnit;
 import org.mapleir.ir.code.Expr;
@@ -37,13 +36,14 @@ public class ConstantExpr extends Expr {
 			}
 		}
 		
-		if(cst instanceof Number && !TypeUtils.unboxType(cst).equals(type)) {
+		/*if(cst instanceof Number && !TypeUtils.unboxType(cst).equals(type)) {
 			if(ctype == null) {
 				ctype = computeType(cst);
 			}
+			Object cstCopy = cst;
 			cst = TypeUtils.rebox((Number) cst, ctype);
-			// throw new RuntimeException(String.format("rebox: %s (%s) to %s (%s)", cst, cst.getClass(), type, TypeUtils.rebox((Number)cst, computeType(cst)).getClass()));
-		}
+			throw new RuntimeException(String.format("rebox: %s (%s) to %s (%s)", cstCopy, cstCopy.getClass(), type, TypeUtils.rebox((Number)cst, computeType(cst)).getClass()));
+		}*/
 
 		this.cst = cst;
 		this.type = type;
