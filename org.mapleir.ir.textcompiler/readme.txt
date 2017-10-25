@@ -1,0 +1,1 @@
+When building, cinlude target/generated-sources/antlr4 as a source folder

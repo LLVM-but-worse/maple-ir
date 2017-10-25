@@ -1,0 +1,99 @@
+Fully qualified class name (fqcn): package_1/package_i/package_n/ClassName
+
+Directives:
+	.begin <options> must be matched with corresponding .end directives
+	
+	.class (name)
+		MUST be used with the begin directive
+	
+	.method (name) (method_desc) - declares a method (does not define)
+		.begin method (name) (method_desc) must be used to declare a method in almost all cases
+	.field (name) (desc) (= (constexpr)) - declares a field
+		.begin field ... should be used to declare properties of the member
+		
+	.end
+	
+	Member property directives:
+		.set (name) <values>
+			sets a property in the current member region/scope
+
+		.begin code
+			Followed by:
+				directives
+				statements
+				block declarations
+			
+Access Modifiers:
+    Class specific: public, protected, abstract static final strictfp
+    General: Class specific + native, synchronized, transient, volatile
+        
+Block declarations:
+	(block_name):
+
+Constant values:
+	numeric types, Strings, chars, null, boolean types
+	arithmetic operations are permitted if the computation computes a constant
+	
+	Access constants:
+		those defined in ASM Opcodes interface
+
+Types:
+	Primitives: I, B, S, J, F, D, Z
+	Special: V
+	Reference: L(fqcn);
+	Array: Any number of '[''s + Primitive or Reference Type
+	Method: (<primitive|reference>)(primitive|reference|V)
+Locals:
+	locals are named as follows:
+		(l|s)var_(ver)
+	l = local
+	s = stack
+	ver = ssa version
+
+Expression types: (expr)
+	n.b: variables are a subset of expressions:
+	(vexpr)=>
+		<expr>.v
+	or
+		(fqcn).v
+	where <..> is optional
+    
+	AllocObject: new (fqcn)
+	InitialisedObject: new (fqcn)(), new J((expr_1),..,(expr_n))
+	InvocationExpr: 
+		virtual: (expr_0).vmethod((expr_1), ..., (expr_n))
+		static smethod((expr_1), ..., (expr_n))
+	Arithmetic: (expr1) (OP) (expr2)
+		OPs: +, -, *, /, %, <<, >>, >>>, |, &, ^
+	ArrayLength: (expr).length
+	ArrayLoad: (vexpr) = (expr1)[(expr2)]
+	Cast: (T) (expr)
+	CaughtException: .catch but should only appear in a copy statement
+	Comparison: .compare((expr1), (expr2), type) where type is TBD
+	Constant: constant values
+	FieldLoad: (expr).f
+  			   (fqcn).f
+	Instanceof: (expr) instanceof (fqcn)
+	Negation: -(expr)
+	NewArray: new T[(expr_1)]...[(expr_i)]...[(expr_n)]
+	PhiException: No impl yet
+	PhiExpr: 'ɸ'{B0:L0, ... , Bn:Ln} where Bi is a block Id and Li is a local name
+	// TODO: dynamic invoke
+  
+Stmt types:
+	ArrayStore: (expr1)[(expr2)] = (expr3)
+	ConditionalJump: .if((expr1) OP (expr2)) .goto B
+	FieldStore: (expr1).f = (expr2)
+	Monitor:
+		enter: .monitor_enter (expr)
+		exit: .monitor_exit (expr)
+	Pop: .consume (expr)
+	Return: .return (expr)
+	Switch: 
+	.switch((expr)) {
+ 		.case (expr_i): .goto B_i
+ 		.default: .goto B_j 
+  	}
+	Throw: .throw (expr)
+	UnconditionalJump: .goto B
+	Assign: local = (expr)

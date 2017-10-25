@@ -1,0 +1,19 @@
+package org.mapleir.ir.antlr;
+
+public enum ExprType {
+	FIELDGET_OR_ARRLEN,
+	ARRGET,
+	NEW_OR_ALLOC,
+	LOW_COMPARE,
+	CAST,
+	STATIC_INVOKE,
+	EXPR_VIRTUAL_INVOKE,
+	VAR_VIRTUAL_INVOKE,
+	NOT,
+	NEG,
+	ARITH,
+	SHIFT,
+	BIT,
+	INSTANCEOF,
+	CATCH
+}

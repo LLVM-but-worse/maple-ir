@@ -1,0 +1,20 @@
+.set compilerver 1.8
+
+.class java/lang/Class {
+
+	.method (Ljava/lang/StringIIB[[ILjava/lang/String;)I myMethod {
+		.code {
+			A: {
+				.synth lvar0_0 = lvar0_0
+				lvar2_1 = .phi {A:lvar2_0, B:lvar2_1}
+				lvar3_0 = ((((5 + 1))))
+				
+				.if (lvar3_4_0 == 5)
+					.goto B
+			}
+			B: {
+				.return lvar2_1
+			}
+		}
+	}
+}
