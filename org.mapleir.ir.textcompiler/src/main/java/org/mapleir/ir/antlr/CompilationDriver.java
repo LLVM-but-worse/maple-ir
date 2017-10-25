@@ -163,7 +163,7 @@ public class CompilationDriver extends mapleirBaseListener {
 		}
 
 		/* push our global scope and process global directives */
-		scopes.push(new Scope() {}); // TODO:
+		scopes.push(new Scope(this) {}); // TODO:
 		
 		parseDirectives(unit.setDirective());
 		processClassDecl(unit.classDeclaration());
@@ -857,7 +857,7 @@ public class CompilationDriver extends mapleirBaseListener {
 	}
 
 	private void processMethodDirectives(MethodScope methodScope) {
-		for (DirectiveToken curDirectiveToken : methodScope.getProperties()) {
+		/*for (DirectiveToken curDirectiveToken : methodScope.getProperties()) {
 			String directiveKey = curDirectiveToken.getKey();
 
 			if (directiveKey.equals("access")) {
@@ -866,7 +866,7 @@ public class CompilationDriver extends mapleirBaseListener {
 			} else {
 				// memberDirectiveError(curDirectiveToken);
 			}
-		}
+		}*/
 	}
 	
 	private void processFieldDecl(FieldDeclarationContext fieldDeclCtx) {
@@ -908,7 +908,7 @@ public class CompilationDriver extends mapleirBaseListener {
 	}
 	
 	private void processFieldDirectives(FieldScope fieldScope) {		
-		for (DirectiveToken curDirectiveToken : fieldScope.getProperties()) {
+		/*for (DirectiveToken curDirectiveToken : fieldScope.getProperties()) {
 			String directiveKey = curDirectiveToken.getKey();
 
 			if (directiveKey.equals("access")) {
@@ -917,7 +917,7 @@ public class CompilationDriver extends mapleirBaseListener {
 			} else {
 				// memberDirectiveError(curDirectiveToken);
 			}
-		}
+		}*/
 	}
 	
 	/*private void memberDirectiveError(DirectiveToken curDirectiveToken) {
@@ -942,6 +942,7 @@ public class CompilationDriver extends mapleirBaseListener {
 
 		if (currentScope == null) {
 			errorReporter.error("Tried to use set directive outside of an active scope");
+			errorReporter.popSourcePosition(setDirectiveSourcePosition);
 			return;
 		}
 
@@ -971,10 +972,9 @@ public class CompilationDriver extends mapleirBaseListener {
 		}
 
 		String key = setDirectiveCtx.Identifier().getText();
-		List<DirectiveToken> scopePropertyTokens = currentScope.getProperties();
 		DirectiveToken newToken = new DirectiveToken(errorReporter.makeSourcePositionOnly(setDirectiveCtx.Identifier()), key,
 				entryPropertyValue);
-		scopePropertyTokens.add(newToken);
+		currentScope.addDirective(newToken);
 
 		errorReporter.popSourcePosition(setDirectiveSourcePosition);
 	}

@@ -7,7 +7,7 @@ public class ClassScope extends Scope {
 	private final ClassDeclaration decl;
 	
 	public ClassScope(Scope scope) {
-		super(scope);
+		super(scope.driver, scope);
 		decl = new ClassDeclaration();
 	}
 	

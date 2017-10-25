@@ -7,7 +7,7 @@ public abstract class ClassMemberScope<T extends ClassMemberDeclaration> extends
 	private final T declaration;
 
 	public ClassMemberScope(ClassScope parent, T declaration) {
-		super(parent);
+		super(parent.driver, parent);
 		this.declaration = declaration;
 	}
 

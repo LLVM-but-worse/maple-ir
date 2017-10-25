@@ -17,7 +17,7 @@ public class CodeScope extends Scope {
 	private final Map<String, BasicBlock> blockMapping;
 	
 	public CodeScope(MethodScope parent) {
-		super(parent);
+		super(parent.driver, parent);
 	
 		localPool = new UpdateableLocalsPool(0);
 		cfg = new ControlFlowGraph(localPool);
