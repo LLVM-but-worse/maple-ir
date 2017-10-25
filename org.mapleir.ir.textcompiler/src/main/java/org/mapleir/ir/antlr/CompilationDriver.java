@@ -165,7 +165,7 @@ public class CompilationDriver extends mapleirBaseListener {
 		/* push our global scope and process global directives */
 		scopes.push(new Scope() {}); // TODO:
 		
-		processSetDirectives(unit.setDirective());
+		parseDirectives(unit.setDirective());
 		processClassDecl(unit.classDeclaration());
 		
 		parser.removeParseListener(this);
@@ -238,7 +238,7 @@ public class CompilationDriver extends mapleirBaseListener {
 		scopes.push(new ClassScope(scopes.peek()));
 		
 		checkClassName(cdecl.jclass());
-		processSetDirectives(cdecl.setDirective());
+		parseDirectives(cdecl.setDirective());
 		
 		List<DeclarationsContext> decls = cdecl.declarations();
 		if(decls != null && !decls.isEmpty()) {
@@ -277,7 +277,6 @@ public class CompilationDriver extends mapleirBaseListener {
 		
 		MethoddescContext methodDescCtx = methodDeclCtx.methoddesc();
 		SourcePosition methodDescCtxPos = errorReporter.newSourcePosition(methodDescCtx);
-		System.out.println("pushinG " + methodDescCtx.getText());
 		
 		String desc = methodDescCtx.getText();
 		checkMethodDec(desc);
@@ -286,6 +285,10 @@ public class CompilationDriver extends mapleirBaseListener {
 		
 		methodDecl.setName(methodDeclCtx.Identifier().getText());
 		methodDecl.setDesc(desc);
+		
+		/* parse/process property directives */
+		parseDirectives(methodDeclCtx.setDirective());
+		processMethodDirectives(methodScope);
 		
 		// TODO: parse code
 		CodebodyContext codeBodyCtx = methodDeclCtx.codebody();
@@ -297,11 +300,6 @@ public class CompilationDriver extends mapleirBaseListener {
 		scopes.pop();
 		
 		errorReporter.popSourcePosition(codeBodyCtxPos);
-		
-		
-		/* parse/process property directives */
-		processSetDirectives(methodDeclCtx.setDirective());
-		processMethodDirectives(methodScope);
 		
 		errorReporter.popSourcePosition(methodDeclCtxPos);
 		scopes.pop();
@@ -902,7 +900,7 @@ public class CompilationDriver extends mapleirBaseListener {
 		}
 
 		/* parse/process property directives */
-		processSetDirectives(fieldDeclCtx.setDirective());
+		parseDirectives(fieldDeclCtx.setDirective());
 		processFieldDirectives(scope);
 
 		errorReporter.popSourcePosition(fieldDeclCtxPos);
@@ -929,15 +927,15 @@ public class CompilationDriver extends mapleirBaseListener {
 		errorReporter.popSourcePosition(keySourcePosition);
 	}*/
 	
-	private void processSetDirectives(List<SetDirectiveContext> directives) {
+	private void parseDirectives(List<SetDirectiveContext> directives) {
 		if(directives != null && !directives.isEmpty()) {
 			for(SetDirectiveContext sdctx : directives) {
-				processSetDirective(sdctx);
+				parseDirective(sdctx);
 			}
 		}
 	}
 
-	private void processSetDirective(SetDirectiveContext setDirectiveCtx) {
+	private void parseDirective(SetDirectiveContext setDirectiveCtx) {
 		SourcePosition setDirectiveSourcePosition = errorReporter.newSourcePosition(setDirectiveCtx);
 
 		Scope currentScope = scopes.peek();
