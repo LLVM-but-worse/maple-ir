@@ -50,6 +50,7 @@ import org.mapleir.ir.antlr.directive.DirectiveToken;
 import org.mapleir.ir.antlr.directive.DirectiveValue;
 import org.mapleir.ir.antlr.directive.DirectiveValueList;
 import org.mapleir.ir.antlr.error.CompilationException;
+import org.mapleir.ir.antlr.error.CompilationProblem;
 import org.mapleir.ir.antlr.error.CompilationWarning;
 import org.mapleir.ir.antlr.error.ErrorReporter;
 import org.mapleir.ir.antlr.error.ForwardingErrorReporter;
@@ -170,32 +171,36 @@ public class CompilationDriver extends mapleirBaseListener {
 		parser.removeParseListener(this);
 		
 		if(!exceptions.isEmpty()) {
+			Consumer<String> errorConsumer = (s -> LOGGER.error(s));
+			
 			LOGGER.error("Compilation errors occured while processing file");
 			for(CompilationException e : exceptions) {
-				logError(e);
+				logProblem(e, errorConsumer);
 			}
 		}
 		
 		if(!warnings.isEmpty()) {
+			Consumer<String> warnConsumer = (s -> LOGGER.warn(s));
+			
 			LOGGER.error("Compilation warnings occured while processing file");
 			
 			for(CompilationWarning e : warnings) {
-				LOGGER.warn("  * " + e.toString());
+				logProblem(e, warnConsumer);
 			}
 		}
 	}
 	
-	private void logError(CompilationException e) {
-		SourcePosition pos = e.getPosition();
+	private void logProblem(CompilationProblem p, Consumer<String> printConsumer) {
+		SourcePosition pos = p.getPosition();
 		
 		int spacerWidth = 3;
 		
-		LOGGER.error(String.format("%s at line %d (col:%d)", e.getMessage(), pos.line, pos.column));
+		printConsumer.accept(String.format("%s at line %d (col:%d)", p.getMessage(), pos.line, pos.column));
 		
 		String ptext = pos.getText();
 		if(ptext != null) {
-			LOGGER.error(String.format("%s%s", makeSpacer(spacerWidth, ' '), ptext));
-			LOGGER.error(String.format("%s^", makeSpacer(spacerWidth + pos.tokenOffset, ' ')));
+			printConsumer.accept(String.format("%s%s", makeSpacer(spacerWidth, ' '), ptext));
+			printConsumer.accept(String.format("%s^", makeSpacer(spacerWidth + pos.tokenOffset, ' ')));
 		}
 	}
 	
