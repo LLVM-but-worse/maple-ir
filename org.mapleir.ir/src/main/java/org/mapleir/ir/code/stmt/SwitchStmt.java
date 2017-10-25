@@ -20,6 +20,10 @@ public class SwitchStmt extends Stmt {
 	private LinkedHashMap<Integer, BasicBlock> targets;
 	private BasicBlock defaultTarget;
 
+	public SwitchStmt(Expr expr) {
+		this(expr, new LinkedHashMap<>(), null);
+	}
+	
 	public SwitchStmt(Expr expr, LinkedHashMap<Integer, BasicBlock> targets, BasicBlock defaultTarget) {
 		super(SWITCH_JUMP);
 		setExpression(expr);
@@ -42,6 +46,14 @@ public class SwitchStmt extends Stmt {
 
 	public void setTargets(LinkedHashMap<Integer, BasicBlock> targets) {
 		this.targets = targets;
+	}
+	
+	public void addCase(Integer key, BasicBlock target) {
+		targets.put(key, target);
+	}
+	
+	public void removeCase(Integer key) {
+		targets.remove(key);
 	}
 
 	public BasicBlock getDefaultTarget() {
