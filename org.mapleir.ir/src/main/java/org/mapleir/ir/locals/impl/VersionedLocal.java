@@ -33,7 +33,11 @@ public class VersionedLocal extends Local {
 	
 	@Override
 	public String toString() {
-		return super.toString() + "_" + subscript;
+		if(getDisplayName() != null) {
+			return getDisplayName();
+		} else {
+			return super.toString() + "_" + subscript;
+		}
 	}
 
 	private static final int SUBSCRIPT_MASK = (1 << 24) - 1; // 24 bits for subscript

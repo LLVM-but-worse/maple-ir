@@ -8,6 +8,7 @@ public abstract class Local implements Comparable<Local> {
 	private final boolean stack;
 	private final int index;
 	private boolean tempLocal;
+	private String displayName;
 	
 	public Local(AtomicInteger base, int index) {
 		this(base, index, false);
@@ -21,6 +22,14 @@ public abstract class Local implements Comparable<Local> {
 			throw new IllegalArgumentException("Index underflow; hashCode collision possible " + index);
 	}
 	
+	public String getDisplayName() {
+		return displayName;
+	}
+
+	public void setDisplayName(String displayName) {
+		this.displayName = displayName;
+	}
+
 	public int getBase() {
 		return base.get();
 	}
@@ -43,7 +52,12 @@ public abstract class Local implements Comparable<Local> {
 	public String toString() {
 		if (DEBUG_PRINT)
 			return (stack ? "S" : "L") + /*"var" +*/ index;
-		return (stack ? "s" : "l") + "var" + index;
+		
+		if(displayName != null) {
+			return displayName;
+		} else {
+			return (stack ? "s" : "l") + "var" + index;
+		}
 	}
 
 	public boolean isTempLocal() {
