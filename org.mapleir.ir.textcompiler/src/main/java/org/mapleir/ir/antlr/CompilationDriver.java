@@ -994,8 +994,6 @@ public class CompilationDriver extends mapleirBaseListener {
 				entryPropertyValue);
 		currentScope.addDirective(newToken);
 		
-		System.out.println(newToken);
-		
 		errorReporter.popSourcePosition(setDirectiveSourcePosition);
 	}
 

@@ -2,7 +2,6 @@ package org.mapleir.ir.antlr.scope;
 
 import org.mapleir.ir.antlr.model.ClassMemberDeclaration;
 import org.mapleir.ir.antlr.scope.processor.typematch.ClassTypeMatcher;
-import org.mapleir.ir.antlr.scope.processor.typematch.HomogeneousCollectionTypeMatcher;
 
 public abstract class ClassMemberScope<T extends ClassMemberDeclaration> extends Scope {
 

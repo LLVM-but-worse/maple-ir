@@ -18,6 +18,10 @@ public class DirectiveDictValue extends DirectiveValue {
 		return (Map<String, DirectiveValue>) super.getValue();
 	}
 	
+	public DirectiveValue getValue(String key) {
+		return getValue().get(key);
+	}
+	
 	@Override
 	public String toString() {
 		Map<String, DirectiveValue> vals = getValue();
