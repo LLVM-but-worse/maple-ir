@@ -27,7 +27,8 @@ public class ForwardingErrorReporter implements ErrorReporter {
 		positionStack = new LinkedList<>();
 	}
 
-	protected void pushSourcePosition(SourcePosition pos) {
+	@Override
+	public void pushSourcePosition(SourcePosition pos) {
 		synchronized (positionStack) {
 			positionStack.push(pos);
 		}

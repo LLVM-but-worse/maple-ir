@@ -16,6 +16,8 @@ public interface ErrorReporter {
 	
 	SourcePosition newSourcePosition(int charOffset);
 	
+	void pushSourcePosition(SourcePosition pos);
+	
 	void popSourcePosition(SourcePosition expected);
 	
 	default void error(String msg) {
