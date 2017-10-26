@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.mapleir.ir.antlr.directive.DirectiveDictValue;
 import org.mapleir.ir.antlr.model.MethodDeclaration;
+import org.mapleir.ir.antlr.model.MethodDeclaration.HandlerTableEntry;
 import org.mapleir.ir.antlr.scope.processor.typematch.ClassTypeMatcher;
 import org.mapleir.ir.antlr.scope.processor.typematch.DictTypeMatcher;
 import org.mapleir.ir.antlr.scope.processor.typematch.HomogeneousCollectionTypeMatcher;
@@ -25,16 +26,11 @@ public class MethodScope extends ClassMemberScope<MethodDeclaration> {
 				.add("start", stringMatcher)
 				.add("end", stringMatcher)
 				.add("handler", stringMatcher);
-		
+
 		processorManager.registerProcessor("handlers", new HomogeneousCollectionTypeMatcher(tableEntryMatcher),
-				(t) -> (t.getValue().<List<DirectiveDictValue>>getValueUnsafe()).forEach(v -> print(v)));
-		
-	}
-	
-	private void print(DirectiveDictValue dict) {
-		System.out.println("handler:");
-		System.out.println("  s: " + dict.getValue("start"));
-		System.out.println("  e: " + dict.getValue("end"));
-		System.out.println("  h: " + dict.getValue("handler"));
+				(t) -> (t.getValue().<List<DirectiveDictValue>>getValueUnsafe())
+						.forEach(v -> getDeclaration().getHandlerEntries().add(
+								new HandlerTableEntry(v.getValue("start"), v.getValue("end"), v.getValue("handler")))));
+
 	}
 }

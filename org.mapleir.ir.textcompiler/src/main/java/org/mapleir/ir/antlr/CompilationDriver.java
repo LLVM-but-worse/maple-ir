@@ -9,8 +9,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 
+import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.TerminalNode;
 import org.apache.log4j.Logger;
+import org.mapleir.flowgraph.ExceptionRange;
 import org.mapleir.flowgraph.edges.ConditionalJumpEdge;
 import org.mapleir.flowgraph.edges.ImmediateEdge;
 import org.mapleir.ir.antlr.mapleirParser.ArgumentsContext;
@@ -62,6 +64,7 @@ import org.mapleir.ir.antlr.error.ErrorReporter;
 import org.mapleir.ir.antlr.error.ForwardingErrorReporter;
 import org.mapleir.ir.antlr.model.FieldDeclaration;
 import org.mapleir.ir.antlr.model.MethodDeclaration;
+import org.mapleir.ir.antlr.model.MethodDeclaration.HandlerTableEntry;
 import org.mapleir.ir.antlr.scope.ClassScope;
 import org.mapleir.ir.antlr.scope.CodeScope;
 import org.mapleir.ir.antlr.scope.FieldScope;
@@ -558,16 +561,40 @@ public class CompilationDriver extends mapleirBaseListener {
 			errorReporter.popSourcePosition(blockSourcePos);
 		}
 		
+		for(HandlerTableEntry hte : codeScope.getParent().getDeclaration().getHandlerEntries()) {
+			BasicBlock startBlock = lookupBlock(codeScope, hte.start, "range start");
+			BasicBlock endBlock = lookupBlock(codeScope, hte.start, "range end");
+			BasicBlock handlerBlock = lookupBlock(codeScope, hte.start, "handler");
+			if(startBlock == null || endBlock == null || handlerBlock == null) {
+				continue;
+			}
+			
+			ExceptionRange<BasicBlock> range = new ExceptionRange<>();
+			cfg.addRange(range);
+		}
 		System.out.println(cfg);
 	}
 	
-	private BasicBlock lookupBlock(CodeScope codeScope, TerminalNode sourceBlockIdentifier, String errorForUsage) {
+	private BasicBlock lookupBlock(CodeScope codeScope, DirectiveValue idVal, String errorForUsage) {
+		String sourceBlockName = idVal.getValueUnsafe();
+		BasicBlock sourceBlock = codeScope.findBlock(sourceBlockName);
+		
+		if(sourceBlock == null) {
+			errorReporter.pushSourcePosition(idVal.getValueSoucePosition());
+			errorReporter.error(String.format("no block for %s with id: \"%s\"", errorForUsage, sourceBlockName));
+			errorReporter.popSourcePosition(idVal.getValueSoucePosition());
+		}
+		
+		return sourceBlock;
+	}
+	
+	private BasicBlock lookupBlock(CodeScope codeScope, ParseTree sourceBlockIdentifier, String errorForUsage) {
 		String sourceBlockName = sourceBlockIdentifier.getText();
 		BasicBlock sourceBlock = codeScope.findBlock(sourceBlockName);
 		
 		if(sourceBlock == null) {
 			SourcePosition sourceBlockIdentifierSourcePos = errorReporter.newSourcePosition(sourceBlockIdentifier);
-			errorReporter.error(String.format("no block for %s with id: \"%s\"", errorForUsage, sourceBlock));
+			errorReporter.error(String.format("no block for %s with id: \"%s\"", errorForUsage, sourceBlockName));
 			errorReporter.popSourcePosition(sourceBlockIdentifierSourcePos);
 		}
 		
