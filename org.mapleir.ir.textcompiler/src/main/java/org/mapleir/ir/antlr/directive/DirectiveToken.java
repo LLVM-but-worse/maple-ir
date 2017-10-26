@@ -25,4 +25,9 @@ public class DirectiveToken {
 	public DirectiveValue getValue() {
 		return value;
 	}
+
+	@Override
+	public String toString() {
+		return "DirectiveToken [keySourcePosition=" + keySourcePosition + ", key=" + key + ", value=" + value + "]";
+	}
 }
