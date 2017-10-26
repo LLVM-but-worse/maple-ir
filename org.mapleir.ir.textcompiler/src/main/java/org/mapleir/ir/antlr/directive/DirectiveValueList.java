@@ -6,7 +6,7 @@ import java.util.List;
 
 import org.mapleir.ir.antlr.source.SourcePosition;
 
-public class DirectiveValueList extends DirectiveValue {
+public class DirectiveValueList extends DirectiveValue implements Iterable<DirectiveValue> {
 
 	public DirectiveValueList(SourcePosition valueSourcePosition, List<DirectiveValue> values) {
 		super(valueSourcePosition, Collections.unmodifiableList(values));
@@ -43,5 +43,10 @@ public class DirectiveValueList extends DirectiveValue {
 		} else {
 			return "null";
 		}
+	}
+
+	@Override
+	public Iterator<DirectiveValue> iterator() {
+		return getValue().iterator();
 	}
 }
