@@ -1,4 +1,5 @@
 .set compilerver 1.8
+.set mylist [1]
 
 .class java/lang/Class {
 

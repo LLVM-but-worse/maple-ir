@@ -39,6 +39,7 @@ import org.mapleir.ir.antlr.mapleirParser.PhiPairContext;
 import org.mapleir.ir.antlr.mapleirParser.PrimaryContext;
 import org.mapleir.ir.antlr.mapleirParser.ReturnStatementContext;
 import org.mapleir.ir.antlr.mapleirParser.SetCommandValueContext;
+import org.mapleir.ir.antlr.mapleirParser.SetCommandValueListContext;
 import org.mapleir.ir.antlr.mapleirParser.SetDirectiveContext;
 import org.mapleir.ir.antlr.mapleirParser.StatementContext;
 import org.mapleir.ir.antlr.mapleirParser.StaticFieldStoreStatementContext;
@@ -948,7 +949,9 @@ public class CompilationDriver extends mapleirBaseListener {
 
 		List<DirectiveValue> worklist = new ArrayList<>();
 
-		for (SetCommandValueContext scvCtx : setDirectiveCtx.setCommandValueList().setCommandValue()) {
+		SetCommandValueListContext setCommandValueListCtx = setDirectiveCtx.setCommandValueList();
+		
+		for (SetCommandValueContext scvCtx : setCommandValueListCtx.setCommandValue()) {
 			SourcePosition commandValueSourcePos = errorReporter.newSourcePosition(scvCtx);
 
 			try {
@@ -964,7 +967,9 @@ public class CompilationDriver extends mapleirBaseListener {
 
 		DirectiveValue entryPropertyValue;
 
-		if (worklist.size() == 1) {
+		boolean forceList = setCommandValueListCtx.LBRACK() != null;
+		
+		if (worklist.size() == 1 && !forceList) {
 			entryPropertyValue = worklist.iterator().next();
 		} else {
 			entryPropertyValue = new DirectiveValueList(errorReporter.makeSourcePositionOnly(setDirectiveCtx.setCommandValueList()),
@@ -975,7 +980,7 @@ public class CompilationDriver extends mapleirBaseListener {
 		DirectiveToken newToken = new DirectiveToken(errorReporter.makeSourcePositionOnly(setDirectiveCtx.Identifier()), key,
 				entryPropertyValue);
 		currentScope.addDirective(newToken);
-
+		
 		errorReporter.popSourcePosition(setDirectiveSourcePosition);
 	}
 

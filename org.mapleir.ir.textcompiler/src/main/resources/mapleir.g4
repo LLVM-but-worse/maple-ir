@@ -13,7 +13,8 @@ setCommandValue
 	;
 
 setCommandValueList
-	:	setCommandValue (COMMA setCommandValue)*?
+	:	LBRACK setCommandValue (COMMA setCommandValue)*? RBRACK
+	|	setCommandValue (COMMA setCommandValue)*?
 	;
 
 classDeclaration
