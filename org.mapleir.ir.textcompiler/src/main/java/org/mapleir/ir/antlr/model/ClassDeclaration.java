@@ -10,10 +10,12 @@ public class ClassDeclaration {
 	private String superName;
 	private List<String> interfaces;
 	private List<FieldDeclaration> fields;
+	private List<String> exceptions;
 	
 	public ClassDeclaration() {
 		interfaces = new ArrayList<>();
 		fields = new ArrayList<>();
+		exceptions = new ArrayList<>();
 	}
 
 	public int getAccess() {
@@ -54,5 +56,13 @@ public class ClassDeclaration {
 
 	public void setFields(List<FieldDeclaration> fields) {
 		this.fields = fields;
+	}
+
+	public List<String> getExceptions() {
+		return exceptions;
+	}
+
+	public void setExceptions(List<String> exceptions) {
+		this.exceptions = exceptions;
 	}
 }

@@ -7,4 +7,11 @@ public class MethodScope extends ClassMemberScope<MethodDeclaration> {
 	public MethodScope(ClassScope parent) {
 		super(parent, new MethodDeclaration());
 	}
+	
+	@Override
+	protected void registerProcessors() {
+		super.registerProcessors();
+		
+		
+	}
 }

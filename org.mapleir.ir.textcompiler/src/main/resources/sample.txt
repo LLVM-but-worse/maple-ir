@@ -4,6 +4,8 @@
 .class java/lang/Class {
 
 	.method (Ljava/lang/StringIIB[[ILjava/lang/String;)I myMethod {
+		.set access [0x1]
+		.set exceptions ["java/lang/Throwable", "java/lang/Exception"]
 		.code {
 			A: {
 				.synth lvar0_0 = lvar0_0
