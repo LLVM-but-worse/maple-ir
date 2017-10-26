@@ -1508,7 +1508,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 			if(ranges.containsKey(key)) {
 				erange = ranges.get(key);
 			} else {
-				erange = new ExceptionRange<>(tc);
+				erange = new ExceptionRange<>();
 				erange.setHandler(handler);
 				erange.addVertices(range);
 				ranges.put(key, erange);

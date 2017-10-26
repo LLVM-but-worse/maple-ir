@@ -10,26 +10,19 @@ import java.util.Set;
 import org.mapleir.stdlib.collections.graph.FastGraphVertex;
 import org.mapleir.stdlib.util.StringHelper;
 import org.objectweb.asm.Type;
-import org.objectweb.asm.tree.TryCatchBlockNode;
 
 public class ExceptionRange<N extends FastGraphVertex> {
 
-	private final TryCatchBlockNode node;
 	private final List<N> nodes;
 	private final Set<Type> types;
 	private N handler;
 	private int hashcode;
 	
-	public ExceptionRange(TryCatchBlockNode node) {
-		this.node = node;
+	public ExceptionRange() {
 		nodes = new ArrayList<>();
 		types = new HashSet<>();
 
 		hashCode();
-	}
-	
-	public TryCatchBlockNode getNode() {
-		return node;
 	}
 	
 	public void setHandler(N b) {
