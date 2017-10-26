@@ -20,6 +20,11 @@ public class DirectiveValue {
 		return value;
 	}
 	
+	@SuppressWarnings("unchecked")
+	public <T> T getValueUnsafe() {
+		return (T) value;
+	}
+	
 	@Override
 	public String toString() {
 		return String.valueOf(value);
