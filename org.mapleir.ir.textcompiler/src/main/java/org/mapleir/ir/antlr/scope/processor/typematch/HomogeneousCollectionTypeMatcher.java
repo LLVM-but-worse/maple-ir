@@ -5,9 +5,9 @@ import org.mapleir.ir.antlr.directive.DirectiveValueList;
 
 public class HomogeneousCollectionTypeMatcher implements TypeMatcher {
 
-	private final ClassTypeMatcher elementMatcher;
+	private final TypeMatcher elementMatcher;
 
-	public HomogeneousCollectionTypeMatcher(ClassTypeMatcher elementMatcher) {
+	public HomogeneousCollectionTypeMatcher(TypeMatcher elementMatcher) {
 		this.elementMatcher = elementMatcher;
 	}
 
