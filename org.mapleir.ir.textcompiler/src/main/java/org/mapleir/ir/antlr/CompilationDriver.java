@@ -3,8 +3,10 @@ package org.mapleir.ir.antlr;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Deque;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 
 import org.antlr.v4.runtime.tree.TerminalNode;
@@ -23,6 +25,8 @@ import org.mapleir.ir.antlr.mapleirParser.CopyStatementContext;
 import org.mapleir.ir.antlr.mapleirParser.CreatorContext;
 import org.mapleir.ir.antlr.mapleirParser.DeclarationsContext;
 import org.mapleir.ir.antlr.mapleirParser.DescContext;
+import org.mapleir.ir.antlr.mapleirParser.DictContext;
+import org.mapleir.ir.antlr.mapleirParser.DictKeyValPairContext;
 import org.mapleir.ir.antlr.mapleirParser.ExprContext;
 import org.mapleir.ir.antlr.mapleirParser.ExprlistContext;
 import org.mapleir.ir.antlr.mapleirParser.FieldDeclarationContext;
@@ -47,6 +51,7 @@ import org.mapleir.ir.antlr.mapleirParser.SwitchCaseStatementContext;
 import org.mapleir.ir.antlr.mapleirParser.SwitchStatementContext;
 import org.mapleir.ir.antlr.mapleirParser.ThrowStatementContext;
 import org.mapleir.ir.antlr.mapleirParser.VirtualFieldStoreStatementContext;
+import org.mapleir.ir.antlr.directive.DirectiveDictValue;
 import org.mapleir.ir.antlr.directive.DirectiveToken;
 import org.mapleir.ir.antlr.directive.DirectiveValue;
 import org.mapleir.ir.antlr.directive.DirectiveValueList;
@@ -936,6 +941,15 @@ public class CompilationDriver extends mapleirBaseListener {
 		}
 	}
 
+	@SuppressWarnings("unchecked")
+	private DirectiveValue makeDirectiveValue(SourcePosition commandValueSourcePos, Object o) {
+		if(o instanceof Map) {
+			return new DirectiveDictValue(commandValueSourcePos, (Map<String, DirectiveValue>) o);
+		} else {
+			return new DirectiveValue(commandValueSourcePos, o);
+		}
+	}
+	
 	private void parseDirective(SetDirectiveContext setDirectiveCtx) {
 		SourcePosition setDirectiveSourcePosition = errorReporter.newSourcePosition(setDirectiveCtx);
 
@@ -955,9 +969,8 @@ public class CompilationDriver extends mapleirBaseListener {
 			SourcePosition commandValueSourcePos = errorReporter.newSourcePosition(scvCtx);
 
 			try {
-				Object decodedObject = decodeValue(scvCtx);
-				DirectiveValue commandValuePV = new DirectiveValue(commandValueSourcePos, decodedObject);
-				worklist.add(commandValuePV);
+				Object decodedObject = decodeSetCommandValue(scvCtx);
+				worklist.add(makeDirectiveValue(commandValueSourcePos, decodedObject));
 			} catch (ParseException e) {
 				errorReporter.error(e, String.format("Malformed input: \"%s\"", scvCtx.getText()), e.getErrorOffset() + 1);
 			}
@@ -980,6 +993,8 @@ public class CompilationDriver extends mapleirBaseListener {
 		DirectiveToken newToken = new DirectiveToken(errorReporter.makeSourcePositionOnly(setDirectiveCtx.Identifier()), key,
 				entryPropertyValue);
 		currentScope.addDirective(newToken);
+		
+		System.out.println(newToken);
 		
 		errorReporter.popSourcePosition(setDirectiveSourcePosition);
 	}
@@ -1231,7 +1246,7 @@ public class CompilationDriver extends mapleirBaseListener {
 		errorReporter.popSourcePosition(p);
 	}
 
-	private Object decodeValue(SetCommandValueContext v) throws ParseException {
+	private Object decodeSetCommandValue(SetCommandValueContext v) throws ParseException {
 		if (v.LITERAL() != null) {
 			return decodeLiteral(v.LITERAL().getText());
 		} else if(v.Identifier() != null) {
@@ -1239,6 +1254,19 @@ public class CompilationDriver extends mapleirBaseListener {
 		} else if(v.expr() != null) {
 			// TODO;
 			throw new UnsupportedOperationException("TODO: " + v.expr().getText());
+		} else if(v.dict() != null) {
+			DictContext dictCtx = v.dict();
+			
+			Map<String, Object> map = new HashMap<>();
+			
+			for(DictKeyValPairContext pairCtx : dictCtx.dictKeyValPair()) {
+				String key = pairCtx.Identifier().getText();
+				Object value = decodeSetCommandValue(pairCtx.setCommandValue());
+				
+				map.put(key, makeDirectiveValue(errorReporter.makeSourcePositionOnly(pairCtx), value));
+			}
+			
+			return map;
 		} else {
 			throw new IllegalStateException("no value?");
 		}

@@ -6,6 +6,12 @@
 	.method (Ljava/lang/StringIIB[[ILjava/lang/String;)I myMethod {
 		.set access [0x1]
 		.set exceptions ["java/lang/Throwable", "java/lang/Exception"]
+		
+		.set handlertable [
+			{start=A, end=B, handler=B},
+			{start=C, end=D, handler=D}
+		]
+		
 		.code {
 			A: {
 				.synth lvar0_0 = lvar0_0

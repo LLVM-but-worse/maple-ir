@@ -9,12 +9,21 @@ setDirective
 	;
 
 setCommandValue
-	:	(LITERAL|Identifier|expr)
+	:	(dict|LITERAL|Identifier|expr)
 	;
 
 setCommandValueList
 	:	LBRACK setCommandValue (COMMA setCommandValue)*? RBRACK
 	|	setCommandValue (COMMA setCommandValue)*?
+	;
+
+
+dict
+	:	LBRACE dictKeyValPair (COMMA dictKeyValPair)*? RBRACE
+	;
+	
+dictKeyValPair
+	:	Identifier ASSIGN setCommandValue
 	;
 
 classDeclaration
