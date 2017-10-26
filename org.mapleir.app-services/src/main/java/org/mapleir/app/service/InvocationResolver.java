@@ -18,6 +18,8 @@ public interface InvocationResolver {
 		return resolveVirtualCalls(m.owner.name, m.name, m.desc, strict);
 	}
 	
+	boolean hasReceiverMethod(String owner, String name, String desc, boolean isStatic);
+	
 	FieldNode findStaticField(String owner, String name, String desc);
 	
 	FieldNode findVirtualField(String owner, String name, String desc);

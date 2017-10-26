@@ -65,11 +65,11 @@ public class DefaultInvocationResolver implements InvocationResolver {
 		public CompFrame(ClassNode c) {
 			this.c = c;
 			
-			this.thisMethodSet = new HashMap<>();
-			this.thisAbstractSet = new HashMap<>();
-			this.globalAVT = new HashMap<>();
-			this.globalCVT = new HashMap<>();
-			this.mergeMap = new NullPermeableHashMap<>(new SetCreator<>());
+			thisMethodSet = new HashMap<>();
+			thisAbstractSet = new HashMap<>();
+			globalAVT = new HashMap<>();
+			globalCVT = new HashMap<>();
+			mergeMap = new NullPermeableHashMap<>(new SetCreator<>());
 		}
 	}
 	
@@ -630,6 +630,27 @@ public class DefaultInvocationResolver implements InvocationResolver {
 		}
 		
 		return result;
+	}
+
+	@Override
+	public boolean hasReceiverMethod(String owner, String name, String desc,
+			boolean isStatic) {
+		ClassNode cn = app.findClassNode(owner);
+		if(!checkNullClass(cn, owner)) {
+			return false;
+		}
+		
+		if(isStatic) {
+			return findStaticField(owner, name, desc) != null;
+		} else {
+			Selector selector = new Selector(name, desc);
+			if(concreteVTables.containsKey(cn) && abstractVTables.containsKey(cn)) {
+				return concreteVTables.get(cn).containsKey(selector) ||
+						abstractVTables.get(cn).containsKey(selector);
+			} else {
+				throw new UnsupportedOperationException(String.format("not visited %s", owner));
+			}
+		}
 	}
 	
 	// FIXME: these are taken directly from the old resolver
