@@ -10,6 +10,48 @@ import java.util.SortedSet;
 
 public class GraphUtils {
 	public static final int FAKEHEAD_ID = Integer.MAX_VALUE -1;
+	
+	public static <N extends FastGraphVertex> List<N> range(List<N> nodes, int start, int end) {
+		if(start > end) {
+			throw new IllegalArgumentException("start > end: " + start + " > " + end);
+		}
+		N startNode = null, endNode = null;
+		int startIndex = 0, endIndex = 0;
+		
+		for(int nodeIndex = 0; nodeIndex < nodes.size(); nodeIndex++) {
+			N n = nodes.get(nodeIndex);
+			
+			if(n.getNumericId() == start) {
+				startNode = n;
+				startIndex = nodeIndex;
+			}
+			if(n.getNumericId() == end) {
+				endNode = n;
+				endIndex = nodeIndex;
+			}
+			
+			if(startNode != null && endNode != null) {
+				break;
+			}
+		}
+		
+		if(startNode == null || endNode == null) {
+			throw new UnsupportedOperationException(String.format("start or end null, start=%d, end=%d", start, end));
+		} else if(startIndex > endIndex) {
+			throw new IllegalArgumentException(String.format("startIndex(%d) > endIndex(%d)", startIndex, endIndex));
+		}
+
+		List<N> rangeNodes = new ArrayList<>();
+		for(int i=startIndex; i <= endIndex; i++) {
+			N n = nodes.get(i);
+			if(n == null) {
+				throw new IllegalArgumentException(String.format("node id=%d not in range", i));
+			}
+			rangeNodes.add(n);
+		}
+		
+		return rangeNodes;
+	}
 
 	public static <N extends FastGraphVertex> String toNodeArray(Collection<N> col) {
 		StringBuilder sb = new StringBuilder();

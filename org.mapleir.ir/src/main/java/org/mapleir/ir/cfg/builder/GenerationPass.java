@@ -29,7 +29,7 @@ import org.mapleir.ir.code.stmt.ConditionalJumpStmt.ComparisonType;
 import org.mapleir.ir.code.stmt.MonitorStmt.MonitorMode;
 import org.mapleir.ir.code.stmt.copy.CopyVarStmt;
 import org.mapleir.ir.locals.Local;
-import org.mapleir.stdlib.util.StringHelper;
+import org.mapleir.stdlib.collections.graph.GraphUtils;
 import org.objectweb.asm.Handle;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
@@ -1442,49 +1442,6 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		}
 	}
 	
-	private static List<BasicBlock> range(List<BasicBlock> gblocks, int start, int end) {
-		if(start > end) {
-			throw new IllegalArgumentException("start > end: " + start + " > " + end);
-		}
-		BasicBlock startBlock = null, endBlock = null;
-		int startIndex = 0, endIndex = 0;
-//		String startName = StringHelper.createBlockName(start);
-//		String endName = StringHelper.createBlockName(end);
-		int blockIndex = 0;
-		for(BasicBlock b : gblocks) {
-			if(b.getNumericId() == start) {
-				startBlock = b;
-				startIndex = blockIndex;
-			}
-			if(b.getNumericId() == end) {
-				endBlock = b;
-				endIndex = blockIndex;
-			}
-			
-			if(startBlock != null && endBlock != null) {
-				break;
-			}
-			blockIndex++;
-		}
-		
-		if(startBlock == null || endBlock == null) {
-			throw new UnsupportedOperationException("start or end null, " + start + " " + end);
-		} else if(startIndex > endIndex) {
-			throw new IllegalArgumentException("startIndex > endIndex: " + startIndex + " > " + endIndex);
-		}
-
-		List<BasicBlock> blocks = new ArrayList<>();
-		for(int i=startIndex; i <= endIndex; i++) {
-			BasicBlock block = gblocks.get(i);
-			if(block == null) {
-				throw new IllegalArgumentException("block " + StringHelper.createBlockName(i) + "not in range");
-			}
-			blocks.add(block);
-		}
-		
-		return blocks;
-	}
-	
 	private void makeRanges(List<BasicBlock> order) {
 //		System.out.println(builder.graph);
 //		BasicDotConfiguration<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> config = new BasicDotConfiguration<>(DotConfiguration.GraphType.DIRECTED);
@@ -1500,7 +1457,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 			int start = builder.graph.getBlock(tc.start).getNumericId();
 			int end = builder.graph.getBlock(tc.end).getNumericId() - 1;
 			
-			List<BasicBlock> range = range(order, start, end);
+			List<BasicBlock> range = GraphUtils.range(order, start, end);
 			BasicBlock handler = builder.graph.getBlock(tc.handler);
 			String key = String.format("%d:%d:%s", start, end, handler.getNumericId());
 			
