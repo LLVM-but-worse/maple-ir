@@ -47,5 +47,6 @@
   	<module>../org.mapleir.property-framework</module>
   	<module>../org.mapleir.service-framework.api</module>
   	<module>../org.mapleir.service-framework.impl</module>
+  	<module>../org.mapleir.ir.printer</module>
   </modules>
 </project>
