@@ -3,6 +3,7 @@ package org.mapleir.ir.antlr;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -12,6 +13,8 @@ import javax.swing.JPanel;
 import org.antlr.v4.gui.TreeViewer;
 import org.antlr.v4.runtime.ANTLRInputStream;
 import org.antlr.v4.runtime.CommonTokenStream;
+import org.mapleir.app.service.ApplicationClassSource;
+import org.mapleir.app.service.InstalledRuntimeClassSource;
 import org.mapleir.ir.antlr.error.CompilationException;
 import org.mapleir.ir.code.expr.PhiExpr;
 import org.mapleir.ir.code.expr.VarExpr;
@@ -41,7 +44,10 @@ public class AntlrBoot {
 			JFrame frame = new JFrame("Antlr AST");
 	        JPanel panel = new JPanel();
 	        
-	        CompilationDriver driver = new CompilationDriver();
+	        ApplicationClassSource classPath = new ApplicationClassSource("test-cp", Collections.emptyMap());
+	        classPath.addLibraries(new InstalledRuntimeClassSource(classPath));
+	        
+	        CompilationDriver driver = new CompilationDriver(classPath);
 	        try {
 	        	driver.process(parser);
 	        } catch(CompilationException e) {

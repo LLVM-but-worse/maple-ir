@@ -1,5 +1,6 @@
 package org.mapleir.ir.antlr;
 
+import java.lang.reflect.Modifier;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Deque;
@@ -12,47 +13,12 @@ import java.util.function.Consumer;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.TerminalNode;
 import org.apache.log4j.Logger;
+import org.mapleir.app.service.ApplicationClassSource;
 import org.mapleir.flowgraph.ExceptionRange;
 import org.mapleir.flowgraph.edges.ConditionalJumpEdge;
 import org.mapleir.flowgraph.edges.ImmediateEdge;
-import org.mapleir.ir.antlr.mapleirParser.ArgumentsContext;
-import org.mapleir.ir.antlr.mapleirParser.ArrayCreatorContext;
-import org.mapleir.ir.antlr.mapleirParser.ArrayStoreStatementContext;
-import org.mapleir.ir.antlr.mapleirParser.BlockContext;
-import org.mapleir.ir.antlr.mapleirParser.ClassDeclarationContext;
-import org.mapleir.ir.antlr.mapleirParser.CodebodyContext;
-import org.mapleir.ir.antlr.mapleirParser.CompilationUnitContext;
-import org.mapleir.ir.antlr.mapleirParser.ConsumeStatementContext;
-import org.mapleir.ir.antlr.mapleirParser.CopyStatementContext;
-import org.mapleir.ir.antlr.mapleirParser.CreatorContext;
-import org.mapleir.ir.antlr.mapleirParser.DeclarationsContext;
-import org.mapleir.ir.antlr.mapleirParser.DescContext;
-import org.mapleir.ir.antlr.mapleirParser.DictContext;
-import org.mapleir.ir.antlr.mapleirParser.DictKeyValPairContext;
-import org.mapleir.ir.antlr.mapleirParser.ExprContext;
-import org.mapleir.ir.antlr.mapleirParser.ExprlistContext;
-import org.mapleir.ir.antlr.mapleirParser.FieldDeclarationContext;
-import org.mapleir.ir.antlr.mapleirParser.FieldStoreStatementContext;
-import org.mapleir.ir.antlr.mapleirParser.GotoStatementContext;
-import org.mapleir.ir.antlr.mapleirParser.IfStatementContext;
-import org.mapleir.ir.antlr.mapleirParser.JclassContext;
-import org.mapleir.ir.antlr.mapleirParser.MemberDeclarationContext;
-import org.mapleir.ir.antlr.mapleirParser.MethodDeclarationContext;
-import org.mapleir.ir.antlr.mapleirParser.MethoddescContext;
-import org.mapleir.ir.antlr.mapleirParser.MonitorStatementContext;
-import org.mapleir.ir.antlr.mapleirParser.PhiCopyStatementContext;
-import org.mapleir.ir.antlr.mapleirParser.PhiPairContext;
-import org.mapleir.ir.antlr.mapleirParser.PrimaryContext;
-import org.mapleir.ir.antlr.mapleirParser.ReturnStatementContext;
-import org.mapleir.ir.antlr.mapleirParser.SetCommandValueContext;
-import org.mapleir.ir.antlr.mapleirParser.SetCommandValueListContext;
-import org.mapleir.ir.antlr.mapleirParser.SetDirectiveContext;
-import org.mapleir.ir.antlr.mapleirParser.StatementContext;
-import org.mapleir.ir.antlr.mapleirParser.StaticFieldStoreStatementContext;
-import org.mapleir.ir.antlr.mapleirParser.SwitchCaseStatementContext;
-import org.mapleir.ir.antlr.mapleirParser.SwitchStatementContext;
-import org.mapleir.ir.antlr.mapleirParser.ThrowStatementContext;
-import org.mapleir.ir.antlr.mapleirParser.VirtualFieldStoreStatementContext;
+import org.mapleir.ir.antlr.mapleirParser.*;
+import org.mapleir.ir.antlr.analysis.TypeAnalysis;
 import org.mapleir.ir.antlr.directive.DirectiveDictValue;
 import org.mapleir.ir.antlr.directive.DirectiveToken;
 import org.mapleir.ir.antlr.directive.DirectiveValue;
@@ -76,39 +42,20 @@ import org.mapleir.ir.antlr.util.LexerUtil;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.Expr;
-import org.mapleir.ir.code.expr.AllocObjectExpr;
-import org.mapleir.ir.code.expr.ArithmeticExpr;
+import org.mapleir.ir.code.expr.*;
 import org.mapleir.ir.code.expr.ArithmeticExpr.Operator;
-import org.mapleir.ir.code.expr.ArrayLoadExpr;
-import org.mapleir.ir.code.expr.CastExpr;
-import org.mapleir.ir.code.expr.CaughtExceptionExpr;
-import org.mapleir.ir.code.expr.ComparisonExpr;
 import org.mapleir.ir.code.expr.ComparisonExpr.ValueComparisonType;
-import org.mapleir.ir.code.expr.ConstantExpr;
-import org.mapleir.ir.code.expr.FieldLoadExpr;
-import org.mapleir.ir.code.expr.InstanceofExpr;
-import org.mapleir.ir.code.expr.NegationExpr;
-import org.mapleir.ir.code.expr.NewArrayExpr;
-import org.mapleir.ir.code.expr.PhiExpr;
-import org.mapleir.ir.code.expr.VarExpr;
 import org.mapleir.ir.code.expr.invoke.InitialisedObjectExpr;
 import org.mapleir.ir.code.expr.invoke.InvocationExpr;
 import org.mapleir.ir.code.expr.invoke.InvocationExpr.CallType;
-import org.mapleir.ir.code.stmt.ArrayStoreStmt;
-import org.mapleir.ir.code.stmt.ConditionalJumpStmt;
+import org.mapleir.ir.code.stmt.*;
 import org.mapleir.ir.code.stmt.ConditionalJumpStmt.ComparisonType;
-import org.mapleir.ir.code.stmt.FieldStoreStmt;
-import org.mapleir.ir.code.stmt.MonitorStmt;
 import org.mapleir.ir.code.stmt.MonitorStmt.MonitorMode;
-import org.mapleir.ir.code.stmt.PopStmt;
-import org.mapleir.ir.code.stmt.ReturnStmt;
-import org.mapleir.ir.code.stmt.SwitchStmt;
-import org.mapleir.ir.code.stmt.ThrowStmt;
-import org.mapleir.ir.code.stmt.UnconditionalJumpStmt;
 import org.mapleir.ir.code.stmt.copy.CopyPhiStmt;
 import org.mapleir.ir.code.stmt.copy.CopyVarStmt;
 import org.mapleir.ir.locals.Local;
 import org.mapleir.ir.locals.LocalsPool;
+import org.mapleir.ir.locals.impl.VersionedLocal;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 
@@ -117,13 +64,16 @@ public class CompilationDriver extends mapleirBaseListener {
 	private static final boolean BAIL_FAST = false;
 	
 	private static final Logger LOGGER = Logger.getLogger(CompilationDriver.class);
+	
+	private final ApplicationClassSource classPath;
 	private Deque<Scope> scopes;
 	public CompilationUnitContext unit;
 	private ErrorReporter errorReporter;
 	private List<CompilationException> exceptions;
 	private List<CompilationWarning> warnings;
 	
-	public CompilationDriver() {
+	public CompilationDriver(ApplicationClassSource classPath) {
+		this.classPath = classPath;
 		scopes = new LinkedList<>();
 		
 		Consumer<CompilationException> exceptionConsumer = new Consumer<CompilationException>() {
@@ -244,9 +194,11 @@ public class CompilationDriver extends mapleirBaseListener {
 	
 	private void processClassDecl(ClassDeclarationContext cdecl) {
 		SourcePosition p = errorReporter.newSourcePosition(cdecl);
-		scopes.push(new ClassScope(scopes.peek()));
+		ClassScope scope = new ClassScope(scopes.peek());
+		scopes.push(scope);
 		
 		checkClassName(cdecl.jclass());
+		scope.getClassDecl().setName(cdecl.jclass().getText());
 		parseDirectives(cdecl.setDirective());
 		
 		List<DeclarationsContext> decls = cdecl.declarations();
@@ -324,6 +276,8 @@ public class CompilationDriver extends mapleirBaseListener {
 			codeScope.createBlock(displayName);
 		}
 		
+		LocalsPool pool = cfg.getLocals();
+		
 		List<BlockContext> blockContexts = codeBodyCtx.block();
 		
 		for (int i=0; i < blockContexts.size(); i++) {
@@ -344,17 +298,19 @@ public class CompilationDriver extends mapleirBaseListener {
 				if(stmtCtx.copyStatement() != null) {
 					CopyStatementContext copyStmtCtx = stmtCtx.copyStatement();
 
-					Local dst = getLocal(codeScope, copyStmtCtx.Identifier().getText());
+					VersionedLocal dst = getLocal(codeScope, copyStmtCtx.Identifier().getText());
 					VarExpr dstVarExpr = new VarExpr(dst, null);
 					
 					Expr expr = processExpr(codeScope, copyStmtCtx.expr());
 					CopyVarStmt copyVarStmt = new CopyVarStmt(dstVarExpr, expr);
 					
 					block.add(copyVarStmt);
+					
+					pool.defs.put(dst, copyVarStmt);
 				} else if(stmtCtx.phiCopyStatement() != null) {
 					PhiCopyStatementContext phiCopyStmtCtx = stmtCtx.phiCopyStatement();
 					
-					Local dst = getLocal(codeScope, phiCopyStmtCtx.Identifier().getText());
+					VersionedLocal dst = getLocal(codeScope, phiCopyStmtCtx.Identifier().getText());
 					VarExpr dstVarExpr = new VarExpr(dst, null);
 					
 					PhiExpr phiExpr = new PhiExpr();
@@ -379,6 +335,8 @@ public class CompilationDriver extends mapleirBaseListener {
 					CopyPhiStmt copyPhiStmt = new CopyPhiStmt(dstVarExpr, phiExpr);
 					
 					block.add(copyPhiStmt);
+					
+					pool.defs.put(dst, copyPhiStmt);
 				} else if(stmtCtx.arrayStoreStatement() != null) {
 					ArrayStoreStatementContext arrayStoreStmtCtx = stmtCtx.arrayStoreStatement();
 					
@@ -572,7 +530,35 @@ public class CompilationDriver extends mapleirBaseListener {
 			ExceptionRange<BasicBlock> range = new ExceptionRange<>();
 			cfg.addRange(range);
 		}
+		
+		{
+			if(blockContexts.size() > 0) {
+				BlockContext firstBlockCtx = blockContexts.get(0);
+				String displayName = firstBlockCtx.Identifier().getText();
+				BasicBlock block = codeScope.findBlock(displayName);
+				cfg.getEntries().add(block);
+			}
+		}
+		
 		System.out.println(cfg);
+
+		Map<VersionedLocal, Type> argTypes = new HashMap<>();
+		Type[] rawArgTypes = Type.getArgumentTypes(
+				codeScope.getParent().getDeclaration().getDesc());
+		boolean isStatic = Modifier
+				.isStatic(codeScope.getParent().getDeclaration().getAccess());
+		if (!isStatic) {
+			argTypes.put(pool.get(0, 0, false), Type.getObjectType(codeScope
+					.getParent().getParent().getClassDecl().getName()));
+		}
+		
+		for(int i=0; i < rawArgTypes.length; i++) {
+			Type type = rawArgTypes[i];
+			VersionedLocal local = pool.get(i + (isStatic ? 0 : 1), 0, false);
+			argTypes.put(local, type);
+		}
+		System.out.println(argTypes);
+		TypeAnalysis.analyse(classPath, cfg, argTypes);
 	}
 	
 	private BasicBlock lookupBlock(CodeScope codeScope, DirectiveValue idVal, String errorForUsage) {
@@ -821,7 +807,7 @@ public class CompilationDriver extends mapleirBaseListener {
 		}
 	}
 
-	private Local getLocal(CodeScope codeScope, String identifier) {
+	private VersionedLocal getLocal(CodeScope codeScope, String identifier) {
 		if (codeScope.isLocalMapped(identifier)) {
 			return codeScope.findLocal(identifier);
 		}
@@ -880,7 +866,7 @@ public class CompilationDriver extends mapleirBaseListener {
 				}
 
 				LocalsPool pool = codeScope.getLocalPool();
-				Local l = pool.get(index, version, ch0 == 's');
+				VersionedLocal l = pool.get(index, version, ch0 == 's');
 				codeScope.mapLocal(identifier, l);
 				return l;
 			}

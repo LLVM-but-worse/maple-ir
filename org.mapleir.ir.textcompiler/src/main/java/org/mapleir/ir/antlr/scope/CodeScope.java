@@ -7,13 +7,14 @@ import org.mapleir.ir.antlr.model.UpdateableLocalsPool;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.locals.Local;
+import org.mapleir.ir.locals.impl.VersionedLocal;
 import org.objectweb.asm.tree.LabelNode;
 
 public class CodeScope extends Scope {
 
 	private final ControlFlowGraph cfg;
 	private final UpdateableLocalsPool localPool;
-	private final Map<String, Local> localMapping;
+	private final Map<String, VersionedLocal> localMapping;
 	private final Map<String, BasicBlock> blockMapping;
 	
 	public CodeScope(MethodScope parent) {
@@ -48,7 +49,7 @@ public class CodeScope extends Scope {
 		return block;
 	}
 	
-	public void mapLocal(String identifier, Local l) {
+	public void mapLocal(String identifier, VersionedLocal l) {
 		localMapping.put(identifier, l);
 	}
 	
@@ -56,18 +57,18 @@ public class CodeScope extends Scope {
 		return localMapping.containsKey(identifier);
 	}
 	
-	public Local findLocal(String identifier) {
+	public VersionedLocal findLocal(String identifier) {
 		return localMapping.get(identifier);
 	}
 	
-	public Local getOrFindLocal(String identifier) {
+	public VersionedLocal getOrFindLocal(String identifier) {
 		if (localMapping.containsKey(identifier)) {
 			return localMapping.get(identifier);
 		} else {
 			Local l = localPool.getNextFreeLocal(false);
-			l = localPool.getLatestVersion(l);
-			localMapping.put(identifier, l);
-			return l;
+			VersionedLocal vl = localPool.getLatestVersion(l);
+			localMapping.put(identifier, vl);
+			return vl;
 		}
 	}
 
