@@ -138,14 +138,18 @@ public class ArithmeticExpr extends Expr {
 	public Expr copy() {
 		return new ArithmeticExpr(right.copy(), left.copy(), operator);
 	}
+	
+	public static Type getType(Type left, Type right, Operator operator) {
+		if (operator == Operator.SHL || operator == Operator.SHR) {
+			return TypeUtils.resolveUnaryOpType(left);
+		} else {
+			return TypeUtils.resolveBinOpType(left, right);
+		}
+	}
 
 	@Override
 	public Type getType() {
-		if (operator == Operator.SHL || operator == Operator.SHR) {
-			return TypeUtils.resolveUnaryOpType(left.getType());
-		} else {
-			return TypeUtils.resolveBinOpType(left.getType(), right.getType());
-		}
+		return getType(left.getType(), right.getType(), operator);
 	}
 
 	@Override
