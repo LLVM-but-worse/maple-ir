@@ -6,8 +6,8 @@ import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.code.Stmt;
 import org.mapleir.ir.printer.indentation.IndentationProvider;
 
-public class BasicBlockPrinter extends IrPrinter<BasicBlock> {
-	private IrPrinter<Stmt> stmtPrinter;
+public class BasicBlockPrinter extends Printer<BasicBlock> {
+	private Printer<Stmt> stmtPrinter;
 
 	public BasicBlockPrinter(IndentationProvider indentationProvider) {
 		super(indentationProvider);
@@ -15,7 +15,7 @@ public class BasicBlockPrinter extends IrPrinter<BasicBlock> {
 	}
 
 	@Override
-	public String toIr(BasicBlock basicBlock) {
+	public String toString(BasicBlock basicBlock) {
 		StringBuilder sb = new StringBuilder();
 
 		sb.append(basicBlock.getDisplayName());
@@ -24,7 +24,7 @@ public class BasicBlockPrinter extends IrPrinter<BasicBlock> {
 
 		Iterator<Stmt> it = basicBlock.iterator();
 		while (it.hasNext()) {
-			sb.append(stmtPrinter.toIr(it.next(), 1));
+			sb.append(stmtPrinter.toString(it.next(), 1));
 			sb.append('\n');
 		}
 
