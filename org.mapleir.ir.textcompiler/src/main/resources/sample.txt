@@ -1,28 +1,22 @@
 .set compilerver 1.8
 .set mylist [1]
 
-.class java/lang/Class {
+.class org/mapleir/TestClass {
 
-	.method (Ljava/lang/StringIIB[[ILjava/lang/String;)I myMethod {
-		.set access [0x1]
-		.set exceptions ["java/lang/Throwable", "java/lang/Exception"]
-		
-		.set handlers [
-			{start=A, end=B, handler=B},
-			{start=C, end=D, handler=D}
-		]
-		
+	.method (II)I sum {
 		.code {
 			A: {
 				.synth lvar0_0 = lvar0_0
-				lvar2_1 = .phi {A:lvar2_0, B:lvar2_1}
-				lvar3_0 = ((((5 + 1))))
+				.synth lvar1_0 = lvar1_0
+				.synth lvar2_0 = lvar2_0
 				
-				.if (lvar3_4_0 == 5)
+				.if (lvar2_0 == 0)
 					.goto B
 			}
 			B: {
-				.return lvar2_1
+				lvar3_0 = .phi{B: lvar1_0}
+				lvar4_0 = lvar1_0 + lvar3_0
+				.return lvar4_0
 			}
 		}
 	}
