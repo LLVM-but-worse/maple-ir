@@ -29,6 +29,9 @@ import org.mapleir.ir.algorithms.BoissinotDestructor;
 import org.mapleir.ir.algorithms.ControlFlowGraphDumper;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.cfg.builder.ControlFlowGraphBuilder;
+import org.mapleir.ir.printer.ClassPrinter;
+import org.mapleir.stdlib.collections.ClassHelper;
+import org.mapleir.stdlib.util.TabbedStringWriter;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.topdank.byteengineer.commons.data.JarInfo;
@@ -63,9 +66,9 @@ public class Boot {
 		SingleJarDownloader<ClassNode> dl = new SingleJarDownloader<>(new JarInfo(f));
 		dl.download();
 		String name = f.getName().substring(0, f.getName().length() - 4);
-		ApplicationClassSource app = new ApplicationClassSource(name, dl.getJarContents().getClassContents());
+//		ApplicationClassSource app = new ApplicationClassSource(name, dl.getJarContents().getClassContents());
 //		
-//		ApplicationClassSource app = new ApplicationClassSource("test", ClassHelper.parseClasses(DynamicExample.class));
+		ApplicationClassSource app = new ApplicationClassSource("test", ClassHelper.parseClasses(CGExample.class));
 //		app.addLibraries(new InstalledRuntimeClassSource(app));
 		app.addLibraries(rt(app, rtjar), new InstalledRuntimeClassSource(app));
 		section("Initialising context.");
@@ -88,6 +91,11 @@ public class Boot {
 				System.out.println(m);
 				System.out.println(cxt.getIRCache().get(m));
 			}
+		}
+		
+		for(ClassNode cn : app.iterate()) {
+			ClassPrinter cp = new ClassPrinter();
+			System.out.println(cp.print(cn));
 		}
 		
 		section0("...generated " + cxt.getIRCache().size() + " cfgs in %fs.%n", "Preparing to transform.");
