@@ -48,6 +48,11 @@
   		<artifactId>service-framework-api</artifactId>
   		<version>0.0.1-SNAPSHOT</version>
   	</dependency>
+  	<dependency>
+  		<groupId>org.mapleir.stdlib</groupId>
+  		<artifactId>ir.printer</artifactId>
+  		<version>0.0.1-ALPHA</version>
+  	</dependency>
   </dependencies>
   <groupId>org.mapleir.main</groupId>
 </project>
