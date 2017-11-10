@@ -4,6 +4,8 @@ import java.io.StringWriter;
 
 public class TabbedStringWriter {
 
+	private static final String NEWLINE = System.lineSeparator();
+	
 	private StringWriter buff;
 	private int tabCount;
 	private String tabString;
@@ -14,21 +16,28 @@ public class TabbedStringWriter {
 		tabString = "   ";
 	}
 
-	public void print(CharSequence str) {
+	public TabbedStringWriter print(CharSequence str) {
 		for (int i = 0; i < str.length(); i++) {
 			print(str.charAt(i));
 		}
+		return this;
 	}
 	
-	public void print(char c, boolean indent) {
+	public TabbedStringWriter print(char c, boolean indent) {
 		buff.append(c);
 		if (c == '\n' && indent) {
 			buff.append(getTabs());
 		}
+		return this;
 	}
 	
-	public void print(char c) {
+	public TabbedStringWriter print(char c) {
 		print(c, true);
+		return this;
+	}
+	
+	public TabbedStringWriter newline() {
+		return print(NEWLINE);
 	}
 
 	public void setTabString(String tabString) {
@@ -51,19 +60,22 @@ public class TabbedStringWriter {
 		return tabCount;
 	}
 	
-	public void tab() {
+	public TabbedStringWriter tab() {
 		tabCount++;
+		return this;
 	}
 	
-	public void forceIndent() {
+	public TabbedStringWriter forceIndent() {
 		buff.append(getTabs());
+		return this;
 	}
 
-	public void untab() {
+	public TabbedStringWriter untab() {
 		if (tabCount <= 0) {
 			throw new UnsupportedOperationException();
 		}
 		tabCount--;
+		return this;
 	}
 	
 	public void clear() {
