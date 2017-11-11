@@ -34,6 +34,8 @@ public interface IProperty<T> {
 	Class<T> getType();
 
 	IPropertyDictionary getDictionary();
+	
+	void tryLinkDictionary(IPropertyDictionary dict);
 
 	T getValue();
 
