@@ -79,7 +79,6 @@ public class BasicPropertyDictionary implements IPropertyDictionary {
 		
 		if(prev != null) {
 			bus.post(new PropertyRemovedEvent(prev, this, key));
-			bus.unregister(prev);
 		}
 		
 		bus.register(property);

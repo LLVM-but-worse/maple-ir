@@ -35,6 +35,21 @@ public abstract class AbstractProperty<T> implements IProperty<T> {
 	public IPropertyDictionary getDictionary() {
 		return container;
 	}
+
+	@Override
+	public void tryLinkDictionary(IPropertyDictionary dict) {
+		if(this.container == null) {
+			this.container = dict;
+			
+			if(dict.find(getType(), getKey()) == null) {
+				/* actually use this one */
+				dict.put(this);
+			} else {
+				/* just set it up for listening */
+				dict.getContainerEventBus().register(this);
+			}
+		}
+	}
 	
 	@Override
 	public T getValue() {
@@ -81,7 +96,7 @@ public abstract class AbstractProperty<T> implements IProperty<T> {
 	
 	@Subscribe
 	public void onPropertyAddedEvent(PropertyAddedEvent e) {
-		if(e.getProperty() != this) {
+		if(!getKey().equals(e.getKey())) {
 			return;
 		}
 		
@@ -95,11 +110,12 @@ public abstract class AbstractProperty<T> implements IProperty<T> {
 	
 	@Subscribe
 	public void onPropertyRemovedEvent(PropertyRemovedEvent e) {
-		if(e.getProperty() != this) {
+		if(!getKey().equals(e.getKey())) {
 			return;
 		}
 		
 		if(container != null) {
+			container.getContainerEventBus().unregister(this);
 			container = null;
 		} else {
 			// TODO: log
