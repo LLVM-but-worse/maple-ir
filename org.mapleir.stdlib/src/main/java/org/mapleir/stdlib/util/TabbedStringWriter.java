@@ -8,11 +8,13 @@ public class TabbedStringWriter {
 	
 	private StringWriter buff;
 	private int tabCount;
+	private int lineNumber;
 	private String tabString;
 	
 	public TabbedStringWriter() {
 		buff = new StringWriter();
 		tabCount = 0;
+		lineNumber = 0;
 		tabString = "   ";
 	}
 
@@ -26,6 +28,7 @@ public class TabbedStringWriter {
 	public TabbedStringWriter print(char c, boolean indent) {
 		buff.append(c);
 		if (c == '\n' && indent) {
+			lineNumber++;
 			buff.append(getTabs());
 		}
 		return this;
@@ -58,6 +61,10 @@ public class TabbedStringWriter {
 
 	public int getTabCount() {
 		return tabCount;
+	}
+	
+	public int getLineCount() {
+		return lineNumber;
 	}
 	
 	public TabbedStringWriter tab() {
