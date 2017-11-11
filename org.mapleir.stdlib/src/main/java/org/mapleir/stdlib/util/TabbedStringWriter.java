@@ -9,12 +9,14 @@ public class TabbedStringWriter {
 	private StringWriter buff;
 	private int tabCount;
 	private int lineNumber;
+	private int charPointer;
 	private String tabString;
 	
 	public TabbedStringWriter() {
 		buff = new StringWriter();
 		tabCount = 0;
 		lineNumber = 0;
+		charPointer = 0;
 		tabString = "   ";
 	}
 
@@ -27,9 +29,20 @@ public class TabbedStringWriter {
 	
 	public TabbedStringWriter print(char c, boolean indent) {
 		buff.append(c);
-		if (c == '\n' && indent) {
+		if (c == '\n') {
 			lineNumber++;
-			buff.append(getTabs());
+
+			if(indent) {
+				String tabs = getTabs();
+				/* reset char pointer */
+				charPointer = tabs.length();
+				
+				buff.append(tabs);
+			} else {
+				charPointer = 0;
+			}
+		} else {
+			charPointer++;
 		}
 		return this;
 	}
@@ -65,6 +78,15 @@ public class TabbedStringWriter {
 	
 	public int getLineCount() {
 		return lineNumber;
+	}
+	
+	public int getColumnOffset() {
+		return charPointer;
+	}
+	
+	public int getTextColumnOffset() {
+		int tabOffset = tabCount * tabString.length();
+		return charPointer - tabOffset;
 	}
 	
 	public TabbedStringWriter tab() {
