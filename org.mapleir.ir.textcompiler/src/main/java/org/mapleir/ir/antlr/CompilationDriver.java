@@ -128,26 +128,29 @@ public class CompilationDriver extends mapleirBaseListener {
 		processClassDecl(unit.classDeclaration());
 		
 		parser.removeParseListener(this);
-		
-		if(!exceptions.isEmpty()) {
-			Consumer<String> errorConsumer = (s -> LOGGER.error(s));
-			
-			LOGGER.error("Compilation errors occured while processing file");
-			for(CompilationException e : exceptions) {
-				logProblem(e, errorConsumer);
-			}
-		}
-		
-		if(!warnings.isEmpty()) {
-			Consumer<String> warnConsumer = (s -> LOGGER.warn(s));
-			
-			LOGGER.error("Compilation warnings occured while processing file");
-			
-			for(CompilationWarning e : warnings) {
-				logProblem(e, warnConsumer);
-			}
-		}
+		outputProblems();
 	}
+	
+    public void outputProblems() {
+        if (!exceptions.isEmpty()) {
+            Consumer<String> errorConsumer = (s -> LOGGER.error(s));
+
+            LOGGER.error("Compilation errors occured while processing file");
+            for (CompilationException e : exceptions) {
+                logProblem(e, errorConsumer);
+            }
+        }
+
+        if (!warnings.isEmpty()) {
+            Consumer<String> warnConsumer = (s -> LOGGER.warn(s));
+
+            LOGGER.error("Compilation warnings occured while processing file");
+
+            for (CompilationWarning e : warnings) {
+                logProblem(e, warnConsumer);
+            }
+        }
+    }
 	
 	private void logProblem(CompilationProblem p,
 			Consumer<String> printConsumer) {
