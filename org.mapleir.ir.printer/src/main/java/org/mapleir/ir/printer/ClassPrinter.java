@@ -1,68 +1,53 @@
 package org.mapleir.ir.printer;
 
-import java.util.Collection;
 import java.util.Iterator;
-import java.util.Map;
-import java.util.Map.Entry;
 
+import org.mapleir.propertyframework.api.IPropertyDictionary;
 import org.mapleir.stdlib.util.TabbedStringWriter;
 import org.objectweb.asm.tree.ClassNode;
+import org.objectweb.asm.tree.FieldNode;
+import org.objectweb.asm.tree.MethodNode;
 
-public class ClassPrinter implements Printer<ClassNode> {
+public class ClassPrinter extends ASMPrinter<ClassNode> {
 
-	@Override
-	public void print(TabbedStringWriter sw, ClassNode e) {
-		sw.print(".class ").print(e.name).print(" {").tab();
-		sw.newline();
-		emitDirective(sw, "superName", e.superName);
-		sw.newline();
-		emitDirective(sw, "interfaces", e.interfaces);
-		sw.newline();
-		emitDirective(sw, "version", e.version);
-		sw.newline();
-		emitDirective(sw, "access", e.access);
-		sw.untab().newline().print("}");
-	}
-	
-	private void emitDirective(TabbedStringWriter sw, String key, Object value) {
-		sw.print(".set ").print(key).print(" ");
-		emitDirectiveValue(sw, value);
-	}
-	
-	private void emitDirectiveValue(TabbedStringWriter sw, Object value) {
-		if(value instanceof Map) {
-			Map<?, ?> map = (Map<?, ?>) value;
-			if(map.size() > 0) {
-				sw.print("{").tab();
-				
-				Iterator<?> it = map.entrySet().iterator();
-				while(it.hasNext()) {
-					Entry<?, ?> e = (Entry<?, ?>) it.next();
-					sw.newline().print(String.valueOf(e.getKey())).print(" = ");
-					emitDirectiveValue(sw, e.getValue());
-					
-					if(it.hasNext()) {
-						sw.print(", ");
-					}
-				}
-				
-				sw.print("}");
-			} else {
-				sw.print(" {}");
-			}
-		} else if(value instanceof Collection) {
-			sw.print("[");
-			Iterator<?> it = ((Collection<?>) value).iterator();
-			while(it.hasNext()) {
-				emitDirectiveValue(sw, it.next());
-				
-				if(it.hasNext()) {
-					sw.print(", ");
-				}
-			}
-			sw.print("]");
-		} else {
-			sw.print(value.toString());
-		}
-	}
+    private static final String[] CLASS_ATTR_FLAG_NAMES = Util.asOpcodesAccessFieldFormat(
+            new String[] { "public", "private", "protected", "final", "super", "interface",
+                    "abstract", "synthetic", "annotation", "enum", "deprecated" });
+
+    private final Printer<FieldNode> fieldPrinter;
+    private final Printer<MethodNode> methodPrinter;
+
+    public ClassPrinter(TabbedStringWriter sw, IPropertyDictionary settingsDict,
+            Printer<FieldNode> fieldPrinter, Printer<MethodNode> methodPrinter) {
+        super(sw, settingsDict, CLASS_ATTR_FLAG_NAMES);
+
+        this.fieldPrinter = fieldPrinter;
+        this.methodPrinter = methodPrinter;
+    }
+
+    @Override
+    public void print(ClassNode e) {
+        this.sw.print(".class ").print(e.name).print(" {").tab();
+
+        this.emitDirective("superName", e.superName);
+        this.emitDirective("interfaces", e.interfaces);
+        this.emitDirective("version", e.version);
+        this.emitAccessDirective(e.access);
+
+        this.emit(e.fields.iterator(), this.fieldPrinter);
+        this.emit(e.methods.iterator(), this.methodPrinter);
+
+        this.sw.untab().newline().print("}");
+    }
+
+    private <E> void emit(Iterator<E> it, Printer<E> printer) {
+        if (it.hasNext()) {
+            this.sw.newline();
+        }
+
+        while (it.hasNext()) {
+            E e = it.next();
+            printer.print(e);
+        }
+    }
 }
