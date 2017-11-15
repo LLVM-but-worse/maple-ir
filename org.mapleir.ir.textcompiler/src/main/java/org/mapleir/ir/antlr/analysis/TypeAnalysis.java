@@ -1,21 +1,5 @@
 package org.mapleir.ir.antlr.analysis;
 
-import static org.mapleir.ir.code.Opcode.ALLOC_OBJ;
-import static org.mapleir.ir.code.Opcode.ARITHMETIC;
-import static org.mapleir.ir.code.Opcode.ARRAY_LEN;
-import static org.mapleir.ir.code.Opcode.ARRAY_LOAD;
-import static org.mapleir.ir.code.Opcode.CAST;
-import static org.mapleir.ir.code.Opcode.CATCH;
-import static org.mapleir.ir.code.Opcode.COMPARE;
-import static org.mapleir.ir.code.Opcode.CONST_LOAD;
-import static org.mapleir.ir.code.Opcode.DYNAMIC_INVOKE;
-import static org.mapleir.ir.code.Opcode.FIELD_LOAD;
-import static org.mapleir.ir.code.Opcode.INIT_OBJ;
-import static org.mapleir.ir.code.Opcode.INVOKE;
-import static org.mapleir.ir.code.Opcode.LOCAL_LOAD;
-import static org.mapleir.ir.code.Opcode.NEGATE;
-import static org.mapleir.ir.code.Opcode.NEW_ARRAY;
-
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -36,16 +20,13 @@ import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.cfg.builder.ssaopt.Constraint;
 import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.code.Opcode;
-import org.mapleir.ir.code.expr.ArithmeticExpr;
-import org.mapleir.ir.code.expr.ArrayLoadExpr;
-import org.mapleir.ir.code.expr.ConstantExpr;
-import org.mapleir.ir.code.expr.FieldLoadExpr;
-import org.mapleir.ir.code.expr.NegationExpr;
-import org.mapleir.ir.code.expr.NewArrayExpr;
+import org.mapleir.ir.code.Stmt;
 import org.mapleir.ir.code.expr.PhiExpr;
 import org.mapleir.ir.code.expr.VarExpr;
-import org.mapleir.ir.code.expr.invoke.Invocation;
+import org.mapleir.ir.code.stmt.FieldStoreStmt;
 import org.mapleir.ir.code.stmt.copy.AbstractCopyStmt;
+import org.mapleir.ir.code.stmt.copy.CopyPhiStmt;
+import org.mapleir.ir.code.stmt.copy.CopyVarStmt;
 import org.mapleir.ir.locals.Local;
 import org.mapleir.ir.locals.LocalsPool;
 import org.mapleir.ir.locals.impl.VersionedLocal;
@@ -58,7 +39,8 @@ public class TypeAnalysis {
 	
 	public static Map<VersionedLocal, Type> analyse(ApplicationClassSource source, ControlFlowGraph cfg, Map<VersionedLocal, Type> argTypes) {
 		TypeAnalysis typeAnalysis = new TypeAnalysis(source, cfg, argTypes);
-		typeAnalysis.optimiseWorklist();
+		// typeAnalysis.optimiseWorklist();
+		typeAnalysis.populateWorklist();
 		typeAnalysis.run();
 		
 		Map<VersionedLocal, Type> myResults = new HashMap<>();
@@ -78,7 +60,7 @@ public class TypeAnalysis {
 	private final List<BasicBlock> topoOrder;
 	private final Map<VersionedLocal, Type> argTypes;
 	private final LocalsPool pool;
-	private final LinkedList<VersionedLocal> worklist;
+	private final LinkedList<Stmt> worklist;
 	private final Map<VersionedLocal, LocalType> results;
 	private final Map<Local, Set<Constraint>> constraints;
 	
@@ -90,8 +72,9 @@ public class TypeAnalysis {
 		// topo is probably optimal
 		this.topoOrder = computeTopoOrder();
 		
-		Set<VersionedLocal> ssaLocals = getSSALocals(pool);
-		this.worklist = new LinkedList<>(ssaLocals);
+		// Set<VersionedLocal> ssaLocals = getSSALocals(pool);
+		// this.worklist = new LinkedList<>(ssaLocals);
+		this.worklist = new LinkedList<>();
 		this.results = new HashMap<>();
 		this.constraints = new HashMap<>();
 	}
@@ -109,7 +92,13 @@ public class TypeAnalysis {
 		return ssaLocals;
 	}
 	
-	private void optimiseWorklist() {
+	private void populateWorklist() {
+	    for(BasicBlock b : topoOrder) {
+	        worklist.addAll(b);
+	    }
+	}
+	
+	/*private void optimiseWorklist() {
 		Collections.sort(worklist, new Comparator<VersionedLocal>() {
 			@Override
 			public int compare(VersionedLocal o1, VersionedLocal o2) {
@@ -126,14 +115,64 @@ public class TypeAnalysis {
 				}
 			}
 		});
-	}
+	}*/
 	
 	private boolean hasComputedType(VersionedLocal l) {
 		return results.containsKey(l) && !results.get(l).isTop;
 	}
 	
 	private void run() {
-		worklistLoop: while(!worklist.isEmpty()) {
+        /* Due to the loss of type information in the IR textcode,
+         * we need to type the code and fill in artifacts that are
+         * context-dependent on these types.
+         * 
+         * We start off with the given facts:
+         *   -The type of each parameter of the function is equal
+         *    to the type given by the method descriptor.
+         *   -If the method is virtual, the first local variable is
+         *    a type representation of the class that the method is
+         *    declared in.
+         *   -Each variable that is assigned to the source expr
+         *    of catch() is given the type indicated in the handler
+         *    table.
+         *    
+         * Each expression that uses a variable must have that variable
+         * declared before it is used. In SSA this could be either a phi
+         * or a regular local variable. In either case, this variable
+         * must be typed before the expression can be evaluated. Therefore
+         * we visit the code in reverse postorder to ensure that the
+         * 'parents' or predecessor statements of a statement are visited
+         * before the statement itself is.
+         * 
+         * If it is determined at a point that a statement cannot be properly
+         * typed due to a lack of information. - What do we do? TOP indicates
+         * that one of the predecessors was untyped, but it can't be since they
+         * must be declared before reaching a use? Maybe this can happen with phis?
+         * 
+         * 
+         */
+	    
+	    worklistLoop: while(!worklist.isEmpty()) {
+	        Stmt stmt = worklist.pop();
+	        int opcode = stmt.getOpcode();
+	        
+	        switch(opcode) {
+	            case Opcode.LOCAL_LOAD: {
+	                CopyVarStmt cvs = (CopyVarStmt) stmt;
+	                break;
+	            }
+	            case Opcode.PHI_STORE: {
+	                CopyPhiStmt cps = (CopyPhiStmt) stmt;
+	                break;
+	            }
+	            case Opcode.FIELD_STORE: {
+	                FieldStoreStmt fss = (FieldStoreStmt) stmt;
+	                
+	                break;
+	            }
+	        }
+	    }
+		/*worklistLoop: while(!worklist.isEmpty()) {
 			VersionedLocal l = worklist.pop();
 
 			AbstractCopyStmt copyStmt = pool.defs.get(l);
@@ -181,12 +220,12 @@ public class TypeAnalysis {
 			} else {
 				throw new IllegalStateException(String.format("unknown copystmt format: %s", copyStmt));
 			}
-		}
+		}*/
 		
 		System.out.println(worklist);
 	}
 	
-	private LocalType computeStaticType(Expr e) {
+	/*private LocalType computeStaticType(Expr e) {
 		int opcode = e.getOpcode();
 		
 		switch(opcode) {
@@ -258,7 +297,7 @@ public class TypeAnalysis {
 				throw new UnsupportedOperationException(String.format("Unknown expr, type=%s", Opcode.opname(opcode)));
 			}
 		}
-	}
+	}*/
 	
 	private LocalType computeLeastUpperBound(Set<Type> types) {
 		if(types.size() == 0) {
