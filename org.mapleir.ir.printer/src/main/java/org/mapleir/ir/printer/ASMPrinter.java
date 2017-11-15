@@ -172,6 +172,7 @@ public abstract class ASMPrinter<E> extends Printer<E> {
             // TODO: check
             map.put("values", new String(attr.value));
             this.emitDirectiveValue(map);
+            throw new UnsupportedOperationException("TODO");
         } else if (o instanceof Type) {
             this.sw.print("T\"").print(o.toString()).print("\"");
         } else {
