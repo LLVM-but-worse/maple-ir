@@ -357,8 +357,27 @@ public class LiteralLexer {
 			putChar(true);
 		}
 	}
+    
+    private void checkExtendedLiteral() throws LexerException {
+        char ch = peek();
+        
+       if(ch == 'T') {
+            tk = TokenKind.TYPELIT;
+        }
+        
+        if(tk != null) {
+            scanNext();
+            ch = peek();
+            
+            if(ch != '"') {
+                error(String.format("malformed extendedlit of type %s", tk));
+            }
+        }
+    }
 	
 	public void process() throws LexerException {
+        checkExtendedLiteral();
+        
 		scanNext();
 		
 		switch(ch) {
@@ -439,7 +458,10 @@ public class LiteralLexer {
 				}
 				
 				if(ch == '\"') {
-					tk = TokenKind.STRLIT;
+					if(tk == null) {
+					    // could be another kind of str lit
+					    tk = TokenKind.STRLIT;
+					}
 					scanNext();
 				} else {
 					error("unclosed string literal");

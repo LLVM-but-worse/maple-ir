@@ -269,6 +269,7 @@ LITERAL
     :   IntegerLiteral
     |   FloatingPointLiteral
     |   CharacterLiteral
+    |	'T' StringLiteral // type literal
     |   StringLiteral
     |   BooleanLiteral
     |   'null'

@@ -4,6 +4,7 @@ import java.text.ParseException;
 
 import org.mapleir.ir.antlr.internallex.LexerException;
 import org.mapleir.ir.antlr.internallex.LiteralLexer;
+import org.objectweb.asm.Type;
 
 public class LexerUtil {
 
@@ -74,6 +75,13 @@ public class LexerUtil {
 				return lexer.asString().charAt(0);
 			case STRLIT:
 				return lexer.asString();
+			case TYPELIT:
+			    String str = lexer.asString();
+			    try {
+			        return Type.getType(str);
+			    } catch(IllegalArgumentException | UnsupportedOperationException e) {
+			        throw new ParseException("illegal asm type: " + str, 0);
+			    }
 			default:
 				throw new UnsupportedOperationException("Unknown token type: " + lexer.getTokenKind());
 		}
