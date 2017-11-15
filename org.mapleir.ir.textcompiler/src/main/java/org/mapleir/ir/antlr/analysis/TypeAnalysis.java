@@ -1,30 +1,22 @@
 package org.mapleir.ir.antlr.analysis;
 
+import static org.mapleir.ir.code.Opcode.*;
+
 import java.lang.reflect.Modifier;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Set;
 
 import org.mapleir.app.service.ApplicationClassSource;
 import org.mapleir.app.service.ClassTree;
+import org.mapleir.flowgraph.edges.FlowEdge;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.cfg.builder.ssaopt.Constraint;
 import org.mapleir.ir.code.Expr;
-import org.mapleir.ir.code.Opcode;
 import org.mapleir.ir.code.Stmt;
-import org.mapleir.ir.code.expr.PhiExpr;
-import org.mapleir.ir.code.expr.VarExpr;
+import org.mapleir.ir.code.expr.*;
+import org.mapleir.ir.code.expr.invoke.Invocation;
 import org.mapleir.ir.code.stmt.FieldStoreStmt;
-import org.mapleir.ir.code.stmt.copy.AbstractCopyStmt;
 import org.mapleir.ir.code.stmt.copy.CopyPhiStmt;
 import org.mapleir.ir.code.stmt.copy.CopyVarStmt;
 import org.mapleir.ir.locals.Local;
@@ -32,6 +24,7 @@ import org.mapleir.ir.locals.LocalsPool;
 import org.mapleir.ir.locals.impl.VersionedLocal;
 import org.mapleir.stdlib.collections.ClassHelper;
 import org.mapleir.stdlib.collections.graph.algorithms.ExtendedDfs;
+import org.mapleir.stdlib.collections.graph.algorithms.TarjanSCC;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.ClassNode;
 
@@ -58,6 +51,7 @@ public class TypeAnalysis {
 	private final ApplicationClassSource source;
 	private final ControlFlowGraph cfg;
 	private final List<BasicBlock> topoOrder;
+	private final Map<BasicBlock, List<BasicBlock>> components;
 	private final Map<VersionedLocal, Type> argTypes;
 	private final LocalsPool pool;
 	private final LinkedList<Stmt> worklist;
@@ -68,20 +62,30 @@ public class TypeAnalysis {
 		this.source = source;
 		this.cfg = cfg;
 		this.argTypes = argTypes;
-		this.pool = cfg.getLocals();
+		pool = cfg.getLocals();
 		// topo is probably optimal
-		this.topoOrder = computeTopoOrder();
+		topoOrder = computeTopoOrder();
+		components = new HashMap<>();
 		
 		// Set<VersionedLocal> ssaLocals = getSSALocals(pool);
 		// this.worklist = new LinkedList<>(ssaLocals);
-		this.worklist = new LinkedList<>();
-		this.results = new HashMap<>();
-		this.constraints = new HashMap<>();
+		worklist = new LinkedList<>();
+		results = new HashMap<>();
+		constraints = new HashMap<>();
+	}
+	
+	private List<List<BasicBlock>> computeComponents() {
+		BasicBlock entry = cfg.getEntries().iterator().next();
+		TarjanSCC<BasicBlock> sccComputer = new TarjanSCC<>(cfg);
+		sccComputer.search(entry);
+		return sccComputer.getComponents();
 	}
 	
 	private List<BasicBlock> computeTopoOrder() {
+		BasicBlock entry = cfg.getEntries().iterator().next();
+		
 		ExtendedDfs<BasicBlock> dfs = new ExtendedDfs<>(cfg, ExtendedDfs.TOPO);
-		dfs.run(cfg.getEntries().iterator().next());
+		dfs.run(entry);
 		return dfs.getTopoOrder();
 	}
 	
@@ -94,6 +98,7 @@ public class TypeAnalysis {
 	
 	private void populateWorklist() {
 	    for(BasicBlock b : topoOrder) {
+	    	System.out.println(b.getDisplayName());
 	        worklist.addAll(b);
 	    }
 	}
@@ -119,6 +124,24 @@ public class TypeAnalysis {
 	
 	private boolean hasComputedType(VersionedLocal l) {
 		return results.containsKey(l) && !results.get(l).isTop;
+	}
+	
+	private void queueSuccessors(Stmt stmt) {
+		BasicBlock block = stmt.getBlock();
+		
+		int idx = block.indexOf(stmt);
+		
+		if(idx == (block.size() - 1)) {
+			for(FlowEdge<BasicBlock> succEdge : cfg.getEdges(block)) {
+				BasicBlock succ = succEdge.dst();
+				if(!succ.isEmpty()) {
+					throw new IllegalArgumentException();
+				}
+				worklist.add(succ.get(0));
+			}
+		} else {
+			worklist.add(block.get(idx + 1));
+		}
 	}
 	
 	private void run() {
@@ -157,15 +180,60 @@ public class TypeAnalysis {
 	        int opcode = stmt.getOpcode();
 	        
 	        switch(opcode) {
-	            case Opcode.LOCAL_LOAD: {
+	            case LOCAL_LOAD: {
 	                CopyVarStmt cvs = (CopyVarStmt) stmt;
+	                VersionedLocal dst = (VersionedLocal) cvs.getVariable().getLocal();
+	                
+	                if(!hasComputedType(dst)) {
+						if(argTypes.containsKey(dst)) {
+							results.put(dst, new LocalType(argTypes.get(dst)));
+						} else {
+							Expr rhs = cvs.getExpression();
+							LocalType computedType = computeStaticType(rhs);
+							
+							if(computedType.isTop) {
+								worklist.add(stmt);
+							} else {
+								results.put(dst, computedType);
+							}
+						}
+						
+						queueSuccessors(stmt);
+	                }
 	                break;
 	            }
-	            case Opcode.PHI_STORE: {
+	            case PHI_STORE: {
 	                CopyPhiStmt cps = (CopyPhiStmt) stmt;
+	                VersionedLocal dst = (VersionedLocal) cps.getVariable().getLocal();
+	                
+					PhiExpr phiExpr = cps.getExpression();
+					List<VersionedLocal> srcLocals = new ArrayList<>();
+					for(Expr e : phiExpr.getArguments().values()) {
+						VarExpr varExpr = (VarExpr) e;
+						VersionedLocal src = (VersionedLocal) varExpr.getLocal();
+						srcLocals.add(src);
+					}
+					srcLocals.remove(dst);
+					
+					boolean fail = false;
+					
+					Set<Type> srcTypes = new HashSet<>();
+					for(VersionedLocal src : srcLocals) {
+						if(!hasComputedType(src)) {
+							// worklist.addAll(srcLocals);
+							fail = true;
+						} else {
+							srcTypes.add(results.get(src).type);
+						}
+					}
+					
+					if(!fail) {
+						LocalType lub = computeLeastUpperBound(srcTypes);
+						results.put(dst, lub);
+					}
 	                break;
 	            }
-	            case Opcode.FIELD_STORE: {
+	            case FIELD_STORE: {
 	                FieldStoreStmt fss = (FieldStoreStmt) stmt;
 	                
 	                break;
@@ -225,7 +293,7 @@ public class TypeAnalysis {
 		System.out.println(worklist);
 	}
 	
-	/*private LocalType computeStaticType(Expr e) {
+	private LocalType computeStaticType(Expr e) {
 		int opcode = e.getOpcode();
 		
 		switch(opcode) {
@@ -294,10 +362,10 @@ public class TypeAnalysis {
 				return new LocalType(e.getType());
 			}
 			default: {
-				throw new UnsupportedOperationException(String.format("Unknown expr, type=%s", Opcode.opname(opcode)));
+				throw new UnsupportedOperationException(String.format("Unknown expr, type=%s", opname(opcode)));
 			}
 		}
-	}*/
+	}
 	
 	private LocalType computeLeastUpperBound(Set<Type> types) {
 		if(types.size() == 0) {

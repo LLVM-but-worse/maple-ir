@@ -1,9 +1,10 @@
 package org.mapleir.flowgraph.edges;
 
+import org.mapleir.stdlib.collections.graph.EdgeCloneable;
 import org.mapleir.stdlib.collections.graph.FastGraphEdge;
 import org.mapleir.stdlib.collections.graph.FastGraphVertex;
 
-public interface FlowEdge<N extends FastGraphVertex> extends FastGraphEdge<N>, FlowEdges {
+public interface FlowEdge<N extends FastGraphVertex> extends FastGraphEdge<N>, FlowEdges, EdgeCloneable<N, FlowEdge<N>> {
 	
 	int getType();
 	
@@ -14,6 +15,7 @@ public interface FlowEdge<N extends FastGraphVertex> extends FastGraphEdge<N>, F
 	
 	String toInverseString();
 	
+	@Override
 	FlowEdge<N> clone(N src, N dst);
 
 	@Override

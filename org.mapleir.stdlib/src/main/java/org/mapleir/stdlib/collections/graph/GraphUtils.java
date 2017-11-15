@@ -105,4 +105,18 @@ public class GraphUtils {
 		}
 		return c;
 	}
+	
+	public static <N extends FastGraphVertex, E extends FastGraphEdge<N> & EdgeCloneable<N, E>> void reverse(
+			FastDirectedGraph<N, E> src, FastDirectedGraph<N, E> dst) {
+		for (N n : src.vertices()) {
+			dst.addVertex(n);
+
+			for (E sE : src.getEdges(n)) {
+				/* reverse the edge */
+				E newE = sE.clone(sE.dst(), sE.src());
+				/* add it as an edge from the succ */
+				dst.addEdge(sE.dst(), newE);
+			}
+		}
+	}
 }
