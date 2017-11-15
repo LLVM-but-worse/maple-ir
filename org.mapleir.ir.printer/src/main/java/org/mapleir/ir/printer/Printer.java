@@ -35,7 +35,6 @@ public abstract class Printer<E> {
 
     public void emitDirectiveMap(Map<?, ?> map, boolean mapNewLine) {
         if (map.size() > 0) {
-
             if (map.size() == 1) {
                 Entry<?, ?> e = map.entrySet().iterator().next();
                 this.sw.print('{');
