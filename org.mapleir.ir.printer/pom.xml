@@ -19,5 +19,10 @@
       <artifactId>ir</artifactId>
       <version>0.0.1-ALPHA</version>
     </dependency>
+    <dependency>
+    	<groupId>org.mapleir.property-framework</groupId>
+    	<artifactId>property-framework</artifactId>
+    	<version>0.0.1-SNAPSHOT</version>
+    </dependency>
   </dependencies>
 </project>
