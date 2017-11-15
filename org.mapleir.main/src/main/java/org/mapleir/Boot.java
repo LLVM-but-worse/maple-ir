@@ -30,6 +30,10 @@ import org.mapleir.ir.algorithms.ControlFlowGraphDumper;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.cfg.builder.ControlFlowGraphBuilder;
 import org.mapleir.ir.printer.ClassPrinter;
+import org.mapleir.ir.printer.FieldNodePrinter;
+import org.mapleir.ir.printer.MethodNodePrinter;
+import org.mapleir.propertyframework.api.IPropertyDictionary;
+import org.mapleir.propertyframework.util.PropertyHelper;
 import org.mapleir.stdlib.collections.ClassHelper;
 import org.mapleir.stdlib.util.TabbedStringWriter;
 import org.objectweb.asm.tree.ClassNode;
@@ -94,8 +98,21 @@ public class Boot {
 		}
 		
 		for(ClassNode cn : app.iterate()) {
-			ClassPrinter cp = new ClassPrinter();
-			System.out.println(cp.print(cn));
+			TabbedStringWriter sw = new TabbedStringWriter();
+			sw.setTabString("  ");
+			IPropertyDictionary settings = PropertyHelper.createDictionary();
+//			settings.put(new BooleanProperty(ASMPrinter.PROP_ACCESS_FLAG_SAFE, true));
+			ClassPrinter cp = new ClassPrinter(sw, settings,
+					new FieldNodePrinter(sw, settings),
+					new MethodNodePrinter(sw, settings) {
+						@Override
+						protected ControlFlowGraph getCfg(MethodNode mn) {
+							return cxt.getIRCache().getFor(mn);
+						}
+
+					});
+			cp.print(cn);
+			System.out.println(sw.toString());
 		}
 		
 		section0("...generated " + cxt.getIRCache().size() + " cfgs in %fs.%n", "Preparing to transform.");
