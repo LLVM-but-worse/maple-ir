@@ -83,11 +83,6 @@ public class Boot {
 		for(MethodNode m : cxt.getApplicationContext().getEntryPoints()) {
 //			System.out.println(m);
 			tracer.trace(m);
-			
-			if(m.instructions.size() > 1500 && m.instructions.size() < 3000) {
-				System.out.println(m);
-				System.out.println(cxt.getIRCache().get(m));
-			}
 		}
 		
 		section0("...generated " + cxt.getIRCache().size() + " cfgs in %fs.%n", "Preparing to transform.");

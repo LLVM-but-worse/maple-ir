@@ -11,10 +11,8 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import org.mapleir.flowgraph.ExceptionRange;
-import org.mapleir.flowgraph.edges.DummyEdge;
 import org.mapleir.flowgraph.edges.FlowEdge;
 import org.mapleir.flowgraph.edges.FlowEdges;
-import org.mapleir.flowgraph.edges.ImmediateEdge;
 import org.mapleir.flowgraph.edges.TryCatchEdge;
 import org.mapleir.ir.code.CodeUnit;
 import org.mapleir.ir.code.Expr;
@@ -27,7 +25,6 @@ import org.mapleir.ir.locals.LocalsPool;
 import org.mapleir.ir.locals.impl.VersionedLocal;
 import org.mapleir.ir.utils.dot.ControlFlowGraphDecorator;
 import org.mapleir.stdlib.collections.graph.FastGraph;
-import org.mapleir.stdlib.collections.graph.GraphUtils;
 import org.mapleir.stdlib.collections.graph.dot.DotWriter;
 import org.mapleir.stdlib.collections.itertools.ChainIterator;
 import org.mapleir.stdlib.util.TabbedStringWriter;
@@ -109,7 +106,7 @@ public class ControlFlowGraph extends FastBlockGraph {
 		for(Expr e : to.enumerateWithSelf()) {
 			if (e.getOpcode() == Opcode.LOCAL_LOAD) {
 				VarExpr var = (VarExpr) e;
-				locals.uses.get((VersionedLocal) var.getLocal()).add(var);
+				locals.uses.get(var.getLocal()).add(var);
 			}
 		}
 		
@@ -240,33 +237,6 @@ public class ControlFlowGraph extends FastBlockGraph {
 	public DotWriter<FastGraph<BasicBlock, FlowEdge<BasicBlock>>, BasicBlock, FlowEdge<BasicBlock>> makeDotWriter() {
 		return (DotWriter<FastGraph<BasicBlock, FlowEdge<BasicBlock>>, BasicBlock, FlowEdge<BasicBlock>>)(Object)((DotWriter<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>>)(Object)super.makeDotWriter())
 				.add(new ControlFlowGraphDecorator().setFlags(ControlFlowGraphDecorator.OPT_EDGES | ControlFlowGraphDecorator.OPT_STMTS));
-	}
-	
-	public BasicBlock connectHead() {
-		return connectHead(new BasicBlock(this, GraphUtils.FAKEHEAD_ID, null) {
-			@Override
-			public String getDisplayName() {
-				return "fakehead";
-			}
-		});
-	}
-	
-	public BasicBlock connectHead(BasicBlock head) {
-		addVertex(head);
-		
-		for(BasicBlock b : vertices()) {
-			if(getReverseEdges(b).size() == 0 && b != head) {
-				FlowEdge<BasicBlock> e = null;
-				if(getEntries().contains(b)) {
-					e = new ImmediateEdge<>(head, b);
-				} else {
-					e = new DummyEdge<>(head, b);
-				}
-				addEdge(head, e);
-			}
-		}
-		
-		return head;
 	}
 	
 	public void disconnectHead(BasicBlock head) {

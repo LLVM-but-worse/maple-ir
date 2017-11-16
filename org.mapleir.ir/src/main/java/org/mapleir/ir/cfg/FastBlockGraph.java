@@ -1,8 +1,11 @@
 package org.mapleir.ir.cfg;
 
 import org.mapleir.flowgraph.FlowGraph;
+import org.mapleir.flowgraph.edges.DummyEdge;
 import org.mapleir.flowgraph.edges.FlowEdge;
+import org.mapleir.flowgraph.edges.ImmediateEdge;
 import org.mapleir.flowgraph.edges.TryCatchEdge;
+import org.mapleir.stdlib.collections.graph.GraphUtils;
 import org.objectweb.asm.tree.LabelNode;
 
 import java.util.HashMap;
@@ -156,4 +159,31 @@ public class FastBlockGraph extends FlowGraph<BasicBlock, FlowEdge<BasicBlock>> 
 	public FastBlockGraph copy() {
 		return new FastBlockGraph(this);
 	}
+	
+    public BasicBlock connectHead() {
+        return connectHead(new BasicBlock(null, GraphUtils.FAKEHEAD_ID, null) {
+            @Override
+            public String getDisplayName() {
+                return "fakehead";
+            }
+        });
+    }
+    
+    public BasicBlock connectHead(BasicBlock head) {
+        addVertex(head);
+        
+        for(BasicBlock b : vertices()) {
+            if(getReverseEdges(b).size() == 0 && b != head) {
+                FlowEdge<BasicBlock> e = null;
+                if(getEntries().contains(b)) {
+                    e = new ImmediateEdge<>(head, b);
+                } else {
+                    e = new DummyEdge<>(head, b);
+                }
+                addEdge(head, e);
+            }
+        }
+        
+        return head;
+    }
 }

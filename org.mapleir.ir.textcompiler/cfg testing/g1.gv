@@ -1,0 +1,10 @@
+digraph "g1" {
+   node [fontsize = 8.0, fontname = "consolas bold", dpi = 200.0]
+   edge [fontsize = 8.0, fontname = "consolas bold", dpi = 200.0]
+   graph [fontsize = 8.0, fontname = "consolas bold", dpi = 200.0]
+   "A" [labeljust = "l", fillcolor = "red", shape = "box", style = "filled", label = "0. A\l0. lvar0_0 = lvar0_0;\l1. lvar1_0 = lvar1_0;\l2. lvar2_0 = lvar2_0;\l3. if (lvar2_0 == 0)\l   goto B\l"]
+   "B" [labeljust = "l", fillcolor = "green", shape = "box", style = "filled", label = "1. B\l0. lvar3_0 = ɸ{B:lvar1_0};\l1. lvar4_0 = {lvar1_0 + lvar3_0};\l2. return lvar4_0;\l"]
+   "A" -> "B" [label = "Immediate"];
+   "A" -> "B" [label = "IFEQ"];
+   
+}

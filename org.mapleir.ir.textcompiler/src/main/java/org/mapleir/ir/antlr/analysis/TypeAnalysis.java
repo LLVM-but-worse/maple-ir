@@ -8,9 +8,11 @@ import java.util.Map.Entry;
 
 import org.mapleir.app.service.ApplicationClassSource;
 import org.mapleir.app.service.ClassTree;
+import org.mapleir.flowgraph.algorithms.TarjanDominanceComputor;
 import org.mapleir.flowgraph.edges.FlowEdge;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
+import org.mapleir.ir.cfg.FastBlockGraph;
 import org.mapleir.ir.cfg.builder.ssaopt.Constraint;
 import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.code.Stmt;
@@ -23,14 +25,57 @@ import org.mapleir.ir.locals.Local;
 import org.mapleir.ir.locals.LocalsPool;
 import org.mapleir.ir.locals.impl.VersionedLocal;
 import org.mapleir.stdlib.collections.ClassHelper;
+import org.mapleir.stdlib.collections.graph.FastDirectedGraph;
+import org.mapleir.stdlib.collections.graph.FastGraphEdge;
+import org.mapleir.stdlib.collections.graph.GraphUtils;
 import org.mapleir.stdlib.collections.graph.algorithms.ExtendedDfs;
 import org.mapleir.stdlib.collections.graph.algorithms.TarjanSCC;
+import org.mapleir.stdlib.collections.map.KeyedValueCreator;
+import org.mapleir.stdlib.collections.map.NullPermeableHashMap;
+import org.mapleir.stdlib.collections.map.SetCreator;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.ClassNode;
 
 public class TypeAnalysis {
-	
+
+    public static Map<BasicBlock, Set<BasicBlock>> computeDominators(FastBlockGraph g) {
+        ExtendedDfs<BasicBlock> dfs = new ExtendedDfs<>(g, ExtendedDfs.PRE | ExtendedDfs.POST);
+        dfs.run(g.getEntries().iterator().next());
+
+        TarjanDominanceComputor<BasicBlock> domComputer = new TarjanDominanceComputor<>(g,
+                dfs.getPreOrder());
+
+        NullPermeableHashMap<BasicBlock, Set<BasicBlock>> doms = new NullPermeableHashMap<>(new KeyedValueCreator<BasicBlock, Set<BasicBlock>>() {
+            @Override
+            public Set<BasicBlock> create(BasicBlock k) {
+                Set<BasicBlock> set = new HashSet<>();
+                set.add(k);
+                return set;
+            }
+        });
+        
+        /* dfs the tree or dfs the cfg? */
+        for (BasicBlock b : dfs.getPostOrder()) {
+            BasicBlock idom = domComputer.idom(b);
+            if (idom != null) {
+                Set<BasicBlock> set = doms.getNonNull(idom);
+                set.add(b);
+                set.addAll(doms.getNonNull(b));
+            }
+        }
+        
+        return doms;
+    }
+    
 	public static Map<VersionedLocal, Type> analyse(ApplicationClassSource source, ControlFlowGraph cfg, Map<VersionedLocal, Type> argTypes) {
+	    Map<BasicBlock, Set<BasicBlock>> doms = computeDominators(cfg);
+	    FastBlockGraph reverseGraph = new FastBlockGraph();
+	    GraphUtils.reverse(cfg, reverseGraph);
+	    BasicBlock dummyHead = reverseGraph.connectHead();
+	    reverseGraph.getEntries().add(dummyHead);
+	    Map<BasicBlock, Set<BasicBlock>> postDoms = computeDominators(reverseGraph);
+	    
+	    
 		TypeAnalysis typeAnalysis = new TypeAnalysis(source, cfg, argTypes);
 		// typeAnalysis.optimiseWorklist();
 		typeAnalysis.populateWorklist();
