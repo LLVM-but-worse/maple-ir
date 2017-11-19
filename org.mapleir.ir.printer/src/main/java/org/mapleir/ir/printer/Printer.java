@@ -119,7 +119,9 @@ public abstract class Printer<E> {
     }
 
     public void emitLiteral(Object o) {
-        if (o instanceof String) {
+        if (o == null) {
+            this.sw.print("null");
+        } else if (o instanceof String) {
             this.sw.print('"').print(o.toString()).print('"');
         } else {
             this.sw.print(o.toString());
