@@ -8,13 +8,14 @@ import org.mapleir.ir.code.expr.NewArrayExpr;
 import org.mapleir.ir.code.expr.VarExpr;
 import org.mapleir.ir.code.stmt.ArrayStoreStmt;
 import org.mapleir.ir.locals.LocalsPool;
+import org.mapleir.ir.locals.impl.StaticMethodLocalsPool;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 
 public class GrammarTests {
 
 	public static void main(String[] args) {
-		LocalsPool pool = new LocalsPool(0);
+		LocalsPool pool = new StaticMethodLocalsPool(0);
 		
 		Type atype = TypeUtils.getPrimitiveArrayType(Opcodes.T_INT);
 		NewArrayExpr arr = new NewArrayExpr(new Expr[] {new ConstantExpr(5)}, atype);
