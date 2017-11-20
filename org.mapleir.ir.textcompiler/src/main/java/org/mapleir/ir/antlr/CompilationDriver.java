@@ -38,6 +38,7 @@ import org.mapleir.ir.antlr.scope.MethodScope;
 import org.mapleir.ir.antlr.scope.Scope;
 import org.mapleir.ir.antlr.source.ExpectsSourcePosition;
 import org.mapleir.ir.antlr.source.SourcePosition;
+import org.mapleir.ir.antlr.util.AppendableLibraryClassSource;
 import org.mapleir.ir.antlr.util.LexerUtil;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
@@ -71,6 +72,7 @@ public class CompilationDriver extends mapleirBaseListener {
 	private ErrorReporter errorReporter;
 	private List<CompilationException> exceptions;
 	private List<CompilationWarning> warnings;
+	private AppendableLibraryClassSource ourClassPath;
 	
 	public CompilationDriver(ApplicationClassSource classPath) {
 		this.classPath = classPath;
@@ -101,6 +103,8 @@ public class CompilationDriver extends mapleirBaseListener {
 		
 		exceptions = new ArrayList<>();
 		warnings = new ArrayList<>();
+		
+		ourClassPath = new AppendableLibraryClassSource(classPath);
 	}
 
 	public void process(mapleirParser parser) throws CompilationException {
@@ -127,8 +131,18 @@ public class CompilationDriver extends mapleirBaseListener {
 		parseDirectives(unit.setDirective());
 		processClassDecl(unit.classDeclaration());
 		
+		runPostProcesses();
+		
 		parser.removeParseListener(this);
 		outputProblems();
+	}
+	
+	private void runTypeAnalysis() {
+	    
+	}
+	
+	private void runPostProcesses() {
+	    runTypeAnalysis();
 	}
 	
     public void outputProblems() {
@@ -561,6 +575,7 @@ public class CompilationDriver extends mapleirBaseListener {
 			argTypes.put(local, type);
 		}
 		System.out.println(argTypes);
+		// FIXME: need to analyse after all classes have been parsed
 		TypeAnalysis.analyse(classPath, cfg, argTypes);
 	}
 	
