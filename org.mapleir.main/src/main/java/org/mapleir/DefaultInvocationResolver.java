@@ -22,7 +22,7 @@ public class DefaultInvocationResolver implements InvocationResolver {
 	private static int __debug_level() { return 0; }
 	private static final int debugLevel = __debug_level();
 	private static final boolean disallowMultiMS = false;
-	private static final boolean allowMissingClasses = false;
+	private static final boolean allowMissingClasses = true;
 	
 	private final ApplicationClassSource app;
 	
@@ -65,11 +65,11 @@ public class DefaultInvocationResolver implements InvocationResolver {
 		public CompFrame(ClassNode c) {
 			this.c = c;
 			
-			this.thisMethodSet = new HashMap<>();
-			this.thisAbstractSet = new HashMap<>();
-			this.globalAVT = new HashMap<>();
-			this.globalCVT = new HashMap<>();
-			this.mergeMap = new NullPermeableHashMap<>(new SetCreator<>());
+			thisMethodSet = new HashMap<>();
+			thisAbstractSet = new HashMap<>();
+			globalAVT = new HashMap<>();
+			globalCVT = new HashMap<>();
+			mergeMap = new NullPermeableHashMap<>(new SetCreator<>());
 		}
 	}
 	
@@ -515,9 +515,10 @@ public class DefaultInvocationResolver implements InvocationResolver {
 			while(it.hasNext()) {
 				List<String> lst = it.next().exceptions;
 				
-				if(lst.size() != set.size() || (lst.size() != 0 && !lst.containsAll(set))) {
+				/*if(lst.size() != set.size() || (lst.size() != 0 && !lst.containsAll(set))) {
 					throw new IllegalStateException(String.format("set: %s, lst: %s for %s", set, lst, col));
-				}
+				}*/
+				set.addAll(lst);
 			}
 			
 			return set.toArray(new String[0]);
@@ -612,7 +613,7 @@ public class DefaultInvocationResolver implements InvocationResolver {
 		/* find concrete receivers and resolve */
 		ClassNode cn = app.findClassNode(owner);
 		if(!checkNullClass(cn, owner)) {
-			return null;
+			return Collections.emptySet();
 		}
 		
 		Set<MethodNode> result = new HashSet<>();
