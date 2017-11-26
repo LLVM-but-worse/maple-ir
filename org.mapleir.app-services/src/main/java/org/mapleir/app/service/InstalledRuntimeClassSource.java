@@ -3,10 +3,12 @@ package org.mapleir.app.service;
 import java.io.IOException;
 import java.util.HashSet;
 
+import org.apache.log4j.Logger;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.tree.ClassNode;
 
 public class InstalledRuntimeClassSource extends LibraryClassSource {
+	protected final Logger LOGGER = Logger.getLogger(InstalledRuntimeClassSource.class);
 
 	private final HashSet<String> notContains;
 	
@@ -64,6 +66,7 @@ public class InstalledRuntimeClassSource extends LibraryClassSource {
 			ClassTree tree = parent._getClassTree();
 			if(tree == null) {
 				if(!cn.name.equals("java/lang/Object")) {
+					LOGGER.error(String.format("Tried to load %s before initialisation", cn));
 					throw new IllegalStateException("Only Object may be loaded during tree initialisation.");
 				}
 			} else {
@@ -75,8 +78,8 @@ public class InstalledRuntimeClassSource extends LibraryClassSource {
 			LocateableClassNode node = new LocateableClassNode(this, cn, true);
 			return node;
 		} catch(IOException e) {
-			// TODO: logger
-			System.err.println(e.getMessage() + ": " + name);
+			LOGGER.error(String.format("Could not load class from calling classloader: %s", name));
+			LOGGER.error(e);
 			notContains.add(name);
 			return null;
 		}
