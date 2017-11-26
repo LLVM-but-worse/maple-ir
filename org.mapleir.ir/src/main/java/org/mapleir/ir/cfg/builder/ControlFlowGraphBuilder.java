@@ -3,6 +3,7 @@ package org.mapleir.ir.cfg.builder;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.apache.log4j.Logger;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.locals.Local;
@@ -13,6 +14,8 @@ import org.objectweb.asm.tree.MethodNode;
 
 public class ControlFlowGraphBuilder {
 
+	private static final Logger LOGGER = Logger.getLogger(ControlFlowGraph.class);
+	
 	protected final MethodNode method;
 	protected final ControlFlowGraph graph;
 	protected final Set<Local> locals;
@@ -60,8 +63,11 @@ public class ControlFlowGraphBuilder {
 		ControlFlowGraphBuilder builder = new ControlFlowGraphBuilder(method);
 		try {
 			return builder.buildImpl();
-		} catch(RuntimeException e) {
-			System.err.println(builder.graph);
+		} catch (RuntimeException e) {
+			LOGGER.error(String.format("Error processing %s", builder.method));
+			LOGGER.error(String.format("Current state of cfg (%d blocks):\n%s",
+					builder.count, builder.graph));
+			LOGGER.error("Failed with error", e);
 			throw e;
 		}
 	}
