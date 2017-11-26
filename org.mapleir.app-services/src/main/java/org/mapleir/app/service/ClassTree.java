@@ -3,6 +3,7 @@ package org.mapleir.app.service;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.apache.log4j.Logger;
 import org.mapleir.app.service.ClassTree.InheritanceEdge;
 import org.mapleir.stdlib.collections.graph.FastDirectedGraph;
 import org.mapleir.stdlib.collections.graph.FastGraphEdge;
@@ -20,11 +21,20 @@ import org.objectweb.asm.tree.ClassNode;
 // edge = (c, super)
 // so a dfs goes through edges towards the root
 public class ClassTree extends FastDirectedGraph<ClassNode, InheritanceEdge> {
+	private static final Logger LOGGER = Logger.getLogger(ClassTree.class);
+	private static final boolean ALLOW_PHANTOM_CLASSES = true;
+	
 	private final ApplicationClassSource source;
 	private final ClassNode rootNode;
+	private final boolean allowPhantomClasses;
 	
 	public ClassTree(ApplicationClassSource source) {
+		this(source, ALLOW_PHANTOM_CLASSES);
+	}
+	
+	public ClassTree(ApplicationClassSource source, boolean allowPhantomClasses) {
 		this.source = source;
+		this.allowPhantomClasses = allowPhantomClasses;
 		rootNode = findClass("java/lang/Object");
 		addVertex(rootNode);
 	}
@@ -133,7 +143,12 @@ public class ClassTree extends FastDirectedGraph<ClassNode, InheritanceEdge> {
 		if(n != null) {
 			return n.node;
 		} else {
-			throw new RuntimeException(String.format("Class not found %s", name));
+			if(allowPhantomClasses) {
+				LOGGER.warn(String.format("Phantom class: %s", name));
+				return null;
+			} else {
+				throw new RuntimeException(String.format("Class not found %s", name));
+			}
 		}
 	}
 	
@@ -147,24 +162,37 @@ public class ClassTree extends FastDirectedGraph<ClassNode, InheritanceEdge> {
 	
 	@Override
 	public boolean addVertex(ClassNode cn) {
+		if(cn == null) {
+			LOGGER.error("Received null to ClassTree.addVertex");
+			return false;
+		}
+		
 		if (!super.addVertex(cn))
 			return false;
-
-		/*if(cn.name.equals("java/lang/Object")) {
-			System.out.println("add " + cn + this.hashCode());
-			System.out.println(cn.superName);
-
-			return false;
-		}*/
-
+		
 		if(cn != rootNode) {
+			Set<InheritanceEdge> edges = new HashSet<>();
 			ClassNode sup = cn.superName != null ? requestClass0(cn.superName, cn.name) : rootNode;
-			super.addEdge(cn, new ExtendsEdge(cn, sup));
+			if(sup == null) {
+				LOGGER.error(String.format("No superclass %s for %s", cn.superName, cn.name));
+				removeVertex(cn);
+				return false;
+			}
+			edges.add(new ExtendsEdge(cn, sup));
 
 			for (String s : cn.interfaces) {
 				ClassNode iface = requestClass0(s, cn.name);
-				super.addEdge(cn, new ImplementsEdge(cn, iface));
-			}	
+				if(iface == null) {
+					LOGGER.error(String.format("No superinterface %s for %s", s, cn.name));
+					removeVertex(cn);
+					return false;
+				}
+				edges.add(new ImplementsEdge(cn, iface));
+			}
+			
+			for(InheritanceEdge e : edges) {
+				super.addEdge(e.src(), e);
+			}
 		}
 		
 		return true;
