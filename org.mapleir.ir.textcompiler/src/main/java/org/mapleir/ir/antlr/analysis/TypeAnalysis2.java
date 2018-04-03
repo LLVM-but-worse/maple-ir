@@ -72,20 +72,11 @@ public class TypeAnalysis2 {
     	lt.type = t;
     	return lt;
     }
-    
-    int k = 0;
-    
+
     private void processWorklist() {
         while(!worklist.isEmpty()) {
-        	if(k++ > 8) {
-        		return;
-        	}
             stmt = worklist.pop();
             change = false;
-            requeue = false;
-            
-            System.out.println("Process:");
-            System.out.println("  " + stmt);
             processStmt();
             
             /* if any part of the statement is invalid
@@ -182,8 +173,8 @@ public class TypeAnalysis2 {
                 /* synthetic copies (see parameter copies) should be provided
                  * as input facts. if we don't already have a type for it, we
                  * set it to unknown. */
+                // should already be set as an input fact
                 LocalType currentT = getType(vl);
-//                System.out.println("t: " + getType(vl));
                 if(!currentT.hasType()) {
                     set(vl, LocalType.UNKNOWN);
                 }
@@ -196,7 +187,6 @@ public class TypeAnalysis2 {
                  * the expr. */
                 set(vl, newT);
             }
-//            System.out.println("done: " + getType(vl));
         } else if(opcode == Opcode.ARRAY_STORE) {
             ArrayStoreStmt ars = (ArrayStoreStmt) stmt;
             boolean haveArrayType = expectType(ars.getArrayExpression(),
@@ -292,10 +282,8 @@ public class TypeAnalysis2 {
         throw new UnsupportedOperationException(String.valueOf(e));
     }
     
-    private /*<T>*/ boolean expectType(/*T o,*/Expr e, Predicate<Type> predicate, Function</*T*/Expr, LocalType> failFunction) {
-    	Object o = _getTypeObj(e);	
+    private <T> boolean expectType(T o, Predicate<Type> predicate, Function<T, LocalType> failFunction) {
         LocalType localT = getType(o);
-        System.out.println("  got: " + e);
         if(localT.hasType()) {
             Type t = localT.type;
             if(predicate.test(t)) {
@@ -309,10 +297,10 @@ public class TypeAnalysis2 {
         } else if(!localT.isFixed) {
             /* unresolved so far, but resolveable.*/
             if(failFunction != null) {
-                LocalType newT = failFunction.apply(e);
+                LocalType newT = failFunction.apply(o);
                 set(o, newT);
                 /* retry */
-                return expectType(e, predicate, null);
+                return expectType(o, predicate, null);
             }
             requeue();
         } else {
@@ -322,6 +310,11 @@ public class TypeAnalysis2 {
         
         /* either invalidated, requeue or UNKNOWN */
         return false;
+    }
+    
+    private LocalType processVarExpr(VarExpr v) {
+        VersionedLocal dst = (VersionedLocal) v.getLocal();
+        return getType(dst);
     }
     
     private static boolean isPrimitive(Type t) {
@@ -377,8 +370,8 @@ public class TypeAnalysis2 {
         private Type type;
         
         private LocalType(boolean isUnknown, boolean isTodo) {
-            this.isUnknown = isUnknown;
-            this.isTodo = isTodo;
+            isUnknown = isUnknown;
+            isTodo = isTodo;
             isFixed = isUnknown; // if it's unknown, we can't change the type
             
             if(isUnknown == isTodo) {

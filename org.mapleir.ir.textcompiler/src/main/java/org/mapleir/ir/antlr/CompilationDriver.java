@@ -141,12 +141,12 @@ public class CompilationDriver extends mapleirBaseListener {
 	}
 	
 
-	private void runPostProcesses() {
-	    runTypeAnalysis();
-	}
-	
 	private void runTypeAnalysis() {
 	    
+	}
+	
+	private void runPostProcesses() {
+	    runTypeAnalysis();
 	}
 	
     public void outputProblems() {
@@ -580,7 +580,8 @@ public class CompilationDriver extends mapleirBaseListener {
 		}
 		System.out.println(argTypes);
 		// FIXME: need to analyse after all classes have been parsed
-		// TypeAnalysis.analyse(classPath, cfg, argTypes);
+
+		//TypeAnalysis.analyse(classPath, cfg, argTypes);
 		TypeAnalysis2.run(classPath, cfg, resolver, argTypes);
 	}
 	
