@@ -14,11 +14,12 @@ import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.TerminalNode;
 import org.apache.log4j.Logger;
 import org.mapleir.app.service.ApplicationClassSource;
+import org.mapleir.app.service.InvocationResolver;
 import org.mapleir.flowgraph.ExceptionRange;
 import org.mapleir.flowgraph.edges.ConditionalJumpEdge;
 import org.mapleir.flowgraph.edges.ImmediateEdge;
 import org.mapleir.ir.antlr.mapleirParser.*;
-import org.mapleir.ir.antlr.analysis.TypeAnalysis;
+import org.mapleir.ir.antlr.analysis.TypeAnalysis2;
 import org.mapleir.ir.antlr.directive.DirectiveDictValue;
 import org.mapleir.ir.antlr.directive.DirectiveToken;
 import org.mapleir.ir.antlr.directive.DirectiveValue;
@@ -67,6 +68,7 @@ public class CompilationDriver extends mapleirBaseListener {
 	private static final Logger LOGGER = Logger.getLogger(CompilationDriver.class);
 	
 	private final ApplicationClassSource classPath;
+	private final InvocationResolver resolver;
 	private Deque<Scope> scopes;
 	public CompilationUnitContext unit;
 	private ErrorReporter errorReporter;
@@ -74,8 +76,9 @@ public class CompilationDriver extends mapleirBaseListener {
 	private List<CompilationWarning> warnings;
 	private AppendableLibraryClassSource ourClassPath;
 	
-	public CompilationDriver(ApplicationClassSource classPath) {
+	public CompilationDriver(ApplicationClassSource classPath, InvocationResolver resolver) {
 		this.classPath = classPath;
+		this.resolver = resolver;
 		scopes = new LinkedList<>();
 		
 		Consumer<CompilationException> exceptionConsumer = new Consumer<CompilationException>() {
@@ -137,12 +140,13 @@ public class CompilationDriver extends mapleirBaseListener {
 		outputProblems();
 	}
 	
-	private void runTypeAnalysis() {
-	    
-	}
-	
+
 	private void runPostProcesses() {
 	    runTypeAnalysis();
+	}
+	
+	private void runTypeAnalysis() {
+	    
 	}
 	
     public void outputProblems() {
@@ -576,7 +580,8 @@ public class CompilationDriver extends mapleirBaseListener {
 		}
 		System.out.println(argTypes);
 		// FIXME: need to analyse after all classes have been parsed
-		TypeAnalysis.analyse(classPath, cfg, argTypes);
+		// TypeAnalysis.analyse(classPath, cfg, argTypes);
+		TypeAnalysis2.run(classPath, cfg, resolver, argTypes);
 	}
 	
 	private BasicBlock lookupBlock(CodeScope codeScope, DirectiveValue idVal, String errorForUsage) {
@@ -609,7 +614,7 @@ public class CompilationDriver extends mapleirBaseListener {
 		return processExpr(codeScope, _exprCtx, false);
 	}
 	
-	private Expr processExpr(CodeScope codeScope, final ExprContext _exprCtx, boolean allowCatch) {
+	private Expr processExpr(CodeScope codeScope, final ExprContext _exprCtx, boolean allowClass) {
 		ExprContext exprCtx = _exprCtx;
 		
 		while(exprCtx.primary() != null) {
@@ -642,7 +647,16 @@ public class CompilationDriver extends mapleirBaseListener {
 				return new VarExpr(l, null);
 			} else if(primaryExprCtx.expr() != null) {
 				exprCtx = primaryExprCtx.expr();
-			} else {
+			}/* else if(primaryExprCtx.jclass() != null) {
+				JclassContext jclassContext = primaryExprCtx.jclass();
+				SourcePosition jclassContextPos = errorReporter.newSourcePosition(jclassContext);
+				
+				if(!allowClass) {
+					errorReporter.error(String.format("Expected expr not class \"%s\"", jclassContext.getText()));
+				}
+				errorReporter.popSourcePosition(jclassContextPos);
+				return null;
+			}*/ else {
 				throw new IllegalStateException("token has no expr: " + _exprCtx);
 			}
 		}
@@ -700,11 +714,7 @@ public class CompilationDriver extends mapleirBaseListener {
 				return new CastExpr(expr, Type.getType(classNameCtx.getText()));
 			}
 			case CATCH: {
-				if(allowCatch) {
-					return new CaughtExceptionExpr(null);
-				} else {
-					return new ConstantExpr(null);
-				}
+				return new CaughtExceptionExpr(null);
 			}
 			case FIELDGET_OR_ARRLEN: {
 				Expr objExpr = processExpr(codeScope, exprCtx.expr(0));

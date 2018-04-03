@@ -6,6 +6,8 @@ import static org.objectweb.asm.tree.AbstractInsnNode.*;
 import java.util.*;
 import java.util.Map.Entry;
 
+import org.mapleir.app.service.TypeUtils;
+import org.mapleir.app.service.TypeUtils.ArrayType;
 import org.mapleir.flowgraph.ExceptionRange;
 import org.mapleir.flowgraph.edges.ConditionalJumpEdge;
 import org.mapleir.flowgraph.edges.DefaultSwitchEdge;
@@ -13,8 +15,6 @@ import org.mapleir.flowgraph.edges.ImmediateEdge;
 import org.mapleir.flowgraph.edges.SwitchEdge;
 import org.mapleir.flowgraph.edges.TryCatchEdge;
 import org.mapleir.flowgraph.edges.UnconditionalJumpEdge;
-import org.mapleir.ir.TypeUtils;
-import org.mapleir.ir.TypeUtils.ArrayType;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.code.ExpressionStack;

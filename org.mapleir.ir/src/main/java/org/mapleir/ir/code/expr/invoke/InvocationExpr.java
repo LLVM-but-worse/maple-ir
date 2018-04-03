@@ -3,7 +3,7 @@ package org.mapleir.ir.code.expr.invoke;
 import java.util.Set;
 
 import org.mapleir.app.service.InvocationResolver;
-import org.mapleir.ir.TypeUtils;
+import org.mapleir.app.service.TypeUtils;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.CodeUnit;
 import org.mapleir.ir.code.Expr;

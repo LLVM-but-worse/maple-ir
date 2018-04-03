@@ -2,6 +2,7 @@ package org.mapleir.ir.antlr;
 
 public enum ExprType {
 	FIELDGET_OR_ARRLEN,
+	STATICFIELDGET,
 	ARRGET,
 	NEW_OR_ALLOC,
 	LOW_COMPARE,

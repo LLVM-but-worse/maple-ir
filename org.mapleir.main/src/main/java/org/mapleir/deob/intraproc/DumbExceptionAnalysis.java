@@ -1,6 +1,6 @@
 package org.mapleir.deob.intraproc;
 
-import static org.mapleir.ir.TypeUtils.ANY;
+import static org.mapleir.app.service.TypeUtils.ANY;
 
 import java.lang.invoke.WrongMethodTypeException;
 import java.util.HashSet;

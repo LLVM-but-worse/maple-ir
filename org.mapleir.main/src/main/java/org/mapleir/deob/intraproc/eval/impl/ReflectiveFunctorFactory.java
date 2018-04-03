@@ -4,9 +4,9 @@ import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.mapleir.app.service.TypeUtils;
 import org.mapleir.deob.intraproc.eval.EvaluationFactory;
 import org.mapleir.deob.intraproc.eval.EvaluationFunctor;
-import org.mapleir.ir.TypeUtils;
 import org.mapleir.ir.code.expr.ArithmeticExpr;
 import org.mapleir.ir.code.expr.ComparisonExpr;
 import org.mapleir.ir.code.stmt.ConditionalJumpStmt;

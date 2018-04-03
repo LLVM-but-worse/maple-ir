@@ -8,11 +8,11 @@ import java.util.Map;
 import java.util.Set;
 
 import org.mapleir.app.service.ApplicationClassSource;
+import org.mapleir.app.service.TypeUtils;
 import org.mapleir.context.AnalysisContext;
 import org.mapleir.deob.IPass;
 import org.mapleir.deob.intraproc.ExceptionAnalysis;
 import org.mapleir.flowgraph.ExceptionRange;
-import org.mapleir.ir.TypeUtils;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.Stmt;

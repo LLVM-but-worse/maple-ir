@@ -13,6 +13,7 @@ import org.apache.log4j.Logger;
 import org.mapleir.app.client.SimpleApplicationContext;
 import org.mapleir.app.service.ApplicationClassSource;
 import org.mapleir.app.service.CompleteResolvingJarDumper;
+import org.mapleir.app.service.DefaultInvocationResolver;
 import org.mapleir.app.service.InstalledRuntimeClassSource;
 import org.mapleir.app.service.LibraryClassSource;
 import org.mapleir.context.AnalysisContext;

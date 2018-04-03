@@ -1,12 +1,10 @@
-package org.mapleir;
+package org.mapleir.app.service;
 
 import java.lang.reflect.Modifier;
 import java.util.*;
 import java.util.Map.Entry;
 
 import org.apache.log4j.Logger;
-import org.mapleir.app.service.ApplicationClassSource;
-import org.mapleir.app.service.InvocationResolver;
 import org.mapleir.stdlib.collections.map.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.map.SetCreator;
 import org.objectweb.asm.Opcodes;

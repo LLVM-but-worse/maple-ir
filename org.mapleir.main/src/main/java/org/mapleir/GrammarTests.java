@@ -1,7 +1,7 @@
 package org.mapleir;
 
-import org.mapleir.ir.TypeUtils;
-import org.mapleir.ir.TypeUtils.ArrayType;
+import org.mapleir.app.service.TypeUtils;
+import org.mapleir.app.service.TypeUtils.ArrayType;
 import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.code.expr.ConstantExpr;
 import org.mapleir.ir.code.expr.NewArrayExpr;

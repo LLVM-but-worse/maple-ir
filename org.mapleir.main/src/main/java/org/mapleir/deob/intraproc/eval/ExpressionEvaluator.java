@@ -7,8 +7,8 @@ import java.math.BigDecimal;
 import java.util.Iterator;
 import java.util.Set;
 
+import org.mapleir.app.service.TypeUtils;
 import org.mapleir.deob.passes.FieldRSADecryptionPass;
-import org.mapleir.ir.TypeUtils;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.code.expr.ArithmeticExpr;

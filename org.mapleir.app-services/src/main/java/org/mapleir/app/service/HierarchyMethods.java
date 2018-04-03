@@ -1,4 +1,4 @@
-package org.mapleir;
+package org.mapleir.app.service;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -9,9 +9,6 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.mapleir.app.service.ApplicationClassSource;
-import org.mapleir.app.service.ClassTree;
-import org.mapleir.ir.TypeUtils;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;

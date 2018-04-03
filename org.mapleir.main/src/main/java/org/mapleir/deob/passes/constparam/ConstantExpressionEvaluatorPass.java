@@ -7,6 +7,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
+import org.mapleir.app.service.TypeUtils;
 import org.mapleir.context.AnalysisContext;
 import org.mapleir.deob.IPass;
 import org.mapleir.deob.interproc.IPAnalysis;
@@ -17,7 +18,6 @@ import org.mapleir.deob.intraproc.eval.impl.ReflectiveFunctorFactory;
 import org.mapleir.flowgraph.edges.FlowEdge;
 import org.mapleir.flowgraph.edges.FlowEdges;
 import org.mapleir.flowgraph.edges.UnconditionalJumpEdge;
-import org.mapleir.ir.TypeUtils;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.CodeUnit;

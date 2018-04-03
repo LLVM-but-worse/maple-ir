@@ -1,5 +1,6 @@
 package org.mapleir.ir.antlr;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
@@ -7,20 +8,25 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import javax.swing.JFrame;
-import javax.swing.JPanel;
-
 import org.antlr.v4.gui.TreeViewer;
 import org.antlr.v4.runtime.ANTLRInputStream;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.mapleir.app.service.ApplicationClassSource;
+import org.mapleir.app.service.DefaultInvocationResolver;
 import org.mapleir.app.service.InstalledRuntimeClassSource;
+import org.mapleir.app.service.LibraryClassSource;
 import org.mapleir.ir.antlr.error.CompilationException;
 import org.mapleir.ir.code.expr.PhiExpr;
 import org.mapleir.ir.code.expr.VarExpr;
 import org.mapleir.ir.code.stmt.copy.CopyPhiStmt;
 import org.mapleir.ir.locals.impl.VersionedLocal;
 import org.objectweb.asm.Type;
+import org.objectweb.asm.tree.ClassNode;
+import org.topdank.byteengineer.commons.data.JarInfo;
+import org.topdank.byteio.in.SingleJarDownloader;
+
+import javax.swing.JFrame;
+import javax.swing.JPanel;
 
 public class AntlrBoot {
 
@@ -44,10 +50,15 @@ public class AntlrBoot {
 			JFrame frame = new JFrame("Antlr AST");
 	        JPanel panel = new JPanel();
 	        
-	        ApplicationClassSource classPath = new ApplicationClassSource("test-cp", Collections.emptyMap());
-	        classPath.addLibraries(new InstalledRuntimeClassSource(classPath));
+	        File rtjar = new File("../org.mapleir.main/res/rt.jar");
+	        SingleJarDownloader<ClassNode> downloader = new SingleJarDownloader<>(new JarInfo(rtjar));
+	        downloader.download();
 	        
-	        CompilationDriver driver = new CompilationDriver(classPath);
+	        ApplicationClassSource classPath = new ApplicationClassSource("test-cp", Collections.emptyMap());
+	        classPath.addLibraries(new LibraryClassSource(classPath, downloader.getJarContents().getClassContents()),
+	        		new InstalledRuntimeClassSource(classPath));
+	        
+	        CompilationDriver driver = new CompilationDriver(classPath, new DefaultInvocationResolver(classPath));
 	        try {
 	        	driver.process(parser);
 	        } catch(CompilationException e) {

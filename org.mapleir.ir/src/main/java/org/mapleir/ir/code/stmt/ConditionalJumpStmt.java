@@ -1,6 +1,6 @@
 package org.mapleir.ir.code.stmt;
 
-import org.mapleir.ir.TypeUtils;
+import org.mapleir.app.service.TypeUtils;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.CodeUnit;

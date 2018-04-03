@@ -7,7 +7,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.mapleir.ir.antlr.internallex.LexerException;
-import org.mapleir.ir.antlr.internallex.LiteralLexer;
+import org.mapleir.ir.antlr.internallex.Lexer;
 import org.objectweb.asm.Opcodes;
 
 public class AccessHelper {
@@ -82,10 +82,10 @@ public class AccessHelper {
 	}
 	
 	private static int lexModifiers(String input) throws ParseException {
-		LiteralLexer lexer = new LiteralLexer(input.toCharArray());
+		Lexer lexer = new Lexer(input.toCharArray());
 		
 		try {
-			lexer.process();
+			lexer.nextToken();
 		} catch(LexerException e) {
 			throw new ParseException(e.getMessage(), e.getBufferPointer());
 		}

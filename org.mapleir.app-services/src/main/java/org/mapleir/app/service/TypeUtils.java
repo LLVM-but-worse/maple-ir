@@ -1,4 +1,4 @@
-package org.mapleir.ir;
+package org.mapleir.app.service;
 
 import static org.objectweb.asm.Opcodes.*;
 
@@ -9,8 +9,6 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import org.mapleir.app.service.ApplicationClassSource;
-import org.mapleir.app.service.ClassTree;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.ClassNode;
