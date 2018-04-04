@@ -12,6 +12,8 @@ Please file questions, comments, and issues on the [issue tracker](https://githu
 
 Maple-IR in its current form is not yet production-ready, although it can be made so with little effort.
 
+**If you use Maple-IR, please let us know!** We would love to hear about any cool projects you use it for.
+
 ![LLVM but worse!](llvm-but-worse.png)
 
 *"It's like LLVM, but worse."*
@@ -22,7 +24,7 @@ SSA construction is implemented based on a fast 1-pass linear scan algorithm loo
 Bytecode destruction is tricky in Java due to exception ranges. Furthermore, linearizing the control flow graph (CFG) in a simple manner is difficult due to loop nesting. Linearization is handled by recursively applying Tarjan's superconnected components algorithm. Exception tables for each method are discarded and regenerated based on the control flow graph's structure. For more details, see [ControlFlowGraphDumper](https://github.com/LLVM-but-worse/maple-ir/blob/master/org.mapleir.ir/src/main/java/org/mapleir/ir/algorithms/ControlFlowGraphDumper.java).
 
 ## Screenshots and examples
-Here is the Graphviz visualization for the optimized, destructed (non-SSA) IR for the following code:
+Here is the Graphviz visualization for the optimized, destructed (post-SSA) IR for the following code:
 
 ```java
 void test130() {
