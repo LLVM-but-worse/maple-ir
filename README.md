@@ -38,6 +38,8 @@ mvn package
  - [ObjectWeb ASM framework](http://asm.ow2.org/index.html) (forked).
  - [Google Gson](https://github.com/google/gson)
 
+Contact: ecx or bibl [at] mapleir.org
+
 **sharing will lead to reported and beat down** (bless)
 
 ## License
