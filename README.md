@@ -1,4 +1,4 @@
-# maple-ir
+# Maple-IR
 
 Maple-IR is a industrial IR-based static analysis framework for Java bytecode.
 Currently, it implements SSA-form based analysis as well as construction and destruction from bytecode to IR.
@@ -7,7 +7,7 @@ This is done by symbolically executing each method while simulating the stack, s
 Intraprocedural data-flow analysis is fully implemented.
 
 Maple-IR is not in active development. It is on hiatus indefinitely, although code contributions are welcome.
-Please file questions, comments, and issues on the [Issue tracker](https://github.com/LLVM-but-worse/maple-ir/issues).
+Please file questions, comments, and issues on the [issue tracker](https://github.com/LLVM-but-worse/maple-ir/issues).
 
 Maple-IR in its current form is not yet production-ready, although it can be made so with little effort.
 
@@ -37,10 +37,9 @@ mvn package
  - [ecx86](https://github.com/ecx86)
  - [ObjectWeb ASM framework](http://asm.ow2.org/index.html) (forked).
 
-maple-ir is licensed under the GPLv3. For more information, please see [here](https://www.gnu.org/licenses/gpl-3.0.en.html).
+**sharing will lead to reported and beat down** (bless)
+
+## License
+Maple-IR is licensed under the GPLv3. For more information, please see [here](https://www.gnu.org/licenses/gpl-3.0.en.html).
 
 Copyright (c) 2018 Bibl and ecx86
-
-**sharing will lead to reported and beat down**
-
-🙏(bless)
