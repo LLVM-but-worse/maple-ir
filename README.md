@@ -35,7 +35,11 @@ mvn package
 ## Credits
  - [Bibl](https://github.com/TheBiblMan)
  - [ecx86](https://github.com/ecx86)
- - ObjectWeb ASM framework (forked).
+ - [ObjectWeb ASM framework](http://asm.ow2.org/index.html) (forked).
+
+maple-ir is licensed under the GPLv3. For more information, please see [here](https://www.gnu.org/licenses/gpl-3.0.en.html).
+
+Copyright (c) 2018 Bibl and ecx86
 
 **sharing will lead to reported and beat down**
 
