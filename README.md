@@ -19,9 +19,11 @@ Maple-IR in its current form is not yet production-ready, although it can be mad
 *"It's like LLVM, but worse."*
 
 ## Technical details
-SSA destruction is implemented using the methods of [Sreedhar et al.](https://pdfs.semanticscholar.org/b4e0/f3301cffb358e836ee2964a0316e1b263974.pdf) and [Boissinot et al.](https://hal.inria.fr/inria-00349925/file/RR.pdf). The Boissinot destructor is currently the default destructor.
-SSA construction is implemented based on a fast 1-pass linear scan algorithm loosely based on Cytron et al.'s method using dominance frontiers. For more details see [SSAGenPass.java](https://github.com/LLVM-but-worse/maple-ir/blob/master/org.mapleir.ir/src/main/java/org/mapleir/ir/cfg/builder/SSAGenPass.java).
-Bytecode destruction is tricky in Java due to exception ranges. Furthermore, linearizing the control flow graph (CFG) in a simple manner is difficult due to loop nesting. Linearization is handled by recursively applying Tarjan's superconnected components algorithm. Exception tables for each method are discarded and regenerated based on the control flow graph's structure. For more details, see [ControlFlowGraphDumper](https://github.com/LLVM-but-worse/maple-ir/blob/master/org.mapleir.ir/src/main/java/org/mapleir/ir/algorithms/ControlFlowGraphDumper.java).
+SSA destruction is implemented using the methods of [Sreedhar et al.](https://pdfs.semanticscholar.org/b4e0/f3301cffb358e836ee2964a0316e1b263974.pdf) and [Boissinot et al.](https://hal.inria.fr/inria-00349925/file/RR.pdf). The [Boissinot destructor](./org.mapleir.ir/src/main/java/org/mapleir/ir/algorithms/BoissinotDestructor.java) is currently the default destructor.
+SSA construction is implemented based on a fast 1-pass linear scan algorithm loosely based on Cytron et al.'s method using dominance frontiers. For more details see [SSAGenPass.java](./org.mapleir.ir/src/main/java/org/mapleir/ir/cfg/builder/SSAGenPass.java).
+Bytecode destruction is tricky in Java due to exception ranges. Furthermore, linearizing the control flow graph (CFG) in a simple manner is difficult due to loop nesting. Linearization is handled by recursively applying Tarjan's superconnected components algorithm. Exception tables for each method are discarded and regenerated based on the control flow graph's structure. For more details, see [ControlFlowGraphDumper](./org.mapleir.ir/src/main/java/org/mapleir/ir/algorithms/ControlFlowGraphDumper.java).
+
+For more details, see the [whitepaper](./docs/maple-ir.pdf).
 
 ## Screenshots and examples
 Here is the Graphviz visualization for the optimized, destructed (post-SSA) IR for the following code:
