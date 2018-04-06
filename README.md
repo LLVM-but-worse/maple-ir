@@ -58,12 +58,12 @@ void test130() {
 ![Example output](example.png)
 
 ---
-Here is a nastier function, in optimized SSA form, taken from the Fernflower decompiler:
+Here is a [nastier function](https://github.com/JetBrains/intellij-community/blob/1818a362f64eb2aed725e42df16e0476fe096d13/plugins/java-decompiler/engine/src/org/jetbrains/java/decompiler/struct/StructContext.java#L67), in optimized SSA form, taken from the Fernflower decompiler:
 
 ![Fernflower example](https://images2.imgbox.com/43/fe/C2zHlgyi_o.png)
 
 ## Caveats
-- Since the project uses a fork of the ObjectWeb ASM framework, it's not compatible with other implementations. This should be addressed before you use maple-ir as a library.
+- Since the project uses a fork of the ObjectWeb ASM framework, it's not compatible with other implementations. This should be addressed before you use Maple-IR as a library.
 - Interprocedural analysis has not been fully implemented (it's difficult).
 
 ## Compiling
@@ -71,6 +71,8 @@ To build:
 ```
 mvn compile test package
 ```
+
+You can also get Maple-IR on [Jitpack](https://jitpack.io/#LLVM-but-worse/maple-ir).
 
 ## Credits
  - [Bibl](https://github.com/TheBiblMan)
