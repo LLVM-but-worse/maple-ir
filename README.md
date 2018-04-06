@@ -14,7 +14,7 @@ Maple-IR in its current form is not yet production-ready, although it can be mad
 
 **If you use Maple-IR, please let us know!** We would love to hear about any cool projects you use it for.
 
-![LLVM but worse!](llvm-but-worse.png)
+![LLVM but worse!](./docs/llvm-but-worse.png)
 
 *"It's like LLVM, but worse."*
 
@@ -57,7 +57,7 @@ void test130() {
 }
 ```
 
-![Example output](example.png)
+![Example output](./docs/example.png)
 
 ---
 Here is a [nastier function](https://github.com/JetBrains/intellij-community/blob/1818a362f64eb2aed725e42df16e0476fe096d13/plugins/java-decompiler/engine/src/org/jetbrains/java/decompiler/struct/StructContext.java#L67), in optimized SSA form, taken from the Fernflower decompiler:
