@@ -69,9 +69,7 @@ Here is a nastier function, in optimized SSA form, taken from the Fernflower dec
 ## Compiling
 To build:
 ```
-cd org.mapleir.parent
-mvn compile
-mvn package
+mvn compile test package
 ```
 
 ## Credits
