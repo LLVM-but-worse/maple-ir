@@ -78,17 +78,17 @@ public class TrollDestructor {
 	public static void leaveSSA(ControlFlowGraph cfg) {
 		TrollDestructor dest = new TrollDestructor(cfg);
 		dest.init();
-		dest.writer.setName("destruct-init").export();
+		// dest.writer.setName("destruct-init").export();
 
 		dest.csaa_iii();
-		dest.writer.setName("destruct-cssa").export();
+		// dest.writer.setName("destruct-cssa").export();
 
 		// coalesce messes up the troll
 		// dest.coalesce();
 		// dest.writer.setName("destruct-coalesce").export();
 
 		dest.leaveSSA();
-		dest.writer.setName("destruct-final").export();
+		// dest.writer.setName("destruct-final").export();
 	}
 
 	// ============================================================================================================= //
@@ -498,7 +498,7 @@ public class TrollDestructor {
 		}
 
 		// Flatten pccs into one variable through remapping
-		System.out.println("remap:");
+		// System.out.println("remap:");
 		Map<Local, Local> remap = new HashMap<>();
 		for (Entry<Local, GenericBitSet<Local>> entry : pccs.entrySet()) {
 			GenericBitSet<Local> pcc = entry.getValue();
@@ -510,14 +510,14 @@ public class TrollDestructor {
 				continue;
 
 			BasicLocal newLocal = locals.get(locals.getMaxLocals() + 1, false);
-			System.out.println("  " + local + " -> " + newLocal);
+			// System.out.println("  " + local + " -> " + newLocal);
 			remap.put(local, newLocal);
 			for (Local pccLocal : pcc) {
 				if (remap.containsKey(pccLocal))
 					continue;
 				newLocal = locals.get(locals.getMaxLocals() + 1, false);
 				remap.put(pccLocal, newLocal);
-				System.out.println("  " + pccLocal + " -> " + newLocal);
+				// System.out.println("  " + pccLocal + " -> " + newLocal);
 			}
 		}
 		System.out.println();
