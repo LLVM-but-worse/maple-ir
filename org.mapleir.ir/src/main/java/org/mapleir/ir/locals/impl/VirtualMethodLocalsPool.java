@@ -5,8 +5,8 @@ import org.mapleir.ir.locals.LocalsPool;
 
 public class VirtualMethodLocalsPool extends LocalsPool {
 
-	public VirtualMethodLocalsPool(int base) {
-		super(base);
+	public VirtualMethodLocalsPool() {
+		super();
 	}
 
 	@Override
