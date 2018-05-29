@@ -24,11 +24,11 @@ public interface FlowEdges {
 				return new TryCatchEdge<>(src, dst);
 			case SWITCH: {
 				SwitchEdge<?> sw = (SwitchEdge<?>) e;
-				return new SwitchEdge<>(src, dst, sw.insn, sw.value);
+				return new SwitchEdge<>(src, dst, sw.value);
 			}
 			case DEFAULT_SWITCH: {
 				DefaultSwitchEdge<?> sw = (DefaultSwitchEdge<?>) e;
-				return new DefaultSwitchEdge<>(src, dst, sw.insn);
+				return new DefaultSwitchEdge<>(src, dst);
 			}
 			case DUMMY:
 				return new DummyEdge<>(src, dst);

@@ -1,14 +1,5 @@
 package org.mapleir;
 
-import java.io.*;
-import java.util.ArrayList;
-import java.util.Deque;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.jar.JarOutputStream;
-
 import org.apache.log4j.Logger;
 import org.mapleir.app.client.SimpleApplicationContext;
 import org.mapleir.app.service.ApplicationClassSource;
@@ -25,21 +16,26 @@ import org.mapleir.deob.passes.ConstantExpressionReorderPass;
 import org.mapleir.deob.passes.DeadCodeEliminationPass;
 import org.mapleir.deob.passes.rename.ClassRenamerPass;
 import org.mapleir.deob.util.RenamingHeuristic;
+import org.mapleir.flowgraph.edges.FlowEdge;
 import org.mapleir.ir.algorithms.BoissinotDestructor;
 import org.mapleir.ir.algorithms.ControlFlowGraphDumper;
+import org.mapleir.ir.algorithms.TrollDestructor;
+import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.cfg.builder.ControlFlowGraphBuilder;
-import org.mapleir.ir.printer.ClassPrinter;
-import org.mapleir.ir.printer.FieldNodePrinter;
-import org.mapleir.ir.printer.MethodNodePrinter;
-import org.mapleir.propertyframework.api.IPropertyDictionary;
-import org.mapleir.propertyframework.util.PropertyHelper;
-import org.mapleir.stdlib.collections.ClassHelper;
-import org.mapleir.stdlib.util.TabbedStringWriter;
+import org.mapleir.ir.utils.dot.ControlFlowGraphDecorator;
+import org.mapleir.stdlib.collections.graph.dot.BasicDotConfiguration;
+import org.mapleir.stdlib.collections.graph.dot.DotConfiguration;
+import org.mapleir.stdlib.collections.graph.dot.DotWriter;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.topdank.byteengineer.commons.data.JarInfo;
 import org.topdank.byteio.in.SingleJarDownloader;
+
+import java.io.*;
+import java.util.*;
+import java.util.Map.Entry;
+import java.util.jar.JarOutputStream;
 
 public class Boot {
 	
@@ -64,15 +60,16 @@ public class Boot {
 		
 		File rtjar = new File("res/rt.jar");
 		// Load input jar
-		 File f = locateRevFile(135);
+		//  File f = locateRevFile(135);
+		File f = new File("res/Test.jar");
 //		File f = new File("res/allatori6.1san.jar");
 		section("Preparing to run on " + f.getAbsolutePath());
 		SingleJarDownloader<ClassNode> dl = new SingleJarDownloader<>(new JarInfo(f));
 		dl.download();
 		String name = f.getName().substring(0, f.getName().length() - 4);
-//		ApplicationClassSource app = new ApplicationClassSource(name, dl.getJarContents().getClassContents());
+		ApplicationClassSource app = new ApplicationClassSource(name, dl.getJarContents().getClassContents());
 //		
-		ApplicationClassSource app = new ApplicationClassSource("test", ClassHelper.parseClasses(CGExample.class));
+// 		ApplicationClassSource app = new ApplicationClassSource("test", ClassHelper.parseClasses(CGExample.class));
 //		app.addLibraries(new InstalledRuntimeClassSource(app));
 		app.addLibraries(rt(app, rtjar), new InstalledRuntimeClassSource(app));
 		section("Initialising context.");
@@ -85,35 +82,34 @@ public class Boot {
 				.build();
 		
 		section("Expanding callgraph and generating cfgs.");
-				
 		IRCallTracer tracer = new IRCallTracer(cxt);
 		for(MethodNode m : cxt.getApplicationContext().getEntryPoints()) {
 //			System.out.println(m);
 			tracer.trace(m);
 			
-			if(m.instructions.size() > 500 && m.instructions.size() < 100) {
-				System.out.println(m);
-				System.out.println(cxt.getIRCache().get(m));
-			}
+			// if(m.instructions.size() > 500 && m.instructions.size() < 100) {
+			// 	System.out.println(m);
+			// 	System.out.println(cxt.getIRCache().get(m));
+			// }
 		}
 		
-		for(ClassNode cn : app.iterate()) {
-			TabbedStringWriter sw = new TabbedStringWriter();
-			sw.setTabString("  ");
-			IPropertyDictionary settings = PropertyHelper.createDictionary();
-//			settings.put(new BooleanProperty(ASMPrinter.PROP_ACCESS_FLAG_SAFE, true));
-			ClassPrinter cp = new ClassPrinter(sw, settings,
-					new FieldNodePrinter(sw, settings),
-					new MethodNodePrinter(sw, settings) {
-						@Override
-						protected ControlFlowGraph getCfg(MethodNode mn) {
-							return cxt.getIRCache().getFor(mn);
-						}
-
-					});
-			cp.print(cn);
-			System.out.println(sw.toString());
-		}
+// 		for(ClassNode cn : app.iterate()) {
+// 			TabbedStringWriter sw = new TabbedStringWriter();
+// 			sw.setTabString("  ");
+// 			IPropertyDictionary settings = PropertyHelper.createDictionary();
+// //			settings.put(new BooleanProperty(ASMPrinter.PROP_ACCESS_FLAG_SAFE, true));
+// 			ClassPrinter cp = new ClassPrinter(sw, settings,
+// 					new FieldNodePrinter(sw, settings),
+// 					new MethodNodePrinter(sw, settings) {
+// 						@Override
+// 						protected ControlFlowGraph getCfg(MethodNode mn) {
+// 							return cxt.getIRCache().getFor(mn);
+// 						}
+//
+// 					});
+// 			cp.print(cn);
+// 			System.out.println(sw.toString());
+// 		}
 		
 		section0("...generated " + cxt.getIRCache().size() + " cfgs in %fs.%n", "Preparing to transform.");
 		
@@ -134,14 +130,26 @@ public class Boot {
 		for(Entry<MethodNode, ControlFlowGraph> e : cxt.getIRCache().entrySet()) {
 			MethodNode mn = e.getKey();
 			ControlFlowGraph cfg = e.getValue();
-			
-			BoissinotDestructor.leaveSSA(cfg);
+
+			if (mn.name.equals("<init>")) {
+				BoissinotDestructor.leaveSSA(cfg);
+			} else {
+				TrollDestructor.leaveSSA(cfg);
+				// SreedharDestructor.leaveSSA(cfg);
+				System.out.println(cfg);
+				cfg.getLocals().realloc(cfg);
+				BasicDotConfiguration<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> config = new BasicDotConfiguration<>(DotConfiguration.GraphType.DIRECTED);
+				DotWriter<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> writer = new DotWriter<>(config, cfg);
+				writer.removeAll()
+						.add(new ControlFlowGraphDecorator().setFlags(ControlFlowGraphDecorator.OPT_STMTS));
+				writer.setName("post-reaalloc").export();
+			}
 			cfg.getLocals().realloc(cfg);
 			(new ControlFlowGraphDumper(cfg, mn)).dump();
 		}
 		
 		section("Rewriting jar.");
-		// dumpJar(app, dl, masterGroup, "out/osb5.jar");
+		dumpJar(app, dl, masterGroup, "out/rewritten.jar");
 		
 		section("Finished.");
 	}

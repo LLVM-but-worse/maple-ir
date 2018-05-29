@@ -271,8 +271,8 @@ public class ControlFlowGraph extends FastBlockGraph {
 	
 	public void disconnectHead(BasicBlock head) {
 		removeVertex(head);
-	}	
-	
+	}
+
 	public void verify() {
 		for (BasicBlock b : vertices()) {
 
