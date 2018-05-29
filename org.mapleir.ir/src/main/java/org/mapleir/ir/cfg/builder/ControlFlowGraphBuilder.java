@@ -10,6 +10,7 @@ import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.locals.Local;
 import org.mapleir.ir.locals.impl.StaticMethodLocalsPool;
 import org.mapleir.ir.locals.impl.VirtualMethodLocalsPool;
+import org.mapleir.ir.utils.CFGUtils;
 import org.mapleir.stdlib.collections.map.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.map.SetCreator;
 import org.objectweb.asm.tree.MethodNode;
@@ -61,6 +62,7 @@ public class ControlFlowGraphBuilder {
 	public ControlFlowGraph buildImpl() {
 		for(BuilderPass p : resolvePasses()) {
 			p.run();
+			CFGUtils.easyDumpCFG(graph, "post-" + p.getClass().getSimpleName());
 		}
 		return graph;
 	}

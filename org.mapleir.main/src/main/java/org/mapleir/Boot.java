@@ -17,16 +17,19 @@ import org.mapleir.deob.passes.DeadCodeEliminationPass;
 import org.mapleir.deob.passes.rename.ClassRenamerPass;
 import org.mapleir.deob.util.RenamingHeuristic;
 import org.mapleir.flowgraph.edges.FlowEdge;
+import org.mapleir.flowgraph.edges.ImmediateEdge;
 import org.mapleir.ir.algorithms.BoissinotDestructor;
 import org.mapleir.ir.algorithms.ControlFlowGraphDumper;
 import org.mapleir.ir.algorithms.TrollDestructor;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.cfg.builder.ControlFlowGraphBuilder;
+import org.mapleir.ir.utils.CFGUtils;
 import org.mapleir.ir.utils.dot.ControlFlowGraphDecorator;
 import org.mapleir.stdlib.collections.graph.dot.BasicDotConfiguration;
 import org.mapleir.stdlib.collections.graph.dot.DotConfiguration;
 import org.mapleir.stdlib.collections.graph.dot.DotWriter;
+import org.mapleir.stdlib.util.StringHelper;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.topdank.byteengineer.commons.data.JarInfo;
@@ -58,11 +61,10 @@ public class Boot {
 		sections = new LinkedList<>();
 		logging = true;
 		
-		File rtjar = new File("res/rt.jar");
 		// Load input jar
 		//  File f = locateRevFile(135);
-		File f = new File("res/fernflower.jar");
-//		File f = new File("res/allatori6.1san.jar");
+		File f = new File("res/broken2.jar");
+		
 		section("Preparing to run on " + f.getAbsolutePath());
 		SingleJarDownloader<ClassNode> dl = new SingleJarDownloader<>(new JarInfo(f));
 		dl.download();
@@ -71,8 +73,11 @@ public class Boot {
 //		
 // 		ApplicationClassSource app = new ApplicationClassSource("test", ClassHelper.parseClasses(CGExample.class));
 //		app.addLibraries(new InstalledRuntimeClassSource(app));
+		
+		File rtjar = new File("res/rt.jar");
 		app.addLibraries(rt(app, rtjar));
 		section("Initialising context.");
+		
 		
 		AnalysisContext cxt = new BasicAnalysisContext.BasicContextBuilder()
 				.setApplication(app)
@@ -81,37 +86,12 @@ public class Boot {
 				.setApplicationContext(new SimpleApplicationContext(app))
 				.build();
 		
-		section("Expanding callgraph and generating cfgs.");
-		IRCallTracer tracer = new IRCallTracer(cxt);
-		for(MethodNode m : cxt.getApplicationContext().getEntryPoints()) {
-//			System.out.println(m);
-			tracer.trace(m);
-			
-			// if(m.instructions.size() > 500 && m.instructions.size() < 100) {
-			// 	System.out.println(m);
-			// 	System.out.println(cxt.getIRCache().get(m));
-			// }
-		}
-		
-// 		for(ClassNode cn : app.iterate()) {
-// 			TabbedStringWriter sw = new TabbedStringWriter();
-// 			sw.setTabString("  ");
-// 			IPropertyDictionary settings = PropertyHelper.createDictionary();
-// //			settings.put(new BooleanProperty(ASMPrinter.PROP_ACCESS_FLAG_SAFE, true));
-// 			ClassPrinter cp = new ClassPrinter(sw, settings,
-// 					new FieldNodePrinter(sw, settings),
-// 					new MethodNodePrinter(sw, settings) {
-// 						@Override
-// 						protected ControlFlowGraph getCfg(MethodNode mn) {
-// 							return cxt.getIRCache().getFor(mn);
-// 						}
-//
-// 					});
-// 			cp.print(cn);
-// 			System.out.println(sw.toString());
-// 		}
-		
-		section0("...generated " + cxt.getIRCache().size() + " cfgs in %fs.%n", "Preparing to transform.");
+		// section("Expanding callgraph and generating cfgs.");
+		// IRCallTracer tracer = new IRCallTracer(cxt);
+		// for(MethodNode m : cxt.getApplicationContext().getEntryPoints()) {
+		// 	tracer.trace(m);
+		// }
+		// section0("...generated " + cxt.getIRCache().size() + " cfgs in %fs.%n", "Preparing to transform.");
 		
 		// do passes
 		PassGroup masterGroup = new PassGroup("MasterController");
@@ -126,10 +106,26 @@ public class Boot {
 		// 	}
 		// }
 		
+		for (ClassNode cn : cxt.getApplication().iterate()) {
+			// if (!cn.name.equals("org/jetbrains/java/decompiler/modules/decompiler/DomHelper"))
+			if (!cn.name.equals("TestDynamic"))
+				continue;
+			for (MethodNode m : cn.methods) {
+				if (!m.name.equals("calcPostDominators"))
+					continue;
+				cxt.getIRCache().getFor(m);
+			}
+		}
+		
 		section("Retranslating SSA IR to standard flavour.");
 		for(Entry<MethodNode, ControlFlowGraph> e : cxt.getIRCache().entrySet()) {
 			MethodNode mn = e.getKey();
+			if (!mn.name.equals("calcPostDominators"))
+				continue;
 			ControlFlowGraph cfg = e.getValue();
+			
+			System.out.println(cfg);
+			CFGUtils.easyDumpCFG(cfg, "pre-destruct");
 
 			BoissinotDestructor.leaveSSA(cfg);
 			// if (mn.name.equals("<init>")) {
@@ -138,15 +134,14 @@ public class Boot {
 			// 	// SreedharDestructor.leaveSSA(cfg);
 			// 	// System.out.println(cfg);
 			// }
-			BasicDotConfiguration<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> config = new BasicDotConfiguration<>(DotConfiguration.GraphType.DIRECTED);
-			DotWriter<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> writer = new DotWriter<>(config, cfg);
-			writer.removeAll()
-					.add(new ControlFlowGraphDecorator().setFlags(ControlFlowGraphDecorator.OPT_STMTS));
-			// writer.setName("pre-reaalloc").export();
+
+			CFGUtils.easyDumpCFG(cfg, "pre-reaalloc");
 			cfg.getLocals().realloc(cfg);
-			if (mn.name.equals("calcPostDominators")) {
-				writer.setName("post-reaalloc").export();
-			}
+			CFGUtils.easyDumpCFG(cfg, "post-reaalloc");
+			System.out.println(cfg);
+			System.out.println("Rewriting " + mn.name);
+			System.out.println(mn.instructions);
+			// System.exit(1);
 			(new ControlFlowGraphDumper(cfg, mn)).dump();
 		}
 		
@@ -221,11 +216,11 @@ public class Boot {
 				// new LiftConstructorCallsPass(),
 //				 new DemoteRangesPass(),
 				
-				new ConstantExpressionReorderPass(),
+				// new ConstantExpressionReorderPass(),
 				// new FieldRSADecryptionPass(),
 				// new ConstantParameterPass(),
 //				new ConstantExpressionEvaluatorPass(),
-				new DeadCodeEliminationPass()
+// 				new DeadCodeEliminationPass()
 				
 		};
 	}
