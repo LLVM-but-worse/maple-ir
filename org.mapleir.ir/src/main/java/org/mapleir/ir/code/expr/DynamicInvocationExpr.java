@@ -1,5 +1,6 @@
 package org.mapleir.ir.code.expr;
 
+import org.mapleir.ir.TypeUtils;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.CodeUnit;
 import org.mapleir.ir.code.Expr;
@@ -114,7 +115,7 @@ public class DynamicInvocationExpr extends Expr {
 
 	@Override
 	public void toString(TabbedStringWriter printer) {
-		printer.print(provider.getOwner() + "." + provider.getName() + " (");
+		printer.print(provider.getOwner() + "." + provider.getName() + "<");
 		for(int i=0; i < providerArgs.length; i++) {
 			Object o = providerArgs[i];
 			// System.out.println(o + " " + o.getClass());
@@ -123,7 +124,7 @@ public class DynamicInvocationExpr extends Expr {
 				printer.print(", ");
 			}
 		}
-		printer.print(").<dynamic_call>(");
+		printer.print(">.<dynamic_call>(");
 		if(args.length > 0) {
 			printer.tab();
 			printer.print("\n");
@@ -142,7 +143,19 @@ public class DynamicInvocationExpr extends Expr {
 
 	@Override
 	public void toCode(MethodVisitor visitor, ControlFlowGraph cfg) {
-		// TODO: casting
+		// I'm not sure if this is correct.
+		Type[] argTypes = ((Type) providerArgs[providerArgs.length - 1]).getArgumentTypes();
+		assert(argTypes.length == args.length); // I hope this tells me when this fucks up, because this is not a matter of if, but when.
+		
+		for (int i = 0; i < args.length; i++) {
+			args[i].toCode(visitor, cfg);
+			if (TypeUtils.isPrimitive(args[i].getType())) {
+				int[] cast = TypeUtils.getPrimitiveCastOpcodes(args[i].getType(), argTypes[i]);
+				for (int a = 0; a < cast.length; a++) {
+					visitor.visitInsn(cast[a]);
+				}
+			}
+		}
 		visitor.visitInvokeDynamicInsn(name, desc, provider, providerArgs);
 	}
 	
