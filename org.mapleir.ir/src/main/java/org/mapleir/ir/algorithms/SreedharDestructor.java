@@ -45,14 +45,14 @@ public class SreedharDestructor {
 	private final NullPermeableHashMap<BasicBlock, GenericBitSet<BasicBlock>> succsCache;
 	private final GenericBitSet<PhiResource> candidateResourceSet;
 
-	private final BasicDotConfiguration<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> config = new BasicDotConfiguration<>(DotConfiguration.GraphType.DIRECTED);
-	private final DotWriter<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> writer;
+	// private final BasicDotConfiguration<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> config = new BasicDotConfiguration<>(DotConfiguration.GraphType.DIRECTED);
+	// private final DotWriter<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> writer;
 
 	private SreedharDestructor(ControlFlowGraph cfg) {
 		this.cfg = cfg;
-		writer = new DotWriter<>(config, cfg);
-		writer.removeAll()
-				.add(new ControlFlowGraphDecorator().setFlags(ControlFlowGraphDecorator.OPT_STMTS));
+		// writer = new DotWriter<>(config, cfg);
+		// writer.removeAll()
+		// 		.add(new ControlFlowGraphDecorator().setFlags(ControlFlowGraphDecorator.OPT_STMTS));
 		locals = cfg.getLocals();
 		interfere = new NullPermeableHashMap<>(locals);
 		pccs = new NullPermeableHashMap<>(locals);
@@ -71,16 +71,16 @@ public class SreedharDestructor {
 	public static void leaveSSA(ControlFlowGraph cfg) {
 		SreedharDestructor dest = new SreedharDestructor(cfg);
 		dest.init();
-		dest.writer.setName("destruct-init").export();
+		// dest.writer.setName("destruct-init").export();
 
 		dest.csaa_iii();
-		dest.writer.setName("destruct-cssa").export();
+		// dest.writer.setName("destruct-cssa").export();
 
 		dest.coalesce();
-		dest.writer.setName("destruct-coalesce").export();
+		// dest.writer.setName("destruct-coalesce").export();
 
 		dest.leaveSSA();
-		dest.writer.setName("destruct-final").export();
+		// dest.writer.setName("destruct-final").export();
 	}
 
 	// ============================================================================================================= //

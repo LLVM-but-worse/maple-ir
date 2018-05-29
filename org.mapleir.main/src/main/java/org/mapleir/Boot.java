@@ -61,7 +61,7 @@ public class Boot {
 		File rtjar = new File("res/rt.jar");
 		// Load input jar
 		//  File f = locateRevFile(135);
-		File f = new File("res/Test.jar");
+		File f = new File("res/fernflower.jar");
 //		File f = new File("res/allatori6.1san.jar");
 		section("Preparing to run on " + f.getAbsolutePath());
 		SingleJarDownloader<ClassNode> dl = new SingleJarDownloader<>(new JarInfo(f));
@@ -71,7 +71,7 @@ public class Boot {
 //		
 // 		ApplicationClassSource app = new ApplicationClassSource("test", ClassHelper.parseClasses(CGExample.class));
 //		app.addLibraries(new InstalledRuntimeClassSource(app));
-		app.addLibraries(rt(app, rtjar), new InstalledRuntimeClassSource(app));
+		app.addLibraries(rt(app, rtjar));
 		section("Initialising context.");
 		
 		AnalysisContext cxt = new BasicAnalysisContext.BasicContextBuilder()
@@ -131,20 +131,22 @@ public class Boot {
 			MethodNode mn = e.getKey();
 			ControlFlowGraph cfg = e.getValue();
 
-			if (mn.name.equals("<init>")) {
-				BoissinotDestructor.leaveSSA(cfg);
-			} else {
-				TrollDestructor.leaveSSA(cfg);
-				// SreedharDestructor.leaveSSA(cfg);
-				System.out.println(cfg);
-				cfg.getLocals().realloc(cfg);
-				BasicDotConfiguration<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> config = new BasicDotConfiguration<>(DotConfiguration.GraphType.DIRECTED);
-				DotWriter<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> writer = new DotWriter<>(config, cfg);
-				writer.removeAll()
-						.add(new ControlFlowGraphDecorator().setFlags(ControlFlowGraphDecorator.OPT_STMTS));
+			BoissinotDestructor.leaveSSA(cfg);
+			// if (mn.name.equals("<init>")) {
+			// } else {
+			// 	TrollDestructor.leaveSSA(cfg);
+			// 	// SreedharDestructor.leaveSSA(cfg);
+			// 	// System.out.println(cfg);
+			// }
+			BasicDotConfiguration<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> config = new BasicDotConfiguration<>(DotConfiguration.GraphType.DIRECTED);
+			DotWriter<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> writer = new DotWriter<>(config, cfg);
+			writer.removeAll()
+					.add(new ControlFlowGraphDecorator().setFlags(ControlFlowGraphDecorator.OPT_STMTS));
+			// writer.setName("pre-reaalloc").export();
+			cfg.getLocals().realloc(cfg);
+			if (mn.name.equals("calcPostDominators")) {
 				writer.setName("post-reaalloc").export();
 			}
-			cfg.getLocals().realloc(cfg);
 			(new ControlFlowGraphDumper(cfg, mn)).dump();
 		}
 		

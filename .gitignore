@@ -23,3 +23,6 @@ target/
 
 # Testing files
 org.mapleir.main/res/
+org.mapleir.main/cfg testing/
+org.mapleir.main/out/
+org.mapleir.main/dot/
