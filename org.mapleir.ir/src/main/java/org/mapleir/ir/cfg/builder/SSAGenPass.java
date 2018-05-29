@@ -1,21 +1,12 @@
 package org.mapleir.ir.cfg.builder;
 
-import java.util.*;
-import java.util.Map.Entry;
-
 import org.mapleir.flowgraph.ExceptionRange;
 import org.mapleir.flowgraph.algorithms.TarjanDominanceComputor;
-import org.mapleir.flowgraph.edges.ConditionalJumpEdge;
 import org.mapleir.flowgraph.edges.FlowEdge;
 import org.mapleir.flowgraph.edges.FlowEdges;
-import org.mapleir.flowgraph.edges.ImmediateEdge;
-import org.mapleir.flowgraph.edges.SwitchEdge;
-import org.mapleir.flowgraph.edges.TryCatchEdge;
-import org.mapleir.flowgraph.edges.UnconditionalJumpEdge;
 import org.mapleir.ir.algorithms.Liveness;
 import org.mapleir.ir.algorithms.SSABlockLivenessAnalyser;
 import org.mapleir.ir.cfg.BasicBlock;
-import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.cfg.builder.ssaopt.Constraint;
 import org.mapleir.ir.cfg.builder.ssaopt.ConstraintUtil;
 import org.mapleir.ir.cfg.builder.ssaopt.LatestValue;
@@ -28,11 +19,7 @@ import org.mapleir.ir.code.expr.PhiExpr;
 import org.mapleir.ir.code.expr.VarExpr;
 import org.mapleir.ir.code.expr.invoke.InitialisedObjectExpr;
 import org.mapleir.ir.code.expr.invoke.InvocationExpr;
-import org.mapleir.ir.code.stmt.ConditionalJumpStmt;
 import org.mapleir.ir.code.stmt.PopStmt;
-import org.mapleir.ir.code.stmt.SwitchStmt;
-import org.mapleir.ir.code.stmt.ThrowStmt;
-import org.mapleir.ir.code.stmt.UnconditionalJumpStmt;
 import org.mapleir.ir.code.stmt.copy.AbstractCopyStmt;
 import org.mapleir.ir.code.stmt.copy.CopyPhiStmt;
 import org.mapleir.ir.code.stmt.copy.CopyVarStmt;
@@ -40,11 +27,14 @@ import org.mapleir.ir.locals.Local;
 import org.mapleir.ir.locals.LocalsPool;
 import org.mapleir.ir.locals.impl.BasicLocal;
 import org.mapleir.ir.locals.impl.VersionedLocal;
+import org.mapleir.ir.utils.CFGUtils;
 import org.mapleir.stdlib.collections.graph.algorithms.SimpleDfs;
 import org.mapleir.stdlib.collections.map.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.map.SetCreator;
 import org.objectweb.asm.Type;
-import org.objectweb.asm.tree.LabelNode;
+
+import java.util.*;
+import java.util.Map.Entry;
 
 public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 
@@ -161,134 +151,10 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 			preorder.put(b, po++);
 		}
 	}
-	
+
 	private BasicBlock splitBlock(BasicBlock b, int to) {
-		/* eg. split the block as follows:
-		 * 
-		 *  NAME:
-		 *    stmt1
-		 *    stmt2
-		 *    stmt3
-		 *    stmt4
-		 *    stmt5
-		 *    jump L1, L2
-		 *   [jump edge to L1]
-		 *   [jump edge to L2]
-		 *   [exception edges]
-		 * 
-		 * split at 3, create a new block (incoming 
-		 * immediate), transfer instruction from 0
-		 * to index into new block, create immediate
-		 * edge to old block, clone exception edges,
-		 * redirect pred edges.
-		 * 
-		 * 1/9/16: we also need to modify the last
-		 *         statement of the pred blocks to
-		 *         point to NAME'.
-		 * 
-		 *  NAME':
-		 *    stmt1
-		 *    stmt2
-		 *    stmt3
-		 *   [immediate to NAME]
-		 *  NAME:
-		 *    stmt4
-		 *    stmt5
-		 *    jump L1, L2
-		 *   [jump edge to L1]
-		 *   [jump edge to L2]
-		 *   [exception edges]
-		 */
-		
-		// split block
-		ControlFlowGraph cfg = builder.graph;
-		BasicBlock newBlock = new BasicBlock(cfg, graphSize++, new LabelNode());
-		b.transferUp(newBlock, to);
-		cfg.addVertex(newBlock);
-		
-		// redo ranges
-		for(ExceptionRange<BasicBlock> er : cfg.getRanges()) {
-			if (er.containsVertex(b))
-				er.addVertexBefore(b, newBlock);
-		}
+		BasicBlock newBlock = CFGUtils.splitBlock(builder.graph, graphSize++, b, to);
 
-		// redirect b preds into newBlock and remove them.
-		Set<FlowEdge<BasicBlock>> oldEdges = new HashSet<>(cfg.getReverseEdges(b));
-		for (FlowEdge<BasicBlock> e : oldEdges) {
-			BasicBlock p = e.src();
-			FlowEdge<BasicBlock> c;
-			if (e instanceof TryCatchEdge) { // b is ehandler
-				TryCatchEdge<BasicBlock> tce = (TryCatchEdge<BasicBlock>) e;
-				if (tce.dst() != tce.erange.getHandler()) {
-					System.err.println(builder.method.owner + "#" + builder.method.name);
-					System.err.println(cfg);
-					System.err.println("Very odd split case. please investigate");
-					System.err.println("Offending postsplit block: " + b);
-					System.err.println("Offending newblock: " + newBlock);
-					System.err.println("Offending edge: " + tce);
-					System.err.println("Offending erange: " + tce.erange);
-				}
-				if (tce.erange.getHandler() != newBlock) {
-					tce.erange.setHandler(newBlock);
-					cfg.addEdge(tce.src(), tce.clone(tce.src(), null));
-					cfg.removeEdge(tce.src(), tce);
-				}
-			} else {
-				c = e.clone(p, newBlock);
-				cfg.addEdge(p, c);
-				cfg.removeEdge(p, e);
-			}
-			
-			// Fix flow instruction targets
-			if (!p.isEmpty()) {
-				Stmt last = p.get(p.size() - 1);
-				int op = last.getOpcode();
-				if (e instanceof ConditionalJumpEdge) {
-					if (op != Opcode.COND_JUMP)
-						throw new IllegalArgumentException("wrong flow instruction");
-					ConditionalJumpStmt j = (ConditionalJumpStmt) last;
-//					assertTarget(last, j.getTrueSuccessor(), b);
-					if (j.getTrueSuccessor() == b)
-						j.setTrueSuccessor(newBlock);
-				} else if (e instanceof UnconditionalJumpEdge) {
-					if (op != Opcode.UNCOND_JUMP)
-						throw new IllegalArgumentException("wrong flow instruction");
-					UnconditionalJumpStmt j = (UnconditionalJumpStmt) last;
-					assertTarget(j, j.getTarget(), b);
-					j.setTarget(newBlock);
-				} else if (e instanceof SwitchEdge) {
-					if (op != Opcode.SWITCH_JUMP)
-						throw new IllegalArgumentException("wrong flow instruction.");
-					SwitchStmt s = (SwitchStmt) last;
-					for (Entry<Integer, BasicBlock> en : s.getTargets().entrySet()) {
-						BasicBlock t = en.getValue();
-						if (t == b) {
-							en.setValue(newBlock);
-						}
-					}
-				}
-			}
-		}
-
-		
-		if (!checkCloneHandler(newBlock)) {
-			System.err.println(cfg);
-			System.err.println(newBlock.getDisplayName());
-			System.err.println(b.getDisplayName());
-			throw new IllegalStateException("the new block should always need a handler..?");
-		}
-			
-		// clone exception edges
-		for (FlowEdge<BasicBlock> e : cfg.getEdges(b)) {
-			if (e.getType() == FlowEdges.TRYCATCH) {
-				TryCatchEdge<BasicBlock> c = ((TryCatchEdge<BasicBlock>) e).clone(newBlock, null); // second param is discarded (?)
-				cfg.addEdge(newBlock, c);
-			}
-		}
-		
-		// create immediate to newBlock
-		cfg.addEdge(newBlock, new ImmediateEdge<>(newBlock, b));
-		
 		// update assigns
 		Set<Local> assignedLocals = new HashSet<>();
 		for (Stmt stmt : b)
@@ -303,38 +169,8 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 					set.remove(b);
 			}
 		}
-		
+
 		return newBlock;
-	}
-	
-	private boolean checkCloneHandler(BasicBlock b) {
-		if (b.isEmpty())
-			throw new IllegalArgumentException("empty block after split?");
-		// backwards iteration is faster
-		for (ListIterator<Stmt> it = b.listIterator(b.size()); it.hasPrevious(); ) {
-			Stmt stmt = it.previous();
-			if (stmt instanceof CopyVarStmt) {
-				CopyVarStmt copy = (CopyVarStmt) stmt;
-				int opc = copy.getExpression().getOpcode();
-				if (!copy.isSynthetic() && opc != Opcode.LOCAL_LOAD && opc != Opcode.CATCH)
-					return true;
-			} else if (stmt.canChangeFlow()) {
-				if (stmt instanceof ThrowStmt)
-					return true;
-				// no need to check child exprs as no complex subexprs can occur before propagation.
-			} else {
-				return true;
-			}
-		}
-		return false;
-	}
-	
-	private void assertTarget(Stmt s, BasicBlock t, BasicBlock b) {
-		if(t != b) {
-			System.err.println(builder.graph);
-			System.err.println(s.getBlock());
-			throw new IllegalStateException(s + ", "+ t.getDisplayName() + " != " + b.getDisplayName());
-		}
 	}
 	
 	private void insertPhis() {
