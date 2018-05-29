@@ -29,6 +29,7 @@ import org.mapleir.ir.utils.dot.ControlFlowGraphDecorator;
 import org.mapleir.stdlib.collections.graph.dot.BasicDotConfiguration;
 import org.mapleir.stdlib.collections.graph.dot.DotConfiguration;
 import org.mapleir.stdlib.collections.graph.dot.DotWriter;
+import org.mapleir.stdlib.util.InsnListUtils;
 import org.mapleir.stdlib.util.StringHelper;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
@@ -140,9 +141,9 @@ public class Boot {
 			CFGUtils.easyDumpCFG(cfg, "post-reaalloc");
 			System.out.println(cfg);
 			System.out.println("Rewriting " + mn.name);
-			System.out.println(mn.instructions);
 			// System.exit(1);
 			(new ControlFlowGraphDumper(cfg, mn)).dump();
+			System.out.println(InsnListUtils.insnListToString(mn.instructions));
 		}
 		
 		section("Rewriting jar.");
