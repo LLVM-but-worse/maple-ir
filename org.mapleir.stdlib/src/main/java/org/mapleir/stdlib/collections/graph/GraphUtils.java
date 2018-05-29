@@ -33,6 +33,8 @@ public class GraphUtils {
 
 	@SuppressWarnings("unchecked")
 	public static <N extends FastGraphVertex, EC extends FastGraphEdge<N> & Comparable<FastGraphEdge<N>>> List<? extends FastGraphEdge<N>> weigh(Set<? extends FastGraphEdge<N>> edges) {
+		if (edges == null)
+			return new ArrayList<>();
 		if (edges.isEmpty())
 			return new ArrayList<>();
 		if (edges instanceof SortedSet)

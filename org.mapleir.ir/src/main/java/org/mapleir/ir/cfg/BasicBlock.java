@@ -215,7 +215,10 @@ public class BasicBlock implements FastGraphVertex, Comparable<BasicBlock>, List
 			it.remove();
 		}
 	}
-	
+
+	/**
+	 * Transfers statements up to index `to`, exclusively, to block `dst`.
+	 */
 	public void transferUp(BasicBlock dst, int to) {
 		// FIXME: faster
 		for(int i=to - 1; i >= 0; i--) {
@@ -362,6 +365,7 @@ public class BasicBlock implements FastGraphVertex, Comparable<BasicBlock>, List
 
 	@Override
 	public int compareTo(BasicBlock o) {
+		// WTF?????? EQUALS ISN'T IMPLEMENTED
 		return Integer.compare(id, o.id);
 	}
 

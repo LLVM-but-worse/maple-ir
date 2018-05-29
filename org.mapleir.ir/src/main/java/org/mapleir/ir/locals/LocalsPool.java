@@ -38,9 +38,8 @@ public abstract class LocalsPool implements ValueCreator<GenericBitSet<Local>> {
 		cache = new HashMap<>();
 		latest = new HashMap<>();
 		indexer = new IncrementalBitSetIndexer<>();
-		maxLocals = 0;
-		maxStack = 0;
-		
+		maxLocals = maxStack = 0;
+
 		defs = new HashMap<>();
 		uses = new NullPermeableHashMap<>(HashSet::new);
 	}
@@ -68,7 +67,8 @@ public abstract class LocalsPool implements ValueCreator<GenericBitSet<Local>> {
 	public GenericBitSet<Local> create() {
 		return createBitSet();
 	}
-	
+	// end factory
+
 	public BasicLocal asSimpleLocal(Local l) {
 		return get(l.getIndex(), l.isStack());
 	}
@@ -93,12 +93,20 @@ public abstract class LocalsPool implements ValueCreator<GenericBitSet<Local>> {
 		Collections.sort(list);
 		return list;
 	}
+
+	private void updateMaxs(int index, boolean isStack) {
+		if (isStack) // this is why we need ternary as lvalue.
+			maxStack = Math.max(maxStack, index);
+		else
+			maxLocals = Math.max(maxLocals, index);
+	}
 	
 	public VersionedLocal get(int index, int subscript) {
 		return get(index, subscript, false);
 	}
 	
 	public VersionedLocal get(int index, int subscript, boolean isStack) {
+		updateMaxs(index, isStack);
 		String key = key(index, subscript, isStack);
 		if(cache.containsKey(key)) {
 			return (VersionedLocal) cache.get(key);
@@ -127,6 +135,7 @@ public abstract class LocalsPool implements ValueCreator<GenericBitSet<Local>> {
 	}
 	
 	public BasicLocal get(int index, boolean isStack) {
+		updateMaxs(index, isStack);
 		String key = key(index, isStack);
 		if(cache.containsKey(key)) {
 			return (BasicLocal) cache.get(key);
@@ -149,6 +158,14 @@ public abstract class LocalsPool implements ValueCreator<GenericBitSet<Local>> {
 	
 	public BasicLocal getNextFreeLocal(boolean isStack) {
 		return newLocal(0, isStack);
+	}
+
+	public int getMaxLocals() {
+		return maxLocals;
+	}
+
+	public int getMaxStack() {
+		return maxStack;
 	}
 	
 	/* public Local newLocal(boolean isStack) {

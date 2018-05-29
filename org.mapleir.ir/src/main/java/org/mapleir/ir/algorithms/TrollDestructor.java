@@ -1,25 +1,25 @@
 package org.mapleir.ir.algorithms;
 
-import static org.mapleir.ir.code.Opcode.LOCAL_LOAD;
-
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.ListIterator;
-import java.util.Map;
-import java.util.Map.Entry;
-
+import org.mapleir.flowgraph.edges.DefaultSwitchEdge;
 import org.mapleir.flowgraph.edges.FlowEdge;
+import org.mapleir.flowgraph.edges.SwitchEdge;
+import org.mapleir.flowgraph.edges.UnconditionalJumpEdge;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.code.Opcode;
 import org.mapleir.ir.code.Stmt;
+import org.mapleir.ir.code.expr.ConstantExpr;
 import org.mapleir.ir.code.expr.PhiExpr;
 import org.mapleir.ir.code.expr.VarExpr;
+import org.mapleir.ir.code.stmt.SwitchStmt;
+import org.mapleir.ir.code.stmt.UnconditionalJumpStmt;
 import org.mapleir.ir.code.stmt.copy.CopyPhiStmt;
 import org.mapleir.ir.code.stmt.copy.CopyVarStmt;
 import org.mapleir.ir.locals.Local;
 import org.mapleir.ir.locals.LocalsPool;
+import org.mapleir.ir.locals.impl.BasicLocal;
+import org.mapleir.ir.utils.CFGUtils;
 import org.mapleir.ir.utils.dot.ControlFlowGraphDecorator;
 import org.mapleir.stdlib.collections.bitset.BitSetIndexer;
 import org.mapleir.stdlib.collections.bitset.GenericBitSet;
@@ -30,8 +30,15 @@ import org.mapleir.stdlib.collections.graph.dot.DotWriter;
 import org.mapleir.stdlib.collections.map.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.map.ValueCreator;
 import org.objectweb.asm.Type;
+import org.objectweb.asm.tree.LabelNode;
 
-public class SreedharDestructor {
+import java.util.*;
+import java.util.Map.Entry;
+
+import static org.mapleir.ir.code.Opcode.LOCAL_LOAD;
+import static org.mapleir.ir.utils.dot.ControlFlowGraphDecorator.OPT_STMTS;
+
+public class TrollDestructor {
 
 	private final ControlFlowGraph cfg;
 	private final LocalsPool locals;
@@ -48,11 +55,11 @@ public class SreedharDestructor {
 	private final BasicDotConfiguration<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> config = new BasicDotConfiguration<>(DotConfiguration.GraphType.DIRECTED);
 	private final DotWriter<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> writer;
 
-	private SreedharDestructor(ControlFlowGraph cfg) {
+	private TrollDestructor(ControlFlowGraph cfg) {
 		this.cfg = cfg;
 		writer = new DotWriter<>(config, cfg);
 		writer.removeAll()
-				.add(new ControlFlowGraphDecorator().setFlags(ControlFlowGraphDecorator.OPT_STMTS));
+				.add(new ControlFlowGraphDecorator().setFlags(OPT_STMTS));
 		locals = cfg.getLocals();
 		interfere = new NullPermeableHashMap<>(locals);
 		pccs = new NullPermeableHashMap<>(locals);
@@ -69,15 +76,16 @@ public class SreedharDestructor {
 	}
 
 	public static void leaveSSA(ControlFlowGraph cfg) {
-		SreedharDestructor dest = new SreedharDestructor(cfg);
+		TrollDestructor dest = new TrollDestructor(cfg);
 		dest.init();
 		dest.writer.setName("destruct-init").export();
 
 		dest.csaa_iii();
 		dest.writer.setName("destruct-cssa").export();
 
-		dest.coalesce();
-		dest.writer.setName("destruct-coalesce").export();
+		// coalesce messes up the troll
+		// dest.coalesce();
+		// dest.writer.setName("destruct-coalesce").export();
 
 		dest.leaveSSA();
 		dest.writer.setName("destruct-final").export();
@@ -447,8 +455,50 @@ public class SreedharDestructor {
 	// ================================================== Leave SSA ================================================ //
 	// ============================================================================================================= //
 	private void leaveSSA() {
+		// so, instead of opting for the sane algorithm of flattening pccs and dropping phis, we are going to
+		// literally evaluate the phi statements by checking which block we came from.
+		Local predLocal = locals.getNextFreeLocal(false);
+		VarExpr predVar = new VarExpr(predLocal, Type.INT_TYPE);
+		for (BasicBlock b : cfg.vertices()) {
+			Stmt newCopy = new CopyVarStmt(predVar.copy(), new ConstantExpr(b.getNumericId()));
+			if(b.get(b.size() - 1).canChangeFlow())
+				b.add(b.size() - 1, newCopy);
+			else
+				b.add(newCopy);
+		}
+
+		// expand phis into switches based on predecessor (LOL)
+		for (BasicBlock b : new ArrayList<>(cfg.vertices())) {
+			for (ListIterator<Stmt> it = b.listIterator(); it.hasNext(); ) {
+				Stmt stmt = it.next();
+				if (stmt instanceof CopyPhiStmt) {
+					it.remove();
+					CopyPhiStmt phi = (CopyPhiStmt) stmt;
+					BasicBlock splitBlock = CFGUtils.splitBlock(cfg, CFGUtils.getMaxId(cfg) + 1, b, it.previousIndex());
+					Set<FlowEdge<BasicBlock>> splitEdges = cfg.getEdges(splitBlock);
+					assert(splitEdges.size() == 1);
+					cfg.removeEdge(splitBlock, splitEdges.iterator().next());
+					LinkedHashMap<Integer, BasicBlock> dsts = new LinkedHashMap<>();
+					for (Entry<BasicBlock, Expr> phiArg : phi.getExpression().getArguments().entrySet()) {
+						BasicBlock stubBlock = new BasicBlock(cfg, CFGUtils.getMaxId(cfg) + 1, new LabelNode());
+						// i don't think it's necessary to copy phi arg expression since we
+						// are just reassigning it to a different block. tricky!
+						stubBlock.add(new CopyVarStmt(phi.getVariable().copy(), phiArg.getValue()));
+						stubBlock.add(new UnconditionalJumpStmt(b));
+						cfg.addEdge(stubBlock, new UnconditionalJumpEdge<>(stubBlock, b));
+						int predId = phiArg.getKey().getNumericId();
+						dsts.put(predId, stubBlock);
+						cfg.addEdge(splitBlock, new SwitchEdge<>(splitBlock, stubBlock, predId));
+					}
+
+					splitBlock.add(new SwitchStmt(predVar.copy(), dsts, splitBlock));
+					cfg.addEdge(splitBlock, new DefaultSwitchEdge<>(splitBlock, splitBlock));
+				} else break;
+			}
+		}
+
 		// Flatten pccs into one variable through remapping
-//		System.out.println("remap:");
+		System.out.println("remap:");
 		Map<Local, Local> remap = new HashMap<>();
 		for (Entry<Local, GenericBitSet<Local>> entry : pccs.entrySet()) {
 			GenericBitSet<Local> pcc = entry.getValue();
@@ -459,28 +509,22 @@ public class SreedharDestructor {
 			if (remap.containsKey(local))
 				continue;
 
-			Local newLocal = locals.makeLatestVersion(local);
+			BasicLocal newLocal = locals.get(locals.getMaxLocals() + 1, false);
+			System.out.println("  " + local + " -> " + newLocal);
 			remap.put(local, newLocal);
-//			System.out.println("  " + local + " -> " + newLocal);
 			for (Local pccLocal : pcc) {
+				if (remap.containsKey(pccLocal))
+					continue;
+				newLocal = locals.get(locals.getMaxLocals() + 1, false);
 				remap.put(pccLocal, newLocal);
-//				System.out.println("  " + pccLocal + " -> " + newLocal);
+				System.out.println("  " + pccLocal + " -> " + newLocal);
 			}
 		}
-//		System.out.println();
+		System.out.println();
 
-		for (BasicBlock b : cfg.vertices()) {
-			for (Iterator<Stmt> it = b.iterator(); it.hasNext(); ) {
-				Stmt stmt = it.next();
-
-				// We can now simply drop all phi statements.
-				if (stmt instanceof CopyPhiStmt) {
-					it.remove();
-					continue;
-				}
-
+		for (BasicBlock b : new ArrayList<>(cfg.vertices())) {
+			for (Stmt stmt : b) {
 				// Apply remappings
-				// TODO: possible to just use LocalsPool#remap?
 				if (stmt instanceof CopyVarStmt) {
 					VarExpr lhs = ((CopyVarStmt) stmt).getVariable();
 					Local copyTarget = lhs.getLocal();

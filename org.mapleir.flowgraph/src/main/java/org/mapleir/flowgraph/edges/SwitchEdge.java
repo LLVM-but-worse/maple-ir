@@ -5,12 +5,10 @@ import org.objectweb.asm.tree.AbstractInsnNode;
 
 public class SwitchEdge<N extends FastGraphVertex> extends AbstractFlowEdge<N> {
 	
-	public final AbstractInsnNode insn;
 	public final int value;
 	
-	public SwitchEdge(N src, N dst, AbstractInsnNode insn, int value) {
+	public SwitchEdge(N src, N dst, int value) {
 		super(SWITCH, src, dst);
-		this.insn = insn;
 		this.value = value;
 	}
 	
@@ -31,6 +29,6 @@ public class SwitchEdge<N extends FastGraphVertex> extends AbstractFlowEdge<N> {
 
 	@Override
 	public SwitchEdge<N> clone(N src, N dst) {
-		return new SwitchEdge<>(src, dst, insn, value);
+		return new SwitchEdge<>(src, dst, value);
 	}
 }

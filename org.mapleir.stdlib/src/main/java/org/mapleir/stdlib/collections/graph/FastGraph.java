@@ -60,6 +60,7 @@ public interface FastGraph<N extends FastGraphVertex, E extends FastGraphEdge<N>
 	}
 	
 	default Map<N, Set<E>> createMap(Map<N, Set<E>> map) {
+		// WHY IS IT IMPORTANT TO BE SORTED????
 		LinkedHashMap<N, Set<E>> map2 = new LinkedHashMap<>();
 		for(Entry<N, Set<E>> e : map.entrySet()) {
 			map2.put(e.getKey(), createSet(e.getValue()));

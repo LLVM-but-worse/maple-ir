@@ -63,6 +63,7 @@ public class LiftConstructorCallsPass implements Opcode, IPass {
 									
 									/* split the block before the invocation and 
 									 * insert a new block. */
+									// todo: convert to CFGUtils
 									split(cfg, b, stmt);
 									
 									return true;

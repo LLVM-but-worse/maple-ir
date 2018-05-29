@@ -284,20 +284,20 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 				
 				for(int i=0; i < lsin.keys.size(); i++) {
 					BasicBlock target = resolveTarget(lsin.labels.get(i));
-					builder.graph.addEdge(block, new SwitchEdge<>(block, target, lsin, lsin.keys.get(i)));
+					builder.graph.addEdge(block, new SwitchEdge<>(block, target, lsin.keys.get(i)));
 				}
 				
 				BasicBlock dflt = resolveTarget(lsin.dflt);
-				builder.graph.addEdge(block, new DefaultSwitchEdge<>(block, dflt, lsin));
+				builder.graph.addEdge(block, new DefaultSwitchEdge<>(block, dflt));
 				break;
 			} else if(type == TABLESWITCH_INSN) {
 				TableSwitchInsnNode tsin = (TableSwitchInsnNode) ain;
 				for(int i=tsin.min; i <= tsin.max; i++) {
 					BasicBlock target = resolveTarget(tsin.labels.get(i - tsin.min));
-					builder.graph.addEdge(block, new SwitchEdge<>(block, target, tsin, i));
+					builder.graph.addEdge(block, new SwitchEdge<>(block, target, i));
 				}
 				BasicBlock dflt = resolveTarget(tsin.dflt);
-				builder.graph.addEdge(block, new DefaultSwitchEdge<>(block, dflt, tsin));
+				builder.graph.addEdge(block, new DefaultSwitchEdge<>(block, dflt));
 				break;
 			} else if(isExitOpcode(ain.opcode())) {
 				break;
