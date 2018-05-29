@@ -26,19 +26,20 @@ import org.objectweb.asm.Type;
 
 public abstract class LocalsPool implements ValueCreator<GenericBitSet<Local>> {
 
-	private final AtomicInteger base;
 	private final Map<String, Local> cache;
 	private final Map<BasicLocal, VersionedLocal> latest;
 	private final BitSetIndexer<Local> indexer;
-	
+	private int maxLocals, maxStack;
+
 	public final Map<VersionedLocal, AbstractCopyStmt> defs;
 	public final NullPermeableHashMap<VersionedLocal, Set<VarExpr>> uses;
 	
-	public LocalsPool(int base) {
-		this.base = new AtomicInteger(base);
+	public LocalsPool() {
 		cache = new HashMap<>();
 		latest = new HashMap<>();
 		indexer = new IncrementalBitSetIndexer<>();
+		maxLocals = 0;
+		maxStack = 0;
 		
 		defs = new HashMap<>();
 		uses = new NullPermeableHashMap<>(HashSet::new);
@@ -102,7 +103,7 @@ public abstract class LocalsPool implements ValueCreator<GenericBitSet<Local>> {
 		if(cache.containsKey(key)) {
 			return (VersionedLocal) cache.get(key);
 		} else {
-			VersionedLocal v = new VersionedLocal(base, index, subscript, isStack);
+			VersionedLocal v = new VersionedLocal(index, subscript, isStack);
 			cache.put(key, v);
 			
 			BasicLocal bl = get(index, isStack);
@@ -130,7 +131,7 @@ public abstract class LocalsPool implements ValueCreator<GenericBitSet<Local>> {
 		if(cache.containsKey(key)) {
 			return (BasicLocal) cache.get(key);
 		} else {
-			BasicLocal v = new BasicLocal(base, index, isStack);
+			BasicLocal v = new BasicLocal(index, isStack);
 			cache.put(key, v);
 			return v;
 		}
@@ -295,18 +296,6 @@ public abstract class LocalsPool implements ValueCreator<GenericBitSet<Local>> {
 				}
 			}
 		}
-	}
-	
-	public int getBase() {
-		return base.get();
-	}
-	
-	public AtomicInteger getBase0() {
-		return base;
-	}
-	
-	public void setBase(int b) {
-		base.set(b);
 	}
 	
 	public static String key(int index, boolean stack) {

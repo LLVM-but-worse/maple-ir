@@ -1,22 +1,20 @@
 package org.mapleir.ir.locals.impl;
 
-import java.util.concurrent.atomic.AtomicInteger;
-
 import org.mapleir.ir.locals.Local;
 
 public class VersionedLocal extends Local {
 
 	private int subscript;
 	
-	public VersionedLocal(AtomicInteger base, int index, int subscript) {
-		super(base, index);
+	public VersionedLocal(int index, int subscript) {
+		super(index);
 		if (index > INDEX_MASK || subscript > SUBSCRIPT_MASK)
 			throw new IllegalArgumentException("Index/subscript overflow; hashCode collision possible " + index + " " + subscript);
 		this.subscript = subscript;
 	}
 	
-	public VersionedLocal(AtomicInteger base, int index, int subscript, boolean stack) {
-		super(base, index, stack);
+	public VersionedLocal(int index, int subscript, boolean stack) {
+		super(index, stack);
 		if (index > INDEX_MASK || subscript > SUBSCRIPT_MASK)
 			throw new IllegalArgumentException("Index/subscript overflow; hashCode collision possible " + index + " " + subscript);
 		this.subscript = subscript;
