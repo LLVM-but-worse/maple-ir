@@ -4,7 +4,6 @@ import org.mapleir.flowgraph.ExceptionRange;
 import org.mapleir.flowgraph.edges.*;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
-import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.code.Opcode;
 import org.mapleir.ir.code.Stmt;
 import org.mapleir.ir.code.stmt.ConditionalJumpStmt;
@@ -12,12 +11,19 @@ import org.mapleir.ir.code.stmt.SwitchStmt;
 import org.mapleir.ir.code.stmt.ThrowStmt;
 import org.mapleir.ir.code.stmt.UnconditionalJumpStmt;
 import org.mapleir.ir.code.stmt.copy.CopyVarStmt;
+import org.mapleir.ir.utils.dot.ControlFlowGraphDecorator;
+import org.mapleir.stdlib.collections.graph.dot.BasicDotConfiguration;
+import org.mapleir.stdlib.collections.graph.dot.DotConfiguration;
+import org.mapleir.stdlib.collections.graph.dot.DotWriter;
 import org.objectweb.asm.tree.LabelNode;
 
 import java.util.HashSet;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
+
+import static org.mapleir.ir.utils.dot.ControlFlowGraphDecorator.OPT_EDGES;
+import static org.mapleir.ir.utils.dot.ControlFlowGraphDecorator.OPT_STMTS;
 
 public class CFGUtils {
 	/**
@@ -198,5 +204,13 @@ public class CFGUtils {
 		cfg.addVertex(newBlock);
 		b.transferUp(newBlock, to);
 		return newBlock;
+	}
+	
+	private static BasicDotConfiguration<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> dotConfig = new BasicDotConfiguration<>(DotConfiguration.GraphType.DIRECTED);
+	public static void easyDumpCFG(ControlFlowGraph cfg, String filename) {
+		DotWriter<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> writer = new DotWriter<>(dotConfig, cfg);
+		writer.removeAll()
+				.add(new ControlFlowGraphDecorator().setFlags(OPT_STMTS | OPT_EDGES));
+		writer.setName(filename).export();
 	}
 }
