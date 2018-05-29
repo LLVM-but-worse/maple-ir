@@ -20,3 +20,6 @@
 
 # Maven output
 target/
+
+# Testing files
+org.mapleir.main/res/

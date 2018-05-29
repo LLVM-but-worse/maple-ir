@@ -1,30 +1,22 @@
 package org.mapleir.ir.locals;
 
-import java.util.concurrent.atomic.AtomicInteger;
-
 public abstract class Local implements Comparable<Local> {
 
-	private final AtomicInteger base; // maxLocals
 	private final boolean stack;
 	private final int index;
 	private boolean tempLocal;
 	
-	public Local(AtomicInteger base, int index) {
-		this(base, index, false);
+	public Local(int index) {
+		this(index, false);
 	}
 	
-	public Local(AtomicInteger base, int index, boolean stack) {
-		this.base = base;
+	public Local(int index, boolean stack) {
 		this.index = index;
 		this.stack = stack;
 		if (index < 0)
 			throw new IllegalArgumentException("Index underflow; hashCode collision possible " + index);
 	}
 	
-	public int getBase() {
-		return base.get();
-	}
-
 	public boolean isStack() {
 		return stack;
 	}

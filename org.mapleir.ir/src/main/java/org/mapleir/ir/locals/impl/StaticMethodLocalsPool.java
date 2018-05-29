@@ -4,8 +4,8 @@ import org.mapleir.ir.locals.Local;
 import org.mapleir.ir.locals.LocalsPool;
 
 public class StaticMethodLocalsPool extends LocalsPool {
-	public StaticMethodLocalsPool(int base) {
-		super(base);
+	public StaticMethodLocalsPool() {
+		super();
 	}
 
 	@Override

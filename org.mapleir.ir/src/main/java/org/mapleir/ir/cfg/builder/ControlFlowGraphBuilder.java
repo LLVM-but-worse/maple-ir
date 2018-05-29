@@ -1,5 +1,6 @@
 package org.mapleir.ir.cfg.builder;
 
+import java.lang.reflect.Modifier;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -7,7 +8,8 @@ import org.apache.log4j.Logger;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.locals.Local;
-import org.mapleir.ir.locals.impl.MethodNodeLocalsPool;
+import org.mapleir.ir.locals.impl.StaticMethodLocalsPool;
+import org.mapleir.ir.locals.impl.VirtualMethodLocalsPool;
 import org.mapleir.stdlib.collections.map.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.map.SetCreator;
 import org.objectweb.asm.tree.MethodNode;
@@ -25,8 +27,12 @@ public class ControlFlowGraphBuilder {
 	
 	public ControlFlowGraphBuilder(MethodNode method) {
 		this.method = method;
-		graph = new ControlFlowGraph(new MethodNodeLocalsPool(method.maxLocals, method));
-		
+		if(Modifier.isStatic(method.access)) {
+			graph = new ControlFlowGraph(new StaticMethodLocalsPool());
+		} else {
+			graph = new ControlFlowGraph(new VirtualMethodLocalsPool());
+
+		}
 		locals = new HashSet<>();
 		assigns = new NullPermeableHashMap<>(SetCreator.getInstance());
 	}
