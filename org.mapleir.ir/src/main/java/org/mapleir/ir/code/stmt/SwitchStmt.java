@@ -107,6 +107,7 @@ public class SwitchStmt extends Stmt {
 			BasicBlock targ = targets.get(key);
 			newMap.put(key, targ);
 		}
+		targets = newMap;
 	}
 
 	@Override
