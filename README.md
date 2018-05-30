@@ -71,7 +71,15 @@ Here is a [nastier function](https://github.com/JetBrains/intellij-community/blo
 ## Compiling
 To build:
 ```
-mvn compile test package
+mvn clean compile test package
+```
+
+The build will produce two jars, one with dependencies included (`mapleir-full.jar`), and one without (`mapleir-full-with-deps.jar`).
+You can also use each module individually.
+
+Then, optionally:
+```
+mvn install
 ```
 
 You can also get Maple-IR on [Jitpack](https://jitpack.io/#LLVM-but-worse/maple-ir).
