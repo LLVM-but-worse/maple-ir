@@ -145,7 +145,7 @@ public class DynamicInvocationExpr extends Expr {
 	public void toCode(MethodVisitor visitor, ControlFlowGraph cfg) {
 		// I'm not sure if this is correct.
 		Type[] argTypes = ((Type) providerArgs[providerArgs.length - 1]).getArgumentTypes();
-		assert(argTypes.length == args.length); // I hope this tells me when this fucks up, because this is not a matter of if, but when.
+		assert(argTypes.length >= args.length); // I hope this tells me when this fucks up, because this is not a matter of if, but when.
 		
 		for (int i = 0; i < args.length; i++) {
 			args[i].toCode(visitor, cfg);

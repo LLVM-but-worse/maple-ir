@@ -227,7 +227,7 @@ public abstract class FastDirectedGraph<N extends FastGraphVertex, E extends Fas
 	
 
 	@Override
-	public DotConfiguration<FastGraph<N,E>, N, E> makeConfiguration() {
+	public DotConfiguration<FastGraph<N,E>, N, E> makeDotConfiguration() {
 		return new BasicDotConfiguration<>(GraphType.DIRECTED);
 	}
 }
