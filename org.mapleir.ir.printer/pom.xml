@@ -3,24 +3,24 @@
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <modelVersion>4.0.0</modelVersion>
   <parent>
-    <groupId>org.mapleir.parent</groupId>
+    <groupId>org.mapleir</groupId>
     <artifactId>parent</artifactId>
     <version>0.0.1-ALPHA</version>
     <relativePath>../org.mapleir.parent</relativePath>
   </parent>
   
+  <groupId>org.mapleir</groupId>
   <artifactId>ir.printer</artifactId>
   <name>ir.printer</name>
-  <groupId>org.mapleir.stdlib</groupId>
 
   <dependencies>
     <dependency>
-      <groupId>org.mapleir.ir</groupId>
+      <groupId>org.mapleir</groupId>
       <artifactId>ir</artifactId>
       <version>0.0.1-ALPHA</version>
     </dependency>
     <dependency>
-    	<groupId>org.mapleir.property-framework</groupId>
+    	<groupId>org.mapleir</groupId>
     	<artifactId>property-framework</artifactId>
     	<version>0.0.1-SNAPSHOT</version>
     </dependency>
