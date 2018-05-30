@@ -153,7 +153,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 	}
 
 	private BasicBlock splitBlock(BasicBlock b, int to) {
-		BasicBlock newBlock = CFGUtils.splitBlock(builder.graph, graphSize++, b, to);
+		BasicBlock newBlock = CFGUtils.splitBlock(builder.graph, graphSize++, b, to, true);
 
 		// update assigns
 		Set<Local> assignedLocals = new HashSet<>();

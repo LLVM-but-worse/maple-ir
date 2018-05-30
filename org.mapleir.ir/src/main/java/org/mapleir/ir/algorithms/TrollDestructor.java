@@ -474,7 +474,7 @@ public class TrollDestructor {
 				if (stmt instanceof CopyPhiStmt) {
 					it.remove();
 					CopyPhiStmt phi = (CopyPhiStmt) stmt;
-					BasicBlock splitBlock = CFGUtils.splitBlock(cfg, CFGUtils.getMaxId(cfg) + 1, b, it.previousIndex());
+					BasicBlock splitBlock = CFGUtils.splitBlock(cfg, b, it.previousIndex());
 					Set<FlowEdge<BasicBlock>> splitEdges = cfg.getEdges(splitBlock);
 					assert(splitEdges.size() == 1);
 					cfg.removeEdge(splitBlock, splitEdges.iterator().next());
