@@ -30,7 +30,12 @@ public class CFGUtils {
 	 * Split the block upto statement index `to`, exclusively, into a new block.
 	 * @return the newly created block containing the instructions before `to`
 	 */
-	public static BasicBlock splitBlock(ControlFlowGraph cfg, int newId, BasicBlock b, int to) {
+	public static BasicBlock splitBlock(ControlFlowGraph cfg, BasicBlock b, int to) {
+		return splitBlock(cfg, CFGUtils.getMaxId(cfg) + 1, b, to, false);
+	}
+	
+	@Deprecated
+	public static BasicBlock splitBlock(ControlFlowGraph cfg, int newId, BasicBlock b, int to, boolean ssagencheck) {
 		/* eg. split the block as follows:
 		 *
 		 *  NAME:
@@ -141,12 +146,12 @@ public class CFGUtils {
 		}
 
 
-		// if (!checkCloneHandler(newBlock)) {
-		// 	System.err.println(cfg);
-		// 	System.err.println(newBlock.getDisplayName());
-		// 	System.err.println(b.getDisplayName());
-		// 	throw new IllegalStateException("the new block should always need a handler..?");
-		// }
+		if (ssagencheck && !checkCloneHandler(newBlock)) {
+			System.err.println(cfg);
+			System.err.println(newBlock.getDisplayName());
+			System.err.println(b.getDisplayName());
+			throw new IllegalStateException("the new block should always need a handler..?");
+		}
 
 		// clone exception edges
 		for (FlowEdge<BasicBlock> e : cfg.getEdges(b)) {
@@ -191,6 +196,7 @@ public class CFGUtils {
 	}
 
 	// this is such a f--king kludge
+	@Deprecated
 	public static int getMaxId(ControlFlowGraph cfg) {
 		return cfg.vertices().stream().map(BasicBlock::getNumericId).reduce(Integer::max).orElse(0);
 	}
@@ -205,12 +211,14 @@ public class CFGUtils {
 		b.transferUp(newBlock, to);
 		return newBlock;
 	}
-	
-	private static BasicDotConfiguration<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> dotConfig = new BasicDotConfiguration<>(DotConfiguration.GraphType.DIRECTED);
+
+	/**
+	 * Renders the cfg as an image using graphviz.
+	 * This should be for debugging purposes only.
+	 * @param cfg cfg to dump.
+	 * @param filename output name without file extension.
+	 */
 	public static void easyDumpCFG(ControlFlowGraph cfg, String filename) {
-		DotWriter<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> writer = new DotWriter<>(dotConfig, cfg);
-		writer.removeAll()
-				.add(new ControlFlowGraphDecorator().setFlags(OPT_STMTS | OPT_EDGES));
-		writer.setName(filename).export();
+		cfg.makeDotWriter().setName(filename).export();
 	}
 }

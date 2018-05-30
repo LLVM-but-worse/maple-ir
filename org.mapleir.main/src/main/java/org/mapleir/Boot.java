@@ -64,7 +64,7 @@ public class Boot {
 		
 		// Load input jar
 		//  File f = locateRevFile(135);
-		File f = new File("res/broken2.jar");
+		File f = new File("res/fernflower.jar");
 		
 		section("Preparing to run on " + f.getAbsolutePath());
 		SingleJarDownloader<ClassNode> dl = new SingleJarDownloader<>(new JarInfo(f));
@@ -109,11 +109,11 @@ public class Boot {
 		
 		for (ClassNode cn : cxt.getApplication().iterate()) {
 			// if (!cn.name.equals("org/jetbrains/java/decompiler/modules/decompiler/DomHelper"))
-			if (!cn.name.equals("TestDynamic"))
-				continue;
+			// if (!cn.name.equals("TestDynamic"))
+			// 	continue;
 			for (MethodNode m : cn.methods) {
-				if (!m.name.equals("calcPostDominators"))
-					continue;
+				// if (!m.name.equals("calcPostDominators"))
+				// 	continue;
 				cxt.getIRCache().getFor(m);
 			}
 		}
@@ -125,8 +125,8 @@ public class Boot {
 				continue;
 			ControlFlowGraph cfg = e.getValue();
 			
-			System.out.println(cfg);
-			CFGUtils.easyDumpCFG(cfg, "pre-destruct");
+			// System.out.println(cfg);
+			// CFGUtils.easyDumpCFG(cfg, "pre-destruct");
 
 			BoissinotDestructor.leaveSSA(cfg);
 			// if (mn.name.equals("<init>")) {
@@ -136,14 +136,14 @@ public class Boot {
 			// 	// System.out.println(cfg);
 			// }
 
-			CFGUtils.easyDumpCFG(cfg, "pre-reaalloc");
+			// CFGUtils.easyDumpCFG(cfg, "pre-reaalloc");
 			cfg.getLocals().realloc(cfg);
-			CFGUtils.easyDumpCFG(cfg, "post-reaalloc");
-			System.out.println(cfg);
+			// CFGUtils.easyDumpCFG(cfg, "post-reaalloc");
+			// System.out.println(cfg);
 			System.out.println("Rewriting " + mn.name);
 			// System.exit(1);
 			(new ControlFlowGraphDumper(cfg, mn)).dump();
-			System.out.println(InsnListUtils.insnListToString(mn.instructions));
+			// System.out.println(InsnListUtils.insnListToString(mn.instructions));
 		}
 		
 		section("Rewriting jar.");

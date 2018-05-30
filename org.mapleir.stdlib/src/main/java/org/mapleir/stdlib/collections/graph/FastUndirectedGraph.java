@@ -142,7 +142,7 @@ public abstract class FastUndirectedGraph<N extends FastGraphVertex, E extends F
 	}
 	
 	@Override
-	public DotConfiguration<FastGraph<N,E>, N, E> makeConfiguration() {
+	public DotConfiguration<FastGraph<N,E>, N, E> makeDotConfiguration() {
 		return new BasicDotConfiguration<>(GraphType.UNDIRECTED);
 	}
 }
