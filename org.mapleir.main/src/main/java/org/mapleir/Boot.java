@@ -4,33 +4,20 @@ import org.apache.log4j.Logger;
 import org.mapleir.app.client.SimpleApplicationContext;
 import org.mapleir.app.service.ApplicationClassSource;
 import org.mapleir.app.service.CompleteResolvingJarDumper;
-import org.mapleir.app.service.InstalledRuntimeClassSource;
 import org.mapleir.app.service.LibraryClassSource;
 import org.mapleir.context.AnalysisContext;
 import org.mapleir.context.BasicAnalysisContext;
 import org.mapleir.context.IRCache;
 import org.mapleir.deob.IPass;
 import org.mapleir.deob.PassGroup;
-import org.mapleir.deob.interproc.IRCallTracer;
-import org.mapleir.deob.passes.ConstantExpressionReorderPass;
+import org.mapleir.deob.passes.ConstantParameterPass;
 import org.mapleir.deob.passes.DeadCodeEliminationPass;
 import org.mapleir.deob.passes.rename.ClassRenamerPass;
 import org.mapleir.deob.util.RenamingHeuristic;
-import org.mapleir.flowgraph.edges.FlowEdge;
-import org.mapleir.flowgraph.edges.ImmediateEdge;
 import org.mapleir.ir.algorithms.BoissinotDestructor;
 import org.mapleir.ir.algorithms.ControlFlowGraphDumper;
-import org.mapleir.ir.algorithms.TrollDestructor;
-import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.cfg.builder.ControlFlowGraphBuilder;
-import org.mapleir.ir.utils.CFGUtils;
-import org.mapleir.ir.utils.dot.ControlFlowGraphDecorator;
-import org.mapleir.stdlib.collections.graph.dot.BasicDotConfiguration;
-import org.mapleir.stdlib.collections.graph.dot.DotConfiguration;
-import org.mapleir.stdlib.collections.graph.dot.DotWriter;
-import org.mapleir.stdlib.util.InsnListUtils;
-import org.mapleir.stdlib.util.StringHelper;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.topdank.byteengineer.commons.data.JarInfo;
@@ -101,12 +88,6 @@ public class Boot {
 		}
 		run(cxt, masterGroup);
 		
-		// for(MethodNode m : cxt.getIRCache().getActiveMethods()) {
-		// 	if(m.instructions.size() > 100 && m.instructions.size() < 500) {
-		// 		System.out.println(cxt.getIRCache().get(m));
-		// 	}
-		// }
-		
 		for (ClassNode cn : cxt.getApplication().iterate()) {
 			// if (!cn.name.equals("org/jetbrains/java/decompiler/modules/decompiler/DomHelper"))
 			// if (!cn.name.equals("TestDynamic"))
@@ -129,12 +110,6 @@ public class Boot {
 			// CFGUtils.easyDumpCFG(cfg, "pre-destruct");
 
 			BoissinotDestructor.leaveSSA(cfg);
-			// if (mn.name.equals("<init>")) {
-			// } else {
-			// 	TrollDestructor.leaveSSA(cfg);
-			// 	// SreedharDestructor.leaveSSA(cfg);
-			// 	// System.out.println(cfg);
-			// }
 
 			// CFGUtils.easyDumpCFG(cfg, "pre-reaalloc");
 			cfg.getLocals().realloc(cfg);
