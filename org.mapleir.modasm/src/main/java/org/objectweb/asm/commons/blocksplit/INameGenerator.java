@@ -33,9 +33,9 @@ public interface INameGenerator {
     /**
      * Generate a unique name for a class member
      *
-     * @param mainMembernName a name for the member this unique name is derived from
+     * @param mainMemberName a name for the member this unique name is derived from
      * @param id a locally unique identifier
-     * @returns a unique name for a class member
+     * @return a unique name for a class member
      */
     String generateName(String mainMemberName, int id);
 }

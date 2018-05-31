@@ -123,8 +123,6 @@ public class ClassNode extends ClassVisitor implements FastGraphVertex {
      * The runtime visible annotations of this class. This list is a list of
      * {@link AnnotationNode} objects. May be <tt>null</tt>.
      * 
-     * @associates org.objectweb.asm.tree.AnnotationNode
-     * @label visible
      */
     public List<AnnotationNode> visibleAnnotations;
 
@@ -132,8 +130,6 @@ public class ClassNode extends ClassVisitor implements FastGraphVertex {
      * The runtime invisible annotations of this class. This list is a list of
      * {@link AnnotationNode} objects. May be <tt>null</tt>.
      * 
-     * @associates org.objectweb.asm.tree.AnnotationNode
-     * @label invisible
      */
     public List<AnnotationNode> invisibleAnnotations;
 
@@ -141,8 +137,6 @@ public class ClassNode extends ClassVisitor implements FastGraphVertex {
      * The runtime visible type annotations of this class. This list is a list
      * of {@link TypeAnnotationNode} objects. May be <tt>null</tt>.
      * 
-     * @associates org.objectweb.asm.tree.TypeAnnotationNode
-     * @label visible
      */
     public List<TypeAnnotationNode> visibleTypeAnnotations;
 
@@ -150,8 +144,6 @@ public class ClassNode extends ClassVisitor implements FastGraphVertex {
      * The runtime invisible type annotations of this class. This list is a list
      * of {@link TypeAnnotationNode} objects. May be <tt>null</tt>.
      * 
-     * @associates org.objectweb.asm.tree.TypeAnnotationNode
-     * @label invisible
      */
     public List<TypeAnnotationNode> invisibleTypeAnnotations;
 
@@ -159,7 +151,6 @@ public class ClassNode extends ClassVisitor implements FastGraphVertex {
      * The non standard attributes of this class. This list is a list of
      * {@link Attribute} objects. May be <tt>null</tt>.
      * 
-     * @associates org.objectweb.asm.Attribute
      */
     public List<Attribute> attrs;
 
@@ -167,7 +158,6 @@ public class ClassNode extends ClassVisitor implements FastGraphVertex {
      * Informations about the inner classes of this class. This list is a list
      * of {@link InnerClassNode} objects.
      * 
-     * @associates org.objectweb.asm.tree.InnerClassNode
      */
     public List<InnerClassNode> innerClasses;
 
@@ -175,7 +165,6 @@ public class ClassNode extends ClassVisitor implements FastGraphVertex {
      * The fields of this class. This list is a list of {@link FieldNode}
      * objects.
      * 
-     * @associates org.objectweb.asm.tree.FieldNode
      */
     public List<FieldNode> fields;
 
@@ -183,7 +172,6 @@ public class ClassNode extends ClassVisitor implements FastGraphVertex {
      * The methods of this class. This list is a list of {@link MethodNode}
      * objects.
      * 
-     * @associates org.objectweb.asm.tree.MethodNode
      */
     public List<MethodNode> methods;
 

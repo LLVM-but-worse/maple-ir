@@ -5,7 +5,6 @@ import java.util.Set;
 
 /**
  * @author Bibl (don't ban me pls)
- * @created 25 May 2015 (actually before this)
  */
 public class SetCreator<T> implements ValueCreator<Set<T>> {
 	private static final SetCreator<?> INSTANCE = new SetCreator<>();

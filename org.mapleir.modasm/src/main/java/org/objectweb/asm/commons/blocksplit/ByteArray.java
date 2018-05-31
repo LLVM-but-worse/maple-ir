@@ -29,16 +29,18 @@
  */
 package org.objectweb.asm.commons.blocksplit;
 
+import org.objectweb.asm.Attribute;
+
 /**
  * Utility methods for reading stuff from byte arrays.
  */
 public class ByteArray {
     /**
-     * Reads a byte value in {@link #b b}. <i>This method is intended for
+     * Reads a byte value in . <i>This method is intended for
      * {@link Attribute} sub classes, and is normally not needed by class
      * generators or adapters.</i>
      *
-     * @param index the start index of the value to be read in {@link #b b}.
+     * @param index the start index of the value to be read in .
      * @return the read value.
      */
     public static int readByte(final byte[] b, final int index) {
@@ -46,11 +48,11 @@ public class ByteArray {
     }
 
     /**
-     * Reads an unsigned short value in {@link #b b}. <i>This method is
+     * Reads an unsigned short value in . <i>This method is
      * intended for {@link Attribute} sub classes, and is normally not needed by
      * class generators or adapters.</i>
      *
-     * @param index the start index of the value to be read in {@link #b b}.
+     * @param index the start index of the value to be read in .
      * @return the read value.
      */
     public static int readUnsignedShort(final byte[] b, final int index) {
@@ -58,11 +60,11 @@ public class ByteArray {
     }
 
     /**
-     * Reads a signed short value in {@link #b b}. <i>This method is intended
+     * Reads a signed short value in . <i>This method is intended
      * for {@link Attribute} sub classes, and is normally not needed by class
      * generators or adapters.</i>
      *
-     * @param index the start index of the value to be read in {@link #b b}.
+     * @param index the start index of the value to be read in .
      * @return the read value.
      */
     public static short readShort(final byte[] b, final int index) {
@@ -70,11 +72,11 @@ public class ByteArray {
     }
 
     /**
-     * Reads a signed int value in {@link #b b}. <i>This method is intended for
+     * Reads a signed int value in . <i>This method is intended for
      * {@link Attribute} sub classes, and is normally not needed by class
      * generators or adapters.</i>
      *
-     * @param index the start index of the value to be read in {@link #b b}.
+     * @param index the start index of the value to be read in .
      * @return the read value.
      */
     public static int readInt(final byte[] b, final int index) {
@@ -83,11 +85,11 @@ public class ByteArray {
     }
 
     /**
-     * Reads a signed long value in {@link #b b}. <i>This method is intended
+     * Reads a signed long value in . <i>This method is intended
      * for {@link Attribute} sub classes, and is normally not needed by class
      * generators or adapters.</i>
      *
-     * @param index the start index of the value to be read in {@link #b b}.
+     * @param index the start index of the value to be read in .
      * @return the read value.
      */
     public static long readLong(final byte[] b, final int index) {
@@ -98,7 +100,7 @@ public class ByteArray {
 
 
     /**
-     * Reads UTF8 string in {@link #b b}.
+     * Reads UTF8 string in .
      *
      * @param index start offset of the UTF8 string to be read.
      * @param utfLen length of the UTF8 string to be read.
