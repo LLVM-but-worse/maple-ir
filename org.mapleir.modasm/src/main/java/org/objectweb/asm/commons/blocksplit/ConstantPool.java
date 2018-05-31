@@ -126,11 +126,11 @@ final public class ConstantPool {
     // Constant pool
     //
     /**
-     * Reads a class constant pool item in {@link #b b}. <i>This method is
+     * Reads a class constant pool item in . <i>This method is
      * intended for {@link Attribute} sub classes, and is normally not needed by
      * class generators or adapters.</i>
      *
-     * @param index the index of a constant pool class item.
+     * @param itemIndex the index of a constant pool class item.
      * @return the String corresponding to the specified class item.
      */
     public String readClass(final int itemIndex) {
@@ -142,7 +142,7 @@ final public class ConstantPool {
     }
 
     /**
-     * Reads an UTF8 string constant pool item in {@link #b b}. <i>This method
+     * Reads an UTF8 string constant pool item in . <i>This method
      * is intended for {@link Attribute} sub classes, and is normally not needed
      * by class generators or adapters.</i>
      *
@@ -155,7 +155,7 @@ final public class ConstantPool {
     }
 
     /**
-     * Reads a numeric or string constant pool item in {@link #b b}. <i>This
+     * Reads a numeric or string constant pool item in . <i>This
      * method is intended for {@link Attribute} sub classes, and is normally not
      * needed by class generators or adapters.</i>
      *
@@ -215,7 +215,7 @@ final public class ConstantPool {
      * Parse a symbolic reference to a member.
      *
      * @param item index of item in constant pool
-     * @returns symbolic reference
+     * @return symbolic reference
      */
     public MemberSymRef parseMemberSymRef(int item) {
         int cpIndex = items[item];
@@ -244,7 +244,7 @@ final public class ConstantPool {
      * Parse a symbolic reference to a dynamic method.
      *
      * @param item index of item in constant pool
-     * @returns symbolic reference
+     * @return symbolic reference
      */
     public DynamicSymRef parseDynamicSymRef(int item) {
         int cpIndex = items[item];

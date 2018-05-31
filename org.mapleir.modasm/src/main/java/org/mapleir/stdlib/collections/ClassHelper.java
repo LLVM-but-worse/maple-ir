@@ -13,7 +13,6 @@ import org.objectweb.asm.tree.ClassNode;
 
 /**
  * @author Bibl (don't ban me pls)
- * @created 25 May 2015 (actually before this)
  */
 public class ClassHelper {
 

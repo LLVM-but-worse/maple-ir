@@ -4,7 +4,6 @@ import java.util.LinkedHashMap;
 
 /**
  * @author Bibl (don't ban me pls)
- * @created 2 Jun 2015 18:47:27
  */
 public class NullPermeableLinkedHashMap<K, V> extends LinkedHashMap<K, V> {
 
