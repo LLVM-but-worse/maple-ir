@@ -5,10 +5,10 @@ package org.topdank.banalysis.asm.desc;
  * @author Bibl
  * 
  */
-public final class Desciption {
+public final class Description {
 	
 	/**
-	 * Finds the internal class name from a bytecode description. "Ljava/lang/String" -> "java/lang/String"
+	 * Finds the internal class name from a bytecode description. "Ljava/lang/String" -&gt; "java/lang/String"
 	 * @param referenceDesc A reference type. eg "Ljava/lang/String;"
 	 * @return The internal class name of the reference type.
 	 */

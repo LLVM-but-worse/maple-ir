@@ -19,13 +19,11 @@ public class PropertyHelper {
 	/**
 	 * The dictionary should handle operations from multiple threads safely.
 	 * 
-	 * @group 1
 	 * @see #createDictionary(IPropertyDictionary)
 	 */
 	public static final String BASIC_SYNCHRONISED_DICTIONARY_OPT = "dictionary.property.threadsafe";
 	/**
 	 * The dictionary cannot be modified.
-	 * @group 1
 	 * @see #createDictionary(IPropertyDictionary)
 	 */
 	public static final String IMMUTABLE_DICTIONARY_OPT = "dictionary.property.immutable";
@@ -94,7 +92,7 @@ public class PropertyHelper {
 	 * This helper method is used to take the primitive type and find the
 	 * corresponding primitive wrapper type. This allows client code to request a
 	 * property with type class of boolean.class (for example) and receive a
-	 * property in the form <code>IProperty&ltBoolean&gt</code>.
+	 * property in the form <code>IProperty&lt;Boolean&gt;</code>.
 	 * <p>
 	 * Note that client code is not expected to use this method to request a
 	 * property of the primitive type, instead dictionary implementations should, to

@@ -57,8 +57,6 @@ public class JarInfo {
 	/**
 	 * Formats a string ready for a {@link JarURLConnection} to connect to.
 	 *
-	 * @param url Location of the JarFile.
-	 * @param type Type of JarFile.
 	 * @return The formatted string.
 	 */
 	public String formattedURL() {
