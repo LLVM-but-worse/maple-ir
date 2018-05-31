@@ -15,18 +15,7 @@ import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.code.Expr.Precedence;
 import org.mapleir.ir.code.Opcode;
 import org.mapleir.ir.code.Stmt;
-import org.mapleir.ir.code.expr.AllocObjectExpr;
-import org.mapleir.ir.code.expr.ArithmeticExpr;
-import org.mapleir.ir.code.expr.ArrayLengthExpr;
-import org.mapleir.ir.code.expr.ArrayLoadExpr;
-import org.mapleir.ir.code.expr.CastExpr;
-import org.mapleir.ir.code.expr.ComparisonExpr;
-import org.mapleir.ir.code.expr.ConstantExpr;
-import org.mapleir.ir.code.expr.FieldLoadExpr;
-import org.mapleir.ir.code.expr.InstanceofExpr;
-import org.mapleir.ir.code.expr.NegationExpr;
-import org.mapleir.ir.code.expr.NewArrayExpr;
-import org.mapleir.ir.code.expr.VarExpr;
+import org.mapleir.ir.code.expr.*;
 import org.mapleir.ir.code.expr.invoke.InitialisedObjectExpr;
 import org.mapleir.ir.code.expr.invoke.InvocationExpr;
 import org.mapleir.ir.code.stmt.ArrayStoreStmt;
@@ -289,8 +278,15 @@ public abstract class MethodNodePrinter extends ASMPrinter<MethodNode> {
                 break;
             }
             case Opcode.DYNAMIC_INVOKE: {
-                System.err.println(e);
-                throw new UnsupportedOperationException("dynamic invocation");
+                // System.err.println(e);
+                // throw new UnsupportedOperationException("dynamic invocation");
+                
+                // temporary hack until I feel like implementing this. better than crashing.
+                this.sw.print("<dynamic invocation ");
+                DynamicInvocationExpr die = (DynamicInvocationExpr) e;
+                this.sw.print(e.toString());
+                this.sw.print(">");
+                break;
             }
             case Opcode.INVOKE: {
                 InvocationExpr ie = (InvocationExpr) e;
