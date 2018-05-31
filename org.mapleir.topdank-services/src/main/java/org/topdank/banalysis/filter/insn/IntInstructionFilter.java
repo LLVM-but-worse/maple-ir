@@ -8,7 +8,6 @@ import org.topdank.banalysis.filter.ZeroCancelIntegerFilter;
 
 /**
  * @author Bibl (don't ban me pls)
- * @created 15 Jul 2015 05:14:37
  */
 public class IntInstructionFilter implements InstructionFilter {
 

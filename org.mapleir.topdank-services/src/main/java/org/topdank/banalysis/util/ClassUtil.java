@@ -10,7 +10,6 @@ import org.objectweb.asm.tree.ClassNode;
 
 /**
  * @author Bibl (don't ban me pls) <br>
- * @created 9 Apr 2015 at 19:04:54 <br>
  */
 public class ClassUtil {
 

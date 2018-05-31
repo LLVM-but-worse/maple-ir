@@ -1843,7 +1843,7 @@ class BasicBlock implements Comparable<BasicBlock> {
     }
 
     /**
-     * @returns true if the set changed
+     * @return true if the set changed
      */
     private boolean iterateLocalsReadWrittenTransitive() {
         BitSet old = (BitSet) localsReadTransitive.clone();
@@ -2413,7 +2413,6 @@ class BasicBlock implements Comparable<BasicBlock> {
 
     /**
      * Find all blocks in a SESE region.
-     * @param this entry block
      * @param exit exit block
      */
     public Set<BasicBlock> regionBlocks(BasicBlock exit) {
