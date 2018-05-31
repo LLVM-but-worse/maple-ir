@@ -90,11 +90,13 @@ public class Boot {
 		
 		for (ClassNode cn : cxt.getApplication().iterate()) {
 			// if (!cn.name.equals("org/jetbrains/java/decompiler/modules/decompiler/DomHelper"))
-			// if (!cn.name.equals("club/bytecode/the/jda/JDA"))
-			// 	continue;
+			if (!cn.name.equals("com/google/common/util/concurrent/Monitor"))
+				continue;
 			for (MethodNode m : cn.methods) {
-				// if (!m.name.equals("openFiles"))
-				// 	continue;
+				if (!m.name.equals("enterWhenUninterruptibly"))
+					continue;
+				if (!m.desc.equals("(Lcom/google/common/util/concurrent/Monitor$Guard;JLjava/util/concurrent/TimeUnit;)Z"))
+					continue;
 				cxt.getIRCache().getFor(m);
 			}
 		}
