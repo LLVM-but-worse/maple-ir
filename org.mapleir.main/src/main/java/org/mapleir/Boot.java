@@ -51,7 +51,7 @@ public class Boot {
 		
 		// Load input jar
 		//  File f = locateRevFile(135);
-		File f = new File("res/fernflower.jar");
+		File f = new File("res/jda-1.0.0.jar");
 		
 		section("Preparing to run on " + f.getAbsolutePath());
 		SingleJarDownloader<ClassNode> dl = new SingleJarDownloader<>(new JarInfo(f));
@@ -90,10 +90,10 @@ public class Boot {
 		
 		for (ClassNode cn : cxt.getApplication().iterate()) {
 			// if (!cn.name.equals("org/jetbrains/java/decompiler/modules/decompiler/DomHelper"))
-			// if (!cn.name.equals("TestDynamic"))
+			// if (!cn.name.equals("club/bytecode/the/jda/JDA"))
 			// 	continue;
 			for (MethodNode m : cn.methods) {
-				// if (!m.name.equals("calcPostDominators"))
+				// if (!m.name.equals("openFiles"))
 				// 	continue;
 				cxt.getIRCache().getFor(m);
 			}
@@ -102,8 +102,8 @@ public class Boot {
 		section("Retranslating SSA IR to standard flavour.");
 		for(Entry<MethodNode, ControlFlowGraph> e : cxt.getIRCache().entrySet()) {
 			MethodNode mn = e.getKey();
-			if (!mn.name.equals("calcPostDominators"))
-				continue;
+			// if (!mn.name.equals("openFiles"))
+			// 	continue;
 			ControlFlowGraph cfg = e.getValue();
 			
 			// System.out.println(cfg);

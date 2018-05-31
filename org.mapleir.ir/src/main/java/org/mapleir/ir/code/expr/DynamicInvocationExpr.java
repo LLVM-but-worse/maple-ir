@@ -143,8 +143,10 @@ public class DynamicInvocationExpr extends Expr {
 
 	@Override
 	public void toCode(MethodVisitor visitor, ControlFlowGraph cfg) {
-		// I'm not sure if this is correct.
-		Type[] argTypes = ((Type) providerArgs[providerArgs.length - 1]).getArgumentTypes();
+		// I'm not sure if this is correct. Perhaps only for metafactories.
+		assert(providerArgs.length == 3);
+		assert(providerArgs[providerArgs.length - 2] instanceof Handle);
+		Type[] argTypes = Type.getArgumentTypes(((Handle) providerArgs[providerArgs.length - 2]).getDesc());
 		assert(argTypes.length >= args.length); // I hope this tells me when this fucks up, because this is not a matter of if, but when.
 		
 		for (int i = 0; i < args.length; i++) {
