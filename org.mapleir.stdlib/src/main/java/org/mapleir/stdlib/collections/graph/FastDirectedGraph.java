@@ -90,11 +90,11 @@ public abstract class FastDirectedGraph<N extends FastGraphVertex, E extends Fas
 		// D = {(C->D)}
 
 		for(E e : map.remove(v)) {
-			reverseMap.get(/*getDestination(v, e)*/ e.dst()).remove(e);
+			reverseMap.get(e.dst()).remove(e);
 		}
 		
 		for(E e : reverseMap.remove(v)) {
-			map.get(/*getSource(v, e)*/ e.src()).remove(e);
+			map.get(e.src()).remove(e);
 		}
 	}
 
