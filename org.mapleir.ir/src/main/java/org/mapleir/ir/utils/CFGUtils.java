@@ -15,12 +15,10 @@ import org.mapleir.ir.utils.dot.ControlFlowGraphDecorator;
 import org.mapleir.stdlib.collections.graph.dot.BasicDotConfiguration;
 import org.mapleir.stdlib.collections.graph.dot.DotConfiguration;
 import org.mapleir.stdlib.collections.graph.dot.DotWriter;
+import org.mapleir.stdlib.util.TabbedStringWriter;
 import org.objectweb.asm.tree.LabelNode;
 
-import java.util.HashSet;
-import java.util.ListIterator;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import static org.mapleir.ir.utils.dot.ControlFlowGraphDecorator.OPT_EDGES;
 import static org.mapleir.ir.utils.dot.ControlFlowGraphDecorator.OPT_STMTS;
@@ -90,13 +88,16 @@ public class CFGUtils {
 			if (e instanceof TryCatchEdge) { // b is ehandler
 				TryCatchEdge<BasicBlock> tce = (TryCatchEdge<BasicBlock>) e;
 				if (tce.dst() != tce.erange.getHandler()) {
-					// System.err.println(builder.method.owner + "#" + builder.method.name);
-					System.err.println(cfg);
-					System.err.println("Very odd split case. please investigate");
-					System.err.println("Offending postsplit block: " + b);
-					System.err.println("Offending newblock: " + newBlock);
-					System.err.println("Offending edge: " + tce);
-					System.err.println("Offending erange: " + tce.erange);
+					if ((tce.dst() == newBlock || tce.erange.getHandler() != newBlock)) {
+						System.err.println("Offending postsplit block: " + b);
+						System.err.println("Offending newblock: " + newBlock);
+						System.err.println("Offending edge: " + tce);
+						System.err.println("Offending erange: " + tce.erange);
+						System.err.println(cfg);
+						throw new AssertionError("Very odd split case. please investigate");
+					}
+					cfg.addEdge(tce.src(), tce.clone(tce.src(), null));
+					cfg.removeEdge(tce.src(), tce);
 				}
 				if (tce.erange.getHandler() != newBlock) {
 					tce.erange.setHandler(newBlock);
@@ -220,5 +221,69 @@ public class CFGUtils {
 	 */
 	public static void easyDumpCFG(ControlFlowGraph cfg, String filename) {
 		cfg.makeDotWriter().setName(filename).export();
+	}
+
+	public static String printBlocks(Collection<BasicBlock> bbs) {
+		TabbedStringWriter sw = new TabbedStringWriter();
+		int insn = 1;
+		for(BasicBlock bb : bbs) {
+			blockToString(sw, bb.getGraph(), bb, insn);
+			insn += bb.size();
+		}
+		return sw.toString();
+	}
+
+	public static String printBlock(BasicBlock b) {
+		TabbedStringWriter sw = new TabbedStringWriter();
+		blockToString(sw, b.getGraph(), b, 1);
+		return sw.toString();
+	}
+
+	public static void blockToString(TabbedStringWriter sw, ControlFlowGraph cfg, BasicBlock b, int insn) {
+		// sw.print("===#Block " + b.getId() + "(size=" + (b.size()) + ")===");
+		sw.print(String.format("===#Block %s(size=%d, ident=%s, flags=%s)===", b.getDisplayName(), b.size(),
+				/*(b.getLabelNode() != null && b.getLabel() != null ? b.getLabel().hashCode() : "null")*/ "x", Integer.toBinaryString(b.getFlags())));
+		sw.tab();
+		
+		Iterator<Stmt> it = b.iterator();
+		if(!it.hasNext()) {
+			sw.untab();
+		} else {
+			sw.print("\n");
+		}
+		while(it.hasNext()) {
+			Stmt stmt = it.next();
+//			sw.print(stmt.getId() + ". ");
+			sw.print(insn++ + ". ");
+			stmt.toString(sw);
+			
+			if(!it.hasNext()) {
+				sw.untab();
+			} else {
+				sw.print("\n");
+			}
+		}
+
+		sw.tab();
+		sw.tab();
+		
+		if(cfg.containsVertex(b)) {
+			for(FlowEdge<BasicBlock> e : cfg.getEdges(b)) {
+//				if(e.getType() != FlowEdges.TRYCATCH) {
+					sw.print("\n-> " + e.toString());
+//				}
+			}
+
+			for(FlowEdge<BasicBlock> p : cfg.getReverseEdges(b)) {
+//				if(p.getType() != FlowEdges.TRYCATCH) {
+					sw.print("\n<- " + p.toString());
+//				}
+			}
+		}
+
+		sw.untab();
+		sw.untab();
+		
+		sw.print("\n");
 	}
 }
