@@ -1,6 +1,7 @@
 package org.mapleir.flowgraph.edges;
 
 import java.util.List;
+import java.util.Objects;
 
 import org.mapleir.flowgraph.ExceptionRange;
 import org.mapleir.stdlib.collections.graph.FastGraphVertex;
@@ -8,7 +9,6 @@ import org.mapleir.stdlib.collections.graph.FastGraphVertex;
 public class TryCatchEdge<N extends FastGraphVertex> extends AbstractFlowEdge<N> {
 
 	public final ExceptionRange<N> erange;
-	private int hashcode;
 	
 	public TryCatchEdge(N src, N dst) {
 		super(TRYCATCH, src, dst);
@@ -18,13 +18,6 @@ public class TryCatchEdge<N extends FastGraphVertex> extends AbstractFlowEdge<N>
 	public TryCatchEdge(N src, ExceptionRange<N> erange) {
 		super(TRYCATCH, src, erange.getHandler());
 		this.erange = erange;
-		recalcHashcode();
-	}
-	
-	private void recalcHashcode() {
-		hashcode = 31 + (erange == null ? 0 : erange.hashCode());
-		hashcode += 31 * hashcode + src.getNumericId();
-		hashcode += 31 * hashcode + dst.getNumericId();
 	}
 
 	@Override
@@ -49,24 +42,17 @@ public class TryCatchEdge<N extends FastGraphVertex> extends AbstractFlowEdge<N>
 	}
 
 	@Override
-	public int hashCode() {
-		return hashcode;
+	public boolean equals(Object o) {
+		if (this == o) return true;
+		if (o == null || getClass() != o.getClass()) return false;
+		if (!super.equals(o)) return false;
+		TryCatchEdge<?> that = (TryCatchEdge<?>) o;
+		return Objects.equals(erange, that.erange);
 	}
 
 	@Override
-	public boolean equals(Object obj) {
-		if (this == obj)
-			return true;
-		if (obj == null)
-			return false;
-		if (getClass() != obj.getClass())
-			return false;
-		TryCatchEdge<?> other = (TryCatchEdge<?>) obj;
-		if (erange == null) {
-			if (other.erange != null)
-				return false;
-		} else if (!erange.equals(other.erange))
-			return false;
-		return true;
+	public int hashCode() {
+
+		return Objects.hash(super.hashCode(), erange);
 	}
 }

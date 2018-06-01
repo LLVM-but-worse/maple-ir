@@ -1,11 +1,6 @@
 package org.mapleir.flowgraph;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
-import java.util.ListIterator;
-import java.util.Set;
+import java.util.*;
 
 import org.mapleir.stdlib.collections.graph.FastGraphVertex;
 import org.mapleir.stdlib.util.StringHelper;
@@ -18,23 +13,20 @@ public class ExceptionRange<N extends FastGraphVertex> {
 	private final List<N> nodes;
 	private final Set<Type> types;
 	private N handler;
-	private int hashcode;
 	
 	public ExceptionRange(TryCatchBlockNode node) {
 		this.node = node;
 		nodes = new ArrayList<>();
 		types = new HashSet<>();
-
-		hashCode();
 	}
 	
 	public TryCatchBlockNode getNode() {
 		return node;
 	}
-	
+
 	public void setHandler(N b) {
+	
 		handler = b;
-		invalidate();
 	}
 	
 	public N getHandler() {
@@ -51,32 +43,26 @@ public class ExceptionRange<N extends FastGraphVertex> {
 	
 	public void addVertex(N b) {
 		nodes.add(b);
-		invalidate();
 	}
 	
 	public void addVertexAfter(N b, N s) {
 		nodes.add(nodes.indexOf(b), s);
-		invalidate();
 	}
 	
 	public void addVertexBefore(N b, N s) {
 		nodes.add(nodes.indexOf(b), s);
-		invalidate();
 	}
 	
 	public void addVertices(Collection<N> col) {
 		nodes.addAll(col);
-		invalidate();
 	}
 	
 	public void addVertices(N pos, Collection<N> col) {
 		nodes.addAll(nodes.indexOf(pos), col);
-		invalidate();
 	}
 	
 	public void removeVertex(N b) {
 		nodes.remove(b);
-		invalidate();
 	}
 	
 	public Set<Type> getTypes() {
@@ -85,18 +71,15 @@ public class ExceptionRange<N extends FastGraphVertex> {
 	
 	public void addType(Type b) {
 		types.add(b);
-		invalidate();
 	}
 	
 	public void removeType(Type b) {
 		types.remove(b);
-		invalidate();
 	}
 	
 	public void setTypes(Set<Type> types) {
 		this.types.clear();
 		this.types.addAll(types);
-		invalidate();
 	}
 
 	public void clearNodes() {
@@ -107,13 +90,8 @@ public class ExceptionRange<N extends FastGraphVertex> {
 		nodes.clear();
 		types.clear();
 		handler = null;
-		invalidate();
 	}
-	
-	private void invalidate() {
-		hashcode = 0;
-	}
-	
+
 	public boolean isCircular() {
 		return nodes.contains(handler);
 	}
@@ -140,25 +118,19 @@ public class ExceptionRange<N extends FastGraphVertex> {
 	
 	@Override
 	public boolean equals(Object o) {
-		if(o == this) {
-			return true;
-		} else if(o instanceof ExceptionRange) {
-			ExceptionRange<?> other = (ExceptionRange<?>) o;
-			return other.hashCode() == hashCode();
-		} else {
-			return false;
-		}
-	}
-	
-	@Override
-	public int hashCode() {
-		if(hashcode == 0) {
-			hashcode = toString().hashCode();
-		}
-		
-		return hashcode;
+		if (this == o) return true;
+		if (o == null || getClass() != o.getClass()) return false;
+		ExceptionRange<?> that = (ExceptionRange<?>) o;
+		return Objects.equals(getNodes(), that.getNodes()) &&
+				Objects.equals(getTypes(), that.getTypes()) &&
+				Objects.equals(getHandler(), that.getHandler());
 	}
 
+	@Override
+	public int hashCode() {
+		return Objects.hash(getNodes(), getTypes(), getHandler());
+	}
+	
 	// FIXME: can't rely on numeric for random graphs
 	public static <N extends FastGraphVertex> String rangetoString(List<N> set) {
 		if(set.size() == 0) {
