@@ -95,7 +95,7 @@ public class NaturalisationPass1 extends ControlFlowGraphBuilder.BuilderPass {
 				r.removeVertex(dst);
 			}
 			
-			// System.out.printf("Merged %s into %s.%n", dst.getId(), src.getId());
+			System.out.printf("Merged %s into %s.%n", dst.getDisplayName(), src.getDisplayName());
 		}
 		
 		// we need to update the assigns map if we change the cfg.

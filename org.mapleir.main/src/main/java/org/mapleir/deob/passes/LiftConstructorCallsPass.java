@@ -15,6 +15,7 @@ import org.mapleir.ir.code.Stmt;
 import org.mapleir.ir.code.expr.VarExpr;
 import org.mapleir.ir.code.expr.invoke.InvocationExpr;
 import org.mapleir.ir.locals.Local;
+import org.mapleir.ir.utils.CFGUtils;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.LabelNode;
 import org.objectweb.asm.tree.MethodNode;
@@ -68,7 +69,7 @@ public class LiftConstructorCallsPass implements Opcode, IPass {
 									
 									return true;
 								} else {
-									System.err.printf(" warn(nolift) for %s in %n%s%n", invoke, ControlFlowGraph.printBlock(b));
+									System.err.printf(" warn(nolift) for %s in %n%s%n", invoke, CFGUtils.printBlock(b));
 									System.err.printf("  preds: %s%n", predsEdges);
 								}
 							} else {
@@ -87,7 +88,7 @@ public class LiftConstructorCallsPass implements Opcode, IPass {
 		BasicBlock newBlock = new BasicBlock(cfg, cfg.vertices().size() + 1, new LabelNode());
 		cfg.addVertex(newBlock);
 		
-		System.out.println(ControlFlowGraph.printBlock(b));
+		System.out.println(CFGUtils.printBlock(b));
 		System.out.println("  to " + at);
 		int index = b.indexOf(at) + 1;
 		int size = b.size();
