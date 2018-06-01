@@ -143,9 +143,11 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		}
 		
 		builder.graph.naturalise(order);
+		List<BasicBlock> dfsPreorder = SimpleDfs.preorder(builder.graph, builder.head);
+		assert(dfsPreorder.size() == order.size());
 		
 		int po = 0;
-		for(BasicBlock b : SimpleDfs.preorder(builder.graph, builder.graph.getEntries().iterator().next())) {
+		for(BasicBlock b : dfsPreorder) {
 			insertion.put(b, 0);
 			process.put(b, 0);
 			preorder.put(b, po++);
@@ -153,6 +155,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 	}
 
 	private BasicBlock splitBlock(BasicBlock b, int to) {
+		System.out.println("Splitting block " + b.getDisplayName() + " upto " + to);
 		BasicBlock newBlock = CFGUtils.splitBlock(builder.graph, graphSize++, b, to, true);
 
 		// update assigns
@@ -296,9 +299,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		}
 		
 		Set<BasicBlock> vis = new HashSet<>();
-		for(BasicBlock e : builder.graph.getEntries()) {
-			search(e, vis);
-		}
+		search(builder.head, vis);
 		
 		updatePhiArgTypes(vis);
 	}
@@ -1365,7 +1366,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		pool = builder.graph.getLocals();
 		
 		graphSize = builder.graph.size() + 1;
-		builder.head = builder.graph.connectHead();
+		builder.head = CFGUtils.connectFakeHead(builder.graph);
 
 		order.addAll(builder.graph.vertices());
 		order.remove(builder.head);
@@ -1392,6 +1393,6 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 			} while(i > 0);
 		}
 		
-		builder.graph.disconnectHead(builder.head);
+		CFGUtils.disconnectFakeHead(builder.graph, builder.head);
 	}
 }

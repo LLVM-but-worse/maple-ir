@@ -54,15 +54,13 @@ public class ControlFlowGraphBuilder {
 				new NaturalisationPass1(this),
 				// new NaturalisationPass2(this),
 				new SSAGenPass(this),
-				// new OptimisationPass(this),
-				// new DeadRangesPass(this)
 		};
 	}
 	
 	public ControlFlowGraph buildImpl() {
 		for(BuilderPass p : resolvePasses()) {
 			p.run();
-			// CFGUtils.easyDumpCFG(graph, "post-" + p.getClass().getSimpleName());
+			CFGUtils.easyDumpCFG(graph, "post-" + p.getClass().getSimpleName());
 		}
 		return graph;
 	}

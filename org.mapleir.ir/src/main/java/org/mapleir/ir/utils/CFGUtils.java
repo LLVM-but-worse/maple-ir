@@ -11,17 +11,11 @@ import org.mapleir.ir.code.stmt.SwitchStmt;
 import org.mapleir.ir.code.stmt.ThrowStmt;
 import org.mapleir.ir.code.stmt.UnconditionalJumpStmt;
 import org.mapleir.ir.code.stmt.copy.CopyVarStmt;
-import org.mapleir.ir.utils.dot.ControlFlowGraphDecorator;
-import org.mapleir.stdlib.collections.graph.dot.BasicDotConfiguration;
-import org.mapleir.stdlib.collections.graph.dot.DotConfiguration;
-import org.mapleir.stdlib.collections.graph.dot.DotWriter;
+import org.mapleir.stdlib.collections.graph.GraphUtils;
 import org.mapleir.stdlib.util.TabbedStringWriter;
 import org.objectweb.asm.tree.LabelNode;
 
 import java.util.*;
-
-import static org.mapleir.ir.utils.dot.ControlFlowGraphDecorator.OPT_EDGES;
-import static org.mapleir.ir.utils.dot.ControlFlowGraphDecorator.OPT_STMTS;
 
 public class CFGUtils {
 	/**
@@ -285,5 +279,39 @@ public class CFGUtils {
 		sw.untab();
 		
 		sw.print("\n");
+	}
+	
+	private static class FakeHeadBlock extends BasicBlock {
+		public FakeHeadBlock(ControlFlowGraph cfg) {
+			super(cfg, GraphUtils.FAKEHEAD_ID, null);
+		}
+
+		@Override
+		public String getDisplayName() {
+			return "fakehead";
+		}
+	}
+
+	public static BasicBlock connectFakeHead(ControlFlowGraph cfg) {
+		BasicBlock head = new FakeHeadBlock(cfg);
+		cfg.addVertex(head);
+
+		for (BasicBlock b : cfg.vertices()) {
+			if (cfg.getReverseEdges(b).size() == 0 && b != head) {
+				FlowEdge<BasicBlock> e = null;
+				if (cfg.getEntries().contains(b)) {
+					e = new ImmediateEdge<>(head, b);
+				} else {
+					e = new DummyEdge<>(head, b);
+				}
+				cfg.addEdge(head, e);
+			}
+		}
+
+		return head;
+	}
+
+	public static void disconnectFakeHead(ControlFlowGraph cfg, BasicBlock head) {
+		cfg.removeVertex(head);
 	}
 }
