@@ -153,7 +153,6 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 	}
 
 	private BasicBlock splitBlock(BasicBlock b, int to) {
-		System.out.println("Splitting block " + b.getDisplayName() + " upto " + to);
 		BasicBlock newBlock = CFGUtils.splitBlock(builder.graph, graphSize++, b, to, true);
 
 		// update assigns
