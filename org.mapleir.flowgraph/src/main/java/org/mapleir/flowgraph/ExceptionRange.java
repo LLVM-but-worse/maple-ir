@@ -7,21 +7,19 @@ import org.mapleir.stdlib.util.StringHelper;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.TryCatchBlockNode;
 
+/**
+ * THIS IS NOT IMMUTABLE 
+ * @param <N>
+ */
 public class ExceptionRange<N extends FastGraphVertex> {
 
-	private final TryCatchBlockNode node;
 	private final List<N> nodes;
 	private final Set<Type> types;
 	private N handler;
 	
-	public ExceptionRange(TryCatchBlockNode node) {
-		this.node = node;
+	public ExceptionRange() {
 		nodes = new ArrayList<>();
 		types = new HashSet<>();
-	}
-	
-	public TryCatchBlockNode getNode() {
-		return node;
 	}
 
 	public void setHandler(N b) {
@@ -115,22 +113,7 @@ public class ExceptionRange<N extends FastGraphVertex> {
 	public String toString() {
 		return String.format("handler=%s, types=%s, range=%s", handler, types, rangetoString(nodes));
 	}
-	
-	@Override
-	public boolean equals(Object o) {
-		if (this == o) return true;
-		if (o == null || getClass() != o.getClass()) return false;
-		ExceptionRange<?> that = (ExceptionRange<?>) o;
-		return Objects.equals(getNodes(), that.getNodes()) &&
-				Objects.equals(getTypes(), that.getTypes()) &&
-				Objects.equals(getHandler(), that.getHandler());
-	}
 
-	@Override
-	public int hashCode() {
-		return Objects.hash(getNodes(), getTypes(), getHandler());
-	}
-	
 	// FIXME: can't rely on numeric for random graphs
 	public static <N extends FastGraphVertex> String rangetoString(List<N> set) {
 		if(set.size() == 0) {
