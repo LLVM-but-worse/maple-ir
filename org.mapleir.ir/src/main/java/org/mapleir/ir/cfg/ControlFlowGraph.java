@@ -145,7 +145,6 @@ public class ControlFlowGraph extends FastBlockGraph {
 	}
 	
 	public void naturalise(List<BasicBlock> order) {
-		System.out.println("naturalizing!!!");
 		// copy edge sets
 		Map<BasicBlock, Set<FlowEdge<BasicBlock>>> edges = new HashMap<>();
 		for(BasicBlock b : order) {
