@@ -51,7 +51,7 @@ public class Boot {
 		
 		// Load input jar
 		//  File f = locateRevFile(135);
-		File f = new File("res/broken4.jar");
+		File f = new File("res/jda-1.0.0.jar");
 		
 		section("Preparing to run on " + f.getAbsolutePath());
 		SingleJarDownloader<ClassNode> dl = new SingleJarDownloader<>(new JarInfo(f));
