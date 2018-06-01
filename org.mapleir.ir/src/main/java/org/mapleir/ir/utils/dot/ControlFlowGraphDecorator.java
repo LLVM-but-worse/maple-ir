@@ -52,9 +52,13 @@ public class ControlFlowGraphDecorator implements DotPropertyDecorator<ControlFl
 			sb.append("\\l");
 			StringBuilder sb2 = new StringBuilder();
 			outputBlock(n, sb2);
-			sb.append(sb2.toString().replace("\n", "\\l"));
+			sb.append(escapeStmt(sb2.toString()));
 		}
 		nprops.put("label", sb.toString());
+	}
+	
+	private static String escapeStmt(String s) {
+		return s.replace("\n", "\\l").replace("\"", "\\\"\\");
 	}
 	
 	private void outputBlock(BasicBlock n, StringBuilder sb2) {
