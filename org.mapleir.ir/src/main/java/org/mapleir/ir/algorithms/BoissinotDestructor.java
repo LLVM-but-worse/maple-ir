@@ -18,6 +18,7 @@ import org.mapleir.ir.code.stmt.copy.CopyVarStmt;
 import org.mapleir.ir.locals.Local;
 import org.mapleir.ir.locals.LocalsPool;
 import org.mapleir.ir.locals.impl.VersionedLocal;
+import org.mapleir.ir.utils.CFGUtils;
 import org.mapleir.stdlib.collections.bitset.GenericBitSet;
 import org.mapleir.stdlib.collections.graph.GraphUtils;
 import org.mapleir.stdlib.collections.graph.algorithms.SimpleDfs;
@@ -73,7 +74,7 @@ public class BoissinotDestructor {
 		liftPhiOperands();
 
 		BasicBlock previousHead = cfg.getEntries().iterator().next();
-		dummyHead = cfg.connectHead();
+		dummyHead = CFGUtils.connectFakeHead(cfg);
 		correctGraphEntry(dummyHead);
 
 		// compute the dominance here after we have connected the dummy head and lifted non variable phi operands.
@@ -96,7 +97,7 @@ public class BoissinotDestructor {
 
 		sequentialize();
 
-		cfg.disconnectHead(dummyHead);
+		CFGUtils.disconnectFakeHead(cfg, dummyHead);
 		correctGraphEntry(previousHead);
 	}
 
