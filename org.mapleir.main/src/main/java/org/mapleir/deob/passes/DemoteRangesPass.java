@@ -16,6 +16,7 @@ import org.mapleir.ir.TypeUtils;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.Stmt;
+import org.mapleir.ir.utils.CFGUtils;
 import org.mapleir.stdlib.collections.graph.GraphUtils;
 import org.mapleir.stdlib.collections.graph.algorithms.TarjanSCC;
 import org.objectweb.asm.Type;
@@ -87,7 +88,7 @@ public class DemoteRangesPass implements IPass {
 					if(comp.size() > 1) {
 						System.out.println("promote: " + GraphUtils.toNodeArray(comp));
 						for(BasicBlock e : comp) {
-							System.out.println(ControlFlowGraph.printBlock(e));
+							System.out.println(CFGUtils.printBlock(e));
 						}
 						System.out.println(" canThrow: " + canThrow);
 						System.out.println(" catching: " + er.getTypes());

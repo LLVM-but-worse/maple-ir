@@ -31,7 +31,7 @@ import org.mapleir.ir.code.stmt.copy.AbstractCopyStmt;
 import org.mapleir.ir.code.stmt.copy.CopyVarStmt;
 import org.mapleir.ir.locals.LocalsPool;
 import org.mapleir.ir.locals.impl.VersionedLocal;
-import org.objectweb.asm.Opcodes;
+import org.mapleir.ir.utils.CFGUtils;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.MethodNode;
 
@@ -465,8 +465,8 @@ public class ConstantParameterPass implements IPass, Opcode {
 				AbstractCopyStmt copy = pool.defs.get(local);
 				
 				if(copy.getBlock() != entry) {
-					System.err.printf("entry:%n%s%n", ControlFlowGraph.printBlock(entry));
-					System.err.printf("block:%n%s%n", ControlFlowGraph.printBlock(copy.getBlock()));
+					System.err.printf("entry:%n%s%n", CFGUtils.printBlock(entry));
+					System.err.printf("block:%n%s%n", CFGUtils.printBlock(copy.getBlock()));
 					throw new IllegalStateException(String.format("See debug trace (entry vs block) in %s", n));
 				}
 				

@@ -2,9 +2,7 @@ package org.mapleir.ir.cfg;
 
 import static org.mapleir.ir.code.Opcode.PHI_STORE;
 
-import java.util.Collection;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -25,6 +23,7 @@ import org.mapleir.ir.code.expr.VarExpr;
 import org.mapleir.ir.code.stmt.copy.CopyPhiStmt;
 import org.mapleir.ir.locals.LocalsPool;
 import org.mapleir.ir.locals.impl.VersionedLocal;
+import org.mapleir.ir.utils.CFGUtils;
 import org.mapleir.ir.utils.dot.ControlFlowGraphDecorator;
 import org.mapleir.stdlib.collections.graph.FastGraph;
 import org.mapleir.stdlib.collections.graph.GraphUtils;
@@ -127,73 +126,9 @@ public class ControlFlowGraph extends FastBlockGraph {
 		int insn = 0;
 		
 		for(BasicBlock b : vertices()) {
-			blockToString(sw, this, b, insn);
+			CFGUtils.blockToString(sw, this, b, insn);
 		}
 		return sw.toString();
-	}
-	
-	public static String printBlocks(Collection<BasicBlock> bbs) {
-		TabbedStringWriter sw = new TabbedStringWriter();
-		int insn = 1;
-		for(BasicBlock bb : bbs) {
-			blockToString(sw, bb.getGraph(), bb, insn);
-			insn += bb.size();
-		}
-		return sw.toString();
-	}
-	
-	public static String printBlock(BasicBlock b) {
-		TabbedStringWriter sw = new TabbedStringWriter();
-		blockToString(sw, b.getGraph(), b, 1);
-		return sw.toString();
-	}
-	
-	public static void blockToString(TabbedStringWriter sw, ControlFlowGraph cfg, BasicBlock b, int insn) {
-		// sw.print("===#Block " + b.getId() + "(size=" + (b.size()) + ")===");
-		sw.print(String.format("===#Block %s(size=%d, ident=%s, flags=%s)===", b.getDisplayName(), b.size(),
-				/*(b.getLabelNode() != null && b.getLabel() != null ? b.getLabel().hashCode() : "null")*/ "x", Integer.toBinaryString(b.getFlags())));
-		sw.tab();
-		
-		Iterator<Stmt> it = b.iterator();
-		if(!it.hasNext()) {
-			sw.untab();
-		} else {
-			sw.print("\n");
-		}
-		while(it.hasNext()) {
-			Stmt stmt = it.next();
-//			sw.print(stmt.getId() + ". ");
-			sw.print(insn++ + ". ");
-			stmt.toString(sw);
-			
-			if(!it.hasNext()) {
-				sw.untab();
-			} else {
-				sw.print("\n");
-			}
-		}
-
-		sw.tab();
-		sw.tab();
-		
-		if(cfg.containsVertex(b)) {
-			for(FlowEdge<BasicBlock> e : cfg.getEdges(b)) {
-//				if(e.getType() != FlowEdges.TRYCATCH) {
-					sw.print("\n-> " + e.toString());
-//				}
-			}
-
-			for(FlowEdge<BasicBlock> p : cfg.getReverseEdges(b)) {
-//				if(p.getType() != FlowEdges.TRYCATCH) {
-					sw.print("\n<- " + p.toString());
-//				}
-			}
-		}
-
-		sw.untab();
-		sw.untab();
-		
-		sw.print("\n");
 	}
 
 	public LocalsPool getLocals() {
@@ -210,6 +145,7 @@ public class ControlFlowGraph extends FastBlockGraph {
 	}
 	
 	public void naturalise(List<BasicBlock> order) {
+		System.out.println("naturalizing!!!");
 		// copy edge sets
 		Map<BasicBlock, Set<FlowEdge<BasicBlock>>> edges = new HashMap<>();
 		for(BasicBlock b : order) {

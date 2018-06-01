@@ -21,7 +21,10 @@ import org.objectweb.asm.Label;
 import org.objectweb.asm.tree.LabelNode;
 
 public class BasicBlock implements FastGraphVertex, Comparable<BasicBlock>, List<Stmt> {
-	
+
+	/**
+	 * Specifies that this block should not be merged in later passes.
+	 */
 	public static final int FLAG_NO_MERGE = 0x1;
 	
 	private int id;

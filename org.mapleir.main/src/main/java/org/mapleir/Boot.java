@@ -51,7 +51,7 @@ public class Boot {
 		
 		// Load input jar
 		//  File f = locateRevFile(135);
-		File f = new File("res/jda-1.0.0.jar");
+		File f = new File("res/broken4.jar");
 		
 		section("Preparing to run on " + f.getAbsolutePath());
 		SingleJarDownloader<ClassNode> dl = new SingleJarDownloader<>(new JarInfo(f));
@@ -89,13 +89,10 @@ public class Boot {
 		run(cxt, masterGroup);
 		
 		for (ClassNode cn : cxt.getApplication().iterate()) {
-			// if (!cn.name.equals("org/jetbrains/java/decompiler/modules/decompiler/DomHelper"))
-			if (!cn.name.equals("com/google/common/util/concurrent/Monitor"))
+			if (!cn.name.equals("Test"))
 				continue;
 			for (MethodNode m : cn.methods) {
 				if (!m.name.equals("enterWhenUninterruptibly"))
-					continue;
-				if (!m.desc.equals("(Lcom/google/common/util/concurrent/Monitor$Guard;JLjava/util/concurrent/TimeUnit;)Z"))
 					continue;
 				cxt.getIRCache().getFor(m);
 			}
