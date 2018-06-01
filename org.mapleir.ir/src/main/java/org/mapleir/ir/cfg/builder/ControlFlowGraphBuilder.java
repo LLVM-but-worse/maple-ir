@@ -51,6 +51,7 @@ public class ControlFlowGraphBuilder {
 	protected BuilderPass[] resolvePasses() {
 		return new BuilderPass[] {
 				new GenerationPass(this),
+				new DeadBlocksPass(this),
 				new NaturalisationPass1(this),
 				// new NaturalisationPass2(this),
 				new SSAGenPass(this),
@@ -60,21 +61,21 @@ public class ControlFlowGraphBuilder {
 	public ControlFlowGraph buildImpl() {
 		for(BuilderPass p : resolvePasses()) {
 			p.run();
-			CFGUtils.easyDumpCFG(graph, "post-" + p.getClass().getSimpleName());
+			// CFGUtils.easyDumpCFG(graph, "post-" + p.getClass().getSimpleName());
 		}
 		return graph;
 	}
 	
 	public static ControlFlowGraph build(MethodNode method) {
 		ControlFlowGraphBuilder builder = new ControlFlowGraphBuilder(method);
-		try {
+		// try {
 			return builder.buildImpl();
-		} catch (RuntimeException e) {
-			LOGGER.error(String.format("Error processing %s", builder.method));
-			LOGGER.error(String.format("Current state of cfg (%d blocks):\n%s",
-					builder.count, builder.graph));
-			LOGGER.error("Failed with error", e);
-			throw e;
-		}
+		// } catch (RuntimeException e) {
+		// 	LOGGER.error(String.format("Error processing %s", builder.method));
+		// 	LOGGER.error(String.format("Current state of cfg (%d blocks):\n%s",
+		// 			builder.count, builder.graph));
+		// 	LOGGER.error("Failed with error", e);
+		// 	throw e;
+		// }
 	}
 }
