@@ -23,7 +23,10 @@ import org.mapleir.ir.code.Stmt;
 import org.mapleir.ir.code.expr.*;
 import org.mapleir.ir.code.expr.ArithmeticExpr.Operator;
 import org.mapleir.ir.code.expr.ComparisonExpr.ValueComparisonType;
+import org.mapleir.ir.code.expr.invoke.DynamicInvocationExpr;
 import org.mapleir.ir.code.expr.invoke.InvocationExpr;
+import org.mapleir.ir.code.expr.invoke.StaticInvocationExpr;
+import org.mapleir.ir.code.expr.invoke.VirtualInvocationExpr;
 import org.mapleir.ir.code.stmt.*;
 import org.mapleir.ir.code.stmt.ConditionalJumpStmt.ComparisonType;
 import org.mapleir.ir.code.stmt.MonitorStmt.MonitorMode;
@@ -1172,7 +1175,19 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		for (int i = args.length - 1; i >= 0; i--) {
 			args[i] = pop();
 		}
-		InvocationExpr callExpr = new InvocationExpr(InvocationExpr.CallType.resolveCallType(op), args, owner, name, desc);
+		InvocationExpr callExpr;
+		switch(op) {
+			case Opcodes.INVOKEVIRTUAL:
+			case Opcodes.INVOKEINTERFACE:
+			case Opcodes.INVOKESPECIAL:
+				callExpr = new VirtualInvocationExpr(VirtualInvocationExpr.resolveCallType(op), args, owner, name, desc);
+				break;
+			case Opcodes.INVOKESTATIC:
+				callExpr = new StaticInvocationExpr(args, owner, name, desc);
+				break;
+			default:
+				throw new IllegalArgumentException("invalid call opcode " + op);
+		}
 		if(callExpr.getType() == Type.VOID_TYPE) {
 			addStmt(new PopStmt(callExpr));
 		} else {

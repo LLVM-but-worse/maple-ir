@@ -1,7 +1,5 @@
 package org.mapleir.ir.code.expr.invoke;
 
-import java.util.Set;
-
 import org.mapleir.app.service.InvocationResolver;
 import org.mapleir.ir.TypeUtils;
 import org.mapleir.ir.cfg.ControlFlowGraph;
@@ -15,44 +13,12 @@ import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.MethodNode;
 
-public class InvocationExpr extends Invocation {
+import java.util.Set;
+
+public abstract class InvocationExpr extends Invocation {
 
 	public enum CallType {
 		STATIC, SPECIAL, VIRTUAL, INTERFACE, DYNAMIC;
-
-		public static CallType resolveCallType(int asmOpcode) {
-			switch (asmOpcode) {
-				case Opcodes.INVOKEVIRTUAL:
-					return CallType.VIRTUAL;
-				case Opcodes.INVOKESPECIAL:
-					return CallType.SPECIAL;
-				case Opcodes.INVOKESTATIC:
-					return CallType.STATIC;
-				case Opcodes.INVOKEINTERFACE:
-					return CallType.INTERFACE;
-				case Opcodes.INVOKEDYNAMIC:
-					return DYNAMIC;
-				default:
-					throw new IllegalArgumentException(String.valueOf(asmOpcode));
-			}
-		}
-		
-		public static int resolveASMOpcode(CallType t) {
-			switch (t) {
-				case STATIC:
-					return Opcodes.INVOKESTATIC;
-				case SPECIAL:
-					return Opcodes.INVOKESPECIAL;
-				case VIRTUAL:
-					return Opcodes.INVOKEVIRTUAL;
-				case INTERFACE:
-					return Opcodes.INVOKEINTERFACE;
-				case DYNAMIC:
-					return Opcodes.INVOKEDYNAMIC;
-				default:
-					throw new IllegalArgumentException(t.toString());
-			}
-		}
 	}
 	
 	private CallType callType;
@@ -62,7 +28,7 @@ public class InvocationExpr extends Invocation {
 	private String desc;
 
 	public InvocationExpr(CallType callType, Expr[] args, String owner, String name, String desc) {
-		super(INVOKE);
+		super(callType == CallType.DYNAMIC ? DYNAMIC_INVOKE : INVOKE); // temporary hack
 		
 		this.callType = callType;
 		this.args = args;
@@ -75,7 +41,7 @@ public class InvocationExpr extends Invocation {
 		}
 	}
 
-	public CallType getCallType() {
+	public final CallType getCallType() {
 		return callType;
 	}
 
@@ -84,7 +50,7 @@ public class InvocationExpr extends Invocation {
 	}
 
 	@Override
-	public String getOwner() {
+	public final String getOwner() {
 		return owner;
 	}
 
@@ -93,7 +59,7 @@ public class InvocationExpr extends Invocation {
 	}
 
 	@Override
-	public String getName() {
+	public final String getName() {
 		return name;
 	}
 
@@ -102,7 +68,7 @@ public class InvocationExpr extends Invocation {
 	}
 
 	@Override
-	public String getDesc() {
+	public final String getDesc() {
 		return desc;
 	}
 
@@ -110,15 +76,21 @@ public class InvocationExpr extends Invocation {
 		this.desc = desc;
 	}
 
-	@Override
-	public Expr copy() {
+	protected Expr[] copyArgs() {
 		Expr[] arguments = new Expr[args.length];
 		for (int i = 0; i < arguments.length; i++) {
 			arguments[i] = args[i].copy();
 		}
-		return new InvocationExpr(callType, arguments, owner, name, desc);
+		return arguments;
 	}
 
+	/**
+	 * The implementer MUST call copyArgs when passing args!!!
+	 * @return a copy of this invocationExpr
+	 */
+	@Override
+	abstract public InvocationExpr copy();
+	
 	@Override
 	public Type getType() {
 		return Type.getReturnType(desc);
@@ -142,8 +114,7 @@ public class InvocationExpr extends Invocation {
 
 	@Override
 	public void toString(TabbedStringWriter printer) {
-		boolean requiresInstance = callType != CallType.STATIC;
-		if (requiresInstance) {
+		if (!isStatic()) {
 			int memberAccessPriority = Precedence.MEMBER_ACCESS.ordinal();
 			Expr instanceExpression = args[0];
 			int instancePriority = instanceExpression.getPrecedence();
@@ -160,7 +131,7 @@ public class InvocationExpr extends Invocation {
 		printer.print('.');
 		printer.print(name);
 		printer.print('(');
-		for (int i = requiresInstance ? 1 : 0; i < args.length; i++) {
+		for (int i = isStatic() ? 0 : 1; i < args.length; i++) {
 			args[i].toString(printer);
 			if ((i + 1) < args.length) {
 				printer.print(", ");
@@ -168,11 +139,13 @@ public class InvocationExpr extends Invocation {
 		}
 		printer.print(')');
 	}
+	
+	protected abstract void generateCallCode(MethodVisitor visitor); 
 
 	@Override
 	public void toCode(MethodVisitor visitor, ControlFlowGraph cfg) {
 		Type[] argTypes = Type.getArgumentTypes(desc);
-		if (callType != CallType.STATIC && callType != CallType.DYNAMIC) {
+		if (!isStatic()) {
 			Type[] bck = argTypes;
 			argTypes = new Type[bck.length + 1];
 			System.arraycopy(bck, 0, argTypes, 1, bck.length);
@@ -188,8 +161,8 @@ public class InvocationExpr extends Invocation {
 				}
 			}
 		}
-		if (callType != CallType.DYNAMIC)
-			visitor.visitMethodInsn(CallType.resolveASMOpcode(callType), owner, name, desc, callType == CallType.INTERFACE);
+		
+		generateCallCode(visitor);
 	}
 
 	@Override
@@ -218,11 +191,6 @@ public class InvocationExpr extends Invocation {
 	}
 
 	@Override
-	public boolean isStatic() {
-		return callType == CallType.STATIC;
-	}
-
-	@Override
 	public Expr getPhysicalReceiver() {
 		if(isStatic()) {
 			return null;
@@ -233,7 +201,7 @@ public class InvocationExpr extends Invocation {
 
 	@Override
 	public Expr[] getParameterExprs() {
-		int i = (callType == CallType.STATIC) ? 0 : 1;
+		int i = isStatic() ? 0 : 1;
 		Expr[] exprs = new Expr[args.length - i];
 		System.arraycopy(args, i, exprs, 0, exprs.length);
 		return exprs;
