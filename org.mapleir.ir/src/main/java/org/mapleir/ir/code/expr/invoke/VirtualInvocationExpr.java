@@ -30,6 +30,32 @@ public class VirtualInvocationExpr extends InvocationExpr {
 	public boolean isInterfaceCall() {
 		return getCallType() == CallType.INTERFACE;
 	}
+
+	private static int resolveASMOpcode(CallType t) {
+		switch (t) {
+		case SPECIAL:
+			return Opcodes.INVOKESPECIAL;
+		case VIRTUAL:
+			return Opcodes.INVOKEVIRTUAL;
+		case INTERFACE:
+			return Opcodes.INVOKEINTERFACE;
+		default:
+			throw new IllegalArgumentException(t.toString());
+		}
+	}
+
+	public static CallType resolveCallType(int asmOpcode) {
+		switch (asmOpcode) {
+		case Opcodes.INVOKEVIRTUAL:
+			return CallType.VIRTUAL;
+		case Opcodes.INVOKESPECIAL:
+			return CallType.SPECIAL;
+		case Opcodes.INVOKEINTERFACE:
+			return CallType.INTERFACE;
+		default:
+			throw new IllegalArgumentException(String.valueOf(asmOpcode));
+		}
+	}
 	
 	@Override
 	public boolean isStatic() {
@@ -40,31 +66,12 @@ public class VirtualInvocationExpr extends InvocationExpr {
 	public boolean isDynamic() {
 		return false;
 	}
-
-	private static int resolveASMOpcode(CallType t) {
-		switch (t) {
-			case SPECIAL:
-				return Opcodes.INVOKESPECIAL;
-			case VIRTUAL:
-				return Opcodes.INVOKEVIRTUAL;
-			case INTERFACE:
-				return Opcodes.INVOKEINTERFACE;
-			default:
-				throw new IllegalArgumentException(t.toString());
-		}
-	}
 	
-	public static CallType resolveCallType(int asmOpcode) {
-		switch (asmOpcode) {
-			case Opcodes.INVOKEVIRTUAL:
-				return CallType.VIRTUAL;
-			case Opcodes.INVOKESPECIAL:
-				return CallType.SPECIAL;
-			case Opcodes.INVOKEINTERFACE:
-				return CallType.INTERFACE;
-			default:
-				throw new IllegalArgumentException(String.valueOf(asmOpcode));
-		}
+	@Override
+	public Expr[] getPrintedArgs() {
+		Expr[] result = new Expr[getArgumentExprs().length - 1];
+		System.arraycopy(getArgumentExprs(), 1, result, 0, getArgumentExprs().length - 1);
+		return result;
 	}
 	
 	@Override

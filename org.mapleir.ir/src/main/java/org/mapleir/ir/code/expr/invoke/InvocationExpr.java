@@ -124,14 +124,17 @@ public abstract class InvocationExpr extends Invocation {
 		printer.print('.');
 		printer.print(name);
 		printer.print('(');
-		for (int i = isStatic() ? 0 : 1; i < args.length; i++) {
-			args[i].toString(printer);
-			if ((i + 1) < args.length) {
+		Expr[] printedArgs = getPrintedArgs();
+		for (int i = 0; i < printedArgs.length; i++) {
+			printedArgs[i].toString(printer);
+			if ((i + 1) < printedArgs.length) {
 				printer.print(", ");
 			}
 		}
 		printer.print(')');
 	}
+	
+	public abstract Expr[] getPrintedArgs();
 	
 	protected abstract void generateCallCode(MethodVisitor visitor); 
 
@@ -201,7 +204,7 @@ public abstract class InvocationExpr extends Invocation {
 	}
 
 	@Override
-	public Expr[] getArgumentExprs() {
+	public final Expr[] getArgumentExprs() {
 		return args;
 	}
 

@@ -36,6 +36,13 @@ public class StaticInvocationExpr extends InvocationExpr {
 	}
 	
 	@Override
+	public Expr[] getPrintedArgs() {
+		Expr[] result = new Expr[getArgumentExprs().length];
+		System.arraycopy(getArgumentExprs(), 0, result, 0, getArgumentExprs().length);
+		return result;
+	}
+	
+	@Override
 	public Set<MethodNode> resolveTargets(InvocationResolver res) {
 		return resolveStaticCall(res, getOwner(), getName(), getDesc());
 	}
