@@ -493,6 +493,8 @@ public class ConstantParameterPass implements IPass, Opcode {
 			parent.overwrite(init2, parent.indexOf(init));
 		} else if(call.getOpcode() == Opcode.INVOKE) {
 			InvocationExpr invoke = (InvocationExpr) call;
+			if (invoke.isDynamic())
+				throw new UnsupportedOperationException(call.toString());
 
 			CodeUnit parent = invoke.getParent();
 			

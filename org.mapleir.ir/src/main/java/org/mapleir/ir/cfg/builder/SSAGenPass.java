@@ -607,7 +607,6 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 	private boolean shouldCoalesce(int opcode) {
 		switch (opcode) {
 			case Opcode.INVOKE:
-			case Opcode.DYNAMIC_INVOKE:
 			case Opcode.INIT_OBJ:
 			case Opcode.ALLOC_OBJ:
 			case Opcode.NEW_ARRAY:

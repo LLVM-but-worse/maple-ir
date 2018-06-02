@@ -24,6 +24,8 @@ public abstract class Invocation extends Expr {
 
 	public abstract boolean isStatic();
 	
+	public abstract boolean isDynamic();
+	
 	public abstract Expr getPhysicalReceiver();
 	
 	public abstract Expr[] getArgumentExprs();

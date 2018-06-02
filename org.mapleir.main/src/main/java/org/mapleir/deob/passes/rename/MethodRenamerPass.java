@@ -171,6 +171,8 @@ public class MethodRenamerPass implements IPass {
 							
 							if(e.getOpcode() == Opcode.INVOKE) {
 								InvocationExpr invoke = (InvocationExpr) e;
+								if (invoke.isDynamic())
+									throw new UnsupportedOperationException();
 								
 								if(visited.contains(invoke)) {
 									throw new RuntimeException(invoke.toString());
@@ -248,8 +250,6 @@ public class MethodRenamerPass implements IPass {
 										}
 									}
 								}
-							} else if(e.getOpcode() == Opcode.DYNAMIC_INVOKE) {
-								throw new UnsupportedOperationException();
 							}
 						}
 					}
