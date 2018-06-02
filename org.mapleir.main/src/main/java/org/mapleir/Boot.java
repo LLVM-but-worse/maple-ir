@@ -89,11 +89,11 @@ public class Boot {
 		run(cxt, masterGroup);
 		
 		for (ClassNode cn : cxt.getApplication().iterate()) {
-			if (!cn.name.equals("Test"))
-				continue;
+			// if (!cn.name.equals("Test"))
+			// 	continue;
 			for (MethodNode m : cn.methods) {
-				if (!m.name.equals("enter"))
-					continue;
+				// if (!m.name.equals("func"))
+				// 	continue;
 				cxt.getIRCache().getFor(m);
 			}
 		}
