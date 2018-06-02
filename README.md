@@ -18,12 +18,16 @@ Maple-IR in its current form is not yet production-ready, although it can be mad
 
 *"It's like LLVM, but worse."*
 
-## Technical details
-SSA destruction is implemented using the methods of [Sreedhar et al.](https://pdfs.semanticscholar.org/b4e0/f3301cffb358e836ee2964a0316e1b263974.pdf) and [Boissinot et al.](https://hal.inria.fr/inria-00349925/file/RR.pdf). The [Boissinot destructor](./org.mapleir.ir/src/main/java/org/mapleir/ir/algorithms/BoissinotDestructor.java) is currently the default destructor.
-SSA construction is implemented based on a fast 1-pass linear scan algorithm loosely based on Cytron et al.'s method using dominance frontiers. For more details see [SSAGenPass.java](./org.mapleir.ir/src/main/java/org/mapleir/ir/cfg/builder/SSAGenPass.java).
-Bytecode destruction is tricky in Java due to exception ranges. Furthermore, linearizing the control flow graph (CFG) in a simple manner is difficult due to loop nesting. Linearization is handled by recursively applying Tarjan's superconnected components algorithm. Exception tables for each method are discarded and regenerated based on the control flow graph's structure. For more details, see [ControlFlowGraphDumper](./org.mapleir.ir/src/main/java/org/mapleir/ir/algorithms/ControlFlowGraphDumper.java).
+## Features
+- Java bytecode (prefix stack-based) to SSA IR (infix AST)
+- SSA IR to bytecode reassembly
+- Visual (graphviz) and text pretty printer
+- Text input to IR parsing; human-editable IR (*planned*)
 
-For more details, see the [whitepaper](./docs/maple-ir.pdf).
+## Philosophy
+ - Enter IR and stay in IR, abstract away ASM/JVM-specific details
+ - Transform the IR then reassemble deobfuscated code
+ - Aim for semantic correctness
 
 ## Screenshots and examples
 Here is the Graphviz visualization for the optimized, destructed (post-SSA) IR for the following code:
@@ -64,9 +68,18 @@ Here is a [nastier function](https://github.com/JetBrains/intellij-community/blo
 
 ![Fernflower example](https://images2.imgbox.com/43/fe/C2zHlgyi_o.png)
 
+
+## Technical details
+SSA destruction is implemented using the methods of [Sreedhar et al.](https://pdfs.semanticscholar.org/b4e0/f3301cffb358e836ee2964a0316e1b263974.pdf) and [Boissinot et al.](https://hal.inria.fr/inria-00349925/file/RR.pdf). The [Boissinot destructor](./org.mapleir.ir/src/main/java/org/mapleir/ir/algorithms/BoissinotDestructor.java) is currently the default destructor.
+SSA construction is implemented based on a fast 1-pass linear scan algorithm loosely based on Cytron et al.'s method using dominance frontiers. For more details see [SSAGenPass.java](./org.mapleir.ir/src/main/java/org/mapleir/ir/cfg/builder/SSAGenPass.java).
+Bytecode destruction is tricky in Java due to exception ranges. Furthermore, linearizing the control flow graph (CFG) in a simple manner is difficult due to loop nesting. Linearization is handled by recursively applying Tarjan's superconnected components algorithm. Exception tables for each method are discarded and regenerated based on the control flow graph's structure. For more details, see [ControlFlowGraphDumper](./org.mapleir.ir/src/main/java/org/mapleir/ir/algorithms/ControlFlowGraphDumper.java).
+
+For more details, see the [whitepaper](./docs/maple-ir.pdf).
+
 ## Caveats
 - Since the project uses a fork of the ObjectWeb ASM framework, it's not compatible with other implementations. This should be addressed before you use Maple-IR as a library.
 - Interprocedural analysis has not been fully implemented (it's difficult).
+- Many of the IR passes weren't designed with `javac` in mind. This means, for example, `finally` blocks are processed correctly, although not neatly.
 
 ## Compiling
 To build:
