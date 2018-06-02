@@ -590,7 +590,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 				
 			case INVOKEDYNAMIC:
 				InvokeDynamicInsnNode dy = (InvokeDynamicInsnNode) ain;
-				_dynamic_call(dy.bsm, dy.bsmArgs, dy.name, dy.desc);
+				_dynamic_call(dy.bsm, dy.bsmArgs, dy.desc, dy.name);
 				break;
 			case INVOKEVIRTUAL:
 			case INVOKESTATIC:
@@ -1139,19 +1139,21 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		push(load_stack(index, type));
 	}
 	
-	protected void _dynamic_call(Handle bsm, Object[] bsmArgs, String lamdaName, String lambdaDesc) {
+	protected void _dynamic_call(Handle bsm, Object[] bsmArgs, String bootstrapDesc, String boundName) {
 		save_stack(false);
-		Handle provider = new Handle(bsm.getTag(), bsm.getOwner(), bsm.getName(), bsm.getDesc());
-		Object[] pArgs = new Object[bsmArgs.length];
-		System.arraycopy(bsmArgs, 0, pArgs, 0, pArgs.length);
-		
 		// these are the additional bound variables passed into the boostrap method (typically metafactory) 
-		Expr[] lambdaArgs = new Expr[Type.getArgumentTypes(lambdaDesc).length];
-		for(int i = lambdaArgs.length - 1; i >= 0; i--) {
-			lambdaArgs[i] = pop();
+		Expr[] boundArgs = new Expr[Type.getArgumentTypes(bootstrapDesc).length];
+		for(int i = boundArgs.length - 1; i >= 0; i--) {
+			boundArgs[i] = pop();
 		}
 		
-		DynamicInvocationExpr expr = new DynamicInvocationExpr(provider, pArgs, lamdaName, lambdaDesc, lambdaArgs);
+		// copy the bsm and bsm args
+		Handle bsmCopy = new Handle(bsm.getTag(), bsm.getOwner(), bsm.getName(), bsm.getDesc());
+		Handle provider = new Handle(bsm.getTag(), bsm.getOwner(), bsm.getName(), bsm.getDesc());
+		Object[] bsmArgsCopy = new Object[bsmArgs.length];
+		System.arraycopy(bsmArgs, 0, bsmArgsCopy, 0, bsmArgsCopy.length);
+		DynamicInvocationExpr expr = new DynamicInvocationExpr(bsmCopy, bsmArgsCopy, bootstrapDesc, boundName, boundArgs);
+		
 		if(expr.getType() == Type.VOID_TYPE) {
 			addStmt(new PopStmt(expr));
 		} else {

@@ -10,6 +10,7 @@ import org.objectweb.asm.tree.MethodNode;
 
 import static org.mapleir.ir.printer.Util.isNonEmpty;
 
+@SuppressWarnings("unused")
 public class ClassPrinter extends ASMPrinter<ClassNode> {
 
     private static final String[] CLASS_ATTR_FLAG_NAMES = Util.asOpcodesAccessFieldFormat(

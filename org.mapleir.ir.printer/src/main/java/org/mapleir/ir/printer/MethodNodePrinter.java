@@ -1,13 +1,5 @@
 package org.mapleir.ir.printer;
 
-import static org.mapleir.ir.printer.Util.isNonEmpty;
-
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-
 import org.mapleir.flowgraph.ExceptionRange;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
@@ -18,21 +10,22 @@ import org.mapleir.ir.code.Stmt;
 import org.mapleir.ir.code.expr.*;
 import org.mapleir.ir.code.expr.invoke.InitialisedObjectExpr;
 import org.mapleir.ir.code.expr.invoke.InvocationExpr;
-import org.mapleir.ir.code.stmt.ArrayStoreStmt;
-import org.mapleir.ir.code.stmt.ConditionalJumpStmt;
-import org.mapleir.ir.code.stmt.FieldStoreStmt;
-import org.mapleir.ir.code.stmt.MonitorStmt;
-import org.mapleir.ir.code.stmt.PopStmt;
-import org.mapleir.ir.code.stmt.ReturnStmt;
-import org.mapleir.ir.code.stmt.SwitchStmt;
-import org.mapleir.ir.code.stmt.ThrowStmt;
-import org.mapleir.ir.code.stmt.UnconditionalJumpStmt;
+import org.mapleir.ir.code.stmt.*;
 import org.mapleir.ir.code.stmt.copy.AbstractCopyStmt;
 import org.mapleir.propertyframework.api.IPropertyDictionary;
 import org.mapleir.stdlib.util.TabbedStringWriter;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.MethodNode;
 
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+
+import static org.mapleir.ir.printer.Util.isNonEmpty;
+
+@SuppressWarnings("unused")
 public abstract class MethodNodePrinter extends ASMPrinter<MethodNode> {
 
     private static final String[] METHOD_ATTR_FLAG_NAMES = Util
@@ -278,14 +271,28 @@ public abstract class MethodNodePrinter extends ASMPrinter<MethodNode> {
                 break;
             }
             case Opcode.DYNAMIC_INVOKE: {
-                // System.err.println(e);
-                // throw new UnsupportedOperationException("dynamic invocation");
-                
-                // temporary hack until I feel like implementing this. better than crashing.
-                this.sw.print("<dynamic invocation ");
                 DynamicInvocationExpr die = (DynamicInvocationExpr) e;
-                this.sw.print(e.toString());
-                this.sw.print(">");
+                this.sw.print("(");
+                this.sw.print(die.getProvidedFuncType().getClassName());
+                this.sw.print(")");
+                
+                this.sw.print(die.getBootstrapMethod().getOwner());
+                this.sw.print(".");
+                this.sw.print(die.getBootstrapMethod().getOwner());
+                this.sw.print("(");
+				for(int i = 0; i < die.getBootstrapArgs().length; i++) {
+					Object o = die.getBootstrapArgs()[i];
+					this.sw.print(o.toString());
+					if(i != (die.getBootstrapArgs().length -1)) {
+						this.sw.print(", ");
+					}
+				}
+				Expr[] args = die.getBoundArgs();
+				for (Expr arg : args) {
+					this.sw.print(", ");
+					this.emitExpr(arg);
+				}
+                this.sw.print(")");
                 break;
             }
             case Opcode.INVOKE: {
