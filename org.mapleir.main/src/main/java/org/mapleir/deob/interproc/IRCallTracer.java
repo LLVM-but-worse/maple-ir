@@ -50,8 +50,8 @@ public class IRCallTracer extends CallTracer {
 				processedInvocation(m, vtarg, invoke);
 			}
 		} else {
-			LOGGER.error(String.format("can't resolve call to %s.%s %s%s", invoke.getOwner(),
-					invoke.getName(), invoke.getDesc(), invoke.isStatic() ? "(static)" : ""));
+			LOGGER.error(String.format("can't resolve call to %s.%s %s%s%s", invoke.getOwner(),
+					invoke.getName(), invoke.getDesc(), invoke.isStatic() ? "(static)" : "", invoke.isDynamic() ? "(dynamic)" : ""));
 			LOGGER.error(String.format("   call from %s", m));
 		}
 	}

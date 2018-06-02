@@ -151,6 +151,11 @@ public class InitialisedObjectExpr extends Invocation {
 	}
 
 	@Override
+	public boolean isDynamic() {
+		return false;
+	}
+
+	@Override
 	public Expr getPhysicalReceiver() {
 		return null;
 	}

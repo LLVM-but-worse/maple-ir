@@ -85,9 +85,8 @@ public interface Opcode {
 	int CONST_LOAD     = 0x204;
 	
 	int INVOKE         = 0x301;
-	int DYNAMIC_INVOKE = 0x302;
-	int POP            = 0x303;
-	int RETURN         = 0x304;
+	int POP            = 0x302;
+	int RETURN         = 0x303;
 	
 	int ARITHMETIC     = 0x401;
 	int NEGATE         = 0x402;

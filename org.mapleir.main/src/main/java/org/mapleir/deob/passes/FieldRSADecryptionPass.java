@@ -357,7 +357,6 @@ public class FieldRSADecryptionPass implements IPass, Opcode {
 		
 		switch(op) {
 			case INVOKE:
-			case DYNAMIC_INVOKE:
 			case ARRAY_LOAD:
 			case ARRAY_STORE:
 			case ALLOC_OBJ:

@@ -1,8 +1,14 @@
 package org.mapleir.ir.code.expr.invoke;
 
+import org.mapleir.app.service.InvocationResolver;
 import org.mapleir.ir.code.Expr;
+import org.mapleir.stdlib.collections.CollectionUtils;
+import org.mapleir.stdlib.collections.map.SetCreator;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.tree.MethodNode;
+
+import java.util.Set;
 
 public class VirtualInvocationExpr extends InvocationExpr {
 	public VirtualInvocationExpr(CallType callType, Expr[] args, String owner, String name, String desc) {
@@ -29,7 +35,12 @@ public class VirtualInvocationExpr extends InvocationExpr {
 	public boolean isStatic() {
 		return false;
 	}
-	
+
+	@Override
+	public boolean isDynamic() {
+		return false;
+	}
+
 	private static int resolveASMOpcode(CallType t) {
 		switch (t) {
 			case SPECIAL:
@@ -54,5 +65,23 @@ public class VirtualInvocationExpr extends InvocationExpr {
 			default:
 				throw new IllegalArgumentException(String.valueOf(asmOpcode));
 		}
+	}
+	
+	@Override
+	public Set<MethodNode> resolveTargets(InvocationResolver res) {
+		if(getName().equals("<init>")) {
+			assert (getCallType() == InvocationExpr.CallType.SPECIAL);
+			return resolveSpecialInvocation(res, getOwner(), getDesc());
+		} else {
+			return resolveVirtualInvocation(res, getOwner(), getName(), getDesc());
+		}
+	}
+	
+	public static Set<MethodNode> resolveSpecialInvocation(InvocationResolver res, String owner, String desc) {
+		return CollectionUtils.asCollection(SetCreator.getInstance(), res.resolveVirtualInitCall(owner, desc));
+	}
+	
+	public static Set<MethodNode> resolveVirtualInvocation(InvocationResolver res, String owner, String name, String desc) {
+		return res.resolveVirtualCalls(owner, name, desc, true);
 	}
 }

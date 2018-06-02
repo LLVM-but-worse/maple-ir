@@ -1,24 +1,17 @@
 package org.mapleir.ir.code.expr.invoke;
 
-import org.mapleir.app.service.InvocationResolver;
 import org.mapleir.ir.TypeUtils;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.CodeUnit;
 import org.mapleir.ir.code.Expr;
-import org.mapleir.stdlib.collections.CollectionUtils;
-import org.mapleir.stdlib.collections.map.SetCreator;
 import org.mapleir.stdlib.util.TabbedStringWriter;
 import org.objectweb.asm.MethodVisitor;
-import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
-import org.objectweb.asm.tree.MethodNode;
-
-import java.util.Set;
 
 public abstract class InvocationExpr extends Invocation {
 
 	public enum CallType {
-		STATIC, SPECIAL, VIRTUAL, INTERFACE, DYNAMIC;
+		STATIC, SPECIAL, VIRTUAL, INTERFACE, DYNAMIC
 	}
 	
 	private CallType callType;
@@ -28,7 +21,7 @@ public abstract class InvocationExpr extends Invocation {
 	private String desc;
 
 	public InvocationExpr(CallType callType, Expr[] args, String owner, String name, String desc) {
-		super(callType == CallType.DYNAMIC ? DYNAMIC_INVOKE : INVOKE); // temporary hack
+		super(INVOKE);
 		
 		this.callType = callType;
 		this.args = args;
@@ -212,20 +205,20 @@ public abstract class InvocationExpr extends Invocation {
 		return args;
 	}
 
-	@Override
-	public Set<MethodNode> resolveTargets(InvocationResolver res) {		
-		String owner = getOwner();
-		String name = getName();
-		String desc = getDesc();
-		
-		if(isStatic()) {
-			return CollectionUtils.asCollection(SetCreator.getInstance(), res.resolveStaticCall(owner, name, desc));
-		} else {
-			if(name.equals("<init>")) {
-				return CollectionUtils.asCollection(SetCreator.getInstance(), res.resolveVirtualInitCall(owner, desc));
-			} else {
-				return res.resolveVirtualCalls(owner, name, desc, true);
-			}
-		}
-	}
+	// @Override
+	// public Set<MethodNode> resolveTargets(InvocationResolver res) {		
+	// 	String owner = getOwner();
+	// 	String name = getName();
+	// 	String desc = getDesc();
+	//
+	// 	if(isStatic()) {
+	// 		return CollectionUtils.asCollection(SetCreator.getInstance(), res.resolveStaticCall(owner, name, desc));
+	// 	} else {
+	// 		if(name.equals("<init>")) {
+	// 			return CollectionUtils.asCollection(SetCreator.getInstance(), res.resolveVirtualInitCall(owner, desc));
+	// 		} else {
+	// 			return res.resolveVirtualCalls(owner, name, desc, true);
+	// 		}
+	// 	}
+	// }
 }

@@ -8,7 +8,7 @@ public class ConstraintUtil implements Opcode {
 	public static boolean isInvoke(/*Expr e*/ int opcode) {
 		// int opcode = e.getOpcode();
 		/* INIT_OBJ contains a folded constructor call. */
-		return opcode == INVOKE || opcode == DYNAMIC_INVOKE || opcode == INIT_OBJ;
+		return opcode == INVOKE || opcode == INIT_OBJ;
 	}
 
 	public static boolean isUncopyable(Expr e) {
@@ -24,7 +24,6 @@ public class ConstraintUtil implements Opcode {
 	private static boolean isUncopyable0(int opcode) {
 		switch (opcode) {
 			case INVOKE:
-			case DYNAMIC_INVOKE:
 			case INIT_OBJ:
 			case ALLOC_OBJ:
 			case NEW_ARRAY:

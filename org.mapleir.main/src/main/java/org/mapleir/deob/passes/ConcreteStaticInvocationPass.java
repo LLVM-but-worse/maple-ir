@@ -37,7 +37,7 @@ public class ConcreteStaticInvocationPass implements IPass {
 							if(e.getOpcode() == Opcode.INVOKE) {
 								InvocationExpr invoke = (InvocationExpr) e;
 								
-								if(invoke.isStatic()) {
+								if(invoke.getCallType() == InvocationExpr.CallType.STATIC) {
 									MethodNode invoked = resolver.resolveStaticCall(invoke.getOwner(), invoke.getName(), invoke.getDesc());
 									
 									if(invoked != null) {
