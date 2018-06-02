@@ -497,7 +497,7 @@ public class ConstantParameterPass implements IPass, Opcode {
 			CodeUnit parent = invoke.getParent();
 			
 			Expr[] newArgs = buildArgs(invoke.getArgumentExprs(), invoke.getCallType() != InvocationExpr.CallType.STATIC, dead);
-			InvocationExpr invoke2 = new InvocationExpr(invoke.getCallType(), newArgs, invoke.getOwner(), invoke.getName(), newDesc);
+			InvocationExpr invoke2 = invoke.copy();
 			
 			parent.overwrite(invoke2, parent.indexOf(invoke));
 		} else {
