@@ -1139,19 +1139,19 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		push(load_stack(index, type));
 	}
 	
-	protected void _dynamic_call(Handle _bsm, Object[] _args, String name, String desc) {
+	protected void _dynamic_call(Handle bsm, Object[] bsmArgs, String lamdaName, String lambdaDesc) {
 		save_stack(false);
-		Handle provider = new Handle(_bsm.getTag(), _bsm.getOwner(), _bsm.getName(), _bsm.getDesc());
-		Object[] pArgs = new Object[_args.length];
-		System.arraycopy(_args, 0, pArgs, 0, pArgs.length);
+		Handle provider = new Handle(bsm.getTag(), bsm.getOwner(), bsm.getName(), bsm.getDesc());
+		Object[] pArgs = new Object[bsmArgs.length];
+		System.arraycopy(bsmArgs, 0, pArgs, 0, pArgs.length);
 		
-		// FIXME: can this end up as a virtual call
-		Expr[] args = new Expr[Type.getArgumentTypes(desc).length];
-		for(int i = args.length - 1; i >= 0; i--) {
-			args[i] = pop();
+		// these are the additional bound variables passed into the boostrap method (typically metafactory) 
+		Expr[] lambdaArgs = new Expr[Type.getArgumentTypes(lambdaDesc).length];
+		for(int i = lambdaArgs.length - 1; i >= 0; i--) {
+			lambdaArgs[i] = pop();
 		}
 		
-		DynamicInvocationExpr expr = new DynamicInvocationExpr(provider, pArgs, name, desc, args);
+		DynamicInvocationExpr expr = new DynamicInvocationExpr(provider, pArgs, lamdaName, lambdaDesc, lambdaArgs);
 		if(expr.getType() == Type.VOID_TYPE) {
 			addStmt(new PopStmt(expr));
 		} else {
