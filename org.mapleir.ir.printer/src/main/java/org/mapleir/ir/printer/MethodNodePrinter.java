@@ -271,31 +271,6 @@ public abstract class MethodNodePrinter extends ASMPrinter<MethodNode> {
                 this.sw.print(']');
                 break;
             }
-            // case Opcode.DYNAMIC_INVOKE: {
-            //     DynamicInvocationExpr die = (DynamicInvocationExpr) e;
-            //     this.sw.print("(");
-            //     this.sw.print(die.getProvidedFuncType().getClassName());
-            //     this.sw.print(")");
-            //    
-            //     this.sw.print(die.getBootstrapMethod().getOwner());
-            //     this.sw.print(".");
-            //     this.sw.print(die.getBootstrapMethod().getOwner());
-            //     this.sw.print("(");
-				// for(int i = 0; i < die.getBootstrapArgs().length; i++) {
-				// 	Object o = die.getBootstrapArgs()[i];
-				// 	this.sw.print(o.toString());
-				// 	if(i != (die.getBootstrapArgs().length -1)) {
-				// 		this.sw.print(", ");
-				// 	}
-				// }
-				// Expr[] args = die.getArgs();
-				// for (Expr arg : args) {
-				// 	this.sw.print(", ");
-				// 	this.emitExpr(arg);
-				// }
-            //     this.sw.print(")");
-            //     break;
-            // }
             case Opcode.INVOKE: {
                 InvocationExpr ie = (InvocationExpr) e;
 
@@ -312,6 +287,11 @@ public abstract class MethodNodePrinter extends ASMPrinter<MethodNode> {
                     if (instancePriority > memberAccessPriority) {
                         this.sw.print(')');
                     }
+                }
+                if (ie.isDynamic()) {
+                    this.sw.print("dynamic_invoke<");
+                    this.sw.print(((DynamicInvocationExpr) ie).getProvidedFuncType().getClassName());
+                    this.sw.print(">");
                 }
 
                 this.sw.print('.').print(ie.getName()).print('(');

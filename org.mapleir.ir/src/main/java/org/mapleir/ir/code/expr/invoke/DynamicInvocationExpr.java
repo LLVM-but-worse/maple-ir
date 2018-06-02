@@ -3,6 +3,7 @@ package org.mapleir.ir.code.expr.invoke;
 import org.mapleir.app.service.InvocationResolver;
 import org.mapleir.ir.code.CodeUnit;
 import org.mapleir.ir.code.Expr;
+import org.mapleir.ir.code.expr.ConstantExpr;
 import org.mapleir.stdlib.util.TabbedStringWriter;
 import org.objectweb.asm.Handle;
 import org.objectweb.asm.MethodVisitor;
@@ -71,7 +72,7 @@ public class DynamicInvocationExpr extends InvocationExpr {
 	 * The value of the bound args.
 	 * Ex: {lvar0, 0}
 	 */
-	public Expr[] getArgs() {
+	public Expr[] getBoundArgs() {
 		return getArgumentExprs();
 	}
 	
@@ -109,6 +110,15 @@ public class DynamicInvocationExpr extends InvocationExpr {
 		printer.print(">(");
 		super.toString(printer);
 		printer.print(")");
+	}
+	
+	@Override
+	public Expr[] getPrintedArgs() {
+		Expr[] result = new Expr[bootstrapArgs.length + getArgumentExprs().length];
+		for (int i = 0; i < bootstrapArgs.length; i++)
+			result[i] = new ConstantExpr(bootstrapArgs[i]); // this is such a hack!
+		System.arraycopy(getArgumentExprs(), 0, result, bootstrapArgs.length, getArgumentExprs().length);
+		return result;
 	}
 
 	@Override
