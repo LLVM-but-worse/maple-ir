@@ -27,21 +27,22 @@ public class DynamicInvocationExpr extends Expr {
 
 	private Handle provider;
 	private Object[] providerArgs;
-	private String name;
-	private String desc;
-	private Expr[] args;
+	private String lambdaName;
+	private String lambdaDesc;
+	private Expr[] lambdaArgs;
 	
-	public DynamicInvocationExpr(Handle provider, Object[] providerArgs, String name, String desc, Expr[] args) {
+	public DynamicInvocationExpr(Handle provider, Object[] providerArgs, String lambdaName, String lambdaDesc, Expr[] lambdaArgs) {
 		super(DYNAMIC_INVOKE);
 		
 		this.provider = provider;
 		this.providerArgs = providerArgs;
-		this.name = name;
-		this.desc = desc;
-		this.args = args;
+		this.lambdaName = lambdaName;
+		this.lambdaDesc = lambdaDesc;
+		this.lambdaArgs = lambdaArgs;
+		assert(Type.getArgumentTypes(lambdaDesc).length == lambdaArgs.length); // I hope this tells me when this fucks up, because this is not a matter of if, but when.
 		
-		for(int i=0; i < args.length; i++) {
-			overwrite(args[i], i);
+		for(int i=0; i < lambdaArgs.length; i++) {
+			overwrite(lambdaArgs[i], i);
 		}
 	}
 
@@ -53,24 +54,24 @@ public class DynamicInvocationExpr extends Expr {
 		return providerArgs;
 	}
 
-	public String getName() {
-		return name;
+	public String getLambdaName() {
+		return lambdaName;
 	}
 
-	public String getDesc() {
-		return desc;
+	public String getLambdaDesc() {
+		return lambdaDesc;
 	}
 	
 	public Expr[] getArgumentExpressions() {
-		return args;
+		return lambdaArgs;
 	}
 
 	public void updateArgument(int index, Expr arg) {
-		if (index < 0 || (index) >= args.length) {
+		if (index < 0 || (index) >= lambdaArgs.length) {
 			throw new ArrayIndexOutOfBoundsException();
 		}
 		
-		args[index] = arg;
+		lambdaArgs[index] = arg;
 		overwrite(arg, index);
 	}
 
@@ -80,13 +81,13 @@ public class DynamicInvocationExpr extends Expr {
 //			throw new ArrayIndexOutOfBoundsException();
 //		}
 
-		if (_args.length < args.length) {
+		if (_args.length < lambdaArgs.length) {
 			setChildPointer(0);
 			while (read(0) != null) {
 				deleteAt(getChildPointer());
 			}
 		}
-		args = _args;
+		lambdaArgs = _args;
 		for (int i = 0; i < _args.length; i++) {
 			overwrite(_args[i], i);
 		}
@@ -99,18 +100,18 @@ public class DynamicInvocationExpr extends Expr {
 
 	@Override
 	public Expr copy() {
-		Expr[] arguments = new Expr[args.length];
+		Expr[] arguments = new Expr[lambdaArgs.length];
 		for (int i = 0; i < arguments.length; i++) {
-			arguments[i] = args[i].copy();
+			arguments[i] = lambdaArgs[i].copy();
 		}
 		Object[] pargs = new Object[providerArgs.length];
 		System.arraycopy(providerArgs, 0, pargs, 0, pargs.length);
-		return new DynamicInvocationExpr(new Handle(provider.getTag(), provider.getOwner(), provider.getName(), provider.getDesc()), pargs, name, desc, arguments);
+		return new DynamicInvocationExpr(new Handle(provider.getTag(), provider.getOwner(), provider.getName(), provider.getDesc()), pargs, lambdaName, lambdaDesc, arguments);
 	}
 
 	@Override
 	public Type getType() {
-		return Type.getMethodType(desc).getReturnType();
+		return Type.getMethodType(lambdaDesc).getReturnType();
 	}
 
 	@Override
@@ -118,25 +119,20 @@ public class DynamicInvocationExpr extends Expr {
 		printer.print(provider.getOwner() + "." + provider.getName() + "<");
 		for(int i=0; i < providerArgs.length; i++) {
 			Object o = providerArgs[i];
-			// System.out.println(o + " " + o.getClass());
 			printer.print(o.toString());
 			if(i != (providerArgs.length -1)) {
 				printer.print(", ");
 			}
 		}
-		printer.print(">.<dynamic_call>(");
-		if(args.length > 0) {
-			printer.tab();
-			printer.print("\n");
-			for(int i=0; i < args.length; i++) {
-				Object o = args[i];
+		if(lambdaArgs.length > 0) {
+			printer.print(", ");
+			for(int i = 0; i < lambdaArgs.length; i++) {
+				Object o = lambdaArgs[i];
 				printer.print(o.toString());
-				if(i != (args.length -1)) {
+				if(i != (lambdaArgs.length -1)) {
 					printer.print(", ");
 				}
 			}
-			printer.untab();
-			printer.print("\n");
 		}
 		printer.print(")");
 	}
@@ -146,19 +142,18 @@ public class DynamicInvocationExpr extends Expr {
 		// I'm not sure if this is correct. Perhaps only for metafactories.
 		assert(providerArgs.length == 3);
 		assert(providerArgs[providerArgs.length - 2] instanceof Handle);
-		Type[] argTypes = Type.getArgumentTypes(((Handle) providerArgs[providerArgs.length - 2]).getDesc());
-		assert(argTypes.length >= args.length); // I hope this tells me when this fucks up, because this is not a matter of if, but when.
+		Type[] argTypes = Type.getArgumentTypes(lambdaDesc);
 		
-		for (int i = 0; i < args.length; i++) {
-			args[i].toCode(visitor, cfg);
-			if (TypeUtils.isPrimitive(args[i].getType())) {
-				int[] cast = TypeUtils.getPrimitiveCastOpcodes(args[i].getType(), argTypes[i]);
+		for (int i = 0; i < lambdaArgs.length; i++) {
+			lambdaArgs[i].toCode(visitor, cfg);
+			if (TypeUtils.isPrimitive(lambdaArgs[i].getType())) {
+				int[] cast = TypeUtils.getPrimitiveCastOpcodes(lambdaArgs[i].getType(), argTypes[i]);
 				for (int a = 0; a < cast.length; a++) {
 					visitor.visitInsn(cast[a]);
 				}
 			}
 		}
-		visitor.visitInvokeDynamicInsn(name, desc, provider, providerArgs);
+		visitor.visitInvokeDynamicInsn(lambdaName, lambdaDesc, provider, providerArgs);
 	}
 	
 	@Override
@@ -175,14 +170,14 @@ public class DynamicInvocationExpr extends Expr {
 	public boolean equivalent(CodeUnit s) {
 		if(s.getOpcode() == DYNAMIC_INVOKE) {
 			DynamicInvocationExpr o = (DynamicInvocationExpr) s;
-			if(!name.equals(o.name) || !provider.equals(o.provider) || !desc.equals(o.desc)) {
+			if(!lambdaName.equals(o.lambdaName) || !provider.equals(o.provider) || !lambdaDesc.equals(o.lambdaDesc)) {
 				return false;
 			}
-			if(args.length != o.args.length) {
+			if(lambdaArgs.length != o.lambdaArgs.length) {
 				return false;
 			}
-			for(int i=0; i < args.length; i++) {
-				if(!args[i].equivalent(o.args[i])) {
+			for(int i = 0; i < lambdaArgs.length; i++) {
+				if(!lambdaArgs[i].equivalent(o.lambdaArgs[i])) {
 					return false;
 				}
 			}
