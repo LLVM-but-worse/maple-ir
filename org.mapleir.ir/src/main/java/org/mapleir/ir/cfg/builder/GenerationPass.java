@@ -1152,7 +1152,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		Handle provider = new Handle(bsm.getTag(), bsm.getOwner(), bsm.getName(), bsm.getDesc());
 		Object[] bsmArgsCopy = new Object[bsmArgs.length];
 		System.arraycopy(bsmArgs, 0, bsmArgsCopy, 0, bsmArgsCopy.length);
-		DynamicInvocationExpr expr = new DynamicInvocationExpr(bsmCopy, bsmArgsCopy, bootstrapDesc, boundName, boundArgs);
+		DynamicInvocationExpr expr = new DynamicInvocationExpr(bsmCopy, bsmArgsCopy, bootstrapDesc, boundArgs, boundName);
 		
 		if(expr.getType() == Type.VOID_TYPE) {
 			addStmt(new PopStmt(expr));

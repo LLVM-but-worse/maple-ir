@@ -287,7 +287,7 @@ public abstract class MethodNodePrinter extends ASMPrinter<MethodNode> {
 						this.sw.print(", ");
 					}
 				}
-				Expr[] args = die.getBoundArgs();
+				Expr[] args = die.getArgs();
 				for (Expr arg : args) {
 					this.sw.print(", ");
 					this.emitExpr(arg);

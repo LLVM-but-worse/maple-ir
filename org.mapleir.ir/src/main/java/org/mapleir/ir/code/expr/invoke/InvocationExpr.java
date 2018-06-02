@@ -18,7 +18,7 @@ import org.objectweb.asm.tree.MethodNode;
 public class InvocationExpr extends Invocation {
 
 	public enum CallType {
-		STATIC, SPECIAL, VIRTUAL, INTERFACE, DYANMIC;
+		STATIC, SPECIAL, VIRTUAL, INTERFACE, DYNAMIC;
 
 		public static CallType resolveCallType(int asmOpcode) {
 			switch (asmOpcode) {
@@ -31,7 +31,7 @@ public class InvocationExpr extends Invocation {
 				case Opcodes.INVOKEINTERFACE:
 					return CallType.INTERFACE;
 				case Opcodes.INVOKEDYNAMIC:
-					return DYANMIC;
+					return DYNAMIC;
 				default:
 					throw new IllegalArgumentException(String.valueOf(asmOpcode));
 			}
@@ -47,7 +47,7 @@ public class InvocationExpr extends Invocation {
 					return Opcodes.INVOKEVIRTUAL;
 				case INTERFACE:
 					return Opcodes.INVOKEINTERFACE;
-				case DYANMIC:
+				case DYNAMIC:
 					return Opcodes.INVOKEDYNAMIC;
 				default:
 					throw new IllegalArgumentException(t.toString());
@@ -172,7 +172,7 @@ public class InvocationExpr extends Invocation {
 	@Override
 	public void toCode(MethodVisitor visitor, ControlFlowGraph cfg) {
 		Type[] argTypes = Type.getArgumentTypes(desc);
-		if (callType != CallType.STATIC) {
+		if (callType != CallType.STATIC && callType != CallType.DYNAMIC) {
 			Type[] bck = argTypes;
 			argTypes = new Type[bck.length + 1];
 			System.arraycopy(bck, 0, argTypes, 1, bck.length);
@@ -188,7 +188,8 @@ public class InvocationExpr extends Invocation {
 				}
 			}
 		}
-		visitor.visitMethodInsn(CallType.resolveASMOpcode(callType), owner, name, desc, callType == CallType.INTERFACE);
+		if (callType != CallType.DYNAMIC)
+			visitor.visitMethodInsn(CallType.resolveASMOpcode(callType), owner, name, desc, callType == CallType.INTERFACE);
 	}
 
 	@Override
