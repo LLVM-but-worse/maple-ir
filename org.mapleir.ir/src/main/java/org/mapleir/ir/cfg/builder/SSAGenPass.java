@@ -1366,7 +1366,6 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		pool = builder.graph.getLocals();
 		
 		graphSize = builder.graph.size() + 1;
-		builder.head = CFGUtils.connectFakeHead(builder.graph);
 
 		order.addAll(builder.graph.vertices());
 		order.remove(builder.head);
@@ -1392,7 +1391,5 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 				i += pruneStatements();
 			} while(i > 0);
 		}
-		
-		CFGUtils.disconnectFakeHead(builder.graph, builder.head);
 	}
 }

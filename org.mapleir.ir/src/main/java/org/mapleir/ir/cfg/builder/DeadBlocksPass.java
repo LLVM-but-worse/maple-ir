@@ -15,11 +15,11 @@ public class DeadBlocksPass extends ControlFlowGraphBuilder.BuilderPass {
 	@Override
 	public void run() {
 		assert(builder.graph.getEntries().size() == 1);
-		Set<BasicBlock> reachable = new HashSet<>(SimpleDfs.preorder(builder.graph, builder.graph.getEntries().iterator().next()));
+		builder.head = builder.graph.getEntries().iterator().next();
+		Set<BasicBlock> reachable = new HashSet<>(SimpleDfs.preorder(builder.graph, builder.head));
 		Set<BasicBlock> unreachable = new HashSet<>(builder.graph.vertices());
 		unreachable.removeAll(reachable);
 		for (BasicBlock b : unreachable) {
-			System.out.println("Deleting " + b);
 			builder.graph.removeVertex(b);
 		}
 	}
