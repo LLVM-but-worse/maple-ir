@@ -6,6 +6,7 @@ import org.mapleir.propertyframework.api.IPropertyDictionary;
 import org.mapleir.stdlib.util.TabbedStringWriter;
 import org.objectweb.asm.tree.FieldNode;
 
+@SuppressWarnings("unused")
 public class FieldNodePrinter extends ASMPrinter<FieldNode> {
 
     private static final String[] FIELD_ATTR_FLAG_NAMES = Util
