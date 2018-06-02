@@ -13,6 +13,7 @@ import org.mapleir.ir.code.Stmt;
 import org.mapleir.ir.code.expr.ArithmeticExpr;
 import org.mapleir.ir.code.expr.ArithmeticExpr.Operator;
 import org.mapleir.ir.code.expr.ConstantExpr;
+import org.mapleir.ir.code.expr.invoke.InvocationExpr;
 import org.mapleir.ir.code.stmt.MonitorStmt;
 import org.mapleir.ir.code.stmt.MonitorStmt.MonitorMode;
 import org.mapleir.ir.code.stmt.ThrowStmt;
@@ -133,9 +134,9 @@ public class DumbExceptionAnalysis implements ExceptionAnalysis, Opcode {
 				}
 				break;
 			}
-			case DYNAMIC_INVOKE:
-				throw new UnsupportedOperationException(u.toString());
 			case INVOKE:
+				if (((InvocationExpr) u).isDynamic())
+					throw new UnsupportedOperationException(u.toString());
 				set.add(ANY);
 				
 				set.add(Type.getType(Error.class));

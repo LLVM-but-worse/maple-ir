@@ -1,11 +1,17 @@
 package org.mapleir.ir.code.expr.invoke;
 
+import org.mapleir.app.service.InvocationResolver;
 import org.mapleir.ir.code.CodeUnit;
 import org.mapleir.ir.code.Expr;
 import org.mapleir.stdlib.util.TabbedStringWriter;
 import org.objectweb.asm.Handle;
 import org.objectweb.asm.MethodVisitor;
+import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
+import org.objectweb.asm.tree.MethodNode;
+
+import java.util.HashSet;
+import java.util.Set;
 
 public class DynamicInvocationExpr extends InvocationExpr {
 
@@ -29,7 +35,6 @@ public class DynamicInvocationExpr extends InvocationExpr {
 	
 	public DynamicInvocationExpr(Handle bootstrapMethod, Object[] bootstrapArgs, String bootstrapDesc, Expr[] args, String boundName) {
 		super(CallType.DYNAMIC, args, bootstrapMethod.getOwner(), bootstrapMethod.getName(), bootstrapDesc);
-		assert(getCallType() == CallType.DYNAMIC);
 		
 		this.bootstrapMethod = bootstrapMethod;
 		this.bootstrapArgs = bootstrapArgs;
@@ -93,6 +98,11 @@ public class DynamicInvocationExpr extends InvocationExpr {
 	}
 
 	@Override
+	public boolean isDynamic() {
+		return true;
+	}
+
+	@Override
 	public void toString(TabbedStringWriter printer) {
 		printer.print("dynamic_invoke<");
 		printer.print(getProvidedFuncType().getClassName());
@@ -122,5 +132,28 @@ public class DynamicInvocationExpr extends InvocationExpr {
 			if (!bootstrapArgs[i].equals(o.bootstrapArgs[i]))
 				return false;
 		return true;
+	}
+	
+	@Override
+	public Set<MethodNode> resolveTargets(InvocationResolver res) {
+		// this is probably like 99% of all the invokedynamics
+		if (bootstrapMethod.getOwner().equals("java/lang/invoke/LambdaMetafactory") 
+				&& bootstrapMethod.getName().equals("metafactory")) {
+			assert (bootstrapArgs.length == 3 && bootstrapArgs[1] instanceof Handle);
+			Handle boundFunc = (Handle) bootstrapArgs[1];
+			switch (boundFunc.getTag()) {
+			case Opcodes.H_INVOKESTATIC:
+				return StaticInvocationExpr.resolveStaticCall(res, boundFunc.getOwner(), boundFunc.getName(), boundFunc.getDesc());
+			case Opcodes.H_INVOKESPECIAL:
+				assert(boundFunc.getName().equals("<init>"));
+				return VirtualInvocationExpr.resolveSpecialInvocation(res, boundFunc.getOwner(), boundFunc.getDesc());
+			case Opcodes.H_INVOKEINTERFACE:
+			case Opcodes.H_INVOKEVIRTUAL:
+				return VirtualInvocationExpr.resolveVirtualInvocation(res, boundFunc.getOwner(), boundFunc.getOwner(), boundFunc.getDesc());
+			default:
+				throw new IllegalArgumentException("Unexpected metafactory bootstrap tag?? " + boundFunc.getTag());
+			}
+		}
+		return new HashSet<>();
 	}
 }

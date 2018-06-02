@@ -249,10 +249,10 @@ public class ClassRenamerPass implements IPass {
 								if(newType != null) {
 									caught.setType(Type.getType(newType));
 								}
-							} else if(e.getOpcode() == Opcode.DYNAMIC_INVOKE) {
-								throw new UnsupportedOperationException();
 							} else if(e.getOpcode() == Opcode.INVOKE) {
 								InvocationExpr invoke = (InvocationExpr) e;
+								if (invoke.isDynamic())
+									throw new UnsupportedOperationException();
 								
 								invoke.setOwner(remapping.getOrDefault(invoke.getOwner(), invoke.getOwner()));
 								invoke.setDesc(resolveMethod(invoke.getDesc(), remapping));
