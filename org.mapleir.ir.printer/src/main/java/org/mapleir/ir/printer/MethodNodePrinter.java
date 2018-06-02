@@ -274,6 +274,12 @@ public abstract class MethodNodePrinter extends ASMPrinter<MethodNode> {
             case Opcode.INVOKE: {
                 InvocationExpr ie = (InvocationExpr) e;
 
+                if (ie.isDynamic()) {
+                    this.sw.print("dynamic_invoke<");
+                    this.sw.print(((DynamicInvocationExpr) ie).getProvidedFuncType().getClassName());
+                    this.sw.print(">(");
+                }
+                
                 if (ie.isStatic()) {
                     this.sw.print(ie.getOwner());
                 } else {
@@ -288,15 +294,10 @@ public abstract class MethodNodePrinter extends ASMPrinter<MethodNode> {
                         this.sw.print(')');
                     }
                 }
-                if (ie.isDynamic()) {
-                    this.sw.print("dynamic_invoke<");
-                    this.sw.print(((DynamicInvocationExpr) ie).getProvidedFuncType().getClassName());
-                    this.sw.print(">");
-                }
 
                 this.sw.print('.').print(ie.getName()).print('(');
 
-                Expr[] args = ie.getParameterExprs();
+                Expr[] args = ie.getPrintedArgs();
                 for (int i = 0; i < args.length; i++) {
                     this.emitExpr(args[i]);
                     if ((i + 1) < args.length) {
@@ -305,6 +306,9 @@ public abstract class MethodNodePrinter extends ASMPrinter<MethodNode> {
                 }
 
                 this.sw.print(')');
+                if (ie.isDynamic()) {
+                    this.sw.print(')');
+                }
                 break;
             }
             case Opcode.ARITHMETIC: {
