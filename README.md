@@ -101,7 +101,6 @@ You can also get Maple-IR on [Jitpack](https://jitpack.io/#LLVM-but-worse/maple-
  - [Bibl](https://github.com/TheBiblMan)
  - [ecx86](https://github.com/ecx86)
  - [ObjectWeb ASM framework](http://asm.ow2.org/index.html) (forked).
- - [Google Gson](https://github.com/google/gson)
 
 Contact: `ecx` or `bibl` [at] `mapleir.org`
 
