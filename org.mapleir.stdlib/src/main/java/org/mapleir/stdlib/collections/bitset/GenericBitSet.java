@@ -1,7 +1,5 @@
 package org.mapleir.stdlib.collections.bitset;
 
-import sun.reflect.generics.reflectiveObjects.NotImplementedException;
-
 import java.util.BitSet;
 import java.util.Collection;
 import java.util.Iterator;
@@ -207,16 +205,16 @@ public class GenericBitSet<N> implements Set<N> {
 
 	@Override
 	public Spliterator<N> spliterator() {
-		throw new NotImplementedException();
+		throw new UnsupportedOperationException();
 	}
 
 	@Override
 	public Object[] toArray() {
-		throw new NotImplementedException();
+		throw new UnsupportedOperationException();
 	}
 
 	@Override
 	public <T> T[] toArray(T[] a) {
-		throw new NotImplementedException();
+		throw new UnsupportedOperationException();
 	}
 }
