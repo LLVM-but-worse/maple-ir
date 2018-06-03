@@ -51,7 +51,7 @@ public class Boot {
 		
 		// Load input jar
 		//  File f = locateRevFile(135);
-		File f = new File("res/broken4.jar");
+		File f = new File("res/jda-1.0.0.jar");
 		
 		section("Preparing to run on " + f.getAbsolutePath());
 		SingleJarDownloader<ClassNode> dl = new SingleJarDownloader<>(new JarInfo(f));
@@ -89,11 +89,11 @@ public class Boot {
 		run(cxt, masterGroup);
 		
 		for (ClassNode cn : cxt.getApplication().iterate()) {
-			if (!cn.name.equals("Test"))
-				continue;
+			// if (!cn.name.equals("Test"))
+			// 	continue;
 			for (MethodNode m : cn.methods) {
-				if (!m.name.equals("func"))
-					continue;
+				// if (!m.name.equals("func"))
+				// 	continue;
 				cxt.getIRCache().getFor(m);
 			}
 		}

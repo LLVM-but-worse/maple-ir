@@ -1,7 +1,7 @@
 package org.mapleir.stdlib.collections.taint;
 
-import javafx.util.Pair;
 import org.mapleir.stdlib.collections.itertools.ProductIterator;
+import org.mapleir.stdlib.util.Pair;
 
 import java.util.Collection;
 import java.util.HashSet;

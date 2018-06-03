@@ -1,8 +1,8 @@
 package org.mapleir.stdlib.collections.itertools;
 
-import java.util.Iterator;
+import org.mapleir.stdlib.util.Pair;
 
-import javafx.util.Pair;
+import java.util.Iterator;
 
 public abstract class ProductIterator<T> implements Iterator<Pair<T, T>> {
 	
