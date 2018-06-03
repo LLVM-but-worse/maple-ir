@@ -25,9 +25,8 @@ import org.mapleir.ir.locals.LocalsPool;
 import org.mapleir.stdlib.collections.map.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.map.SetCreator;
 import org.mapleir.stdlib.collections.taint.TaintableSet;
+import org.mapleir.stdlib.util.Pair;
 import org.objectweb.asm.Type;
-
-import javafx.util.Pair;
 
 public class ExpressionEvaluator {
 	private final EvaluationFactory factory;
