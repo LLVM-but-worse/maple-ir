@@ -31,22 +31,4 @@ public abstract class AbstractFlowEdge<N extends FastGraphVertex> extends FastGr
 	public int hashCode() {
 		return Objects.hash(super.hashCode(), getType());
 	}
-	
-	// what the fuck!
-	@Override
-	public int compareTo(FastGraphEdge<N> o) {
-		if (this.equals(o))
-			return 0;
-		else {
-			int result = Integer.compare(src().getNumericId(), o.src().getNumericId());
-			if (result == 0)
-				result = Integer.compare(dst().getNumericId(), o.dst().getNumericId());
-			if (result == 0) {
-				assert(o instanceof FlowEdge);
-				result = Integer.compare(getType(), ((FlowEdge<N>) o).getType());
-			}
-			assert(result != 0);
-			return result;
-		}
-	}
 }
