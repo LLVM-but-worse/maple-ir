@@ -341,8 +341,10 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		for(FlowEdge<BasicBlock> succE : builder.graph.getEdges(b)) {
 			succs.add(succE);
 		}
-		
-		succs.sort(Comparator.comparing(o -> o.dst()));
+
+		// temporary HACK
+		SimpleDfs<BasicBlock> dfs = new SimpleDfs<>(builder.graph, builder.head, SimpleDfs.TOPO);
+		succs.sort(Comparator.comparing(o -> dfs.getTopoOrder().indexOf(o.dst())));
 		
 		for(FlowEdge<BasicBlock> succE : succs) {
 			BasicBlock succ = succE.dst();

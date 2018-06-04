@@ -20,7 +20,7 @@ import org.mapleir.stdlib.collections.graph.FastGraphVertex;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.tree.LabelNode;
 
-public class BasicBlock implements FastGraphVertex, Comparable<BasicBlock>, List<Stmt> {
+public class BasicBlock implements FastGraphVertex, List<Stmt> {
 
 	/**
 	 * Specifies that this block should not be merged in later passes.
@@ -364,12 +364,6 @@ public class BasicBlock implements FastGraphVertex, Comparable<BasicBlock>, List
 	@Override
 	public String toString() {
 		return String.format("Block #%s", createBlockName(id)/* (%s), label != null ? label.hashCode() : "dummy"*/);
-	}
-
-	@Override
-	public int compareTo(BasicBlock o) {
-		// WTF?????? EQUALS ISN'T IMPLEMENTED
-		return Integer.compare(id, o.id);
 	}
 
 	// TODO: Why does this break stuff????

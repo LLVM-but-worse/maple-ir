@@ -8,6 +8,7 @@ import org.mapleir.app.service.ClassTree.InheritanceEdge;
 import org.mapleir.stdlib.collections.graph.FastDirectedGraph;
 import org.mapleir.stdlib.collections.graph.FastGraphEdge;
 import org.mapleir.stdlib.collections.graph.FastGraphEdgeImpl;
+import org.mapleir.stdlib.collections.graph.GraphUtils;
 import org.mapleir.stdlib.collections.graph.algorithms.SimpleDfs;
 import org.mapleir.stdlib.util.TabbedStringWriter;
 import org.objectweb.asm.tree.ClassNode;
@@ -278,7 +279,7 @@ public class ClassTree extends FastDirectedGraph<ClassNode, InheritanceEdge> {
 	public Set<InheritanceEdge> createSet() {
 		return new TreeSet<>((e1, e2) -> {
 			int result = Boolean.compare(!(e1 instanceof ExtendsEdge), !(e2 instanceof ExtendsEdge));
-			return result == 0 ? e1.compareTo(e2) : result;
+			return result == 0 ? GraphUtils.compareEdgesById(e1, e2) : result;
 		});
 	}
 }

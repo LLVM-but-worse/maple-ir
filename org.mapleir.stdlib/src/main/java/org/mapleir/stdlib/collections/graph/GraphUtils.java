@@ -31,38 +31,24 @@ public class GraphUtils {
 		return sb.toString();
 	}
 
-	@SuppressWarnings("unchecked")
-	public static <N extends FastGraphVertex, EC extends FastGraphEdge<N> & Comparable<FastGraphEdge<N>>> List<? extends FastGraphEdge<N>> weigh(Set<? extends FastGraphEdge<N>> edges) {
-		if (edges == null)
-			return new ArrayList<>();
-		if (edges.isEmpty())
-			return new ArrayList<>();
-		if (edges instanceof SortedSet)
-			return new ArrayList<>(edges);
-		if (Comparable.class.isInstance(edges.iterator().next()))
-			return comparableWeigh((Set<EC>) edges);
-		else
-			return new ArrayList<>(edges);
-	}
-
-	private static <N extends FastGraphVertex, E extends FastGraphEdge<N> & Comparable<FastGraphEdge<N>>> List<E> comparableWeigh(Set<E> edges) {
-		assert(!(edges instanceof SortedSet));
-
-		List<E> lst = new ArrayList<>();
-		if (edges.isEmpty())
-			return lst;
-
-		lst.addAll(edges);
-		Collections.sort(lst);
-
-		return lst;
-	}
-	
 	public static int getEdgeCount(FastGraph<FastGraphVertex, ?> g) {
 		int c = 0;		
 		for(FastGraphVertex v : g.vertices()) {
 			c += g.getEdges(v).size();
 		}
 		return c;
+	}
+
+	@Deprecated
+	public static <N extends FastGraphVertex, E extends FastGraphEdge<N>> int compareEdgesById(E a, E b) {
+		if (a.equals(b))
+			return 0;
+		else {
+			int result = Integer.compare(a.src().getNumericId(), b.src().getNumericId());
+			if (result == 0)
+				result = Integer.compare(a.dst().getNumericId(), b.dst().getNumericId());
+			assert (result != 0);
+			return result;
+		}
 	}
 }

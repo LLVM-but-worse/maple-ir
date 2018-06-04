@@ -14,6 +14,7 @@ import org.mapleir.flowgraph.edges.FlowEdges;
 import org.mapleir.flowgraph.edges.TryCatchEdge;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.locals.Local;
+import org.mapleir.stdlib.collections.graph.algorithms.SimpleDfs;
 
 public class NaturalisationPass1 extends ControlFlowGraphBuilder.BuilderPass {
 
@@ -39,8 +40,8 @@ public class NaturalisationPass1 extends ControlFlowGraphBuilder.BuilderPass {
 		List<MergePair> merges = new ArrayList<>();
 		Map<BasicBlock, BasicBlock> remap = new HashMap<>();
 		Map<BasicBlock, List<ExceptionRange<BasicBlock>>> ranges = new HashMap<>();
-		
-		for(BasicBlock b : builder.graph.vertices()) {
+
+		for(BasicBlock b : SimpleDfs.topoorder(builder.graph, builder.head)) {
 			BasicBlock in = b.getIncomingImmediate();
 			if(in == null) {
 				continue;
