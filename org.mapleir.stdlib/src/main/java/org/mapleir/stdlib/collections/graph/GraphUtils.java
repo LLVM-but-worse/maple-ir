@@ -4,8 +4,6 @@ import java.util.Collection;
 import java.util.Iterator;
 
 public class GraphUtils {
-	public static final int FAKEHEAD_ID = Integer.MAX_VALUE -1;
-
 	public static <N extends FastGraphVertex> String toNodeArray(Collection<N> col) {
 		StringBuilder sb = new StringBuilder();
 		sb.append("[");

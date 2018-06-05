@@ -1,8 +1,5 @@
 package org.mapleir.ir.algorithms;
 
-import java.util.*;
-import java.util.Map.Entry;
-
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.cfg.FastBlockGraph;
@@ -20,13 +17,15 @@ import org.mapleir.ir.locals.LocalsPool;
 import org.mapleir.ir.locals.impl.VersionedLocal;
 import org.mapleir.ir.utils.CFGUtils;
 import org.mapleir.stdlib.collections.bitset.GenericBitSet;
-import org.mapleir.stdlib.collections.graph.GraphUtils;
 import org.mapleir.stdlib.collections.graph.algorithms.SimpleDfs;
 import org.mapleir.stdlib.collections.map.ListCreator;
 import org.mapleir.stdlib.collections.map.NullPermeableHashMap;
 import org.mapleir.stdlib.util.TabbedStringWriter;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Type;
+
+import java.util.*;
+import java.util.Map.Entry;
 
 public class BoissinotDestructor {
 	// private boolean DO_VALUE_INTERFERENCE = true;
@@ -74,8 +73,7 @@ public class BoissinotDestructor {
 		liftPhiOperands();
 
 		BasicBlock previousHead = cfg.getEntries().iterator().next();
-		dummyHead = CFGUtils.connectFakeHead(cfg);
-		correctGraphEntry(dummyHead);
+		dummyHead = CFGUtils.deleteUnreachableBlocks(cfg);
 
 		// compute the dominance here after we have connected the dummy head and lifted non variable phi operands.
 		resolver = new DominanceLivenessAnalyser(cfg, dummyHead, null);
@@ -96,18 +94,6 @@ public class BoissinotDestructor {
 		applyRemapping();
 
 		sequentialize();
-
-		CFGUtils.disconnectFakeHead(cfg, dummyHead);
-		correctGraphEntry(previousHead);
-	}
-
-	private void correctGraphEntry(BasicBlock b) {
-		Set<BasicBlock> entries = cfg.getEntries();
-		if (entries.size() > 1) {
-			throw new IllegalStateException("Broken code graph, entries=" + GraphUtils.toNodeArray(entries));
-		}
-		entries.clear();
-		entries.add(b);
 	}
 
 	private void liftPhiOperands() {
