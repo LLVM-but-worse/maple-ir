@@ -324,25 +324,10 @@ public class ControlFlowGraphDumper {
 	
 	private static class BundleGraph extends FastDirectedGraph<BlockBundle, FastGraphEdge<BlockBundle>> {
 		@Override
-		public boolean excavate(BlockBundle basicBlocks) {
-			throw new UnsupportedOperationException();
-		}
-		
-		@Override
-		public boolean jam(BlockBundle pred, BlockBundle succ, BlockBundle basicBlocks) {
-			throw new UnsupportedOperationException();
-		}
-		
-		@Override
 		public FastGraphEdge<BlockBundle> clone(FastGraphEdge<BlockBundle> edge, BlockBundle oldN, BlockBundle newN) {
 			throw new UnsupportedOperationException();
 		}
-		
-		@Override
-		public FastGraphEdge<BlockBundle> invert(FastGraphEdge<BlockBundle> edge) {
-			throw new UnsupportedOperationException();
-		}
-		
+
 		@Override
 		public FastGraph<BlockBundle, FastGraphEdge<BlockBundle>> copy() {
 			throw new UnsupportedOperationException();

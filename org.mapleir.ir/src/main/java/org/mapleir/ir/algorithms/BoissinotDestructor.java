@@ -2,7 +2,6 @@ package org.mapleir.ir.algorithms;
 
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
-import org.mapleir.ir.cfg.FastBlockGraph;
 import org.mapleir.ir.code.CodeUnit;
 import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.code.Opcode;
@@ -217,7 +216,7 @@ public class BoissinotDestructor {
 	}
 
 	private SimpleDfs<BasicBlock> traverseDominatorTree() {
-		FastBlockGraph dominatorTree = new FastBlockGraph();
+		ControlFlowGraph dominatorTree = new ControlFlowGraph((LocalsPool) null);
 		resolver.domc.makeTree(dominatorTree);
 		dominatorTree.getEntries().add(dummyHead);
 		return new SimpleDfs<>(dominatorTree, dummyHead, SimpleDfs.PRE | SimpleDfs.TOPO);

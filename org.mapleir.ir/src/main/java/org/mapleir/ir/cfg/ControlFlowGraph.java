@@ -1,6 +1,7 @@
 package org.mapleir.ir.cfg;
 
 import org.mapleir.flowgraph.ExceptionRange;
+import org.mapleir.flowgraph.FlowGraph;
 import org.mapleir.flowgraph.edges.FlowEdge;
 import org.mapleir.flowgraph.edges.FlowEdges;
 import org.mapleir.flowgraph.edges.TryCatchEdge;
@@ -28,10 +29,10 @@ import java.util.Set;
 
 import static org.mapleir.ir.code.Opcode.PHI_STORE;
 
-public class ControlFlowGraph extends FastBlockGraph {
+public class ControlFlowGraph extends FlowGraph<BasicBlock, FlowEdge<BasicBlock>> {
 	
 	private final LocalsPool locals;
-	
+
 	public ControlFlowGraph(LocalsPool locals) {
 		this.locals = locals;
 	}
@@ -135,6 +136,22 @@ public class ControlFlowGraph extends FastBlockGraph {
 	@Override
 	public ControlFlowGraph copy() {
 		return new ControlFlowGraph(this);
+	}
+
+	@Override
+	public FlowEdge<BasicBlock> clone(FlowEdge<BasicBlock> edge, BasicBlock old, BasicBlock newN) {
+		BasicBlock src = edge.src();
+		BasicBlock dst = edge.dst();
+
+		// remap edges
+		if(src == old) {
+			src = newN;
+		}
+		if(dst == old) {
+			dst = newN;
+		}
+
+		return edge.clone(src, dst);
 	}
 	
 	public Iterable<Stmt> stmts() {

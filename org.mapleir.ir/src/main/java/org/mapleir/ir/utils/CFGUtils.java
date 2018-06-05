@@ -192,7 +192,7 @@ public class CFGUtils {
 		return false;
 	}
 
-	// this is such a f--king kludge
+	// Ideally, we want to cache this, but this isn't needed very often anyways.
 	@Deprecated
 	public static int getMaxId(ControlFlowGraph cfg) {
 		return cfg.vertices().stream().map(BasicBlock::getNumericId).reduce(Integer::max).orElse(0);

@@ -1,10 +1,13 @@
 package org.mapleir.stdlib.collections.graph;
 
-import java.util.*;
-import java.util.Map.Entry;
-
 import org.mapleir.stdlib.collections.graph.dot.DotConfiguration;
 import org.mapleir.stdlib.collections.graph.dot.DotWriter;
+
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
 
 public interface FastGraph<N extends FastGraphVertex, E extends FastGraphEdge<N>> {
 
@@ -26,19 +29,7 @@ public interface FastGraph<N extends FastGraphVertex, E extends FastGraphEdge<N>
 	
 	int size();
 	
-	default boolean excavate(N n) {
-		throw new UnsupportedOperationException();
-	}
-	
-	default boolean jam(N pred, N succ, N n) {
-		throw new UnsupportedOperationException();
-	}
-	
 	default E clone(E edge, N oldN, N newN) {
-		throw new UnsupportedOperationException();
-	}
-	
-	default E invert(E edge) {
 		throw new UnsupportedOperationException();
 	}
 	
