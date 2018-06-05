@@ -1,13 +1,5 @@
 package org.mapleir.ir.cfg;
 
-import static org.mapleir.ir.code.Opcode.PHI_STORE;
-
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-
 import org.mapleir.flowgraph.ExceptionRange;
 import org.mapleir.flowgraph.edges.FlowEdge;
 import org.mapleir.flowgraph.edges.FlowEdges;
@@ -27,6 +19,14 @@ import org.mapleir.stdlib.collections.graph.FastGraph;
 import org.mapleir.stdlib.collections.graph.dot.DotWriter;
 import org.mapleir.stdlib.collections.itertools.ChainIterator;
 import org.mapleir.stdlib.util.TabbedStringWriter;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+
+import static org.mapleir.ir.code.Opcode.PHI_STORE;
 
 public class ControlFlowGraph extends FastBlockGraph {
 	
@@ -212,7 +212,7 @@ public class ControlFlowGraph extends FastBlockGraph {
 		}
 
 		for (ExceptionRange<BasicBlock> er : getRanges()) {
-			if (er.get().size() == 0) {
+			if (er.getNodes().size() == 0) {
 				throw new RuntimeException("empty range: " + er);
 			}
 
@@ -220,7 +220,7 @@ public class ControlFlowGraph extends FastBlockGraph {
 				throw new RuntimeException("invalid handler: " + er.getHandler() + " in " + er);
 			}
 
-			for (BasicBlock b : er.get()) {
+			for (BasicBlock b : er.getNodes()) {
 				if (!containsVertex(b) || !containsReverseVertex(b)) {
 					throw new RuntimeException("invalid b: " + b + " to " + er);
 				}

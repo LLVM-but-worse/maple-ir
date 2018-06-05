@@ -99,7 +99,7 @@ public abstract class FlowGraph<N extends FastGraphVertex, E extends FlowEdge<N>
 			ExceptionRange<N> r = it.next();
 			if (r.containsVertex(v)) {
 				r.removeVertex(v);
-				if (r.get().isEmpty()) {
+				if (r.getNodes().isEmpty()) {
 					it.remove();
 				}
 			}

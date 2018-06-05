@@ -7,7 +7,7 @@ import org.objectweb.asm.Type;
 import java.util.*;
 
 /**
- * THIS IS NOT IMMUTABLE 
+ * THIS IS NOT IMMUTABLE SO DON'T OVERRIDE HASHCODE/EQUALS!!!!
  * @param <N>
  */
 public class ExceptionRange<N extends FastGraphVertex> {
@@ -30,11 +30,6 @@ public class ExceptionRange<N extends FastGraphVertex> {
 		return handler;
 	}
 
-	// TODO: make immutable
-	public List<N> get() {
-		return new ArrayList<>(nodes);
-	}
-	
 	public boolean containsVertex(N b) {
 		return nodes.contains(b);
 	}

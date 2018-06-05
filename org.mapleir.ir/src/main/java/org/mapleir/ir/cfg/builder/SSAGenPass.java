@@ -99,7 +99,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 			handlers.add(h);
 			
 			Set<Local> ls = new HashSet<>(liveness.in(h));
-			for(BasicBlock b : er.get()) {
+			for(BasicBlock b : er.getNodes()) {
 				splits.getNonNull(b).addAll(ls);
 			}
 		}

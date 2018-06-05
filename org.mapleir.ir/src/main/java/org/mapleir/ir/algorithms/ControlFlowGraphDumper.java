@@ -1,7 +1,5 @@
 package org.mapleir.ir.algorithms;
 
-import java.util.*;
-
 import org.mapleir.flowgraph.ExceptionRange;
 import org.mapleir.flowgraph.edges.FlowEdge;
 import org.mapleir.flowgraph.edges.FlowEdges;
@@ -12,11 +10,7 @@ import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.Stmt;
 import org.mapleir.ir.code.stmt.UnconditionalJumpStmt;
-import org.mapleir.stdlib.collections.graph.FastDirectedGraph;
-import org.mapleir.stdlib.collections.graph.FastGraph;
-import org.mapleir.stdlib.collections.graph.FastGraphEdge;
-import org.mapleir.stdlib.collections.graph.FastGraphEdgeImpl;
-import org.mapleir.stdlib.collections.graph.FastGraphVertex;
+import org.mapleir.stdlib.collections.graph.*;
 import org.mapleir.stdlib.collections.graph.algorithms.SimpleDfs;
 import org.mapleir.stdlib.collections.graph.algorithms.TarjanSCC;
 import org.mapleir.stdlib.util.IndexedList;
@@ -26,6 +20,8 @@ import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.LabelNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.tree.TryCatchBlockNode;
+
+import java.util.*;
 
 public class ControlFlowGraphDumper {
 	private final ControlFlowGraph cfg;
@@ -259,7 +255,7 @@ public class ControlFlowGraphDumper {
 		}
 		
 		final Label handler = er.getHandler().getLabel();
-		List<BasicBlock> range = er.get();
+		List<BasicBlock> range = new ArrayList<>(er.getNodes());
 		range.sort(Comparator.comparing(order::indexOf));
 		
 		Label start;
