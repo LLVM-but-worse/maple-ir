@@ -72,20 +72,12 @@ public class Boot {
 				.setApplicationContext(new SimpleApplicationContext(app))
 				.build();
 		
-		// section("Expanding callgraph and generating cfgs.");
+		section("Expanding callgraph and generating cfgs.");
 		// IRCallTracer tracer = new IRCallTracer(cxt);
 		// for(MethodNode m : cxt.getApplicationContext().getEntryPoints()) {
 		// 	tracer.trace(m);
 		// }
-		// section0("...generated " + cxt.getIRCache().size() + " cfgs in %fs.%n", "Preparing to transform.");
-		
-		// do passes
-		PassGroup masterGroup = new PassGroup("MasterController");
-		for(IPass p : getTransformationPasses()) {
-			masterGroup.add(p);
-		}
-		run(cxt, masterGroup);
-		
+
 		for (ClassNode cn : cxt.getApplication().iterate()) {
 			// if (!cn.name.equals("Test"))
 			// 	continue;
@@ -95,7 +87,15 @@ public class Boot {
 				cxt.getIRCache().getFor(m);
 			}
 		}
-		
+		section0("...generated " + cxt.getIRCache().size() + " cfgs in %fs.%n", "Preparing to transform.");
+
+		// do passes
+		PassGroup masterGroup = new PassGroup("MasterController");
+		for(IPass p : getTransformationPasses()) {
+			masterGroup.add(p);
+		}
+		run(cxt, masterGroup);
+
 		section("Retranslating SSA IR to standard flavour.");
 		for(Entry<MethodNode, ControlFlowGraph> e : cxt.getIRCache().entrySet()) {
 			MethodNode mn = e.getKey();
@@ -114,7 +114,7 @@ public class Boot {
 			// CFGUtils.easyDumpCFG(cfg, "post-reaalloc");
 			// System.out.println(cfg);
 			cfg.verify();
-			System.out.println("Rewriting " + mn.name);
+			// System.out.println("Rewriting " + mn.name);
 			// System.exit(1);
 			(new ControlFlowGraphDumper(cfg, mn)).dump();
 			// System.out.println(InsnListUtils.insnListToString(mn.instructions));
