@@ -21,17 +21,11 @@ public class SimpleDfs<N extends FastGraphVertex> implements DepthFirstSearch<N>
 
 		if (pre)
 			preorder = new ArrayList<>();
-		if (post)
+		if (post || topo)
 			postorder = new ArrayList<>();
-		if (topo)
-			topoorder = new ArrayList<>();
 
 		Set<N> visited = new HashSet<>();
-		Stack<N> preStack = new Stack<>();
-		Stack<N> postStack = null;
-		if (post || topo)
-			postStack = new Stack<>();
-
+		Deque<N> preStack = new ArrayDeque<>();
 		preStack.push(entry);
 		while (!preStack.isEmpty()) {
 			N current = preStack.pop();
@@ -41,17 +35,15 @@ public class SimpleDfs<N extends FastGraphVertex> implements DepthFirstSearch<N>
 			if (pre)
 				preorder.add(current);
 			if (post || topo)
-				postStack.push(current);
+				postorder.add(current);
 			Set<? extends FastGraphEdge<N>> edges = direction ? graph.getEdges(current) : graph.getReverseEdges(current);
 			for (FastGraphEdge<N> succ : edges) {
-				preStack.add(direction ? succ.dst() : succ.src());
+				preStack.push(direction ? succ.dst() : succ.src());
 			}
 		}
-		if (topo)
-			topoorder.addAll(postStack);
-		if (post) {
-			while (!postStack.isEmpty())
-				postorder.add(postStack.pop());
+		if (topo) {
+			topoorder = new ArrayList<>(postorder);
+			Collections.reverse(postorder);
 		}
 	}
 

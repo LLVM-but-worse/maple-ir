@@ -1,10 +1,5 @@
 package org.mapleir.ir.cfg.builder.ssaopt;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.CodeUnit;
@@ -16,6 +11,11 @@ import org.mapleir.ir.code.expr.VarExpr;
 import org.mapleir.ir.code.stmt.copy.AbstractCopyStmt;
 import org.mapleir.ir.locals.Local;
 import org.mapleir.ir.locals.impl.VersionedLocal;
+
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 public class LatestValue {
 	
@@ -95,7 +95,7 @@ public class LatestValue {
 		}
 		
 		if(f != t) {
-			for(BasicBlock r : cfg.wanderAllTrails(f, t)) {
+			for(BasicBlock r : cfg.dfsNoHandlers(f, t)) {
 				res.addAll(r);
 			}
 		}
