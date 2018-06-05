@@ -1,5 +1,7 @@
 package org.mapleir.stdlib.collections.graph;
 
+import java.util.Objects;
+
 public class FastGraphEdgeImpl<N extends FastGraphVertex> implements FastGraphEdge<N> {
 	protected final N src, dst;
 
@@ -28,17 +30,16 @@ public class FastGraphEdgeImpl<N extends FastGraphVertex> implements FastGraphEd
 			return false;
 		FastGraphEdge v = (FastGraphEdge) o;
 
-		// assert id/numericId are consistent
-		assert ((v.src().getNumericId() == src.getNumericId()) == (v.src().getDisplayName().equals(src.getDisplayName())));
-		assert ((v.dst().getNumericId() == dst.getNumericId()) == (v.dst().getDisplayName().equals(dst.getDisplayName())));
+		// assert consistency
+		assert ((v.src().getNumericId() == src.getNumericId()) == (v.src() == src));
+		assert ((v.dst().getNumericId() == dst.getNumericId()) == (v.dst() == dst));
 
-		return v.src().getNumericId() == src.getNumericId() && v.dst().getNumericId() == dst.getNumericId();
+		return v.src() == src && v.dst() == dst;
 	}
 
 	@Override
 	public int hashCode() {
-		int result = src.getNumericId();
-		result = 31 * result + dst.getNumericId();
-		return result;
+		// remember, we can't assume the numeric id remains constant!
+		return Objects.hash(src, dst);
 	}
 }

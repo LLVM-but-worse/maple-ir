@@ -1,8 +1,5 @@
 package org.mapleir.ir.code.stmt;
 
-import java.util.*;
-import java.util.Map.Entry;
-
 import org.mapleir.ir.TypeUtils;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
@@ -13,6 +10,9 @@ import org.mapleir.stdlib.util.TabbedStringWriter;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Type;
+
+import java.util.*;
+import java.util.Map.Entry;
 
 public class SwitchStmt extends Stmt {
 
@@ -172,7 +172,7 @@ public class SwitchStmt extends Stmt {
 	public boolean equivalent(CodeUnit s) {
 		if(s instanceof SwitchStmt) {
 			SwitchStmt sw = (SwitchStmt) s;
-			if(defaultTarget.getNumericId() != sw.defaultTarget.getNumericId() || !expression.equivalent(sw.expression)) {
+			if(defaultTarget != sw.defaultTarget || !expression.equivalent(sw.expression)) {
 				return false;
 			}
 			if(targets.size() != sw.targets.size()) {
@@ -189,7 +189,7 @@ public class SwitchStmt extends Stmt {
 			}
 			
 			for(Integer key : keys) {
-				if(targets.get(key).getNumericId() != otherTargets.get(key).getNumericId()) {
+				if(targets.get(key) != otherTargets.get(key)) {
 					return false;
 				}
 			}

@@ -94,6 +94,7 @@ public class ExceptionRange<N extends FastGraphVertex> {
 	}
 
 	// FIXME: can't rely on numeric for random graphs
+	@Deprecated
 	public boolean isContiguous() {
 		ListIterator<N> lit = nodes.listIterator();
 		while(lit.hasNext()) {
