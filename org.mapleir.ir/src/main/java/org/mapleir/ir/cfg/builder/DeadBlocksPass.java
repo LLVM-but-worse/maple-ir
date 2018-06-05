@@ -1,10 +1,6 @@
 package org.mapleir.ir.cfg.builder;
 
-import org.mapleir.ir.cfg.BasicBlock;
-import org.mapleir.stdlib.collections.graph.algorithms.SimpleDfs;
-
-import java.util.HashSet;
-import java.util.Set;
+import org.mapleir.ir.utils.CFGUtils;
 
 public class DeadBlocksPass extends ControlFlowGraphBuilder.BuilderPass {
 
@@ -15,12 +11,6 @@ public class DeadBlocksPass extends ControlFlowGraphBuilder.BuilderPass {
 	@Override
 	public void run() {
 		assert(builder.graph.getEntries().size() == 1);
-		builder.head = builder.graph.getEntries().iterator().next();
-		Set<BasicBlock> reachable = new HashSet<>(SimpleDfs.preorder(builder.graph, builder.head));
-		Set<BasicBlock> unreachable = new HashSet<>(builder.graph.vertices());
-		unreachable.removeAll(reachable);
-		for (BasicBlock b : unreachable) {
-			builder.graph.removeVertex(b);
-		}
+		builder.head = CFGUtils.deleteUnreachableBlocks(builder.graph);
 	}
 }

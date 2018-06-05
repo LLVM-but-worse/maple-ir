@@ -6,7 +6,6 @@ import org.mapleir.stdlib.collections.bitset.BitSetIndexer;
 import org.mapleir.stdlib.collections.bitset.GenericBitSet;
 import org.mapleir.stdlib.collections.graph.FastDirectedGraph;
 import org.mapleir.stdlib.collections.graph.FastGraphVertex;
-import org.mapleir.stdlib.collections.graph.GraphUtils;
 import org.mapleir.stdlib.collections.map.ValueCreator;
 
 import java.util.*;
@@ -69,7 +68,7 @@ public abstract class FlowGraph<N extends FastGraphVertex, E extends FlowEdge<N>
 	public boolean addVertex(N v) {
 		boolean ret = super.addVertex(v);
 		
-		int index = translateBlockIndex(v.getNumericId());
+		int index = v.getNumericId();
 		indexMap.put(index, v);
 		indexedSet.set(index, true);
 		return ret;
@@ -80,7 +79,7 @@ public abstract class FlowGraph<N extends FastGraphVertex, E extends FlowEdge<N>
 		super.addEdge(e);
 
 		N src = e.src();
-		int index = translateBlockIndex(src.getNumericId());
+		int index = src.getNumericId();
 		indexMap.put(index, src);
 		indexedSet.set(index, true);
 	}
@@ -109,7 +108,7 @@ public abstract class FlowGraph<N extends FastGraphVertex, E extends FlowEdge<N>
 		entries.remove(v);
 		super.removeVertex(v);
 
-		int index = translateBlockIndex(v.getNumericId());
+		int index = v.getNumericId();
 		indexMap.remove(index);
 		indexedSet.set(index, false);
 	}
@@ -182,7 +181,7 @@ public abstract class FlowGraph<N extends FastGraphVertex, E extends FlowEdge<N>
 	private class FastGraphVertexBitSetIndexer implements BitSetIndexer<N> {
 		@Override
 		public int getIndex(N basicBlock) {
-			return translateBlockIndex(basicBlock.getNumericId());
+			return basicBlock.getNumericId();
 		}
 
 		@Override
@@ -194,11 +193,5 @@ public abstract class FlowGraph<N extends FastGraphVertex, E extends FlowEdge<N>
 		public boolean isIndexed(N basicBlock) {
 			return basicBlock != null && indexedSet.get(getIndex(basicBlock));
 		}
-	}
-
-	// What the fuck...this is such a kludge
-	// TODO
-	private static int translateBlockIndex(int i) {
-		return i == GraphUtils.FAKEHEAD_ID ? 0 : ++i;
 	}
 }

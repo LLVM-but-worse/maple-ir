@@ -11,7 +11,7 @@ import org.mapleir.ir.code.stmt.SwitchStmt;
 import org.mapleir.ir.code.stmt.ThrowStmt;
 import org.mapleir.ir.code.stmt.UnconditionalJumpStmt;
 import org.mapleir.ir.code.stmt.copy.CopyVarStmt;
-import org.mapleir.stdlib.collections.graph.GraphUtils;
+import org.mapleir.stdlib.collections.graph.algorithms.SimpleDfs;
 import org.mapleir.stdlib.util.TabbedStringWriter;
 import org.objectweb.asm.tree.LabelNode;
 
@@ -280,38 +280,17 @@ public class CFGUtils {
 		
 		sw.print("\n");
 	}
-	
-	private static class FakeHeadBlock extends BasicBlock {
-		public FakeHeadBlock(ControlFlowGraph cfg) {
-			super(cfg, GraphUtils.FAKEHEAD_ID, null);
+
+	public static BasicBlock deleteUnreachableBlocks(ControlFlowGraph cfg) {
+		if (cfg.getEntries().size() != 1)
+			throw new IllegalArgumentException();
+		BasicBlock head = cfg.getEntries().iterator().next();
+		Set<BasicBlock> reachable = new HashSet<>(SimpleDfs.preorder(cfg, head));
+		Set<BasicBlock> unreachable = new HashSet<>(cfg.vertices());
+		unreachable.removeAll(reachable);
+		for (BasicBlock b : unreachable) {
+			cfg.removeVertex(b);
 		}
-
-		@Override
-		public String getDisplayName() {
-			return "fakehead";
-		}
-	}
-
-	public static BasicBlock connectFakeHead(ControlFlowGraph cfg) {
-		BasicBlock head = new FakeHeadBlock(cfg);
-		cfg.addVertex(head);
-
-		for (BasicBlock b : cfg.vertices()) {
-			if (cfg.getReverseEdges(b).size() == 0 && b != head) {
-				FlowEdge<BasicBlock> e = null;
-				if (cfg.getEntries().contains(b)) {
-					e = new ImmediateEdge<>(head, b);
-				} else {
-					e = new DummyEdge<>(head, b);
-				}
-				cfg.addEdge(e);
-			}
-		}
-
 		return head;
-	}
-
-	public static void disconnectFakeHead(ControlFlowGraph cfg, BasicBlock head) {
-		cfg.removeVertex(head);
 	}
 }
