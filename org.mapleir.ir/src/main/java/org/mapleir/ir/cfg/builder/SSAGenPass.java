@@ -142,7 +142,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 			}
 		}
 		
-		builder.graph.naturalise(order);
+		builder.graph.relabel(order);
 		List<BasicBlock> dfsPreorder = SimpleDfs.preorder(builder.graph, builder.head);
 		assert(dfsPreorder.size() == order.size());
 		
@@ -1371,7 +1371,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		order.addAll(builder.graph.vertices());
 		order.remove(builder.head);
 		order.add(0, builder.head);
-		builder.graph.naturalise(order);
+		builder.graph.relabel(order);
 		
 		makeLiveness();
 		splitRanges();

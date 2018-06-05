@@ -203,7 +203,7 @@ public class CFGUtils {
 	public static BasicBlock splitBlockSimple(ControlFlowGraph cfg, int newId, BasicBlock b, int to) {
 		BasicBlock newBlock = new BasicBlock(cfg, newId, new LabelNode());
 		cfg.addVertex(newBlock);
-		b.transferUp(newBlock, to);
+		b.transferUpto(newBlock, to);
 		return newBlock;
 	}
 

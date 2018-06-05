@@ -1595,7 +1595,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 			}
 		});
 		
-		builder.graph.naturalise(blocks);
+		builder.graph.relabel(blocks);
 		makeRanges(blocks);
 	}
 
