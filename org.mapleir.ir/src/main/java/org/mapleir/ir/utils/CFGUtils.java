@@ -23,7 +23,7 @@ public class CFGUtils {
 	 * @return the newly created block containing the instructions before `to`
 	 */
 	public static BasicBlock splitBlock(ControlFlowGraph cfg, BasicBlock b, int to) {
-		return splitBlock(cfg, CFGUtils.getMaxId(cfg) + 1, b, to, false);
+		return splitBlock(cfg, cfg.size() + 1, b, to, false);
 	}
 
 	// Please don't call me, call splitBlock(ControlFlowGraph, BasicBlock, int) instead.
