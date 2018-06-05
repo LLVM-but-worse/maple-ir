@@ -1,13 +1,5 @@
 package org.mapleir.ir.cfg.builder;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-
 import org.mapleir.flowgraph.ExceptionRange;
 import org.mapleir.flowgraph.edges.FlowEdge;
 import org.mapleir.flowgraph.edges.FlowEdges;
@@ -16,9 +8,12 @@ import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.locals.Local;
 import org.mapleir.stdlib.collections.graph.algorithms.SimpleDfs;
 
-public class NaturalisationPass1 extends ControlFlowGraphBuilder.BuilderPass {
+import java.util.*;
+import java.util.Map.Entry;
 
-	public NaturalisationPass1(ControlFlowGraphBuilder builder) {
+public class NaturalisationPass extends ControlFlowGraphBuilder.BuilderPass {
+
+	public NaturalisationPass(ControlFlowGraphBuilder builder) {
 		super(builder);
 	}
 

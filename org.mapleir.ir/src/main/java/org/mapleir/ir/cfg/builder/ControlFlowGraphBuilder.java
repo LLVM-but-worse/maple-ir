@@ -50,8 +50,7 @@ public class ControlFlowGraphBuilder {
 		return new BuilderPass[] {
 				new GenerationPass(this),
 				new DeadBlocksPass(this),
-				new NaturalisationPass1(this),
-				// new NaturalisationPass2(this),
+				new NaturalisationPass(this),
 				new SSAGenPass(this),
 		};
 	}
