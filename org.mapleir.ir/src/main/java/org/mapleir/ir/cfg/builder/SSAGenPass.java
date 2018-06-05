@@ -30,7 +30,6 @@ import org.mapleir.ir.locals.impl.VersionedLocal;
 import org.mapleir.ir.utils.CFGUtils;
 import org.mapleir.stdlib.collections.graph.algorithms.SimpleDfs;
 import org.mapleir.stdlib.collections.map.NullPermeableHashMap;
-import org.mapleir.stdlib.collections.map.SetCreator;
 import org.objectweb.asm.Type;
 
 import java.util.*;
@@ -93,7 +92,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 	private void splitRanges() {
 		// produce cleaner cfg
 		List<BasicBlock> order = new ArrayList<>(builder.graph.vertices());
-		NullPermeableHashMap<BasicBlock, Set<Local>> splits = new NullPermeableHashMap<>(SetCreator.getInstance());
+		NullPermeableHashMap<BasicBlock, Set<Local>> splits = new NullPermeableHashMap<>(HashSet::new);
 		
 		for(ExceptionRange<BasicBlock> er : builder.graph.getRanges()) {
 			BasicBlock h = er.getHandler();
@@ -559,7 +558,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 	}
 	
 	private Set<Set<CopyPhiStmt>> findPhiClasses(Collection<CopyPhiStmt> phis) {
-		NullPermeableHashMap<CopyPhiStmt, Set<CopyPhiStmt>> equiv = new NullPermeableHashMap<>(SetCreator.getInstance());
+		NullPermeableHashMap<CopyPhiStmt, Set<CopyPhiStmt>> equiv = new NullPermeableHashMap<>(HashSet::new);
 		
 		for(CopyPhiStmt cps : phis) {
 			if(equiv.containsKey(cps)) {

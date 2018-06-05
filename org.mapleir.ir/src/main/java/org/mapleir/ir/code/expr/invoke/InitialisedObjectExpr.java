@@ -1,19 +1,19 @@
 package org.mapleir.ir.code.expr.invoke;
 
-import java.util.Set;
-
 import org.mapleir.app.service.InvocationResolver;
 import org.mapleir.ir.TypeUtils;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.CodeUnit;
 import org.mapleir.ir.code.Expr;
 import org.mapleir.stdlib.collections.CollectionUtils;
-import org.mapleir.stdlib.collections.map.SetCreator;
 import org.mapleir.stdlib.util.TabbedStringWriter;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.MethodNode;
+
+import java.util.HashSet;
+import java.util.Set;
 
 public class InitialisedObjectExpr extends Invocation {
 
@@ -177,6 +177,6 @@ public class InitialisedObjectExpr extends Invocation {
 
 	@Override
 	public Set<MethodNode> resolveTargets(InvocationResolver res) {
-		return CollectionUtils.asCollection(SetCreator.getInstance(), res.resolveVirtualInitCall(getOwner(), getDesc()));
+		return CollectionUtils.asCollection(HashSet::new, res.resolveVirtualInitCall(getOwner(), getDesc()));
 	}
 }

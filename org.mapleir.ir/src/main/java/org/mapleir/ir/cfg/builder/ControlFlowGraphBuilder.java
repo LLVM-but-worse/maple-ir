@@ -7,7 +7,6 @@ import org.mapleir.ir.locals.Local;
 import org.mapleir.ir.locals.impl.StaticMethodLocalsPool;
 import org.mapleir.ir.locals.impl.VirtualMethodLocalsPool;
 import org.mapleir.stdlib.collections.map.NullPermeableHashMap;
-import org.mapleir.stdlib.collections.map.SetCreator;
 import org.objectweb.asm.tree.MethodNode;
 
 import java.lang.reflect.Modifier;
@@ -34,7 +33,7 @@ public class ControlFlowGraphBuilder {
 
 		}
 		locals = new HashSet<>();
-		assigns = new NullPermeableHashMap<>(SetCreator.getInstance());
+		assigns = new NullPermeableHashMap<>(HashSet::new);
 	}
 	
 	public static abstract class BuilderPass {
