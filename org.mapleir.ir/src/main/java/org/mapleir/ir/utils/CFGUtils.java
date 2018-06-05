@@ -20,12 +20,14 @@ import java.util.*;
 public class CFGUtils {
 	/**
 	 * Split the block upto statement index `to`, exclusively, into a new block.
+	 * Updates edges and ranges nicely.
 	 * @return the newly created block containing the instructions before `to`
 	 */
 	public static BasicBlock splitBlock(ControlFlowGraph cfg, BasicBlock b, int to) {
 		return splitBlock(cfg, CFGUtils.getMaxId(cfg) + 1, b, to, false);
 	}
-	
+
+	// Please don't call me, call splitBlock(ControlFlowGraph, BasicBlock, int) instead.
 	@Deprecated
 	public static BasicBlock splitBlock(ControlFlowGraph cfg, int newId, BasicBlock b, int to, boolean ssagencheck) {
 		/* eg. split the block as follows:
