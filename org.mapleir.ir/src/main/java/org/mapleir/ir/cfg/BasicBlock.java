@@ -252,11 +252,11 @@ public class BasicBlock implements FastGraphVertex, Collection<Stmt> {
 		return label;
 	}
 	
-//	public void checkConsistency() {
-//		for (Stmt stmt : statements)
-//			if (stmt.getBlock() != this)
-//				throw new IllegalStateException("Orphaned child " + stmt);
-//	}
+	public void checkConsistency() {
+		for (Stmt stmt : statements)
+			if (stmt.getBlock() != this)
+				throw new IllegalStateException("Orphaned child " + stmt);
+	}
 
 	// List functions
 	@Override
