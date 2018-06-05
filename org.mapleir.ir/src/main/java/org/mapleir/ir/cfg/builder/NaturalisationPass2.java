@@ -26,6 +26,6 @@ public class NaturalisationPass2 extends ControlFlowGraphBuilder.BuilderPass {
 			order.addAll(c);
 		}
 		
-		builder.graph.naturalise(order);
+		builder.graph.relabel(order);
 	}
 }

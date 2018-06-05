@@ -141,11 +141,14 @@ public class ControlFlowGraph extends FastBlockGraph {
 		return () -> new ChainIterator.CollectionChainIterator<>(vertices());
 	}
 	
-	public void naturalise(List<BasicBlock> order) {
+	public void relabel(List<BasicBlock> order) {
+		if (order.size() != size())
+			throw new IllegalArgumentException("order is wrong length");
 		// copy edge sets
 		Map<BasicBlock, Set<FlowEdge<BasicBlock>>> edges = new HashMap<>();
 		for(BasicBlock b : order) {
-			assert (containsVertex(b));
+			if (!containsVertex(b))
+				throw new IllegalArgumentException("order has missing vertex " + b);
 			edges.put(b, getEdges(b));
 		}
 		// clean graph

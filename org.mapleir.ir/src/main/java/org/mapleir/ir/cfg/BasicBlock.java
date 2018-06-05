@@ -2,13 +2,7 @@ package org.mapleir.ir.cfg;
 
 import static org.mapleir.stdlib.util.StringHelper.createBlockName;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.ListIterator;
-import java.util.Set;
+import java.util.*;
 import java.util.function.Predicate;
 
 import org.mapleir.flowgraph.ExceptionRange;
@@ -20,7 +14,7 @@ import org.mapleir.stdlib.collections.graph.FastGraphVertex;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.tree.LabelNode;
 
-public class BasicBlock implements FastGraphVertex, List<Stmt> {
+public class BasicBlock implements FastGraphVertex, Collection<Stmt> {
 
 	/**
 	 * Specifies that this block should not be merged in later passes.
@@ -32,8 +26,10 @@ public class BasicBlock implements FastGraphVertex, List<Stmt> {
 	private LabelNode label;
 	private final List<Stmt> statements;
 	private int flags = 0;
-	// private Map<ExceptionRange<BasicBlock>, Integer> ranges;
-	
+
+	// for debugging purposes. the number of times the label was changed
+	private int relabelCount = 0;
+
 	public BasicBlock(ControlFlowGraph cfg, int id, LabelNode label) {
 		this.cfg = cfg;
 		this.id = id;
@@ -62,7 +58,7 @@ public class BasicBlock implements FastGraphVertex, List<Stmt> {
 	public ControlFlowGraph getGraph() {
 		return cfg;
 	}
-	
+
 	@Override
 	public boolean add(Stmt stmt) {
 		boolean ret = statements.add(stmt);
@@ -70,39 +66,37 @@ public class BasicBlock implements FastGraphVertex, List<Stmt> {
 		return ret;
 	}
 
-	@Override
 	public void add(int index, Stmt stmt) {
 		statements.add(index, stmt);
 		stmt.setBlock(this);
 	}
-	
+
 	@Override
 	public boolean remove(Object o) {
 		boolean ret = statements.remove(o);
-		if (o instanceof Stmt)
+		if (o instanceof Stmt && ((Stmt) o).getBlock() == this)
 			((Stmt) o).setBlock(null);
 		return ret;
 	}
-	
+
 	@Override
 	public boolean containsAll(Collection<?> c) {
 		return statements.containsAll(c);
 	}
-	
+
 	@Override
 	public boolean addAll(Collection<? extends Stmt> c) {
 		for (Stmt stmt : c)
 			add(stmt);
 		return c.size() != 0;
 	}
-	
-	@Override
+
 	public boolean addAll(int index, Collection<? extends Stmt> c) {
 		for (Stmt stmt : c)
 			add(index++, stmt);
 		return c.size() != 0;
 	}
-	
+
 	@Override
 	public boolean removeAll(Collection<?> c) {
 		boolean ret = false;
@@ -110,7 +104,7 @@ public class BasicBlock implements FastGraphVertex, List<Stmt> {
 			ret = remove(o) || ret;
 		return ret;
 	}
-	
+
 	@Override
 	public boolean retainAll(Collection<?> c) {
 		boolean ret = false;
@@ -125,89 +119,78 @@ public class BasicBlock implements FastGraphVertex, List<Stmt> {
 		}
 		return ret;
 	}
-	
-	@Override
+
 	public Stmt remove(int index) {
 		Stmt stmt = statements.remove(index);
-		stmt.setBlock(null);
+		if (stmt.getBlock() == this)
+			stmt.setBlock(null);
 		return stmt;
 	}
-	
+
 	@Override
 	public boolean contains(Object o) {
 		return statements.contains(o);
 	}
-	
+
 	@Override
 	public boolean isEmpty() {
 		return statements.isEmpty();
 	}
-	
-	@Override
+
 	public int indexOf(Object o) {
 		return statements.indexOf(o);
 	}
-	
-	@Override
+
 	public int lastIndexOf(Object o) {
 		return statements.lastIndexOf(o);
 	}
-	
-	@Override
+
 	public Stmt get(int index) {
 		return statements.get(index);
 	}
-	
-	@Override
+
 	public Stmt set(int index, Stmt stmt) {
 		stmt.setBlock(this);
 		return statements.set(index, stmt);
 	}
-	
+
 	@Override
 	public int size() {
 		return statements.size();
 	}
-	
+
 	@Override
 	public void clear() {
 		Iterator<Stmt> it = statements.iterator();
 		while(it.hasNext()) {
 			Stmt s = it.next();
-			s.setBlock(null);
 			it.remove();
 		}
 	}
-	
+
 	@Override
 	public Iterator<Stmt> iterator() {
 		return statements.iterator();
 	}
-		
-	@Override
+
 	public ListIterator<Stmt> listIterator() {
 		return statements.listIterator();
 	}
-	
-	@Override
+
 	public ListIterator<Stmt> listIterator(int index) {
 		return statements.listIterator(index);
 	}
-	
+
 	@Override
 	public Object[] toArray() {
 		return statements.toArray();
 	}
-	
+
 	@Override
 	public <T> T[] toArray(T[] a) {
 		return statements.toArray(a);
 	}
-	
-	@Override
-	public List<Stmt> subList(int fromIndex, int toIndex) {
-		throw new UnsupportedOperationException();
-	}
+
 	
 	public void transfer(BasicBlock to) {
 		Iterator<Stmt> it = statements.iterator();
@@ -222,7 +205,7 @@ public class BasicBlock implements FastGraphVertex, List<Stmt> {
 	/**
 	 * Transfers statements up to index `to`, exclusively, to block `dst`.
 	 */
-	public void transferUp(BasicBlock dst, int to) {
+	public void transferUpto(BasicBlock dst, int to) {
 		// FIXME: faster
 		for(int i=to - 1; i >= 0; i--) {
 			Stmt s = statements.remove(0);
@@ -237,6 +220,7 @@ public class BasicBlock implements FastGraphVertex, List<Stmt> {
 	}
 
 	public void setId(int i) {
+		relabelCount++;
 		id = i;
 	}
 	
@@ -366,24 +350,23 @@ public class BasicBlock implements FastGraphVertex, List<Stmt> {
 		return String.format("Block #%s", createBlockName(id)/* (%s), label != null ? label.hashCode() : "dummy"*/);
 	}
 
-	// TODO: Why does this break stuff????
-	// @Override
-	// public boolean equals(Object o) {
-	// 	if (this == o)
-	// 		return true;
-	// 	if (o == null || getClass() != o.getClass())
-	// 		return false;
-	//
-	// 	BasicBlock bb = (BasicBlock) o;
-	//
-	// 	assert ((id == bb.id) == (this == bb));
-	// 	return id == bb.id;
-	// }
-	//
-	// @Override
-	// public int hashCode() {
-	// 	return id;
-	// }
+	// This implementation of equals doesn't really do anything, it's just for sanity-checking purposes.
+	// NOTE: we can't change equals or hashCode because the id can change from ControlFlowGraph#relabel.
+	@Override
+	public boolean equals(Object o) {
+		if (this == o)
+			return true;
+		if (o == null || getClass() != o.getClass())
+			return false;
+
+		BasicBlock bb = (BasicBlock) o;
+
+		if (id == bb.id) {
+			assert (relabelCount == bb.relabelCount);
+			assert (this == bb);
+		}
+		return id == bb.id;
+	}
 
 	public void resetLabel() {
 		label = new LabelNode();
