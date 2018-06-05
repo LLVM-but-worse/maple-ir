@@ -5,8 +5,8 @@ import org.mapleir.flowgraph.edges.FlowEdge;
 import org.mapleir.flowgraph.edges.ImmediateEdge;
 import org.mapleir.flowgraph.edges.TryCatchEdge;
 import org.mapleir.ir.code.Stmt;
-import org.mapleir.stdlib.collections.NotifiedList;
 import org.mapleir.stdlib.collections.graph.FastGraphVertex;
+import org.mapleir.stdlib.collections.list.NotifiedList;
 
 import java.util.*;
 import java.util.function.Predicate;

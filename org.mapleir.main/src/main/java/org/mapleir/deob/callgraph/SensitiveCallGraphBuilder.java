@@ -1,8 +1,5 @@
 package org.mapleir.deob.callgraph;
 
-import java.util.Collection;
-import java.util.Set;
-
 import org.mapleir.context.AnalysisContext;
 import org.mapleir.deob.callgraph.CallGraphEdge.FunctionOwnershipEdge;
 import org.mapleir.deob.callgraph.CallGraphEdge.SiteInvocationEdge;
@@ -10,8 +7,11 @@ import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.code.Stmt;
 import org.mapleir.ir.code.expr.invoke.Invocation;
-import org.mapleir.stdlib.util.Worklist;
+import org.mapleir.stdlib.collections.list.Worklist;
 import org.objectweb.asm.tree.MethodNode;
+
+import java.util.Collection;
+import java.util.Set;
 
 public class SensitiveCallGraphBuilder implements Worklist.Worker<MethodNode> {
 	private final CallSiteSensitiveCallGraph callGraph;

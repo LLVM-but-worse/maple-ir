@@ -1,4 +1,4 @@
-package org.mapleir.stdlib.util;
+package org.mapleir.stdlib.collections.list;
 
 import org.mapleir.stdlib.collections.map.NullPermeableHashMap;
 
@@ -14,12 +14,15 @@ public class IndexedList<T> implements List<T> {
 	private boolean dirty;
 	
 	public IndexedList() {
-		backingList = new ArrayList<>();
+		backingList = new NotifiedList<>(
+				(t) -> dirty = true,
+				(t) -> dirty = true
+		);
 		indexMap = new NullPermeableHashMap<>(ArrayList::new);
 		dirty = false;
 	}
 	
-	public IndexedList(List<T> other) {
+	public IndexedList(Collection<T> other) {
 		this();
 		addAll(other);
 		recacheIndices();

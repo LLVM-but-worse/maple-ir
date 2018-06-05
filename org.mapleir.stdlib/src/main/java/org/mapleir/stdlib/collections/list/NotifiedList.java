@@ -1,7 +1,10 @@
-package org.mapleir.stdlib.collections;
+package org.mapleir.stdlib.collections.list;
 
 import java.io.Serializable;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.function.UnaryOperator;
@@ -123,12 +126,6 @@ public class NotifiedList<E> extends ArrayList<E> implements Serializable {
 	}
 
 	// Blocked functions
-	@Override
-	public Spliterator<E> spliterator() {
-		// i don't understand this so i'm not going to even bother.
-		throw new UnsupportedOperationException();
-	}
-
 	@Override
 	public List<E> subList(int fromIndex, int toIndex) {
 		// the sublist implementation directly modifies elementData. No bueno.
