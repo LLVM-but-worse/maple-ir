@@ -1,22 +1,14 @@
 package org.mapleir.flowgraph.algorithms;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.Stack;
-
 import org.mapleir.flowgraph.edges.FlowEdge;
 import org.mapleir.flowgraph.edges.ImmediateEdge;
 import org.mapleir.stdlib.collections.graph.FastDirectedGraph;
-import org.mapleir.stdlib.collections.graph.FastGraph;
 import org.mapleir.stdlib.collections.graph.FastGraphEdge;
 import org.mapleir.stdlib.collections.graph.FastGraphVertex;
 import org.mapleir.stdlib.collections.map.NullPermeableHashMap;
+
+import java.util.*;
+import java.util.Map.Entry;
 
 public class TarjanDominanceComputor<N extends FastGraphVertex> {
 	private final FastDirectedGraph<N, ?> graph;
