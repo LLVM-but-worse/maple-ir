@@ -102,9 +102,8 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 	}
 
 	protected BasicBlock makeBlock(LabelNode label) {
-		int id = ++builder.count;
-		BasicBlock b = new BasicBlock(builder.graph, id);
-		orderMap.put(b, id);
+		BasicBlock b = new BasicBlock(builder.graph);
+		orderMap.put(b, b.getNumericId());
 		blockLabels.put(label, b);
 		labelMap.put(b, label);
 		queue(label);
@@ -156,9 +155,8 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 	
 	protected void entry(LabelNode firstLabel) {
 		LabelNode l = new LabelNode();
-		int id = ++builder.count;
-		BasicBlock entry = new BasicBlock(builder.graph, id);
-		orderMap.put(entry, id);
+		BasicBlock entry = new BasicBlock(builder.graph);
+		orderMap.put(entry, entry.getNumericId());
 		blockLabels.put(firstLabel, entry); // this is a strange discrepancy isnt it
 		labelMap.put(entry, l);
 		entry.setFlag(BasicBlock.FLAG_NO_MERGE, true);
@@ -1629,9 +1627,11 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 
 	@Override
 	public void run() {
-		if(builder.count == 0) { // no blocks created
+		if(builder.graph.size() == 0) { // no blocks created
 			init();
 			processQueue();
+		} else {
+			throw new IllegalStateException();
 		}
 	}
 }
