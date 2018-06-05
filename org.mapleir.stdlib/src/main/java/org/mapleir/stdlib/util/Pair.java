@@ -2,6 +2,8 @@ package org.mapleir.stdlib.util;
 
 // todo: tuple class
 
+import java.util.Objects;
+
 /**
  * Represents a pair of two objects. Borrowed generously from javafx
  * @param <K> the key (first object)
@@ -30,21 +32,18 @@ public class Pair<K, V> {
 	}
 
 	@Override
-	public int hashCode() {
-		return key.hashCode() * 13 + (value == null ? 0 : value.hashCode());
-	}
-
-	@Override
 	public boolean equals(Object o) {
 		if (this == o)
 			return true;
-		if (!(o instanceof Pair))
+		if (o == null || getClass() != o.getClass())
 			return false;
-		Pair pair = (Pair) o;
-		if (key != null ? !key.equals(pair.key) : pair.key != null)
-			return false;
-		if (value != null ? !value.equals(pair.value) : pair.value != null)
-			return false;
-		return true;
+		Pair<?, ?> pair = (Pair<?, ?>) o;
+		return Objects.equals(key, pair.key) &&
+				Objects.equals(value, pair.value);
+	}
+
+	@Override
+	public int hashCode() {
+		return Objects.hash(key, value);
 	}
 }
