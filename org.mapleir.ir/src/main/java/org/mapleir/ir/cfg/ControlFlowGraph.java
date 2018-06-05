@@ -21,11 +21,8 @@ import org.mapleir.stdlib.collections.graph.dot.DotWriter;
 import org.mapleir.stdlib.collections.itertools.ChainIterator;
 import org.mapleir.stdlib.util.TabbedStringWriter;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Set;
 
 import static org.mapleir.ir.code.Opcode.PHI_STORE;
 
@@ -194,8 +191,17 @@ public class ControlFlowGraph extends FlowGraph<BasicBlock, FlowEdge<BasicBlock>
 				.add(new ControlFlowGraphDecorator().setFlags(ControlFlowGraphDecorator.OPT_EDGES | ControlFlowGraphDecorator.OPT_STMTS));
 	}
 
+	/**
+	 * Runs sanity checking on this graph, useful for debugging purposes.
+	 */
 	public void verify() {
+		if (getEntries().size() != 1)
+			throw new IllegalStateException("Wrong number of entries: " + getEntries());
+
+		Set<Integer> usedIds = new HashSet<>();
 		for (BasicBlock b : vertices()) {
+			if (!usedIds.add(b.getNumericId()))
+				throw new IllegalStateException("Id collision: " + b);
 
 			if (getReverseEdges(b).size() == 0 && !getEntries().contains(b)) {
 				throw new IllegalStateException("dead incoming: " + b);
@@ -226,6 +232,8 @@ public class ControlFlowGraph extends FlowGraph<BasicBlock, FlowEdge<BasicBlock>
 					}
 				}
 			}
+
+			b.checkConsistency();
 		}
 
 		for (ExceptionRange<BasicBlock> er : getRanges()) {

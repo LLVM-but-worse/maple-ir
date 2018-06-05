@@ -105,6 +105,7 @@ public class Boot {
 			
 			// System.out.println(cfg);
 			// CFGUtils.easyDumpCFG(cfg, "pre-destruct");
+			cfg.verify();
 
 			BoissinotDestructor.leaveSSA(cfg);
 
@@ -112,6 +113,7 @@ public class Boot {
 			cfg.getLocals().realloc(cfg);
 			// CFGUtils.easyDumpCFG(cfg, "post-reaalloc");
 			// System.out.println(cfg);
+			cfg.verify();
 			System.out.println("Rewriting " + mn.name);
 			// System.exit(1);
 			(new ControlFlowGraphDumper(cfg, mn)).dump();
