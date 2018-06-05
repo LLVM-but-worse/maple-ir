@@ -90,18 +90,18 @@ public class CFGUtils {
 						System.err.println(cfg);
 						throw new AssertionError("Very odd split case. please investigate");
 					}
-					cfg.addEdge(tce.src(), tce.clone(tce.src(), null));
-					cfg.removeEdge(tce.src(), tce);
+					cfg.addEdge(tce.clone(tce.src(), null));
+					cfg.removeEdge(tce);
 				}
 				if (tce.erange.getHandler() != newBlock) {
 					tce.erange.setHandler(newBlock);
-					cfg.addEdge(tce.src(), tce.clone(tce.src(), null));
-					cfg.removeEdge(tce.src(), tce);
+					cfg.addEdge(tce.clone(tce.src(), null));
+					cfg.removeEdge(tce);
 				}
 			} else {
 				c = e.clone(p, newBlock);
-				cfg.addEdge(p, c);
-				cfg.removeEdge(p, e);
+				cfg.addEdge(c);
+				cfg.removeEdge(e);
 			}
 
 			// Fix flow instruction targets
@@ -152,12 +152,12 @@ public class CFGUtils {
 		for (FlowEdge<BasicBlock> e : cfg.getEdges(b)) {
 			if (e.getType() == FlowEdges.TRYCATCH) {
 				TryCatchEdge<BasicBlock> c = ((TryCatchEdge<BasicBlock>) e).clone(newBlock, null); // second param is discarded (?)
-				cfg.addEdge(newBlock, c);
+				cfg.addEdge(c);
 			}
 		}
 
 		// create immediate to newBlock
-		cfg.addEdge(newBlock, new ImmediateEdge<>(newBlock, b));
+		cfg.addEdge(new ImmediateEdge<>(newBlock, b));
 
 		return newBlock;
 	}
@@ -304,7 +304,7 @@ public class CFGUtils {
 				} else {
 					e = new DummyEdge<>(head, b);
 				}
-				cfg.addEdge(head, e);
+				cfg.addEdge(e);
 			}
 		}
 

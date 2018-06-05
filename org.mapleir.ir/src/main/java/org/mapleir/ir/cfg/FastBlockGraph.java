@@ -47,9 +47,10 @@ public class FastBlockGraph extends FlowGraph<BasicBlock, FlowEdge<BasicBlock>> 
 	}
 	
 	@Override
-	public void addEdge(BasicBlock v, FlowEdge<BasicBlock> e) {
+	public void addEdge(FlowEdge<BasicBlock> e) {
+		BasicBlock v = e.src();
 		blockLabels.put(v.getLabelNode(), v);
-		super.addEdge(v, e);
+		super.addEdge(e);
 	}
 
 
@@ -115,7 +116,7 @@ public class FastBlockGraph extends FlowGraph<BasicBlock, FlowEdge<BasicBlock>> 
 				BasicBlock pred = pe.src();
 				if(!(pe instanceof TryCatchEdge)) {
 					FlowEdge<BasicBlock> newEdge = clone(pe, n, succ);
-					addEdge(pred, newEdge);
+					addEdge(newEdge);
 				}
 				
 				/* for(TryCatchEdge<BasicBlock> tce : tcs) {

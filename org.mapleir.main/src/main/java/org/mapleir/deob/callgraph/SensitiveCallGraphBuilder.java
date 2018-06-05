@@ -68,7 +68,7 @@ public class SensitiveCallGraphBuilder implements Worklist.Worker<MethodNode> {
 
 					/* link the current receiver to this call site. */
 					FunctionOwnershipEdge foe = new FunctionOwnershipEdge(currentReceiverNode, thisCallSiteNode);
-					callGraph.addEdge(currentReceiverNode, foe);
+					callGraph.addEdge(foe);
 
 					Set<MethodNode> targets = invoke.resolveTargets(context.getInvocationResolver());
 					
@@ -77,7 +77,7 @@ public class SensitiveCallGraphBuilder implements Worklist.Worker<MethodNode> {
 
 						/* link each target to the call site. */
 						SiteInvocationEdge sie = new SiteInvocationEdge(thisCallSiteNode, targetReceiverNode);
-						callGraph.addEdge(thisCallSiteNode, sie);
+						callGraph.addEdge(sie);
 					}
 				}
 			}

@@ -158,7 +158,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		setInputStack(b, new ExpressionStack(16));
 		queue(firstLabel);
 		
-		builder.graph.addEdge(entry, new ImmediateEdge<>(entry, b));
+		builder.graph.addEdge(new ImmediateEdge<>(entry, b));
 	}
 	
 	protected void handler(TryCatchBlockNode tc) {
@@ -257,7 +257,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 			if(type == LABEL) {
 				// split into new block
 				BasicBlock immediate = resolveTarget((LabelNode) ain);
-				builder.graph.addEdge(block, new ImmediateEdge<>(block, immediate));
+				builder.graph.addEdge(new ImmediateEdge<>(block, immediate));
 				break;
 			} else if(type == JUMP_INSN) {
 				JumpInsnNode jin = (JumpInsnNode) ain;
@@ -266,9 +266,9 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 				if(jin.opcode() == JSR) {
 					throw new UnsupportedOperationException("jsr " + builder.method);
 				} else if(jin.opcode() == GOTO) {
-					builder.graph.addEdge(block, new UnconditionalJumpEdge<>(block, target));
+					builder.graph.addEdge(new UnconditionalJumpEdge<>(block, target));
 				} else {
-					builder.graph.addEdge(block, new ConditionalJumpEdge<>(block, target, jin.opcode()));
+					builder.graph.addEdge(new ConditionalJumpEdge<>(block, target, jin.opcode()));
 					int nextIndex = codeIndex + 1;
 					AbstractInsnNode nextInsn = insns.get(nextIndex);
 					if(!(nextInsn instanceof LabelNode)) {
@@ -279,7 +279,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 					
 					// create immediate successor reference if it's not already done
 					BasicBlock immediate = resolveTarget((LabelNode) nextInsn);
-					builder.graph.addEdge(block, new ImmediateEdge<>(block, immediate));
+					builder.graph.addEdge(new ImmediateEdge<>(block, immediate));
 				}
 				break;
 			} else if(type == LOOKUPSWITCH_INSN) {
@@ -287,20 +287,20 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 				
 				for(int i=0; i < lsin.keys.size(); i++) {
 					BasicBlock target = resolveTarget(lsin.labels.get(i));
-					builder.graph.addEdge(block, new SwitchEdge<>(block, target, lsin.keys.get(i)));
+					builder.graph.addEdge(new SwitchEdge<>(block, target, lsin.keys.get(i)));
 				}
 				
 				BasicBlock dflt = resolveTarget(lsin.dflt);
-				builder.graph.addEdge(block, new DefaultSwitchEdge<>(block, dflt));
+				builder.graph.addEdge(new DefaultSwitchEdge<>(block, dflt));
 				break;
 			} else if(type == TABLESWITCH_INSN) {
 				TableSwitchInsnNode tsin = (TableSwitchInsnNode) ain;
 				for(int i=tsin.min; i <= tsin.max; i++) {
 					BasicBlock target = resolveTarget(tsin.labels.get(i - tsin.min));
-					builder.graph.addEdge(block, new SwitchEdge<>(block, target, i));
+					builder.graph.addEdge(new SwitchEdge<>(block, target, i));
 				}
 				BasicBlock dflt = resolveTarget(tsin.dflt);
-				builder.graph.addEdge(block, new DefaultSwitchEdge<>(block, dflt));
+				builder.graph.addEdge(new DefaultSwitchEdge<>(block, dflt));
 				break;
 			} else if(isExitOpcode(ain.opcode())) {
 				break;
@@ -1549,7 +1549,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 			ListIterator<BasicBlock> lit = range.listIterator();
 			while(lit.hasNext()) {
 				BasicBlock block = lit.next();
-				builder.graph.addEdge(block, new TryCatchEdge<>(block, erange));
+				builder.graph.addEdge(new TryCatchEdge<>(block, erange));
 			}
 		}
 	}

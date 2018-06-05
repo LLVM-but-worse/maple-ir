@@ -49,7 +49,7 @@ public class ControlFlowGraph extends FastBlockGraph {
 		if (!this.containsEdge(fe.src(), fe))
 			throw new IllegalArgumentException("Graph does not contain the specified edge");
 		
-		removeEdge(fe.src(), fe);
+		removeEdge(fe);
 		for (Stmt stmt : fe.dst()) {
 			if (stmt.getOpcode() == PHI_STORE) {
 				CopyPhiStmt phs = (CopyPhiStmt) stmt;
@@ -164,7 +164,7 @@ public class ControlFlowGraph extends FastBlockGraph {
 		for(Entry<BasicBlock, Set<FlowEdge<BasicBlock>>> e : edges.entrySet()) {
 			BasicBlock b = e.getKey();
 			for(FlowEdge<BasicBlock> fe : e.getValue()) {
-				addEdge(b, fe);
+				addEdge(fe);
 			}
 		}
 	}

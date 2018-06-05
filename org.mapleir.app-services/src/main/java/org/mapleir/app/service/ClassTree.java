@@ -192,7 +192,7 @@ public class ClassTree extends FastDirectedGraph<ClassNode, InheritanceEdge> {
 			}
 			
 			for(InheritanceEdge e : edges) {
-				super.addEdge(e.src(), e);
+				super.addEdge(e);
 			}
 		}
 		

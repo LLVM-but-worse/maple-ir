@@ -51,7 +51,7 @@ public class TarjanDominanceComputor<N extends FastGraphVertex> {
 		computeIteratedFrontiers();
 	}
 	
-	public void makeTree(FastGraph<N, FlowEdge<N>> dom_tree) {
+	public void makeTree(FastDirectedGraph<N, FlowEdge<N>> dom_tree) {
 		for (Entry<N, Set<N>> e : getTree().entrySet()) {
 			N b = e.getKey();
 			if(b == null) {
@@ -59,7 +59,7 @@ public class TarjanDominanceComputor<N extends FastGraphVertex> {
 			}
 			dom_tree.addVertex(b);
 			for (N c : e.getValue()) {
-				dom_tree.addEdge(b, new ImmediateEdge<>(b, c));
+				dom_tree.addEdge(new ImmediateEdge<>(b, c));
 			}
 		}
 	}

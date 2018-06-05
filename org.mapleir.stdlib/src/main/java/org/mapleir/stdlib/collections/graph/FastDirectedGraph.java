@@ -107,37 +107,58 @@ public abstract class FastDirectedGraph<N extends FastGraphVertex, E extends Fas
 	public boolean containsReverseVertex(N v) {
 		return reverseMap.containsKey(v);
 	}
-	
+
+	// Call addEdge(E) instead!
+	@Deprecated
 	@Override
 	public void addEdge(N v, E e) {
-		addVertex(v);
-		map.get(v).add(e);
+		throw new UnsupportedOperationException();
+	}
+
+	public void addEdge(E e) {
+		N src = e.src();
+		addVertex(src);
+		map.get(src).add(e);
 		
-		N dst = /*getDestination(v, e)*/ e.dst();
+		N dst = e.dst();
 		addVertex(dst);
-		
 		reverseMap.get(dst).add(e);
 	}
 
+	// Call removeEdge(E) instead!
+	@Deprecated
 	@Override
 	public void removeEdge(N v, E e) {
-		if(map.containsKey(v)) {
-			map.get(v).remove(e);
+		throw new UnsupportedOperationException();
+	}
+
+	public void removeEdge(E e) {
+		N src = e.src();
+		if(map.containsKey(src)) {
+			map.get(src).remove(e);
 		}
 		// we need to remove the edge from dst <- src map
-		N dst = e.dst() /*getDestination(v, e)*/;
+		N dst = e.dst();
 		if(reverseMap.containsKey(dst)) {
 			reverseMap.get(dst).remove(e);
 		}
 	}
 
+	// Call containsEdge(E) instead!
+	@Deprecated
 	@Override
 	public boolean containsEdge(N v, E e) {
-		return map.containsKey(v) && map.get(v).contains(e);
+		throw new UnsupportedOperationException();
 	}
-	
-	public boolean containsReverseEdge(N v, E e) {
-		return reverseMap.containsKey(v) && reverseMap.get(v).contains(e);
+
+	public boolean containsEdge(E e) {
+		N src = e.src();
+		return map.containsKey(src) && map.get(src).contains(e);
+	}
+
+	public boolean containsReverseEdge(E e) {
+		N dst = e.dst();
+		return reverseMap.containsKey(dst) && reverseMap.get(dst).contains(e);
 	}
 
 	@Override
@@ -190,14 +211,14 @@ public abstract class FastDirectedGraph<N extends FastGraphVertex, E extends Fas
 		
 		for(E succ : new HashSet<>(succs)) {
 			E newEdge = clone(succ, old, n);
-			removeEdge(old, succ);
-			addEdge(n, newEdge);
+			removeEdge(succ);
+			addEdge(newEdge);
 		}
 		
 		for(E pred : new HashSet<>(preds)) {
 			E newEdge = clone(pred, old, n);
-			removeEdge(pred.src(), pred);
-			addEdge(pred.src(), newEdge);
+			removeEdge(pred);
+			addEdge(newEdge);
 		}
 		
 		removeVertex(old);
