@@ -1,10 +1,10 @@
 package org.mapleir.flowgraph.edges;
 
-import java.util.List;
-import java.util.Objects;
-
 import org.mapleir.flowgraph.ExceptionRange;
 import org.mapleir.stdlib.collections.graph.FastGraphVertex;
+
+import java.util.List;
+import java.util.Objects;
 
 public class TryCatchEdge<N extends FastGraphVertex> extends AbstractFlowEdge<N> {
 
@@ -27,13 +27,13 @@ public class TryCatchEdge<N extends FastGraphVertex> extends AbstractFlowEdge<N>
 
 	@Override
 	public String toString() {
-		List<N> l = erange.get();
+		List<N> l = erange.getNodes();
 		return String.format("TryCatch range: [%s...%s] -> %s (%s)", l.get(0).getDisplayName(), l.get(l.size() - 1).getDisplayName()/*ExceptionRange.rangetoString(erange.get())*/, dst.getDisplayName(), erange.getTypes());
 	}
 
 	@Override
 	public String toInverseString() {
-		return String.format("TryCatch handler: %s <- range: [%s...%s] (%s)", dst.getDisplayName(), erange.get().iterator().next()/*ExceptionRange.rangetoString(erange.get())*/, src.getDisplayName(), erange.getTypes());
+		return String.format("TryCatch handler: %s <- range: [%s...%s] (%s)", dst.getDisplayName(), erange.getNodes().iterator().next()/*ExceptionRange.rangetoString(erange.get())*/, src.getDisplayName(), erange.getTypes());
 	}
 
 	@Override
@@ -52,7 +52,6 @@ public class TryCatchEdge<N extends FastGraphVertex> extends AbstractFlowEdge<N>
 
 	@Override
 	public int hashCode() {
-
 		return Objects.hash(super.hashCode(), erange);
 	}
 }

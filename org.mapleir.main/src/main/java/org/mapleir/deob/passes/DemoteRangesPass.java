@@ -1,12 +1,5 @@
 package org.mapleir.deob.passes;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
 import org.mapleir.app.service.ApplicationClassSource;
 import org.mapleir.context.AnalysisContext;
 import org.mapleir.deob.IPass;
@@ -22,6 +15,8 @@ import org.mapleir.stdlib.collections.graph.algorithms.TarjanSCC;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
+
+import java.util.*;
 
 public class DemoteRangesPass implements IPass {
 	
@@ -68,7 +63,7 @@ public class DemoteRangesPass implements IPass {
 			 * range causes more problems than it solves). */
 			
 			/* if the handler catches */
-			for(BasicBlock b : er.get()) {
+			for(BasicBlock b : er.getNodes()) {
 				Set<Type> canThrow = new HashSet<>();
 				
 				List<BasicBlock> comp = new ArrayList<>();
