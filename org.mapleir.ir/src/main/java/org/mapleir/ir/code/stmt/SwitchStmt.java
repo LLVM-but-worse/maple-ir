@@ -2,10 +2,10 @@ package org.mapleir.ir.code.stmt;
 
 import org.mapleir.ir.TypeUtils;
 import org.mapleir.ir.cfg.BasicBlock;
-import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.CodeUnit;
 import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.code.Stmt;
+import org.mapleir.ir.codegen.BytecodeFrontend;
 import org.mapleir.stdlib.util.TabbedStringWriter;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
@@ -132,7 +132,7 @@ public class SwitchStmt extends Stmt {
 	}
 
 	@Override
-	public void toCode(MethodVisitor visitor, ControlFlowGraph cfg) {
+	public void toCode(MethodVisitor visitor, BytecodeFrontend assembler) {
 		if (needsSort()) {
 			sort();
 		}
@@ -142,19 +142,19 @@ public class SwitchStmt extends Stmt {
 		int j = 0;
 		for (Entry<Integer, BasicBlock> e : targets.entrySet()) {
 			cases[j] = e.getKey();
-			labels[j++] = e.getValue().getLabel();
+			labels[j++] = assembler.getLabel(e.getValue());
 		}
 
-		expression.toCode(visitor, cfg);
+		expression.toCode(visitor, assembler);
 		int[] cast = TypeUtils.getPrimitiveCastOpcodes(expression.getType(), Type.INT_TYPE); // widen
 		for (int i = 0; i < cast.length; i++) {
 			visitor.visitInsn(cast[i]);
 		}
 		boolean fitsIntoTable = fitsIntoTableSwitch();
 		if (fitsIntoTable) {
-			visitor.visitTableSwitchInsn(cases[0], cases[cases.length - 1], defaultTarget.getLabel(), labels);
+			visitor.visitTableSwitchInsn(cases[0], cases[cases.length - 1], assembler.getLabel(defaultTarget), labels);
 		} else {
-			visitor.visitLookupSwitchInsn(defaultTarget.getLabel(), cases, labels);
+			visitor.visitLookupSwitchInsn(assembler.getLabel(defaultTarget), cases, labels);
 		}
 	}
 

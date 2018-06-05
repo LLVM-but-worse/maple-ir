@@ -7,8 +7,6 @@ import org.mapleir.flowgraph.edges.TryCatchEdge;
 import org.mapleir.ir.code.Stmt;
 import org.mapleir.stdlib.collections.NotifiedList;
 import org.mapleir.stdlib.collections.graph.FastGraphVertex;
-import org.objectweb.asm.Label;
-import org.objectweb.asm.tree.LabelNode;
 
 import java.util.*;
 import java.util.function.Predicate;
@@ -28,17 +26,15 @@ public class BasicBlock implements FastGraphVertex, Collection<Stmt> {
 	 */
 	private int id;
 	private final ControlFlowGraph cfg;
-	private LabelNode label;
 	private final NotifiedList<Stmt> statements;
 	private int flags = 0;
 
 	// for debugging purposes. the number of times the label was changed
 	private int relabelCount = 0;
 
-	public BasicBlock(ControlFlowGraph cfg, int id, LabelNode label) {
+	public BasicBlock(ControlFlowGraph cfg, int id) {
 		this.cfg = cfg;
 		this.id = id;
-		this.label = label;
 		statements = new NotifiedList<>(
 				(s) -> s.setBlock(this),
 				(s) -> {
@@ -238,18 +234,6 @@ public class BasicBlock implements FastGraphVertex, Collection<Stmt> {
 			assert (this == bb);
 		}
 		return id == bb.id;
-	}
-
-	public void resetLabel() {
-		label = new LabelNode();
-	}
-
-	public Label getLabel() {
-		return label.getLabel();
-	}
-	
-	public LabelNode getLabelNode() {
-		return label;
 	}
 	
 	public void checkConsistency() {

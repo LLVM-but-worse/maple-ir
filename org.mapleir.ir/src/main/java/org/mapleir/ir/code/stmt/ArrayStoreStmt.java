@@ -2,11 +2,11 @@ package org.mapleir.ir.code.stmt;
 
 import org.mapleir.ir.TypeUtils;
 import org.mapleir.ir.TypeUtils.ArrayType;
-import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.CodeUnit;
 import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.code.Expr.Precedence;
 import org.mapleir.ir.code.Stmt;
+import org.mapleir.ir.codegen.BytecodeFrontend;
 import org.mapleir.stdlib.util.TabbedStringWriter;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Type;
@@ -90,13 +90,13 @@ public class ArrayStoreStmt extends Stmt {
 	}
 
 	@Override
-	public void toCode(MethodVisitor visitor, ControlFlowGraph cfg) {
-		arrayExpression.toCode(visitor, cfg);
-		indexExpression.toCode(visitor, cfg);
+	public void toCode(MethodVisitor visitor, BytecodeFrontend assembler) {
+		arrayExpression.toCode(visitor, assembler);
+		indexExpression.toCode(visitor, assembler);
 		int[] iCast = TypeUtils.getPrimitiveCastOpcodes(indexExpression.getType(), Type.INT_TYPE); // widen
 		for (int i = 0; i < iCast.length; i++)
 			visitor.visitInsn(iCast[i]);
-		valueExpression.toCode(visitor, cfg);
+		valueExpression.toCode(visitor, assembler);
 		if (TypeUtils.isPrimitive(type.getType())) {
 //			System.out.println(this);
 //			System.out.println(valueExpression.getType() + " -> " + type.getType());

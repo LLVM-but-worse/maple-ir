@@ -1,19 +1,15 @@
 package org.mapleir.ir.code.expr;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-
 import org.mapleir.ir.cfg.BasicBlock;
-import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.CodeUnit;
 import org.mapleir.ir.code.Expr;
+import org.mapleir.ir.codegen.BytecodeFrontend;
 import org.mapleir.stdlib.util.TabbedStringWriter;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Type;
+
+import java.util.*;
+import java.util.Map.Entry;
 
 public class PhiExpr extends Expr {
 
@@ -100,7 +96,7 @@ public class PhiExpr extends Expr {
 	}
 
 	@Override
-	public void toCode(MethodVisitor visitor, ControlFlowGraph cfg) {
+	public void toCode(MethodVisitor visitor, BytecodeFrontend assembler) {
 		throw new UnsupportedOperationException("Phi is not executable.");
 	}
 

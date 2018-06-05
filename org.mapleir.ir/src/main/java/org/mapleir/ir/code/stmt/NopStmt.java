@@ -1,8 +1,8 @@
 package org.mapleir.ir.code.stmt;
 
-import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.CodeUnit;
 import org.mapleir.ir.code.Stmt;
+import org.mapleir.ir.codegen.BytecodeFrontend;
 import org.mapleir.stdlib.util.TabbedStringWriter;
 import org.objectweb.asm.MethodVisitor;
 
@@ -21,7 +21,7 @@ public class NopStmt extends Stmt {
 	}
 
 	@Override
-	public void toCode(MethodVisitor visitor, ControlFlowGraph cfg) {
+	public void toCode(MethodVisitor visitor, BytecodeFrontend assembler) {
 	}
 
 	@Override

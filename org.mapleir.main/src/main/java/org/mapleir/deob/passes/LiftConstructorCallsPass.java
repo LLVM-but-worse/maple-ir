@@ -14,7 +14,6 @@ import org.mapleir.ir.code.expr.invoke.InvocationExpr;
 import org.mapleir.ir.locals.Local;
 import org.mapleir.ir.utils.CFGUtils;
 import org.objectweb.asm.tree.ClassNode;
-import org.objectweb.asm.tree.LabelNode;
 import org.objectweb.asm.tree.MethodNode;
 
 import java.util.List;
@@ -88,7 +87,7 @@ public class LiftConstructorCallsPass implements Opcode, IPass {
 	}
 	
 	private void split(ControlFlowGraph cfg, BasicBlock b, Stmt at) {
-		BasicBlock newBlock = new BasicBlock(cfg, CFGUtils.getMaxId(cfg) + 1, new LabelNode());
+		BasicBlock newBlock = new BasicBlock(cfg, CFGUtils.getMaxId(cfg) + 1);
 		cfg.addVertex(newBlock);
 		
 		System.out.println(CFGUtils.printBlock(b));

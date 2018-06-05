@@ -2,9 +2,9 @@ package org.mapleir.ir.code.expr.invoke;
 
 import org.mapleir.app.service.InvocationResolver;
 import org.mapleir.ir.TypeUtils;
-import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.CodeUnit;
 import org.mapleir.ir.code.Expr;
+import org.mapleir.ir.codegen.BytecodeFrontend;
 import org.mapleir.stdlib.collections.CollectionUtils;
 import org.mapleir.stdlib.util.TabbedStringWriter;
 import org.objectweb.asm.MethodVisitor;
@@ -98,7 +98,7 @@ public class InitialisedObjectExpr extends Invocation {
 	}
 
 	@Override
-	public void toCode(MethodVisitor visitor, ControlFlowGraph cfg) {
+	public void toCode(MethodVisitor visitor, BytecodeFrontend assembler) {
 		Type[] argTypes = Type.getArgumentTypes(desc);
 		if (argTypes.length < args.length) {
 			Type[] bck = argTypes;
@@ -110,7 +110,7 @@ public class InitialisedObjectExpr extends Invocation {
 		visitor.visitTypeInsn(Opcodes.NEW, owner);
 		visitor.visitInsn(Opcodes.DUP);
 		for (int i = 0; i < args.length; i++) {
-			args[i].toCode(visitor, cfg);
+			args[i].toCode(visitor, assembler);
 			if (TypeUtils.isPrimitive(args[i].getType())) {
 				int[] cast = TypeUtils.getPrimitiveCastOpcodes(args[i].getType(), argTypes[i]);
 				for (int a = 0; a < cast.length; a++)

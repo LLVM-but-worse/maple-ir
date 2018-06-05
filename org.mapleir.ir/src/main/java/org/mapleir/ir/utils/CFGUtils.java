@@ -13,7 +13,6 @@ import org.mapleir.ir.code.stmt.UnconditionalJumpStmt;
 import org.mapleir.ir.code.stmt.copy.CopyVarStmt;
 import org.mapleir.stdlib.collections.graph.algorithms.SimpleDfs;
 import org.mapleir.stdlib.util.TabbedStringWriter;
-import org.objectweb.asm.tree.LabelNode;
 
 import java.util.*;
 
@@ -203,7 +202,7 @@ public class CFGUtils {
 	 * @return The new block, containing the split-off instructions
 	 */
 	public static BasicBlock splitBlockSimple(ControlFlowGraph cfg, int newId, BasicBlock b, int to) {
-		BasicBlock newBlock = new BasicBlock(cfg, newId, new LabelNode());
+		BasicBlock newBlock = new BasicBlock(cfg, newId);
 		cfg.addVertex(newBlock);
 		b.transferUpto(newBlock, to);
 		return newBlock;

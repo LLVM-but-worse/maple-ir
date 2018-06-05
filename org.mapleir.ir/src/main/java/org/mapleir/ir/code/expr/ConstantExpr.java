@@ -1,9 +1,9 @@
 package org.mapleir.ir.code.expr;
 
 import org.mapleir.ir.TypeUtils;
-import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.CodeUnit;
 import org.mapleir.ir.code.Expr;
+import org.mapleir.ir.codegen.BytecodeFrontend;
 import org.mapleir.stdlib.util.TabbedStringWriter;
 import org.objectweb.asm.Handle;
 import org.objectweb.asm.MethodVisitor;
@@ -188,7 +188,7 @@ public class ConstantExpr extends Expr {
 	}
 	
 	@Override
-	public void toCode(MethodVisitor visitor, ControlFlowGraph cfg) {
+	public void toCode(MethodVisitor visitor, BytecodeFrontend assembler) {
 		if (cst == null) {
 			visitor.visitInsn(Opcodes.ACONST_NULL);
 		} else if (cst instanceof Integer || cst instanceof Byte || cst instanceof Short) {
