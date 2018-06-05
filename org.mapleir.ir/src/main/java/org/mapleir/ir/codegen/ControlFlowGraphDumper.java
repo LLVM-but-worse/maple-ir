@@ -13,7 +13,7 @@ import org.mapleir.ir.code.stmt.UnconditionalJumpStmt;
 import org.mapleir.stdlib.collections.graph.*;
 import org.mapleir.stdlib.collections.graph.algorithms.SimpleDfs;
 import org.mapleir.stdlib.collections.graph.algorithms.TarjanSCC;
-import org.mapleir.stdlib.util.IndexedList;
+import org.mapleir.stdlib.collections.list.IndexedList;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.AbstractInsnNode;

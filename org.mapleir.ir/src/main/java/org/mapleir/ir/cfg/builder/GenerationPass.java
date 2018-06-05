@@ -21,6 +21,8 @@ import org.mapleir.ir.code.stmt.ConditionalJumpStmt.ComparisonType;
 import org.mapleir.ir.code.stmt.MonitorStmt.MonitorMode;
 import org.mapleir.ir.code.stmt.copy.CopyVarStmt;
 import org.mapleir.ir.locals.Local;
+import org.mapleir.stdlib.collections.bitset.GenericBitSet;
+import org.mapleir.stdlib.collections.list.IndexedList;
 import org.mapleir.stdlib.util.StringHelper;
 import org.objectweb.asm.Handle;
 import org.objectweb.asm.Opcodes;
@@ -56,20 +58,15 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 	private final GenerationVerifier verifier;
 	
 	protected final InsnList insns;
-	private final BitSet finished;
+	private final GenericBitSet<BasicBlock> finished;
 	private final Deque<LabelNode> queue;
 	private final Set<LabelNode> marks;
 	private final Map<BasicBlock, ExpressionStack> inputStacks;
 	
-	private BitSet stacks;
+	private GenericBitSet<BasicBlock> stacks;
 	protected BasicBlock currentBlock;
 	protected ExpressionStack currentStack;
 	protected boolean saved;
-
-	// describes the "natural order" of the blocks, useful at this stage because we're close to the bytecode level
-	// especially necessary for building the exception ranges metadata from the bytecode handler tables.
-	// previously this was accomplished using getNumericId() but it's better to not rely on that instead.
-	private final HashMap<BasicBlock, Integer> orderMap;
 
 	// moved from FastBlockGraph
 	private final Map<LabelNode, BasicBlock> blockLabels;
@@ -83,12 +80,11 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		 * we do this so that when a flow function is reached, 
 		 * we can create the block reference and then handle
 		 * the creation mechanism later. */
-		finished = new BitSet();
+		finished = builder.graph.createBitSet();
 		queue = new LinkedList<>();
-		stacks = new BitSet();
+		stacks = builder.graph.createBitSet();
 		marks = new HashSet<>();
 		inputStacks = new HashMap<>();
-		orderMap = new HashMap<>();
 		blockLabels = new HashMap<>();
 		labelMap = new HashMap<>();
 
@@ -103,7 +99,6 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 
 	protected BasicBlock makeBlock(LabelNode label) {
 		BasicBlock b = new BasicBlock(builder.graph);
-		orderMap.put(b, b.getNumericId());
 		blockLabels.put(label, b);
 		labelMap.put(b, label);
 		queue(label);
@@ -156,7 +151,6 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 	protected void entry(LabelNode firstLabel) {
 		LabelNode l = new LabelNode();
 		BasicBlock entry = new BasicBlock(builder.graph);
-		orderMap.put(entry, entry.getNumericId());
 		blockLabels.put(firstLabel, entry); // this is a strange discrepancy isnt it
 		labelMap.put(entry, l);
 		entry.setFlag(BasicBlock.FLAG_NO_MERGE, true);
@@ -198,7 +192,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		
 		queue(label);
 		
-		stacks.set(orderMap.get(handler));
+		stacks.set(handler, true);
 	}
 	
 	protected void defineInputs(MethodNode m, BasicBlock b) {
@@ -234,7 +228,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 	
 	protected void preprocess(BasicBlock b) {
 		ExpressionStack stack = getInputStackFor(b).copy();
-		stacks.set(orderMap.get(b));
+		stacks.set(b, true);
 		
 		currentBlock = b;
 		currentStack = stack;
@@ -246,7 +240,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		BasicBlock block = blockLabels.get(label);
 		
 		/* if it is, we don't need to process it. */
-		if(block != null && finished.get(orderMap.get(block))) {
+		if(block != null && finished.contains(block)) {
 			return;
 		} else if(block == null) {
 			block = makeBlock(label);
@@ -258,7 +252,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		
 		/* populate instructions. */
 		int codeIndex = insns.indexOf(label);
-		finished.set(orderMap.get(block));
+		finished.set(block, true);
 		while(codeIndex < insns.size() - 1) {
 			AbstractInsnNode ain = insns.get(++codeIndex);
 			int type = ain.type();
@@ -1441,7 +1435,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 	}
 	
 	private void update_target_stack(BasicBlock b, BasicBlock target, ExpressionStack stack) {
-		if(stacks.get(orderMap.get(b)) && !saved) {
+		if(stacks.contains(b) && !saved) {
 			save_stack();
 		}
 		// called just before a jump to a successor block may
@@ -1449,11 +1443,11 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		// happen before the jump are expected to have already
 		// popped the left and right arguments from the stack before
 		// checking the merge state.
-		if (!stacks.get(orderMap.get(target))) {
+		if (!stacks.contains(target)) {
 			// unfinalised block found.
 			// System.out.println("Setting target stack of " + target.getId() + " to " + stack);
 			setInputStack(target, stack.copy());
-			stacks.set(orderMap.get(target));
+			stacks.set(target, true);
 
 			queue(labelMap.get(target));
 		} else if (!can_succeed(getInputStackFor(target), stack)) {
@@ -1482,11 +1476,11 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 //		String endName = StringHelper.createBlockName(end);
 		int blockIndex = 0;
 		for(BasicBlock b : gblocks) {
-			if(orderMap.get(b) == start) {
+			if(blockIndex == start) {
 				startBlock = b;
 				startIndex = blockIndex;
 			}
-			if(orderMap.get(b) == end) {
+			if(blockIndex == end) {
 				endBlock = b;
 				endIndex = blockIndex;
 			}
@@ -1527,12 +1521,12 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 //			System.out.printf("from %d to %d, handler:%d, type:%s.%n", insns.indexOf(tc.start), insns.indexOf(tc.end), insns.indexOf(tc.handler), tc.type);
 //			System.out.println(String.format("%s:%s:%s", BasicBlock.createBlockName(insns.indexOf(tc.start)), BasicBlock.createBlockName(insns.indexOf(tc.end)), builder.graph.getBlock(tc.handler).getId()));
 			
-			int start = orderMap.get(blockLabels.get(tc.start));
-			int end = orderMap.get(blockLabels.get(tc.end)) - 1;
+			int start = order.indexOf(blockLabels.get(tc.start));
+			int end = order.indexOf(blockLabels.get(tc.end)) - 1;
 			
 			List<BasicBlock> range = range(order, start, end);
 			BasicBlock handler = blockLabels.get(tc.handler);
-			String key = String.format("%d:%d:%s", start, end, orderMap.get(handler));
+			String key = String.format("%d:%d:%s", start, end, order.indexOf(handler));
 			
 			ExceptionRange<BasicBlock> erange;
 			if(ranges.containsKey(key)) {
@@ -1543,7 +1537,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 				erange.addVertices(range);
 				ranges.put(key, erange);
 				
-				if(!isContiguous(erange)) {
+				if(!isContiguous(erange, order)) {
 					System.out.println(erange + " not contiguous");
 				}
 				builder.graph.addRange(erange);
@@ -1567,13 +1561,13 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		}
 	}
 
-	private boolean isContiguous(ExceptionRange<BasicBlock> exceptionRange) {
+	private boolean isContiguous(ExceptionRange<BasicBlock> exceptionRange, List<BasicBlock> order) {
 		ListIterator<BasicBlock> lit = exceptionRange.getNodes().listIterator();
 		while(lit.hasNext()) {
 			BasicBlock prev = lit.next();
 			if(lit.hasNext()) {
 				BasicBlock b = lit.next();
-				if(orderMap.get(prev) >= orderMap.get(b)) {
+				if(order.indexOf(prev) >= order.indexOf(b)) {
 					return false;
 				}
 			}
@@ -1611,18 +1605,16 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		}
 		
 		ensureMarks();
-		
-		List<BasicBlock> blocks = new ArrayList<>(builder.graph.vertices());
-		blocks.sort((o1, o2) -> {
+
+		// naturalize based on code order for ranges step
+		List<BasicBlock> order = new IndexedList<>(builder.graph.vertices()); // amortized O(1) indexOf, fastly!
+		order.sort((o1, o2) -> {
 			int i1 = insns.indexOf(labelMap.get(o1));
 			int i2 = insns.indexOf(labelMap.get(o2));
 			return Integer.compare(i1, i2);
 		});
-		builder.graph.relabel(blocks);
-		orderMap.clear(); // since we're changing the "natural" order of the blocks, we need to rebuild the order map.
-		for (int i = 0; i < blocks.size(); i++)
-			orderMap.put(blocks.get(i), i);
-		makeRanges(blocks);
+		builder.graph.relabel(order);
+		makeRanges(order);
 	}
 
 	@Override

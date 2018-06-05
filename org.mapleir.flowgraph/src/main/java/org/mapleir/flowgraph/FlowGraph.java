@@ -158,6 +158,7 @@ public abstract class FlowGraph<N extends FastGraphVertex, E extends FlowEdge<N>
 
 		@Override
 		public N get(int index) {
+			// really, we don't want to be using this since it pretty much defeats the point of the whole bitset scheme.
 			return indexMap.get(index);
 		}
 

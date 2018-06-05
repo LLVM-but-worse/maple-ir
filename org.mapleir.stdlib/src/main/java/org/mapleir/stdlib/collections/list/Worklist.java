@@ -1,4 +1,4 @@
-package org.mapleir.stdlib.util;
+package org.mapleir.stdlib.collections.list;
 
 import java.util.Collection;
 import java.util.HashSet;
