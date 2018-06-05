@@ -53,7 +53,7 @@ public class UnconditionalJumpStmt extends Stmt {
 	public boolean equivalent(CodeUnit s) {
 		if(s instanceof UnconditionalJumpStmt) {
 			UnconditionalJumpStmt jump = (UnconditionalJumpStmt) s;
-			return target.getNumericId() == jump.target.getNumericId();
+			return target == jump.target;
 		}
 		return false;
 	}

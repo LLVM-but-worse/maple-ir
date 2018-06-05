@@ -1,7 +1,5 @@
 package org.mapleir.flowgraph;
 
-import java.util.*;
-
 import org.mapleir.flowgraph.edges.FlowEdge;
 import org.mapleir.flowgraph.edges.TryCatchEdge;
 import org.mapleir.stdlib.collections.bitset.BitSetIndexer;
@@ -10,6 +8,8 @@ import org.mapleir.stdlib.collections.graph.FastDirectedGraph;
 import org.mapleir.stdlib.collections.graph.FastGraphVertex;
 import org.mapleir.stdlib.collections.graph.GraphUtils;
 import org.mapleir.stdlib.collections.map.ValueCreator;
+
+import java.util.*;
 
 public abstract class FlowGraph<N extends FastGraphVertex, E extends FlowEdge<N>> extends FastDirectedGraph<N, E> implements ValueCreator<GenericBitSet<N>> {
 	
@@ -195,7 +195,9 @@ public abstract class FlowGraph<N extends FastGraphVertex, E extends FlowEdge<N>
 			return basicBlock != null && indexedSet.get(getIndex(basicBlock));
 		}
 	}
-	
+
+	// What the fuck...this is such a kludge
+	// TODO
 	private static int translateBlockIndex(int i) {
 		return i == GraphUtils.FAKEHEAD_ID ? 0 : ++i;
 	}

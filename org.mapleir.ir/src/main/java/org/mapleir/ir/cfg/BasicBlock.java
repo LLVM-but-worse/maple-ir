@@ -1,10 +1,5 @@
 package org.mapleir.ir.cfg;
 
-import static org.mapleir.stdlib.util.StringHelper.createBlockName;
-
-import java.util.*;
-import java.util.function.Predicate;
-
 import org.mapleir.flowgraph.ExceptionRange;
 import org.mapleir.flowgraph.edges.FlowEdge;
 import org.mapleir.flowgraph.edges.ImmediateEdge;
@@ -15,13 +10,22 @@ import org.mapleir.stdlib.collections.graph.FastGraphVertex;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.tree.LabelNode;
 
+import java.util.*;
+import java.util.function.Predicate;
+
+import static org.mapleir.stdlib.util.StringHelper.createBlockName;
+
 public class BasicBlock implements FastGraphVertex, Collection<Stmt> {
 
 	/**
 	 * Specifies that this block should not be merged in later passes.
 	 */
 	public static final int FLAG_NO_MERGE = 0x1;
-	
+
+	/**
+	 * Two blocks A, B, must have A.id == B.id IFF A == B
+	 * Very important!
+	 */
 	private int id;
 	private final ControlFlowGraph cfg;
 	private LabelNode label;
@@ -95,6 +99,13 @@ public class BasicBlock implements FastGraphVertex, Collection<Stmt> {
 		return createBlockName(id);
 	}
 
+	/**
+	 * If you call me you better know what you are doing.
+	 * If you use me in any collections, they must be entirely rebuilt from scratch
+	 * ESPECIALLY indexed or hash-based ones.
+	 * This includes collections of edges too.
+	 * @param i newId
+	 */
 	public void setId(int i) {
 		relabelCount++;
 		id = i;

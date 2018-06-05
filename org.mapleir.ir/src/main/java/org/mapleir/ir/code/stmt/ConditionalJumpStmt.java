@@ -220,7 +220,7 @@ public class ConditionalJumpStmt extends Stmt {
 	public boolean equivalent(CodeUnit s) {
 		if(s instanceof ConditionalJumpStmt) {
 			ConditionalJumpStmt jump = (ConditionalJumpStmt) s;
-			return type == jump.type && left.equivalent(jump.left) && right.equals(jump.right) && trueSuccessor.getNumericId() == jump.trueSuccessor.getNumericId();
+			return type == jump.type && left.equivalent(jump.left) && right.equals(jump.right) && trueSuccessor == jump.trueSuccessor;
 		}
 		return false;
 	}
