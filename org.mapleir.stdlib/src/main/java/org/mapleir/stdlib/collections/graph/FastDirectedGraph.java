@@ -1,5 +1,6 @@
 package org.mapleir.stdlib.collections.graph;
 
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -26,7 +27,7 @@ public abstract class FastDirectedGraph<N extends FastGraphVertex, E extends Fas
 	
 	@Override
 	public Set<N> vertices() {
-		return map.keySet();
+		return Collections.unmodifiableSet(map.keySet());
 	}
 
 	@Override
