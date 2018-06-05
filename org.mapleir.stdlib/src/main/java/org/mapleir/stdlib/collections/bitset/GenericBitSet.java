@@ -25,6 +25,8 @@ public class GenericBitSet<N> implements Set<N> {
 	}
 
 	public boolean set(N n, boolean state) {
+		if (n == null)
+			throw new IllegalArgumentException();
         if (!state && !indexer.isIndexed(n))
             return false;
         int index = indexer.getIndex(n);
@@ -35,6 +37,8 @@ public class GenericBitSet<N> implements Set<N> {
 
 	@Override
 	public boolean add(N n) {
+		if (n == null)
+			throw new IllegalArgumentException();
 		boolean ret = !contains(n);
 		if (n != null && indexer.getIndex(n) > 100000) {
 			System.err.println("Probable bitset memory leak");
@@ -54,10 +58,10 @@ public class GenericBitSet<N> implements Set<N> {
 		return true;
 	}
 
-	public boolean containsAll(GenericBitSet<N> set) {
-		BitSet temp = (BitSet) set.bitset.clone(); // if contains all, set.bitset will be a subset of our bitset
+	public boolean containsAll(GenericBitSet<N> other) {
+		BitSet temp = (BitSet) other.bitset.clone(); // if contains all, set.bitset will be a subset of our bitset
 		temp.and(bitset);
-		return temp.equals(set.bitset);
+		return temp.equals(other.bitset);
 	}
 
 	@Override
@@ -68,14 +72,14 @@ public class GenericBitSet<N> implements Set<N> {
 		return true;
 	}
 
-	public boolean containsNone(GenericBitSet<N> set) {
+	public boolean containsNone(GenericBitSet<N> other) {
 		BitSet temp = (BitSet) bitset.clone();
-		temp.and(set.bitset);
+		temp.and(other.bitset);
 		return temp.isEmpty();
 	}
 
-	public boolean containsAny(GenericBitSet<N> set) {
-		return !containsNone(set);
+	public boolean containsAny(GenericBitSet<N> other) {
+		return !containsNone(other);
 	}
 
 	public void addAll(GenericBitSet<N> n) {
@@ -84,9 +88,9 @@ public class GenericBitSet<N> implements Set<N> {
 		bitset.or(n.bitset);
 	}
 
-	public GenericBitSet<N> union(GenericBitSet<N> n) {
+	public GenericBitSet<N> union(GenericBitSet<N> other) {
 		GenericBitSet<N> copy = copy();
-		copy.addAll(n);
+		copy.addAll(other);
 		return copy;
 	}
 
@@ -98,13 +102,13 @@ public class GenericBitSet<N> implements Set<N> {
 		return ret;
 	}
 
-	public void retainAll(GenericBitSet<N> n) {
-		bitset.and(n.bitset);
+	public void retainAll(GenericBitSet<N> other) {
+		bitset.and(other.bitset);
 	}
 
-	public GenericBitSet<N> intersect(GenericBitSet<N> n) {
+	public GenericBitSet<N> intersect(GenericBitSet<N> other) {
 		GenericBitSet<N> copy = copy();
-		copy.retainAll(n);
+		copy.retainAll(other);
 		return copy;
 	}
 
@@ -121,13 +125,13 @@ public class GenericBitSet<N> implements Set<N> {
 		return ret;
 	}
 
-	public void removeAll(GenericBitSet<N> n) {
-		bitset.andNot(n.bitset);
+	public void removeAll(GenericBitSet<N> other) {
+		bitset.andNot(other.bitset);
 	}
 
-	public GenericBitSet<N> relativeComplement(GenericBitSet<N> n) {
+	public GenericBitSet<N> relativeComplement(GenericBitSet<N> other) {
 		GenericBitSet<N> copy = copy();
-		copy.removeAll(n);
+		copy.removeAll(other);
 		return copy;
 	}
 
@@ -162,6 +166,8 @@ public class GenericBitSet<N> implements Set<N> {
 
     @Override @SuppressWarnings("unchecked")
 	public boolean contains(Object o) {
+		if (o == null)
+			throw new IllegalArgumentException();
         return indexer.isIndexed((N) o) && bitset.get(indexer.getIndex((N) o));
     }
 

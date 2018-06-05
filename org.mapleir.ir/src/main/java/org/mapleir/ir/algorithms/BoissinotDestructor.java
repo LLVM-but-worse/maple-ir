@@ -310,6 +310,7 @@ public class BoissinotDestructor {
 		for (Entry<Local, CopyPhiStmt> e : defuse.phiDefs.entrySet()) {
 			Local l = e.getKey();
 			BasicBlock b = e.getValue().getBlock();
+
 			// since we are now in csaa, phi locals never interfere and are in the same congruence class.
 			// therefore we can coalesce them all together and drop phis. with this, we leave cssa.
 			PhiExpr phi = e.getValue().getExpression();
@@ -325,8 +326,10 @@ public class BoissinotDestructor {
 				congruenceClasses.put(argL, pcc);
 			}
 
-			// we can simply drop all the phis without further consideration
-			if (!processed.contains(b)) {
+			// is b is null, this phi copy has block equal to `null`, i.e. it has already
+			// been removed from its block, and thus, already has been processed, so we can skip it.
+			// otherwise, we can simply drop all the phis in the block without further consideration
+			if (b != null && !processed.contains(b)) {
 				processed.add(b);
 				Iterator<Stmt> it = b.iterator();
 				while(it.hasNext()) {

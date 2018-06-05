@@ -10,6 +10,7 @@ import org.mapleir.flowgraph.edges.FlowEdge;
 import org.mapleir.flowgraph.edges.ImmediateEdge;
 import org.mapleir.flowgraph.edges.TryCatchEdge;
 import org.mapleir.ir.code.Stmt;
+import org.mapleir.stdlib.collections.NotifiedList;
 import org.mapleir.stdlib.collections.graph.FastGraphVertex;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.tree.LabelNode;
@@ -24,7 +25,7 @@ public class BasicBlock implements FastGraphVertex, Collection<Stmt> {
 	private int id;
 	private final ControlFlowGraph cfg;
 	private LabelNode label;
-	private final List<Stmt> statements;
+	private final NotifiedList<Stmt> statements;
 	private int flags = 0;
 
 	// for debugging purposes. the number of times the label was changed
@@ -34,9 +35,13 @@ public class BasicBlock implements FastGraphVertex, Collection<Stmt> {
 		this.cfg = cfg;
 		this.id = id;
 		this.label = label;
-		
-		statements = new ArrayList<>();
-		// ranges = new HashMap<>();
+		statements = new NotifiedList<>(
+				(s) -> s.setBlock(this),
+				(s) -> {
+					if (s.getBlock() == this)
+						s.setBlock(null);
+				}
+		);
 	}
 	
 	public boolean isFlagSet(int flag) {
@@ -54,151 +59,22 @@ public class BasicBlock implements FastGraphVertex, Collection<Stmt> {
 	public void setFlags(int flags) {
 		this.flags = flags;
 	}
+
+	public int getFlags() {
+		return flags;
+	}
 	
 	public ControlFlowGraph getGraph() {
 		return cfg;
 	}
 
-	@Override
-	public boolean add(Stmt stmt) {
-		boolean ret = statements.add(stmt);
-		stmt.setBlock(this);
-		return ret;
-	}
-
-	public void add(int index, Stmt stmt) {
-		statements.add(index, stmt);
-		stmt.setBlock(this);
-	}
-
-	@Override
-	public boolean remove(Object o) {
-		boolean ret = statements.remove(o);
-		if (o instanceof Stmt && ((Stmt) o).getBlock() == this)
-			((Stmt) o).setBlock(null);
-		return ret;
-	}
-
-	@Override
-	public boolean containsAll(Collection<?> c) {
-		return statements.containsAll(c);
-	}
-
-	@Override
-	public boolean addAll(Collection<? extends Stmt> c) {
-		for (Stmt stmt : c)
-			add(stmt);
-		return c.size() != 0;
-	}
-
-	public boolean addAll(int index, Collection<? extends Stmt> c) {
-		for (Stmt stmt : c)
-			add(index++, stmt);
-		return c.size() != 0;
-	}
-
-	@Override
-	public boolean removeAll(Collection<?> c) {
-		boolean ret = false;
-		for (Object o : c)
-			ret = remove(o) || ret;
-		return ret;
-	}
-
-	@Override
-	public boolean retainAll(Collection<?> c) {
-		boolean ret = false;
-		Iterator<Stmt> it = iterator();
-		while (it.hasNext()) {
-			Stmt stmt = it.next();
-			if (!c.contains(stmt)) {
-				it.remove();
-				stmt.setBlock(null);
-				ret = true;
-			}
-		}
-		return ret;
-	}
-
-	public Stmt remove(int index) {
-		Stmt stmt = statements.remove(index);
-		if (stmt.getBlock() == this)
-			stmt.setBlock(null);
-		return stmt;
-	}
-
-	@Override
-	public boolean contains(Object o) {
-		return statements.contains(o);
-	}
-
-	@Override
-	public boolean isEmpty() {
-		return statements.isEmpty();
-	}
-
-	public int indexOf(Object o) {
-		return statements.indexOf(o);
-	}
-
-	public int lastIndexOf(Object o) {
-		return statements.lastIndexOf(o);
-	}
-
-	public Stmt get(int index) {
-		return statements.get(index);
-	}
-
-	public Stmt set(int index, Stmt stmt) {
-		stmt.setBlock(this);
-		return statements.set(index, stmt);
-	}
-
-	@Override
-	public int size() {
-		return statements.size();
-	}
-
-	@Override
-	public void clear() {
+	public void transfer(BasicBlock dst) {
 		Iterator<Stmt> it = statements.iterator();
 		while(it.hasNext()) {
 			Stmt s = it.next();
 			it.remove();
-		}
-	}
-
-	@Override
-	public Iterator<Stmt> iterator() {
-		return statements.iterator();
-	}
-
-	public ListIterator<Stmt> listIterator() {
-		return statements.listIterator();
-	}
-
-	public ListIterator<Stmt> listIterator(int index) {
-		return statements.listIterator(index);
-	}
-
-	@Override
-	public Object[] toArray() {
-		return statements.toArray();
-	}
-
-	@Override
-	public <T> T[] toArray(T[] a) {
-		return statements.toArray(a);
-	}
-
-	
-	public void transfer(BasicBlock to) {
-		Iterator<Stmt> it = statements.iterator();
-		while(it.hasNext()) {
-			Stmt s = it.next();
-			to.statements.add(s);
-			s.setBlock(to);
-			it.remove();
+			dst.add(s);
+			assert (s.getBlock() == dst);
 		}
 	}
 
@@ -208,9 +84,9 @@ public class BasicBlock implements FastGraphVertex, Collection<Stmt> {
 	public void transferUpto(BasicBlock dst, int to) {
 		// FIXME: faster
 		for(int i=to - 1; i >= 0; i--) {
-			Stmt s = statements.remove(0);
+			Stmt s = remove(0);
 			dst.add(s);
-			s.setBlock(dst);
+			assert (s.getBlock() == dst);
 		}
 	}
 
@@ -230,21 +106,6 @@ public class BasicBlock implements FastGraphVertex, Collection<Stmt> {
 	}
 	
 	public List<ExceptionRange<BasicBlock>> getProtectingRanges() {
-		/* Iterator<Entry<ExceptionRange<BasicBlock>, Integer>> it = ranges.entrySet().iterator();
-		while(it.hasNext()) {
-			Entry<ExceptionRange<BasicBlock>, Integer> e = it.next();
-			ExceptionRange<BasicBlock> key = e.getKey();
-			if(!cfg.getRanges().contains(key) || !key.containsVertex(this)) {
-				it.remove();
-				continue;
-			}
-			int oldhc = e.getValue();
-			int newhc = key.hashCode();
-			if(oldhc != newhc) {
-				e.setValue(newhc);
-			}
-		} */
-		
 		List<ExceptionRange<BasicBlock>> ranges = new ArrayList<>();
 		for(ExceptionRange<BasicBlock> er : cfg.getRanges()) {
 			if(er.containsVertex(this)) {
@@ -386,7 +247,106 @@ public class BasicBlock implements FastGraphVertex, Collection<Stmt> {
 //				throw new IllegalStateException("Orphaned child " + stmt);
 //	}
 
-	public int getFlags() {
-		return flags;
+	// List functions
+	@Override
+	public boolean add(Stmt stmt) {
+		return statements.add(stmt);
 	}
+
+	public void add(int index, Stmt stmt) {
+		statements.add(index, stmt);
+	}
+
+	@Override
+	public boolean remove(Object o) {
+		return statements.remove(o);
+	}
+
+	@Override
+	public boolean containsAll(Collection<?> c) {
+		return statements.containsAll(c);
+	}
+
+	@Override
+	public boolean addAll(Collection<? extends Stmt> c) {
+		return statements.addAll(c);
+	}
+
+	public boolean addAll(int index, Collection<? extends Stmt> c) {
+		return statements.addAll(index, c);
+	}
+
+	@Override
+	public boolean removeAll(Collection<?> c) {
+		return statements.removeAll(c);
+	}
+
+	@Override
+	public boolean retainAll(Collection<?> c) {
+		return statements.retainAll(c);
+	}
+
+	public Stmt remove(int index) {
+		return statements.remove(index);
+	}
+
+	@Override
+	public boolean contains(Object o) {
+		return statements.contains(o);
+	}
+
+	@Override
+	public boolean isEmpty() {
+		return statements.isEmpty();
+	}
+
+	public int indexOf(Object o) {
+		return statements.indexOf(o);
+	}
+
+	public int lastIndexOf(Object o) {
+		return statements.lastIndexOf(o);
+	}
+
+	public Stmt get(int index) {
+		return statements.get(index);
+	}
+
+	public Stmt set(int index, Stmt stmt) {
+		return statements.set(index, stmt);
+	}
+
+	@Override
+	public int size() {
+		return statements.size();
+	}
+
+	@Override
+	public void clear() {
+		statements.clear();
+	}
+
+	@Override
+	public Iterator<Stmt> iterator() {
+		return statements.iterator();
+	}
+
+	public ListIterator<Stmt> listIterator() {
+		return statements.listIterator();
+	}
+
+	public ListIterator<Stmt> listIterator(int index) {
+		return statements.listIterator(index);
+	}
+
+	@Override
+	public Object[] toArray() {
+		return statements.toArray();
+	}
+
+	@Override
+	public <T> T[] toArray(T[] a) {
+		return statements.toArray(a);
+	}
+	// End list functions
 }
