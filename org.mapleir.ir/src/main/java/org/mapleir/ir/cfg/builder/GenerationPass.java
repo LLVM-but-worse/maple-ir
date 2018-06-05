@@ -68,7 +68,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 	protected ExpressionStack currentStack;
 	protected boolean saved;
 
-	// moved from FastBlockGraph
+	// moved from FastBlockGraph and BasicBlock respectively
 	private final Map<LabelNode, BasicBlock> blockLabels;
 	private final Map<BasicBlock, LabelNode> labelMap;
 

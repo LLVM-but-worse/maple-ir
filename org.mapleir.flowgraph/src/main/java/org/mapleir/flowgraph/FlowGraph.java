@@ -145,6 +145,12 @@ public abstract class FlowGraph<N extends FastGraphVertex, E extends FlowEdge<N>
 		return new GenericBitSet<>(indexer);
 	}
 
+	public GenericBitSet<N> createBitSet(Collection<N> other) {
+		GenericBitSet<N> set = createBitSet();
+		set.addAll(other);
+		return set;
+	}
+
 	@Override
 	public GenericBitSet<N> create() {
 		return createBitSet();
