@@ -29,7 +29,8 @@ public class ExceptionRange<N extends FastGraphVertex> {
 	public N getHandler() {
 		return handler;
 	}
-	
+
+	// TODO: make immutable
 	public List<N> get() {
 		return new ArrayList<>(nodes);
 	}
@@ -93,22 +94,6 @@ public class ExceptionRange<N extends FastGraphVertex> {
 		return nodes.contains(handler);
 	}
 
-	// FIXME: can't rely on numeric for random graphs
-	@Deprecated
-	public boolean isContiguous() {
-		ListIterator<N> lit = nodes.listIterator();
-		while(lit.hasNext()) {
-			N prev = lit.next();
-			if(lit.hasNext()) {
-				N b = lit.next();
-				if(prev.getNumericId() >= b.getNumericId()) {
-					return false;
-				}
-			}
-		}
-		return true;
-	}
-	
 	@Override
 	public String toString() {
 		return String.format("handler=%s, types=%s, range=%s", handler, types, rangetoString(nodes));
@@ -136,6 +121,6 @@ public class ExceptionRange<N extends FastGraphVertex> {
 	}
 	
 	public List<N> getNodes() {
-		return nodes;
+		return Collections.unmodifiableList(nodes);
 	}
 }
