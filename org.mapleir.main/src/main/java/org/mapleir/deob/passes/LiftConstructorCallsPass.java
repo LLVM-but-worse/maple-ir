@@ -87,7 +87,7 @@ public class LiftConstructorCallsPass implements Opcode, IPass {
 	}
 	
 	private void split(ControlFlowGraph cfg, BasicBlock b, Stmt at) {
-		BasicBlock newBlock = new BasicBlock(cfg, cfg.size() + 1);
+		BasicBlock newBlock = new BasicBlock(cfg);
 		cfg.addVertex(newBlock);
 		
 		System.out.println(CFGUtils.printBlock(b));

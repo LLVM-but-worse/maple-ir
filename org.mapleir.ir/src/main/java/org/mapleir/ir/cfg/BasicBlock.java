@@ -32,9 +32,9 @@ public class BasicBlock implements FastGraphVertex, Collection<Stmt> {
 	// for debugging purposes. the number of times the label was changed
 	private int relabelCount = 0;
 
-	public BasicBlock(ControlFlowGraph cfg, int id) {
+	public BasicBlock(ControlFlowGraph cfg) {
 		this.cfg = cfg;
-		this.id = id;
+		this.id = cfg.size() + 1;
 		statements = new NotifiedList<>(
 				(s) -> s.setBlock(this),
 				(s) -> {

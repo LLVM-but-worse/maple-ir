@@ -21,7 +21,6 @@ public class ControlFlowGraphBuilder {
 	protected final ControlFlowGraph graph;
 	protected final Set<Local> locals;
 	protected final NullPermeableHashMap<Local, Set<BasicBlock>> assigns;
-	protected int count = 0;
 	protected BasicBlock head;
 	
 	public ControlFlowGraphBuilder(MethodNode method) {
@@ -30,7 +29,6 @@ public class ControlFlowGraphBuilder {
 			graph = new ControlFlowGraph(new StaticMethodLocalsPool());
 		} else {
 			graph = new ControlFlowGraph(new VirtualMethodLocalsPool());
-
 		}
 		locals = new HashSet<>();
 		assigns = new NullPermeableHashMap<>(HashSet::new);

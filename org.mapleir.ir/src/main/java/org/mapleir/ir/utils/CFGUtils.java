@@ -23,12 +23,12 @@ public class CFGUtils {
 	 * @return the newly created block containing the instructions before `to`
 	 */
 	public static BasicBlock splitBlock(ControlFlowGraph cfg, BasicBlock b, int to) {
-		return splitBlock(cfg, cfg.size() + 1, b, to, false);
+		return splitBlock(cfg, b, to, false);
 	}
 
 	// Please don't call me, call splitBlock(ControlFlowGraph, BasicBlock, int) instead.
 	@Deprecated
-	public static BasicBlock splitBlock(ControlFlowGraph cfg, int newId, BasicBlock b, int to, boolean ssagencheck) {
+	public static BasicBlock splitBlock(ControlFlowGraph cfg, BasicBlock b, int to, boolean ssagencheck) {
 		/* eg. split the block as follows:
 		 *
 		 *  NAME:
@@ -67,7 +67,7 @@ public class CFGUtils {
 		 */
 
 		// split block
-		BasicBlock newBlock = splitBlockSimple(cfg, newId, b, to);
+		BasicBlock newBlock = splitBlockSimple(cfg, b, to);
 
 		// redo ranges
 		for(ExceptionRange<BasicBlock> er : cfg.getRanges()) {
@@ -203,8 +203,8 @@ public class CFGUtils {
 	 * Splits block up to index `to`, exclusively. Doesn't update edges, etc.
 	 * @return The new block, containing the split-off instructions
 	 */
-	public static BasicBlock splitBlockSimple(ControlFlowGraph cfg, int newId, BasicBlock b, int to) {
-		BasicBlock newBlock = new BasicBlock(cfg, newId);
+	public static BasicBlock splitBlockSimple(ControlFlowGraph cfg, BasicBlock b, int to) {
+		BasicBlock newBlock = new BasicBlock(cfg);
 		cfg.addVertex(newBlock);
 		b.transferUpto(newBlock, to);
 		return newBlock;
