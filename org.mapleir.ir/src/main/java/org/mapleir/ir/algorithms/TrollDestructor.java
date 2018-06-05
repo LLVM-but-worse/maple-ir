@@ -479,7 +479,7 @@ public class TrollDestructor {
 					cfg.removeEdge(splitBlock, splitEdges.iterator().next());
 					LinkedHashMap<Integer, BasicBlock> dsts = new LinkedHashMap<>();
 					for (Entry<BasicBlock, Expr> phiArg : phi.getExpression().getArguments().entrySet()) {
-						BasicBlock stubBlock = new BasicBlock(cfg, CFGUtils.getMaxId(cfg) + 1);
+						BasicBlock stubBlock = new BasicBlock(cfg, cfg.size() + 1);
 						// i don't think it's necessary to copy phi arg expression since we
 						// are just reassigning it to a different block. tricky!
 						stubBlock.add(new CopyVarStmt(phi.getVariable().copy(), phiArg.getValue()));
