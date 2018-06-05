@@ -198,10 +198,13 @@ public class ControlFlowGraph extends FlowGraph<BasicBlock, FlowEdge<BasicBlock>
 		if (getEntries().size() != 1)
 			throw new IllegalStateException("Wrong number of entries: " + getEntries());
 
+		int maxId = 0;
 		Set<Integer> usedIds = new HashSet<>();
 		for (BasicBlock b : vertices()) {
 			if (!usedIds.add(b.getNumericId()))
 				throw new IllegalStateException("Id collision: " + b);
+			if (b.getNumericId() > maxId)
+				maxId = b.getNumericId();
 
 			if (getReverseEdges(b).size() == 0 && !getEntries().contains(b)) {
 				throw new IllegalStateException("dead incoming: " + b);
@@ -235,6 +238,8 @@ public class ControlFlowGraph extends FlowGraph<BasicBlock, FlowEdge<BasicBlock>
 
 			b.checkConsistency();
 		}
+		if (maxId != size())
+			throw new IllegalStateException("Bad id numbering: " + size() + " vertices total, but max id is " + maxId);
 
 		for (ExceptionRange<BasicBlock> er : getRanges()) {
 			if (er.getNodes().size() == 0) {
