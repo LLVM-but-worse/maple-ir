@@ -215,10 +215,10 @@ public abstract class InvocationExpr extends Invocation {
 	// 	String desc = getDesc();
 	//
 	// 	if(isStatic()) {
-	// 		return CollectionUtils.asCollection(SetCreator.getInstance(), res.resolveStaticCall(owner, name, desc));
+	// 		return CollectionUtils.asCollection(HashSet::new, res.resolveStaticCall(owner, name, desc));
 	// 	} else {
 	// 		if(name.equals("<init>")) {
-	// 			return CollectionUtils.asCollection(SetCreator.getInstance(), res.resolveVirtualInitCall(owner, desc));
+	// 			return CollectionUtils.asCollection(HashSet::new, res.resolveVirtualInitCall(owner, desc));
 	// 		} else {
 	// 			return res.resolveVirtualCalls(owner, name, desc, true);
 	// 		}

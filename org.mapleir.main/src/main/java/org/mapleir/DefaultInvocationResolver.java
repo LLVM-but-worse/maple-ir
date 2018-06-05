@@ -1,18 +1,17 @@
 package org.mapleir;
 
-import java.lang.reflect.Modifier;
-import java.util.*;
-import java.util.Map.Entry;
-
 import org.apache.log4j.Logger;
 import org.mapleir.app.service.ApplicationClassSource;
 import org.mapleir.app.service.InvocationResolver;
 import org.mapleir.stdlib.collections.map.NullPermeableHashMap;
-import org.mapleir.stdlib.collections.map.SetCreator;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.FieldNode;
 import org.objectweb.asm.tree.MethodNode;
+
+import java.lang.reflect.Modifier;
+import java.util.*;
+import java.util.Map.Entry;
 
 public class DefaultInvocationResolver implements InvocationResolver {
 	
@@ -69,7 +68,7 @@ public class DefaultInvocationResolver implements InvocationResolver {
 			thisAbstractSet = new HashMap<>();
 			globalAVT = new HashMap<>();
 			globalCVT = new HashMap<>();
-			mergeMap = new NullPermeableHashMap<>(new SetCreator<>());
+			mergeMap = new NullPermeableHashMap<>(HashSet::new);
 		}
 	}
 	
@@ -206,7 +205,7 @@ public class DefaultInvocationResolver implements InvocationResolver {
 				print(globalAVT);
 			}
 
-			NullPermeableHashMap<Selector, Set<MethodNode>> mergeMap = new NullPermeableHashMap<>(new SetCreator<>());
+			NullPermeableHashMap<Selector, Set<MethodNode>> mergeMap = new NullPermeableHashMap<>(HashSet::new);
 			
 			if(debugLevel >= 2) {
 				LOGGER.debug(" process interfaces:");

@@ -3,11 +3,11 @@ package org.mapleir.ir.code.expr.invoke;
 import org.mapleir.app.service.InvocationResolver;
 import org.mapleir.ir.code.Expr;
 import org.mapleir.stdlib.collections.CollectionUtils;
-import org.mapleir.stdlib.collections.map.SetCreator;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.MethodNode;
 
+import java.util.HashSet;
 import java.util.Set;
 
 public class StaticInvocationExpr extends InvocationExpr {
@@ -48,6 +48,6 @@ public class StaticInvocationExpr extends InvocationExpr {
 	}
 
 	public static Set<MethodNode> resolveStaticCall(InvocationResolver res, String owner, String name, String desc) {
-		return CollectionUtils.asCollection(SetCreator.getInstance(), res.resolveStaticCall(owner, name, desc));
+		return CollectionUtils.asCollection(HashSet::new, res.resolveStaticCall(owner, name, desc));
 	}
 }
