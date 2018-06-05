@@ -1,15 +1,15 @@
 package org.mapleir.ir.code.expr;
 
-import static org.objectweb.asm.Opcodes.*;
-
 import org.mapleir.ir.TypeUtils;
-import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.CodeUnit;
 import org.mapleir.ir.code.Expr;
+import org.mapleir.ir.codegen.BytecodeFrontend;
 import org.mapleir.stdlib.util.TabbedStringWriter;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.util.Printer;
+
+import static org.objectweb.asm.Opcodes.*;
 
 public class ArithmeticExpr extends Expr {
 
@@ -203,7 +203,7 @@ public class ArithmeticExpr extends Expr {
 	}
 
 	@Override
-	public void toCode(MethodVisitor visitor, ControlFlowGraph cfg) {
+	public void toCode(MethodVisitor visitor, BytecodeFrontend assembler) {
 		Type leftType = null;
 		Type rightType = null;
 		if (operator == Operator.SHL || operator == Operator.SHR || operator == Operator.USHR) {
@@ -212,12 +212,12 @@ public class ArithmeticExpr extends Expr {
 		} else {
 			leftType = rightType = getType();
 		}
-		left.toCode(visitor, cfg);
+		left.toCode(visitor, assembler);
 		int[] lCast = TypeUtils.getPrimitiveCastOpcodes(left.getType(), leftType);
 		for (int i = 0; i < lCast.length; i++)
 			visitor.visitInsn(lCast[i]);
 
-		right.toCode(visitor, cfg);
+		right.toCode(visitor, assembler);
 		int[] rCast = TypeUtils.getPrimitiveCastOpcodes(right.getType(), rightType);
 		for (int i = 0; i < rCast.length; i++)
 			visitor.visitInsn(rCast[i]);

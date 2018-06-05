@@ -73,6 +73,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 
 	// moved from FastBlockGraph
 	private final Map<LabelNode, BasicBlock> blockLabels;
+	private final Map<BasicBlock, LabelNode> labelMap;
 
 	public GenerationPass(ControlFlowGraphBuilder builder) {
 		super(builder);
@@ -89,7 +90,8 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		inputStacks = new HashMap<>();
 		orderMap = new HashMap<>();
 		blockLabels = new HashMap<>();
-		
+		labelMap = new HashMap<>();
+
 		insns = builder.method.instructions;
 		
 		if(GenerationVerifier.VERIFY) {
@@ -101,9 +103,10 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 
 	protected BasicBlock makeBlock(LabelNode label) {
 		int id = ++builder.count;
-		BasicBlock b = new BasicBlock(builder.graph, id, label);
+		BasicBlock b = new BasicBlock(builder.graph, id);
 		orderMap.put(b, id);
 		blockLabels.put(label, b);
+		labelMap.put(b, label);
 		queue(label);
 		builder.graph.addVertex(b);
 		return b;
@@ -154,9 +157,10 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 	protected void entry(LabelNode firstLabel) {
 		LabelNode l = new LabelNode();
 		int id = ++builder.count;
-		BasicBlock entry = new BasicBlock(builder.graph, id, l);
+		BasicBlock entry = new BasicBlock(builder.graph, id);
 		orderMap.put(entry, id);
-		blockLabels.put(firstLabel, entry);
+		blockLabels.put(firstLabel, entry); // this is a strange discrepancy isnt it
+		labelMap.put(entry, l);
 		entry.setFlag(BasicBlock.FLAG_NO_MERGE, true);
 		
 		builder.graph.addVertex(entry);
@@ -1453,7 +1457,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 			setInputStack(target, stack.copy());
 			stacks.set(orderMap.get(target));
 
-			queue(target.getLabelNode());
+			queue(labelMap.get(target));
 		} else if (!can_succeed(getInputStackFor(target), stack)) {
 			// if the targets input stack is finalised and
 			// the new stack cannot merge into it, then there
@@ -1612,8 +1616,8 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		
 		List<BasicBlock> blocks = new ArrayList<>(builder.graph.vertices());
 		blocks.sort((o1, o2) -> {
-			int i1 = insns.indexOf(o1.getLabelNode());
-			int i2 = insns.indexOf(o2.getLabelNode());
+			int i1 = insns.indexOf(labelMap.get(o1));
+			int i2 = insns.indexOf(labelMap.get(o2));
 			return Integer.compare(i1, i2);
 		});
 		builder.graph.relabel(blocks);

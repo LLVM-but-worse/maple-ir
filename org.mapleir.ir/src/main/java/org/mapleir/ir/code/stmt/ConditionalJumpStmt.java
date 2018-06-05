@@ -2,11 +2,11 @@ package org.mapleir.ir.code.stmt;
 
 import org.mapleir.ir.TypeUtils;
 import org.mapleir.ir.cfg.BasicBlock;
-import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.CodeUnit;
 import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.code.Stmt;
 import org.mapleir.ir.code.expr.ConstantExpr;
+import org.mapleir.ir.codegen.BytecodeFrontend;
 import org.mapleir.stdlib.util.TabbedStringWriter;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
@@ -127,7 +127,7 @@ public class ConditionalJumpStmt extends Stmt {
 	}
 
 	@Override
-	public void toCode(MethodVisitor visitor, ControlFlowGraph cfg) {
+	public void toCode(MethodVisitor visitor, BytecodeFrontend assembler) {
 		Type opType = TypeUtils.resolveBinOpType(left.getType(), right.getType());
 
 		if (TypeUtils.isObjectRef(opType)) {
@@ -136,71 +136,71 @@ public class ConditionalJumpStmt extends Stmt {
 				throw new IllegalArgumentException(type.toString());
 			}
 
-			left.toCode(visitor, cfg);
+			left.toCode(visitor, assembler);
 			if (isNull) {
-				visitor.visitJumpInsn(type == ComparisonType.EQ ? Opcodes.IFNULL : Opcodes.IFNONNULL, trueSuccessor.getLabel());
+				visitor.visitJumpInsn(type == ComparisonType.EQ ? Opcodes.IFNULL : Opcodes.IFNONNULL, assembler.getLabel(trueSuccessor));
 			} else {
-				right.toCode(visitor, cfg);
-				visitor.visitJumpInsn(type == ComparisonType.EQ ? Opcodes.IF_ACMPEQ : Opcodes.IF_ACMPNE, trueSuccessor.getLabel());
+				right.toCode(visitor, assembler);
+				visitor.visitJumpInsn(type == ComparisonType.EQ ? Opcodes.IF_ACMPEQ : Opcodes.IF_ACMPNE, assembler.getLabel(trueSuccessor));
 			}
 		} else if (opType == Type.INT_TYPE) {
 			boolean canShorten = right instanceof ConstantExpr && ((ConstantExpr) right).getConstant() instanceof Number
 					&& ((Number) ((ConstantExpr) right).getConstant()).intValue() == 0;
 
-			left.toCode(visitor, cfg);
+			left.toCode(visitor, assembler);
 			int[] cast = TypeUtils.getPrimitiveCastOpcodes(left.getType(), opType);
 			for (int i = 0; i < cast.length; i++) {
 				visitor.visitInsn(cast[i]);
 			}
 			if (canShorten) {
-				visitor.visitJumpInsn(Opcodes.IFEQ + type.ordinal(), trueSuccessor.getLabel());
+				visitor.visitJumpInsn(Opcodes.IFEQ + type.ordinal(), assembler.getLabel(trueSuccessor));
 			} else {
-				right.toCode(visitor, cfg);
+				right.toCode(visitor, assembler);
 				cast = TypeUtils.getPrimitiveCastOpcodes(right.getType(), opType);
 				for (int i = 0; i < cast.length; i++) {
 					visitor.visitInsn(cast[i]);
 				}
-				visitor.visitJumpInsn(Opcodes.IF_ICMPEQ + type.ordinal(), trueSuccessor.getLabel());
+				visitor.visitJumpInsn(Opcodes.IF_ICMPEQ + type.ordinal(), assembler.getLabel(trueSuccessor));
 			}
 		} else if (opType == Type.LONG_TYPE) {
-			left.toCode(visitor, cfg);
+			left.toCode(visitor, assembler);
 			int[] cast = TypeUtils.getPrimitiveCastOpcodes(left.getType(), opType);
 			for (int i = 0; i < cast.length; i++) {
 				visitor.visitInsn(cast[i]);
 			}
-			right.toCode(visitor, cfg);
+			right.toCode(visitor, assembler);
 			cast = TypeUtils.getPrimitiveCastOpcodes(right.getType(), opType);
 			for (int i = 0; i < cast.length; i++) {
 				visitor.visitInsn(cast[i]);
 			}
 			visitor.visitInsn(Opcodes.LCMP);
-			visitor.visitJumpInsn(Opcodes.IFEQ + type.ordinal(), trueSuccessor.getLabel());
+			visitor.visitJumpInsn(Opcodes.IFEQ + type.ordinal(), assembler.getLabel(trueSuccessor));
 		} else if (opType == Type.FLOAT_TYPE) {
-			left.toCode(visitor, cfg);
+			left.toCode(visitor, assembler);
 			int[] cast = TypeUtils.getPrimitiveCastOpcodes(left.getType(), opType);
 			for (int i = 0; i < cast.length; i++) {
 				visitor.visitInsn(cast[i]);
 			}
-			right.toCode(visitor, cfg);
+			right.toCode(visitor, assembler);
 			cast = TypeUtils.getPrimitiveCastOpcodes(right.getType(), opType);
 			for (int i = 0; i < cast.length; i++) {
 				visitor.visitInsn(cast[i]);
 			}
 			visitor.visitInsn((type == ComparisonType.LT || type == ComparisonType.LE) ? Opcodes.FCMPL : Opcodes.FCMPG);
-			visitor.visitJumpInsn(Opcodes.IFEQ + type.ordinal(), trueSuccessor.getLabel());
+			visitor.visitJumpInsn(Opcodes.IFEQ + type.ordinal(), assembler.getLabel(trueSuccessor));
 		} else if (opType == Type.DOUBLE_TYPE) {
-			left.toCode(visitor, cfg);
+			left.toCode(visitor, assembler);
 			int[] cast = TypeUtils.getPrimitiveCastOpcodes(left.getType(), opType);
 			for (int i = 0; i < cast.length; i++) {
 				visitor.visitInsn(cast[i]);
 			}
-			right.toCode(visitor, cfg);
+			right.toCode(visitor, assembler);
 			cast = TypeUtils.getPrimitiveCastOpcodes(right.getType(), opType);
 			for (int i = 0; i < cast.length; i++) {
 				visitor.visitInsn(cast[i]);
 			}
 			visitor.visitInsn((type == ComparisonType.LT || type == ComparisonType.LE) ? Opcodes.DCMPL : Opcodes.DCMPG);
-			visitor.visitJumpInsn(Opcodes.IFEQ + type.ordinal(), trueSuccessor.getLabel());
+			visitor.visitJumpInsn(Opcodes.IFEQ + type.ordinal(), assembler.getLabel(trueSuccessor));
 		} else {
 			throw new IllegalArgumentException(opType.toString());
 		}

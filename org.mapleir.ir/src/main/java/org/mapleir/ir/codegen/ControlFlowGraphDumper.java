@@ -1,4 +1,4 @@
-package org.mapleir.ir.algorithms;
+package org.mapleir.ir.codegen;
 
 import org.mapleir.flowgraph.ExceptionRange;
 import org.mapleir.flowgraph.edges.FlowEdge;
@@ -23,13 +23,14 @@ import org.objectweb.asm.tree.TryCatchBlockNode;
 
 import java.util.*;
 
-public class ControlFlowGraphDumper {
+public class ControlFlowGraphDumper implements BytecodeFrontend {
 	private final ControlFlowGraph cfg;
 	private final MethodNode m;
-	
+
 	private IndexedList<BasicBlock> order;
 	private LabelNode terminalLabel; // synthetic last label for malformed ranges
-	
+	private Map<BasicBlock, LabelNode> labels;
+
 	public ControlFlowGraphDumper(ControlFlowGraph cfg, MethodNode m) {
 		this.cfg = cfg;
 		this.m = m;
@@ -40,24 +41,26 @@ public class ControlFlowGraphDumper {
 		m.instructions.removeAll(true);
 		m.tryCatchBlocks.clear();
 		m.visitCode();
+
+		labels = new HashMap<>();
 		for (BasicBlock b : cfg.vertices()) {
-			b.resetLabel();
+			labels.put(b, new LabelNode());
 		}
 
 		// Linearize
 		linearize();
-		
+
 		// Fix edges
 		naturalise();
-		
+
 		// Sanity check linearization
 		verifyOrdering();
 
 		// Dump code
 		for (BasicBlock b : order) {
-			m.visitLabel(b.getLabel());
+			m.visitLabel(getLabel(b));
 			for (Stmt stmt : b) {
-				stmt.toCode(m, null);
+				stmt.toCode(m, this);
 			}
 		}
 		terminalLabel = new LabelNode();
@@ -254,7 +257,7 @@ public class ControlFlowGraphDumper {
 			type = typeSet.iterator().next();
 		}
 		
-		final Label handler = er.getHandler().getLabel();
+		final Label handler = getLabel(er.getHandler());
 		List<BasicBlock> range = new ArrayList<>(er.getNodes());
 		range.sort(Comparator.comparing(order::indexOf));
 		
@@ -267,7 +270,7 @@ public class ControlFlowGraphDumper {
 			}
 			BasicBlock b = range.get(rangeIdx);
 			orderIdx = order.indexOf(b);
-			start = b.getLabel();
+			start = getLabel(b);
 		} while (orderIdx == -1);
 		
 		for (;;) {
@@ -276,7 +279,7 @@ public class ControlFlowGraphDumper {
 				m.visitTryCatchBlock(start, terminalLabel.getLabel(), handler, type.getInternalName());
 				break;
 			} else if (rangeIdx + 1 == range.size()) { // end of range
-				Label end = order.get(orderIdx + 1).getLabel();
+				Label end = getLabel(order.get(orderIdx + 1));
 				m.visitTryCatchBlock(start, end, handler, type.getInternalName());
 				break;
 			}
@@ -286,9 +289,9 @@ public class ControlFlowGraphDumper {
 			int nextOrderIdx = order.indexOf(nextBlock);
 			if (nextOrderIdx - orderIdx > 1) { // blocks in-between, end the handler and begin anew
 				System.err.println("[warn] Had to split up a range: " + m);
-				Label end = order.get(orderIdx + 1).getLabel();
+				Label end = getLabel(order.get(orderIdx + 1));
 				m.visitTryCatchBlock(start, end, handler, type.getInternalName());
-				start = nextBlock.getLabel();
+				start = getLabel(nextBlock);
 			}
 
 			// next
@@ -321,7 +324,12 @@ public class ControlFlowGraphDumper {
 				throw new IllegalStateException("Try/catch endpoints missing: " + start + " " + end + " " + handler + m);
 		}
 	}
-	
+
+	@Override
+	public Label getLabel(BasicBlock b) {
+		return labels.get(b).getLabel();
+	}
+
 	private static class BundleGraph extends FastDirectedGraph<BlockBundle, FastGraphEdge<BlockBundle>> {
 		@Override
 		public FastGraphEdge<BlockBundle> clone(FastGraphEdge<BlockBundle> edge, BlockBundle oldN, BlockBundle newN) {

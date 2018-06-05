@@ -11,6 +11,7 @@ import org.mapleir.ir.code.expr.VarExpr;
 import org.mapleir.ir.code.stmt.copy.AbstractCopyStmt;
 import org.mapleir.ir.code.stmt.copy.CopyPhiStmt;
 import org.mapleir.ir.code.stmt.copy.CopyVarStmt;
+import org.mapleir.ir.codegen.BytecodeFrontend;
 import org.mapleir.ir.locals.Local;
 import org.mapleir.ir.locals.LocalsPool;
 import org.mapleir.ir.locals.impl.VersionedLocal;
@@ -843,7 +844,7 @@ public class BoissinotDestructor {
 		}
 
 		@Override
-		public void toCode(MethodVisitor visitor, ControlFlowGraph cfg) {
+		public void toCode(MethodVisitor visitor, BytecodeFrontend assembler) {
 			throw new UnsupportedOperationException("Synthetic");
 		}
 

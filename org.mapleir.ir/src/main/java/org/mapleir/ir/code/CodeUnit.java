@@ -1,16 +1,16 @@
 package org.mapleir.ir.code;
 
+import org.mapleir.ir.cfg.BasicBlock;
+import org.mapleir.ir.code.expr.PhiExpr;
+import org.mapleir.ir.codegen.BytecodeFrontend;
+import org.mapleir.stdlib.collections.graph.FastGraphVertex;
+import org.mapleir.stdlib.util.TabbedStringWriter;
+import org.objectweb.asm.MethodVisitor;
+
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-
-import org.mapleir.ir.cfg.BasicBlock;
-import org.mapleir.ir.cfg.ControlFlowGraph;
-import org.mapleir.ir.code.expr.PhiExpr;
-import org.mapleir.stdlib.collections.graph.FastGraphVertex;
-import org.mapleir.stdlib.util.TabbedStringWriter;
-import org.objectweb.asm.MethodVisitor;
 
 public abstract class CodeUnit implements FastGraphVertex, Opcode {
 
@@ -319,7 +319,7 @@ public abstract class CodeUnit implements FastGraphVertex, Opcode {
 
 	public abstract void toString(TabbedStringWriter printer);
 
-	public abstract void toCode(MethodVisitor visitor, ControlFlowGraph cfg);
+	public abstract void toCode(MethodVisitor visitor, BytecodeFrontend assembler);
 
 	public abstract boolean canChangeFlow();
 

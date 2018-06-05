@@ -1,9 +1,9 @@
 package org.mapleir.ir.code.stmt;
 
 import org.mapleir.ir.cfg.BasicBlock;
-import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.CodeUnit;
 import org.mapleir.ir.code.Stmt;
+import org.mapleir.ir.codegen.BytecodeFrontend;
 import org.mapleir.stdlib.util.TabbedStringWriter;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
@@ -35,8 +35,8 @@ public class UnconditionalJumpStmt extends Stmt {
 	}
 
 	@Override
-	public void toCode(MethodVisitor visitor, ControlFlowGraph cfg) {
-		visitor.visitJumpInsn(Opcodes.GOTO, target.getLabel());		
+	public void toCode(MethodVisitor visitor, BytecodeFrontend assembler) {
+		visitor.visitJumpInsn(Opcodes.GOTO, assembler.getLabel(target));
 	}
 
 	@Override

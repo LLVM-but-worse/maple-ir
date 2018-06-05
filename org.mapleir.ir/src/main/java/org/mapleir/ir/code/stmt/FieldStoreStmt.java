@@ -1,11 +1,11 @@
 package org.mapleir.ir.code.stmt;
 
 import org.mapleir.ir.TypeUtils;
-import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.CodeUnit;
 import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.code.Expr.Precedence;
 import org.mapleir.ir.code.Stmt;
+import org.mapleir.ir.codegen.BytecodeFrontend;
 import org.mapleir.stdlib.util.TabbedStringWriter;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
@@ -118,10 +118,10 @@ public class FieldStoreStmt extends Stmt {
 	}
 
 	@Override
-	public void toCode(MethodVisitor visitor, ControlFlowGraph cfg) {
+	public void toCode(MethodVisitor visitor, BytecodeFrontend assembler) {
 		if (instanceExpression != null)
-			instanceExpression.toCode(visitor, cfg);
-		valueExpression.toCode(visitor, cfg);
+			instanceExpression.toCode(visitor, assembler);
+		valueExpression.toCode(visitor, assembler);
 		if (TypeUtils.isPrimitive(Type.getType(desc))) {
 			int[] cast = TypeUtils.getPrimitiveCastOpcodes(valueExpression.getType(), Type.getType(desc));
 			for (int i = 0; i < cast.length; i++)

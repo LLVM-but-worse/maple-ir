@@ -1,9 +1,9 @@
 package org.mapleir.ir.code.expr.invoke;
 
 import org.mapleir.ir.TypeUtils;
-import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.CodeUnit;
 import org.mapleir.ir.code.Expr;
+import org.mapleir.ir.codegen.BytecodeFrontend;
 import org.mapleir.stdlib.util.TabbedStringWriter;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Type;
@@ -139,7 +139,7 @@ public abstract class InvocationExpr extends Invocation {
 	protected abstract void generateCallCode(MethodVisitor visitor); 
 
 	@Override
-	public void toCode(MethodVisitor visitor, ControlFlowGraph cfg) {
+	public void toCode(MethodVisitor visitor, BytecodeFrontend assembler) {
 		Type[] argTypes = Type.getArgumentTypes(desc);
 		if (!isStatic()) {
 			Type[] bck = argTypes;
@@ -149,7 +149,7 @@ public abstract class InvocationExpr extends Invocation {
 		}
 		
 		for (int i = 0; i < args.length; i++) {
-			args[i].toCode(visitor, cfg);
+			args[i].toCode(visitor, assembler);
 			if (TypeUtils.isPrimitive(args[i].getType())) {
 				int[] cast = TypeUtils.getPrimitiveCastOpcodes(args[i].getType(), argTypes[i]);
 				for (int a = 0; a < cast.length; a++) {

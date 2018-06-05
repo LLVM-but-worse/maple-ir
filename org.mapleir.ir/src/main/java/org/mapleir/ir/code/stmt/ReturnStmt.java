@@ -1,10 +1,10 @@
 package org.mapleir.ir.code.stmt;
 
 import org.mapleir.ir.TypeUtils;
-import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.CodeUnit;
 import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.code.Stmt;
+import org.mapleir.ir.codegen.BytecodeFrontend;
 import org.mapleir.stdlib.util.TabbedStringWriter;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
@@ -59,9 +59,9 @@ public class ReturnStmt extends Stmt {
 	}
 
 	@Override
-	public void toCode(MethodVisitor visitor, ControlFlowGraph cfg) {
+	public void toCode(MethodVisitor visitor, BytecodeFrontend assembler) {
 		if (type != Type.VOID_TYPE) {
-			expression.toCode(visitor, cfg);
+			expression.toCode(visitor, assembler);
 			if (TypeUtils.isPrimitive(type)) {
 				int[] cast = TypeUtils.getPrimitiveCastOpcodes(expression.getType(), type); // widen
 				for (int i = 0; i < cast.length; i++)

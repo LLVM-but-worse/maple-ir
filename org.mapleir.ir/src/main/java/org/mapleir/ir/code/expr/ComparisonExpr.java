@@ -1,15 +1,15 @@
 package org.mapleir.ir.code.expr;
 
-import static org.objectweb.asm.Opcodes.*;
-
-import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.CodeUnit;
 import org.mapleir.ir.code.Expr;
+import org.mapleir.ir.codegen.BytecodeFrontend;
 import org.mapleir.stdlib.util.TabbedStringWriter;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.util.Printer;
+
+import static org.objectweb.asm.Opcodes.*;
 
 public class ComparisonExpr extends Expr {
 
@@ -113,9 +113,9 @@ public class ComparisonExpr extends Expr {
 	}
 
 	@Override
-	public void toCode(MethodVisitor visitor, ControlFlowGraph cfg) {
-		left.toCode(visitor, cfg);
-		right.toCode(visitor, cfg);
+	public void toCode(MethodVisitor visitor, BytecodeFrontend assembler) {
+		left.toCode(visitor, assembler);
+		right.toCode(visitor, assembler);
 
 		if (left.getType() == Type.LONG_TYPE || right.getType() == Type.LONG_TYPE) {
 			visitor.visitInsn(Opcodes.LCMP);

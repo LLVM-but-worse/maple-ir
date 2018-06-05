@@ -1,11 +1,11 @@
 package org.mapleir.ir.code.stmt.copy;
 
 import org.mapleir.ir.TypeUtils;
-import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.CodeUnit;
 import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.code.Stmt;
 import org.mapleir.ir.code.expr.VarExpr;
+import org.mapleir.ir.codegen.BytecodeFrontend;
 import org.mapleir.ir.locals.Local;
 import org.mapleir.stdlib.util.TabbedStringWriter;
 import org.objectweb.asm.MethodVisitor;
@@ -90,7 +90,7 @@ public abstract class AbstractCopyStmt extends Stmt {
 
 	@Override
 	// todo: this probably needs a refactoring
-	public void toCode(MethodVisitor visitor, ControlFlowGraph cfg) {
+	public void toCode(MethodVisitor visitor, BytecodeFrontend assembler) {
 		if(expression instanceof VarExpr) {
 			if(((VarExpr) expression).getLocal() == variable.getLocal()) {
 				return;
@@ -99,7 +99,7 @@ public abstract class AbstractCopyStmt extends Stmt {
 		
 		variable.getLocal().setTempLocal(false);
 		
-		expression.toCode(visitor, cfg);
+		expression.toCode(visitor, assembler);
 		Type type = variable.getType();
 		if (TypeUtils.isPrimitive(type)) {
 			int[] cast = TypeUtils.getPrimitiveCastOpcodes(expression.getType(), type);

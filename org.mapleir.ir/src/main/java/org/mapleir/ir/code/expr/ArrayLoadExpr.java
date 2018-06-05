@@ -2,9 +2,9 @@ package org.mapleir.ir.code.expr;
 
 import org.mapleir.ir.TypeUtils;
 import org.mapleir.ir.TypeUtils.ArrayType;
-import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.CodeUnit;
 import org.mapleir.ir.code.Expr;
+import org.mapleir.ir.codegen.BytecodeFrontend;
 import org.mapleir.stdlib.util.TabbedStringWriter;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Type;
@@ -89,9 +89,9 @@ public class ArrayLoadExpr extends Expr {
 	}
 
 	@Override
-	public void toCode(MethodVisitor visitor, ControlFlowGraph cfg) {
-		array.toCode(visitor, cfg);
-		index.toCode(visitor, cfg);
+	public void toCode(MethodVisitor visitor, BytecodeFrontend assembler) {
+		array.toCode(visitor, assembler);
+		index.toCode(visitor, assembler);
 //		System.out.println("the:  " + index.getId() + ". "+ index);
 //		System.out.println("  par:   " + getRootParent().getId() + ". "+ getRootParent());
 		int[] iCast = TypeUtils.getPrimitiveCastOpcodes(index.getType(), Type.INT_TYPE);
