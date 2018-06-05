@@ -69,17 +69,19 @@ public abstract class FlowGraph<N extends FastGraphVertex, E extends FlowEdge<N>
 		boolean ret = super.addVertex(v);
 		
 		int index = v.getNumericId();
+		assert(!indexMap.containsKey(index) || indexMap.get(index) == v); // ensure no id collisions
 		indexMap.put(index, v);
 		indexedSet.set(index, true);
 		return ret;
-	}	
-	
+	}
+
 	@Override
 	public void addEdge(E e) {
 		super.addEdge(e);
 
 		N src = e.src();
 		int index = src.getNumericId();
+		assert(!indexMap.containsKey(index) || indexMap.get(index) == src); // ensure no id collisions
 		indexMap.put(index, src);
 		indexedSet.set(index, true);
 	}
@@ -112,53 +114,23 @@ public abstract class FlowGraph<N extends FastGraphVertex, E extends FlowEdge<N>
 		indexMap.remove(index);
 		indexedSet.set(index, false);
 	}
-	
-	public Set<N> wanderAllTrails(N from, N to, boolean forward) {
-		return wanderAllTrails(from, to, forward, true);
-	}
 
-	public Set<N> wanderAllTrails(N from, N to) {
-		return wanderAllTrails(from, to, true, false);
-	}
-
-	public Set<N> wanderAllTrails(N from, N to, boolean forward, boolean followExceptions) {
+	// this is some pretty bad code duplication but it's not too big of a deal.
+	public Set<N> dfsNoHandlers(N from, N to) {
 		Set<N> visited = new HashSet<>();
-		LinkedList<N> stack = new LinkedList<>();
-		stack.add(from);
-		
-		while(!stack.isEmpty()) {
-			N s = stack.pop();
-			
-			Set<E> edges = forward ? getEdges(s) : getReverseEdges(s);
-			for(FlowEdge<N> e : edges) {
-				if(e instanceof TryCatchEdge && !followExceptions)
-					continue;
-				N next = forward ? e.dst() : e.src();
-				if(next != to && !visited.contains(next)) {
-					stack.add(next);
-					visited.add(next);
-				}
-			}
-		}
-		
-		visited.add(from);
-		
-		return visited;
-	}	
-	
-	public Set<N> wanderAllTrails(N from) {
-		Set<N> visited = new HashSet<>();
-		LinkedList<N> stack = new LinkedList<>();
-		stack.add(from);
+		Deque<N> stack = new ArrayDeque<>();
+		stack.push(from);
 		
 		while(!stack.isEmpty()) {
 			N s = stack.pop();
 			
 			Set<E> edges = getEdges(s);
 			for(FlowEdge<N> e : edges) {
+				if(e instanceof TryCatchEdge)
+					continue;
 				N next = e.dst();
-				if(!visited.contains(next)) {
-					stack.add(next);
+				if(next != to && !visited.contains(next)) {
+					stack.push(next);
 					visited.add(next);
 				}
 			}
