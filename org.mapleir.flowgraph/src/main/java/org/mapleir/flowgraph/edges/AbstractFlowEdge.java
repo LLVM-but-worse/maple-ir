@@ -1,6 +1,5 @@
 package org.mapleir.flowgraph.edges;
 
-import org.mapleir.stdlib.collections.graph.FastGraphEdge;
 import org.mapleir.stdlib.collections.graph.FastGraphEdgeImpl;
 import org.mapleir.stdlib.collections.graph.FastGraphVertex;
 

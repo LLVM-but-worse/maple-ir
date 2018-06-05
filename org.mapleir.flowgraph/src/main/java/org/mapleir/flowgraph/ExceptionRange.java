@@ -1,11 +1,10 @@
 package org.mapleir.flowgraph;
 
-import java.util.*;
-
 import org.mapleir.stdlib.collections.graph.FastGraphVertex;
 import org.mapleir.stdlib.util.StringHelper;
 import org.objectweb.asm.Type;
-import org.objectweb.asm.tree.TryCatchBlockNode;
+
+import java.util.*;
 
 /**
  * THIS IS NOT IMMUTABLE 

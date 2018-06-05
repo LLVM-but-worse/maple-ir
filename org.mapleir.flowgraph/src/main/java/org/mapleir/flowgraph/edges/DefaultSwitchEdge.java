@@ -1,7 +1,6 @@
 package org.mapleir.flowgraph.edges;
 
 import org.mapleir.stdlib.collections.graph.FastGraphVertex;
-import org.objectweb.asm.tree.AbstractInsnNode;
 
 public class DefaultSwitchEdge<N extends FastGraphVertex> extends AbstractFlowEdge<N> {
 	
