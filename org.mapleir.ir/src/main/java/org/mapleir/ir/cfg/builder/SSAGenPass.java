@@ -29,6 +29,7 @@ import org.mapleir.ir.locals.impl.BasicLocal;
 import org.mapleir.ir.locals.impl.VersionedLocal;
 import org.mapleir.ir.utils.CFGUtils;
 import org.mapleir.stdlib.collections.graph.algorithms.SimpleDfs;
+import org.mapleir.stdlib.collections.list.IndexedList;
 import org.mapleir.stdlib.collections.map.NullPermeableHashMap;
 import org.objectweb.asm.Type;
 
@@ -53,12 +54,11 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 	private final Map<VersionedLocal, LatestValue> latest;
 	private final Set<VersionedLocal> deferred;
 	private final NullPermeableHashMap<VersionedLocal, Set<VersionedLocal>> shadowed;
-	
+
 	private LocalsPool pool;
 	private TarjanDominanceComputor<BasicBlock> doms;
 	private Liveness<BasicBlock> liveness;
-	private int graphSize;
-	
+
 	public SSAGenPass(ControlFlowGraphBuilder builder) {
 		super(builder);
 
@@ -296,9 +296,10 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 			counters.put(l, 0);
 			stacks.put(l, new Stack<>());
 		}
-		
+
+		List<BasicBlock> topoorder = new IndexedList<>(SimpleDfs.topoorder(builder.graph, builder.head));
 		Set<BasicBlock> vis = new HashSet<>();
-		search(builder.head, vis);
+		search(builder.head, vis, topoorder);
 		
 		updatePhiArgTypes(vis);
 	}
@@ -328,22 +329,16 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		}
 	}
 	
-	private void search(BasicBlock b, Set<BasicBlock> vis) {
+	private void search(BasicBlock b, Set<BasicBlock> vis, List<BasicBlock> order) {
 		if(vis.contains(b)) {
 			return;
 		}
 		vis.add(b);
 		
 		searchImpl(b);
-		
-		List<FlowEdge<BasicBlock>> succs = new ArrayList<>();
-		for(FlowEdge<BasicBlock> succE : builder.graph.getEdges(b)) {
-			succs.add(succE);
-		}
 
-		// temporary HACK
-		SimpleDfs<BasicBlock> dfs = new SimpleDfs<>(builder.graph, builder.head, SimpleDfs.TOPO);
-		succs.sort(Comparator.comparing(o -> dfs.getTopoOrder().indexOf(o.dst())));
+		List<FlowEdge<BasicBlock>> succs = new ArrayList<>(builder.graph.getEdges(b));
+		succs.sort(Comparator.comparing(o -> order.indexOf(o.dst())));
 		
 		for(FlowEdge<BasicBlock> succE : succs) {
 			BasicBlock succ = succE.dst();
@@ -352,7 +347,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		
 		for(FlowEdge<BasicBlock> succE : succs) {
 			BasicBlock succ = succE.dst();
-			search(succ, vis);
+			search(succ, vis, order);
 		}
 		
 		unstackDefs(b);
@@ -1365,7 +1360,6 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 	public void run() {
 		pool = builder.graph.getLocals();
 		
-		graphSize = builder.graph.size() + 1;
 
 		order.addAll(builder.graph.vertices());
 		order.remove(builder.head);
