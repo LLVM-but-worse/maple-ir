@@ -11,6 +11,7 @@ import org.mapleir.ir.code.stmt.SwitchStmt;
 import org.mapleir.ir.code.stmt.ThrowStmt;
 import org.mapleir.ir.code.stmt.UnconditionalJumpStmt;
 import org.mapleir.ir.code.stmt.copy.CopyVarStmt;
+import org.mapleir.stdlib.collections.bitset.GenericBitSet;
 import org.mapleir.stdlib.collections.graph.algorithms.SimpleDfs;
 import org.mapleir.stdlib.util.TabbedStringWriter;
 
@@ -288,8 +289,8 @@ public class CFGUtils {
 		if (cfg.getEntries().size() != 1)
 			throw new IllegalArgumentException();
 		BasicBlock head = cfg.getEntries().iterator().next();
-		Set<BasicBlock> reachable = new HashSet<>(SimpleDfs.preorder(cfg, head));
-		Set<BasicBlock> unreachable = new HashSet<>(cfg.vertices());
+		GenericBitSet<BasicBlock> reachable = cfg.createBitSet(SimpleDfs.preorder(cfg, head));
+		GenericBitSet<BasicBlock> unreachable = cfg.createBitSet(cfg.vertices());
 		unreachable.removeAll(reachable);
 		for (BasicBlock b : unreachable) {
 			cfg.removeVertex(b);
