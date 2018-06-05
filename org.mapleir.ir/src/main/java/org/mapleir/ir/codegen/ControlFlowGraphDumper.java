@@ -330,6 +330,11 @@ public class ControlFlowGraphDumper implements BytecodeFrontend {
 		return labels.get(b).getLabel();
 	}
 
+	@Override
+	public ControlFlowGraph getGraph() {
+		return cfg;
+	}
+
 	private static class BundleGraph extends FastDirectedGraph<BlockBundle, FastGraphEdge<BlockBundle>> {
 		@Override
 		public FastGraphEdge<BlockBundle> clone(FastGraphEdge<BlockBundle> edge, BlockBundle oldN, BlockBundle newN) {
