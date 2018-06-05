@@ -1,15 +1,15 @@
 package org.mapleir.deob.callgraph;
 
-import java.util.HashMap;
-import java.util.LinkedHashSet;
-import java.util.Map;
-import java.util.Set;
-
 import org.mapleir.deob.callgraph.CallGraphNode.CallReceiverNode;
 import org.mapleir.deob.callgraph.CallGraphNode.CallSiteNode;
 import org.mapleir.ir.code.expr.invoke.Invocation;
 import org.mapleir.stdlib.collections.graph.FastDirectedGraph;
 import org.objectweb.asm.tree.MethodNode;
+
+import java.util.HashMap;
+import java.util.LinkedHashSet;
+import java.util.Map;
+import java.util.Set;
 
 public class CallSiteSensitiveCallGraph extends FastDirectedGraph<CallGraphNode, CallGraphEdge> {
 	
@@ -84,16 +84,6 @@ public class CallSiteSensitiveCallGraph extends FastDirectedGraph<CallGraphNode,
 	public Set<CallGraphEdge> createSet(Set<CallGraphEdge> set) {
 		return new LinkedHashSet<>(set);
 	}
-	
-	@Override
-	public boolean excavate(CallGraphNode n) {
-		throw new UnsupportedOperationException("Induced subgraph not supported.");
-	}
-
-	@Override
-	public boolean jam(CallGraphNode pred, CallGraphNode succ, CallGraphNode n) {
-		throw new UnsupportedOperationException("Edge splitting not supported.");
-	}
 
 	@Override
 	public CallGraphEdge clone(CallGraphEdge edge, CallGraphNode oldN, CallGraphNode newN) {
@@ -112,18 +102,6 @@ public class CallSiteSensitiveCallGraph extends FastDirectedGraph<CallGraphNode,
 			return edge.clone(src, dst);
 		} else {
 			throw new UnsupportedOperationException(String.format("Cannot clone %s for %s and %s", edge, src, dst));
-		}
-	}
-
-	@Override
-	public CallGraphEdge invert(CallGraphEdge edge) {
-		CallGraphNode src = edge.dst();
-		CallGraphNode dst = edge.src();
-
-		if (edge.canClone(src, dst)) {
-			return edge.clone(src, dst);
-		} else {
-			throw new UnsupportedOperationException(String.format("Cannot invert %s", edge));
 		}
 	}
 

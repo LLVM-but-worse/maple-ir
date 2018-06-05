@@ -57,7 +57,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 	
 	protected final InsnList insns;
 	private final BitSet finished;
-	private final LinkedList<LabelNode> queue;
+	private final Deque<LabelNode> queue;
 	private final Set<LabelNode> marks;
 	private final Map<BasicBlock, ExpressionStack> inputStacks;
 	
@@ -70,6 +70,9 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 	// especially necessary for building the exception ranges metadata from the bytecode handler tables.
 	// previously this was accomplished using getNumericId() but it's better to not rely on that instead.
 	private final HashMap<BasicBlock, Integer> orderMap;
+
+	// moved from FastBlockGraph
+	private final Map<LabelNode, BasicBlock> blockLabels;
 
 	public GenerationPass(ControlFlowGraphBuilder builder) {
 		super(builder);
@@ -85,6 +88,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		marks = new HashSet<>();
 		inputStacks = new HashMap<>();
 		orderMap = new HashMap<>();
+		blockLabels = new HashMap<>();
 		
 		insns = builder.method.instructions;
 		
@@ -95,31 +99,18 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		}
 	}
 
-	private boolean isContiguous(ExceptionRange<BasicBlock> exceptionRange) {
-		ListIterator<BasicBlock> lit = exceptionRange.getNodes().listIterator();
-		while(lit.hasNext()) {
-			BasicBlock prev = lit.next();
-			if(lit.hasNext()) {
-				BasicBlock b = lit.next();
-				if(orderMap.get(prev) >= orderMap.get(b)) {
-					return false;
-				}
-			}
-		}
-		return true;
-	}
-
 	protected BasicBlock makeBlock(LabelNode label) {
 		int id = ++builder.count;
 		BasicBlock b = new BasicBlock(builder.graph, id, label);
 		orderMap.put(b, id);
+		blockLabels.put(label, b);
 		queue(label);
 		builder.graph.addVertex(b);
 		return b;
 	}
 	
 	protected BasicBlock resolveTarget(LabelNode label) {
-		BasicBlock block = builder.graph.getBlock(label);
+		BasicBlock block = blockLabels.get(label);
 		if(block == null) {
 			block = makeBlock(label);
 		}
@@ -165,6 +156,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		int id = ++builder.count;
 		BasicBlock entry = new BasicBlock(builder.graph, id, l);
 		orderMap.put(entry, id);
+		blockLabels.put(firstLabel, entry);
 		entry.setFlag(BasicBlock.FLAG_NO_MERGE, true);
 		
 		builder.graph.addVertex(entry);
@@ -249,7 +241,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 	
 	protected void process(LabelNode label) {
 		/* it may not be properly initialised yet, however. */
-		BasicBlock block = builder.graph.getBlock(label);
+		BasicBlock block = blockLabels.get(label);
 		
 		/* if it is, we don't need to process it. */
 		if(block != null && finished.get(orderMap.get(block))) {
@@ -1533,11 +1525,11 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 //			System.out.printf("from %d to %d, handler:%d, type:%s.%n", insns.indexOf(tc.start), insns.indexOf(tc.end), insns.indexOf(tc.handler), tc.type);
 //			System.out.println(String.format("%s:%s:%s", BasicBlock.createBlockName(insns.indexOf(tc.start)), BasicBlock.createBlockName(insns.indexOf(tc.end)), builder.graph.getBlock(tc.handler).getId()));
 			
-			int start = orderMap.get(builder.graph.getBlock(tc.start));
-			int end = orderMap.get(builder.graph.getBlock(tc.end)) - 1;
+			int start = orderMap.get(blockLabels.get(tc.start));
+			int end = orderMap.get(blockLabels.get(tc.end)) - 1;
 			
 			List<BasicBlock> range = range(order, start, end);
-			BasicBlock handler = builder.graph.getBlock(tc.handler);
+			BasicBlock handler = blockLabels.get(tc.handler);
 			String key = String.format("%d:%d:%s", start, end, orderMap.get(handler));
 			
 			ExceptionRange<BasicBlock> erange;
@@ -1571,6 +1563,20 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 				builder.graph.addEdge(new TryCatchEdge<>(block, erange));
 			}
 		}
+	}
+
+	private boolean isContiguous(ExceptionRange<BasicBlock> exceptionRange) {
+		ListIterator<BasicBlock> lit = exceptionRange.getNodes().listIterator();
+		while(lit.hasNext()) {
+			BasicBlock prev = lit.next();
+			if(lit.hasNext()) {
+				BasicBlock b = lit.next();
+				if(orderMap.get(prev) >= orderMap.get(b)) {
+					return false;
+				}
+			}
+		}
+		return true;
 	}
 	
 	private void ensureMarks() {

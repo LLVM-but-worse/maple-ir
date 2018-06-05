@@ -1,8 +1,5 @@
 package org.mapleir.deob.passes;
 
-import java.util.List;
-import java.util.Set;
-
 import org.mapleir.context.AnalysisContext;
 import org.mapleir.deob.IPass;
 import org.mapleir.flowgraph.edges.FlowEdge;
@@ -19,6 +16,9 @@ import org.mapleir.ir.utils.CFGUtils;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.LabelNode;
 import org.objectweb.asm.tree.MethodNode;
+
+import java.util.List;
+import java.util.Set;
 
 public class LiftConstructorCallsPass implements Opcode, IPass {
 
@@ -88,7 +88,7 @@ public class LiftConstructorCallsPass implements Opcode, IPass {
 	}
 	
 	private void split(ControlFlowGraph cfg, BasicBlock b, Stmt at) {
-		BasicBlock newBlock = new BasicBlock(cfg, cfg.vertices().size() + 1, new LabelNode());
+		BasicBlock newBlock = new BasicBlock(cfg, CFGUtils.getMaxId(cfg) + 1, new LabelNode());
 		cfg.addVertex(newBlock);
 		
 		System.out.println(CFGUtils.printBlock(b));
