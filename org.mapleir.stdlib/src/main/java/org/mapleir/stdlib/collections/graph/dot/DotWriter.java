@@ -310,7 +310,12 @@ public class DotWriter<G extends FastGraph<N, E>, N extends FastGraphVertex, E e
 			File imgFile = new File(GRAPH_FOLDER, fname + ".png");
 			if (imgFile.exists())
 				imgFile.delete();
-			ProcessBuilder builder = new ProcessBuilder('"' + gv.getAbsolutePath() + '"', "-Tpng", '"' + dotFile.getAbsolutePath() + '"', "-o", '"' + imgFile.getAbsolutePath() + '"');
+			String[] args;
+			if (System.getProperty("os.name").toLowerCase().indexOf("win") >= 0) // windows
+				args = new String[] { '"' + gv.getAbsolutePath() + '"', "-Tpng", '"' + dotFile.getAbsolutePath() + '"', "-o", '"' + imgFile.getAbsolutePath() + '"' };
+			else // linux
+				args = new String[] { "dot", "-Tpng", dotFile.getAbsolutePath(), "-o", imgFile.getAbsolutePath() };
+			ProcessBuilder builder = new ProcessBuilder(args);
 			builder.redirectError(ProcessBuilder.Redirect.INHERIT);
 			Process process = builder.start();
 			builder.redirectError(ProcessBuilder.Redirect.INHERIT);
