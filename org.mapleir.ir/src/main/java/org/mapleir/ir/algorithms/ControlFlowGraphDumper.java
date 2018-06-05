@@ -152,7 +152,7 @@ public class ControlFlowGraphDumper {
 				if (e instanceof ImmediateEdge)
 					continue;
 				BlockBundle src = bundles.get(b);
-				bundleGraph.addEdge(src, new FastGraphEdgeImpl<>(src, bundles.get(e.dst())));
+				bundleGraph.addEdge(new FastGraphEdgeImpl<>(src, bundles.get(e.dst())));
 			}
 		}
 		
@@ -208,8 +208,8 @@ public class ControlFlowGraphDumper {
 				if (e instanceof ImmediateEdge && order.indexOf(dst) != i + 1) {
 					// Fix immediates
 					b.add(new UnconditionalJumpStmt(dst));
-					cfg.removeEdge(b, e);
-					cfg.addEdge(b, new UnconditionalJumpEdge<>(b, dst));
+					cfg.removeEdge(e);
+					cfg.addEdge(new UnconditionalJumpEdge<>(b, dst));
 				} else if (e instanceof UnconditionalJumpEdge && order.indexOf(dst) == i + 1) {
 					// Remove extraneous gotos
 					for (ListIterator<Stmt> it = b.listIterator(b.size()); it.hasPrevious(); ) {
@@ -218,8 +218,8 @@ public class ControlFlowGraphDumper {
 							break;
 						}
 					}
-					cfg.removeEdge(b, e);
-					cfg.addEdge(b, new ImmediateEdge<>(b, dst));
+					cfg.removeEdge(e);
+					cfg.addEdge(new ImmediateEdge<>(b, dst));
 				}
 			}
 		}
@@ -359,7 +359,7 @@ public class ControlFlowGraphDumper {
 				subgraph.addVertex(n);
 				for (FastGraphEdge<BlockBundle> e : getEdges(n)) {
 					if (vertices.contains(e.dst()))
-						subgraph.addEdge(n, e);
+						subgraph.addEdge(e);
 				}
 			}
 			return subgraph;

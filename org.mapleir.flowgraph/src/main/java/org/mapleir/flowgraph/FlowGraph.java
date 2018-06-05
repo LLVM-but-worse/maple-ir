@@ -76,11 +76,12 @@ public abstract class FlowGraph<N extends FastGraphVertex, E extends FlowEdge<N>
 	}	
 	
 	@Override
-	public void addEdge(N v, E e) {
-		super.addEdge(v, e);
-		
-		int index = translateBlockIndex(v.getNumericId());
-		indexMap.put(index, v);
+	public void addEdge(E e) {
+		super.addEdge(e);
+
+		N src = e.src();
+		int index = translateBlockIndex(src.getNumericId());
+		indexMap.put(index, src);
 		indexedSet.set(index, true);
 	}
 	

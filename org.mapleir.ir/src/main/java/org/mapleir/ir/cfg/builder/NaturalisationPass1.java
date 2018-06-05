@@ -82,7 +82,7 @@ public class NaturalisationPass1 extends ControlFlowGraphBuilder.BuilderPass {
 				if(e.getType() != FlowEdges.TRYCATCH) {
 					BasicBlock edst = e.dst();
 					edst = remap.getOrDefault(edst, edst);
-					builder.graph.addEdge(src, e.clone(src, edst));
+					builder.graph.addEdge(e.clone(src, edst));
 				}
 			}
 			builder.graph.removeVertex(dst);

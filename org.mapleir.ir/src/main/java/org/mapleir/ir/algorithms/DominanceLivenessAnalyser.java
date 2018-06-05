@@ -97,7 +97,7 @@ public class DominanceLivenessAnalyser {
 	private ControlFlowGraph reduce(ControlFlowGraph cfg, Set<FastGraphEdge<BasicBlock>> back) {
 		ControlFlowGraph reducedCfg = cfg.copy();
 		for (FastGraphEdge<BasicBlock> e : back) {
-			reducedCfg.removeEdge(e.src(), (FlowEdge<BasicBlock>) e);
+			reducedCfg.removeEdge((FlowEdge<BasicBlock>) e);
 			backTargets.add(e.dst());
 			backEdges.getNonNull(e.src()).add(e.dst());
 		}

@@ -485,14 +485,14 @@ public class TrollDestructor {
 						// are just reassigning it to a different block. tricky!
 						stubBlock.add(new CopyVarStmt(phi.getVariable().copy(), phiArg.getValue()));
 						stubBlock.add(new UnconditionalJumpStmt(b));
-						cfg.addEdge(stubBlock, new UnconditionalJumpEdge<>(stubBlock, b));
+						cfg.addEdge(new UnconditionalJumpEdge<>(stubBlock, b));
 						int predId = phiArg.getKey().getNumericId();
 						dsts.put(predId, stubBlock);
-						cfg.addEdge(splitBlock, new SwitchEdge<>(splitBlock, stubBlock, predId));
+						cfg.addEdge(new SwitchEdge<>(splitBlock, stubBlock, predId));
 					}
 
 					splitBlock.add(new SwitchStmt(predVar.copy(), dsts, splitBlock));
-					cfg.addEdge(splitBlock, new DefaultSwitchEdge<>(splitBlock, splitBlock));
+					cfg.addEdge(new DefaultSwitchEdge<>(splitBlock, splitBlock));
 				} else break;
 			}
 		}

@@ -86,7 +86,7 @@ public class DeadCodeEliminationPass implements IPass {
 						if(verts.indexOf(b) + 1 == verts.indexOf(dst)) {
 							ImmediateEdge<BasicBlock> im = new ImmediateEdge<>(b, dst);
 							cfg.exciseEdge(uncond);
-							cfg.addEdge(b, im);
+							cfg.addEdge(im);
 							
 							Stmt stmt = b.remove(b.size() - 1);
 							
