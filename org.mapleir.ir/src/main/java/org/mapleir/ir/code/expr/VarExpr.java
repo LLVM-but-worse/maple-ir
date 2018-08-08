@@ -72,7 +72,7 @@ public class VarExpr extends Expr {
 	public boolean equivalent(CodeUnit s) {
 		if(s instanceof VarExpr) {
 			VarExpr var = (VarExpr) s;
-			if (type == null)
+			if (type == null) // fix for incomplete type analysis
 				return false;
 			return local == var.local && type.equals(var.type);
 		}

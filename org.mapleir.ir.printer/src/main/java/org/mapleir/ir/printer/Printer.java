@@ -106,9 +106,7 @@ public abstract class Printer<E> {
     }
 
     public void emitDirectiveValue(Object value, boolean mapNewLine) {
-        if (value == null) {
-            this.emitLiteral(value);
-        } else if (value instanceof Map) {
+        if (value instanceof Map) {
             Map<?, ?> map = (Map<?, ?>) value;
             this.emitDirectiveMap(map, mapNewLine);
         } else if (value instanceof Collection) {
