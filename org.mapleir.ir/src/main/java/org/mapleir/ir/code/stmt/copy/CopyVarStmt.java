@@ -2,6 +2,7 @@ package org.mapleir.ir.code.stmt.copy;
 
 import org.mapleir.ir.code.CodeUnit;
 import org.mapleir.ir.code.Expr;
+import org.mapleir.ir.code.expr.PhiExpr;
 import org.mapleir.ir.code.expr.VarExpr;
 
 public class CopyVarStmt extends AbstractCopyStmt {
@@ -12,6 +13,7 @@ public class CopyVarStmt extends AbstractCopyStmt {
 	
 	public CopyVarStmt(VarExpr variable, Expr expression, boolean synthetic) {
 		super(LOCAL_STORE, variable, expression, synthetic);
+		assert (!(expression instanceof PhiExpr));
 	}
 
 	@Override
