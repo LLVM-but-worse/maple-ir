@@ -57,9 +57,15 @@ public abstract class Expr extends CodeUnit {
 	public CodeUnit getParent() {
 		return parent;
 	}
-	
+
+	private StackTraceElement[] deletedBy;
+	private StackTraceElement[] unlinkedBy;
+	private StackTraceElement[] setParentNullBy;
+
 	@Override
 	public void delete() {
+		assert (deletedBy == null);
+		deletedBy = (new Throwable()).getStackTrace();
 		if(parent != null) {
 			parent.deleteAt(parent.indexOf(this));
 		} else {
@@ -68,6 +74,8 @@ public abstract class Expr extends CodeUnit {
 	}
 	
 	public void unlink() {
+		assert (unlinkedBy == null);
+		unlinkedBy = (new Throwable()).getStackTrace();
 		if(parent != null) {
 			parent.deleteAt(parent.indexOf(this));
 		}
@@ -84,6 +92,8 @@ public abstract class Expr extends CodeUnit {
 		if(parent != null) {
 			setBlock(parent.getBlock());
 		} else {
+			assert (setParentNullBy == null);
+			setParentNullBy = (new Throwable()).getStackTrace();
 			setBlock(null);
 		}
 	}
