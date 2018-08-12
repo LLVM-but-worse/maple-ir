@@ -19,6 +19,8 @@ import org.mapleir.ir.utils.dot.ControlFlowGraphDecorator;
 import org.mapleir.stdlib.collections.graph.FastGraph;
 import org.mapleir.stdlib.collections.graph.dot.DotWriter;
 import org.mapleir.stdlib.collections.itertools.ChainIterator;
+import org.mapleir.stdlib.util.IHasJavaDesc;
+import org.mapleir.stdlib.util.JavaDesc;
 import org.mapleir.stdlib.util.TabbedStringWriter;
 
 import java.util.*;
@@ -26,17 +28,20 @@ import java.util.Map.Entry;
 
 import static org.mapleir.ir.code.Opcode.PHI_STORE;
 
-public class ControlFlowGraph extends FlowGraph<BasicBlock, FlowEdge<BasicBlock>> {
+public class ControlFlowGraph extends FlowGraph<BasicBlock, FlowEdge<BasicBlock>> implements IHasJavaDesc {
 	
 	private final LocalsPool locals;
+	private final JavaDesc javaDesc;
 
-	public ControlFlowGraph(LocalsPool locals) {
+	public ControlFlowGraph(LocalsPool locals, JavaDesc javaDesc) {
 		this.locals = locals;
+		this.javaDesc = javaDesc;
 	}
 	
 	public ControlFlowGraph(ControlFlowGraph cfg) {
 		super(cfg);
 		locals = cfg.locals;
+		javaDesc = cfg.javaDesc;
 	}
 	
 	/**
@@ -128,6 +133,31 @@ public class ControlFlowGraph extends FlowGraph<BasicBlock, FlowEdge<BasicBlock>
 
 	public LocalsPool getLocals() {
 		return locals;
+	}
+
+	@Override
+	public JavaDesc getJavaDesc() {
+		return javaDesc;
+	}
+
+	@Override
+	public String getOwner() {
+		return javaDesc.owner;
+	}
+
+	@Override
+	public String getName() {
+		return javaDesc.name;
+	}
+
+	@Override
+	public String getDesc() {
+		return javaDesc.desc;
+	}
+
+	@Override
+	public JavaDesc.DescType getDescType() {
+		return JavaDesc.DescType.METHOD;
 	}
 
 	@Override

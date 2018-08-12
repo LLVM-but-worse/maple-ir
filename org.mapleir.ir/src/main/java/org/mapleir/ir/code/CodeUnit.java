@@ -4,6 +4,7 @@ import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.code.expr.PhiExpr;
 import org.mapleir.ir.codegen.BytecodeFrontend;
 import org.mapleir.stdlib.collections.graph.FastGraphVertex;
+import org.mapleir.stdlib.util.JavaDesc;
 import org.mapleir.stdlib.util.TabbedStringWriter;
 import org.objectweb.asm.MethodVisitor;
 

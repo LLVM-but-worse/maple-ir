@@ -26,9 +26,9 @@ public class ControlFlowGraphBuilder {
 	public ControlFlowGraphBuilder(MethodNode method) {
 		this.method = method;
 		if(Modifier.isStatic(method.access)) {
-			graph = new ControlFlowGraph(new StaticMethodLocalsPool());
+			graph = new ControlFlowGraph(new StaticMethodLocalsPool(), method.getJavaDesc());
 		} else {
-			graph = new ControlFlowGraph(new VirtualMethodLocalsPool());
+			graph = new ControlFlowGraph(new VirtualMethodLocalsPool(), method.getJavaDesc());
 		}
 		locals = new HashSet<>();
 		assigns = new NullPermeableHashMap<>(HashSet::new);

@@ -3,12 +3,14 @@ package org.mapleir.ir.code.expr;
 import org.mapleir.ir.code.CodeUnit;
 import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.codegen.BytecodeFrontend;
+import org.mapleir.stdlib.util.IHasJavaDesc;
+import org.mapleir.stdlib.util.JavaDesc;
 import org.mapleir.stdlib.util.TabbedStringWriter;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 
-public class FieldLoadExpr extends Expr {
+public class FieldLoadExpr extends Expr implements IHasJavaDesc {
 
 	private Expr instanceExpression;
 	private String owner;
@@ -125,5 +127,10 @@ public class FieldLoadExpr extends Expr {
 			return name.equals(load.name) && desc.equals(load.desc) && owner.equals(load.owner);
 		}
 		return false;
+	}
+
+	@Override
+	public JavaDesc.DescType getDescType() {
+		return JavaDesc.DescType.FIELD;
 	}
 }

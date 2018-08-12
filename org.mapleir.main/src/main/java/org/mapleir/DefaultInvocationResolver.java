@@ -620,7 +620,7 @@ public class DefaultInvocationResolver implements InvocationResolver {
 		for(ClassNode receiver : app.getClassTree().getAllChildren(cn)) {
 			if(!receiver.isAbstract()) {
 				// use strict mode = false for incomplete analysis
-				MethodNode target = resolve(receiver, name, desc, false);
+				MethodNode target = resolve(receiver, name, desc, true);
 				
 				if(target == null|| Modifier.isAbstract(target.access)) {
 					throw new IllegalStateException(String.format("Could not find vtarget for %s.%s%s", owner, name, desc));

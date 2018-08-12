@@ -90,6 +90,6 @@ public class VirtualInvocationExpr extends InvocationExpr {
 	
 	public static Set<MethodNode> resolveVirtualInvocation(InvocationResolver res, String owner, String name, String desc) {
 		// use strict mode = false if you're working with incomplete analysis.
-		return res.resolveVirtualCalls(owner, name, desc, false);
+		return res.resolveVirtualCalls(owner, name, desc, true);
 	}
 }

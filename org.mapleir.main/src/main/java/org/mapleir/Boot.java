@@ -1,5 +1,6 @@
 package org.mapleir;
 
+import com.google.common.collect.Streams;
 import org.apache.log4j.Logger;
 import org.mapleir.app.client.SimpleApplicationContext;
 import org.mapleir.app.service.ApplicationClassSource;
@@ -10,26 +11,16 @@ import org.mapleir.context.BasicAnalysisContext;
 import org.mapleir.context.IRCache;
 import org.mapleir.deob.IPass;
 import org.mapleir.deob.PassGroup;
+import org.mapleir.stdlib.util.IHasJavaDesc;
+import org.mapleir.stdlib.util.JavaDesc;
 import org.mapleir.deob.passes.rename.ClassRenamerPass;
 import org.mapleir.deob.util.RenamingHeuristic;
-import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.cfg.builder.ControlFlowGraphBuilder;
 import org.mapleir.ir.code.CodeUnit;
-import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.code.Stmt;
-import org.mapleir.ir.code.expr.FieldLoadExpr;
-import org.mapleir.ir.code.expr.VarExpr;
 import org.mapleir.ir.code.expr.invoke.InvocationExpr;
-import org.mapleir.ir.code.stmt.FieldStoreStmt;
-import org.mapleir.ir.code.stmt.ReturnStmt;
-import org.mapleir.ir.code.stmt.copy.AbstractCopyStmt;
-import org.mapleir.ir.code.stmt.copy.CopyPhiStmt;
-import org.mapleir.ir.locals.Local;
-import org.mapleir.ir.locals.impl.VersionedLocal;
-import org.mapleir.stdlib.collections.graph.FastDirectedGraph;
-import org.mapleir.stdlib.collections.graph.FastGraphEdgeImpl;
-import org.mapleir.stdlib.collections.graph.FastGraphVertex;
+import org.mapleir.stdlib.util.JavaDescSpecifier;
 import org.mapleir.stdlib.util.Pair;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
@@ -40,6 +31,7 @@ import java.io.*;
 import java.util.*;
 import java.util.Map.Entry;
 import java.util.jar.JarOutputStream;
+import java.util.stream.Stream;
 
 public class Boot {
 	
@@ -57,7 +49,18 @@ public class Boot {
 		return new LibraryClassSource(app, dl.getJarContents().getClassContents());
 	}
 
-	private static int descId = 0;
+	static Stream<CodeUnit> allExprStream(ControlFlowGraph cfg) {
+		return cfg.vertices().stream().flatMap(Collection::stream).map(Stmt::enumerateWithSelf).flatMap(Streams::stream);
+	}
+
+	static Stream<CodeUnit> allExprStream(AnalysisContext cxt) {
+		return cxt.getIRCache().values().stream().flatMap(Boot::allExprStream);
+	}
+
+	static Stream<CodeUnit> findAllRefs(AnalysisContext cxt, JavaDescSpecifier jds) {
+		return allExprStream(cxt).filter(cu -> cu instanceof IHasJavaDesc).filter(cu -> jds.matches(((IHasJavaDesc) cu).getJavaDesc()));
+	}
+
 	public static void main(String[] args) throws Exception {
 
 		sections = new LinkedList<>();
@@ -65,13 +68,13 @@ public class Boot {
 
 		// Load input jar
 		//  File f = locateRevFile(135);
-		File f = new File("res/jump.jar");
+		File f = new File("res/salesforce.jar");
 
 		section("Preparing to run on " + f.getAbsolutePath());
 		SingleJarDownloader<ClassNode> dl = new SingleJarDownloader<>(new JarInfo(f));
 		dl.download();
-		String name = f.getName().substring(0, f.getName().length() - 4);
-		ApplicationClassSource app = new ApplicationClassSource(name, dl.getJarContents().getClassContents());
+		String appName = f.getName().substring(0, f.getName().length() - 4);
+		ApplicationClassSource app = new ApplicationClassSource(appName, dl.getJarContents().getClassContents());
 //		
 // 		ApplicationClassSource app = new ApplicationClassSource("test", ClassHelper.parseClasses(CGExample.class));
 //		app.addLibraries(new InstalledRuntimeClassSource(app));
@@ -112,83 +115,80 @@ public class Boot {
 			masterGroup.add(p);
 		}
 		run(cxt, masterGroup);
+		section0("...done transforming in %fs.%n", "Preparing to transform.");
 
-		class JavaDesc implements FastGraphVertex {
-			final String owner, name, desc, descType; // FIELD or METHOD -- METHOD=argument flow or return value flow
-			final Object extraData;
 
-			public JavaDesc(String owner, String name, String desc, String descType) {
-				this(owner, name, desc, descType, null);
-				assert (descType.equals("FIELD"));
-			}
 
-			public JavaDesc(String owner, String name, String desc, String descType, Object extraData) {
-				this.owner = owner;
-				this.name = name;
-				this.desc = desc;
-				this.descType = descType;
-				this.extraData = extraData;
-			}
-
-			@Override
-			public int getNumericId() {
-				return descId++;
-			}
-
-			@Override
-			public String getDisplayName() {
-				return "(" + descType + ")" + owner + "#" + name + desc + (extraData != null ? "[" + extraData + "]" : "");
-			}
-
-			@Override
-			public String toString() {
-				return getDisplayName();
-			}
-
-			@Override
-			public boolean equals(Object o) {
-				if (this == o) return true;
-				if (o == null || getClass() != o.getClass()) return false;
-
-				JavaDesc javaDesc = (JavaDesc) o;
-
-				if (owner != null ? !owner.equals(javaDesc.owner) : javaDesc.owner != null) return false;
-				if (name != null ? !name.equals(javaDesc.name) : javaDesc.name != null) return false;
-				if (desc != null ? !desc.equals(javaDesc.desc) : javaDesc.desc != null) return false;
-				if (descType != null ? !descType.equals(javaDesc.descType) : javaDesc.descType != null) return false;
-				return extraData != null ? extraData.equals(javaDesc.extraData) : javaDesc.extraData == null;
-			}
-
-			@Override
-			public int hashCode() {
-				int result = owner != null ? owner.hashCode() : 0;
-				result = 31 * result + (name != null ? name.hashCode() : 0);
-				result = 31 * result + (desc != null ? desc.hashCode() : 0);
-				result = 31 * result + (descType != null ? descType.hashCode() : 0);
-				result = 31 * result + (extraData != null ? extraData.hashCode() : 0);
-				return result;
-			}
-		}
-		class DataFlowEdge extends FastGraphEdgeImpl<JavaDesc> {
-			public DataFlowEdge(JavaDesc src, JavaDesc dst) {
-				super(src, dst);
-			}
-
-			@Override
-			public boolean equals(Object o) {
-				if (super.equals(o)) return true;
-				if (o instanceof DataFlowEdge) {
-					DataFlowEdge dfe = (DataFlowEdge) o;
-					return src.equals(dfe.src) && dst.equals(dfe.dst);
-				}
-				return false;
-			}
-		}
-
-//		if (cu instanceof ConstantExpr) {
-//			ConstantExpr ce = (ConstantExpr)cu;
+//		allExprStream(cxt).filter(cu -> cu instanceof ConstantExpr).map(cu -> (ConstantExpr) cu).forEach(ce -> {
 //			if (ce.getConstant() != null && ce.getConstant() instanceof String) {
-//				System.out.println(mn.owner + "#" + mn.name + mn.desc + ", " + ce.getConstant());
+//				System.out.println(ce.getBlock().getGraph().getJavaDesc() + ", " + ce.getConstant());
+//			}
+//		});
+
+		Scanner sc = new Scanner(System.in);
+		while (true) {
+			System.out.print("xref> ");
+			String l = sc.nextLine();
+			if (l.isEmpty())
+				break;
+			String[] parts = l.split("#");
+			String owner = parts[0];
+			String[] parts2 = parts[1].split(" ");
+			String name = parts2[0];
+			String desc = parts2[1];
+			JavaDesc.DescType type = JavaDesc.DescType.valueOf(parts2[2].toUpperCase());
+			findAllRefs(cxt, new JavaDescSpecifier(owner, name, desc, type, null)).map(cu -> (InvocationExpr) cu).forEach(ie -> {
+				System.out.println("xref-> " + ie.getBlock().getGraph().getJavaDesc());
+				System.out.println(ie.toString());
+			});
+		}
+
+
+		// todo: convert to callgraph tracer
+		Set<JavaDesc> visited = new HashSet<>();
+		ArrayDeque<Pair<ControlFlowGraph, List<JavaDesc>>> analysisQueue = new ArrayDeque<>(); // desc, depth
+		Set<String> scope = new HashSet<>(Arrays.asList("com/salesforce/chatter/push/ActivityReminderIntentService", "com/salesforce/chatterbox/lib/offline/FileService", "com/salesforce/chatter/offline/ProxyPrimingService", "com/salesforce/cordova/plugins/helpers/CalendarUpdatedService", "com/readystatesoftware/chuck/internal/support/ClearTransactionsService", "com/salesforce/androidsdk/auth/AuthenticatorService", "com/salesforce/androidsdk/push/SFDCGcmListenerService", "com/salesforce/androidsdk/push/SFDCInstanceIDListenerService", "com/salesforce/androidsdk/push/SFDCRegistrationIntentService", "com/salesforce/androidsdk/push/PushService", "com/salesforce/androidsdk/analytics/AnalyticsPublisherService"));
+		for (ControlFlowGraph cfg : cxt.getIRCache().values()) {
+			if (scope.contains(cfg.getJavaDesc().owner))
+				analysisQueue.add(new Pair<>(cfg, Collections.singletonList(cfg.getJavaDesc())));
+		}
+		while (!analysisQueue.isEmpty()) {
+			Pair<ControlFlowGraph, List<JavaDesc>> ap = analysisQueue.pop();
+			ControlFlowGraph cfg = ap.getKey();
+			if (!visited.add(cfg.getJavaDesc()))
+				continue;
+
+			if (cfg.getJavaDesc().matches("net/sqlcipher/database/SQLiteDatabase", "execSQL", ".*", JavaDesc.DescType.METHOD)) {
+				System.out.println("FOUND PATH " + ap.getValue());
+			}
+			allExprStream(cfg).filter(cu -> cu instanceof InvocationExpr).map(cu -> (InvocationExpr) cu).forEach(ie -> {
+				try {
+					for (MethodNode callTarg : ie.resolveTargets(cxt.getInvocationResolver())) {
+						List<JavaDesc> path = new ArrayList<>(ap.getValue());
+						ControlFlowGraph targCfg = cxt.getIRCache().getFor(callTarg);
+						path.add(targCfg.getJavaDesc());
+						analysisQueue.add(new Pair<>(targCfg, path));
+					}
+				} catch (Throwable xxx) {
+//					System.err.println("Couldn't resolve " + curDesc);
+				}
+			});
+		}
+
+//		for(Entry<MethodNode, ControlFlowGraph> e : cxt.getIRCache().entrySet()) {
+//			ControlFlowGraph cfg = e.getValue();
+//			for (BasicBlock b : cfg.vertices()) {
+//				for (Stmt s : b) {
+//					for (CodeUnit cu : s.enumerateWithSelf()) {
+//						MethodNode mn = e.getKey();
+//						if (cu instanceof InvocationExpr) {
+//							InvocationExpr ie = (InvocationExpr)  cu;
+//							if (ie.getOwner().equals("com/salesforce/androidsdk/app/SalesforceSDKManager") && ie.getName().equals("decrypt")) {
+//								System.out.println("call to it from " + mn.owner + "#" + mn.name);
+//							}
+//						}
+//					}
+//				}
 //			}
 //		}
 
@@ -198,125 +198,179 @@ public class Boot {
 			cfg.verify();
 		}
 
-		FastDirectedGraph<JavaDesc, DataFlowEdge> dataFlowgraph = new FastDirectedGraph<JavaDesc, DataFlowEdge>() {};
-		ArrayDeque<JavaDesc> analysisQueue = new ArrayDeque<>();
-		analysisQueue.add(new JavaDesc("com/socialbicycles/app/d", "a", "[Ljava/lang/String;", "FIELD"));
-		analysisQueue.add(new JavaDesc("com/socialbicycles/app/d", "b", "[Ljava/lang/String;", "FIELD"));
-		analysisQueue.add(new JavaDesc("com/socialbicycles/app/d", "c", "[Ljava/lang/Integer;", "FIELD"));
-		analysisQueue.add(new JavaDesc("com/socialbicycles/app/d", "d", "[Ljava/lang/Integer;", "FIELD"));
-		while (!analysisQueue.isEmpty()) {
-			JavaDesc curDesc = analysisQueue.pop();
-			for(Entry<MethodNode, ControlFlowGraph> e : cxt.getIRCache().entrySet()) {
-				MethodNode mn = e.getKey();
-				if (cxt.getApplication().isLibraryClass(mn.owner.name)) {
-					System.out.println("! Avoiding tracing library method " + curDesc);
-					continue;
-				}
-				ControlFlowGraph cfg = e.getValue();
-				ArrayDeque<Pair<Stmt, Expr>> traceQueue = new ArrayDeque<>();
-				if (curDesc.descType.equals("METHOD")) {
-					if (mn.owner.name.equals(curDesc.owner) && mn.name.equals(curDesc.name) && mn.desc.equals(curDesc.desc)) {
-						int tracedLocal = (int) curDesc.extraData;
-						boolean found = false;
-						for (BasicBlock b : cfg.vertices()) {
-							for (Stmt s : b) {
-								for (CodeUnit cu : s.enumerateWithSelf()) {
-									if (cu instanceof VarExpr) {
-										VarExpr var = (VarExpr) cu;
-										Local l = var.getLocal();
-										if (!l.isStack() && l.getIndex() == tracedLocal) {
-											traceQueue.add(new Pair<>(s, var));
-											found = true;
-										}
-									}
-								}
-							}
-						}
-						if (found)
-							System.out.println("! " + mn.owner + "#" + mn.name + mn.desc + " receives arg " + tracedLocal);
-					}
-				} else if (curDesc.descType.equals("FIELD")) {
-					for (BasicBlock b : cfg.vertices()) {
-						for (Stmt s : b) {
-							for (CodeUnit cu : s.enumerateWithSelf()) {
-								if (cu instanceof FieldLoadExpr) {
-									FieldLoadExpr fle = (FieldLoadExpr) cu;
-									if (fle.getOwner().equals(curDesc.owner) && fle.getName().equals(curDesc.name) && fle.getDesc().equals(curDesc.desc)) {
-//										System.out.println(cfg);
-										traceQueue.add(new Pair<>(s, fle));
-										System.out.println("! " + mn.owner + "#" + mn.name + mn.desc + " reads " + curDesc);
-									}
-								}
-							}
-						}
-					}
-				}
-				while (!traceQueue.isEmpty()) {
-					Pair<Stmt, Expr> traceTuple = traceQueue.pop();
-					Stmt traceStmt = traceTuple.getKey(); // data dst
-					Expr traceSrc = traceTuple.getValue(); // data src
-					if (traceStmt instanceof AbstractCopyStmt) {
-						Local toLocal = ((AbstractCopyStmt) traceStmt).getVariable().getLocal();
-						assert (toLocal instanceof VersionedLocal);
-						System.out.println(toLocal + " <- " + traceSrc);
-						for (VarExpr use : cfg.getLocals().uses.get((VersionedLocal) toLocal)) {
-							Stmt parent = use.getRootParent();
-							if (parent == null) { // phi args aren't actually children of the phi statement, TEMPORARY HACK OMFG
-								for (BasicBlock b : cfg.vertices()) {
-									for (Stmt s : b) {
-										if (s instanceof CopyPhiStmt) {
-											CopyPhiStmt cps = (CopyPhiStmt) s;
-											if (cps.getExpression().getArguments().containsValue(use)) {
-												parent = cps;
-												break;
-											}
-										}
-									}
-								}
-							}
-							if (parent == null)
-								throw new UnsupportedOperationException("we found a REAL dangler");
-							traceQueue.add(new Pair<>(parent, use)); // data flows from local to stmt
-						}
-					} else if (traceStmt instanceof FieldStoreStmt) {
-						FieldStoreStmt fss = (FieldStoreStmt) traceStmt;
-						JavaDesc jd = new JavaDesc(fss.getOwner(), fss.getName(), fss.getDesc(), "FIELD");
-						analysisQueue.add(jd);
-						dataFlowgraph.addEdge(new DataFlowEdge(jd, curDesc));
-						System.out.println(jd + " <- " + traceSrc);
-					} else if (traceStmt instanceof ReturnStmt) {
-						JavaDesc jd = new JavaDesc(mn.owner.name, mn.name, mn.desc, "METHOD");
-						System.out.println(jd + " returns " + traceSrc);
-						// todo, data leaves function to callees. need to xref func for callees
-					}
-
-					for (Expr traceChild : traceStmt.enumerateOnlyChildren()) {
-						if (traceChild instanceof InvocationExpr) {
-							InvocationExpr ie = (InvocationExpr) traceChild;
-							JavaDesc dbgDesc = new JavaDesc(ie.getOwner(), ie.getName(), ie.getDesc(), "METHOD");
-							System.out.println(dbgDesc + " <- " + traceSrc);
-							if (cxt.getApplication().isLibraryClass(ie.getOwner())) {
-								System.out.println("! Avoiding tracing library method " + dbgDesc);
-							} else for (MethodNode callTarg : ie.resolveTargets(cxt.getInvocationResolver())) {
-								Expr[] argumentExprs = ie.getArgumentExprs();
-								for (int i = 0; i < argumentExprs.length; i++) {
-									Expr argExpr = argumentExprs[i];
-									for (Expr argSubExpr : argExpr.enumerateWithSelf()) {
-										if (argSubExpr == traceSrc) {
-											JavaDesc jd = new JavaDesc(callTarg.owner.name, callTarg.name, callTarg.desc, "METHOD", i);
-											dataFlowgraph.addEdge(new DataFlowEdge(jd, curDesc));
-											analysisQueue.add(jd);
-											System.out.println("* possible callee " + jd);
-										}
-									}
-								}
-							}
-						}
-					}
-				}
-			}
-		}
-		dataFlowgraph.makeDotWriter().setName("fuckmedaddy6969").export();
+//		FastDirectedGraph<JavaDescVertex, JavaDescEdge> dataFlowgraph = new FastDirectedGraph<JavaDescVertex, JavaDescEdge>() {};
+//		ArrayDeque<Pair<JavaDesc, Integer>> analysisQueue = new ArrayDeque<>(); // desc, depth
+//		analysisQueue.add(new Pair<>(new JavaDesc("com/socialbicycles/app/d", "a", "[Ljava/lang/String;", JavaDesc.DescType.FIELD), 0));
+//		analysisQueue.add(new Pair<>(new JavaDesc("com/socialbicycles/app/d", "b", "[Ljava/lang/String;", JavaDesc.DescType.FIELD), 0));
+////		analysisQueue.add(new Pair<>(new JavaDesc("com/socialbicycles/app/d", "c", "[Ljava/lang/Integer;", JavaDesc.DescType.FIELD), 0));
+////		analysisQueue.add(new Pair<>(new JavaDesc("com/socialbicycles/app/d", "d", "[Ljava/lang/Integer;", JavaDesc.DescType.FIELD), 0));
+//		while (!analysisQueue.isEmpty()) {
+//			Pair<JavaDesc, Integer> queuePair = analysisQueue.pop();
+//			JavaDesc curDesc = queuePair.getKey();
+//			int depth = queuePair.getValue();
+//			if (depth > 1)
+//				continue;
+//			System.out.println("~ Trace queue size: " + analysisQueue.size() + " at depth " + depth);
+//			for(Entry<MethodNode, ControlFlowGraph> e : cxt.getIRCache().entrySet()) {
+//				MethodNode mn = e.getKey();
+//				if (cxt.getApplication().isLibraryClass(mn.owner.name)) {
+//					System.out.println("! Avoiding tracing library method " + curDesc);
+//					continue;
+//				}
+//				JavaDesc mnJd = new JavaDesc(mn.owner.name, mn.name, mn.desc, JavaDesc.DescType.METHOD);
+//				ControlFlowGraph cfg = e.getValue();
+//				ArrayDeque<Pair<Stmt, Expr>> traceQueue = new ArrayDeque<>();
+//				if (curDesc.descType.equals(JavaDesc.DescType.METHOD)) {
+//					int tracedLocal = (int) curDesc.extraData;
+//					if (tracedLocal >= 0) { /* not a return trace */
+//						if (mn.owner.name.equals(curDesc.owner) && mn.name.equals(curDesc.name) && mn.desc.equals(curDesc.desc)) {
+//							boolean found = false;
+//							for (BasicBlock b : cfg.vertices()) {
+//								for (Stmt s : b) {
+//									for (CodeUnit cu : s.enumerateWithSelf()) {
+//										if (cu instanceof VarExpr) {
+//											VarExpr var = (VarExpr) cu;
+//											Local l = var.getLocal();
+//											if (!l.isStack() && l.getIndex() == tracedLocal) {
+//												traceQueue.add(new Pair<>(s, var));
+//												found = true;
+//											}
+//										}
+//									}
+//								}
+//							}
+//							if (found) {
+//								System.out.println("! " + mnJd + " receives arg " + tracedLocal);
+//							}
+//						}
+//					} else {
+//						boolean found = false;
+//						for (BasicBlock b : cfg.vertices()) {
+//							for (Stmt s : b) {
+//								for (CodeUnit cu : s.enumerateWithSelf()) {
+//									if (cu instanceof InvocationExpr) {
+//										InvocationExpr ie = (InvocationExpr) cu;
+//										if (ie.getOwner().equals(curDesc.owner) && ie.getName().equals(curDesc.name) && ie.getJavaDesc().equals(curDesc.desc)) {
+//											traceQueue.add(new Pair<>(s, ie));
+//											found = true;
+//										}
+////										else if (!cxt.getApplication().isLibraryClass(ie.getOwner())) {
+////											try {
+////												for (MethodNode callTarg : ie.resolveTargets(cxt.getInvocationResolver())) {
+////													if (callTarg.owner.name.equals(curDesc.owner) && callTarg.name.equals(curDesc.name) && callTarg.desc.equals(curDesc.desc)) {
+////														traceQueue.add(new Pair<>(s, ie));
+////														found = true;
+////														break;
+////													}
+////												}
+////											} catch (IllegalStateException XxX) {
+////												System.err.println("Couldn't resolve " + curDesc);
+////											}
+////										}
+//									}
+//								}
+//							}
+//							if (found) {
+//								dataFlowgraph.addEdge(new JavaDescEdge(new JavaDescVertex(mnJd), new JavaDescVertex(curDesc), mnJd));
+//								System.out.println("! " + mnJd + " receives return value of " + curDesc);
+//							}
+//						}
+//					}
+//				} else if (curDesc.descType.equals(JavaDesc.DescType.FIELD)) {
+//					for (BasicBlock b : cfg.vertices()) {
+//						for (Stmt s : b) {
+//							for (CodeUnit cu : s.enumerateWithSelf()) {
+//								if (cu instanceof FieldLoadExpr) {
+//									FieldLoadExpr fle = (FieldLoadExpr) cu;
+//									if (fle.getOwner().equals(curDesc.owner) && fle.getName().equals(curDesc.name) && fle.getJavaDesc().equals(curDesc.desc)) {
+////										System.out.println(cfg);
+//										traceQueue.add(new Pair<>(s, fle));
+//										System.out.println("! " + mn.owner + "#" + mn.name + mn.desc + " reads " + curDesc);
+//									}
+//								}
+//							}
+//						}
+//					}
+//				}
+//				while (!traceQueue.isEmpty()) {
+//					Pair<Stmt, Expr> traceTuple = traceQueue.pop();
+//					Stmt traceStmt = traceTuple.getKey(); // data dst
+//					Expr traceSrc = traceTuple.getValue(); // data src
+//					if (traceStmt instanceof AbstractCopyStmt) {
+//						Local toLocal = ((AbstractCopyStmt) traceStmt).getVariable().getLocal();
+//						assert (toLocal instanceof VersionedLocal);
+//						System.out.println(toLocal + " <- " + traceSrc);
+//						for (VarExpr use : cfg.getLocals().uses.get((VersionedLocal) toLocal)) {
+//							Stmt parent = use.getRootParent();
+//							if (parent == null) { // phi args aren't actually children of the phi statement, TEMPORARY HACK OMFG
+//								for (BasicBlock b : cfg.vertices()) {
+//									for (Stmt s : b) {
+//										if (s instanceof CopyPhiStmt) {
+//											CopyPhiStmt cps = (CopyPhiStmt) s;
+//											if (cps.getExpression().getArguments().containsValue(use)) {
+//												parent = cps;
+//												break;
+//											}
+//										}
+//									}
+//								}
+//							}
+//							if (parent == null)
+//								throw new UnsupportedOperationException("we found a REAL dangler");
+//							traceQueue.add(new Pair<>(parent, use)); // data flows from local to stmt
+//						}
+//					} else if (traceStmt instanceof FieldStoreStmt) {
+//						FieldStoreStmt fss = (FieldStoreStmt) traceStmt;
+//						JavaDesc jd = new JavaDesc(fss.getOwner(), fss.getName(), fss.getJavaDesc(), JavaDesc.DescType.FIELD);
+//						analysisQueue.add(new Pair<>(jd, depth+1));
+//						dataFlowgraph.addEdge(new JavaDescEdge(new JavaDescVertex(jd), new JavaDescVertex(curDesc), mnJd));
+//						System.out.println(jd + " <- " + traceSrc);
+//					} else if (traceStmt instanceof ReturnStmt) {
+//						JavaDesc jd = new JavaDesc(mn.owner.name, mn.name, mn.desc, JavaDesc.DescType.METHOD, -1);
+//						System.out.println(jd + " returns " + traceSrc);
+//						dataFlowgraph.addEdge(new JavaDescEdge(new JavaDescVertex(jd), new JavaDescVertex(curDesc), mnJd));
+//						analysisQueue.add(new Pair<>(jd, depth+1));
+//					}
+//
+//					for (Expr traceChild : traceStmt.enumerateOnlyChildren()) {
+//						if (traceChild instanceof InvocationExpr) {
+//							InvocationExpr ie = (InvocationExpr) traceChild;
+//							JavaDesc dbgDesc = new JavaDesc(ie.getOwner(), ie.getName(), ie.getJavaDesc(), JavaDesc.DescType.METHOD);
+//							System.out.println(dbgDesc + " <- " + traceSrc);
+//							if (cxt.getApplication().isLibraryClass(ie.getOwner())) {
+//								System.out.println("! Avoiding tracing library method " + dbgDesc);
+//							} else {
+//								try {
+//									Set<MethodNode> targs = ie.resolveTargets(cxt.getInvocationResolver());
+//									for (MethodNode callTarg : targs) {
+//										Expr[] argumentExprs = ie.getArgumentExprs();
+//										for (int i = 0; i < argumentExprs.length; i++) {
+//											Expr argExpr = argumentExprs[i];
+//											for (Expr argSubExpr : argExpr.enumerateWithSelf()) {
+//												if (argSubExpr == traceSrc) {
+//													JavaDesc jd = new JavaDesc(callTarg.owner.name, callTarg.name, callTarg.desc, JavaDesc.DescType.METHOD, i);
+//													dataFlowgraph.addEdge(new JavaDescEdge(new JavaDescVertex(jd), new JavaDescVertex(curDesc), mnJd));
+//													analysisQueue.add(new Pair<>(jd, depth + 1));
+//													System.out.println("* possible callee " + jd);
+//												}
+//											}
+//										}
+//									}
+//								} catch (Exception exxxx) {
+//									System.err.println("Failed to resolve " + ie.getOwner() + "# " + ie.getName() + ie.getJavaDesc());
+//								}
+//							}
+//						}
+//					}
+//				}
+//			}
+//		}
+//		dataFlowgraph.makeDotWriter().setName("depth1").add(new DotPropertyDecorator<FastGraph<JavaDescVertex, JavaDescEdge>, JavaDescVertex, JavaDescEdge>() {
+//			@Override
+//			public void decorateEdgeProperties(FastGraph<JavaDescVertex, JavaDescEdge> g, JavaDescVertex n, JavaDescEdge e, Map<String, Object> eprops) {
+//				eprops.put("label", e.via.toString());
+//			}
+//		}).export();
 
 		section("Retranslating SSA IR to standard flavour.");
 //		for(Entry<MethodNode, ControlFlowGraph> e : cxt.getIRCache().entrySet()) {
