@@ -6,12 +6,14 @@ import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.code.Expr.Precedence;
 import org.mapleir.ir.code.Stmt;
 import org.mapleir.ir.codegen.BytecodeFrontend;
+import org.mapleir.stdlib.util.IHasJavaDesc;
+import org.mapleir.stdlib.util.JavaDesc;
 import org.mapleir.stdlib.util.TabbedStringWriter;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 
-public class FieldStoreStmt extends Stmt {
+public class FieldStoreStmt extends Stmt implements IHasJavaDesc {
 
 	private Expr instanceExpression;
 	private Expr valueExpression;
@@ -151,5 +153,10 @@ public class FieldStoreStmt extends Stmt {
 					instanceExpression.equivalent(store.instanceExpression) && valueExpression.equivalent(store.valueExpression);
 		}
 		return false;
+	}
+
+	@Override
+	public JavaDesc.DescType getDescType() {
+		return JavaDesc.DescType.FIELD;
 	}
 }

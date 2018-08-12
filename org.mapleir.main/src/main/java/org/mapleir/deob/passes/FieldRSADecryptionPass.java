@@ -317,13 +317,13 @@ public class FieldRSADecryptionPass implements IPass, Opcode {
 //									
 //									if(o instanceof Long || o instanceof Integer) {
 //										Number n = (Number) o;
-//										if(__eq(n, 1, ae.getType().equals(Type.LONG_TYPE))) {
+//										if(__eq(n, 1, ae.getType().equals(DescType.LONG_TYPE))) {
 //											Expr l = ae.getLeft();
 //											l.unlink();
 //											
 //											CodeUnit aePar = ae.getParent();
 //											aePar.writeAt(l, aePar.indexOf(ae));
-//										} else if(__eq(n, 0, ae.getType().equals(Type.LONG_TYPE))) {
+//										} else if(__eq(n, 0, ae.getType().equals(DescType.LONG_TYPE))) {
 //											c.unlink();
 //											
 //											CodeUnit aePar = ae.getParent();

@@ -34,6 +34,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import org.mapleir.stdlib.collections.graph.FastGraphVertex;
+import org.mapleir.stdlib.util.JavaDesc;
 import org.objectweb.asm.*;
 
 /**
@@ -850,4 +851,10 @@ public class MethodNode extends MethodVisitor implements FastGraphVertex {
     public int getNumericId() {
 	    return numericId;
     }
+
+    // maple-ir start
+    public JavaDesc getJavaDesc() {
+	    return new JavaDesc(owner.name, name, desc, JavaDesc.DescType.METHOD, null);
+    }
+    // maple-ir end
 }
