@@ -11,6 +11,12 @@ import org.mapleir.context.BasicAnalysisContext;
 import org.mapleir.context.IRCache;
 import org.mapleir.deob.IPass;
 import org.mapleir.deob.PassGroup;
+import org.mapleir.deob.dataflow.graph.JavaDescEdge;
+import org.mapleir.deob.dataflow.graph.JavaDescVertex;
+import org.mapleir.ir.code.Expr;
+import org.mapleir.ir.code.expr.ConstantExpr;
+import org.mapleir.stdlib.collections.graph.FastDirectedGraph;
+import org.mapleir.stdlib.collections.graph.algorithms.SimpleDfs;
 import org.mapleir.stdlib.util.IHasJavaDesc;
 import org.mapleir.stdlib.util.JavaDesc;
 import org.mapleir.deob.passes.rename.ClassRenamerPass;
@@ -68,7 +74,7 @@ public class Boot {
 
 		// Load input jar
 		//  File f = locateRevFile(135);
-		File f = new File("res/salesforce.jar");
+		File f = new File("res/authenticator.jar");
 
 		section("Preparing to run on " + f.getAbsolutePath());
 		SingleJarDownloader<ClassNode> dl = new SingleJarDownloader<>(new JarInfo(f));
@@ -98,6 +104,70 @@ public class Boot {
 		// 	tracer.trace(m);
 		// }
 
+
+
+
+
+
+		// todo: convert to CallGraph (as FastGraph) DFS
+		FastDirectedGraph<JavaDescVertex, JavaDescEdge> callgraph = new FastDirectedGraph<JavaDescVertex, JavaDescEdge>() {};
+		JavaDescSpecifier targetMeth = new JavaDescSpecifier("lol", "lol", ".*", JavaDesc.DescType.METHOD);
+		Set<JavaDesc> visited = new HashSet<>();
+		ArrayDeque<Pair<ControlFlowGraph, List<JavaDesc>>> analysisQueue = new ArrayDeque<>(); // desc, depth
+		Set<String> scope = new HashSet<>(Arrays.asList("lol"));
+		for (String className : scope) {
+			if (cxt.getApplication().findClassNode(className) == null)continue;
+			for (MethodNode m : cxt.getApplication().findClassNode(className).methods) {
+				ControlFlowGraph cfg = cxt.getIRCache().getFor(m);
+				analysisQueue.add(new Pair<>(cfg, Collections.singletonList(cfg.getJavaDesc())));
+			}
+		}
+//		Set<String> scope = new HashSet<>(Arrays.asList("lol"));
+//		for (ControlFlowGraph cfg : cxt.getIRCache().values()) {
+//			if (scope.contains(cfg.getJavaDesc().owner))
+//				analysisQueue.add(new Pair<>(cfg, Collections.singletonList(cfg.getJavaDesc())));
+//		}
+		while (!analysisQueue.isEmpty()) {
+			Pair<ControlFlowGraph, List<JavaDesc>> ap = analysisQueue.remove();
+			ControlFlowGraph cfg = ap.getKey();
+			if (targetMeth.matches(cfg.getJavaDesc())) {
+				System.out.println("FOUND PATH " + ap.getValue());
+			}
+			if (!visited.add(cfg.getJavaDesc()))
+				continue;
+//			System.out.println("Tracing " + ap.getValue());
+
+			allExprStream(cfg).filter(cu -> cu instanceof InvocationExpr).map(cu -> (InvocationExpr) cu).forEach(ie -> {
+				try {
+					for (MethodNode callTarg : ie.resolveTargets(cxt.getInvocationResolver())) {
+						if (cxt.getApplication().isLibraryClass(callTarg.owner.name)) {
+							continue;
+						}
+						List<JavaDesc> path = new ArrayList<>(ap.getValue());
+						ControlFlowGraph targCfg = cxt.getIRCache().getFor(callTarg);
+						path.add(targCfg.getJavaDesc());
+						callgraph.addEdge(new JavaDescEdge(new JavaDescVertex(cfg.getJavaDesc()), new JavaDescVertex(targCfg.getJavaDesc()), cfg.getJavaDesc()));
+						analysisQueue.add(new Pair<>(targCfg, path));
+						for (Expr arg : ie.getArgumentExprs()) {
+							ClassNode argCn = cxt.getApplication().findClassNode(arg.getType().getClassName().replace('.', '/'));
+							for (ClassNode parentCn : cxt.getApplication().getClassTree().getAllParents(argCn)) {
+								if (parentCn.name.equals("java/lang/Runnable")) {
+									MethodNode runMn = argCn.getMethod("run", "()V", false);
+									ControlFlowGraph runCfg = cxt.getIRCache().getFor(runMn);
+									List<JavaDesc> runPath = new ArrayList<>(path);
+									runPath.add(runCfg.getJavaDesc());
+									callgraph.addEdge(new JavaDescEdge(new JavaDescVertex(targCfg.getJavaDesc()), new JavaDescVertex(runCfg.getJavaDesc()), targCfg.getJavaDesc()));
+									analysisQueue.add(new Pair<>(runCfg, runPath));
+								}
+							}
+						}
+					}
+				} catch (Throwable xxx) {
+//					System.err.println("Couldn't resolve " + curDesc);
+				}
+			});
+		}
+
 		for (ClassNode cn : cxt.getApplication().iterate()) {
 			// if (!cn.name.equals("Test"))
 			// 	continue;
@@ -118,15 +188,15 @@ public class Boot {
 		section0("...done transforming in %fs.%n", "Preparing to transform.");
 
 
-
-//		allExprStream(cxt).filter(cu -> cu instanceof ConstantExpr).map(cu -> (ConstantExpr) cu).forEach(ce -> {
-//			if (ce.getConstant() != null && ce.getConstant() instanceof String) {
-//				System.out.println(ce.getBlock().getGraph().getJavaDesc() + ", " + ce.getConstant());
-//			}
-//		});
+		allExprStream(cxt).filter(cu -> cu instanceof ConstantExpr).map(cu -> (ConstantExpr) cu).forEach(ce -> {
+			if (ce.getConstant() != null && ce.getConstant() instanceof String) {
+				System.out.println(ce.getBlock().getGraph().getJavaDesc() + ", " + ce.getConstant());
+			}
+		});
 
 		Scanner sc = new Scanner(System.in);
 		while (true) {
+//			if (1+1==2)break;
 			System.out.print("xref> ");
 			String l = sc.nextLine();
 			if (l.isEmpty())
@@ -143,38 +213,6 @@ public class Boot {
 			});
 		}
 
-
-		// todo: convert to callgraph tracer
-		Set<JavaDesc> visited = new HashSet<>();
-		ArrayDeque<Pair<ControlFlowGraph, List<JavaDesc>>> analysisQueue = new ArrayDeque<>(); // desc, depth
-		Set<String> scope = new HashSet<>(Arrays.asList("com/salesforce/chatter/push/ActivityReminderIntentService", "com/salesforce/chatterbox/lib/offline/FileService", "com/salesforce/chatter/offline/ProxyPrimingService", "com/salesforce/cordova/plugins/helpers/CalendarUpdatedService", "com/readystatesoftware/chuck/internal/support/ClearTransactionsService", "com/salesforce/androidsdk/auth/AuthenticatorService", "com/salesforce/androidsdk/push/SFDCGcmListenerService", "com/salesforce/androidsdk/push/SFDCInstanceIDListenerService", "com/salesforce/androidsdk/push/SFDCRegistrationIntentService", "com/salesforce/androidsdk/push/PushService", "com/salesforce/androidsdk/analytics/AnalyticsPublisherService"));
-		for (ControlFlowGraph cfg : cxt.getIRCache().values()) {
-			if (scope.contains(cfg.getJavaDesc().owner))
-				analysisQueue.add(new Pair<>(cfg, Collections.singletonList(cfg.getJavaDesc())));
-		}
-		while (!analysisQueue.isEmpty()) {
-			Pair<ControlFlowGraph, List<JavaDesc>> ap = analysisQueue.pop();
-			ControlFlowGraph cfg = ap.getKey();
-			if (!visited.add(cfg.getJavaDesc()))
-				continue;
-
-			if (cfg.getJavaDesc().matches("net/sqlcipher/database/SQLiteDatabase", "execSQL", ".*", JavaDesc.DescType.METHOD)) {
-				System.out.println("FOUND PATH " + ap.getValue());
-			}
-			allExprStream(cfg).filter(cu -> cu instanceof InvocationExpr).map(cu -> (InvocationExpr) cu).forEach(ie -> {
-				try {
-					for (MethodNode callTarg : ie.resolveTargets(cxt.getInvocationResolver())) {
-						List<JavaDesc> path = new ArrayList<>(ap.getValue());
-						ControlFlowGraph targCfg = cxt.getIRCache().getFor(callTarg);
-						path.add(targCfg.getJavaDesc());
-						analysisQueue.add(new Pair<>(targCfg, path));
-					}
-				} catch (Throwable xxx) {
-//					System.err.println("Couldn't resolve " + curDesc);
-				}
-			});
-		}
-
 //		for(Entry<MethodNode, ControlFlowGraph> e : cxt.getIRCache().entrySet()) {
 //			ControlFlowGraph cfg = e.getValue();
 //			for (BasicBlock b : cfg.vertices()) {
@@ -183,7 +221,7 @@ public class Boot {
 //						MethodNode mn = e.getKey();
 //						if (cu instanceof InvocationExpr) {
 //							InvocationExpr ie = (InvocationExpr)  cu;
-//							if (ie.getOwner().equals("com/salesforce/androidsdk/app/SalesforceSDKManager") && ie.getName().equals("decrypt")) {
+//							if (ie.getOwner().equals("lol") && ie.getName().equals("decrypt")) {
 //								System.out.println("call to it from " + mn.owner + "#" + mn.name);
 //							}
 //						}
@@ -198,12 +236,11 @@ public class Boot {
 			cfg.verify();
 		}
 
-//		FastDirectedGraph<JavaDescVertex, JavaDescEdge> dataFlowgraph = new FastDirectedGraph<JavaDescVertex, JavaDescEdge>() {};
 //		ArrayDeque<Pair<JavaDesc, Integer>> analysisQueue = new ArrayDeque<>(); // desc, depth
-//		analysisQueue.add(new Pair<>(new JavaDesc("com/socialbicycles/app/d", "a", "[Ljava/lang/String;", JavaDesc.DescType.FIELD), 0));
-//		analysisQueue.add(new Pair<>(new JavaDesc("com/socialbicycles/app/d", "b", "[Ljava/lang/String;", JavaDesc.DescType.FIELD), 0));
-////		analysisQueue.add(new Pair<>(new JavaDesc("com/socialbicycles/app/d", "c", "[Ljava/lang/Integer;", JavaDesc.DescType.FIELD), 0));
-////		analysisQueue.add(new Pair<>(new JavaDesc("com/socialbicycles/app/d", "d", "[Ljava/lang/Integer;", JavaDesc.DescType.FIELD), 0));
+//		analysisQueue.add(new Pair<>(new JavaDesc("lol/d", "a", "[Ljava/lang/String;", JavaDesc.DescType.FIELD), 0));
+//		analysisQueue.add(new Pair<>(new JavaDesc("lol/d", "b", "[Ljava/lang/String;", JavaDesc.DescType.FIELD), 0));
+////		analysisQueue.add(new Pair<>(new JavaDesc("lol/d", "c", "[Ljava/lang/Integer;", JavaDesc.DescType.FIELD), 0));
+////		analysisQueue.add(new Pair<>(new JavaDesc("lol/d", "d", "[Ljava/lang/Integer;", JavaDesc.DescType.FIELD), 0));
 //		while (!analysisQueue.isEmpty()) {
 //			Pair<JavaDesc, Integer> queuePair = analysisQueue.pop();
 //			JavaDesc curDesc = queuePair.getKey();
