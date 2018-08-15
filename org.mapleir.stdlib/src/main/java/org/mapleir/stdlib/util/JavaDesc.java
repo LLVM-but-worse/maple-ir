@@ -26,13 +26,6 @@ public class JavaDesc  {
         return "(" + descType + ")" + owner + "#" + name + desc + (extraData != null ? "[" + extraData + "]" : "");
     }
 
-    public boolean matches(String ownerRegex, String nameRegex, String descRegex, JavaDesc.DescType type) {
-        if (type == DescType.CLASS)
-            return this.owner.matches(ownerRegex);
-        else
-            return descType == type && this.owner.matches(ownerRegex) && this.name.matches(nameRegex) && this.desc.matches(descRegex);
-    }
-
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
