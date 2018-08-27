@@ -170,7 +170,7 @@ public abstract class CodeUnit implements FastGraphVertex, Opcode {
 		}
 	}
 
-	private Expr writeAt(int index, Expr s) {
+	protected Expr writeAt(int index, Expr s) {
 		Expr prev = children[index];
 
 		if(prev != s && prev != null) {
