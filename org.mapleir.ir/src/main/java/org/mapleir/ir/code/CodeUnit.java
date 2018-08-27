@@ -132,42 +132,10 @@ public abstract class CodeUnit implements FastGraphVertex, Opcode {
 		return -1;
 	}
 
-	public Expr read() {
-		if (children[ptr] == null)
-			return null;
-		return children[ptr++];
-	}
-
 	public Expr read(int newPtr) {
 		if (newPtr < 0 || newPtr >= children.length || (newPtr > 0 && children[newPtr - 1] == null))
 			throw new ArrayIndexOutOfBoundsException(String.format("%s, ptr=%d, len=%d, addr=%d", this.getClass().getSimpleName(), ptr, children.length, newPtr));
 		return children[newPtr];
-	}
-
-	public void write(Expr node) {
-		if(shouldExpand()) {
-			expand();
-		}
-
-		if (children[ptr] == null) {
-			writeAt(ptr, node);
-			onChildUpdated(ptr++);
-		} else {
-			List<Expr> writeable = new ArrayList<>();
-			for (int i = ptr; i < children.length; i++) {
-				if (children[i] != null) {
-					writeable.add(children[i]);
-					writeAt(i, null);
-				}
-			}
-			writeAt(ptr, node);
-			onChildUpdated(ptr);
-			int writePtr = ++ptr;
-			for (Expr n : writeable) {
-				writeAt(writePtr, n);
-				onChildUpdated(writePtr++);
-			}
-		}
 	}
 
 	protected Expr writeAt(int index, Expr s) {
@@ -261,20 +229,6 @@ public abstract class CodeUnit implements FastGraphVertex, Opcode {
 				c.delete0();
 			}
 		}
-	}
-
-	public Expr overwrite(Expr node) {
-		if(shouldExpand()) {
-			expand();
-		}
-
-		if (children[ptr] != node) {
-			Expr prev = writeAt(ptr, node);
-			onChildUpdated(ptr);
-			return prev;
-		}
-
-		return null;
 	}
 
 	public Expr overwrite(Expr node, int newPtr) {
