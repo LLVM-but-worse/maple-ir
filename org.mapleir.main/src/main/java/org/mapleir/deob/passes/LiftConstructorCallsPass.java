@@ -96,7 +96,6 @@ public class LiftConstructorCallsPass implements Opcode, IPass {
 		int size = b.size();
 		for(int i=index; i < size; i++) {
 			Stmt stmt = b.remove(index);
-			stmt.setBlock(newBlock);
 			newBlock.add(stmt);
 		}
 	}
