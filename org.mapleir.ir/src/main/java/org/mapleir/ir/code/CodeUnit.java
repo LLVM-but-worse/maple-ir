@@ -12,19 +12,59 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+/**
+ * This is the shared base between the {@link Stmt} and {@link Expr} classes,
+ * which are the parents for all of the instructions that can be represented in
+ * the IR. Units, like nodes in a tree, have children and depending on the type
+ * of the child, i.e. whether the unit is a statement or an expression, can
+ * have a parent also. These children are of the {@link Expr} type and operations
+ * manipulating the children of a given node are implemented in this class.<br>
+ * Operations include reading, writing and overwriting children of a given unit
+ * as well polling for capacity, size and index information.
+ * 
+ * <p> Each CodeUnit has a unique id therefore two CodeUnit objects can only be
+ * equal iff their id's match.<br>
+ * Opcodes for each unit are described in {@link Opcode}.<br>
+ */
 public abstract class CodeUnit implements FastGraphVertex, Opcode {
 
+	/**
+	 * Flag position mask used for indicating whether the current CodeUnit is a
+	 * {@link Stmt} or an {@link Expr}.
+	 */
 	public static final int FLAG_STMT = 0x01;
 
-	private static int ID_COUNTER = 1;
-	protected final int id = ID_COUNTER++;
-
+	/**
+	 * Global unit identifier counter.
+	 */
+	private static int G_ID_COUNTER = 1;
+	/**
+	 * Unique global unit identifier.
+	 */
+	protected final int id = G_ID_COUNTER++;
+	/**
+	 * Opcode to encode the sort of instruction this unit is.
+	 */
 	protected final int opcode;
-	// bit 1 used as for expr/stmt
+	/**
+	 * Bitfield for boolean state information of this unit.
+	 */
 	protected int flags;
+	/**
+	 * The {@link BasicBlock} that this unit belongs to. If the current unit is
+	 * a {@link Stmt}, the block is the direct container above this unit,
+	 * otherwise for {@link Expr}'s, the block is inherited from the root
+	 * parent of this expression.
+	 */
 	private BasicBlock block;
 
+	/**
+	 * The children of this unit.
+	 */
 	public Expr[] children;
+	/**
+	 * Index of the last item in the children array.
+	 */
 	private int ptr;
 
 	public CodeUnit(int opcode) {
@@ -132,6 +172,11 @@ public abstract class CodeUnit implements FastGraphVertex, Opcode {
 		return -1;
 	}
 
+	/**
+	 * Gets the child {@link Expr} at the given index.
+	 * @param newPtr The index of the child.
+	 * @return The child {@link Expr}.
+	 */
 	public Expr read(int newPtr) {
 		if (newPtr < 0 || newPtr >= children.length || (newPtr > 0 && children[newPtr - 1] == null))
 			throw new ArrayIndexOutOfBoundsException(String.format("%s, ptr=%d, len=%d, addr=%d", this.getClass().getSimpleName(), ptr, children.length, newPtr));
@@ -163,6 +208,14 @@ public abstract class CodeUnit implements FastGraphVertex, Opcode {
 		}
 		block.remove(this);
 		delete0();
+	}
+
+	protected void delete0() {
+		for(Expr c : children) {
+			if(c != null) {
+				c.delete0();
+			}
+		}
 	}
 
 	public void deleteAt(int _ptr) {
@@ -219,14 +272,6 @@ public abstract class CodeUnit implements FastGraphVertex, Opcode {
 				if(s != null) {
 					s.setParent(this);
 				}
-			}
-		}
-	}
-
-	protected void delete0() {
-		for(Expr c : children) {
-			if(c != null) {
-				c.delete0();
 			}
 		}
 	}
