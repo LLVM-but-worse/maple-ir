@@ -91,7 +91,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 	
 	private void splitRanges() {
 		// produce cleaner cfg
-		List<BasicBlock> order = new ArrayList<>(builder.graph.vertices());
+		List<BasicBlock> order = new ArrayList<>(builder.graph.verticesInOrder());
 		NullPermeableHashMap<BasicBlock, Set<Local>> splits = new NullPermeableHashMap<>(HashSet::new);
 		
 		for(ExceptionRange<BasicBlock> er : builder.graph.getRanges()) {
@@ -1361,7 +1361,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		pool = builder.graph.getLocals();
 		
 
-		order.addAll(builder.graph.vertices());
+		order.addAll(builder.graph.verticesInOrder());
 		order.remove(builder.head);
 		order.add(0, builder.head);
 		builder.graph.relabel(order);

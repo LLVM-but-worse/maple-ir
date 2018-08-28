@@ -114,7 +114,7 @@ public class ControlFlowGraph extends FlowGraph<BasicBlock, FlowEdge<BasicBlock>
 		
 		parent.writeAt(to, parent.indexOf(from));
 	}
-	
+
 	@Override
 	public String toString() {
 		TabbedStringWriter sw = new TabbedStringWriter();
@@ -125,7 +125,7 @@ public class ControlFlowGraph extends FlowGraph<BasicBlock, FlowEdge<BasicBlock>
 		
 		int insn = 0;
 		
-		for(BasicBlock b : vertices()) {
+		for(BasicBlock b : verticesInOrder()) {
 			CFGUtils.blockToString(sw, this, b, insn);
 		}
 		return sw.toString();
@@ -215,7 +215,7 @@ public class ControlFlowGraph extends FlowGraph<BasicBlock, FlowEdge<BasicBlock>
 	
 	@SuppressWarnings("unchecked")
 	@Override
-	// TODO what the heck
+	// TODO what the FUCK
 	public DotWriter<FastGraph<BasicBlock, FlowEdge<BasicBlock>>, BasicBlock, FlowEdge<BasicBlock>> makeDotWriter() {
 		return (DotWriter<FastGraph<BasicBlock, FlowEdge<BasicBlock>>, BasicBlock, FlowEdge<BasicBlock>>)(Object)((DotWriter<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>>)(Object)super.makeDotWriter())
 				.add(new ControlFlowGraphDecorator().setFlags(ControlFlowGraphDecorator.OPT_EDGES | ControlFlowGraphDecorator.OPT_STMTS));
