@@ -27,7 +27,11 @@ public class ThrowStmt extends Stmt {
 
 	@Override
 	public void onChildUpdated(int ptr) {
-		expression = read(0);
+		if(ptr == 0) {
+			expression = read(0);
+		} else {
+			raiseChildOutOfBounds(ptr);
+		}
 	}
 
 	@Override

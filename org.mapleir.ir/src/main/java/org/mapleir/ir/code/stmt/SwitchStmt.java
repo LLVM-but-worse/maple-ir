@@ -55,6 +55,8 @@ public class SwitchStmt extends Stmt {
 	public void onChildUpdated(int ptr) {
 		if (ptr == 0) {
 			expression = read(0);
+		} else {
+			raiseChildOutOfBounds(ptr);
 		}
 	}
 	

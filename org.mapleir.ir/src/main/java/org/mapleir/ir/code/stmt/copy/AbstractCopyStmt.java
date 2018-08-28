@@ -102,10 +102,14 @@ public abstract class AbstractCopyStmt extends Stmt {
 
 	@Override
 	public void onChildUpdated(int ptr) {
-		if(!synthetic) {
-			this.expression = read(0);
+		if(synthetic) {
+			raiseChildOutOfBounds(ptr);
 		} else {
-			throw new IllegalStateException("synthetic copy, cannot change RHS");
+			if(ptr == 0) {
+				expression = read(0);
+			} else {
+				raiseChildOutOfBounds(ptr);
+			}
 		}
 	}
 

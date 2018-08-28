@@ -66,6 +66,8 @@ public class ArrayStoreStmt extends Stmt {
 			indexExpression = read(1);
 		} else if (ptr == 2) {
 			valueExpression = read(2);
+		} else {
+			raiseChildOutOfBounds(ptr);
 		}
 	}
 

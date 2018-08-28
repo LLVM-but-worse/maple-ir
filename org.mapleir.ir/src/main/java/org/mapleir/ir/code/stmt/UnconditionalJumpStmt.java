@@ -27,6 +27,7 @@ public class UnconditionalJumpStmt extends Stmt {
 
 	@Override
 	public void onChildUpdated(int ptr) {
+		raiseChildOutOfBounds(ptr);
 	}
 
 	@Override

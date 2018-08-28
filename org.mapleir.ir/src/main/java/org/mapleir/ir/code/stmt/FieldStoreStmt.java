@@ -93,12 +93,16 @@ public class FieldStoreStmt extends Stmt implements IHasJavaDesc {
 		if(isStatic) {
 			if(ptr == 0) {
 				valueExpression = read(0);
+			} else {
+				raiseChildOutOfBounds(ptr);
 			}
 		} else {
 			if(ptr == 0) {
 				instanceExpression = read(0);
 			} else if(ptr == 1) {
 				valueExpression = read(1);
+			} else {
+				raiseChildOutOfBounds(ptr);
 			}
 		}
 	}
