@@ -196,24 +196,51 @@ public abstract class CodeUnit implements FastGraphVertex, Opcode {
 		return children[newPtr];
 	}
 
-	protected Expr writeAt(int index, Expr s) {
+	/**
+	 * Writes the given expression as a child of the current unit at the given
+	 * index. The expression to write must be unassociated with any current
+	 * unit, i.e. have no parent already.<br>
+	 * When the node is updated the {@link #onChildUpdated(int)} callback is
+	 * invoked with the given index.<br>
+	 * 
+	 * @param s The new expression to write at the given index.
+	 * @param index The index of the children to update.
+	 * @return The expression that was previously at the given index or null if
+	 * there was no change to the state of the children array.
+	 * @throws IllegalStateException if the given expression already has a
+	 * parent unit (TODO: return null).
+	 * @throws ArrayIndexOutOfBoundsException if the index is 
+	 */
+	public Expr writeAt(Expr s, int index) {
+		if (index < 0 || index >= children.length 
+				|| (index > 0 && children[index - 1] == null)) {
+			throw new ArrayIndexOutOfBoundsException(String.format("ptr=%d, "
+					+ "len=%d, addr=%d", ptr, children.length, index));
+		}
 		Expr prev = children[index];
-
-		if(prev != s && prev != null) {
+		/* check this before checking if there is a parent for 's' as the
+		 * parent may be this node. */
+		if(prev == s) {
+			/* no point replacing an expr with itself, no change. */
+			return null;
+		}
+		if(s != null && s.parent != null) {
+			throw new IllegalStateException(String.format("%s already belongs "
+					+ "to %s (new: %s)", s, s.parent, getRootParent0()));
+		}
+		
+		if(shouldExpand()) {
+			expand();
+		}
+		
+		if(prev != null) {
 			prev.setParent(null);
 		}
 		children[index] = s;
-
 		if(s != null) {
-			if(s.parent != null) {
-				throw new IllegalStateException(s + " already belongs to " + s.parent + " (new:" + (getRootParent0()) + ")");
-			} else {
-				s.setParent(this);
-			}
+			s.setParent(this);
 		}
-		
 		onChildUpdated(index);
-
 		return prev;
 	}
 
@@ -244,7 +271,7 @@ public abstract class CodeUnit implements FastGraphVertex, Opcode {
 			// len = 8
 			// before: [s1, s2, s3, s4, s5  , null, null, null]
 			// after : [s1, s2, s3, s4, null, null, null, null]
-			writeAt(_ptr, null);
+			writeAt(null, _ptr);
 		} else {
 			// ptr: s2 (1)
 			// len = 8
@@ -255,7 +282,7 @@ public abstract class CodeUnit implements FastGraphVertex, Opcode {
 			// (ptr+1 to len) = {2, 3, 4, 5, 6, 7}
 			// shift elements down 1
 			// after : [s1, s3, s4, s5, null, null, null, null]
-			writeAt(_ptr, null);
+			writeAt(null, _ptr);
 			for (int i = _ptr + 1; i < children.length; i++) {
 				Expr s = children[i];
 				// set the parent to null, since
@@ -273,8 +300,8 @@ public abstract class CodeUnit implements FastGraphVertex, Opcode {
 				if(s != null) {
 					s.setParent(null);
 				}
-				writeAt(i-1, s);
-				writeAt(i, null);
+				writeAt(s, i-1);
+				writeAt(null, i);
 				// we need to set the parent again,
 				// because we have 2 of the same
 				// node in the children array, which
@@ -297,7 +324,7 @@ public abstract class CodeUnit implements FastGraphVertex, Opcode {
 
 		if (children[newPtr] != node) {
 			Expr prev = children[newPtr];
-			writeAt(newPtr, node);
+			writeAt(node, newPtr);
 			return prev;
 		}
 
