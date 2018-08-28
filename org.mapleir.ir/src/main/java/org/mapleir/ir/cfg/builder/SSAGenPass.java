@@ -747,8 +747,8 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 	}
 	
 	private boolean canTransferHandlers(BasicBlock db, BasicBlock ub) {
-		List<ExceptionRange<BasicBlock>> dr = db.getProtectingRanges();
-		List<ExceptionRange<BasicBlock>> ur = ub.getProtectingRanges();
+		List<ExceptionRange<BasicBlock>> dr = db.cfg.getProtectingRanges(db);
+		List<ExceptionRange<BasicBlock>> ur = ub.cfg.getProtectingRanges(ub);
 		
 		int drs = dr.size(), urs = ur.size();
 		
