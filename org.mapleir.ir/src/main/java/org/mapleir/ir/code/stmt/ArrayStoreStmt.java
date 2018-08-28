@@ -20,10 +20,10 @@ public class ArrayStoreStmt extends Stmt {
 
 	public ArrayStoreStmt(Expr arrayExpression, Expr indexExpression, Expr valueExpression, ArrayType type) {
 		super(ARRAY_STORE);
+		this.type = type;
 		setArrayExpression(arrayExpression);
 		setIndexExpression(indexExpression);
 		setValueExpression(valueExpression);
-		this.type = type;
 	}
 
 	public Expr getArrayExpression() {
@@ -31,7 +31,6 @@ public class ArrayStoreStmt extends Stmt {
 	}
 
 	public void setArrayExpression(Expr arrayExpression) {
-		this.arrayExpression = arrayExpression;
 		writeAt(arrayExpression, 0);
 	}
 
@@ -40,7 +39,6 @@ public class ArrayStoreStmt extends Stmt {
 	}
 
 	public void setIndexExpression(Expr indexExpression) {
-		this.indexExpression = indexExpression;
 		writeAt(indexExpression, 1);
 	}
 
@@ -49,7 +47,6 @@ public class ArrayStoreStmt extends Stmt {
 	}
 
 	public void setValueExpression(Expr valueExpression) {
-		this.valueExpression = valueExpression;
 		writeAt(valueExpression, 2);
 	}
 

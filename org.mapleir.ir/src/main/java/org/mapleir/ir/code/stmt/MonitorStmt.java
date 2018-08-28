@@ -19,12 +19,11 @@ public class MonitorStmt extends Stmt {
 
 	public MonitorStmt(Expr expression, MonitorMode mode) {
 		super(MONITOR);
-		setExpression(expression);
 		this.mode = mode;
+		setExpression(expression);
 	}
 
 	public void setExpression(Expr expression) {
-		this.expression = expression;
 		writeAt(expression, 0);
 	}
 

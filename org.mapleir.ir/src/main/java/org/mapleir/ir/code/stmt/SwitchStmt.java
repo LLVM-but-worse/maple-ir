@@ -32,7 +32,6 @@ public class SwitchStmt extends Stmt {
 	}
 
 	public void setExpression(Expr expression) {
-		this.expression = expression;
 		writeAt(expression, 0);
 	}
 
