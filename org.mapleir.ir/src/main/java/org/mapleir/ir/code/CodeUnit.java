@@ -314,23 +314,6 @@ public abstract class CodeUnit implements FastGraphVertex, Opcode {
 		}
 	}
 
-	public Expr overwrite(Expr node, int newPtr) {
-		if(shouldExpand()) {
-			expand();
-		}
-
-		if (newPtr < 0 || newPtr >= children.length || (newPtr > 0 && children[newPtr - 1] == null))
-			throw new ArrayIndexOutOfBoundsException(String.format("ptr=%d, len=%d, addr=%d", ptr, children.length, newPtr));
-
-		if (children[newPtr] != node) {
-			Expr prev = children[newPtr];
-			writeAt(node, newPtr);
-			return prev;
-		}
-
-		return null;
-	}
-
 	public List<Expr> getChildren() {
 		List<Expr> list = new ArrayList<>();
 		for (int i = 0; i < children.length; i++) {

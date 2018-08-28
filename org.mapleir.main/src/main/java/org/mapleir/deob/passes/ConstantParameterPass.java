@@ -429,7 +429,7 @@ public class ConstantParameterPass implements IPass, Opcode {
 				requireSpill = true;
 			} else {
 				CodeUnit par = v.getParent();
-				par.overwrite(rhsVal.copy(), par.indexOf(v));
+				par.writeAt(rhsVal.copy(), par.indexOf(v));
 			}
 			
 			/* this use is no longer associated
@@ -490,7 +490,7 @@ public class ConstantParameterPass implements IPass, Opcode {
 			Expr[] newArgs = buildArgs(init.getArgumentExprs(), false, dead);
 			InitialisedObjectExpr init2 = new InitialisedObjectExpr(init.getOwner(), newDesc, newArgs);
 
-			parent.overwrite(init2, parent.indexOf(init));
+			parent.writeAt(init2, parent.indexOf(init));
 		} else if(call.getOpcode() == Opcode.INVOKE) {
 			InvocationExpr invoke = (InvocationExpr) call;
 			if (invoke.isDynamic())
@@ -501,7 +501,7 @@ public class ConstantParameterPass implements IPass, Opcode {
 			Expr[] newArgs = buildArgs(invoke.getArgumentExprs(), invoke.getCallType() != InvocationExpr.CallType.STATIC, dead);
 			InvocationExpr invoke2 = invoke.copy();
 			
-			parent.overwrite(invoke2, parent.indexOf(invoke));
+			parent.writeAt(invoke2, parent.indexOf(invoke));
 		} else {
 			throw new UnsupportedOperationException(call.toString());
 		}

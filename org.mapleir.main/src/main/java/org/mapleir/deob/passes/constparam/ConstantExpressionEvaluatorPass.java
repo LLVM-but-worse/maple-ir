@@ -100,7 +100,7 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 							Expr val = simplifyArithmetic(cfg.getLocals(), e);
 							if (val != null) {
 								exprsEvaluated++;
-								cfg.overwrite(par, e, val);
+								cfg.writeAt(par, e, val);
 							}
 						}
 					}

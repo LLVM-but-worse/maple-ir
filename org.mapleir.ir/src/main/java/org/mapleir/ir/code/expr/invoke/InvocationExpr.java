@@ -30,7 +30,7 @@ public abstract class InvocationExpr extends Invocation {
 		this.desc = desc;
 		
 		for (int i = 0; i < args.length; i++) {
-			overwrite(args[i], i);
+			writeAt(args[i], i);
 		}
 	}
 
@@ -97,7 +97,7 @@ public abstract class InvocationExpr extends Invocation {
 		}
 		
 		args[index] = argument;
-		overwrite(argument, index);
+		writeAt(argument, index);
 	}
 	
 	@Override

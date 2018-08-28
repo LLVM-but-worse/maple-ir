@@ -27,7 +27,7 @@ public class InitialisedObjectExpr extends Invocation {
 		this.desc = desc;
 		this.args = args;
 		for (int i = 0; i < args.length; i++) {
-			overwrite(args[i], i);
+			writeAt(args[i], i);
 		}
 	}
 
@@ -71,7 +71,7 @@ public class InitialisedObjectExpr extends Invocation {
 		}
 		
 		args[ptr] = argument;
-		overwrite(argument, ptr);
+		writeAt(argument, ptr);
 	}
 
 	@Override

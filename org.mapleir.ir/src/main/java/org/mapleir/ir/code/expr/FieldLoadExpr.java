@@ -33,7 +33,7 @@ public class FieldLoadExpr extends Expr {
 
 	public void setInstanceExpression(Expr instanceExpression) {
 		this.instanceExpression = instanceExpression;
-		overwrite(instanceExpression, 0);
+		writeAt(instanceExpression, 0);
 	}
 
 	public String getOwner() {

@@ -28,7 +28,7 @@ public class ArrayLoadExpr extends Expr {
 
 	public void setArrayExpression(Expr arrayExpression) {
 		array = arrayExpression;
-		overwrite(arrayExpression, 0);
+		writeAt(arrayExpression, 0);
 	}
 
 	public Expr getIndexExpression() {
@@ -37,7 +37,7 @@ public class ArrayLoadExpr extends Expr {
 
 	public void setIndexExpression(Expr indexExpression) {
 		index = indexExpression;
-		overwrite(indexExpression, 1);
+		writeAt(indexExpression, 1);
 	}
 
 	public ArrayType getArrayType() {

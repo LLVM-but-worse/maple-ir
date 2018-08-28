@@ -32,7 +32,7 @@ public class ArrayStoreStmt extends Stmt {
 
 	public void setArrayExpression(Expr arrayExpression) {
 		this.arrayExpression = arrayExpression;
-		overwrite(arrayExpression, 0);
+		writeAt(arrayExpression, 0);
 	}
 
 	public Expr getIndexExpression() {
@@ -41,7 +41,7 @@ public class ArrayStoreStmt extends Stmt {
 
 	public void setIndexExpression(Expr indexExpression) {
 		this.indexExpression = indexExpression;
-		overwrite(indexExpression, 1);
+		writeAt(indexExpression, 1);
 	}
 
 	public Expr getValueExpression() {
@@ -50,7 +50,7 @@ public class ArrayStoreStmt extends Stmt {
 
 	public void setValueExpression(Expr valueExpression) {
 		this.valueExpression = valueExpression;
-		overwrite(valueExpression, 2);
+		writeAt(valueExpression, 2);
 	}
 
 	public ArrayType getArrayType() {

@@ -43,7 +43,7 @@ public class DynamicInvocationExpr extends InvocationExpr {
 		assert(Type.getArgumentTypes(bootstrapDesc).length == args.length); // I hope this tells me when this fucks up, because this is not a matter of if, but when.
 		
 		for(int i = 0; i < args.length; i++) {
-			overwrite(args[i], i);
+			writeAt(args[i], i);
 		}
 	}
 

@@ -76,7 +76,7 @@ public class ConditionalJumpStmt extends Stmt {
 
 	public void setLeft(Expr left) {
 		this.left = left;
-		overwrite(left, 0);
+		writeAt(left, 0);
 	}
 
 	public Expr getRight() {
@@ -85,7 +85,7 @@ public class ConditionalJumpStmt extends Stmt {
 
 	public void setRight(Expr right) {
 		this.right = right;
-		overwrite(right, 1);
+		writeAt(right, 1);
 	}
 
 	public BasicBlock getTrueSuccessor() {

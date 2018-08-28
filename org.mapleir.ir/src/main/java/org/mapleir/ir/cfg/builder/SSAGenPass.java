@@ -888,7 +888,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 //						System.out.println("   bpar: " + var.getParent());
 						CodeUnit parent = var.getParent();
 						int idx = parent.indexOf(var);
-						parent.overwrite(e = e.copy(), idx);
+						parent.writeAt(e = e.copy(), idx);
 						
 //						System.out.println("    def: " + def);
 //						System.out.println("    idx: " + idx);
@@ -1335,7 +1335,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 								pool.defs.remove(vl);
 								
 								useSet.clear();
-								parent.overwrite(rhs, parent.indexOf(use));
+								parent.writeAt(rhs, parent.indexOf(use));
 								
 								i++;
 								it.remove();

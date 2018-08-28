@@ -27,8 +27,8 @@ public class FieldStoreStmt extends Stmt {
 		this.name = name;
 		this.desc = desc;
 		
-		overwrite(instanceExpression, 0);
-		overwrite(valueExpression, instanceExpression == null ? 0 : 1);
+		writeAt(instanceExpression, 0);
+		writeAt(valueExpression, instanceExpression == null ? 0 : 1);
 	}
 
 	public boolean isStatic() {
@@ -42,15 +42,15 @@ public class FieldStoreStmt extends Stmt {
 	public void setInstanceExpression(Expr instanceExpression) {
 		if (this.instanceExpression == null && instanceExpression != null) {
 			this.instanceExpression = instanceExpression;
-			overwrite(valueExpression, 1);
-			overwrite(this.instanceExpression, 0);
+			writeAt(valueExpression, 1);
+			writeAt(this.instanceExpression, 0);
 		} else if (this.instanceExpression != null && instanceExpression == null) {
 			this.instanceExpression = instanceExpression;
-			overwrite(valueExpression, 0);
-			overwrite(null, 1);
+			writeAt(valueExpression, 0);
+			writeAt(null, 1);
 		} else {
 			this.instanceExpression = instanceExpression;
-			overwrite(this.instanceExpression, 0);
+			writeAt(this.instanceExpression, 0);
 		}
 	}
 
@@ -60,7 +60,7 @@ public class FieldStoreStmt extends Stmt {
 
 	public void setValueExpression(Expr valueExpression) {
 		this.valueExpression = valueExpression;
-		overwrite(valueExpression, instanceExpression == null ? 0 : 1);
+		writeAt(valueExpression, instanceExpression == null ? 0 : 1);
 	}
 
 	public String getOwner() {

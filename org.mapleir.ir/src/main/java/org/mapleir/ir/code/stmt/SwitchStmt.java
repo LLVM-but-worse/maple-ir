@@ -33,7 +33,7 @@ public class SwitchStmt extends Stmt {
 
 	public void setExpression(Expr expression) {
 		this.expression = expression;
-		overwrite(expression, 0);
+		writeAt(expression, 0);
 	}
 
 	public LinkedHashMap<Integer, BasicBlock> getTargets() {
