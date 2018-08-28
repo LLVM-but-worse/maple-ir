@@ -75,7 +75,6 @@ public class ConditionalJumpStmt extends Stmt {
 	}
 
 	public void setLeft(Expr left) {
-		this.left = left;
 		writeAt(left, 0);
 	}
 
@@ -84,7 +83,6 @@ public class ConditionalJumpStmt extends Stmt {
 	}
 
 	public void setRight(Expr right) {
-		this.right = right;
 		writeAt(right, 1);
 	}
 
