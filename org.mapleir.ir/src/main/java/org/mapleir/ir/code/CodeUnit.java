@@ -422,4 +422,15 @@ public abstract class CodeUnit implements FastGraphVertex, Opcode {
 
 		return id == codeUnit.id;
 	}
+	
+	/**
+	 * Utility function for subclasses to throw a
+	 * {@link ChildOutOfBoundsException} indicating that data is being read or
+	 * written at an index that is not used by a given type of node.
+	 * 
+	 * @param index The index that is blacklisted.
+	 */
+	protected void raiseChildOutOfBounds(int index) {
+		throw new ChildOutOfBoundsException(this, index);
+	}
 }
