@@ -1,11 +1,9 @@
 package org.mapleir.stdlib.collections.graph;
 
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Set;
 
+import org.mapleir.stdlib.collections.graph.algorithms.SimpleDfs;
 import org.mapleir.stdlib.collections.graph.dot.BasicDotConfiguration;
 import org.mapleir.stdlib.collections.graph.dot.DotConfiguration;
 import org.mapleir.stdlib.collections.graph.dot.DotConfiguration.GraphType;
@@ -24,7 +22,10 @@ public abstract class FastDirectedGraph<N extends FastGraphVertex, E extends Fas
 		map = createMap(g.map);
 		reverseMap = createMap(g.reverseMap);
 	}
-	
+
+	/**
+	 * *NO* guarantee about order vertices will be returned in. Use a search if you need a specific order!
+	 */
 	@Override
 	public Set<N> vertices() {
 		return Collections.unmodifiableSet(map.keySet());
@@ -163,11 +164,11 @@ public abstract class FastDirectedGraph<N extends FastGraphVertex, E extends Fas
 
 	@Override
 	public Set<E> getEdges(N b) {
-		return map.get(b);
+		return Collections.unmodifiableSet(map.get(b));
 	}
 	
 	public Set<E> getReverseEdges(N v) {
-		return reverseMap.get(v);
+		return Collections.unmodifiableSet(reverseMap.get(v));
 	}
 
 	@Override

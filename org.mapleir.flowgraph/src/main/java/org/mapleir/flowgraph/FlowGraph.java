@@ -6,6 +6,7 @@ import org.mapleir.stdlib.collections.bitset.BitSetIndexer;
 import org.mapleir.stdlib.collections.bitset.GenericBitSet;
 import org.mapleir.stdlib.collections.graph.FastDirectedGraph;
 import org.mapleir.stdlib.collections.graph.FastGraphVertex;
+import org.mapleir.stdlib.collections.graph.algorithms.SimpleDfs;
 import org.mapleir.stdlib.collections.map.ValueCreator;
 
 import java.util.*;
@@ -42,6 +43,17 @@ public abstract class FlowGraph<N extends FastGraphVertex, E extends FlowEdge<N>
 	public Set<N> getEntries() {
 		return entries;
 	}
+
+	/**
+	 * Use this if you need a topoorder. There is *NO* guarantee what order vertices() will return the blocks in
+	 */
+	private List<N> topoorderCache;
+	public List<N> verticesInOrder() {
+		assert (getEntries().size() == 1);
+		if (topoorderCache == null)
+			topoorderCache = SimpleDfs.topoorder(this, getEntries().iterator().next());
+		return topoorderCache;
+	}
 	
 	public void addRange(ExceptionRange<N> range) {
 		if(!ranges.contains(range)) {
@@ -62,6 +74,7 @@ public abstract class FlowGraph<N extends FastGraphVertex, E extends FlowEdge<N>
 		super.clear();
 		indexMap.clear();
 		indexedSet.clear();
+		topoorderCache = null;
 	}
 	
 	@Override
@@ -84,6 +97,7 @@ public abstract class FlowGraph<N extends FastGraphVertex, E extends FlowEdge<N>
 		assert(!indexMap.containsKey(index) || indexMap.get(index) == src); // ensure no id collisions
 		indexMap.put(index, src);
 		indexedSet.set(index, true);
+		topoorderCache = null;
 	}
 	
 	@Override
@@ -91,6 +105,7 @@ public abstract class FlowGraph<N extends FastGraphVertex, E extends FlowEdge<N>
 		if(entries.contains(old)) {
 			entries.add(n);
 		}
+		topoorderCache = null;
 		super.replace(old, n);
 	}
 	
@@ -108,6 +123,7 @@ public abstract class FlowGraph<N extends FastGraphVertex, E extends FlowEdge<N>
 		}
 		
 		entries.remove(v);
+		topoorderCache = null;
 		super.removeVertex(v);
 
 		int index = v.getNumericId();

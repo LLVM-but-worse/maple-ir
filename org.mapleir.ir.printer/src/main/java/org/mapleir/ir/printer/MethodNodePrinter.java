@@ -60,7 +60,7 @@ public abstract class MethodNodePrinter extends ASMPrinter<MethodNode> {
     }
 
     public void emitCfg(ControlFlowGraph cfg) {
-        for (BasicBlock b : cfg.vertices()) {
+        for (BasicBlock b : cfg.verticesInOrder()) {
             this.emitBlock(b);
         }
     }
@@ -484,7 +484,7 @@ public abstract class MethodNodePrinter extends ASMPrinter<MethodNode> {
         List<ExceptionRange<BasicBlock>> ranges = cfg.getRanges();
         if (ranges.size() > 0) {
 
-            List<BasicBlock> allNodes = new ArrayList<>(cfg.vertices());
+            List<BasicBlock> allNodes = cfg.verticesInOrder();
 
             List<Map<String, String>> handlerEntries = new ArrayList<>();
             for (ExceptionRange<BasicBlock> range : ranges) {
