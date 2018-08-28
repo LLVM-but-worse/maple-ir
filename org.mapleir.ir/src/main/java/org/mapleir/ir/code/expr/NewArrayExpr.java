@@ -18,7 +18,7 @@ public class NewArrayExpr extends Expr {
 		super(NEW_ARRAY);
 		this.bounds = bounds;
 		for (int i = 0; i < bounds.length; i++) {
-			overwrite(bounds[i], i);
+			writeAt(bounds[i], i);
 		}
 		this.type = type;
 		
@@ -48,7 +48,7 @@ public class NewArrayExpr extends Expr {
 
 		this.bounds = bounds;
 		for (int i = 0; i < bounds.length; i++) {
-			overwrite(bounds[i], i);
+			writeAt(bounds[i], i);
 		}
 	}
 
@@ -58,7 +58,7 @@ public class NewArrayExpr extends Expr {
 
 		bounds[dimension] = length;
 		if(overwrite) {
-			overwrite(length, dimension);
+			writeAt(length, dimension);
 		}
 	}
 

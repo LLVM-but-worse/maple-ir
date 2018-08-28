@@ -32,7 +32,7 @@ public abstract class AbstractCopyStmt extends Stmt {
 		this.variable = variable;
 		
 		if(!synthetic) {
-			overwrite(expression, 0);
+			writeAt(expression, 0);
 		}
 	}
 	
@@ -55,7 +55,7 @@ public abstract class AbstractCopyStmt extends Stmt {
 	public void setExpression(Expr expression) {
 		this.expression = expression;
 		if(!synthetic) {
-			overwrite(expression, 0);
+			writeAt(expression, 0);
 		}
 	}
 	

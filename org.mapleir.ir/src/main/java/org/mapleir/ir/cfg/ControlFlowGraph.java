@@ -90,7 +90,7 @@ public class ControlFlowGraph extends FlowGraph<BasicBlock, FlowEdge<BasicBlock>
 	 * @param from Statement to be replaced.
 	 * @param to Statement to replace old statement with.
 	 */
-	public void overwrite(CodeUnit parent, Expr from, Expr to) {
+	public void writeAt(CodeUnit parent, Expr from, Expr to) {
 		// remove uses in from
 		for(Expr e : from.enumerateWithSelf()) {
 			if (e.getOpcode() == Opcode.LOCAL_LOAD) {
@@ -107,7 +107,7 @@ public class ControlFlowGraph extends FlowGraph<BasicBlock, FlowEdge<BasicBlock>
 			}
 		}
 		
-		parent.overwrite(to, parent.indexOf(from));
+		parent.writeAt(to, parent.indexOf(from));
 	}
 	
 	@Override
