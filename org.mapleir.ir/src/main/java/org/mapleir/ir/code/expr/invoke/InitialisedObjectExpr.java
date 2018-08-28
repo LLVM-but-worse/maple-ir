@@ -71,7 +71,6 @@ public class InitialisedObjectExpr extends Invocation {
 		}
 		
 		args[ptr] = argument;
-		writeAt(argument, ptr);
 	}
 
 	@Override

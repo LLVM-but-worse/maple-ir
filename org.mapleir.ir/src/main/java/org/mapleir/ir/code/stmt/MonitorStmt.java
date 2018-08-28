@@ -38,7 +38,7 @@ public class MonitorStmt extends Stmt {
 
 	@Override
 	public void onChildUpdated(int ptr) {
-		setExpression(read(ptr));
+		expression = read(0);
 	}
 
 	@Override

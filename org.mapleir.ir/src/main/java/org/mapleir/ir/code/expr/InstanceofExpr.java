@@ -48,7 +48,7 @@ public class InstanceofExpr extends Expr {
 
 	@Override
 	public void onChildUpdated(int ptr) {
-		setExpression(read(0));
+		expression = read(0);
 	}
 	
 	@Override
