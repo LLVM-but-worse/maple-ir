@@ -108,6 +108,8 @@ public class ConditionalJumpStmt extends Stmt {
 			left = read(0);
 		} else if (ptr == 1) {
 			right = read(1);
+		} else {
+			raiseChildOutOfBounds(ptr);
 		}
 	}
 
