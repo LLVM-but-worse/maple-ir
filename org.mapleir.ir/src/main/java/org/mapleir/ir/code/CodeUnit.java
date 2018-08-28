@@ -211,6 +211,8 @@ public abstract class CodeUnit implements FastGraphVertex, Opcode {
 				s.setParent(this);
 			}
 		}
+		
+		onChildUpdated(index);
 
 		return prev;
 	}
@@ -243,7 +245,6 @@ public abstract class CodeUnit implements FastGraphVertex, Opcode {
 			// before: [s1, s2, s3, s4, s5  , null, null, null]
 			// after : [s1, s2, s3, s4, null, null, null, null]
 			writeAt(_ptr, null);
-			onChildUpdated(_ptr);
 		} else {
 			// ptr: s2 (1)
 			// len = 8
@@ -255,7 +256,6 @@ public abstract class CodeUnit implements FastGraphVertex, Opcode {
 			// shift elements down 1
 			// after : [s1, s3, s4, s5, null, null, null, null]
 			writeAt(_ptr, null);
-			onChildUpdated(_ptr);
 			for (int i = _ptr + 1; i < children.length; i++) {
 				Expr s = children[i];
 				// set the parent to null, since
@@ -274,9 +274,7 @@ public abstract class CodeUnit implements FastGraphVertex, Opcode {
 					s.setParent(null);
 				}
 				writeAt(i-1, s);
-				onChildUpdated(i - 1);
 				writeAt(i, null);
-				onChildUpdated(i);
 				// we need to set the parent again,
 				// because we have 2 of the same
 				// node in the children array, which
@@ -300,7 +298,6 @@ public abstract class CodeUnit implements FastGraphVertex, Opcode {
 		if (children[newPtr] != node) {
 			Expr prev = children[newPtr];
 			writeAt(newPtr, node);
-			onChildUpdated(newPtr);
 			return prev;
 		}
 
