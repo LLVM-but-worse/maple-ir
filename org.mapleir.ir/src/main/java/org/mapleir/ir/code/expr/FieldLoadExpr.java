@@ -16,17 +16,19 @@ public class FieldLoadExpr extends Expr implements IHasJavaDesc {
 	private String owner;
 	private String name;
 	private String desc;
+	private boolean isStatic;
 
-	public FieldLoadExpr(Expr instanceExpression, String owner, String name, String desc) {
+	public FieldLoadExpr(Expr instanceExpression, String owner, String name, String desc, boolean isStatic) {
 		super(FIELD_LOAD);
-		setInstanceExpression(instanceExpression);
 		this.owner = owner;
 		this.name = name;
 		this.desc = desc;
+		this.isStatic = isStatic;
+		setInstanceExpression(instanceExpression);
 	}
 	
 	public boolean isStatic() {
-		return instanceExpression == null;
+		return isStatic;
 	}
 
 	public Expr getInstanceExpression() {
@@ -38,6 +40,7 @@ public class FieldLoadExpr extends Expr implements IHasJavaDesc {
 		writeAt(instanceExpression, 0);
 	}
 
+	@Override
 	public String getOwner() {
 		return owner;
 	}
@@ -46,6 +49,7 @@ public class FieldLoadExpr extends Expr implements IHasJavaDesc {
 		this.owner = owner;
 	}
 
+	@Override
 	public String getName() {
 		return name;
 	}
@@ -54,6 +58,7 @@ public class FieldLoadExpr extends Expr implements IHasJavaDesc {
 		this.name = name;
 	}
 
+	@Override
 	public String getDesc() {
 		return desc;
 	}
@@ -64,7 +69,7 @@ public class FieldLoadExpr extends Expr implements IHasJavaDesc {
 
 	@Override
 	public FieldLoadExpr copy() {
-		return new FieldLoadExpr(instanceExpression == null ? null : instanceExpression.copy(), owner, name, desc);
+		return new FieldLoadExpr(instanceExpression == null ? null : instanceExpression.copy(), owner, name, desc, isStatic);
 	}
 
 	@Override
@@ -124,7 +129,7 @@ public class FieldLoadExpr extends Expr implements IHasJavaDesc {
 					return false;
 				}
 			}
-			return name.equals(load.name) && desc.equals(load.desc) && owner.equals(load.owner);
+			return isStatic == load.isStatic && name.equals(load.name) && desc.equals(load.desc) && owner.equals(load.owner);
 		}
 		return false;
 	}

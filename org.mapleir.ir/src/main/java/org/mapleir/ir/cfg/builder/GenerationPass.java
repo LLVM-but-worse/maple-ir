@@ -1238,7 +1238,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 			if(opcode == GETFIELD) {
 				inst = pop();
 			}
-			FieldLoadExpr fExpr = new FieldLoadExpr(inst, owner, name, desc);
+			FieldLoadExpr fExpr = new FieldLoadExpr(inst, owner, name, desc, opcode == GETSTATIC);
 			int index = currentStack.height();
 			Type type = assign_stack(index, fExpr);
 			push(load_stack(index, type));
