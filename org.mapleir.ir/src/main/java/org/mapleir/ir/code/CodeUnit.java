@@ -123,6 +123,13 @@ public abstract class CodeUnit implements FastGraphVertex, Opcode {
 		}
 	}
 
+	/**
+	 * Computes the complete size of the current unit all the way down to leaf
+	 * units/nodes, i.e. the number of nodes contained in a region enclosing
+	 * this node, it's children and their children recursively in a node tree.
+	 * 
+	 * @return The tree branch weight including this node. ( >= 1)
+	 */
 	public int deepSize() {
 		int size = 1;
 		for (int i = 0; i < children.length; i++) {
@@ -133,6 +140,11 @@ public abstract class CodeUnit implements FastGraphVertex, Opcode {
 		return size;
 	}
 
+	/**
+	 * Computes the number of non-null children that this unit has.
+	 * 
+	 * @return The number of children. ( >= 0)
+	 */
 	public int size() {
 		int size = 0;
 		for (int i = 0; i < children.length; i++) {
@@ -174,6 +186,7 @@ public abstract class CodeUnit implements FastGraphVertex, Opcode {
 
 	/**
 	 * Gets the child {@link Expr} at the given index.
+	 * 
 	 * @param newPtr The index of the child.
 	 * @return The child {@link Expr}.
 	 */
