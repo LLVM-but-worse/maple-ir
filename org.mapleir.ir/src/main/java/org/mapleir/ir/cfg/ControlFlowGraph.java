@@ -4,6 +4,7 @@ import org.mapleir.flowgraph.ExceptionRange;
 import org.mapleir.flowgraph.FlowGraph;
 import org.mapleir.flowgraph.edges.FlowEdge;
 import org.mapleir.flowgraph.edges.FlowEdges;
+import org.mapleir.flowgraph.edges.ImmediateEdge;
 import org.mapleir.flowgraph.edges.TryCatchEdge;
 import org.mapleir.ir.code.CodeUnit;
 import org.mapleir.ir.code.Expr;
@@ -25,6 +26,7 @@ import org.mapleir.stdlib.util.TabbedStringWriter;
 
 import java.util.*;
 import java.util.Map.Entry;
+import java.util.function.Predicate;
 
 import static org.mapleir.ir.code.Opcode.PHI_STORE;
 
@@ -306,5 +308,106 @@ public class ControlFlowGraph extends FlowGraph<BasicBlock, FlowEdge<BasicBlock>
 				}
 			}
 		}
+	}
+
+	public Set<FlowEdge<BasicBlock>> getPredecessors(BasicBlock bb) {
+		return new HashSet<>(getReverseEdges(bb));
+	}
+
+	public Set<FlowEdge<BasicBlock>> getPredecessors(Predicate<? super FlowEdge<BasicBlock>> e, BasicBlock b) {
+		Set<FlowEdge<BasicBlock>> set = getPredecessors(b);
+		set.removeIf(e.negate());
+		return set;
+	}
+
+	public Set<FlowEdge<BasicBlock>> getSuccessors(BasicBlock b) {
+		return new HashSet<>(getEdges(b));
+	}
+
+	public Set<FlowEdge<BasicBlock>> getSuccessors(Predicate<? super FlowEdge<BasicBlock>> e, BasicBlock b) {
+		Set<FlowEdge<BasicBlock>> set = getSuccessors(b);
+		set.removeIf(e.negate());
+		return set;
+	}
+
+	Set<FlowEdge<BasicBlock>> findImmediatesImpl(Set<FlowEdge<BasicBlock>> set) {
+		Set<FlowEdge<BasicBlock>> iset = new HashSet<>();
+		for(FlowEdge<BasicBlock> e : set) {
+			if(e instanceof ImmediateEdge) {
+				iset.add(e);
+			}
+		}
+		return iset;
+	}
+
+	FlowEdge<BasicBlock> findSingleImmediateImpl(Set<FlowEdge<BasicBlock>> _set) {
+		Set<FlowEdge<BasicBlock>> set = findImmediatesImpl(_set);
+		int size = set.size();
+		if(size == 0) {
+			return null;
+		} else if(size > 1) {
+			throw new IllegalStateException(set.toString());
+		} else {
+			return set.iterator().next();
+		}
+	}
+
+	public ImmediateEdge<BasicBlock> getImmediateEdge(BasicBlock b) {
+		return (ImmediateEdge<BasicBlock>) findSingleImmediateImpl(getEdges(b));
+	}
+
+	public BasicBlock getImmediate(BasicBlock b) {
+		FlowEdge<BasicBlock> e =  findSingleImmediateImpl(getEdges(b));
+		if(e != null) {
+			return e.dst();
+		} else {
+			return null;
+		}
+	}
+
+	public BasicBlock getIncomingImmediate(BasicBlock b) {
+		FlowEdge<BasicBlock> e =  findSingleImmediateImpl(getReverseEdges(b));
+		if(e != null) {
+			return e.src();
+		} else {
+			return null;
+		}
+	}
+
+	public ImmediateEdge<BasicBlock> getIncomingImmediateEdge(BasicBlock b) {
+		return (ImmediateEdge<BasicBlock>) findSingleImmediateImpl(getReverseEdges(b));
+	}
+
+	public List<BasicBlock> getJumpEdges(BasicBlock b) {
+		List<BasicBlock> jes = new ArrayList<>();
+		for (FlowEdge<BasicBlock> e : getEdges(b)) {
+			if (!(e instanceof ImmediateEdge)) {
+				jes.add(e.dst());
+			}
+		}
+		return jes;
+	}
+
+	public boolean isHandler(BasicBlock b) {
+		for(FlowEdge<BasicBlock> e : getReverseEdges(b)) {
+			if(e instanceof TryCatchEdge) {
+				if(e.dst() == b) {
+					return true;
+				} else {
+					throw new IllegalStateException("incoming throw edge for " + b.getDisplayName() + " with dst " + e.dst().getDisplayName());
+				}
+			}
+		}
+		return false;
+	}
+
+	public List<ExceptionRange<BasicBlock>> getProtectingRanges(BasicBlock b) {
+		List<ExceptionRange<BasicBlock>> ranges = new ArrayList<>();
+		for(ExceptionRange<BasicBlock> er : getRanges()) {
+			if(er.containsVertex(b)) {
+				ranges.add(er);
+			}
+		}
+		return ranges;
 	}
 }

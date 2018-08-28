@@ -37,20 +37,20 @@ public class NaturalisationPass extends ControlFlowGraphBuilder.BuilderPass {
 		Map<BasicBlock, List<ExceptionRange<BasicBlock>>> ranges = new HashMap<>();
 
 		for(BasicBlock b : SimpleDfs.topoorder(builder.graph, builder.head)) {
-			BasicBlock in = b.getIncomingImmediate();
+			BasicBlock in = b.cfg.getIncomingImmediate(b);
 			if(in == null) {
 				continue;
 			}
 			if(in.isFlagSet(BasicBlock.FLAG_NO_MERGE)) {
 				continue;
 			}
-			Set<FlowEdge<BasicBlock>> inSuccs = in.getSuccessors(e -> !(e instanceof TryCatchEdge));
+			Set<FlowEdge<BasicBlock>> inSuccs = in.cfg.getSuccessors(e -> !(e instanceof TryCatchEdge), in);
 			if(inSuccs.size() != 1 || builder.graph.getReverseEdges(b).size() != 1) {
 				continue;
 			}
 			
-			List<ExceptionRange<BasicBlock>> range1 = b.getProtectingRanges();
-			List<ExceptionRange<BasicBlock>> range2 = in.getProtectingRanges();
+			List<ExceptionRange<BasicBlock>> range1 = b.cfg.getProtectingRanges(b);
+			List<ExceptionRange<BasicBlock>> range2 = in.cfg.getProtectingRanges(in);
 			
 			if(!range1.equals(range2)) {
 				continue;

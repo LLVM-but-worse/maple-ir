@@ -315,7 +315,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		}
 		
 		// TODO: check if it should have an immediate.
-		BasicBlock im = block.getImmediate();
+		BasicBlock im = block.cfg.getImmediate(block);
 		if (im != null/* && !queue.contains(im)*/) {
 			// System.out.println("Updating " + block.getId() + " -> " + im.getId());
 			// System.out.println("  Pre: " + currentStack);

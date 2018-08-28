@@ -92,14 +92,14 @@ public class ControlFlowGraphDumper implements BytecodeFrontend {
 			if (bundles.containsKey(b)) // Already in a bundle
 				continue;
 			
-			if (b.getIncomingImmediateEdge() != null) // Look for heads of bundles only
+			if (b.cfg.getIncomingImmediateEdge(b) != null) // Look for heads of bundles only
 				continue;
 			
 			BlockBundle bundle = new BlockBundle();
 			while (b != null) {
 				bundle.add(b);
 				bundles.put(b, bundle);
-				b = b.getImmediate();
+				b = b.cfg.getImmediate(b);
 			}
 			
 			List<BlockBundle> bunch = new ArrayList<>();

@@ -16,7 +16,6 @@ import org.mapleir.deob.dataflow.graph.JavaDescVertex;
 import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.code.expr.ConstantExpr;
 import org.mapleir.stdlib.collections.graph.FastDirectedGraph;
-import org.mapleir.stdlib.collections.graph.algorithms.SimpleDfs;
 import org.mapleir.stdlib.util.IHasJavaDesc;
 import org.mapleir.stdlib.util.JavaDesc;
 import org.mapleir.deob.passes.rename.ClassRenamerPass;
