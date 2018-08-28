@@ -1222,10 +1222,10 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		if(opcode == PUTFIELD) {
 			Expr val = pop();
 			Expr inst = pop();
-			addStmt(new FieldStoreStmt(inst, val, owner, name, desc));
+			addStmt(new FieldStoreStmt(inst, val, owner, name, desc, false));
 		} else if(opcode == PUTSTATIC) {
 			Expr val = pop();
-			addStmt(new FieldStoreStmt(null, val, owner, name, desc));
+			addStmt(new FieldStoreStmt(null, val, owner, name, desc, true));
 		} else {
 			throw new UnsupportedOperationException(Printer.OPCODES[opcode] + " " + owner + "." + name + "   " + desc);
 		}
