@@ -107,9 +107,9 @@ public class ConditionalJumpStmt extends Stmt {
 	@Override
 	public void onChildUpdated(int ptr) {
 		if (ptr == 0) {
-			setLeft(read(ptr));
+			left = read(0);
 		} else if (ptr == 1) {
-			setRight(read(ptr));
+			right = read(1);
 		}
 	}
 

@@ -55,7 +55,7 @@ public class SwitchStmt extends Stmt {
 	@Override
 	public void onChildUpdated(int ptr) {
 		if (ptr == 0) {
-			setExpression(read(ptr));
+			expression = read(0);
 		}
 	}
 	

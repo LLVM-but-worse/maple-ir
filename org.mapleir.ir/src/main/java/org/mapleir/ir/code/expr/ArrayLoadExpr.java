@@ -61,9 +61,9 @@ public class ArrayLoadExpr extends Expr {
 	@Override
 	public void onChildUpdated(int ptr) {
 		if (ptr == 0) {
-			setArrayExpression(read(0));
+			array = read(0);
 		} else if (ptr == 1) {
-			setIndexExpression(read(1));
+			index = read(1);
 		}
 	}
 
