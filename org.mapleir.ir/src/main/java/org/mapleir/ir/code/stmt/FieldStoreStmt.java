@@ -18,21 +18,21 @@ public class FieldStoreStmt extends Stmt {
 	private String owner;
 	private String name;
 	private String desc;
+	private boolean isStatic;
 
-	public FieldStoreStmt(Expr instanceExpression, Expr valueExpression, String owner, String name, String desc) {
+	public FieldStoreStmt(Expr instanceExpression, Expr valueExpression, String owner, String name, String desc, boolean isStatic) {
 		super(FIELD_STORE);
-		this.instanceExpression = instanceExpression;
-		this.valueExpression = valueExpression;
 		this.owner = owner;
 		this.name = name;
 		this.desc = desc;
+		this.isStatic = isStatic;
 		
 		writeAt(instanceExpression, 0);
 		writeAt(valueExpression, instanceExpression == null ? 0 : 1);
 	}
 
 	public boolean isStatic() {
-		return getInstanceExpression() == null;
+		return isStatic;
 	}
 	
 	public Expr getInstanceExpression() {
@@ -59,7 +59,6 @@ public class FieldStoreStmt extends Stmt {
 	}
 
 	public void setValueExpression(Expr valueExpression) {
-		this.valueExpression = valueExpression;
 		writeAt(valueExpression, instanceExpression == null ? 0 : 1);
 	}
 
@@ -89,12 +88,16 @@ public class FieldStoreStmt extends Stmt {
 
 	@Override
 	public void onChildUpdated(int ptr) {
-		if (instanceExpression != null && ptr == 0) {
-			instanceExpression = read(0);
-		} else if (instanceExpression == null && ptr == 0) {
-			valueExpression = read(0);
-		} else if (ptr == 1) {
-			valueExpression = read(1);
+		if(isStatic) {
+			if(ptr == 0) {
+				valueExpression = read(0);
+			}
+		} else {
+			if(ptr == 0) {
+				instanceExpression = read(0);
+			} else if(ptr == 1) {
+				valueExpression = read(1);
+			}
 		}
 	}
 
@@ -137,14 +140,14 @@ public class FieldStoreStmt extends Stmt {
 
 	@Override
 	public FieldStoreStmt copy() {
-		return new FieldStoreStmt(instanceExpression == null ? null : instanceExpression.copy(), valueExpression.copy(), owner, name, desc);
+		return new FieldStoreStmt(instanceExpression == null ? null : instanceExpression.copy(), valueExpression.copy(), owner, name, desc, isStatic);
 	}
 
 	@Override
 	public boolean equivalent(CodeUnit s) {
 		if(s instanceof FieldStoreStmt) {
 			FieldStoreStmt store = (FieldStoreStmt) s;
-			return owner.equals(store.owner) && name.equals(store.name) && desc.equals(store.desc) &&
+			return isStatic == store.isStatic && owner.equals(store.owner) && name.equals(store.name) && desc.equals(store.desc) &&
 					instanceExpression.equivalent(store.instanceExpression) && valueExpression.equivalent(store.valueExpression);
 		}
 		return false;
