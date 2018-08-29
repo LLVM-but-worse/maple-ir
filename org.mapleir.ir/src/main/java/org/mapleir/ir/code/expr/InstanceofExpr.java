@@ -15,8 +15,8 @@ public class InstanceofExpr extends Expr {
 
 	public InstanceofExpr(Expr expression, Type type) {
 		super(INSTANCEOF);
-		setExpression(expression);
 		this.type = type;
+		setExpression(expression);
 	}
 
 	public Expr getExpression() {
@@ -24,7 +24,6 @@ public class InstanceofExpr extends Expr {
 	}
 
 	public void setExpression(Expr expression) {
-		this.expression = expression;
 		writeAt(expression, 0);
 	}
 
@@ -48,7 +47,11 @@ public class InstanceofExpr extends Expr {
 
 	@Override
 	public void onChildUpdated(int ptr) {
-		expression = read(0);
+		if(ptr == 0) {
+			expression = read(0);
+		} else {
+			raiseChildOutOfBounds(ptr);
+		}
 	}
 	
 	@Override

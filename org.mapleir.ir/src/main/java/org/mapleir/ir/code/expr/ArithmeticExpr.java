@@ -101,11 +101,12 @@ public class ArithmeticExpr extends Expr {
 	private Expr left;
 	private Operator operator;
 
+	// TODO: arg order...
 	public ArithmeticExpr(Expr right, Expr left, Operator operator) {
 		super(ARITHMETIC);
+		this.operator = operator;
 		setLeft(left);
 		setRight(right);
-		this.operator = operator;
 	}
 
 	public Expr getLeft() {
@@ -113,7 +114,6 @@ public class ArithmeticExpr extends Expr {
 	}
 
 	public void setLeft(Expr left) {
-		this.left = left;
 		writeAt(left, 0);
 	}
 
@@ -122,7 +122,6 @@ public class ArithmeticExpr extends Expr {
 	}
 
 	public void setRight(Expr right) {
-		this.right = right;
 		writeAt(right, 1);
 	}
 
@@ -154,6 +153,8 @@ public class ArithmeticExpr extends Expr {
 			left = read(0);
 		} else if (ptr == 1) {
 			right = read(1);
+		} else {
+			raiseChildOutOfBounds(ptr);
 		}
 	}
 

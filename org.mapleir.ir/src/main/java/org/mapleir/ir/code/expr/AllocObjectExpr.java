@@ -33,7 +33,7 @@ public class AllocObjectExpr extends Expr {
 
 	@Override
 	public void onChildUpdated(int ptr) {
-		
+		raiseChildOutOfBounds(ptr);
 	}
 	
 	@Override
