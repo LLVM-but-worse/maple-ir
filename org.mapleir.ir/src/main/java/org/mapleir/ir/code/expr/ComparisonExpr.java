@@ -1,5 +1,7 @@
 package org.mapleir.ir.code.expr;
 
+import static org.objectweb.asm.Opcodes.*;
+
 import org.mapleir.ir.code.CodeUnit;
 import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.codegen.BytecodeFrontend;
@@ -8,8 +10,6 @@ import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.util.Printer;
-
-import static org.objectweb.asm.Opcodes.*;
 
 public class ComparisonExpr extends Expr {
 
@@ -47,9 +47,9 @@ public class ComparisonExpr extends Expr {
 
 	public ComparisonExpr(Expr left, Expr right, ValueComparisonType type) {
 		super(COMPARE);
+		this.type = type;
 		setLeft(left);
 		setRight(right);
-		this.type = type;
 	}
 
 	public Expr getLeft() {
@@ -57,7 +57,6 @@ public class ComparisonExpr extends Expr {
 	}
 
 	public void setLeft(Expr left) {
-		this.left = left;
 		writeAt(left, 0);
 	}
 
@@ -66,7 +65,6 @@ public class ComparisonExpr extends Expr {
 	}
 
 	public void setRight(Expr right) {
-		this.right = right;
 		writeAt(right, 1);
 	}
 
@@ -90,6 +88,8 @@ public class ComparisonExpr extends Expr {
 			left = read(0);
 		} else if (ptr == 1) {
 			right = read(1);
+		} else {
+			raiseChildOutOfBounds(ptr);
 		}
 	}
 	

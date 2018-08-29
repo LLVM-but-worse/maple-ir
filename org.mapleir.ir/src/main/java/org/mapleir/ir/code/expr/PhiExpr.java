@@ -52,7 +52,7 @@ public class PhiExpr extends Expr {
 	
 	@Override
 	public void onChildUpdated(int ptr) {
-		
+		raiseChildOutOfBounds(ptr);
 	}
 
 	@Override

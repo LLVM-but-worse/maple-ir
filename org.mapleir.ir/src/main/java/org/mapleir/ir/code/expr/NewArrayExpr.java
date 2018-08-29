@@ -17,10 +17,10 @@ public class NewArrayExpr extends Expr {
 	public NewArrayExpr(Expr[] bounds, Type type) {
 		super(NEW_ARRAY);
 		this.bounds = bounds;
+		this.type = type;
 		for (int i = 0; i < bounds.length; i++) {
 			writeAt(bounds[i], i);
 		}
-		this.type = type;
 		
 //		if(type.getSort() == Type.ARRAY) {
 //			throw new RuntimeException(type.toString());
@@ -33,33 +33,6 @@ public class NewArrayExpr extends Expr {
 	
 	public Expr[] getBounds() {
 		return bounds;
-	}
-
-	public void setBounds(Expr[] bounds) {
-		if (type.getDimensions() < bounds.length || bounds.length <= 0)
-			throw new ArrayIndexOutOfBoundsException();
-
-		if (bounds.length < this.bounds.length) {
-			setChildPointer(0);
-			while (read(0) != null) {
-				deleteAt(getChildPointer());
-			}
-		}
-
-		this.bounds = bounds;
-		for (int i = 0; i < bounds.length; i++) {
-			writeAt(bounds[i], i);
-		}
-	}
-
-	public void updateLength(int dimension, Expr length, boolean overwrite) {
-		if (dimension < 0 || dimension >= bounds.length)
-			throw new ArrayIndexOutOfBoundsException(dimension);
-
-		bounds[dimension] = length;
-		if(overwrite) {
-			writeAt(length, dimension);
-		}
 	}
 
 	@Override
@@ -82,13 +55,9 @@ public class NewArrayExpr extends Expr {
 	@Override
 	public void onChildUpdated(int ptr) {
 		if(ptr >= 0 && ptr < bounds.length) {
-			Expr e;
-			if(children[ptr] == null) {
-				e = null;
-			} else {
-				e = read(ptr);
-			}
-			updateLength(ptr, e, true);
+			bounds[ptr] = read(ptr);
+		} else {
+			raiseChildOutOfBounds(ptr);
 		}
 	}
 	

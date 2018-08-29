@@ -36,7 +36,6 @@ public class FieldLoadExpr extends Expr implements IHasJavaDesc {
 	}
 
 	public void setInstanceExpression(Expr instanceExpression) {
-		this.instanceExpression = instanceExpression;
 		writeAt(instanceExpression, 0);
 	}
 
@@ -79,7 +78,15 @@ public class FieldLoadExpr extends Expr implements IHasJavaDesc {
 
 	@Override
 	public void onChildUpdated(int ptr) {
-		instanceExpression = read(0);
+		if(isStatic) {
+			raiseChildOutOfBounds(ptr);
+		} else {
+			if(ptr == 0) {
+				instanceExpression = read(0);
+			} else {
+				raiseChildOutOfBounds(ptr);
+			}
+		}
 	}
 	
 	@Override

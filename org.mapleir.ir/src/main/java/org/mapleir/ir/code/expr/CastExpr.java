@@ -16,8 +16,8 @@ public class CastExpr extends Expr {
 
 	public CastExpr(Expr expression, Type type) {
 		super(CAST);
-		setExpression(expression);
 		this.type = type;
+		setExpression(expression);
 	}
 
 	public Expr getExpression() {
@@ -25,7 +25,6 @@ public class CastExpr extends Expr {
 	}
 
 	public void setExpression(Expr expression) {
-		this.expression = expression;
 		writeAt(expression, 0);
 	}
 
@@ -45,7 +44,11 @@ public class CastExpr extends Expr {
 
 	@Override
 	public void onChildUpdated(int ptr) {
-		expression = read(0);
+		if(ptr == 0) {
+			expression = read(0);
+		} else {
+			raiseChildOutOfBounds(ptr);
+		}
 	}
 
 	@Override

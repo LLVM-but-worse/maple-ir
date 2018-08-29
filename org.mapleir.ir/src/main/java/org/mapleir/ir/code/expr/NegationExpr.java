@@ -22,7 +22,6 @@ public class NegationExpr extends Expr {
 	}
 
 	public void setExpression(Expr expression) {
-		this.expression = expression;
 		writeAt(expression, 0);
 	}
 
@@ -45,7 +44,11 @@ public class NegationExpr extends Expr {
 
 	@Override
 	public void onChildUpdated(int ptr) {
-		expression = read(0);
+		if(ptr == 0) {
+			expression = read(0);
+		} else {
+			raiseChildOutOfBounds(ptr);
+		}
 	}
 	
 	@Override

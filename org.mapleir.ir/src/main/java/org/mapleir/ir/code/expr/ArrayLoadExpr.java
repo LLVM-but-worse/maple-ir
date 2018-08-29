@@ -11,32 +11,30 @@ import org.objectweb.asm.Type;
 
 public class ArrayLoadExpr extends Expr {
 	
-	private Expr array;
-	private Expr index;
+	private Expr arrayExpression;
+	private Expr indexExpression;
 	private ArrayType type;
 
 	public ArrayLoadExpr(Expr array, Expr index, ArrayType type) {
 		super(ARRAY_LOAD);
+		this.type = type;
 		setArrayExpression(array);
 		setIndexExpression(index);
-		this.type = type;
 	}
 
 	public Expr getArrayExpression() {
-		return array;
+		return arrayExpression;
 	}
 
 	public void setArrayExpression(Expr arrayExpression) {
-		array = arrayExpression;
 		writeAt(arrayExpression, 0);
 	}
 
 	public Expr getIndexExpression() {
-		return index;
+		return indexExpression;
 	}
 
 	public void setIndexExpression(Expr indexExpression) {
-		index = indexExpression;
 		writeAt(indexExpression, 1);
 	}
 
@@ -50,7 +48,7 @@ public class ArrayLoadExpr extends Expr {
 
 	@Override
 	public Expr copy() {
-		return new ArrayLoadExpr(array.copy(), index.copy(), type);
+		return new ArrayLoadExpr(arrayExpression.copy(), indexExpression.copy(), type);
 	}
 
 	@Override
@@ -61,9 +59,11 @@ public class ArrayLoadExpr extends Expr {
 	@Override
 	public void onChildUpdated(int ptr) {
 		if (ptr == 0) {
-			array = read(0);
+			arrayExpression = read(0);
 		} else if (ptr == 1) {
-			index = read(1);
+			indexExpression = read(1);
+		} else {
+			raiseChildOutOfBounds(ptr);
 		}
 	}
 
@@ -75,26 +75,26 @@ public class ArrayLoadExpr extends Expr {
 	@Override
 	public void toString(TabbedStringWriter printer) {
 		int selfPriority = getPrecedence();
-		int expressionPriority = array.getPrecedence();
+		int expressionPriority = arrayExpression.getPrecedence();
 		if (expressionPriority > selfPriority) {
 			printer.print('(');
 		}
-		array.toString(printer);
+		arrayExpression.toString(printer);
 		if (expressionPriority > selfPriority) {
 			printer.print(')');
 		}
 		printer.print('[');
-		index.toString(printer);
+		indexExpression.toString(printer);
 		printer.print(']');
 	}
 
 	@Override
 	public void toCode(MethodVisitor visitor, BytecodeFrontend assembler) {
-		array.toCode(visitor, assembler);
-		index.toCode(visitor, assembler);
+		arrayExpression.toCode(visitor, assembler);
+		indexExpression.toCode(visitor, assembler);
 //		System.out.println("the:  " + index.getId() + ". "+ index);
 //		System.out.println("  par:   " + getRootParent().getId() + ". "+ getRootParent());
-		int[] iCast = TypeUtils.getPrimitiveCastOpcodes(index.getType(), Type.INT_TYPE);
+		int[] iCast = TypeUtils.getPrimitiveCastOpcodes(indexExpression.getType(), Type.INT_TYPE);
 		for (int i = 0; i < iCast.length; i++) {
 			visitor.visitInsn(iCast[i]);
 		}
@@ -110,7 +110,7 @@ public class ArrayLoadExpr extends Expr {
 	public boolean equivalent(CodeUnit s) {
 		if(s instanceof ArrayLoadExpr) {
 			ArrayLoadExpr load = (ArrayLoadExpr) s;
-			return array.equals(load.array) && index.equals(load.index);
+			return arrayExpression.equals(load.arrayExpression) && indexExpression.equals(load.indexExpression);
 		}
 		return false;
 	}
