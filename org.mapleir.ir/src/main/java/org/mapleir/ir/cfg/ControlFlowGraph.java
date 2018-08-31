@@ -1,5 +1,6 @@
 package org.mapleir.ir.cfg;
 
+import org.mapleir.dot4j.model.Graph;
 import org.mapleir.flowgraph.ExceptionRange;
 import org.mapleir.flowgraph.FlowGraph;
 import org.mapleir.flowgraph.edges.FlowEdge;
@@ -15,10 +16,9 @@ import org.mapleir.ir.code.expr.VarExpr;
 import org.mapleir.ir.code.stmt.copy.CopyPhiStmt;
 import org.mapleir.ir.locals.LocalsPool;
 import org.mapleir.ir.locals.impl.VersionedLocal;
+import org.mapleir.ir.utils.CFGExporterUtils;
 import org.mapleir.ir.utils.CFGUtils;
-import org.mapleir.ir.utils.dot.ControlFlowGraphDecorator;
-import org.mapleir.stdlib.collections.graph.FastGraph;
-import org.mapleir.stdlib.collections.graph.dot.DotWriter;
+import org.mapleir.propertyframework.api.IPropertyDictionary;
 import org.mapleir.stdlib.collections.itertools.ChainIterator;
 import org.mapleir.stdlib.util.IHasJavaDesc;
 import org.mapleir.stdlib.util.JavaDesc;
@@ -214,14 +214,6 @@ public class ControlFlowGraph extends FlowGraph<BasicBlock, FlowEdge<BasicBlock>
 			}
 		}
 	}
-	
-	@SuppressWarnings("unchecked")
-	@Override
-	// TODO what the FUCK
-	public DotWriter<FastGraph<BasicBlock, FlowEdge<BasicBlock>>, BasicBlock, FlowEdge<BasicBlock>> makeDotWriter() {
-		return (DotWriter<FastGraph<BasicBlock, FlowEdge<BasicBlock>>, BasicBlock, FlowEdge<BasicBlock>>)(Object)((DotWriter<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>>)(Object)super.makeDotWriter())
-				.add(new ControlFlowGraphDecorator().setFlags(ControlFlowGraphDecorator.OPT_EDGES | ControlFlowGraphDecorator.OPT_STMTS));
-	}
 
 	/**
 	 * Runs sanity checking on this graph, useful for debugging purposes.
@@ -409,5 +401,10 @@ public class ControlFlowGraph extends FlowGraph<BasicBlock, FlowEdge<BasicBlock>
 			}
 		}
 		return ranges;
+	}
+	
+	@Override
+	public Graph makeDotGraph(IPropertyDictionary properties) {
+		return CFGExporterUtils.makeDotGraph(this, properties);
 	}
 }

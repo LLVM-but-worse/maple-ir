@@ -20,13 +20,9 @@ import org.mapleir.ir.locals.Local;
 import org.mapleir.ir.locals.LocalsPool;
 import org.mapleir.ir.locals.impl.BasicLocal;
 import org.mapleir.ir.utils.CFGUtils;
-import org.mapleir.ir.utils.dot.ControlFlowGraphDecorator;
 import org.mapleir.stdlib.collections.bitset.BitSetIndexer;
 import org.mapleir.stdlib.collections.bitset.GenericBitSet;
 import org.mapleir.stdlib.collections.bitset.IncrementalBitSetIndexer;
-import org.mapleir.stdlib.collections.graph.dot.BasicDotConfiguration;
-import org.mapleir.stdlib.collections.graph.dot.DotConfiguration;
-import org.mapleir.stdlib.collections.graph.dot.DotWriter;
 import org.mapleir.stdlib.collections.map.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.map.ValueCreator;
 import org.objectweb.asm.Type;
@@ -35,7 +31,6 @@ import java.util.*;
 import java.util.Map.Entry;
 
 import static org.mapleir.ir.code.Opcode.LOCAL_LOAD;
-import static org.mapleir.ir.utils.dot.ControlFlowGraphDecorator.OPT_STMTS;
 
 public class TrollDestructor {
 
@@ -51,14 +46,8 @@ public class TrollDestructor {
 	private final NullPermeableHashMap<BasicBlock, GenericBitSet<BasicBlock>> succsCache;
 	private final GenericBitSet<PhiResource> candidateResourceSet;
 
-	private final BasicDotConfiguration<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> config = new BasicDotConfiguration<>(DotConfiguration.GraphType.DIRECTED);
-	private final DotWriter<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> writer;
-
 	private TrollDestructor(ControlFlowGraph cfg) {
 		this.cfg = cfg;
-		writer = new DotWriter<>(config, cfg);
-		writer.removeAll()
-				.add(new ControlFlowGraphDecorator().setFlags(OPT_STMTS));
 		locals = cfg.getLocals();
 		interfere = new NullPermeableHashMap<>(locals);
 		pccs = new NullPermeableHashMap<>(locals);

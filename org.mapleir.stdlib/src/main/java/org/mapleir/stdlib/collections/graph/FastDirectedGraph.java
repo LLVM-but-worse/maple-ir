@@ -3,10 +3,8 @@ package org.mapleir.stdlib.collections.graph;
 import java.util.*;
 import java.util.Map.Entry;
 
-import org.mapleir.stdlib.collections.graph.algorithms.SimpleDfs;
-import org.mapleir.stdlib.collections.graph.dot.BasicDotConfiguration;
-import org.mapleir.stdlib.collections.graph.dot.DotConfiguration;
-import org.mapleir.stdlib.collections.graph.dot.DotConfiguration.GraphType;
+import org.mapleir.dot4j.model.Graph;
+import org.mapleir.propertyframework.api.IPropertyDictionary;
 
 public abstract class FastDirectedGraph<N extends FastGraphVertex, E extends FastGraphEdge<N>> implements FastGraph<N, E>{
 
@@ -248,9 +246,8 @@ public abstract class FastDirectedGraph<N extends FastGraphVertex, E extends Fas
 		return sb.toString();
 	}
 	
-
 	@Override
-	public DotConfiguration<FastGraph<N,E>, N, E> makeDotConfiguration() {
-		return new BasicDotConfiguration<>(GraphType.DIRECTED);
+	public Graph makeDotGraph(IPropertyDictionary properties) { 
+		return GraphUtils.makeGraphSkeleton(this).setDirected(true);
 	}
 }

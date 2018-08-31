@@ -1,7 +1,8 @@
 package org.mapleir.stdlib.collections.graph;
 
-import org.mapleir.stdlib.collections.graph.dot.DotConfiguration;
-import org.mapleir.stdlib.collections.graph.dot.DotWriter;
+import org.mapleir.dot4j.model.Graph;
+import org.mapleir.propertyframework.api.IPropertyDictionary;
+import org.mapleir.propertyframework.util.PropertyHelper;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -63,9 +64,9 @@ public interface FastGraph<N extends FastGraphVertex, E extends FastGraphEdge<N>
 		return new HashSet<>(set);
 	}
 	
-	DotConfiguration<FastGraph<N,E>, N, E> makeDotConfiguration();
-
-	default DotWriter<FastGraph<N,E>, N, E> makeDotWriter() {
-		return new DotWriter<>(makeDotConfiguration(), this);
+	default Graph makeDotGraph() {
+		return makeDotGraph(PropertyHelper.getImmutableDictionary());
 	}
+	
+	Graph makeDotGraph(IPropertyDictionary properties);
 }
