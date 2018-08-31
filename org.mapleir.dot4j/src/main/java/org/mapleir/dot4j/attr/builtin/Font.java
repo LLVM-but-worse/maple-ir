@@ -13,11 +13,19 @@ public class Font {
 		return attrs(name(name), size(size));
 	}
 
+	public static Attrs config(String name, double size, double dpi) {
+		return attrs(name(name), size(size), dpi(dpi));
+	}
+
 	public static Attrs name(String name) {
 		return attr("fontname", name);
 	}
 
-	public static Attrs size(int size) {
+	public static Attrs size(double size) {
 		return attr("fontsize", size);
+	}
+	
+	public static Attrs dpi(double dpi) {
+		return attr("dpi", dpi);
 	}
 }
