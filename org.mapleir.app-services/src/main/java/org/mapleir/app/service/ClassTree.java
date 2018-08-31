@@ -200,12 +200,12 @@ public class ClassTree extends FastDirectedGraph<ClassNode, InheritanceEdge> {
 	}
 
 	@Override
-	public void addEdge(ClassNode v, InheritanceEdge e) {
+	public void addEdge(InheritanceEdge e) {
 		throw new UnsupportedOperationException();
 	}
 
 	@Override
-	public void removeEdge(ClassNode v, InheritanceEdge e) {
+	public void removeEdge(InheritanceEdge e) {
 		throw new UnsupportedOperationException();
 	}
 

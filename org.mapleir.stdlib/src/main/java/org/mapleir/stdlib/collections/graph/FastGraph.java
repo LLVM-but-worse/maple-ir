@@ -20,11 +20,11 @@ public interface FastGraph<N extends FastGraphVertex, E extends FastGraphEdge<N>
 	
 	boolean containsVertex(N n);
 	
-	void addEdge(N n, E e);
+	void addEdge(E e);
 	
-	void removeEdge(N n, E e);
+	void removeEdge(E e);
 	
-	boolean containsEdge(N n, E e);
+	boolean containsEdge(E e);
 	
 	Set<E> getEdges(N n);
 	

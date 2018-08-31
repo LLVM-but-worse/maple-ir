@@ -51,7 +51,7 @@ public class ControlFlowGraph extends FlowGraph<BasicBlock, FlowEdge<BasicBlock>
 	 * @param fe Edge to excise phi uses.
 	 */
 	public void exciseEdge(FlowEdge<BasicBlock> fe) {
-		if (!this.containsEdge(fe.src(), fe))
+		if (!this.containsEdge(fe))
 			throw new IllegalArgumentException("Graph does not contain the specified edge");
 		
 		removeEdge(fe);
