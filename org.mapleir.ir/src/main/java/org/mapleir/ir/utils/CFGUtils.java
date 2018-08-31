@@ -211,16 +211,6 @@ public class CFGUtils {
 		return newBlock;
 	}
 
-	/**
-	 * Renders the cfg as an image using graphviz.
-	 * This should be for debugging purposes only.
-	 * @param cfg cfg to dump.
-	 * @param filename output name without file extension.
-	 */
-	public static void easyDumpCFG(ControlFlowGraph cfg, String filename) {
-		cfg.makeDotWriter().setName(filename).export();
-	}
-
 	public static String printBlocks(Collection<BasicBlock> bbs) {
 		TabbedStringWriter sw = new TabbedStringWriter();
 		int insn = 1;

@@ -4,9 +4,8 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import org.mapleir.stdlib.collections.graph.dot.BasicDotConfiguration;
-import org.mapleir.stdlib.collections.graph.dot.DotConfiguration;
-import org.mapleir.stdlib.collections.graph.dot.DotConfiguration.GraphType;
+import org.mapleir.dot4j.model.Graph;
+import org.mapleir.propertyframework.api.IPropertyDictionary;
 
 import java.util.Set;
 
@@ -142,7 +141,7 @@ public abstract class FastUndirectedGraph<N extends FastGraphVertex, E extends F
 	}
 	
 	@Override
-	public DotConfiguration<FastGraph<N,E>, N, E> makeDotConfiguration() {
-		return new BasicDotConfiguration<>(GraphType.UNDIRECTED);
+	public Graph makeDotGraph(IPropertyDictionary properties) { 
+		return GraphUtils.makeGraphSkeleton(this).setDirected(false);
 	}
 }
