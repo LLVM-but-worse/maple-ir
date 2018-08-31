@@ -465,7 +465,7 @@ public class TrollDestructor {
 					BasicBlock splitBlock = CFGUtils.splitBlock(cfg, b, it.previousIndex());
 					Set<FlowEdge<BasicBlock>> splitEdges = cfg.getEdges(splitBlock);
 					assert(splitEdges.size() == 1);
-					cfg.removeEdge(splitBlock, splitEdges.iterator().next());
+					cfg.removeEdge(splitEdges.iterator().next());
 					LinkedHashMap<Integer, BasicBlock> dsts = new LinkedHashMap<>();
 					for (Entry<BasicBlock, Expr> phiArg : phi.getExpression().getArguments().entrySet()) {
 						BasicBlock stubBlock = new BasicBlock(cfg);

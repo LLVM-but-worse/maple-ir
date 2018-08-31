@@ -61,7 +61,8 @@ public abstract class FastUndirectedGraph<N extends FastGraphVertex, E extends F
 	}
 
 	@Override
-	public void addEdge(N n, E e) {
+	public void addEdge(E e) {
+		N n = e.src();
 		if(!map.containsKey(n)) {
 			map.put(n, createSet());
 		}
@@ -76,7 +77,8 @@ public abstract class FastUndirectedGraph<N extends FastGraphVertex, E extends F
 	}
 
 	@Override
-	public void removeEdge(N n, E e) {
+	public void removeEdge(E e) {
+		N n = e.src();
 		if(map.containsKey(n)) {
 			map.get(n).remove(e);
 		}
@@ -87,7 +89,8 @@ public abstract class FastUndirectedGraph<N extends FastGraphVertex, E extends F
 	}
 
 	@Override
-	public boolean containsEdge(N n, E e) {
+	public boolean containsEdge(E e) {
+		N n = e.src();
 		return map.containsKey(n) && map.get(n).contains(e);
 	}
 
@@ -110,14 +113,14 @@ public abstract class FastUndirectedGraph<N extends FastGraphVertex, E extends F
 		
 		for(E succ : new HashSet<>(succs)) {
 			E newEdge = clone(succ, old, n);
-			removeEdge(old, succ);
-			addEdge(n, newEdge);
+			removeEdge(succ);
+			addEdge(newEdge);
 		}
 		
 		for(E pred : new HashSet<>(preds)) {
 			E newEdge = clone(pred, old, n);
-			removeEdge(pred.src(), pred);
-			addEdge(pred.src(), newEdge);
+			removeEdge(pred);
+			addEdge(newEdge);
 		}
 		
 		removeVertex(old);

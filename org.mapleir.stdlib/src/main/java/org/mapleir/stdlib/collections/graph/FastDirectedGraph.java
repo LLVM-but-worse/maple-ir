@@ -107,13 +107,7 @@ public abstract class FastDirectedGraph<N extends FastGraphVertex, E extends Fas
 		return reverseMap.containsKey(v);
 	}
 
-	// Call addEdge(E) instead!
-	@Deprecated
 	@Override
-	public void addEdge(N v, E e) {
-		throw new UnsupportedOperationException();
-	}
-
 	public void addEdge(E e) {
 		N src = e.src();
 		addVertex(src);
@@ -124,13 +118,7 @@ public abstract class FastDirectedGraph<N extends FastGraphVertex, E extends Fas
 		reverseMap.get(dst).add(e);
 	}
 
-	// Call removeEdge(E) instead!
-	@Deprecated
 	@Override
-	public void removeEdge(N v, E e) {
-		throw new UnsupportedOperationException();
-	}
-
 	public void removeEdge(E e) {
 		N src = e.src();
 		if(map.containsKey(src)) {
@@ -143,13 +131,7 @@ public abstract class FastDirectedGraph<N extends FastGraphVertex, E extends Fas
 		}
 	}
 
-	// Call containsEdge(E) instead!
-	@Deprecated
 	@Override
-	public boolean containsEdge(N v, E e) {
-		throw new UnsupportedOperationException();
-	}
-
 	public boolean containsEdge(E e) {
 		N src = e.src();
 		return map.containsKey(src) && map.get(src).contains(e);
