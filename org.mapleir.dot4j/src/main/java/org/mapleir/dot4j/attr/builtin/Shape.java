@@ -10,6 +10,7 @@ public class Shape extends Attr<String> {
     private static final String SHAPE = "shape";
 
     public static final Shape
+    		BOX = new Shape("box"),
             ELLIPSE = new Shape("ellipse"),
             CIRCLE = new Shape("circle"),
             POINT = new Shape("point"),

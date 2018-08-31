@@ -36,7 +36,7 @@ public class Attr<T> implements Attrs {
     }
 
 	@Override
-	public Attrs apply(MapAttrs mapAttrs) {
+	public Attrs applyTo(MapAttrs mapAttrs) {
 		return mapAttrs.put(key, value);
 	}
 }

@@ -17,18 +17,18 @@ public class SimpleAttributed<E> implements Attributed<E> {
 		this.delegate = delegate;
 		this.attrs = new MapAttrs();
 		if(attrs != null) {
-			attrs.apply(this.attrs);
+			attrs.applyTo(this.attrs);
 		}
 	}
 	
 	@Override
-	public Attrs apply(MapAttrs mapAttrs) {
+	public Attrs applyTo(MapAttrs mapAttrs) {
 		return mapAttrs.putAll(attrs);
 	}
 
 	@Override
 	public E with(Attrs attrs) {
-		attrs.apply(this.attrs);
+		attrs.applyTo(this.attrs);
 		return delegate;
 	}
 

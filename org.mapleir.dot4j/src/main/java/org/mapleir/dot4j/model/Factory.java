@@ -24,6 +24,14 @@ public final class Factory {
 		return Context.createNode(label);
 	}
 	
+	public static Edge to(Node node) {
+		return Edge.to(node);
+	}
+	
+	public static Edge to(Target target) {
+		return Edge.to(target);
+	}
+	
 	public static PortNode portNode(String record) {
 		return new PortNode().setRecord(record);
 	}

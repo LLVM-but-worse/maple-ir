@@ -38,7 +38,7 @@ public class MapAttrs implements Attrs, Iterable<Entry<String, Object>> {
 	}
 	
 	@Override
-	public Attrs apply(MapAttrs mapAttrs) {
+	public Attrs applyTo(MapAttrs mapAttrs) {
 		mapAttrs.attributes.putAll(attributes);
 		return mapAttrs;
 	}

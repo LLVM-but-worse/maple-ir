@@ -25,7 +25,7 @@ public class EndLabel extends Label implements Attrs {
     }
 
 	@Override
-	public Attrs apply(MapAttrs mapAttrs) {
+	public Attrs applyTo(MapAttrs mapAttrs) {
         mapAttrs.put(key, this);
         if (angle != null) {
             mapAttrs.put("labelangle", angle);
