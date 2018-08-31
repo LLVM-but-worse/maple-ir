@@ -70,7 +70,7 @@ public class ComplexLabel extends Label implements Attrs {
     }
 
 	@Override
-	public Attrs apply(MapAttrs mapAttrs) {
+	public Attrs applyTo(MapAttrs mapAttrs) {
         mapAttrs.put(external ? "xlabel" : "label", this);
         if (floating) {
             mapAttrs.put("labelfloat", true);

@@ -49,8 +49,8 @@ public class Edge implements Attributed<Edge>, Target {
 	}
 	
 	@Override
-	public Attrs apply(MapAttrs mapAttrs) {
-		return attributes.apply(mapAttrs);
+	public Attrs applyTo(MapAttrs mapAttrs) {
+		return attributes.applyTo(mapAttrs);
 	}
 
 	@Override
@@ -60,7 +60,9 @@ public class Edge implements Attributed<Edge>, Target {
 
 	@Override
 	public Edge with(Attrs attrs) {
-		return new Edge(source, target, attrs.apply(attributes.apply(Attrs.attrs())));
+		attributes.with(attrs);
+		return this;
+//		return new Edge(source, target, attrs.apply(attributes.apply(Attrs.attrs())));
 	}
 
 	@Override

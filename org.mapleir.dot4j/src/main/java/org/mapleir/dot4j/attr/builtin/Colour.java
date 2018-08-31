@@ -5,38 +5,38 @@ import static org.mapleir.dot4j.attr.Attrs.attrs;
 import org.mapleir.dot4j.attr.Attr;
 import org.mapleir.dot4j.attr.Attrs;
 
-public class Color extends Attr<String> {
+public class Colour extends Attr<String> {
 
-    private Color(String key, String value) {
+    private Colour(String key, String value) {
         super(key, value);
     }
 
-    protected Color(String value) {
+    protected Colour(String value) {
         super("color", value);
     }
 
-    public Color fill() {
+    public Colour fill() {
         return key("fillcolor");
     }
 
-    public Color background() {
+    public Colour background() {
         return key("bgcolor");
     }
 
-    public Color font() {
+    public Colour font() {
         return key("fontcolor");
     }
 
-    public Color labelFont() {
+    public Colour labelFont() {
         return key("labelfontcolor");
     }
 
-    public Color gradient(Color c) {
-        return new Color(value + ":" + c.value);
+    public Colour gradient(Colour c) {
+        return new Colour(value + ":" + c.value);
     }
 
-    public Color gradient(Color c, double at) {
-        return new Color(value + ":" + c.value + ";" + at);
+    public Colour gradient(Colour c, double at) {
+        return new Colour(value + ":" + c.value + ";" + at);
     }
 
     public Attrs angle(int angle) {
@@ -51,27 +51,27 @@ public class Color extends Attr<String> {
         return attrs(this, new Attr<>("gradientangle", angle), Style.RADIAL);
     }
 
-    public static Color rgb(String rgb) {
+    public static Colour rgb(String rgb) {
         final String val = rgb.startsWith("#") ? rgb.substring(1) : rgb;
         if (val.length() != 6) {
             throw new IllegalArgumentException("Must have length 6");
         }
-        return new Color("#" + val);
+        return new Colour("#" + val);
     }
 
-    public static Color rgb(int rgb) {
+    public static Colour rgb(int rgb) {
         return rgb(hex(rgb >> 16) + hex(rgb >> 8) + hex(rgb));
     }
 
-    public static Color rgba(String rgba) {
+    public static Colour rgba(String rgba) {
         final String val = rgba.startsWith("#") ? rgba.substring(1) : rgba;
         if (val.length() != 8) {
             throw new IllegalArgumentException("Must have length 8");
         }
-        return new Color("#" + val);
+        return new Colour("#" + val);
     }
 
-    public static Color rgba(int rgba) {
+    public static Colour rgba(int rgba) {
         return rgba(hex(rgba >> 16) + hex(rgba >> 8) + hex(rgba) + hex(rgba >> 24));
     }
 
@@ -80,18 +80,18 @@ public class Color extends Attr<String> {
         return s.length() == 1 ? "0" + s : s;
     }
 
-    public static Color hsv(double h, double s, double v) {
+    public static Colour hsv(double h, double s, double v) {
         if (h < 0 || h > 1 || s < 0 || s > 1 || v < 0 || v > 1) {
             throw new IllegalArgumentException("Values must be 0<=value<=1");
         }
-        return new Color(h + " " + s + " " + v);
+        return new Colour(h + " " + s + " " + v);
     }
 
-    public static Color named(String name) {
-        return new Color(name);
+    public static Colour named(String name) {
+        return new Colour(name);
     }
 
-    public static final Color
+    public static final Colour
             ALICEBLUE = named("aliceblue"), ANTIQUEWHITE = named("antiquewhite"),
             ANTIQUEWHITE1 = named("antiquewhite1"), ANTIQUEWHITE2 = named("antiquewhite2"),
             ANTIQUEWHITE3 = named("antiquewhite3"), ANTIQUEWHITE4 = named("antiquewhite4"),

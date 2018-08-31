@@ -35,7 +35,7 @@ public class Node implements Attributed<Node>, Source<Node>, Target, Connected {
 	}
 	
 	public Node copy() {
-		return new Node(name, new ArrayList<>(edges), attributes.apply(Attrs.attrs()));
+		return new Node(name, new ArrayList<>(edges), attributes.applyTo(Attrs.attrs()));
 	}
 	
 	public Node setName(ComplexLabel name) {
@@ -70,8 +70,8 @@ public class Node implements Attributed<Node>, Source<Node>, Target, Connected {
 	}
 
 	@Override
-	public Attrs apply(MapAttrs mapAttrs) {
-		return attributes.apply(mapAttrs);
+	public Attrs applyTo(MapAttrs mapAttrs) {
+		return attributes.applyTo(mapAttrs);
 	}
 
 	@Override
