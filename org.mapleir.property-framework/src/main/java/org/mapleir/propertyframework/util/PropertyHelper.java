@@ -124,4 +124,8 @@ public class PropertyHelper {
 
 		return null;
 	}
+	
+	public static boolean isSet(IPropertyDictionary dict, String key) {
+		return __has_opt(dict, key);
+	}
 }
