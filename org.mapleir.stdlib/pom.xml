@@ -12,4 +12,16 @@
   <groupId>org.mapleir</groupId>
   <artifactId>stdlib</artifactId>
   <name>stdlib</name>
+  <dependencies>
+  	<dependency>
+  		<groupId>org.mapleir</groupId>
+  		<artifactId>dot4j</artifactId>
+  		<version>0.0.1-ALPHA</version>
+  	</dependency>
+  	<dependency>
+  		<groupId>org.mapleir</groupId>
+  		<artifactId>property-framework</artifactId>
+  		<version>0.0.1-SNAPSHOT</version>
+  	</dependency>
+  </dependencies>
 </project>
