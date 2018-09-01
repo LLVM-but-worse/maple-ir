@@ -164,6 +164,11 @@ public class ControlFlowGraphDumper implements BytecodeFrontend {
 	// Recursively apply Tarjan's SCC algorithm
 	private static List<BlockBundle> linearize(Collection<BlockBundle> bundles, BundleGraph fullGraph, BlockBundle entryBundle) {
 		BundleGraph subgraph = fullGraph.inducedSubgraph(bundles);
+
+		// Experimental: kill backedges
+		for (FastGraphEdge<BlockBundle> e : new HashSet<>(subgraph.getReverseEdges(entryBundle))) {
+			subgraph.removeEdge(e);
+		}
 		
 		// Find SCCs
 		TarjanSCC<BlockBundle> sccComputor = new TarjanSCC<>(subgraph);

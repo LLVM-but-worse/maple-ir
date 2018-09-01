@@ -13,13 +13,18 @@ import org.mapleir.deob.IPass;
 import org.mapleir.deob.PassGroup;
 import org.mapleir.deob.dataflow.graph.JavaDescEdge;
 import org.mapleir.deob.dataflow.graph.JavaDescVertex;
+import org.mapleir.dot4j.Exporter;
 import org.mapleir.ir.algorithms.BoissinotDestructor;
 import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.code.expr.ConstantExpr;
 import org.mapleir.ir.codegen.ControlFlowGraphDumper;
+import org.mapleir.ir.utils.CFGExporterUtils;
+import org.mapleir.ir.utils.CFGUtils;
+import org.mapleir.propertyframework.api.IPropertyDictionary;
+import org.mapleir.propertyframework.impl.BooleanProperty;
+import org.mapleir.propertyframework.util.PropertyHelper;
 import org.mapleir.stdlib.collections.graph.FastDirectedGraph;
-import org.mapleir.stdlib.util.IHasJavaDesc;
-import org.mapleir.stdlib.util.JavaDesc;
+import org.mapleir.stdlib.util.*;
 import org.mapleir.deob.passes.rename.ClassRenamerPass;
 import org.mapleir.deob.util.RenamingHeuristic;
 import org.mapleir.ir.cfg.ControlFlowGraph;
@@ -27,8 +32,6 @@ import org.mapleir.ir.cfg.builder.ControlFlowGraphBuilder;
 import org.mapleir.ir.code.CodeUnit;
 import org.mapleir.ir.code.Stmt;
 import org.mapleir.ir.code.expr.invoke.InvocationExpr;
-import org.mapleir.stdlib.util.JavaDescSpecifier;
-import org.mapleir.stdlib.util.Pair;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.topdank.byteengineer.commons.data.JarInfo;
@@ -75,7 +78,7 @@ public class Boot {
 
 		// Load input jar
 		//  File f = locateRevFile(135);
-		File f = new File("res/authenticator.jar");
+		File f = new File("res/salesforce.jar");
 
 		section("Preparing to run on " + f.getAbsolutePath());
 		SingleJarDownloader<ClassNode> dl = new SingleJarDownloader<>(new JarInfo(f));
@@ -107,74 +110,71 @@ public class Boot {
 
 
 
-
-
-
-		// todo: convert to CallGraph (as FastGraph) DFS
-		FastDirectedGraph<JavaDescVertex, JavaDescEdge> callgraph = new FastDirectedGraph<JavaDescVertex, JavaDescEdge>() {};
-		JavaDescSpecifier targetMeth = new JavaDescSpecifier("lol", "lol", ".*", JavaDesc.DescType.METHOD);
-		Set<JavaDesc> visited = new HashSet<>();
-		ArrayDeque<Pair<ControlFlowGraph, List<JavaDesc>>> analysisQueue = new ArrayDeque<>(); // desc, depth
-		Set<String> scope = new HashSet<>(Arrays.asList("lol"));
-		for (String className : scope) {
-			if (cxt.getApplication().findClassNode(className) == null)continue;
-			for (MethodNode m : cxt.getApplication().findClassNode(className).methods) {
-				ControlFlowGraph cfg = cxt.getIRCache().getFor(m);
-				analysisQueue.add(new Pair<>(cfg, Collections.singletonList(cfg.getJavaDesc())));
-			}
-		}
+//		// todo: convert to CallGraph (as FastGraph) DFS
+//		FastDirectedGraph<JavaDescVertex, JavaDescEdge> callgraph = new FastDirectedGraph<JavaDescVertex, JavaDescEdge>() {};
+//		JavaDescSpecifier targetMeth = new JavaDescSpecifier("lol", "lol", ".*", JavaDesc.DescType.METHOD);
+//		Set<JavaDesc> visited = new HashSet<>();
+//		ArrayDeque<Pair<ControlFlowGraph, List<JavaDesc>>> analysisQueue = new ArrayDeque<>(); // desc, depth
 //		Set<String> scope = new HashSet<>(Arrays.asList("lol"));
-//		for (ControlFlowGraph cfg : cxt.getIRCache().values()) {
-//			if (scope.contains(cfg.getJavaDesc().owner))
+//		for (String className : scope) {
+//			if (cxt.getApplication().findClassNode(className) == null)continue;
+//			for (MethodNode m : cxt.getApplication().findClassNode(className).methods) {
+//				ControlFlowGraph cfg = cxt.getIRCache().getFor(m);
 //				analysisQueue.add(new Pair<>(cfg, Collections.singletonList(cfg.getJavaDesc())));
+//			}
 //		}
-		while (!analysisQueue.isEmpty()) {
-			Pair<ControlFlowGraph, List<JavaDesc>> ap = analysisQueue.remove();
-			ControlFlowGraph cfg = ap.getKey();
-			if (targetMeth.matches(cfg.getJavaDesc())) {
-				System.out.println("FOUND PATH " + ap.getValue());
-			}
-			if (!visited.add(cfg.getJavaDesc()))
-				continue;
-//			System.out.println("Tracing " + ap.getValue());
-
-			allExprStream(cfg).filter(cu -> cu instanceof InvocationExpr).map(cu -> (InvocationExpr) cu).forEach(ie -> {
-				try {
-					for (MethodNode callTarg : ie.resolveTargets(cxt.getInvocationResolver())) {
-						if (cxt.getApplication().isLibraryClass(callTarg.owner.name)) {
-							continue;
-						}
-						List<JavaDesc> path = new ArrayList<>(ap.getValue());
-						ControlFlowGraph targCfg = cxt.getIRCache().getFor(callTarg);
-						path.add(targCfg.getJavaDesc());
-						callgraph.addEdge(new JavaDescEdge(new JavaDescVertex(cfg.getJavaDesc()), new JavaDescVertex(targCfg.getJavaDesc()), cfg.getJavaDesc()));
-						analysisQueue.add(new Pair<>(targCfg, path));
-						for (Expr arg : ie.getArgumentExprs()) {
-							ClassNode argCn = cxt.getApplication().findClassNode(arg.getType().getClassName().replace('.', '/'));
-							for (ClassNode parentCn : cxt.getApplication().getClassTree().getAllParents(argCn)) {
-								if (parentCn.name.equals("java/lang/Runnable")) {
-									MethodNode runMn = argCn.getMethod("run", "()V", false);
-									ControlFlowGraph runCfg = cxt.getIRCache().getFor(runMn);
-									List<JavaDesc> runPath = new ArrayList<>(path);
-									runPath.add(runCfg.getJavaDesc());
-									callgraph.addEdge(new JavaDescEdge(new JavaDescVertex(targCfg.getJavaDesc()), new JavaDescVertex(runCfg.getJavaDesc()), targCfg.getJavaDesc()));
-									analysisQueue.add(new Pair<>(runCfg, runPath));
-								}
-							}
-						}
-					}
-				} catch (Throwable xxx) {
-//					System.err.println("Couldn't resolve " + curDesc);
-				}
-			});
-		}
+////		Set<String> scope = new HashSet<>(Arrays.asList("lol"));
+////		for (ControlFlowGraph cfg : cxt.getIRCache().values()) {
+////			if (scope.contains(cfg.getJavaDesc().owner))
+////				analysisQueue.add(new Pair<>(cfg, Collections.singletonList(cfg.getJavaDesc())));
+////		}
+//		while (!analysisQueue.isEmpty()) {
+//			Pair<ControlFlowGraph, List<JavaDesc>> ap = analysisQueue.remove();
+//			ControlFlowGraph cfg = ap.getKey();
+//			if (targetMeth.matches(cfg.getJavaDesc())) {
+//				System.out.println("FOUND PATH " + ap.getValue());
+//			}
+//			if (!visited.add(cfg.getJavaDesc()))
+//				continue;
+////			System.out.println("Tracing " + ap.getValue());
+//
+//			allExprStream(cfg).filter(cu -> cu instanceof InvocationExpr).map(cu -> (InvocationExpr) cu).forEach(ie -> {
+//				try {
+//					for (MethodNode callTarg : ie.resolveTargets(cxt.getInvocationResolver())) {
+//						if (cxt.getApplication().isLibraryClass(callTarg.owner.name)) {
+//							continue;
+//						}
+//						List<JavaDesc> path = new ArrayList<>(ap.getValue());
+//						ControlFlowGraph targCfg = cxt.getIRCache().getFor(callTarg);
+//						path.add(targCfg.getJavaDesc());
+//						callgraph.addEdge(new JavaDescEdge(new JavaDescVertex(cfg.getJavaDesc()), new JavaDescVertex(targCfg.getJavaDesc()), cfg.getJavaDesc()));
+//						analysisQueue.add(new Pair<>(targCfg, path));
+//						for (Expr arg : ie.getArgumentExprs()) {
+//							ClassNode argCn = cxt.getApplication().findClassNode(arg.getType().getClassName().replace('.', '/'));
+//							for (ClassNode parentCn : cxt.getApplication().getClassTree().getAllParents(argCn)) {
+//								if (parentCn.name.equals("java/lang/Runnable")) {
+//									MethodNode runMn = argCn.getMethod("run", "()V", false);
+//									ControlFlowGraph runCfg = cxt.getIRCache().getFor(runMn);
+//									List<JavaDesc> runPath = new ArrayList<>(path);
+//									runPath.add(runCfg.getJavaDesc());
+//									callgraph.addEdge(new JavaDescEdge(new JavaDescVertex(targCfg.getJavaDesc()), new JavaDescVertex(runCfg.getJavaDesc()), targCfg.getJavaDesc()));
+//									analysisQueue.add(new Pair<>(runCfg, runPath));
+//								}
+//							}
+//						}
+//					}
+//				} catch (Throwable xxx) {
+////					System.err.println("Couldn't resolve " + curDesc);
+//				}
+//			});
+//		}
 
 		for (ClassNode cn : cxt.getApplication().iterate()) {
-			// if (!cn.name.equals("Test"))
-			// 	continue;
+			 if (!cn.name.equals("android/support/v4/media/session/MediaSessionCompat$MediaSessionImplApi18"))
+			 	continue;
 			for (MethodNode m : cn.methods) {
-				// if (!m.name.equals("func"))
-				// 	continue;
+				 if (!m.name.equals("setRccState"))
+				 	continue;
 				cxt.getIRCache().getFor(m);
 			}
 		}
@@ -418,24 +418,23 @@ public class Boot {
 			ControlFlowGraph cfg = e.getValue();
 
 			// System.out.println(cfg);
-			// CFGUtils.easyDumpCFG(cfg, "pre-destruct");
+			 CFGUtils.easyDumpCFG(cfg, "pre-destruct");
 			cfg.verify();
 
 			BoissinotDestructor.leaveSSA(cfg);
 
-			// CFGUtils.easyDumpCFG(cfg, "pre-reaalloc");
+			 CFGUtils.easyDumpCFG(cfg, "pre-reaalloc");
 			cfg.getLocals().realloc(cfg);
-			// CFGUtils.easyDumpCFG(cfg, "post-reaalloc");
+			 CFGUtils.easyDumpCFG(cfg, "post-reaalloc");
 			// System.out.println(cfg);
 			cfg.verify();
-			// System.out.println("Rewriting " + mn.name);
-			// System.exit(1);
+			 System.out.println("Rewriting " + mn.name);
 			(new ControlFlowGraphDumper(cfg, mn)).dump();
-			// System.out.println(InsnListUtils.insnListToString(mn.instructions));
+			 System.out.println(InsnListUtils.insnListToString(mn.instructions));
 		}
 		
-//		section("Rewriting jar.");
-//		dumpJar(app, dl, masterGroup, "out/rewritten.jar");
+		section("Rewriting jar.");
+		dumpJar(app, dl, masterGroup, "out/rewritten.jar");
 		
 		section("Finished.");
 	}

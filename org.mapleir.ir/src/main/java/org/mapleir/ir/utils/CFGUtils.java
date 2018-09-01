@@ -1,5 +1,6 @@
 package org.mapleir.ir.utils;
 
+import org.mapleir.dot4j.Exporter;
 import org.mapleir.flowgraph.ExceptionRange;
 import org.mapleir.flowgraph.edges.*;
 import org.mapleir.ir.cfg.BasicBlock;
@@ -11,10 +12,15 @@ import org.mapleir.ir.code.stmt.SwitchStmt;
 import org.mapleir.ir.code.stmt.ThrowStmt;
 import org.mapleir.ir.code.stmt.UnconditionalJumpStmt;
 import org.mapleir.ir.code.stmt.copy.CopyVarStmt;
+import org.mapleir.propertyframework.api.IPropertyDictionary;
+import org.mapleir.propertyframework.impl.BooleanProperty;
+import org.mapleir.propertyframework.util.PropertyHelper;
 import org.mapleir.stdlib.collections.bitset.GenericBitSet;
 import org.mapleir.stdlib.collections.graph.algorithms.SimpleDfs;
 import org.mapleir.stdlib.util.TabbedStringWriter;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.*;
 
 public class CFGUtils {
@@ -209,6 +215,23 @@ public class CFGUtils {
 		cfg.addVertex(newBlock);
 		b.transferUpto(newBlock, to);
 		return newBlock;
+	}
+
+	/**
+	 * Renders the cfg as an image using graphviz.
+	 * This should be for debugging purposes only.
+	 * @param cfg cfg to dump.
+	 * @param filename output name without file extension.
+	 */
+	public static void easyDumpCFG(ControlFlowGraph cfg, String filename) {
+		IPropertyDictionary dict = PropertyHelper.createDictionary();
+		dict.put(new BooleanProperty(CFGExporterUtils.OPT_EDGES, true));
+		dict.put(new BooleanProperty(CFGExporterUtils.OPT_STMTS, true));
+		try {
+			Exporter.fromGraph(CFGExporterUtils.makeDotGraph(cfg, dict)).export(new File("cfg testing", filename + ".png"));
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 
 	public static String printBlocks(Collection<BasicBlock> bbs) {
