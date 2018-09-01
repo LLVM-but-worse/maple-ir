@@ -2,6 +2,7 @@ package org.mapleir.stdlib.collections.graph;
 
 import java.util.*;
 import java.util.Map.Entry;
+import java.util.stream.Stream;
 
 import org.mapleir.dot4j.model.Graph;
 import org.mapleir.propertyframework.api.IPropertyDictionary;
@@ -147,25 +148,21 @@ public abstract class FastDirectedGraph<N extends FastGraphVertex, E extends Fas
 		return Collections.unmodifiableSet(map.get(b));
 	}
 
-	public Iterable<N> getSuccessors(N v) {
-		return () -> getEdges(v).stream().map(E::dst).iterator();
+	public Stream<N> getSuccessors(N v) {
+		return getEdges(v).stream().map(E::dst);
 	}
 
 	public Set<E> getReverseEdges(N v) {
 		return Collections.unmodifiableSet(reverseMap.get(v));
 	}
 
-	public Iterable<N> getPredecessors(N v) {
-		return () -> getReverseEdges(v).stream().map(E::src).iterator();
+	public Stream<N> getPredecessors(N v) {
+		return getReverseEdges(v).stream().map(E::src);
 	}
 
 	@Override
 	public int size() {
 		return map.size();
-	}
-	
-	public int reverseSize() {
-		return reverseMap.size();
 	}
 	
 	// TODO: entries

@@ -27,6 +27,8 @@ import org.mapleir.stdlib.util.TabbedStringWriter;
 import java.util.*;
 import java.util.Map.Entry;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static org.mapleir.ir.code.Opcode.PHI_STORE;
 
@@ -302,24 +304,16 @@ public class ControlFlowGraph extends FlowGraph<BasicBlock, FlowEdge<BasicBlock>
 		}
 	}
 
-	public Set<FlowEdge<BasicBlock>> getPredecessors(BasicBlock bb) {
-		return new HashSet<>(getReverseEdges(bb));
-	}
-
 	public Set<FlowEdge<BasicBlock>> getPredecessors(Predicate<? super FlowEdge<BasicBlock>> e, BasicBlock b) {
-		Set<FlowEdge<BasicBlock>> set = getPredecessors(b);
-		set.removeIf(e.negate());
-		return set;
-	}
-
-	public Set<FlowEdge<BasicBlock>> getSuccessors(BasicBlock b) {
-		return new HashSet<>(getEdges(b));
+		Stream<FlowEdge<BasicBlock>> s = getReverseEdges(b).stream();
+		s = s.filter(e);
+		return s.collect(Collectors.toSet());
 	}
 
 	public Set<FlowEdge<BasicBlock>> getSuccessors(Predicate<? super FlowEdge<BasicBlock>> e, BasicBlock b) {
-		Set<FlowEdge<BasicBlock>> set = getSuccessors(b);
-		set.removeIf(e.negate());
-		return set;
+		Stream<FlowEdge<BasicBlock>> s = getEdges(b).stream();
+		s = s.filter(e);
+		return s.collect(Collectors.toSet());
 	}
 
 	Set<FlowEdge<BasicBlock>> findImmediatesImpl(Set<FlowEdge<BasicBlock>> set) {
