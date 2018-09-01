@@ -146,9 +146,17 @@ public abstract class FastDirectedGraph<N extends FastGraphVertex, E extends Fas
 	public Set<E> getEdges(N b) {
 		return Collections.unmodifiableSet(map.get(b));
 	}
-	
+
+	public Iterable<N> getSuccessors(N v) {
+		return () -> getEdges(v).stream().map(E::dst).iterator();
+	}
+
 	public Set<E> getReverseEdges(N v) {
 		return Collections.unmodifiableSet(reverseMap.get(v));
+	}
+
+	public Iterable<N> getPredecessors(N v) {
+		return () -> getReverseEdges(v).stream().map(E::src).iterator();
 	}
 
 	@Override

@@ -1,5 +1,7 @@
 package org.mapleir.stdlib.collections.graph;
 
+import java.util.*;
+
 public class OrderedNode implements FastGraphVertex {
 
 	public final int time;
@@ -44,7 +46,16 @@ public class OrderedNode implements FastGraphVertex {
 		}
 	}
 	
-	public static interface OGraph extends FastGraph<OrderedNode, ONEdge> {
+	public interface OGraph extends FastGraph<OrderedNode, ONEdge> {
+		@Override
+		default Map<OrderedNode, Set<ONEdge>> createMap() {
+			return new LinkedHashMap<>();
+		}
+
+		@Override
+		default Set<ONEdge> createSet() {
+			return new LinkedHashSet<>();
+		}
 	}
 	
 	public static class ODirectedGraph extends FastDirectedGraph<OrderedNode, ONEdge> implements OGraph {

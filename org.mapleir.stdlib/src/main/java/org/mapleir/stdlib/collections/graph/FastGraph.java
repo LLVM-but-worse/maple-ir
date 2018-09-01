@@ -49,7 +49,7 @@ public interface FastGraph<N extends FastGraphVertex, E extends FastGraphEdge<N>
 	}
 	
 	default Map<N, Set<E>> createMap(Map<N, Set<E>> map) {
-		HashMap<N, Set<E>> map2 = new HashMap<>();
+		Map<N, Set<E>> map2 = createMap();
 		for(Entry<N, Set<E>> e : map.entrySet()) {
 			map2.put(e.getKey(), createSet(e.getValue()));
 		}
@@ -61,7 +61,9 @@ public interface FastGraph<N extends FastGraphVertex, E extends FastGraphEdge<N>
 	}
 	
 	default Set<E> createSet(Set<E> set) {
-		return new HashSet<>(set);
+		Set<E> newSet = createSet();
+		set.addAll(set);
+		return newSet;
 	}
 	
 	default Graph makeDotGraph() {
