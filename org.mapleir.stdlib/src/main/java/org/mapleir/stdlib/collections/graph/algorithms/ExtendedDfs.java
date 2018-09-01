@@ -22,7 +22,7 @@ public class ExtendedDfs<N extends FastGraphVertex> implements DepthFirstSearch<
 	private final Map<N, N> parents;
 	private final List<N> preorder;
 	private final List<N> postorder;
-	private final List<N> topoorder;
+	private List<N> topoorder;
 
 	public ExtendedDfs(FastDirectedGraph<N, ? extends FastGraphEdge<N>> graph, int opt) {
 		this.opt = opt;
@@ -34,8 +34,7 @@ public class ExtendedDfs<N extends FastGraphVertex> implements DepthFirstSearch<
 		
 		parents = opt(PARENTS) ? new HashMap<>() : null;
 		preorder = opt(PRE) ? new ArrayList<>() : null;
-		postorder = opt(POST) ? new ArrayList<>() : null;
-		topoorder = opt(TOPO) ? new LinkedList<>() : null; // todo: convert me to arraylist...linkedlist is really slow
+		postorder = opt(POST) || opt(TOPO) ? new ArrayList<>() : null;
 
 		if(opt(EDGES)) {
 			edges = new HashMap<>();
@@ -50,6 +49,11 @@ public class ExtendedDfs<N extends FastGraphVertex> implements DepthFirstSearch<
 	
 	public ExtendedDfs<N> run(N entry) {
 		dfs(null, entry);
+		if (opt(TOPO)) {
+			// no need to copy if postorder wasn't requested.
+			topoorder = opt(POST) ? new ArrayList<>(postorder) : postorder;
+			Collections.reverse(topoorder);
+		}
 		return this;
 	}
 	
@@ -111,8 +115,7 @@ public class ExtendedDfs<N extends FastGraphVertex> implements DepthFirstSearch<
 			}
 		}
 		
-		if(opt(POST)) postorder.add(b);
-		if(opt(TOPO)) topoorder.add(0, b);
+		if(opt(POST) || opt(TOPO)) postorder.add(b);
 
 		colours.put(b, BLACK);
 		if(cvisit) coloured(b, BLACK);
