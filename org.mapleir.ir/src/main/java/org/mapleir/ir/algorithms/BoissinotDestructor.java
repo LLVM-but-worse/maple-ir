@@ -219,11 +219,7 @@ public class BoissinotDestructor {
 		ControlFlowGraph dominatorTree = new ControlFlowGraph(null, null);
 		resolver.domc.makeTree(dominatorTree);
 		dominatorTree.getEntries().add(entry);
-		SimpleDfs<BasicBlock> dfs = new SimpleDfs<>(dominatorTree, entry, SimpleDfs.PRE | SimpleDfs.TOPO);
-		if (!(dfs.getPreOrder().size() >= cfg.vertices().size())) {
-			throw new IllegalArgumentException("WHAT THE FUCK?");
-		}
-		return dfs;
+		return new SimpleDfs<>(dominatorTree, entry, SimpleDfs.PRE | SimpleDfs.TOPO);
 	}
 
 	private SSADefUseMap createDuChains() {

@@ -815,7 +815,12 @@ public class MethodNode extends MethodVisitor implements FastGraphVertex {
                 invisibleLocalVariableAnnotations.get(i).accept(mv, false);
             }
             // visits maxs
-            mv.visitMaxs(maxStack, maxLocals);
+            try {
+                mv.visitMaxs(maxStack, maxLocals);
+            } catch (Exception e) {
+                System.err.println("Failed to visitMaxs " + owner.name + "#" + name);
+                throw e;
+            }
             visited = true;
         }
         mv.visitEnd();

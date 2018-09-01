@@ -143,9 +143,14 @@ public class CompleteResolvingJarDumper implements JarDumper {
 				System.out.println(m + " @" + m.instructions.size());
 			}
 		}
-		
-		cn.accept(writer);
-		out.write(writer.toByteArray());
+
+		try {
+			cn.accept(writer);
+			out.write(writer.toByteArray());
+		} catch (Exception e) {
+			System.err.println("Failed to write " + cn.name);
+			throw e;
+		}
 		return 1;
 	}
 
