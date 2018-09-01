@@ -22,7 +22,7 @@ public class DfsTest extends TestCase {
 	@Override
 	public void setUp() {
 		try {
-			g = (ODirectedGraph) GraphConverter.fromFile("/dfspre1.gv");
+			g = (ODirectedGraph) GraphConverter.fromFile("/dfs.gv");
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -31,31 +31,42 @@ public class DfsTest extends TestCase {
 	public void testSimpleDfsPre() {
 		DepthFirstSearch<OrderedNode> dfs = new SimpleDfs<OrderedNode>(g, getNode(g, 1), SimpleDfs.PRE);
 		List<OrderedNode> res = dfs.getPreOrder();
-		assertTopoOrdered(res, g.size());
+		assertPreOrdered(res);
 	}
 
 	public void testExtendedDfsPre() {
 		DepthFirstSearch<OrderedNode> dfs = new ExtendedDfs<>(g, ExtendedDfs.PRE).run(getNode(g, 1));
 		List<OrderedNode> res = dfs.getPreOrder();
-		assertTopoOrdered(res, g.size());
+		assertPreOrdered(res);
 	}
 
 	public void testSimpleDfsTopo() {
 		DepthFirstSearch<OrderedNode> dfs = new SimpleDfs<OrderedNode>(g, getNode(g, 1), SimpleDfs.TOPO);
 		List<OrderedNode> res = dfs.getTopoOrder();
-		assertTopoOrdered(res, g.size());
+		assertTopoOrdered(res);
 	}
 
 	public void testExtendedDfsTopo() {
 		DepthFirstSearch<OrderedNode> dfs = new ExtendedDfs<>(g, ExtendedDfs.TOPO).run(getNode(g, 1));
 		List<OrderedNode> res = dfs.getTopoOrder();
-		assertTopoOrdered(res, g.size());
+		assertTopoOrdered(res);
 	}
 
-	private void assertTopoOrdered(List<OrderedNode> nodes, int ex) {
-		System.out.println(nodes);
+	private void assertPreOrdered(List<OrderedNode> nodes) {
 		Set<OrderedNode> visited = new HashSet<>();
-		assertEquals("missing nodes", ex, nodes.size());
+		assertEquals("missing nodes", new HashSet<>(nodes), g.vertices());
+		for (int i = 1; i < nodes.size(); i++) {
+			OrderedNode node = nodes.get(i);
+			visited.add(node);
+			OrderedNode prev = nodes.get(i - 1);
+			if (!Iterators.all(g.getSuccessors(prev).iterator(), Predicates.in(visited)))
+				assertTrue("unvisited pred", Iterators.contains(g.getPredecessors(node).iterator(), prev));
+		}
+	}
+
+	private void assertTopoOrdered(List<OrderedNode> nodes) {
+		Set<OrderedNode> visited = new HashSet<>();
+		assertEquals("missing nodes", new HashSet<>(nodes), g.vertices());
 		for (OrderedNode node : nodes) {
 			visited.add(node);
 			assertTrue("unvisited pred", Iterators.all(g.getPredecessors(node).iterator(), Predicates.in(visited)));
