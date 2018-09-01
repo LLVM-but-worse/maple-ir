@@ -37,7 +37,7 @@ public class BoissinotDestructor {
 
 	private final ControlFlowGraph cfg;
 	private final LocalsPool locals;
-	private final BasicBlock dummyHead;
+	private final BasicBlock entry;
 
 	private final DominanceLivenessAnalyser resolver;
 	private final NullPermeableHashMap<Local, LinkedHashSet<Local>> values;
@@ -72,11 +72,10 @@ public class BoissinotDestructor {
 		// 1. Insert copies to enter CSSA.
 		liftPhiOperands();
 
-		BasicBlock previousHead = cfg.getEntries().iterator().next();
-		dummyHead = CFGUtils.deleteUnreachableBlocks(cfg);
+		entry = CFGUtils.deleteUnreachableBlocks(cfg);
 
-		// compute the dominance here after we have connected the dummy head and lifted non variable phi operands.
-		resolver = new DominanceLivenessAnalyser(cfg, dummyHead, null);
+		// compute the dominance here after we have lifted non variable phi operands.
+		resolver = new DominanceLivenessAnalyser(cfg, entry, null);
 		
 		copyPhiOperands();
 		
@@ -121,7 +120,7 @@ public class BoissinotDestructor {
 
 	private void copyPhiOperands() {
 		for (BasicBlock b : cfg.vertices()) {
-			if (b != dummyHead) {
+			if (b != entry) {
 				copyPhiOperands(b);
 			}
 		}
@@ -219,8 +218,12 @@ public class BoissinotDestructor {
 	private SimpleDfs<BasicBlock> traverseDominatorTree() {
 		ControlFlowGraph dominatorTree = new ControlFlowGraph(null, null);
 		resolver.domc.makeTree(dominatorTree);
-		dominatorTree.getEntries().add(dummyHead);
-		return new SimpleDfs<>(dominatorTree, dummyHead, SimpleDfs.PRE | SimpleDfs.TOPO);
+		dominatorTree.getEntries().add(entry);
+		SimpleDfs<BasicBlock> dfs = new SimpleDfs<>(dominatorTree, entry, SimpleDfs.PRE | SimpleDfs.TOPO);
+		if (!(dfs.getPreOrder().size() >= cfg.vertices().size())) {
+			throw new IllegalArgumentException("WHAT THE FUCK?");
+		}
+		return dfs;
 	}
 
 	private SSADefUseMap createDuChains() {
@@ -258,6 +261,7 @@ public class BoissinotDestructor {
 
 	private void computeValueInterference() {
 		List<BasicBlock> topoorder = dom_dfs.getTopoOrder();
+		assert (topoorder.size() >= cfg.vertices().size());
 		
 		for (BasicBlock bl : topoorder) {
 			for (Stmt stmt : bl) {
@@ -336,6 +340,7 @@ public class BoissinotDestructor {
 	private void coalesceCopies() {
 		// now for each copy check if lhs and rhs congruence classes do not interfere.
 		// if they do not interfere merge the conClasses and those two vars can be coalesced. delete the copy.
+		assert (dom_dfs.getPreOrder().size() >= cfg.vertices().size());
 		for (BasicBlock b : dom_dfs.getPreOrder()) {
 			for (Iterator<Stmt> it = b.iterator(); it.hasNext();) {
 				Stmt stmt = it.next();

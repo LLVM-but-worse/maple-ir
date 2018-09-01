@@ -13,8 +13,10 @@ import org.mapleir.deob.IPass;
 import org.mapleir.deob.PassGroup;
 import org.mapleir.deob.dataflow.graph.JavaDescEdge;
 import org.mapleir.deob.dataflow.graph.JavaDescVertex;
+import org.mapleir.ir.algorithms.BoissinotDestructor;
 import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.code.expr.ConstantExpr;
+import org.mapleir.ir.codegen.ControlFlowGraphDumper;
 import org.mapleir.stdlib.collections.graph.FastDirectedGraph;
 import org.mapleir.stdlib.util.IHasJavaDesc;
 import org.mapleir.stdlib.util.JavaDesc;
@@ -195,7 +197,7 @@ public class Boot {
 
 		Scanner sc = new Scanner(System.in);
 		while (true) {
-//			if (1+1==2)break;
+			if (1+1==2)break;
 			System.out.print("xref> ");
 			String l = sc.nextLine();
 			if (l.isEmpty())
@@ -409,28 +411,28 @@ public class Boot {
 //		}).export();
 
 		section("Retranslating SSA IR to standard flavour.");
-//		for(Entry<MethodNode, ControlFlowGraph> e : cxt.getIRCache().entrySet()) {
-//			MethodNode mn = e.getKey();
-//			// if (!mn.name.equals("openFiles"))
-//			// 	continue;
-//			ControlFlowGraph cfg = e.getValue();
-//
-//			// System.out.println(cfg);
-//			// CFGUtils.easyDumpCFG(cfg, "pre-destruct");
-//			cfg.verify();
-//
-//			BoissinotDestructor.leaveSSA(cfg);
-//
-//			// CFGUtils.easyDumpCFG(cfg, "pre-reaalloc");
-//			cfg.getLocals().realloc(cfg);
-//			// CFGUtils.easyDumpCFG(cfg, "post-reaalloc");
-//			// System.out.println(cfg);
-//			cfg.verify();
-//			// System.out.println("Rewriting " + mn.name);
-//			// System.exit(1);
-//			(new ControlFlowGraphDumper(cfg, mn)).dump();
-//			// System.out.println(InsnListUtils.insnListToString(mn.instructions));
-//		}
+		for(Entry<MethodNode, ControlFlowGraph> e : cxt.getIRCache().entrySet()) {
+			MethodNode mn = e.getKey();
+			// if (!mn.name.equals("openFiles"))
+			// 	continue;
+			ControlFlowGraph cfg = e.getValue();
+
+			// System.out.println(cfg);
+			// CFGUtils.easyDumpCFG(cfg, "pre-destruct");
+			cfg.verify();
+
+			BoissinotDestructor.leaveSSA(cfg);
+
+			// CFGUtils.easyDumpCFG(cfg, "pre-reaalloc");
+			cfg.getLocals().realloc(cfg);
+			// CFGUtils.easyDumpCFG(cfg, "post-reaalloc");
+			// System.out.println(cfg);
+			cfg.verify();
+			// System.out.println("Rewriting " + mn.name);
+			// System.exit(1);
+			(new ControlFlowGraphDumper(cfg, mn)).dump();
+			// System.out.println(InsnListUtils.insnListToString(mn.instructions));
+		}
 		
 //		section("Rewriting jar.");
 //		dumpJar(app, dl, masterGroup, "out/rewritten.jar");

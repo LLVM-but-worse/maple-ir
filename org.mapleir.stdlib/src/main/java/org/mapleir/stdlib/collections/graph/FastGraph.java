@@ -62,7 +62,7 @@ public interface FastGraph<N extends FastGraphVertex, E extends FastGraphEdge<N>
 	
 	default Set<E> createSet(Set<E> set) {
 		Set<E> newSet = createSet();
-		set.addAll(set);
+		newSet.addAll(set);
 		return newSet;
 	}
 	

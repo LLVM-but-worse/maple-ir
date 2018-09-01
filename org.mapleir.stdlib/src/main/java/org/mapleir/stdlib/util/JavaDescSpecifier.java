@@ -6,7 +6,6 @@ public class JavaDescSpecifier {
 
     public JavaDescSpecifier(String owner, String nameRegex, String descRegex, JavaDesc.DescType descType) {
         this(owner, nameRegex, descRegex, descType, null);
-        assert (descType == JavaDesc.DescType.FIELD);
     }
 
     public JavaDescSpecifier(String ownerRegex, String nameRegex, String descRegex, JavaDesc.DescType descType, Object extraData) {
