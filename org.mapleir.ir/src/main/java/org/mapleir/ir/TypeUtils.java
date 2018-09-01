@@ -315,7 +315,7 @@ public class TypeUtils {
 				} else if (sortTo == Type.INT || sortTo == Type.BOOLEAN) {
 					return new int[] { F2I };
 				} else if (sortTo == Type.LONG) {
-					return new int[] { L2F };
+					return new int[] { F2L };
 				} else if (sortTo == Type.FLOAT) {
 					return new int[] {};
 				} else if (sortTo == Type.DOUBLE) {
