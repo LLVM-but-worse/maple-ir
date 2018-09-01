@@ -35,7 +35,7 @@ public class ExtendedDfs<N extends FastGraphVertex> implements DepthFirstSearch<
 		parents = opt(PARENTS) ? new HashMap<>() : null;
 		preorder = opt(PRE) ? new ArrayList<>() : null;
 		postorder = opt(POST) ? new ArrayList<>() : null;
-		topoorder = opt(TOPO) ? new LinkedList<>() : null;
+		topoorder = opt(TOPO) ? new LinkedList<>() : null; // todo: convert me to arraylist...linkedlist is really slow
 
 		if(opt(EDGES)) {
 			edges = new HashMap<>();
