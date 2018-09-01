@@ -3,10 +3,8 @@ package org.mapleir.stdlib.collections.graph.algorithms;
 import org.mapleir.stdlib.collections.graph.FastDirectedGraph;
 import org.mapleir.stdlib.collections.graph.FastGraphEdge;
 import org.mapleir.stdlib.collections.graph.FastGraphVertex;
-import org.mapleir.stdlib.collections.map.NullPermeableHashMap;
 
 import java.util.*;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Deprecated. Use ExtendedDfs instead.
