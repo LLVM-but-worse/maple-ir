@@ -1,20 +1,16 @@
-package org.mapleir.stdlib.collections.graph;
+package org.mapleir.stdlib.collections.graph.directed;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Set;
+import static org.mapleir.stdlib.collections.graph.util.CollectionUtil.*;
 
-import org.mapleir.stdlib.collections.graph.FakeFastDirectedGraph.FakeFastEdge;
-import org.mapleir.stdlib.collections.graph.FakeFastDirectedGraph.FakeFastVertex;
+import org.mapleir.stdlib.collections.graph.AbstractFastGraphTest;
+import org.mapleir.stdlib.collections.graph.util.FakeFastEdge;
 
-import junit.framework.TestCase;
-
-public class FastDirectedGraphTest extends TestCase {
+public class FastDirectedGraphTest extends AbstractFastGraphTest {
 	
+	public FastDirectedGraphTest() {
+		super(true);
+	}
+
 	public void testAddVertex() {
 		FakeFastDirectedGraph g = graph();
 		assertEquals(0, g.size());
@@ -104,51 +100,18 @@ public class FastDirectedGraphTest extends TestCase {
 		
 		assertContainsEdges(getEdges(g), asList(edge(1, 5), edge(1, 3), edge(5, 4), edge(3, 4)));
 	}
-
-	private final Map<Integer, FakeFastVertex> nodes = new HashMap<>();
+	
+	/* internal test */
+	public void testClone() {
+		FakeFastDirectedGraph g = graph();
+		FakeFastEdge e1 = edge(1, 2);
+		
+		FakeFastEdge e12 = g.clone(e1, node(4), node(5));
+		assertEquals(node(4), e12.src());
+		assertEquals(node(5), e12.dst());
+	}
 	
 	private FakeFastDirectedGraph graph() {
-		return new FakeFastDirectedGraph(this);
-	}
-	
-	public FakeFastVertex node(int id) {
-		return nodes.computeIfAbsent(id, id2 -> new FakeFastVertex(id2));
-	}
-	
-	public FakeFastEdge edge(int src, int dst) {
-		return new FakeFastEdge(node(src), node(dst));
-	}
-	
-	private <E> Collection<E> asList(E... es) { 
-		Collection<E> col = new ArrayList<>();
-		for(E e : es) {
-			col.add(e);
-		}
-		return col;
-	}
-	
-	private <N extends FastGraphVertex, E extends FastGraphEdge<N>> Set<E> getEdges(FastGraph<N, E> g) {
-		Set<E> res = new HashSet<>();
-		for (N o : g.vertices()) {
-			res.addAll(g.getEdges(o));
-		}
-		return res;
-	}
-	
-	private <E extends FastGraphEdge<?>> void assertContainsEdges(Collection<E> actual, Collection<E> expecting) {
-		assertEquals(expecting.size(), actual.size());
-
-		Iterator<E> expectIt = expecting.iterator();
-		outer: while (expectIt.hasNext()) {
-			E ex = expectIt.next();
-
-			for (E ac : actual) {
-				if (ac.src() == ex.src() && ac.dst() == ex.dst()) {
-					continue outer;
-				}
-			}
-
-			fail(String.format("%s doesn't contain %s", actual, ex));
-		}
+		return new FakeFastDirectedGraph();
 	}
 }

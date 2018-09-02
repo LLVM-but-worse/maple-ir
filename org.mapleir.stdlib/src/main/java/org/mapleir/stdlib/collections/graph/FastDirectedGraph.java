@@ -196,13 +196,15 @@ public abstract class FastDirectedGraph<N extends FastGraphVertex, E extends Fas
 		addVertex(n);
 		
 		for(E succ : new HashSet<>(succs)) {
-			E newEdge = clone(succ, old, n);
+			/* 'old' is the 'src' here, change 'n' to the new 'src' */
+			E newEdge = clone(succ, n, succ.dst());
 			removeEdge(succ);
 			addEdge(newEdge);
 		}
 		
 		for(E pred : new HashSet<>(preds)) {
-			E newEdge = clone(pred, old, n);
+			/* 'old' is the 'dst' here, change 'n' to the new 'dst' */
+			E newEdge = clone(pred, pred.src(), n);
 			removeEdge(pred);
 			addEdge(newEdge);
 		}

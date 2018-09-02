@@ -170,18 +170,7 @@ public class ControlFlowGraph extends FlowGraph<BasicBlock, FlowEdge<BasicBlock>
 	}
 
 	@Override
-	public FlowEdge<BasicBlock> clone(FlowEdge<BasicBlock> edge, BasicBlock old, BasicBlock newN) {
-		BasicBlock src = edge.src();
-		BasicBlock dst = edge.dst();
-
-		// remap edges
-		if(src == old) {
-			src = newN;
-		}
-		if(dst == old) {
-			dst = newN;
-		}
-
+	public FlowEdge<BasicBlock> clone(FlowEdge<BasicBlock> edge, BasicBlock src, BasicBlock dst) {
 		return edge.clone(src, dst);
 	}
 	

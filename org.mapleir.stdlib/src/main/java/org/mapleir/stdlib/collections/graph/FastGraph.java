@@ -30,7 +30,7 @@ public interface FastGraph<N extends FastGraphVertex, E extends FastGraphEdge<N>
 	
 	int size();
 	
-	default E clone(E edge, N oldN, N newN) {
+	default E clone(E edge, N newSrc, N newDst) {
 		throw new UnsupportedOperationException();
 	}
 	
