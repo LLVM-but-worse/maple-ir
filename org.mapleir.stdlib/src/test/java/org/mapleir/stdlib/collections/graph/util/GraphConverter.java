@@ -1,4 +1,4 @@
-package org.mapleir.stdlib.collections.graph;
+package org.mapleir.stdlib.collections.graph.util;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -9,6 +9,7 @@ import org.mapleir.dot4j.model.Graph;
 import org.mapleir.dot4j.model.Node;
 import org.mapleir.dot4j.model.PortNode;
 import org.mapleir.dot4j.parse.Parser;
+import org.mapleir.stdlib.collections.graph.FastGraph;
 
 public class GraphConverter {
 

@@ -5,12 +5,13 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.mapleir.stdlib.collections.graph.util.GraphConverter;
+import org.mapleir.stdlib.collections.graph.util.OrderedNode;
+import org.mapleir.stdlib.collections.graph.util.OrderedNode.ODirectedGraph;
+import org.mapleir.stdlib.collections.graph.util.OrderedNode.OGraph;
+
 import com.google.common.base.Predicates;
 import com.google.common.collect.Iterators;
-import org.mapleir.stdlib.collections.graph.GraphConverter;
-import org.mapleir.stdlib.collections.graph.OrderedNode;
-import org.mapleir.stdlib.collections.graph.OrderedNode.ODirectedGraph;
-import org.mapleir.stdlib.collections.graph.OrderedNode.OGraph;
 
 import junit.framework.TestCase;
 

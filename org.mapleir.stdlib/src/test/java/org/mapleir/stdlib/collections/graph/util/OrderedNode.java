@@ -1,6 +1,12 @@
-package org.mapleir.stdlib.collections.graph;
+package org.mapleir.stdlib.collections.graph.util;
 
 import java.util.*;
+
+import org.mapleir.stdlib.collections.graph.FastDirectedGraph;
+import org.mapleir.stdlib.collections.graph.FastGraph;
+import org.mapleir.stdlib.collections.graph.FastGraphEdgeImpl;
+import org.mapleir.stdlib.collections.graph.FastGraphVertex;
+import org.mapleir.stdlib.collections.graph.FastUndirectedGraph;
 
 public class OrderedNode implements FastGraphVertex {
 
