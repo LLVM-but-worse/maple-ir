@@ -5,9 +5,9 @@ import java.util.Iterator;
 import org.mapleir.dot4j.attr.Attrs;
 import org.mapleir.dot4j.attr.builtin.Colour;
 import org.mapleir.dot4j.attr.builtin.ComplexLabel;
+import org.mapleir.dot4j.attr.builtin.ComplexLabel.Justification;
 import org.mapleir.dot4j.attr.builtin.Shape;
 import org.mapleir.dot4j.attr.builtin.Style;
-import org.mapleir.dot4j.attr.builtin.ComplexLabel.Justification;
 import org.mapleir.dot4j.model.Graph;
 import org.mapleir.flowgraph.edges.TryCatchEdge;
 import org.mapleir.ir.cfg.BasicBlock;
@@ -50,15 +50,17 @@ public class CFGExporterUtils {
 			
 			node.with(Shape.BOX, Style.FILLED, getBlockColour(cfg, block),
 					ComplexLabel.html(sb.toString()).justify(Justification.LEFT));
+			return true;
 		}, (e, dotE) -> {
 			if (hideHandlerEdges && e instanceof TryCatchEdge) {
-				dotE.with(Style.INVIS);
-				return;
+				// dotE.with(Style.INVIS);
+				return false;
 			}
 			if (labelEdges) {
 				dotE.with(ComplexLabel
 						.of(simplifyEdges ? e.getClass().getSimpleName().replace("Edge", "") : e.toGraphString()));
 			}
+			return true;
 		}).setDirected(true);
 	}
 

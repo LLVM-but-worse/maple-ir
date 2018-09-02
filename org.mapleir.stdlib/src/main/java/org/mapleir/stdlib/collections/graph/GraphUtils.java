@@ -2,7 +2,7 @@ package org.mapleir.stdlib.collections.graph;
 
 import java.util.Collection;
 import java.util.Iterator;
-import java.util.function.BiConsumer;
+import java.util.function.BiPredicate;
 
 import org.mapleir.dot4j.attr.Attrs;
 import org.mapleir.dot4j.attr.builtin.Font;
@@ -25,7 +25,7 @@ public class GraphUtils {
 	}
 	
 	public static <N extends FastGraphVertex, E extends FastGraphEdge<N>> Graph makeGraphSkeleton(FastGraph<N, E> fastGraph,
-			BiConsumer<N, Node> nodeConsumer, BiConsumer<E, Edge> edgeConsumer) {
+			BiPredicate<N, Node> nodePredicate, BiPredicate<E, Edge> edgePredicate) {
 		Attrs font = GraphUtils.getDefaultFont();
 		Graph graph = Factory.graph()
 				.getGraphAttr().with(font)
@@ -35,18 +35,39 @@ public class GraphUtils {
 		return Context.use(graph, ctx -> {
 			for(N vertex : fastGraph.vertices()) {
 				Node sourceNode = Factory.node(vertex.getDisplayName());
-				graph.addSource(sourceNode);
-				if(nodeConsumer != null) {
-					nodeConsumer.accept(vertex, sourceNode);
+				boolean addNode = true;
+				if(nodePredicate != null) {
+					addNode = nodePredicate.test(vertex, sourceNode);
+				}
+				if(addNode) {
+					graph.addSource(sourceNode);
 				}
 				
 				for(E e : fastGraph.getEdges(vertex)) {
 					Node target = Factory.node(e.dst().getDisplayName());
 					Edge edge = Factory.to(target);
-					if(edgeConsumer != null) {
-						edgeConsumer.accept(e, edge);
+					boolean addEdge = true;
+					if(edgePredicate != null) {
+						addEdge = edgePredicate.test(e, edge);
 					}
-					sourceNode.addEdge(edge);
+					if(addEdge) {
+						sourceNode.addEdge(edge);
+					}
+				}
+			}
+			return graph;
+		});
+	}
+	
+	public static void removeNodeEdges(Graph graph, BiPredicate<Node, Edge> keepEdgePredicate) {
+		Context.use(graph, ctx -> {
+			for(Node node : graph.getAllNodes()) {
+				Iterator<Edge> edgeIt = node.getEdges().iterator();
+				while(edgeIt.hasNext()) {
+					Edge edge = edgeIt.next();
+					if(!keepEdgePredicate.test(node, edge)) {
+						edgeIt.remove();
+					}
 				}
 			}
 			return graph;
