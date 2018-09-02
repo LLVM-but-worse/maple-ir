@@ -11,8 +11,6 @@ import java.util.Set;
 import org.mapleir.stdlib.collections.graph.FakeFastDirectedGraph.FakeFastEdge;
 import org.mapleir.stdlib.collections.graph.FakeFastDirectedGraph.FakeFastVertex;
 
-import com.google.common.collect.Lists;
-
 import junit.framework.TestCase;
 
 public class FastDirectedGraphTest extends TestCase {
