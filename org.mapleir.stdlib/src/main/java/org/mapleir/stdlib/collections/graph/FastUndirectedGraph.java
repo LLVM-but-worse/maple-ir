@@ -1,154 +1,168 @@
 package org.mapleir.stdlib.collections.graph;
 
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
-import java.util.Map.Entry;
+import java.util.Set;
 
 import org.mapleir.dot4j.model.Graph;
 import org.mapleir.propertyframework.api.IPropertyDictionary;
 
-import java.util.Set;
+public abstract class FastUndirectedGraph<N extends FastGraphVertex, E extends FastGraphEdge<N>> implements FastGraph<N, E> {
 
-// TODO: redo this.
-public abstract class FastUndirectedGraph<N extends FastGraphVertex, E extends FastGraphEdge<N>> implements FastGraph<N, E>{
-
-	private final Map<N, Set<E>> map;
-	private final Map<N, Set<E>> reverseMap;
+	private final Map<N, Set<E>> edgeSet;
+	private final Map<E, E> sisterEdges;
 	
 	public FastUndirectedGraph() {
-		map = createMap();
-		reverseMap = createMap();
+		edgeSet = createMap();
+		sisterEdges = new HashMap<>();
 	}
 	
 	public FastUndirectedGraph(FastUndirectedGraph<N, E> g) {
-		map = createMap(g.map);
-		reverseMap = createMap(g.reverseMap);
+		edgeSet = createMap(g.edgeSet);
+		sisterEdges = new HashMap<>(g.sisterEdges);
 	}
 
 	@Override
 	public Set<N> vertices() {
-		return map.keySet();
+		return new HashSet<>(edgeSet.keySet());
 	}
 
 	@Override
 	public boolean addVertex(N n) {
-		boolean ret = false;
-		if(!map.containsKey(n)) {
-			map.put(n, createSet());
-			ret = true;
+		/* putIfAbsent requires Set instantiation even if this node
+		 * is already mapped */
+		if(edgeSet.containsKey(n)) {
+			return false;
+		} else {
+			edgeSet.put(n, createSet());
+			return true;
 		}
-		if(!reverseMap.containsKey(n)) {
-			reverseMap.put(n, createSet());
-			ret = true;
-		}
-		return ret;
 	}
 
+	protected E getSisterEdge(E e) {
+		if(sisterEdges.containsKey(e)) {
+			return sisterEdges.get(e);
+		} else {
+			throw new IllegalArgumentException(
+					String.format("Edge is not mapped: %s", e));
+		}
+	}
+	
 	@Override
 	public void removeVertex(N n) {
-		for(E e : map.remove(n)) {
-			reverseMap.get(/*getDestination(v, e)*/ e.dst()).remove(e);
-		}
+		Set<E> edges = edgeSet.remove(n);
 		
-		for(E e : reverseMap.remove(n)) {
-			map.get(/*getSource(v, e)*/ e.src()).remove(e);
+		if(edges != null && !edges.isEmpty()) {
+			for(E edge : edges) {
+				E sisterEdge = getSisterEdge(edge);
+				
+				E e1 = sisterEdges.remove(edge);
+				E e2 = sisterEdges.remove(sisterEdge);
+				
+				assert e1 == sisterEdge;
+				assert e2 == edge;
+				
+				edgeSet.get(edge.dst()).remove(sisterEdge);
+			}
 		}
 	}
 
 	@Override
 	public boolean containsVertex(N n) {
-		return map.containsKey(n);
+		return edgeSet.containsKey(n);
 	}
 
 	@Override
 	public void addEdge(E e) {
-		N n = e.src();
-		if(!map.containsKey(n)) {
-			map.put(n, createSet());
+		if(containsEdge(e)) {
+			return;
 		}
-		map.get(n).add(e);
 		
+		N src = e.src();
 		N dst = e.dst();
-		if(!reverseMap.containsKey(dst)) {
-			reverseMap.put(dst, createSet());
-		}
 		
-		reverseMap.get(dst).add(e);
+		if(!containsVertex(src)) {
+			addVertex(src);
+		}
+		if(!containsVertex(dst)) {
+			addVertex(dst);
+		}
+
+		E sisterE = clone(e, dst, src);
+		
+		sisterEdges.put(e, sisterE);
+		sisterEdges.put(sisterE, e);
+		
+		edgeSet.get(src).add(e);
+		edgeSet.get(dst).add(sisterE);
 	}
 
 	@Override
 	public void removeEdge(E e) {
-		N n = e.src();
-		if(map.containsKey(n)) {
-			map.get(n).remove(e);
+		if(!containsEdge(e)) {
+			return;
 		}
+		
+		N src = e.src();
 		N dst = e.dst();
-		if(reverseMap.containsKey(dst)) {
-			reverseMap.get(dst).remove(e);
-		}
+		
+		E sisterE = getSisterEdge(e);
+		edgeSet.get(src).remove(e);
+		edgeSet.get(dst).remove(sisterE);
 	}
 
 	@Override
 	public boolean containsEdge(E e) {
-		N n = e.src();
-		return map.containsKey(n) && map.get(n).contains(e);
+		N src = e.src();
+		return edgeSet.containsKey(src) && edgeSet.get(src).contains(e);
 	}
 
 	@Override
 	public Set<E> getEdges(N n) {
-		return map.get(n);
+		return new HashSet<>(edgeSet.get(n));
 	}
 
 	@Override
 	public int size() {
-		return map.size();
+		return edgeSet.size();
 	}
 
 	@Override
-	public void replace(N old, N n) {
-		Set<E> succs = getEdges(old);
-		Set<E> preds = reverseMap.get(old);
+	public void replace(N oldNode, N newNode) {
+		Set<E> edges = new HashSet<>(edgeSet.get(oldNode));
 		
-		addVertex(n);
-		
-		for(E succ : new HashSet<>(succs)) {
-			/* 'old' is the 'src' here, change 'n' to the new 'src' */
-			assert succ.src() == old;
-			E newEdge = clone(succ, n, succ.dst());
-			removeEdge(succ);
+		for(E e : edges) {
+			assert e.src() == oldNode;
+			E newEdge = clone(e, newNode, e.dst());
+			removeEdge(e);
 			addEdge(newEdge);
 		}
 		
-		for(E pred : new HashSet<>(preds)) {
-			/* 'old' is the 'dst' here, change 'n' to the new 'dst' */
-			assert pred.dst() == old;
-			E newEdge = clone(pred, pred.src(), n);
-			removeEdge(pred);
-			addEdge(newEdge);
-		}
-		
-		removeVertex(old);
+		removeVertex(oldNode);
 	}
 
 	@Override
 	public void clear() {
-		map.clear();
-		reverseMap.clear();
+		edgeSet.clear();
+		sisterEdges.clear();
 	}
-	
+
 	@Override
-	public String toString() {
-		StringBuilder sb = new StringBuilder();
-		sb.append("map {\n");
-		for(Entry<N, Set<E>> e : map.entrySet()) {
-			sb.append("   ").append(e.getKey()).append("  ").append(e.getValue()).append("\n");
-		}
-		sb.append("}");
-		return sb.toString();
-	}
-	
-	@Override
-	public Graph makeDotGraph(IPropertyDictionary properties) { 
-		return GraphUtils.makeGraphSkeleton(this).setDirected(false);
+	public Graph makeDotGraph(IPropertyDictionary properties) {
+		/* getEdge(n) returns edges to all nodes that n is connected to, so
+		 * each added edge actually has two edges in the dot graph. we need to
+		 * remove one edge from each pair from each node. */
+		Set<E> addedEdges = new HashSet<>();
+		return GraphUtils.makeGraphSkeleton(this, null, (ourEdge, dotEdge) -> {
+			if(addedEdges.contains(ourEdge)) {
+				/* added this edge already */
+				return false;
+			} else {
+				addedEdges.add(ourEdge);
+				addedEdges.add(getSisterEdge(ourEdge));
+				return true;
+			}
+		});		
 	}
 }
