@@ -11,7 +11,7 @@ import junit.framework.TestCase;
 public abstract class AbstractFastGraphTest extends TestCase {
 
 	private final boolean directed;
-	private final Map<Integer, FakeFastVertex> nodes = new HashMap<>();
+	protected final Map<Integer, FakeFastVertex> nodes = new HashMap<>();
 	
 	public AbstractFastGraphTest(boolean directed) {
 		this.directed = directed;
