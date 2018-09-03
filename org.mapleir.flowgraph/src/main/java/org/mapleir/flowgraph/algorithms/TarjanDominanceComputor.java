@@ -1,9 +1,8 @@
 package org.mapleir.flowgraph.algorithms;
 
-import org.mapleir.flowgraph.edges.FlowEdge;
-import org.mapleir.flowgraph.edges.ImmediateEdge;
 import org.mapleir.stdlib.collections.graph.FastDirectedGraph;
 import org.mapleir.stdlib.collections.graph.FastGraphEdge;
+import org.mapleir.stdlib.collections.graph.FastGraphEdgeImpl;
 import org.mapleir.stdlib.collections.graph.FastGraphVertex;
 import org.mapleir.stdlib.collections.map.NullPermeableHashMap;
 
@@ -43,7 +42,8 @@ public class TarjanDominanceComputor<N extends FastGraphVertex> {
 		computeIteratedFrontiers();
 	}
 	
-	public void makeTree(FastDirectedGraph<N, FlowEdge<N>> dom_tree) {
+	public DominatorTree<N> makeTree() {
+		DominatorTree<N> dom_tree = new DominatorTree<>();
 		for (Entry<N, Set<N>> e : getTree().entrySet()) {
 			N b = e.getKey();
 			if(b == null) {
@@ -51,9 +51,10 @@ public class TarjanDominanceComputor<N extends FastGraphVertex> {
 			}
 			dom_tree.addVertex(b);
 			for (N c : e.getValue()) {
-				dom_tree.addEdge(new ImmediateEdge<>(b, c));
+				dom_tree.addEdge(new FastGraphEdgeImpl<>(b, c));
 			}
 		}
+		return dom_tree;
 	}
 	
 	public Map<N, Set<N>> getTree() {
@@ -245,5 +246,9 @@ public class TarjanDominanceComputor<N extends FastGraphVertex> {
 			
 			anc = d;
 		}
+	}
+	
+	public static class DominatorTree<N extends FastGraphVertex> extends FastDirectedGraph<N, FastGraphEdge<N>> {
+		
 	}
 }
