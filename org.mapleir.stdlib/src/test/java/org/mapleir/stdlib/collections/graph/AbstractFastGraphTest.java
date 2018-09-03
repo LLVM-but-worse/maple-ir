@@ -24,4 +24,8 @@ public abstract class AbstractFastGraphTest extends TestCase {
 	public FakeFastEdge edge(int src, int dst) {
 		return new FakeFastEdge(node(src), node(dst), directed);
 	}
+	
+	public int size() {
+		return nodes.size();
+	}
 }
