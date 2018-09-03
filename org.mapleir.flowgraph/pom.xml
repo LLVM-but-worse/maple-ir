@@ -15,6 +15,13 @@
   		<artifactId>stdlib</artifactId>
   		<version>0.0.1-ALPHA</version>
   	</dependency>
+	<dependency>
+		<groupId>org.mapleir</groupId>
+		<artifactId>stdlib</artifactId>
+		<version>0.0.1-ALPHA</version>
+		<type>test-jar</type>
+		<scope>test</scope>
+	</dependency>
   	<dependency>
   		<groupId>org.mapleir</groupId>
   		<artifactId>modasm</artifactId>
