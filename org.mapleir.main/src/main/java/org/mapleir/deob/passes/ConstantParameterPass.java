@@ -13,6 +13,8 @@ import java.util.Set;
 import org.mapleir.app.service.InvocationResolver;
 import org.mapleir.context.AnalysisContext;
 import org.mapleir.deob.IPass;
+import org.mapleir.deob.PassContext;
+import org.mapleir.deob.PassResult;
 import org.mapleir.deob.interproc.IPAnalysis;
 import org.mapleir.deob.interproc.IPAnalysisVisitor;
 import org.mapleir.deob.passes.rename.MethodRenamerPass;
@@ -37,9 +39,10 @@ import org.objectweb.asm.tree.MethodNode;
 
 // TODO: Convert to use TaintableSet
 public class ConstantParameterPass implements IPass, Opcode {
-	
+
 	@Override
-	public int accept(AnalysisContext cxt, IPass prev, List<IPass> completed) {
+	public PassResult accept(PassContext pcxt) {
+		AnalysisContext cxt = pcxt.getAnalysis();
 		Map<MethodNode, Set<MethodNode>> chainMap = new HashMap<>();
 		for(MethodNode mn : cxt.getIRCache().getActiveMethods()) {
 			makeUpChain(cxt, mn, chainMap);
@@ -384,7 +387,7 @@ public class ConstantParameterPass implements IPass, Opcode {
 		}
 		
 		System.out.printf("  removed %d constant parameters.%n", killedTotal);
-		return killedTotal;
+		return PassResult.with(pcxt, this).finished(killedTotal).make();
 	}
 	
 	private void inlineConstant(ControlFlowGraph cfg, int argLocalIndex, Object o) {

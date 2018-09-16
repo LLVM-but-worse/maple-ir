@@ -10,7 +10,9 @@ import org.mapleir.context.AnalysisContext;
 import org.mapleir.context.BasicAnalysisContext;
 import org.mapleir.context.IRCache;
 import org.mapleir.deob.IPass;
+import org.mapleir.deob.PassContext;
 import org.mapleir.deob.PassGroup;
+import org.mapleir.deob.PassResult;
 import org.mapleir.deob.dataflow.graph.JavaDescEdge;
 import org.mapleir.deob.dataflow.graph.JavaDescVertex;
 import org.mapleir.dot4j.Exporter;
@@ -487,7 +489,12 @@ public class Boot {
 	}
 	
 	private static void run(AnalysisContext cxt, PassGroup group) {
-		group.accept(cxt, null, new ArrayList<>());
+		PassContext pcxt = new PassContext(cxt, null, new ArrayList<>());
+		PassResult result = group.accept(pcxt);
+		
+		if(result.getError() != null) {
+			throw new RuntimeException(result.getError());
+		}
 	}
 	
 	private static IPass[] getTransformationPasses() {

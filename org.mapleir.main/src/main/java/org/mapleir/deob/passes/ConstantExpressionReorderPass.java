@@ -2,6 +2,8 @@ package org.mapleir.deob.passes;
 
 import org.mapleir.context.AnalysisContext;
 import org.mapleir.deob.IPass;
+import org.mapleir.deob.PassContext;
+import org.mapleir.deob.PassResult;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.Expr;
@@ -13,24 +15,24 @@ import org.mapleir.ir.code.stmt.ConditionalJumpStmt;
 import org.mapleir.ir.code.stmt.ConditionalJumpStmt.ComparisonType;
 import org.objectweb.asm.tree.MethodNode;
 
-import java.util.List;
-
 public class ConstantExpressionReorderPass implements IPass, Opcode {
 
 	@Override
 	public String getId() {
 		return "CESwap";
 	}
-	
+
+
 	@Override
-	public int accept(AnalysisContext cxt, IPass prev, List<IPass> completed) {
-		int i = 0;
+	public PassResult accept(PassContext pcxt) {
+		AnalysisContext cxt = pcxt.getAnalysis();
+		int delta = 0;
 		for(MethodNode m : cxt.getIRCache().getActiveMethods()) {
 			ControlFlowGraph ir = cxt.getIRCache().getFor(m);
-			i += transform(ir);
+			delta += transform(ir);
 		}
-		System.out.println("  swapped " + i + " constant expression orders.");
-		return i;
+		System.out.println("  swapped " + delta + " constant expression orders.");
+		return PassResult.with(pcxt, this).finished(delta).make();
 	}
 	
 	private int transform(ControlFlowGraph ir) {

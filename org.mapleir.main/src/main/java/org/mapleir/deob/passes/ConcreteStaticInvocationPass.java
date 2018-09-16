@@ -1,10 +1,10 @@
 package org.mapleir.deob.passes;
 
-import java.util.List;
-
 import org.mapleir.app.service.InvocationResolver;
 import org.mapleir.context.AnalysisContext;
 import org.mapleir.deob.IPass;
+import org.mapleir.deob.PassContext;
+import org.mapleir.deob.PassResult;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.Expr;
@@ -17,12 +17,8 @@ import org.objectweb.asm.tree.MethodNode;
 public class ConcreteStaticInvocationPass implements IPass {
 
 	@Override
-	public boolean isQuantisedPass() {
-		return false;
-	}
-	
-	@Override
-	public int accept(AnalysisContext cxt, IPass prev, List<IPass> completed) {
+	public PassResult accept(PassContext pcxt) {
+		AnalysisContext cxt = pcxt.getAnalysis();
 		int fixed = 0;
 		
 		InvocationResolver resolver = cxt.getInvocationResolver();
@@ -56,6 +52,6 @@ public class ConcreteStaticInvocationPass implements IPass {
 		
 		System.out.printf("  corrected %d dodgy static calls.%n", fixed);
 		
-		return fixed;
+		return PassResult.with(pcxt, this).finished().make();
 	}
 }

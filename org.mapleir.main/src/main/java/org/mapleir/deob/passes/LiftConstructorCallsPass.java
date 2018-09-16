@@ -2,6 +2,8 @@ package org.mapleir.deob.passes;
 
 import org.mapleir.context.AnalysisContext;
 import org.mapleir.deob.IPass;
+import org.mapleir.deob.PassContext;
+import org.mapleir.deob.PassResult;
 import org.mapleir.flowgraph.edges.FlowEdge;
 import org.mapleir.flowgraph.edges.FlowEdges;
 import org.mapleir.ir.cfg.BasicBlock;
@@ -16,27 +18,27 @@ import org.mapleir.ir.utils.CFGUtils;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
 
-import java.util.List;
 import java.util.Set;
 
 public class LiftConstructorCallsPass implements Opcode, IPass {
 
 	@Override
-	public int accept(AnalysisContext cxt, IPass prev, List<IPass> completed) {
-		int delta = 0;
+	public PassResult accept(PassContext pcxt) {
+		AnalysisContext cxt = pcxt.getAnalysis();
+		//int delta = 0;
 		
 		for(ClassNode cn : cxt.getApplication().iterate()) {
 			for(MethodNode m : cn.methods) {
 				if(m.name.equals("<init>")) {
 					ControlFlowGraph cfg = cxt.getIRCache().getFor(m);
 					if(tryLift(m, cfg)) {
-						delta++;
+						//delta++;
 					}
 				}
 			}
 		}
 		
-		return delta;
+		return PassResult.with(pcxt, this).finished().make();
 	}
 	
 	private boolean tryLift(MethodNode m, ControlFlowGraph cfg) {
@@ -98,10 +100,5 @@ public class LiftConstructorCallsPass implements Opcode, IPass {
 			Stmt stmt = b.remove(index);
 			newBlock.add(stmt);
 		}
-	}
-
-	@Override
-	public boolean isQuantisedPass() {
-		return false;
 	}
 }
