@@ -5,6 +5,8 @@ import java.util.*;
 import org.mapleir.app.service.ApplicationClassSource;
 import org.mapleir.context.AnalysisContext;
 import org.mapleir.deob.IPass;
+import org.mapleir.deob.PassContext;
+import org.mapleir.deob.PassResult;
 import org.mapleir.deob.util.RenamingHeuristic;
 import org.mapleir.deob.util.RenamingUtil;
 import org.mapleir.flowgraph.ExceptionRange;
@@ -45,11 +47,6 @@ public class ClassRenamerPass implements IPass {
 		return remapping.getOrDefault(name, name);
 	}
 	
-	@Override
-	public boolean isQuantisedPass() {
-		return false;
-	}
-	
 	/*private String getClassName(String name) {
 		int i = name.lastIndexOf('/');
 		if(i == -1) {
@@ -60,7 +57,8 @@ public class ClassRenamerPass implements IPass {
 	}*/
 	
 	@Override
-	public int accept(AnalysisContext cxt, IPass prev, List<IPass> completed) {
+	public PassResult accept(PassContext pcxt) {
+		AnalysisContext cxt = pcxt.getAnalysis();
 		ApplicationClassSource source = cxt.getApplication();
 		Collection<ClassNode> classes = CollectionUtils.collate(source.iterator());
 
@@ -322,8 +320,8 @@ public class ClassRenamerPass implements IPass {
 		}
 		
 		source.rebuildTable();
-		
-		return classes.size();
+
+		return PassResult.with(pcxt, this).finished().make();
 	}
 	
 	private String resolveMethod(String desc, Map<String, String> remapping) {

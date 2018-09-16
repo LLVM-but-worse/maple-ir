@@ -9,6 +9,8 @@ import org.mapleir.app.service.ApplicationClassSource;
 import org.mapleir.app.service.InvocationResolver;
 import org.mapleir.context.AnalysisContext;
 import org.mapleir.deob.IPass;
+import org.mapleir.deob.PassContext;
+import org.mapleir.deob.PassResult;
 import org.mapleir.deob.util.RenamingUtil;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
@@ -22,14 +24,10 @@ import org.objectweb.asm.tree.FieldNode;
 import org.objectweb.asm.tree.MethodNode;
 
 public class FieldRenamerPass implements IPass {
-
-	@Override
-	public boolean isQuantisedPass() {
-		return false;
-	}
 	
 	@Override
-	public int accept(AnalysisContext cxt, IPass prev, List<IPass> completed) {		
+	public PassResult accept(PassContext pcxt) {		
+		AnalysisContext cxt = pcxt.getAnalysis();
 		Map<FieldNode, String> remapped = new HashMap<>();
 
 //		int totalFields = 0;
@@ -103,8 +101,8 @@ public class FieldRenamerPass implements IPass {
 		}
 		
 		System.out.printf("  Renamed %d fields.%n", remapped.size());
-		
-		return remapped.size();
+
+		return PassResult.with(pcxt, this).finished().make();
 	}
 	
 	private boolean mustMark(ApplicationClassSource source, String owner) {

@@ -2,6 +2,8 @@ package org.mapleir.deob.passes;
 
 import org.mapleir.context.AnalysisContext;
 import org.mapleir.deob.IPass;
+import org.mapleir.deob.PassContext;
+import org.mapleir.deob.PassResult;
 import org.mapleir.flowgraph.edges.FlowEdge;
 import org.mapleir.flowgraph.edges.FlowEdges;
 import org.mapleir.flowgraph.edges.ImmediateEdge;
@@ -146,7 +148,8 @@ public class DeadCodeEliminationPass implements IPass {
 	}
 
 	@Override
-	public int accept(AnalysisContext cxt, IPass prev, List<IPass> completed) {
+	public PassResult accept(PassContext pcxt) {
+		AnalysisContext cxt = pcxt.getAnalysis();
 		deadBlocks = 0;
 		immediateJumps = 0;
 		deadLocals = 0;
@@ -165,6 +168,6 @@ public class DeadCodeEliminationPass implements IPass {
 		System.out.printf("  converted %d immediate jumps.%n", immediateJumps);
 		System.out.printf("  eliminated %d dead locals.%n", deadLocals);
 		
-		return deadBlocks + immediateJumps;
+		return PassResult.with(pcxt, this).finished(deadBlocks + immediateJumps).make();
 	}
 }
