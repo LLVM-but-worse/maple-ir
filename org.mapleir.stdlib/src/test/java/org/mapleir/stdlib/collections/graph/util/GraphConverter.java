@@ -18,7 +18,7 @@ import org.mapleir.stdlib.collections.graph.util.OrderedNode.OGraph;
 
 public class GraphConverter {
 
-	public static OGraph makeOrderedGraphFromFile(String name) throws IOException {
+	public static OGraph fromFile(String name) throws IOException {
 		return (OGraph) fromDot(Parser.read(GraphConverter.class.getResourceAsStream(name)),
 				(g) -> {
 					if(g.isDirected()) {

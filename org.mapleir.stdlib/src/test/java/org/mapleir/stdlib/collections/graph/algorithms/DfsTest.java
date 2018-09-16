@@ -23,7 +23,7 @@ public class DfsTest extends TestCase {
 	@Override
 	public void setUp() {
 		try {
-			g = (ODirectedGraph) GraphConverter.makeOrderedGraphFromFile("/dfs.gv");
+			g = (ODirectedGraph) GraphConverter.fromFile("/dfs.gv");
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
