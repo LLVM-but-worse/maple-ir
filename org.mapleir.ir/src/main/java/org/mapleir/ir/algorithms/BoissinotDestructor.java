@@ -1,6 +1,5 @@
 package org.mapleir.ir.algorithms;
 
-import org.mapleir.flowgraph.algorithms.TarjanDominanceComputor.DominatorTree;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.CodeUnit;
@@ -217,7 +216,7 @@ public class BoissinotDestructor {
 	}
 
 	private SimpleDfs<BasicBlock> traverseDominatorTree() {
-		return new SimpleDfs<>(resolver.domc.makeTree(), entry, SimpleDfs.PRE | SimpleDfs.TOPO);
+		return new SimpleDfs<>(resolver.domc.getDominatorTree(), entry, SimpleDfs.PRE | SimpleDfs.TOPO);
 	}
 
 	private SSADefUseMap createDuChains() {

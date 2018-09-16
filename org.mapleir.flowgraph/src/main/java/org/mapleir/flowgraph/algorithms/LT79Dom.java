@@ -296,7 +296,4 @@ public class LT79Dom<N extends FastGraphVertex, E extends FastGraphEdge<N>> {
 	public Set<N> getIteratedDominanceFrontier(N v) {
 		return new HashSet<>(iteratedFrontiers.getNonNull(v));
 	}
-	
-	public static class DominatorTree<N extends FastGraphVertex> extends FastDirectedGraph<N, FastGraphEdge<N>> {
-	}
 }
