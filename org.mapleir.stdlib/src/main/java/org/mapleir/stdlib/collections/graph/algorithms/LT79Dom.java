@@ -1,4 +1,4 @@
-package org.mapleir.flowgraph.algorithms;
+package org.mapleir.stdlib.collections.graph.algorithms;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -11,7 +11,6 @@ import org.mapleir.stdlib.collections.graph.FastDirectedGraph;
 import org.mapleir.stdlib.collections.graph.FastGraphEdge;
 import org.mapleir.stdlib.collections.graph.FastGraphEdgeImpl;
 import org.mapleir.stdlib.collections.graph.FastGraphVertex;
-import org.mapleir.stdlib.collections.graph.algorithms.ExtendedDfs;
 import org.mapleir.stdlib.collections.map.NullPermeableHashMap;
 import org.mapleir.stdlib.collections.map.SetCreator;
 

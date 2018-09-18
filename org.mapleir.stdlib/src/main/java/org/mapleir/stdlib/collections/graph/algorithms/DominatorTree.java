@@ -1,4 +1,4 @@
-package org.mapleir.flowgraph.algorithms;
+package org.mapleir.stdlib.collections.graph.algorithms;
 
 import org.mapleir.stdlib.collections.graph.FastDirectedGraph;
 import org.mapleir.stdlib.collections.graph.FastGraphEdge;

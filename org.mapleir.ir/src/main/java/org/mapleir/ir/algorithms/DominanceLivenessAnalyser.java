@@ -1,6 +1,5 @@
 package org.mapleir.ir.algorithms;
 
-import org.mapleir.flowgraph.algorithms.LT79Dom;
 import org.mapleir.flowgraph.edges.FlowEdge;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
@@ -8,6 +7,7 @@ import org.mapleir.ir.locals.Local;
 import org.mapleir.stdlib.collections.bitset.GenericBitSet;
 import org.mapleir.stdlib.collections.graph.FastGraphEdge;
 import org.mapleir.stdlib.collections.graph.algorithms.ExtendedDfs;
+import org.mapleir.stdlib.collections.graph.algorithms.LT79Dom;
 import org.mapleir.stdlib.collections.map.NullPermeableHashMap;
 
 import java.util.List;
