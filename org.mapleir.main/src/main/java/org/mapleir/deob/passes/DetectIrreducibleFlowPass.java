@@ -8,11 +8,11 @@ import org.mapleir.context.AnalysisContext;
 import org.mapleir.deob.IPass;
 import org.mapleir.deob.PassContext;
 import org.mapleir.deob.PassResult;
-import org.mapleir.flowgraph.algorithms.LT79Dom;
 import org.mapleir.flowgraph.edges.FlowEdge;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.stdlib.collections.graph.algorithms.ExtendedDfs;
+import org.mapleir.stdlib.collections.graph.algorithms.LT79Dom;
 import org.objectweb.asm.tree.MethodNode;
 
 public class DetectIrreducibleFlowPass implements IPass {

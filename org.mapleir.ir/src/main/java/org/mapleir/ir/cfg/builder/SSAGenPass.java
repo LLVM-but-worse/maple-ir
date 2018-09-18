@@ -1,7 +1,6 @@
 package org.mapleir.ir.cfg.builder;
 
 import org.mapleir.flowgraph.ExceptionRange;
-import org.mapleir.flowgraph.algorithms.LT79Dom;
 import org.mapleir.flowgraph.edges.FlowEdge;
 import org.mapleir.flowgraph.edges.FlowEdges;
 import org.mapleir.ir.algorithms.Liveness;
@@ -28,6 +27,7 @@ import org.mapleir.ir.locals.LocalsPool;
 import org.mapleir.ir.locals.impl.BasicLocal;
 import org.mapleir.ir.locals.impl.VersionedLocal;
 import org.mapleir.ir.utils.CFGUtils;
+import org.mapleir.stdlib.collections.graph.algorithms.LT79Dom;
 import org.mapleir.stdlib.collections.graph.algorithms.SimpleDfs;
 import org.mapleir.stdlib.collections.list.IndexedList;
 import org.mapleir.stdlib.collections.map.NullPermeableHashMap;
