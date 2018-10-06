@@ -1,7 +1,6 @@
 package org.mapleir.ir.cfg.builder;
 
 import org.mapleir.flowgraph.ExceptionRange;
-import org.mapleir.flowgraph.algorithms.TarjanDominanceComputor;
 import org.mapleir.flowgraph.edges.FlowEdge;
 import org.mapleir.flowgraph.edges.FlowEdges;
 import org.mapleir.ir.algorithms.Liveness;
@@ -28,6 +27,7 @@ import org.mapleir.ir.locals.LocalsPool;
 import org.mapleir.ir.locals.impl.BasicLocal;
 import org.mapleir.ir.locals.impl.VersionedLocal;
 import org.mapleir.ir.utils.CFGUtils;
+import org.mapleir.stdlib.collections.graph.algorithms.LT79Dom;
 import org.mapleir.stdlib.collections.graph.algorithms.SimpleDfs;
 import org.mapleir.stdlib.collections.list.IndexedList;
 import org.mapleir.stdlib.collections.map.NullPermeableHashMap;
@@ -56,7 +56,8 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 	private final NullPermeableHashMap<VersionedLocal, Set<VersionedLocal>> shadowed;
 
 	private LocalsPool pool;
-	private TarjanDominanceComputor<BasicBlock> doms;
+	private LT79Dom<BasicBlock, FlowEdge<BasicBlock>> doms;
+	
 	private Liveness<BasicBlock> liveness;
 
 	public SSAGenPass(ControlFlowGraphBuilder builder) {
@@ -198,7 +199,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 
 		Local newl = builder.graph.getLocals().get(l.getIndex(), 0, l.isStack());
 		
-		for(BasicBlock x : doms.iteratedFrontier(b)) {
+		for(BasicBlock x : doms.getIteratedDominanceFrontier(b)) {
 			if(insertion.get(x) < i) {
 				// pruned SSA
 				if(liveness.in(x).contains(l)) {
@@ -1370,7 +1371,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		splitRanges();
 		makeLiveness();
 		
-		doms = new TarjanDominanceComputor<>(builder.graph, SimpleDfs.preorder(builder.graph, builder.head));
+		doms = new LT79Dom<>(builder.graph, builder.head);
 		insertPhis();
 		rename();
 		

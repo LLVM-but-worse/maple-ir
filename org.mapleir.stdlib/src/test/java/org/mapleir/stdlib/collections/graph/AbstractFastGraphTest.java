@@ -11,7 +11,7 @@ import junit.framework.TestCase;
 public abstract class AbstractFastGraphTest extends TestCase {
 
 	private final boolean directed;
-	private final Map<Integer, FakeFastVertex> nodes = new HashMap<>();
+	protected final Map<Integer, FakeFastVertex> nodes = new HashMap<>();
 	
 	public AbstractFastGraphTest(boolean directed) {
 		this.directed = directed;
@@ -23,5 +23,9 @@ public abstract class AbstractFastGraphTest extends TestCase {
 	
 	public FakeFastEdge edge(int src, int dst) {
 		return new FakeFastEdge(node(src), node(dst), directed);
+	}
+	
+	public int size() {
+		return nodes.size();
 	}
 }

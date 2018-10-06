@@ -3,6 +3,8 @@ package org.mapleir.deob.passes;
 import org.mapleir.app.service.ApplicationClassSource;
 import org.mapleir.context.AnalysisContext;
 import org.mapleir.deob.IPass;
+import org.mapleir.deob.PassContext;
+import org.mapleir.deob.PassResult;
 import org.mapleir.deob.intraproc.ExceptionAnalysis;
 import org.mapleir.flowgraph.ExceptionRange;
 import org.mapleir.ir.TypeUtils;
@@ -24,7 +26,8 @@ public class DemoteRangesPass implements IPass {
 	private static final String RTE_CLASS = RuntimeException.class.getName().replace(".", "/");
 	
 	@Override
-	public int accept(AnalysisContext cxt, IPass prev, List<IPass> completed) {
+	public PassResult accept(PassContext pcxt) {
+		AnalysisContext cxt = pcxt.getAnalysis();
 		for(ClassNode cn : cxt.getApplication().iterate()) {
 			for(MethodNode m : cn.methods) {
 				ControlFlowGraph cfg = cxt.getIRCache().getFor(m);
@@ -33,7 +36,7 @@ public class DemoteRangesPass implements IPass {
 				}
 			}
 		}
-		return 0;
+		throw new UnsupportedOperationException("not done");
 	}
 
 	private void process(ApplicationClassSource app, ControlFlowGraph cfg, ExceptionAnalysis analysis) {

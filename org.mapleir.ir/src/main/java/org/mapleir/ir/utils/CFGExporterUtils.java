@@ -6,8 +6,11 @@ import org.mapleir.dot4j.attr.Attrs;
 import org.mapleir.dot4j.attr.builtin.Colour;
 import org.mapleir.dot4j.attr.builtin.ComplexLabel;
 import org.mapleir.dot4j.attr.builtin.ComplexLabel.Justification;
+import org.mapleir.dot4j.attr.builtin.Rank;
 import org.mapleir.dot4j.attr.builtin.Shape;
 import org.mapleir.dot4j.attr.builtin.Style;
+import org.mapleir.dot4j.model.Context;
+import org.mapleir.dot4j.model.Factory;
 import org.mapleir.dot4j.model.Graph;
 import org.mapleir.flowgraph.edges.TryCatchEdge;
 import org.mapleir.ir.cfg.BasicBlock;
@@ -31,7 +34,10 @@ public class CFGExporterUtils {
 		boolean simplifyEdges = PropertyHelper.isSet(properties, OPT_SIMPLE_EDGES);
 		boolean hideHandlerEdges = PropertyHelper.isSet(properties, OPT_HIDE_HANDLER_EDGES);
 
-		return GraphUtils.makeGraphSkeleton(cfg, (block, node) -> {
+		Graph sourceGraph = Factory.graph().getGraphAttr().with(Rank.SOURCE);
+		Graph sinkGraph = Factory.graph().getGraphAttr().with(Rank.SINK);
+		
+		Graph g = GraphUtils.makeGraphSkeleton(cfg, (block, node) -> {
 			StringBuilder sb = new StringBuilder();
 			sb.append("<table>");
 			{
@@ -48,7 +54,26 @@ public class CFGExporterUtils {
 			}
 			sb.append("</table>");
 			
-			node.with(Shape.BOX, Style.FILLED, getBlockColour(cfg, block),
+			Attrs colour;
+			Graph rankGraph;
+			if(cfg.getEntries().contains(block)) {
+				colour = Colour.RED.fill();
+				rankGraph = sourceGraph;
+			} else if(cfg.getEdges(block).isEmpty()) {
+				colour = Colour.GREEN.fill();
+				rankGraph = sinkGraph;
+			} else {
+				colour = Attrs.attrs();
+				rankGraph = null;
+			}
+			
+			if(rankGraph != null) {
+				Context.use(rankGraph, (ctx) -> {
+					return rankGraph.addSource(Factory.node(node.getName()));
+				});
+			}
+			
+			node.with(Shape.BOX, Style.FILLED, colour,
 					ComplexLabel.html(sb.toString()).justify(Justification.LEFT));
 			return true;
 		}, (e, dotE) -> {
@@ -62,6 +87,11 @@ public class CFGExporterUtils {
 			}
 			return true;
 		}).setDirected(true);
+		
+		g.addSource(sourceGraph);
+		g.addSource(sinkGraph);
+		
+		return g;
 	}
 
 	private static void outputBlock(BasicBlock block, StringBuilder outStr) {
@@ -77,16 +107,6 @@ public class CFGExporterUtils {
 			sw.print("\n");
 		}
 		outStr.append(sw.toString());
-	}
-
-	private static Attrs getBlockColour(ControlFlowGraph cfg, BasicBlock block) {
-		if(cfg.getEntries().contains(block)) {
-			return Colour.RED.fill();
-		} else if(cfg.getEdges(block).isEmpty()) {
-			return Colour.GREEN.fill();
-		} else {
-			return Attrs.attrs(); // no colour
-		}
 	}
 	
 	static class HtmlTabbedStringWriter extends TabbedStringWriter {
