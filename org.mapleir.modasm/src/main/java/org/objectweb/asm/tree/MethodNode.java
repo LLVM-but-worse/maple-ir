@@ -34,6 +34,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import org.mapleir.stdlib.collections.graph.FastGraphVertex;
+import org.mapleir.stdlib.util.IHasJavaDesc;
 import org.mapleir.stdlib.util.JavaDesc;
 import org.objectweb.asm.*;
 
@@ -42,7 +43,7 @@ import org.objectweb.asm.*;
  * 
  * @author Eric Bruneton
  */
-public class MethodNode extends MethodVisitor implements FastGraphVertex {
+public class MethodNode extends MethodVisitor implements FastGraphVertex, IHasJavaDesc {
     // maple-ir start //
     private static int ID_COUNTER = 1;
    	private final int numericId = ID_COUNTER++;
@@ -855,6 +856,26 @@ public class MethodNode extends MethodVisitor implements FastGraphVertex {
 	@Override
     public int getNumericId() {
 	    return numericId;
+    }
+
+    @Override
+    public String getOwner() {
+        return owner.name;
+    }
+
+    @Override
+    public String getName() {
+        return name;
+    }
+
+    @Override
+    public String getDesc() {
+        return desc;
+    }
+
+    @Override
+    public JavaDesc.DescType getDescType() {
+        return JavaDesc.DescType.METHOD;
     }
 
     // maple-ir start
