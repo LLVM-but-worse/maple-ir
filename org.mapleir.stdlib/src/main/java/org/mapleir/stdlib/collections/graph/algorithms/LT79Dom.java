@@ -18,6 +18,7 @@ public class LT79Dom<N extends FastGraphVertex, E extends FastGraphEdge<N>> {
 
 	private final FastDirectedGraph<N, E> graph;
 	private final N root;
+	private final boolean computeFrontiers;
 	
 	/* semi(w)=
 	 *    (i) before semidominators are computed: vertex(w)
@@ -45,8 +46,12 @@ public class LT79Dom<N extends FastGraphVertex, E extends FastGraphEdge<N>> {
 	
 	private final NullPermeableHashMap<N, Set<N>> frontiers;
 	private final NullPermeableHashMap<N, Set<N>> iteratedFrontiers;
-	
+
 	public LT79Dom(FastDirectedGraph<N, E> graph, N root) {
+		this(graph, root, true);
+	}
+	
+	public LT79Dom(FastDirectedGraph<N, E> graph, N root, boolean computeFrontiers) {
 		this.graph = graph;
 		this.root = root;
 		
@@ -74,8 +79,11 @@ public class LT79Dom<N extends FastGraphVertex, E extends FastGraphEdge<N>> {
 		step4();
 		
 		dominatorTree = makeDominatorTree();
-		dfrontiers();
-		iteratedFrontiers();
+		this.computeFrontiers = computeFrontiers;
+		if(computeFrontiers) {
+			dfrontiers();
+			iteratedFrontiers();
+		}
 	}
 	
 	public List<N> getPreOrder() {
@@ -289,10 +297,18 @@ public class LT79Dom<N extends FastGraphVertex, E extends FastGraphEdge<N>> {
 	}
 	
 	public Set<N> getDominanceFrontier(N v) {
-		return new HashSet<>(frontiers.getNonNull(v));
+		if(computeFrontiers) {
+			return new HashSet<>(frontiers.getNonNull(v));
+		} else {
+			throw new UnsupportedOperationException();
+		}
 	}
 	
 	public Set<N> getIteratedDominanceFrontier(N v) {
-		return new HashSet<>(iteratedFrontiers.getNonNull(v));
+		if(computeFrontiers) {
+			return new HashSet<>(iteratedFrontiers.getNonNull(v));
+		} else {
+			throw new UnsupportedOperationException();
+		}
 	}
 }
