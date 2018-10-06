@@ -16,6 +16,9 @@ import org.mapleir.deob.dataflow.graph.DataFlowGraph;
 import org.mapleir.deob.dataflow.graph.JavaDescEdge;
 import org.mapleir.deob.dataflow.graph.JavaDescVertex;
 import org.mapleir.deob.util.RenamingHeuristic;
+import org.mapleir.dot4j.Exporter;
+import org.mapleir.dot4j.attr.builtin.ComplexLabel;
+import org.mapleir.dot4j.model.Graph;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.cfg.builder.ControlFlowGraphBuilder;
@@ -32,8 +35,7 @@ import org.mapleir.ir.code.stmt.copy.AbstractCopyStmt;
 import org.mapleir.ir.code.stmt.copy.CopyPhiStmt;
 import org.mapleir.ir.locals.Local;
 import org.mapleir.ir.locals.impl.VersionedLocal;
-import org.mapleir.stdlib.collections.graph.FastDirectedGraph;
-import org.mapleir.stdlib.collections.graph.FastGraphEdgeImpl;
+import org.mapleir.stdlib.collections.graph.GraphUtils;
 import org.mapleir.stdlib.util.*;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
@@ -305,6 +307,15 @@ public class DataFlowDemoBoot {
         //         eprops.put("label", e.via.toString());
         //     }
         // }).export();
+        Graph dotG = GraphUtils.makeGraphSkeleton(dataFlowgraph, (n, node) -> true, (e, edge) -> {
+            edge.with(ComplexLabel.of(e.via.toString()));
+            return true;
+        }).setDirected(true);
+        try {
+            Exporter.fromGraph(dotG).export(new File("g.png"));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
 	public static void main(String[] args) throws Exception {

@@ -5,6 +5,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.function.BiPredicate;
+import java.util.function.Supplier;
 
 import org.mapleir.dot4j.attr.Attrs;
 import org.mapleir.dot4j.attr.builtin.Font;
@@ -143,5 +144,17 @@ public class GraphUtils {
 		/* all backedges are retreating edges, but not all retreating edges are
 		 * backedges if g is irreducible */
 		return retreatingEdges.isEmpty();
+	}
+
+	public static <N extends FastGraphVertex, E extends FastGraphEdge<N>, G extends FastGraph<N, E>> G inducedSubgraph(G g, Collection<N> vertices, Supplier<G> factory) {
+		G subgraph = factory.get(); // we could hack it with reflection, but why?
+		for (N n : vertices) {
+			subgraph.addVertex(n);
+			for (E e : g.getEdges(n)) {
+				if (vertices.contains(e.dst()))
+					subgraph.addEdge(e);
+			}
+		}
+		return subgraph;
 	}
 }

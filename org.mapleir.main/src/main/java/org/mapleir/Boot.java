@@ -142,19 +142,19 @@ public class Boot {
 			ControlFlowGraph cfg = e.getValue();
 
 			// System.out.println(cfg);
-			 CFGUtils.easyDumpCFG(cfg, "pre-destruct");
+			//  CFGUtils.easyDumpCFG(cfg, "pre-destruct");
 			cfg.verify();
 
 			BoissinotDestructor.leaveSSA(cfg);
 
-			 CFGUtils.easyDumpCFG(cfg, "pre-reaalloc");
+			 // CFGUtils.easyDumpCFG(cfg, "pre-reaalloc");
 			cfg.getLocals().realloc(cfg);
-			 CFGUtils.easyDumpCFG(cfg, "post-reaalloc");
+			 // CFGUtils.easyDumpCFG(cfg, "post-reaalloc");
 			// System.out.println(cfg);
 			cfg.verify();
-			 System.out.println("Rewriting " + mn.name);
+			 // System.out.println("Rewriting " + mn.name);
 			(new ControlFlowGraphDumper(cfg, mn)).dump();
-			 System.out.println(InsnListUtils.insnListToString(mn.instructions));
+			 // System.out.println(InsnListUtils.insnListToString(mn.instructions));
 		}
 		
 		section("Rewriting jar.");
