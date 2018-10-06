@@ -11,7 +11,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-import org.mapleir.dot4j.model.Graph;
+import org.mapleir.dot4j.model.DotGraph;
 import org.mapleir.dot4j.model.Serialiser;
 
 public class Exporter {
@@ -33,7 +33,7 @@ public class Exporter {
 		}
 	}
 	
-	public static Exporter fromGraph(Graph graph) {
+	public static Exporter fromGraph(DotGraph graph) {
 		return fromString(new Serialiser(graph).serialise());
 	}
 	

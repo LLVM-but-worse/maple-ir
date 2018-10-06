@@ -9,11 +9,8 @@ import java.util.function.Supplier;
 
 import org.mapleir.dot4j.attr.Attrs;
 import org.mapleir.dot4j.attr.builtin.Font;
-import org.mapleir.dot4j.model.Context;
-import org.mapleir.dot4j.model.Edge;
-import org.mapleir.dot4j.model.Factory;
-import org.mapleir.dot4j.model.Graph;
-import org.mapleir.dot4j.model.Node;
+import org.mapleir.dot4j.model.*;
+import org.mapleir.dot4j.model.DotGraph;
 import org.mapleir.stdlib.collections.graph.algorithms.ExtendedDfs;
 import org.mapleir.stdlib.collections.graph.algorithms.LT79Dom;
 
@@ -25,14 +22,14 @@ public class GraphUtils {
 		return Attrs.attrs(DEFAULT_FONT);
 	}
 	
-	public static <N extends FastGraphVertex> Graph makeGraphSkeleton(FastGraph<N, ? extends FastGraphEdge<N>> fastGraph) {
-		return makeGraphSkeleton(fastGraph, null, null);
+	public static <N extends FastGraphVertex> DotGraph makeDotSkeleton(FastGraph<N, ? extends FastGraphEdge<N>> fastGraph) {
+		return makeDotSkeleton(fastGraph, null, null);
 	}
 	
-	public static <N extends FastGraphVertex, E extends FastGraphEdge<N>> Graph makeGraphSkeleton(FastGraph<N, E> fastGraph,
+	public static <N extends FastGraphVertex, E extends FastGraphEdge<N>> DotGraph makeDotSkeleton(FastGraph<N, E> fastGraph,
 			BiPredicate<N, Node> nodePredicate, BiPredicate<E, Edge> edgePredicate) {
 		Attrs font = GraphUtils.getDefaultFont();
-		Graph graph = Factory.graph()
+		DotGraph graph = Factory.graph()
 				.getGraphAttr().with(font)
 				.getNodeAttr().with(font)
 				.getEdgeAttr().with(font);
@@ -64,7 +61,7 @@ public class GraphUtils {
 		});
 	}
 	
-	public static void removeNodeEdges(Graph graph, BiPredicate<Node, Edge> keepEdgePredicate) {
+	public static void removeNodeEdges(DotGraph graph, BiPredicate<Node, Edge> keepEdgePredicate) {
 		Context.use(graph, ctx -> {
 			for(Node node : graph.getAllNodes()) {
 				Iterator<Edge> edgeIt = node.getEdges().iterator();

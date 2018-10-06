@@ -6,8 +6,8 @@ import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
+import org.mapleir.dot4j.model.DotGraph;
 import org.mapleir.dot4j.model.Edge;
-import org.mapleir.dot4j.model.Graph;
 import org.mapleir.dot4j.model.Node;
 import org.mapleir.dot4j.model.PortNode;
 import org.mapleir.dot4j.parse.Parser;
@@ -35,8 +35,8 @@ public class GraphConverter {
 				});
 	}
 	
-	public static <N extends FastGraphVertex, E extends FastGraphEdge<N>> FastGraph<N, E> fromDot(Graph graph,
-			Function<Graph, FastGraph<N, E>> graphProducer, Function<Node, N> nodeProducer,
+	public static <N extends FastGraphVertex, E extends FastGraphEdge<N>> FastGraph<N, E> fromDot(DotGraph graph,
+			Function<DotGraph, FastGraph<N, E>> graphProducer, Function<Node, N> nodeProducer,
 			BiFunction<N, N, E> edgeProducer) {
 		FastGraph<N, E> fg = graphProducer.apply(graph);
 		

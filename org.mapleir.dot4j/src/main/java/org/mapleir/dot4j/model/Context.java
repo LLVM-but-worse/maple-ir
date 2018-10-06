@@ -13,7 +13,7 @@ import org.mapleir.dot4j.attr.builtin.ComplexLabel;
 public class Context {
 
 	private static final ThreadLocal<Stack<Context>> CONTEXT = ThreadLocal.withInitial(Stack::new);
-	private Graph graph;
+	private DotGraph graph;
 	private final Map<ComplexLabel, Node> nodes = new HashMap<>();
 	private final Attributed<Context> nodeAttributes = new SimpleAttributed<>(this);
 	private final Attributed<Context> edgeAttributes = new SimpleAttributed<>(this);
@@ -23,7 +23,7 @@ public class Context {
         this(null);
     }
 
-    private Context(Graph graph) {
+    private Context(DotGraph graph) {
         this.graph = graph;
     }
     
@@ -50,8 +50,8 @@ public class Context {
 		return node;
 	}
 	
-	private Graph newGraph() {
-		Graph graph = new Graph();
+	private DotGraph newGraph() {
+		DotGraph graph = new DotGraph();
 		if(this.graph != null) {
 			this.graph = graph;
 		}
@@ -67,15 +67,15 @@ public class Context {
 		return current().map(ctx -> ctx.newNode(label)).orElseGet(() -> new Node().setName(label));
 	}
 	
-	static Graph createGraph() {
-		return current().map(Context::newGraph).orElseGet(Graph::new);
+	static DotGraph createGraph() {
+		return current().map(Context::newGraph).orElseGet(DotGraph::new);
 	}
 	
     public static <T> T use(ThrowingFunction<Context, T> actions) {
         return use(null, actions);
     }
 
-    public static <T> T use(Graph graph, ThrowingFunction<Context, T> actions) {
+    public static <T> T use(DotGraph graph, ThrowingFunction<Context, T> actions) {
         Context ctx = begin(graph);
         try {
             return actions.apply(ctx);
@@ -86,7 +86,7 @@ public class Context {
         }
     }
     
-    public static Context begin(Graph graph) {
+    public static Context begin(DotGraph graph) {
     	Context ctx = new Context(graph);
         CONTEXT.get().push(ctx);
         return ctx;

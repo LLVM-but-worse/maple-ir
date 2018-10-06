@@ -1,6 +1,6 @@
 package org.mapleir.ir.cfg;
 
-import org.mapleir.dot4j.model.Graph;
+import org.mapleir.dot4j.model.DotGraph;
 import org.mapleir.flowgraph.ExceptionRange;
 import org.mapleir.flowgraph.FlowGraph;
 import org.mapleir.flowgraph.edges.FlowEdge;
@@ -387,7 +387,7 @@ public class ControlFlowGraph extends FlowGraph<BasicBlock, FlowEdge<BasicBlock>
 	}
 	
 	@Override
-	public Graph makeDotGraph(IPropertyDictionary properties) {
+	public DotGraph makeDotGraph(IPropertyDictionary properties) {
 		return CFGExporterUtils.makeDotGraph(this, properties);
 	}
 }

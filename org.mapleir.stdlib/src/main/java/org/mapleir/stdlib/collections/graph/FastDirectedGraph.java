@@ -4,7 +4,7 @@ import java.util.*;
 import java.util.Map.Entry;
 import java.util.stream.Stream;
 
-import org.mapleir.dot4j.model.Graph;
+import org.mapleir.dot4j.model.DotGraph;
 import org.mapleir.propertyframework.api.IPropertyDictionary;
 
 public abstract class FastDirectedGraph<N extends FastGraphVertex, E extends FastGraphEdge<N>> implements FastGraph<N, E>{
@@ -236,7 +236,7 @@ public abstract class FastDirectedGraph<N extends FastGraphVertex, E extends Fas
 	}
 	
 	@Override
-	public Graph makeDotGraph(IPropertyDictionary properties) { 
-		return GraphUtils.makeGraphSkeleton(this).setDirected(true);
+	public DotGraph makeDotGraph(IPropertyDictionary properties) {
+		return GraphUtils.makeDotSkeleton(this).setDirected(true);
 	}
 }

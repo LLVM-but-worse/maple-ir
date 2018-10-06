@@ -10,8 +10,8 @@ import org.mapleir.dot4j.attr.builtin.Rank;
 import org.mapleir.dot4j.attr.builtin.Shape;
 import org.mapleir.dot4j.attr.builtin.Style;
 import org.mapleir.dot4j.model.Context;
+import org.mapleir.dot4j.model.DotGraph;
 import org.mapleir.dot4j.model.Factory;
-import org.mapleir.dot4j.model.Graph;
 import org.mapleir.flowgraph.edges.TryCatchEdge;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
@@ -28,16 +28,16 @@ public class CFGExporterUtils {
 	public static final String OPT_STMTS = "show_stmts";
 	public static final String OPT_SIMPLE_EDGES = "simple_edges";
 	
-	public static Graph makeDotGraph(ControlFlowGraph cfg, IPropertyDictionary properties) {
+	public static DotGraph makeDotGraph(ControlFlowGraph cfg, IPropertyDictionary properties) {
 		boolean showStmts = PropertyHelper.isSet(properties, OPT_STMTS);
 		boolean labelEdges = PropertyHelper.isSet(properties, OPT_EDGES);
 		boolean simplifyEdges = PropertyHelper.isSet(properties, OPT_SIMPLE_EDGES);
 		boolean hideHandlerEdges = PropertyHelper.isSet(properties, OPT_HIDE_HANDLER_EDGES);
 
-		Graph sourceGraph = Factory.graph().getGraphAttr().with(Rank.SOURCE);
-		Graph sinkGraph = Factory.graph().getGraphAttr().with(Rank.SINK);
+		DotGraph sourceGraph = Factory.graph().getGraphAttr().with(Rank.SOURCE);
+		DotGraph sinkGraph = Factory.graph().getGraphAttr().with(Rank.SINK);
 		
-		Graph g = GraphUtils.makeGraphSkeleton(cfg, (block, node) -> {
+		DotGraph g = GraphUtils.makeDotSkeleton(cfg, (block, node) -> {
 			StringBuilder sb = new StringBuilder();
 			sb.append("<table>");
 			{
@@ -55,7 +55,7 @@ public class CFGExporterUtils {
 			sb.append("</table>");
 			
 			Attrs colour;
-			Graph rankGraph;
+			DotGraph rankGraph;
 			if(cfg.getEntries().contains(block)) {
 				colour = Colour.RED.fill();
 				rankGraph = sourceGraph;

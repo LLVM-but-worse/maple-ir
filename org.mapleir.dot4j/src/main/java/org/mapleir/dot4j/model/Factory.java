@@ -8,11 +8,11 @@ public final class Factory {
 	private Factory() {
 	}
 	
-	public static Graph graph(String name) {
+	public static DotGraph graph(String name) {
 		return graph().setName(name);
 	}
 	
-	public static Graph graph() {
+	public static DotGraph graph() {
 		return Context.createGraph();
 	}
 	
