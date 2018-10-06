@@ -513,18 +513,9 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		for (CopyPhiStmt def : useless) {
 			VersionedLocal local = (VersionedLocal) def.getVariable().getLocal();
 			deadLocals.add(local);
-			
-			for(Expr e : def.enumerateOnlyChildren()) {
-				if(e.getOpcode() == Opcode.LOCAL_LOAD) {
-					VarExpr v = (VarExpr) e;
-					VersionedLocal vl = (VersionedLocal) v.getLocal();
-					pool.uses.get(vl).remove(v);
-				}
-			}
 
+			def.getBlock().getGraph().exciseStmt(def);
 //			System.out.println(" killing " + def);
-
-			def.getBlock().remove(def);
 		}
 		
 		for(VersionedLocal vl : deadLocals) {
