@@ -5,7 +5,7 @@ import java.lang.reflect.Method;
 
 import junit.framework.TestCase;
 
-public class UnitSubTestBase extends TestCase {
+public abstract class UnitSubTestBase extends TestCase {
 
 	protected void testOutOfBoundsWrite(CodeUnit u, Class<? extends CodeUnit> unitClass) {
 		/* write out of bounds */
