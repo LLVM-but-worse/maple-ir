@@ -1517,9 +1517,11 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		
 		Map<String, ExceptionRange<BasicBlock>> ranges = new HashMap<>();
 		for(TryCatchBlockNode tc : builder.method.tryCatchBlocks) {
-			
-//			System.out.printf("from %d to %d, handler:%d, type:%s.%n", insns.indexOf(tc.start), insns.indexOf(tc.end), insns.indexOf(tc.handler), tc.type);
-//			System.out.println(String.format("%s:%s:%s", BasicBlock.createBlockName(insns.indexOf(tc.start)), BasicBlock.createBlockName(insns.indexOf(tc.end)), builder.graph.getBlock(tc.handler).getId()));
+			//System.out.printf("from %d to %d, handler:%d, type:%s.%n", insns.indexOf(tc.start), insns.indexOf(tc.end), insns.indexOf(tc.handler), tc.type);
+			//System.out.println(String.format("%s:%s:%s", blockLabels.get(tc.start), blockLabels.get(tc.end), blockLabels.get(tc.handler)));
+			if(tc.start == tc.end) {
+				continue;
+			}
 			
 			int start = order.indexOf(blockLabels.get(tc.start));
 			int end = order.indexOf(blockLabels.get(tc.end)) - 1;

@@ -1,6 +1,5 @@
 package org.mapleir.ir.algorithms;
 
-import org.mapleir.flowgraph.algorithms.TarjanDominanceComputor;
 import org.mapleir.flowgraph.edges.FlowEdge;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
@@ -8,16 +7,16 @@ import org.mapleir.ir.locals.Local;
 import org.mapleir.stdlib.collections.bitset.GenericBitSet;
 import org.mapleir.stdlib.collections.graph.FastGraphEdge;
 import org.mapleir.stdlib.collections.graph.algorithms.ExtendedDfs;
-import org.mapleir.stdlib.collections.graph.algorithms.SimpleDfs;
+import org.mapleir.stdlib.collections.graph.algorithms.LT79Dom;
 import org.mapleir.stdlib.collections.map.NullPermeableHashMap;
 
+import java.util.List;
 import java.util.Set;
 
 public class DominanceLivenessAnalyser {
 
 	private final NullPermeableHashMap<BasicBlock, GenericBitSet<BasicBlock>> rv;
 	private final NullPermeableHashMap<BasicBlock, GenericBitSet<BasicBlock>> tq;
-	private final NullPermeableHashMap<BasicBlock, GenericBitSet<BasicBlock>> sdoms;
 
 	public final ControlFlowGraph cfg;
 	private SSADefUseMap defuse;
@@ -25,9 +24,12 @@ public class DominanceLivenessAnalyser {
 	public final ExtendedDfs<BasicBlock> dfs;
 	public final NullPermeableHashMap<BasicBlock, GenericBitSet<BasicBlock>> backEdges;
 	public final GenericBitSet<BasicBlock> backTargets;
-	public final SimpleDfs<BasicBlock> reducedDfs;
-	public final TarjanDominanceComputor<BasicBlock> domc;
+	public final LT79Dom<BasicBlock, FlowEdge<BasicBlock>> domc;
+	
+	private final List<BasicBlock> preOrder, postOrder;
+	private final NullPermeableHashMap<BasicBlock, GenericBitSet<BasicBlock>> sdoms;
 
+	public static int k1, k2;
 	public DominanceLivenessAnalyser(ControlFlowGraph cfg, BasicBlock entry, SSADefUseMap defuse) {
 		this.cfg = cfg;
 		this.defuse = defuse;
@@ -40,41 +42,41 @@ public class DominanceLivenessAnalyser {
 		backEdges = new NullPermeableHashMap<>(cfg);
 		backTargets = cfg.createBitSet();
 		reducedCfg = reduce(cfg, dfs.getEdges(ExtendedDfs.BACK));
-		reducedDfs = new SimpleDfs<>(reducedCfg, entry, SimpleDfs.PRE | SimpleDfs.POST);
 
+		domc = new LT79Dom<>(cfg, entry);
+		preOrder = domc.getPreOrder();
+		postOrder = domc.getPostOrder();
+		
+		computeStrictDominators(domc);
+		
 		computeReducedReachability();
 		computeTargetReachability();
 
-		domc = new TarjanDominanceComputor<>(cfg, reducedDfs.getPreOrder());
-
-		computeStrictDominators();
+//		for(BasicBlock b : cfg.vertices()) {
+//			Set<BasicBlock> other = new HashSet<>(sdoms.getNonNull(b));
+//			other.add(b);
+//			if(!other.equals(domc2.getDominates(b))) {
+//				System.out.println(domc2.getDominates(b));
+//				System.out.println(other);
+//				throw new RuntimeException();
+//			}
+//		}
 	}
 
 	public void setDefuse(SSADefUseMap defuse) {
 		this.defuse = defuse;
 	}
 
-	public boolean sdoms(BasicBlock x, BasicBlock y) {
-		return sdoms.getNonNull(x).contains(y);
-	}
-
-	public boolean doms(BasicBlock x, BasicBlock y) {
-		return x == y || sdoms.getNonNull(x).contains(y);
-	}
-
-	private void computeStrictDominators() {
-		for (BasicBlock b : reducedDfs.getPostOrder()) {
-			BasicBlock idom = domc.idom(b);
-			if (idom != null) {
-				GenericBitSet<BasicBlock> set = sdoms.getNonNull(idom);
-				set.add(b);
-				set.addAll(sdoms.getNonNull(b));
-			}
+	private void computeStrictDominators(LT79Dom<BasicBlock, FlowEdge<BasicBlock>> dom) {
+		for (BasicBlock b : postOrder) {
+			Set<BasicBlock> set = sdoms.getNonNull(b);
+			set.addAll(dom.getDominates(b));
+			set.remove(b);
 		}
 	}
 
 	private void computeReducedReachability() {
-		for (BasicBlock b : reducedDfs.getPostOrder()) {
+		for (BasicBlock b : postOrder) {
 			rv.getNonNull(b).add(b);
 			for (FlowEdge<BasicBlock> e : reducedCfg.getReverseEdges(b)) {
 				rv.getNonNull(e.src()).addAll(rv.get(b));
@@ -83,7 +85,7 @@ public class DominanceLivenessAnalyser {
 	}
 
 	private void computeTargetReachability() {
-		for (BasicBlock b : reducedDfs.getPreOrder()) {
+		for (BasicBlock b : preOrder) {
 			tq.getNonNull(b).add(b);
 
 			// Tup(t) = set of unreachable backedge targets from reachable sources

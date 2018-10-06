@@ -1,7 +1,9 @@
 package org.mapleir.stdlib.collections.graph;
 
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Set;
 import java.util.function.BiPredicate;
 
 import org.mapleir.dot4j.attr.Attrs;
@@ -11,6 +13,8 @@ import org.mapleir.dot4j.model.Edge;
 import org.mapleir.dot4j.model.Factory;
 import org.mapleir.dot4j.model.Graph;
 import org.mapleir.dot4j.model.Node;
+import org.mapleir.stdlib.collections.graph.algorithms.ExtendedDfs;
+import org.mapleir.stdlib.collections.graph.algorithms.LT79Dom;
 
 public class GraphUtils {
 	
@@ -113,5 +117,31 @@ public class GraphUtils {
 			assert (result != 0);
 			return result;
 		}
+	}
+	
+	public static <N extends FastGraphVertex, E extends FastGraphEdge<N>> boolean isReducibleGraph (
+			FastDirectedGraph<N, E> g, N entry) {
+		/* (a,b) is a retreating edge if it's what we previously considered a backedge.
+		 * aho et al '86: (a,b) is a backedge iff b doms a (and not our previous definition)
+		 * if backedges != retreating edges -> irreducible loops */
+		Set<E> backEdges = new HashSet<>();
+
+		LT79Dom<N, E> dom = new LT79Dom<>(g, entry);
+		for (N b : g.vertices()) {
+			for (E edge : g.getEdges(b)) {
+				if (dom.getDominates(edge.dst()).contains(b)) {
+					// dst dominates src
+					backEdges.add(edge);
+				}
+			}
+		}
+		@SuppressWarnings({ "unchecked", "rawtypes" })
+		Set<E> retreatingEdges = (Set) new ExtendedDfs<>(g, ExtendedDfs.EDGES)
+			.run(entry).getEdges(ExtendedDfs.BACK);
+
+		retreatingEdges.removeAll(backEdges);
+		/* all backedges are retreating edges, but not all retreating edges are
+		 * backedges if g is irreducible */
+		return retreatingEdges.isEmpty();
 	}
 }

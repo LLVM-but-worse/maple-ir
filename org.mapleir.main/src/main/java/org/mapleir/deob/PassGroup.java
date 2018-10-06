@@ -1,12 +1,13 @@
 package org.mapleir.deob;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import org.mapleir.Boot;
-import org.mapleir.context.AnalysisContext;
 
 public class PassGroup implements IPass {
 
@@ -40,36 +41,31 @@ public class PassGroup implements IPass {
 	public List<IPass> getPasses(Predicate<IPass> p) {
 		return passes.stream().filter(p).collect(Collectors.toList());
 	}
-	
-	public void run(AnalysisContext cxt) {
-		// TODO: threads
-	}
 
 	@Override
-	public int accept(AnalysisContext cxt, IPass __prev, List<IPass> __completed) {
-		boolean[] passed = new boolean[passes.size()];
-		
+	public PassResult accept(PassContext pcxt) {		
 		List<IPass> completed = new ArrayList<>();
+		Map<IPass, PassResult> lastResults = new HashMap<>();
 		IPass last = null;
-		int lastDelta = 0;
-		int delta = 0;
 		
-		for(;;) {
-			completed.clear();
+		Throwable error = null;
+		
+		outer: for(;;) {
 			last = null;
-			// int pdelta = delta;
-			delta = 0;
+			completed.clear();
 			
 			if(name != null) {
 				System.out.printf("Running %s group.%n", name);
 			}
-			
-			for(int i=0; i < passed.length; i++) {
+			boolean redoRound = false;
+			for(int i=0; i < passes.size(); i++) {
 				IPass p = passes.get(i);
 				
-				/* run once. */
-				if(passed[i] && !p.isQuantisedPass()) {
-					continue;
+				PassResult lastResult = lastResults.get(p);
+				if(lastResult != null) {
+					if(!lastResult.shouldRepeat()) {
+						continue;
+					}
 				}
 				
 				if(Boot.logging) {
@@ -77,27 +73,39 @@ public class PassGroup implements IPass {
 				} else {
 					System.out.println("Running " + p.getId());
 				}
-				lastDelta = p.accept(cxt, last, completed);
+				PassContext newCxt = new PassContext(pcxt.getAnalysis(), last, new ArrayList<>(completed));
+				PassResult newResult;
+				try {
+					newResult = p.accept(newCxt);
+					lastResults.put(p, newResult);
+				} catch(Throwable t) {
+					error = t;
+					break outer;
+				}
+				
+				if(!newResult.shouldContinue()) {
+					error = newResult.getError();
+					break outer;
+				}
+				
+				redoRound |= (newResult.shouldRepeat() && newResult.shouldContinue());
 				
 				completed.add(p);
 				last = p;
-				passed[i] = true;
-				
-				delta += lastDelta;
 			}
 			
-			if(delta == 0) {
+			if(!redoRound) {
 				break;
 			}
+			
 			System.out.println();
 			System.out.println();
 		}
 		
-		return 0;
-	}
-	
-	@Override
-	public boolean isQuantisedPass() {
-		return false;
+		if(error != null) {
+			return PassResult.with(pcxt, this).fatal(error).make();
+		} else {
+			return PassResult.with(pcxt, this).finished().make();
+		}
 	}
 }

@@ -30,7 +30,7 @@ public class DfsTest extends TestCase {
 	}
 
 	public void testSimpleDfsPre() {
-		DepthFirstSearch<OrderedNode> dfs = new SimpleDfs<OrderedNode>(g, getNode(g, 1), SimpleDfs.PRE);
+		DepthFirstSearch<OrderedNode> dfs = new SimpleDfs<>(g, getNode(g, 1), SimpleDfs.PRE);
 		List<OrderedNode> res = dfs.getPreOrder();
 		assertPreOrdered(res);
 	}
@@ -42,7 +42,7 @@ public class DfsTest extends TestCase {
 	}
 
 	public void testSimpleDfsTopo() {
-		DepthFirstSearch<OrderedNode> dfs = new SimpleDfs<OrderedNode>(g, getNode(g, 1), SimpleDfs.TOPO);
+		DepthFirstSearch<OrderedNode> dfs = new SimpleDfs<>(g, getNode(g, 1), SimpleDfs.TOPO);
 		List<OrderedNode> res = dfs.getTopoOrder();
 		assertTopoOrdered(res);
 	}
@@ -74,7 +74,7 @@ public class DfsTest extends TestCase {
 		}
 	}
 	
-	private static OrderedNode getNode(OGraph graph, int time) {
+	public static OrderedNode getNode(OGraph graph, int time) {
 		for(OrderedNode n : graph.vertices()) {
 			if(n.time == time) {
 				return n;

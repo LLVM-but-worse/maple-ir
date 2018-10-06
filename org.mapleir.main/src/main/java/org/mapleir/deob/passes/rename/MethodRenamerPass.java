@@ -3,7 +3,6 @@ package org.mapleir.deob.passes.rename;
 import java.lang.reflect.Modifier;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -13,6 +12,8 @@ import org.mapleir.app.service.ApplicationClassSource;
 import org.mapleir.app.service.InvocationResolver;
 import org.mapleir.context.AnalysisContext;
 import org.mapleir.deob.IPass;
+import org.mapleir.deob.PassContext;
+import org.mapleir.deob.PassResult;
 import org.mapleir.deob.util.RenamingHeuristic;
 import org.mapleir.deob.util.RenamingUtil;
 import org.mapleir.ir.cfg.BasicBlock;
@@ -33,12 +34,8 @@ public class MethodRenamerPass implements IPass {
 	}
 	
 	@Override
-	public boolean isQuantisedPass() {
-		return false;
-	}
-	
-	@Override
-	public int accept(AnalysisContext cxt, IPass prev, List<IPass> completed) {
+	public PassResult accept(PassContext pcxt) {
+		AnalysisContext cxt = pcxt.getAnalysis();
 		ApplicationClassSource source = cxt.getApplication();
 		InvocationResolver resolver = cxt.getInvocationResolver();
 		
@@ -129,8 +126,8 @@ public class MethodRenamerPass implements IPass {
 		
 		rename(cxt, remapped, true);
 		System.out.printf("  Remapped %d/%d methods.%n", remapped.size(), totalMethods);
-		
-		return remapped.size();
+
+		return PassResult.with(pcxt, this).finished().make();
 	}
 	
 	public static void rename(AnalysisContext cxt, Map<MethodNode, String> remapped, boolean warn) {

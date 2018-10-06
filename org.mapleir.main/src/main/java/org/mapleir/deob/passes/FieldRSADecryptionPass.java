@@ -2,6 +2,8 @@ package org.mapleir.deob.passes;
 
 import org.mapleir.context.AnalysisContext;
 import org.mapleir.deob.IPass;
+import org.mapleir.deob.PassContext;
+import org.mapleir.deob.PassResult;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.CodeUnit;
@@ -40,11 +42,6 @@ public class FieldRSADecryptionPass implements IPass, Opcode {
 		cdecs            = newMap();
 		cencs            = newMap();
 		pairs            = new HashMap<>();
-	}
-	
-	@Override
-	public boolean isQuantisedPass() {
-		return false;
 	}
 	
 	private static String key(String owner, String name, String desc) {
@@ -86,8 +83,8 @@ public class FieldRSADecryptionPass implements IPass, Opcode {
 	}
 	
 	@Override
-	public int accept(AnalysisContext cxt, IPass prev, List<IPass> completed) {
-		this.cxt = cxt;
+	public PassResult accept(PassContext pcxt) {
+		this.cxt = pcxt.getAnalysis();
 		
 		for(MethodNode m : cxt.getIRCache().getActiveMethods()) {
 			ControlFlowGraph cfg = cxt.getIRCache().getFor(m);
@@ -230,7 +227,7 @@ public class FieldRSADecryptionPass implements IPass, Opcode {
 		transform(cxt);
 		
 		
-		return pairs.size();
+		return PassResult.with(pcxt, this).finished().make();
 	}
 	
 	private void transform(AnalysisContext cxt) {

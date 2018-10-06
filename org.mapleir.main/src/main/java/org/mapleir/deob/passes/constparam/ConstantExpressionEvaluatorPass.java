@@ -9,6 +9,8 @@ import java.util.Map;
 
 import org.mapleir.context.AnalysisContext;
 import org.mapleir.deob.IPass;
+import org.mapleir.deob.PassContext;
+import org.mapleir.deob.PassResult;
 import org.mapleir.deob.interproc.IPAnalysis;
 import org.mapleir.deob.interproc.IPAnalysisVisitor;
 import org.mapleir.deob.intraproc.eval.ExpressionEvaluator;
@@ -47,7 +49,8 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 	}
 	
 	@Override
-	public int accept(AnalysisContext cxt, IPass prev, List<IPass> completed) {
+	public PassResult accept(PassContext pcxt) {
+		AnalysisContext cxt = pcxt.getAnalysis();
 		branchesEvaluated = 0;
 		exprsEvaluated = 0;
 		
@@ -72,7 +75,7 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 		System.out.printf("  evaluated %d constant expressions.%n", exprsEvaluated);
 		System.out.printf("  eliminated %d constant branches.%n", branchesEvaluated);
 
-		return exprsEvaluated;
+		return PassResult.with(pcxt, this).finished(exprsEvaluated).make();
 	}
 	
 	private void processMethod(MethodNode m, IPConstAnalysisVisitor vis, ControlFlowGraph cfg) {
