@@ -42,8 +42,6 @@ public interface FastGraph<N extends FastGraphVertex, E extends FastGraphEdge<N>
 		throw new UnsupportedOperationException();
 	}
 	
-	// FastGraph<N, E> inducedSubgraph(Collection<N> vertices);
-	
 	default Map<N, Set<E>> createMap() {
 		return new HashMap<>();
 	}

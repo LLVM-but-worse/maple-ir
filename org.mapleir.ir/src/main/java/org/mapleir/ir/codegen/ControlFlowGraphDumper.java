@@ -163,7 +163,7 @@ public class ControlFlowGraphDumper implements BytecodeFrontend {
 	
 	// Recursively apply Tarjan's SCC algorithm
 	private static List<BlockBundle> linearize(Collection<BlockBundle> bundles, BundleGraph fullGraph, BlockBundle entryBundle) {
-		BundleGraph subgraph = fullGraph.inducedSubgraph(bundles);
+		BundleGraph subgraph = GraphUtils.inducedSubgraph(fullGraph, bundles, BundleGraph::new);
 
 		// Experimental: kill backedges
 		for (FastGraphEdge<BlockBundle> e : new HashSet<>(subgraph.getReverseEdges(entryBundle))) {
@@ -340,31 +340,7 @@ public class ControlFlowGraphDumper implements BytecodeFrontend {
 		return cfg;
 	}
 
-	private static class BundleGraph extends FastDirectedGraph<BlockBundle, FastGraphEdge<BlockBundle>> {
-		@Override
-		public FastGraphEdge<BlockBundle> clone(FastGraphEdge<BlockBundle> edge, BlockBundle oldN, BlockBundle newN) {
-			throw new UnsupportedOperationException();
-		}
-
-		@Override
-		public FastGraph<BlockBundle, FastGraphEdge<BlockBundle>> copy() {
-			throw new UnsupportedOperationException();
-		}
-		
-		// todo: move up to FastGraph!
-		public BundleGraph inducedSubgraph(Collection<BlockBundle> vertices) {
-			BundleGraph subgraph = new BundleGraph();
-			for (BlockBundle n : vertices) {
-				subgraph.addVertex(n);
-				for (FastGraphEdge<BlockBundle> e : getEdges(n)) {
-					if (vertices.contains(e.dst()))
-						subgraph.addEdge(e);
-				}
-			}
-			return subgraph;
-		}
-	}
-	
+	private static class BundleGraph extends FastDirectedGraph<BlockBundle, FastGraphEdge<BlockBundle>> { }
 	@SuppressWarnings("serial")
 	private static class BlockBundle extends ArrayList<BasicBlock> implements FastGraphVertex {
 		private BasicBlock first = null;
