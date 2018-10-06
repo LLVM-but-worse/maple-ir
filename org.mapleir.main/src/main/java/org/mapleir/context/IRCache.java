@@ -2,12 +2,14 @@ package org.mapleir.context;
 
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.cfg.builder.ControlFlowGraphBuilder;
+import org.mapleir.ir.code.CodeUnit;
 import org.mapleir.stdlib.collections.map.KeyedValueCreator;
 import org.mapleir.stdlib.collections.map.NullPermeableHashMap;
 import org.mapleir.stdlib.util.JavaDesc;
 import org.objectweb.asm.tree.MethodNode;
 
 import java.util.Set;
+import java.util.stream.Stream;
 
 public class IRCache extends NullPermeableHashMap<MethodNode, ControlFlowGraph> {
 	private static final long serialVersionUID = 1L;
@@ -30,5 +32,9 @@ public class IRCache extends NullPermeableHashMap<MethodNode, ControlFlowGraph> 
 	
 	public Set<MethodNode> getActiveMethods() {
 		return keySet();
+	}
+
+	public Stream<CodeUnit> allExprStream() {
+		return values().stream().flatMap(ControlFlowGraph::allExprStream);
 	}
 }

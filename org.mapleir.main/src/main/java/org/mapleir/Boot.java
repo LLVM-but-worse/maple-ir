@@ -1,6 +1,5 @@
 package org.mapleir;
 
-import com.google.common.collect.Streams;
 import org.apache.log4j.Logger;
 import org.mapleir.app.client.SimpleApplicationContext;
 import org.mapleir.app.service.ApplicationClassSource;
@@ -18,14 +17,7 @@ import org.mapleir.deob.util.RenamingHeuristic;
 import org.mapleir.ir.algorithms.BoissinotDestructor;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.cfg.builder.ControlFlowGraphBuilder;
-import org.mapleir.ir.code.CodeUnit;
-import org.mapleir.ir.code.Stmt;
-import org.mapleir.ir.code.expr.ConstantExpr;
 import org.mapleir.ir.codegen.ControlFlowGraphDumper;
-import org.mapleir.ir.utils.CFGUtils;
-import org.mapleir.stdlib.util.IHasJavaDesc;
-import org.mapleir.stdlib.util.InsnListUtils;
-import org.mapleir.stdlib.util.JavaDescSpecifier;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.topdank.byteengineer.commons.data.JarInfo;
@@ -35,7 +27,6 @@ import java.io.*;
 import java.util.*;
 import java.util.Map.Entry;
 import java.util.jar.JarOutputStream;
-import java.util.stream.Stream;
 
 public class Boot {
 	
@@ -51,18 +42,6 @@ public class Boot {
 		dl.download();
 		
 		return new LibraryClassSource(app, dl.getJarContents().getClassContents());
-	}
-
-	static Stream<CodeUnit> allExprStream(ControlFlowGraph cfg) {
-		return cfg.vertices().stream().flatMap(Collection::stream).map(Stmt::enumerateWithSelf).flatMap(Streams::stream);
-	}
-
-	static Stream<CodeUnit> allExprStream(AnalysisContext cxt) {
-		return cxt.getIRCache().values().stream().flatMap(Boot::allExprStream);
-	}
-
-	static Stream<CodeUnit> findAllRefs(AnalysisContext cxt, JavaDescSpecifier jds) {
-		return allExprStream(cxt).filter(cu -> cu instanceof IHasJavaDesc).filter(cu -> jds.matches(((IHasJavaDesc) cu).getJavaDesc()));
 	}
 
 	public static void main(String[] args) throws Exception {
@@ -121,12 +100,6 @@ public class Boot {
 		run(cxt, masterGroup);
 		section0("...done transforming in %fs.%n", "Preparing to transform.");
 
-
-		allExprStream(cxt).filter(cu -> cu instanceof ConstantExpr).map(cu -> (ConstantExpr) cu).forEach(ce -> {
-			if (ce.getConstant() != null && ce.getConstant() instanceof String) {
-				System.out.println(ce.getBlock().getGraph().getJavaDesc() + ", " + ce.getConstant());
-			}
-		});
 
 		for(Entry<MethodNode, ControlFlowGraph> e : cxt.getIRCache().entrySet()) {
 			MethodNode mn = e.getKey();

@@ -3,7 +3,7 @@ package org.mapleir.stdlib.util;
 public class JavaDesc  {
     public final String owner, name, desc;
     public final DescType descType; // FIELD or METHOD -- METHOD=argument flow or return value flow
-    public final Object extraData;
+    public final Object extraData; // TODO this is such a hack Omg
 
     public JavaDesc(String owner, String name, String desc, DescType descType) {
         this(owner, name, desc, descType, null);

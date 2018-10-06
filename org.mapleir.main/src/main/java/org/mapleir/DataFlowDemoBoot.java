@@ -1,6 +1,5 @@
 package org.mapleir;
 
-import com.google.common.collect.Streams;
 import org.apache.log4j.Logger;
 import org.mapleir.app.client.SimpleApplicationContext;
 import org.mapleir.app.service.ApplicationClassSource;
@@ -12,7 +11,7 @@ import org.mapleir.deob.IPass;
 import org.mapleir.deob.PassContext;
 import org.mapleir.deob.PassGroup;
 import org.mapleir.deob.PassResult;
-import org.mapleir.deob.dataflow.graph.DataFlowGraph;
+import org.mapleir.deob.dataflow.graph.DataflowGraph;
 import org.mapleir.deob.dataflow.graph.JavaDescEdge;
 import org.mapleir.deob.dataflow.graph.JavaDescVertex;
 import org.mapleir.deob.util.RenamingHeuristic;
@@ -25,7 +24,6 @@ import org.mapleir.ir.cfg.builder.ControlFlowGraphBuilder;
 import org.mapleir.ir.code.CodeUnit;
 import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.code.Stmt;
-import org.mapleir.ir.code.expr.ConstantExpr;
 import org.mapleir.ir.code.expr.FieldLoadExpr;
 import org.mapleir.ir.code.expr.VarExpr;
 import org.mapleir.ir.code.expr.invoke.InvocationExpr;
@@ -45,7 +43,6 @@ import org.topdank.byteio.in.SingleJarDownloader;
 import java.io.*;
 import java.util.*;
 import java.util.Map.Entry;
-import java.util.stream.Stream;
 
 public class DataFlowDemoBoot {
 
@@ -63,21 +60,9 @@ public class DataFlowDemoBoot {
 		return new LibraryClassSource(app, dl.getJarContents().getClassContents());
 	}
 
-	static Stream<CodeUnit> allExprStream(ControlFlowGraph cfg) {
-		return cfg.vertices().stream().flatMap(Collection::stream).map(Stmt::enumerateWithSelf).flatMap(Streams::stream);
-	}
-
-	static Stream<CodeUnit> allExprStream(AnalysisContext cxt) {
-		return cxt.getIRCache().values().stream().flatMap(DataFlowDemoBoot::allExprStream);
-	}
-
-	static Stream<CodeUnit> findAllRefs(AnalysisContext cxt, JavaDescSpecifier jds) {
-		return allExprStream(cxt).filter(cu -> cu instanceof IHasJavaDesc).filter(cu -> jds.matches(((IHasJavaDesc) cu).getJavaDesc()));
-	}
-
 	private static void traceCalls(AnalysisContext cxt, JavaDescSpecifier targetMeth) {
 		// todo: convert to CallGraph (as FastGraph) DFS
-		DataFlowGraph callgraph = new DataFlowGraph();
+		DataflowGraph callgraph = new DataflowGraph();
 		Set<JavaDesc> visited = new HashSet<>();
 		ArrayDeque<Pair<ControlFlowGraph, List<JavaDesc>>> analysisQueue = new ArrayDeque<>(); // desc, depth
 		Set<String> scope = new HashSet<>(Arrays.asList("lol"));
@@ -103,7 +88,7 @@ public class DataFlowDemoBoot {
 				continue;
 			// System.out.println("Tracing " + ap.getValue());
 
-			allExprStream(cfg).filter(cu -> cu instanceof InvocationExpr).map(cu -> (InvocationExpr) cu).forEach(ie -> {
+			cfg.allExprStream().filter(cu -> cu instanceof InvocationExpr).map(cu -> (InvocationExpr) cu).forEach(ie -> {
 				try {
 					for (MethodNode callTarg : ie.resolveTargets(cxt.getInvocationResolver())) {
 						if (cxt.getApplication().isLibraryClass(callTarg.owner.name)) {
@@ -136,7 +121,7 @@ public class DataFlowDemoBoot {
     }
 
     private static void traintTracing(AnalysisContext cxt, int maxDepth, JavaDesc... entries) {
-        DataFlowGraph dataFlowgraph = new DataFlowGraph();
+        DataflowGraph dataFlowgraph = new DataflowGraph();
         ArrayDeque<Pair<JavaDesc, Integer>> analysisQueue = new ArrayDeque<>(); // desc, depth
         for (JavaDesc entry : entries)
             analysisQueue.add(new Pair<>(entry, 0));
@@ -153,7 +138,7 @@ public class DataFlowDemoBoot {
                     System.out.println("! Avoiding tracing library method " + curDesc);
                     continue;
                 }
-                JavaDesc mnJd = new JavaDesc(mn.owner.name, mn.name, mn.desc, JavaDesc.DescType.METHOD);
+                JavaDesc mnJd = new JavaDesc(mn.owner.name, mn.name, mn.desc, JavaDesc.DescType.METHOD, null);
                 ControlFlowGraph cfg = e.getValue();
                 ArrayDeque<Pair<Stmt, Expr>> traceQueue = new ArrayDeque<>();
                 if (curDesc.descType.equals(JavaDesc.DescType.METHOD)) {
@@ -180,22 +165,22 @@ public class DataFlowDemoBoot {
                             }
                         }
                     } else {
-                        boolean found = false;
+                        DataflowUse dfu = null;
                         for (BasicBlock b : cfg.vertices()) {
                             for (Stmt s : b) {
                                 for (CodeUnit cu : s.enumerateWithSelf()) {
                                     if (cu instanceof InvocationExpr) {
                                         InvocationExpr ie = (InvocationExpr) cu;
-                                        if (ie.getOwner().equals(curDesc.owner) && ie.getName().equals(curDesc.name) && ie.getJavaDesc().equals(curDesc.desc)) {
+                                        if (ie.getJavaDesc().equals(curDesc)) {
                                             traceQueue.add(new Pair<>(s, ie));
-                                            found = true;
+                                            dfu = ie.getDataflow();
                                         }
                                         else if (!cxt.getApplication().isLibraryClass(ie.getOwner())) {
                                             try {
                                                 for (MethodNode callTarg : ie.resolveTargets(cxt.getInvocationResolver())) {
-                                                    if (callTarg.owner.name.equals(curDesc.owner) && callTarg.name.equals(curDesc.name) && callTarg.desc.equals(curDesc.desc)) {
+                                                    if (callTarg.getJavaDesc().equals(curDesc)) {
                                                         traceQueue.add(new Pair<>(s, ie));
-                                                        found = true;
+                                                        dfu = ie.getDataflow();
                                                         break;
                                                     }
                                                 }
@@ -206,8 +191,8 @@ public class DataFlowDemoBoot {
                                     }
                                 }
                             }
-                            if (found) {
-                                dataFlowgraph.addEdge(new JavaDescEdge(new JavaDescVertex(mnJd), new JavaDescVertex(curDesc), mnJd));
+                            if (dfu != null) {
+                                dataFlowgraph.addEdge(new JavaDescEdge(new JavaDescVertex(mnJd), new JavaDescVertex(curDesc), dfu));
                                 System.out.println("! " + mnJd + " receives return value of " + curDesc);
                             }
                         }
@@ -257,14 +242,15 @@ public class DataFlowDemoBoot {
                         }
                     } else if (traceStmt instanceof FieldStoreStmt) {
                         FieldStoreStmt fss = (FieldStoreStmt) traceStmt;
-                        JavaDesc jd = new JavaDesc(fss.getOwner(), fss.getName(), fss.getDesc(), JavaDesc.DescType.FIELD);
+                        JavaDesc jd = fss.getJavaDesc();
                         analysisQueue.add(new Pair<>(jd, depth + 1));
-                        dataFlowgraph.addEdge(new JavaDescEdge(new JavaDescVertex(jd), new JavaDescVertex(curDesc), mnJd));
+                        dataFlowgraph.addEdge(new JavaDescEdge(new JavaDescVertex(jd), new JavaDescVertex(curDesc), fss.getDataflow()));
                         System.out.println(jd + " <- " + traceSrc);
                     } else if (traceStmt instanceof ReturnStmt) {
-                        JavaDesc jd = new JavaDesc(mn.owner.name, mn.name, mn.desc, JavaDesc.DescType.METHOD, -1);
+                        ReturnStmt rs = (ReturnStmt) traceStmt;
+                        JavaDesc jd = rs.getJavaDesc();
                         System.out.println(jd + " returns " + traceSrc);
-                        dataFlowgraph.addEdge(new JavaDescEdge(new JavaDescVertex(jd), new JavaDescVertex(curDesc), mnJd));
+                        dataFlowgraph.addEdge(new JavaDescEdge(new JavaDescVertex(jd), new JavaDescVertex(curDesc), rs.getDataflow()));
                         analysisQueue.add(new Pair<>(jd, depth + 1));
                     }
 
@@ -308,7 +294,7 @@ public class DataFlowDemoBoot {
         //     }
         // }).export();
         DotGraph dotG = GraphUtils.makeDotSkeleton(dataFlowgraph, (n, node) -> true, (e, edge) -> {
-            edge.with(ComplexLabel.of(e.via.toString()));
+            edge.with(ComplexLabel.of(e.via.getDataflow().toString()));
             return true;
         }).setDirected(true);
         try {
@@ -325,7 +311,7 @@ public class DataFlowDemoBoot {
 
 		// Load input jar
 		//  File f = locateRevFile(135);
-		File f = new File("res/salesforce.jar");
+		File f = new File("res/jump.jar");
 
 		section("Preparing to run on " + f.getAbsolutePath());
 		SingleJarDownloader<ClassNode> dl = new SingleJarDownloader<>(new JarInfo(f));
@@ -355,7 +341,7 @@ public class DataFlowDemoBoot {
 		// 	tracer.trace(m);
 		// }
 
-		traceCalls(cxt, new JavaDescSpecifier("lol", "lol", ".*", JavaDesc.DescType.METHOD));
+		// traceCalls(cxt, new JavaDescSpecifier("lol", "lol", ".*", JavaDesc.DescType.METHOD));
 
 		for (ClassNode cn : cxt.getApplication().iterate()) {
 //			 if (!cn.name.equals("android/support/v4/media/session/MediaSessionCompat$MediaSessionImplApi18"))
@@ -377,9 +363,9 @@ public class DataFlowDemoBoot {
 		section0("...done transforming in %fs.%n", "Preparing to transform.");
 
 
-        enumerateStrings(cxt);
+        // enumerateStrings(cxt);
 
-        xrefConsole(cxt);
+        // xrefConsole(cxt);
 
 		for(Entry<MethodNode, ControlFlowGraph> e : cxt.getIRCache().entrySet()) {
 			MethodNode mn = e.getKey();
@@ -387,7 +373,7 @@ public class DataFlowDemoBoot {
 			cfg.verify();
 		}
 
-        traintTracing(cxt, 1, new JavaDesc("lol/d", "a", "[Ljava/lang/String;", JavaDesc.DescType.FIELD));
+        traintTracing(cxt, 1, new JavaDesc("com/socialbicycles/app/d", "a", "[Ljava/lang/String;", JavaDesc.DescType.FIELD));
     }
 
     private static void xrefConsole(AnalysisContext cxt) {
@@ -403,7 +389,9 @@ public class DataFlowDemoBoot {
             String name = parts2[0];
             String desc = parts2[1];
             JavaDesc.DescType type = JavaDesc.DescType.valueOf(parts2[2].toUpperCase());
-            findAllRefs(cxt, new JavaDescSpecifier(owner, name, desc, type, null)).map(cu -> (InvocationExpr) cu).forEach(ie -> {
+            cxt.getDataflowAnalysis().findAllRefs(new JavaDescSpecifier(owner, name, desc, type, null))
+                    .filter(cu -> cu.flowType == DataflowUse.DataflowType.CALL)
+                    .map(cu -> (InvocationExpr)cu.flowElement).forEach(ie -> {
                 System.out.println("xref-> " + ie.getBlock().getGraph().getJavaDesc());
                 System.out.println(ie.toString());
             });
@@ -411,7 +399,7 @@ public class DataFlowDemoBoot {
     }
 
     private static void enumerateStrings(AnalysisContext cxt) {
-        allExprStream(cxt).filter(cu -> cu instanceof ConstantExpr).map(cu -> (ConstantExpr) cu).forEach(ce -> {
+        cxt.getDataflowAnalysis().enumerateConstants().forEach(ce -> {
             if (ce.getConstant() != null && ce.getConstant() instanceof String) {
                 System.out.println(ce.getBlock().getGraph().getJavaDesc() + ", " + ce.getConstant());
             }
