@@ -524,7 +524,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 			
 //			System.out.println(" killing " + def);
 			
-			def.delete();
+			def.getBlock().remove(def);
 		}
 		
 		for(VersionedLocal vl : deadLocals) {
@@ -1015,18 +1015,17 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 									
 									// we want to reuse the exprs, so free it first.
 									pop.deleteAt(0);
-									Expr[] newArgs = Arrays.copyOf(args, args.length);
 									for(int i=args.length-1; i >= 0; i--) {
 										args[i].unlink();
 									}
 									
 									// remove the old def
-									def.delete();
+									def.getBlock().remove(def);
 									
 									int index = b.indexOf(pop);
 									
 									// add a copy statement before the pop (x = newExpr)
-									InitialisedObjectExpr newExpr = new InitialisedObjectExpr(invoke.getOwner(), invoke.getDesc(), newArgs);
+									InitialisedObjectExpr newExpr = new InitialisedObjectExpr(invoke.getOwner(), invoke.getDesc(), args);
 									CopyVarStmt newCvs = new CopyVarStmt(var, newExpr);
 									pool.defs.put(local, newCvs);
 									pool.uses.get(local).remove(var);
@@ -1121,7 +1120,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 				}
 			}
 			
-			def.delete();
+			def.getBlock().remove(def);
 			return true;
 		}
 		
@@ -1177,7 +1176,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 	private void removeSimpleCopy(AbstractCopyStmt copy) {
 		VarExpr v = (VarExpr) copy.getExpression();
 		VersionedLocal vl = (VersionedLocal) v.getLocal();
-		copy.delete();
+		copy.getBlock().remove(copy);
 		
 		pool.uses.get(vl).remove(v);
 	}
@@ -1332,7 +1331,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 								
 								
 								rhs.unlink();
-								def.delete();
+								def.getBlock().remove(def);
 								pool.defs.remove(vl);
 								
 								useSet.clear();

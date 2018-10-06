@@ -57,26 +57,11 @@ public abstract class Expr extends CodeUnit {
 	public CodeUnit getParent() {
 		return parent;
 	}
-
-	@Override
-	public void delete() {
-		if(parent != null) {
-			parent.deleteAt(parent.indexOf(this));
-		} else {
-			super.delete();
-		}
-	}
 	
 	public void unlink() {
 		if(parent != null) {
 			parent.deleteAt(parent.indexOf(this));
 		}
-	}
-	
-	@Override
-	protected void delete0() {
-		unlink();
-		super.delete0();
 	}
 	
 	protected void setParent(CodeUnit parent) {

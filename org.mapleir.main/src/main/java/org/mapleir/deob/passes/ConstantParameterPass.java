@@ -473,7 +473,7 @@ public class ConstantParameterPass implements IPass, Opcode {
 					throw new IllegalStateException(String.format("See debug trace (entry vs block) in %s", n));
 				}
 				
-				copy.delete();
+				copy.getBlock().remove(copy);
 				
 				if(pool.uses.get(local).size() != 0) {
 					throw new IllegalStateException(String.format("m: %s, l:%s, uses:%s", n, local, pool.uses.get(local)));

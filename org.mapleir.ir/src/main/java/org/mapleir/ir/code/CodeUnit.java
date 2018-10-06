@@ -245,22 +245,6 @@ public abstract class CodeUnit implements FastGraphVertex, Opcode {
 		return prev;
 	}
 
-	public void delete() {
-		if(block == null) {
-			throw new IllegalStateException();
-		}
-		block.remove(this);
-		delete0();
-	}
-
-	protected void delete0() {
-		for(Expr c : children) {
-			if(c != null) {
-				c.delete0();
-			}
-		}
-	}
-
 	public void deleteAt(int _ptr) {
 		if (_ptr < 0 || _ptr >= children.length || (_ptr > 0 && children[_ptr - 1] == null))
 			throw new ArrayIndexOutOfBoundsException(String.format("ptr=%d, len=%d, addr=%d", ptr, children.length, _ptr));
