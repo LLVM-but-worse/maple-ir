@@ -5,7 +5,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import org.mapleir.dot4j.model.Graph;
+import org.mapleir.dot4j.model.DotGraph;
 import org.mapleir.propertyframework.api.IPropertyDictionary;
 
 public abstract class FastUndirectedGraph<N extends FastGraphVertex, E extends FastGraphEdge<N>> implements FastGraph<N, E> {
@@ -149,12 +149,12 @@ public abstract class FastUndirectedGraph<N extends FastGraphVertex, E extends F
 	}
 
 	@Override
-	public Graph makeDotGraph(IPropertyDictionary properties) {
+	public DotGraph makeDotGraph(IPropertyDictionary properties) {
 		/* getEdge(n) returns edges to all nodes that n is connected to, so
 		 * each added edge actually has two edges in the dot graph. we need to
 		 * remove one edge from each pair from each node. */
 		Set<E> addedEdges = new HashSet<>();
-		return GraphUtils.makeGraphSkeleton(this, null, (ourEdge, dotEdge) -> {
+		return GraphUtils.makeDotSkeleton(this, null, (ourEdge, dotEdge) -> {
 			if(addedEdges.contains(ourEdge)) {
 				/* added this edge already */
 				return false;

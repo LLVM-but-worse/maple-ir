@@ -1,6 +1,6 @@
 package org.mapleir.stdlib.collections.graph;
 
-import org.mapleir.dot4j.model.Graph;
+import org.mapleir.dot4j.model.DotGraph;
 import org.mapleir.propertyframework.api.IPropertyDictionary;
 import org.mapleir.propertyframework.util.PropertyHelper;
 
@@ -41,7 +41,7 @@ public interface FastGraph<N extends FastGraphVertex, E extends FastGraphEdge<N>
 	default FastGraph<N, E> copy() {
 		throw new UnsupportedOperationException();
 	}
-	
+
 	default Map<N, Set<E>> createMap() {
 		return new HashMap<>();
 	}
@@ -64,9 +64,9 @@ public interface FastGraph<N extends FastGraphVertex, E extends FastGraphEdge<N>
 		return newSet;
 	}
 	
-	default Graph makeDotGraph() {
+	default DotGraph makeDotGraph() {
 		return makeDotGraph(PropertyHelper.getImmutableDictionary());
 	}
 	
-	Graph makeDotGraph(IPropertyDictionary properties);
+	DotGraph makeDotGraph(IPropertyDictionary properties);
 }

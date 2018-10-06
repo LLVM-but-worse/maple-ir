@@ -12,10 +12,10 @@ import org.mapleir.dot4j.attr.builtin.Label;
 
 public class Serialiser {
 
-	private final Graph graph;
+	private final DotGraph graph;
 	private final StringBuilder str;
 	
-	public Serialiser(Graph graph) {
+	public Serialiser(DotGraph graph) {
 		this.graph = graph;
 		str = new StringBuilder();
 	}
@@ -25,12 +25,12 @@ public class Serialiser {
 		return str.toString();
 	}
 	
-    private void graph(Graph graph, boolean toplevel) {
+    private void graph(DotGraph graph, boolean toplevel) {
         graphInit(graph, toplevel);
         graphAttrs(graph);
 
         List<Node> nodes = new ArrayList<>();
-        List<Graph> graphs = new ArrayList<>();
+        List<DotGraph> graphs = new ArrayList<>();
         Collection<Connected> linkables = linkedNodes(graph.nodes);
         linkables.addAll(linkedNodes(graph.subgraphs));
         for (Connected linkable : linkables) {
@@ -43,7 +43,7 @@ public class Serialiser {
                     nodes.set(i, node.copy().merge(nodes.get(i)));
                 }
             } else {
-                graphs.add((Graph) linkable);
+                graphs.add((DotGraph) linkable);
             }
         }
 
@@ -56,13 +56,13 @@ public class Serialiser {
         str.append('}');
     }
 
-    private void graphAttrs(Graph graph) {
+    private void graphAttrs(DotGraph graph) {
         attributes("graph", graph.graphAttrs);
         attributes("node", graph.nodeAttrs);
         attributes("edge", graph.edgeAttrs);
     }
 
-    private void graphInit(Graph graph, boolean toplevel) {
+    private void graphInit(DotGraph graph, boolean toplevel) {
         if (toplevel) {
             str.append(graph.strict ? "strict " : "").append(graph.directed ? "digraph " : "graph ");
             if (!graph.name.isEmpty()) {
@@ -110,8 +110,8 @@ public class Serialiser {
                     linkedNodes((Node) target, visited);
                 } else if (target instanceof PortNode) {
                     linkedNodes(((PortNode) target).node, visited);
-                } else if (target instanceof Graph) {
-                    linkedNodes((Graph) target, visited);
+                } else if (target instanceof DotGraph) {
+                    linkedNodes((DotGraph) target, visited);
                 } else {
                     throw new IllegalStateException("unexpected link to " + link.getTarget() + " of " + link.getTarget().getClass());
                 }
@@ -119,7 +119,7 @@ public class Serialiser {
         }
     }
 
-    private void nodes(Graph graph, List<Node> nodes) {
+    private void nodes(DotGraph graph, List<Node> nodes) {
         for (Node node : nodes) {
             if (!node.attributes.isEmpty() || (graph.nodes.contains(node) && node.getEdges().isEmpty())) {
                 node(node);
@@ -128,8 +128,8 @@ public class Serialiser {
         }
     }
 
-    private void graphs(List<Graph> graphs, List<Node> nodes) {
-        for (Graph graph : graphs) {
+    private void graphs(List<DotGraph> graphs, List<Node> nodes) {
+        for (DotGraph graph : graphs) {
             if (graph.getEdges().isEmpty() && !isLinked(graph, nodes) && !isLinked(graph, graphs)) {
                 graph(graph, false);
                 str.append('\n');
@@ -137,7 +137,7 @@ public class Serialiser {
         }
     }
 
-    private boolean isLinked(Graph graph, List<? extends Connected> linkables) {
+    private boolean isLinked(DotGraph graph, List<? extends Connected> linkables) {
         for (Connected linkable : linkables) {
             for (Edge link : linkable.getEdges()) {
                 if (link.getTarget().equals(graph)) {
@@ -165,8 +165,8 @@ public class Serialiser {
             node((Node) linkable);
         } else if (linkable instanceof PortNode) {
             port((PortNode) linkable);
-        } else if (linkable instanceof Graph) {
-            graph((Graph) linkable, false);
+        } else if (linkable instanceof DotGraph) {
+            graph((DotGraph) linkable, false);
         } else {
             throw new IllegalStateException("unexpected link target " + linkable);
         }

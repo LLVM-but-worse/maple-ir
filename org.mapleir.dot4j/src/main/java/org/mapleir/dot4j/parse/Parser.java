@@ -24,19 +24,19 @@ public final class Parser {
     private final Lexer lexer;
     private Token token;
 
-    public static Graph read(File file) throws IOException {
+    public static DotGraph read(File file) throws IOException {
         return read(new InputStreamReader(new FileInputStream(file), StandardCharsets.UTF_8), file.getName());
     }
 
-    public static Graph read(InputStream is) throws IOException {
+    public static DotGraph read(InputStream is) throws IOException {
         return read(new InputStreamReader(is, StandardCharsets.UTF_8), "<input stream>");
     }
 
-    public static Graph read(String dot) throws IOException {
+    public static DotGraph read(String dot) throws IOException {
         return read(new StringReader(dot), "<string>");
     }
 
-    public static Graph read(Reader dot, String name) throws IOException {
+    public static DotGraph read(Reader dot, String name) throws IOException {
         return new Parser(new Lexer(dot, name)).parse();
     }
 
@@ -45,9 +45,9 @@ public final class Parser {
         nextToken();
     }
 
-    private Graph parse() {
+    private DotGraph parse() {
         return Context.use(ctx -> {
-            final Graph graph = graph();
+            final DotGraph graph = graph();
             if (token.type == STRICT) {
                 graph.setStrict(true);
                 nextToken();
@@ -72,7 +72,7 @@ public final class Parser {
         return token.subtype == SUB_HTML ? ComplexLabel.html(token.value) : ComplexLabel.of(token.value);
     }
 
-    private void statementList(Graph graph) throws IOException {
+    private void statementList(DotGraph graph) throws IOException {
         assertToken(BRACE_OPEN);
         while (statement(graph)) {
             if (token.type == SEMICOLON) {
@@ -82,7 +82,7 @@ public final class Parser {
         assertToken(BRACE_CLOSE);
     }
 
-    private boolean statement(Graph graph) throws IOException {
+    private boolean statement(DotGraph graph) throws IOException {
         final Token base = token;
         switch (base.type) {
             case ID:
@@ -101,7 +101,7 @@ public final class Parser {
                 return true;
             case SUBGRAPH:
             case BRACE_OPEN:
-                final Graph sub = subgraph(graph.isDirected());
+                final DotGraph sub = subgraph(graph.isDirected());
                 if (token.type == MINUS_MINUS || token.type == ARROW) {
                     edgeStatement(graph, sub);
                 } else {
@@ -118,9 +118,9 @@ public final class Parser {
         }
     }
 
-    private Graph subgraph(boolean directed) {
+    private DotGraph subgraph(boolean directed) {
         return Context.use(ctx -> {
-            final Graph sub = graph().setDirected(directed);
+            final DotGraph sub = graph().setDirected(directed);
             if (token.type == SUBGRAPH) {
                 nextToken();
                 if (token.type == ID) {
@@ -133,7 +133,7 @@ public final class Parser {
         });
     }
 
-    private void edgeStatement(Graph graph, Source<? extends Source<?>> linkSource)
+    private void edgeStatement(DotGraph graph, Source<? extends Source<?>> linkSource)
             throws IOException {
         final List<Source<? extends Source<?>>> points = new ArrayList<>();
         points.add(linkSource);
@@ -166,7 +166,7 @@ public final class Parser {
                 new ParserException(lexer.pos, "Invalid compass value '" + name + "'"));
     }
 
-    private void nodeStatement(Graph graph, PortNode nodeId) throws IOException {
+    private void nodeStatement(DotGraph graph, PortNode nodeId) throws IOException {
         Node node = node(nodeId.getNode().getName()); // TODO ignore port and compass?
         if (token.type == BRACKET_OPEN) {
             applyMutableAttributes(node, attributeList());
@@ -193,7 +193,7 @@ public final class Parser {
         return node;
     }
 
-    private void attributeStatement(Graph graph) throws IOException {
+    private void attributeStatement(DotGraph graph) throws IOException {
         final Attributed<?> target = attributes(graph, token);
         nextToken();
         applyMutableAttributes(target, attributeList());
@@ -219,7 +219,7 @@ public final class Parser {
         return res;
     }
 
-    private Attributed<?> attributes(Graph graph, Token token) {
+    private Attributed<?> attributes(DotGraph graph, Token token) {
         switch (token.type) {
             case GRAPH:
                 return graph.getGraphAttr();

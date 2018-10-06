@@ -11,24 +11,24 @@ import org.mapleir.dot4j.attr.Attributed;
 import org.mapleir.dot4j.attr.Attrs;
 import org.mapleir.dot4j.attr.SimpleAttributed;
 
-public class Graph implements Source<Graph>, Target, Connected {
+public class DotGraph implements Source<DotGraph>, Target, Connected {
 
 	protected boolean strict, directed, cluster;
 	protected String name;
 	protected final Set<Node> nodes;
-	protected final Set<Graph> subgraphs;
+	protected final Set<DotGraph> subgraphs;
 	protected final List<Edge> edges;
-	protected final Attributed<Graph> nodeAttrs, edgeAttrs, graphAttrs;
+	protected final Attributed<DotGraph> nodeAttrs, edgeAttrs, graphAttrs;
 	
-	Graph() {
+	DotGraph() {
 		this(false, false, false, "", new LinkedHashSet<>(), new LinkedHashSet<>(), new ArrayList<>(), null, null, null);
 		Context.current().ifPresent(ctx -> {
 			getGraphAttr().with(ctx.graphAttrs());
 		});
 	}
 	
-	public Graph(boolean strict, boolean directed, boolean cluster, String name, Set<Node> nodes,
-			Set<Graph> subgraphs, List<Edge> edges, Attrs nodeAttrs,
+	public DotGraph(boolean strict, boolean directed, boolean cluster, String name, Set<Node> nodes,
+			Set<DotGraph> subgraphs, List<Edge> edges, Attrs nodeAttrs,
 			Attrs edgeAttrs, Attrs graphAttrs) {
 		this.strict = strict;
 		this.directed = directed;
@@ -42,12 +42,12 @@ public class Graph implements Source<Graph>, Target, Connected {
 		this.graphAttrs = new SimpleAttributed<>(this, graphAttrs);
 	}
 	
-	public Graph copy() {
-		return new Graph(strict, directed, cluster, name, new LinkedHashSet<>(nodes), new LinkedHashSet<>(subgraphs),
+	public DotGraph copy() {
+		return new DotGraph(strict, directed, cluster, name, new LinkedHashSet<>(nodes), new LinkedHashSet<>(subgraphs),
 				new ArrayList<>(edges), nodeAttrs, edgeAttrs, graphAttrs);
 	}
 
-	public Graph addEdges(Target... targets) {
+	public DotGraph addEdges(Target... targets) {
 		for(Target target : targets) {
 			addEdge(target);
 		}
@@ -55,7 +55,7 @@ public class Graph implements Source<Graph>, Target, Connected {
 	}
 	
 	@Override
-	public Graph addEdge(Target target) {
+	public DotGraph addEdge(Target target) {
 		Edge edge = target.edgeToHere();
 		edges.add(Edge.between(this, edge.getTarget()).with(edge.getAttrs()));
 		return this;
@@ -71,27 +71,27 @@ public class Graph implements Source<Graph>, Target, Connected {
 		return edges;
 	}
 
-	public Graph setStrict(boolean strict) {
+	public DotGraph setStrict(boolean strict) {
 		this.strict = strict;
 		return this;
 	}
 
-	public Graph setDirected(boolean directed) {
+	public DotGraph setDirected(boolean directed) {
 		this.directed = directed;
 		return this;
 	}
 
-	public Graph setClustered(boolean cluster) {
+	public DotGraph setClustered(boolean cluster) {
 		this.cluster = cluster;
 		return this;
 	}
 
-	public Graph setName(String name) {
+	public DotGraph setName(String name) {
 		this.name = name;
 		return this;
 	}
 
-	public Graph addSource(Source<?> source) {
+	public DotGraph addSource(Source<?> source) {
 		if(source instanceof Node) {
 			nodes.add((Node)source);
 			return this;
@@ -100,14 +100,14 @@ public class Graph implements Source<Graph>, Target, Connected {
 			nodes.add(((PortNode) source).getNode());
 			return this;
 		}
-		if(source instanceof Graph) {
-			subgraphs.add((Graph) source);
+		if(source instanceof DotGraph) {
+			subgraphs.add((DotGraph) source);
 			return this;
 		}
 		throw new IllegalArgumentException("Unknown source of type " + source.getClass());
 	}
 
-	public Graph addSources(Source<?>... sources) {
+	public DotGraph addSources(Source<?>... sources) {
 		for(Source<?> source : sources) {
 			addSource(source);
 		}
@@ -153,15 +153,15 @@ public class Graph implements Source<Graph>, Target, Connected {
 		return name;
 	}
 	
-	public Attributed<Graph> getNodeAttr() {
+	public Attributed<DotGraph> getNodeAttr() {
 		return nodeAttrs;
 	}
 
-	public Attributed<Graph> getEdgeAttr() {
+	public Attributed<DotGraph> getEdgeAttr() {
 		return edgeAttrs;
 	}
 
-	public Attributed<Graph> getGraphAttr() {
+	public Attributed<DotGraph> getGraphAttr() {
 		return graphAttrs;
 	}
 	
@@ -173,7 +173,7 @@ public class Graph implements Source<Graph>, Target, Connected {
 		if (o == null || getClass() != o.getClass()) {
 			return false;
 		}
-		final Graph graph = (Graph) o;
+		final DotGraph graph = (DotGraph) o;
 		if (strict != graph.strict) {
 			return false;
 		}
