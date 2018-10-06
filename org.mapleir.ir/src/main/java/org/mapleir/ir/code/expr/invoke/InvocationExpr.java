@@ -4,15 +4,11 @@ import org.mapleir.ir.TypeUtils;
 import org.mapleir.ir.code.CodeUnit;
 import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.codegen.BytecodeFrontend;
-import org.mapleir.stdlib.util.IHasJavaDesc;
-import org.mapleir.stdlib.util.JavaDesc;
-import org.mapleir.stdlib.util.JavaDescSpecifier;
-import org.mapleir.stdlib.util.TabbedStringWriter;
+import org.mapleir.stdlib.util.*;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Type;
 
-public abstract class InvocationExpr extends Invocation implements IHasJavaDesc {
-
+public abstract class InvocationExpr extends Invocation implements IDataFlowElement {
 	public enum CallType {
 		STATIC, SPECIAL, VIRTUAL, INTERFACE, DYNAMIC
 	}
@@ -231,5 +227,10 @@ public abstract class InvocationExpr extends Invocation implements IHasJavaDesc 
 	@Override
 	public JavaDesc.DescType getDescType() {
 		return JavaDesc.DescType.METHOD;
+	}
+
+	@Override
+	public DataflowUse.DataflowType getDataflowType() {
+		return DataflowUse.DataflowType.CALL;
 	}
 }

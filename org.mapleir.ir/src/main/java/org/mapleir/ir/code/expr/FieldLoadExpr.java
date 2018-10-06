@@ -3,14 +3,12 @@ package org.mapleir.ir.code.expr;
 import org.mapleir.ir.code.CodeUnit;
 import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.codegen.BytecodeFrontend;
-import org.mapleir.stdlib.util.IHasJavaDesc;
-import org.mapleir.stdlib.util.JavaDesc;
-import org.mapleir.stdlib.util.TabbedStringWriter;
+import org.mapleir.stdlib.util.*;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 
-public class FieldLoadExpr extends Expr implements IHasJavaDesc {
+public class FieldLoadExpr extends Expr implements IDataFlowElement {
 
 	private Expr instanceExpression;
 	private String owner;
@@ -144,5 +142,10 @@ public class FieldLoadExpr extends Expr implements IHasJavaDesc {
 	@Override
 	public JavaDesc.DescType getDescType() {
 		return JavaDesc.DescType.FIELD;
+	}
+
+	@Override
+	public DataflowUse.DataflowType getDataflowType() {
+		return DataflowUse.DataflowType.READ;
 	}
 }

@@ -1,5 +1,6 @@
 package org.mapleir.ir.cfg;
 
+import com.google.common.collect.Streams;
 import org.mapleir.dot4j.model.DotGraph;
 import org.mapleir.flowgraph.ExceptionRange;
 import org.mapleir.flowgraph.FlowGraph;
@@ -47,8 +48,12 @@ public class ControlFlowGraph extends FlowGraph<BasicBlock, FlowEdge<BasicBlock>
 		locals = cfg.locals;
 		javaDesc = cfg.javaDesc;
 	}
-	
-	/**
+
+    public Stream<CodeUnit> allExprStream() {
+   		return vertices().stream().flatMap(Collection::stream).map(Stmt::enumerateWithSelf).flatMap(Streams::stream);
+   	}
+
+    /**
 	 * Properly removes the edge, and cleans up phi uses in fe.dst of phi arguments from fe.src.
 	 * @param fe Edge to excise phi uses.
 	 */

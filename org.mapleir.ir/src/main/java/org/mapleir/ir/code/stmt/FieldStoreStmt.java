@@ -6,14 +6,12 @@ import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.code.Expr.Precedence;
 import org.mapleir.ir.code.Stmt;
 import org.mapleir.ir.codegen.BytecodeFrontend;
-import org.mapleir.stdlib.util.IHasJavaDesc;
-import org.mapleir.stdlib.util.JavaDesc;
-import org.mapleir.stdlib.util.TabbedStringWriter;
+import org.mapleir.stdlib.util.*;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 
-public class FieldStoreStmt extends Stmt implements IHasJavaDesc {
+public class FieldStoreStmt extends Stmt implements IDataFlowElement {
 
 	private Expr instanceExpression;
 	private Expr valueExpression;
@@ -162,5 +160,10 @@ public class FieldStoreStmt extends Stmt implements IHasJavaDesc {
 	@Override
 	public JavaDesc.DescType getDescType() {
 		return JavaDesc.DescType.FIELD;
+	}
+
+	@Override
+	public DataflowUse.DataflowType getDataflowType() {
+		return DataflowUse.DataflowType.WRITE;
 	}
 }
