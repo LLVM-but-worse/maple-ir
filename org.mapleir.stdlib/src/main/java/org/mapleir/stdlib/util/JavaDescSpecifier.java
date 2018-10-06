@@ -4,8 +4,8 @@ public class JavaDescSpecifier {
     public final String ownerRegex, nameRegex, descRegex;
     public final JavaDesc.DescType descType;
 
-    public JavaDescSpecifier(String owner, String nameRegex, String descRegex, JavaDesc.DescType descType) {
-        this(owner, nameRegex, descRegex, descType, null);
+    public JavaDescSpecifier(String ownerRegex, String nameRegex, String descRegex, JavaDesc.DescType descType) {
+        this(ownerRegex, nameRegex, descRegex, descType, null);
     }
 
     public JavaDescSpecifier(String ownerRegex, String nameRegex, String descRegex, JavaDesc.DescType descType, Object extraData) {
