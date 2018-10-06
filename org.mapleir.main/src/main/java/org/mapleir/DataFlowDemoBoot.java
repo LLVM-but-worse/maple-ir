@@ -10,7 +10,9 @@ import org.mapleir.context.AnalysisContext;
 import org.mapleir.context.BasicAnalysisContext;
 import org.mapleir.context.IRCache;
 import org.mapleir.deob.IPass;
+import org.mapleir.deob.PassContext;
 import org.mapleir.deob.PassGroup;
+import org.mapleir.deob.PassResult;
 import org.mapleir.deob.passes.rename.ClassRenamerPass;
 import org.mapleir.deob.util.RenamingHeuristic;
 import org.mapleir.ir.algorithms.BoissinotDestructor;
@@ -102,8 +104,6 @@ public class DataFlowDemoBoot {
 		// 	tracer.trace(m);
 		// }
 
-
-
 //		// todo: convert to CallGraph (as FastGraph) DFS
 //		FastDirectedGraph<JavaDescVertex, JavaDescEdge> callgraph = new FastDirectedGraph<JavaDescVertex, JavaDescEdge>() {};
 //		JavaDescSpecifier targetMeth = new JavaDescSpecifier("lol", "lol", ".*", JavaDesc.DescType.METHOD);
@@ -191,7 +191,6 @@ public class DataFlowDemoBoot {
 
 		Scanner sc = new Scanner(System.in);
 		while (true) {
-			if (1+1==2)break;
 			System.out.print("xref> ");
 			String l = sc.nextLine();
 			if (l.isEmpty())
@@ -403,87 +402,17 @@ public class DataFlowDemoBoot {
 //				eprops.put("label", e.via.toString());
 //			}
 //		}).export();
-
-		section("Retranslating SSA IR to standard flavour.");
-		for(Entry<MethodNode, ControlFlowGraph> e : cxt.getIRCache().entrySet()) {
-			MethodNode mn = e.getKey();
-			// if (!mn.name.equals("openFiles"))
-			// 	continue;
-			ControlFlowGraph cfg = e.getValue();
-
-			// System.out.println(cfg);
-			 CFGUtils.easyDumpCFG(cfg, "pre-destruct");
-			cfg.verify();
-
-			BoissinotDestructor.leaveSSA(cfg);
-
-			 CFGUtils.easyDumpCFG(cfg, "pre-reaalloc");
-			cfg.getLocals().realloc(cfg);
-			 CFGUtils.easyDumpCFG(cfg, "post-reaalloc");
-			// System.out.println(cfg);
-			cfg.verify();
-			 System.out.println("Rewriting " + mn.name);
-			(new ControlFlowGraphDumper(cfg, mn)).dump();
-			 System.out.println(InsnListUtils.insnListToString(mn.instructions));
-		}
-		
-		section("Rewriting jar.");
-		dumpJar(app, dl, masterGroup, "out/rewritten.jar");
-		
-		section("Finished.");
 	}
-	
-	private static void dumpJar(ApplicationClassSource app, SingleJarDownloader<ClassNode> dl, PassGroup masterGroup, String outputFile) throws IOException {
-		(new CompleteResolvingJarDumper(dl.getJarContents(), app) {
-			@Override
-			public int dumpResource(JarOutputStream out, String name, byte[] file) throws IOException {
-//				if(name.startsWith("META-INF")) {
-//					System.out.println(" ignore " + name);
-//					return 0;
-//				}
-				if(name.equals("META-INF/MANIFEST.MF")) {
-					ClassRenamerPass renamer = (ClassRenamerPass) masterGroup.getPass(e -> e.is(ClassRenamerPass.class));
 
-					if(renamer != null) {
-						ByteArrayOutputStream baos = new ByteArrayOutputStream();
-						BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(baos));
-						BufferedReader br = new BufferedReader(new InputStreamReader(new ByteArrayInputStream(file)));
-
-						String line;
-						while((line = br.readLine()) != null) {
-							String[] parts = line.split(": ", 2);
-							if(parts.length != 2) {
-								bw.write(line);
-								continue;
-							}
-
-							if(parts[0].equals("Main-Class")) {
-								String newMain = renamer.getRemappedName(parts[1].replace(".", "/")).replace("/", ".");
-								LOGGER.info(String.format("%s -> %s%n", parts[1], newMain));
-								parts[1] = newMain;
-							}
-
-							bw.write(parts[0]);
-							bw.write(": ");
-							bw.write(parts[1]);
-							bw.write(System.lineSeparator());
-						}
-
-						br.close();
-						bw.close();
-
-						file = baos.toByteArray();
-					}
-				}
-				return super.dumpResource(out, name, file);
-			}
-		}).dump(new File(outputFile));
-	}
-	
 	private static void run(AnalysisContext cxt, PassGroup group) {
-		group.accept(cxt, null, new ArrayList<>());
+		PassContext pcxt = new PassContext(cxt, null, new ArrayList<>());
+		PassResult result = group.accept(pcxt);
+
+		if(result.getError() != null) {
+			throw new RuntimeException(result.getError());
+		}
 	}
-	
+
 	private static IPass[] getTransformationPasses() {
 		RenamingHeuristic heuristic = RenamingHeuristic.RENAME_ALL;
 		return new IPass[] {
@@ -492,21 +421,21 @@ public class DataFlowDemoBoot {
 //				new MethodRenamerPass(heuristic),
 //				new FieldRenamerPass(),
 //				new CallgraphPruningPass(),
-				
+
 				// new PassGroup("Interprocedural Optimisations")
 				// 	.add(new ConstantParameterPass())
 				// new LiftConstructorCallsPass(),
 //				 new DemoteRangesPass(),
-				
+
 				// new ConstantExpressionReorderPass(),
 				// new FieldRSADecryptionPass(),
 				// new ConstantParameterPass(),
 //				new ConstantExpressionEvaluatorPass(),
 // 				new DeadCodeEliminationPass()
-				
+
 		};
 	}
-	
+
 	static File locateRevFile(int rev) {
 		return new File("res/gamepack" + rev + ".jar");
 	}
@@ -529,26 +458,6 @@ public class DataFlowDemoBoot {
 		long delta = now - timer;
 		timer = now;
 		return (double)delta / 1_000_000_000L;
-	}
-	
-	public static void section0(String endText, String sectionText, boolean quiet) {
-		if(sections.isEmpty()) {
-			lap();
-			if(!quiet)
-				LOGGER.info(sectionText);
-		} else {
-			/* remove last section. */
-			sections.pop();
-			if(!quiet) {
-				LOGGER.info(String.format(endText, lap()));
-				LOGGER.info(sectionText);
-			} else {
-				lap();
-			}
-		}
-
-		/* push the new one. */
-		sections.push(sectionText);
 	}
 	
 	public static void section0(String endText, String sectionText) {
