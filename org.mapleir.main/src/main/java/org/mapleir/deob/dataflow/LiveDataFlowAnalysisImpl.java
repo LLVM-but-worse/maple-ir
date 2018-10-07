@@ -36,9 +36,8 @@ public class LiveDataFlowAnalysisImpl implements DataFlowAnalysis {
                 .filter(cu -> cu instanceof IJavaDescUse)
                 .map(cu -> (IJavaDescUse) cu)
                 .filter(cu -> jds.matches((cu.getJavaDesc())))
-                .map(cu -> cu.getDataUse());
+                .map(IJavaDescUse::getDataUse);
    	}
-
 
    	@Override
     public Stream<ConstantExpr> enumerateConstants() {
