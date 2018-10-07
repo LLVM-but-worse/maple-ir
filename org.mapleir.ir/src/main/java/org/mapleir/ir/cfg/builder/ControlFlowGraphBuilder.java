@@ -57,7 +57,7 @@ public class ControlFlowGraphBuilder {
 	public ControlFlowGraph buildImpl() {
 		for(BuilderPass p : resolvePasses()) {
 			p.run();
-			CFGUtils.easyDumpCFG(graph, "post-" + p.getClass().getSimpleName());
+			// CFGUtils.easyDumpCFG(graph, "post-" + p.getClass().getSimpleName());
 		}
 		return graph;
 	}
