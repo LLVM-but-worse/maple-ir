@@ -2,6 +2,7 @@ package org.mapleir.stdlib.collections;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -9,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.objectweb.asm.ClassReader;
+import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.tree.ClassNode;
 
 /**
@@ -76,5 +78,11 @@ public class ClassHelper {
 			// TODO: log print
 			return null;
 		}
+	}
+
+	public static void dump(ClassNode cn, OutputStream outputStream) throws IOException {
+		ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_FRAMES);
+		cn.accept(writer);
+		outputStream.write(writer.toByteArray());
 	}
 }
