@@ -20,6 +20,7 @@ import java.util.jar.JarOutputStream;
 
 /**
  * Dumps ClassNodes and JarResources back into a file on the local system.
+ * Todo: make this extend CompleteJarDumper?
  *
  * @author Bibl
  */
@@ -140,7 +141,7 @@ public class CompleteResolvingJarDumper implements JarDumper {
 		
 		for(MethodNode m : cn.methods) {
 			if(m.instructions.size() > 10000) {
-				System.out.println(m + " @" + m.instructions.size());
+				System.out.println("large method: " + m + " @" + m.instructions.size());
 			}
 		}
 
