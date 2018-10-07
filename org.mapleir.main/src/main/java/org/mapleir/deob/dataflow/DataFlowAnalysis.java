@@ -2,7 +2,7 @@ package org.mapleir.deob.dataflow;
 
 import org.mapleir.ir.code.CodeUnit;
 import org.mapleir.ir.code.expr.ConstantExpr;
-import org.mapleir.stdlib.util.DataflowUse;
+import org.mapleir.stdlib.util.JavaDescUse;
 import org.mapleir.stdlib.util.JavaDescSpecifier;
 
 import java.util.stream.Stream;
@@ -24,7 +24,7 @@ public interface DataFlowAnalysis {
      * @param jds a JavaDescSpecifier specifying the data flow sources to find usages of
      * @return a stream of all DataflowUses in the app that reference JavaDescs matched
      */
-    Stream<DataflowUse> findAllRefs(JavaDescSpecifier jds);
+    Stream<JavaDescUse> findAllRefs(JavaDescSpecifier jds);
 
     /**
      * @return a stream of all constant expressions used in the app

@@ -8,7 +8,7 @@ import org.mapleir.stdlib.util.*;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Type;
 
-public abstract class InvocationExpr extends Invocation implements IDataFlowElement {
+public abstract class InvocationExpr extends Invocation implements IJavaDescUse {
 	public enum CallType {
 		STATIC, SPECIAL, VIRTUAL, INTERFACE, DYNAMIC
 	}
@@ -230,7 +230,7 @@ public abstract class InvocationExpr extends Invocation implements IDataFlowElem
 	}
 
 	@Override
-	public DataflowUse.DataflowType getDataflowType() {
-		return DataflowUse.DataflowType.CALL;
+	public JavaDescUse.UseType getDataUseType() {
+		return JavaDescUse.UseType.CALL;
 	}
 }

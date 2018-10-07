@@ -3,19 +3,12 @@ package org.mapleir.stdlib.util;
 public class JavaDesc  {
     public final String owner, name, desc;
     public final DescType descType; // FIELD or METHOD -- METHOD=argument flow or return value flow
-    public final Object extraData; // TODO this is such a hack Omg
 
     public JavaDesc(String owner, String name, String desc, DescType descType) {
-        this(owner, name, desc, descType, null);
-        assert (descType == DescType.FIELD);
-    }
-
-    public JavaDesc(String owner, String name, String desc, DescType descType, Object extraData) {
         this.owner = owner;
         this.name = name;
         this.desc = desc;
         this.descType = descType;
-        this.extraData = extraData;
 
         if (descType == DescType.CLASS)
             assert(name.isEmpty() && desc.isEmpty());
@@ -23,7 +16,7 @@ public class JavaDesc  {
 
     @Override
     public String toString() {
-        return "(" + descType + ")" + owner + "#" + name + desc + (extraData != null ? "[" + extraData + "]" : "");
+        return "(" + descType + ")" + owner + "#" + name + desc;
     }
 
     @Override
@@ -37,7 +30,7 @@ public class JavaDesc  {
         if (name != null ? !name.equals(javaDesc.name) : javaDesc.name != null) return false;
         if (desc != null ? !desc.equals(javaDesc.desc) : javaDesc.desc != null) return false;
         if (descType != null ? !descType.equals(javaDesc.descType) : javaDesc.descType != null) return false;
-        return extraData != null ? extraData.equals(javaDesc.extraData) : javaDesc.extraData == null;
+        return true;
     }
 
     @Override
@@ -46,7 +39,6 @@ public class JavaDesc  {
         result = 31 * result + (name != null ? name.hashCode() : 0);
         result = 31 * result + (desc != null ? desc.hashCode() : 0);
         result = 31 * result + (descType != null ? descType.hashCode() : 0);
-        result = 31 * result + (extraData != null ? extraData.hashCode() : 0);
         return result;
     }
 

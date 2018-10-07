@@ -879,8 +879,9 @@ public class MethodNode extends MethodVisitor implements FastGraphVertex, IHasJa
     }
 
     // maple-ir start
+    @Override
     public JavaDesc getJavaDesc() {
-	    return new JavaDesc(owner.name, name, desc, JavaDesc.DescType.METHOD, null);
+	    return new JavaDesc(owner.name, name, desc, JavaDesc.DescType.METHOD);
     }
     // maple-ir end
 }

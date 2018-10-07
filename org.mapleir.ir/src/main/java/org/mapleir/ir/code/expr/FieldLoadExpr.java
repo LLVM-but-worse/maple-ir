@@ -8,7 +8,7 @@ import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 
-public class FieldLoadExpr extends Expr implements IDataFlowElement {
+public class FieldLoadExpr extends Expr implements IJavaDescUse {
 
 	private Expr instanceExpression;
 	private String owner;
@@ -145,7 +145,7 @@ public class FieldLoadExpr extends Expr implements IDataFlowElement {
 	}
 
 	@Override
-	public DataflowUse.DataflowType getDataflowType() {
-		return DataflowUse.DataflowType.READ;
+	public JavaDescUse.UseType getDataUseType() {
+		return JavaDescUse.UseType.READ;
 	}
 }

@@ -3,13 +3,13 @@ package org.mapleir.deob.dataflow.graph;
 import org.mapleir.stdlib.collections.graph.FastGraphVertex;
 import org.mapleir.stdlib.util.JavaDesc;
 
-public class JavaDescVertex implements FastGraphVertex {
+public class DataflowVertex implements FastGraphVertex {
     private static int descId = 0;
 
     public final JavaDesc desc;
     private final int id;
 
-    public JavaDescVertex(JavaDesc desc) {
+    public DataflowVertex(JavaDesc desc) {
         this.desc = desc;
         id = descId++;
     }
@@ -34,7 +34,7 @@ public class JavaDescVertex implements FastGraphVertex {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
-        JavaDescVertex v = (JavaDescVertex) o;
+        DataflowVertex v = (DataflowVertex) o;
         return v.desc.equals(desc);
     }
 

@@ -3,8 +3,8 @@ package org.mapleir.deob.dataflow;
 import org.mapleir.context.IRCache;
 import org.mapleir.ir.code.CodeUnit;
 import org.mapleir.ir.code.expr.ConstantExpr;
-import org.mapleir.stdlib.util.DataflowUse;
-import org.mapleir.stdlib.util.IDataFlowElement;
+import org.mapleir.stdlib.util.JavaDescUse;
+import org.mapleir.stdlib.util.IJavaDescUse;
 import org.mapleir.stdlib.util.JavaDescSpecifier;
 
 import java.util.stream.Stream;
@@ -31,12 +31,12 @@ public class LiveDataFlowAnalysisImpl implements DataFlowAnalysis {
     }
 
     @Override
-   	public Stream<DataflowUse> findAllRefs(JavaDescSpecifier jds) {
+   	public Stream<JavaDescUse> findAllRefs(JavaDescSpecifier jds) {
    		return irCache.allExprStream()
-                .filter(cu -> cu instanceof IDataFlowElement)
-                .map(cu -> (IDataFlowElement) cu)
+                .filter(cu -> cu instanceof IJavaDescUse)
+                .map(cu -> (IJavaDescUse) cu)
                 .filter(cu -> jds.matches((cu.getJavaDesc())))
-                .map(cu -> cu.getDataflow());
+                .map(cu -> cu.getDataUse());
    	}
 
 
