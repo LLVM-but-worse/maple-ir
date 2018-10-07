@@ -5,15 +5,12 @@ import org.mapleir.ir.code.CodeUnit;
 import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.code.Stmt;
 import org.mapleir.ir.codegen.BytecodeFrontend;
-import org.mapleir.stdlib.util.DataflowUse;
-import org.mapleir.stdlib.util.IDataFlowElement;
-import org.mapleir.stdlib.util.JavaDesc;
 import org.mapleir.stdlib.util.TabbedStringWriter;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 
-public class ReturnStmt extends Stmt implements IDataFlowElement {
+public class ReturnStmt extends Stmt {
 
 	private Type type;
 	private Expr expression;
@@ -96,35 +93,5 @@ public class ReturnStmt extends Stmt implements IDataFlowElement {
 			return type.equals(ret.type) && expression.equivalent(ret.expression);
 		}
 		return false;
-	}
-
-	@Override
-	public DataflowUse.DataflowType getDataflowType() {
-		return DataflowUse.DataflowType.RETURN;
-	}
-
-	@Override
-	public String getOwner() {
-		return getBlock().getGraph().getOwner();
-	}
-
-	@Override
-	public String getName() {
-		return getBlock().getGraph().getName();
-	}
-
-	@Override
-	public String getDesc() {
-		return getBlock().getGraph().getDesc();
-	}
-
-	@Override
-	public JavaDesc.DescType getDescType() {
-		return JavaDesc.DescType.METHOD;
-	}
-
-	@Override
-	public JavaDesc getJavaDesc() {
-		return new JavaDesc(getOwner(), getName(), getDesc(), getDescType(), -1);
 	}
 }

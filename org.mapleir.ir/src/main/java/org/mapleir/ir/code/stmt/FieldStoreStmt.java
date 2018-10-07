@@ -11,7 +11,7 @@ import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 
-public class FieldStoreStmt extends Stmt implements IDataFlowElement {
+public class FieldStoreStmt extends Stmt implements IJavaDescUse {
 
 	private Expr instanceExpression;
 	private Expr valueExpression;
@@ -163,7 +163,7 @@ public class FieldStoreStmt extends Stmt implements IDataFlowElement {
 	}
 
 	@Override
-	public DataflowUse.DataflowType getDataflowType() {
-		return DataflowUse.DataflowType.WRITE;
+	public JavaDescUse.UseType getDataUseType() {
+		return JavaDescUse.UseType.WRITE;
 	}
 }
