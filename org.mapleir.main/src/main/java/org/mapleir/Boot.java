@@ -12,6 +12,7 @@ import org.mapleir.deob.IPass;
 import org.mapleir.deob.PassContext;
 import org.mapleir.deob.PassGroup;
 import org.mapleir.deob.PassResult;
+import org.mapleir.deob.dataflow.LiveDataFlowAnalysisImpl;
 import org.mapleir.deob.passes.rename.ClassRenamerPass;
 import org.mapleir.deob.util.RenamingHeuristic;
 import org.mapleir.ir.algorithms.BoissinotDestructor;
@@ -68,11 +69,13 @@ public class Boot {
 		section("Initialising context.");
 
 
+		IRCache irFactory = new IRCache(ControlFlowGraphBuilder::build);
 		AnalysisContext cxt = new BasicAnalysisContext.BasicContextBuilder()
 				.setApplication(app)
 				.setInvocationResolver(new DefaultInvocationResolver(app))
-				.setCache(new IRCache(ControlFlowGraphBuilder::build))
+				.setCache(irFactory)
 				.setApplicationContext(new SimpleApplicationContext(app))
+				.setDataFlowAnalysis(new LiveDataFlowAnalysisImpl(irFactory))
 				.build();
 
 		section("Expanding callgraph and generating cfgs.");
