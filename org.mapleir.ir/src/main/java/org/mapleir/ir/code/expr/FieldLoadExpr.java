@@ -8,7 +8,7 @@ import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 
-public class FieldLoadExpr extends Expr implements IJavaDescUse {
+public class FieldLoadExpr extends Expr implements IUsesJavaDesc {
 
 	private Expr instanceExpression;
 	private String owner;
@@ -147,5 +147,10 @@ public class FieldLoadExpr extends Expr implements IJavaDescUse {
 	@Override
 	public JavaDescUse.UseType getDataUseType() {
 		return JavaDescUse.UseType.READ;
+	}
+
+	@Override
+	public JavaDesc getDataUseLocation() {
+		return getBlock().getGraph().getJavaDesc();
 	}
 }

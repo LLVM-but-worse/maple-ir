@@ -8,7 +8,7 @@ import org.mapleir.stdlib.util.*;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Type;
 
-public abstract class InvocationExpr extends Invocation implements IJavaDescUse {
+public abstract class InvocationExpr extends Invocation implements IUsesJavaDesc {
 	public enum CallType {
 		STATIC, SPECIAL, VIRTUAL, INTERFACE, DYNAMIC
 	}
@@ -232,5 +232,10 @@ public abstract class InvocationExpr extends Invocation implements IJavaDescUse 
 	@Override
 	public JavaDescUse.UseType getDataUseType() {
 		return JavaDescUse.UseType.CALL;
+	}
+
+	@Override
+	public JavaDesc getDataUseLocation() {
+		return getBlock().getGraph().getJavaDesc();
 	}
 }
