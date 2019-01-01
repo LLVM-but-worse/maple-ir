@@ -149,23 +149,14 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 	}
 	
 	protected void entry(LabelNode firstLabel) {
+		// make a synthetic entry block in case the first block is a jump target or something stupid like that
 		LabelNode l = new LabelNode();
-		BasicBlock entry = new BasicBlock(builder.graph);
-		blockLabels.put(firstLabel, entry); // this is a strange discrepancy isnt it
-		labelMap.put(entry, l);
+		insns.insertBefore(firstLabel, l);
+		BasicBlock entry = makeBlock(l);
 		entry.setFlag(BasicBlock.FLAG_NO_MERGE, true);
-		
-		builder.graph.addVertex(entry);
 		builder.graph.getEntries().add(entry);
 		setInputStack(entry, new ExpressionStack(16));
 		defineInputs(builder.method, entry);
-		insns.insertBefore(firstLabel, l);
-		
-		BasicBlock b = makeBlock(firstLabel);
-		setInputStack(b, new ExpressionStack(16));
-		queue(firstLabel);
-		
-		builder.graph.addEdge(new ImmediateEdge<>(entry, b));
 	}
 	
 	protected void handler(TryCatchBlockNode tc) {
