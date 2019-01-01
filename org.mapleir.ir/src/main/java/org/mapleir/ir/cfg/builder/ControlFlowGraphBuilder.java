@@ -71,4 +71,9 @@ public class ControlFlowGraphBuilder {
 		}
 		return graph;
 	}
+
+	public static ControlFlowGraph build(MethodNode method) {
+		ControlFlowGraphBuilder builder = new ControlFlowGraphBuilder(method);
+		return builder.buildImpl();
+	}
 }
