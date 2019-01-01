@@ -31,7 +31,7 @@ public abstract class LocalsPool implements ValueCreator<GenericBitSet<Local>> {
 
 	public final Map<VersionedLocal, AbstractCopyStmt> defs;
 	public final NullPermeableHashMap<VersionedLocal, Set<VarExpr>> uses;
-	
+
 	public LocalsPool() {
 		cache = new HashMap<>();
 		latest = new HashMap<>();
@@ -175,144 +175,7 @@ public abstract class LocalsPool implements ValueCreator<GenericBitSet<Local>> {
 			}
 		}
 	} */
-	
-	public int realloc(ControlFlowGraph cfg) {
-		NullPermeableHashMap<Local, Set<Type>> types = new NullPermeableHashMap<>(HashSet::new);
-		int min = 0;
-		Set<Local> safe = new HashSet<>();
-		for(BasicBlock b : cfg.vertices()) {
-			for(Stmt stmt : b) {
-				if(stmt.getOpcode() == Opcode.LOCAL_STORE) {
-					CopyVarStmt cp = (CopyVarStmt) stmt;
-					VarExpr var = cp.getVariable();
-					Local local = var.getLocal();
-					if(!cp.isSynthetic()) {
-						types.getNonNull(local).add(var.getType());
-					} else {
-						safe.add(local);
-					}
-					types.getNonNull(local).add(var.getType());
-				}
-				
-				for(Expr s : stmt.enumerateOnlyChildren()) {
-					if(s.getOpcode() == Opcode.LOCAL_LOAD) {
-						VarExpr var = (VarExpr) s;
-						Local local = var.getLocal();
-						types.getNonNull(local).add(var.getType());
-					}
-				}
-			}
-		}
 
-		Map<Local, Type> stypes = new HashMap<>();
-		
-		for(Entry<Local, Set<Type>> e : types.entrySet()) {
-			Set<Type> set = e.getValue();
-			Set<Type> refined = new HashSet<>();
-			if(set.size() > 1) {
-				for(Type t : set) {
-					refined.add(TypeUtils.asSimpleType(t));
-				}
-				if(refined.size() != 1) {
-					boolean valid = false;
-					
-					if(refined.size() == 2) {
-						// TODO: proper check
-						Iterator<Type> it = refined.iterator();
-						if(it.next().getSize() == it.next().getSize()) {
-							Type t = refined.iterator().next();
-							refined.clear();
-							refined.add(t);
-							valid = true;
-						}
-					}
-					
-					if(!valid) {
-						for(Entry<Local, Set<Type>> e1 : types.entrySet()) {
-							System.err.println(e1.getKey() + "  ==  " + e1.getValue());
-						}
-						// String.format("illegal typesets for %s, set=%s, refined=%s", args)
-						throw new RuntimeException("illegal typesets for " + e.getKey());
-					}
-				}
-				Local l = e.getKey();
-				stypes.put(l, refined.iterator().next());
-				
-//				if(!safe.contains(l)) {
-//					stypes.put(l, refined.iterator().next());
-//				}
-			} else {
-				Local l = e.getKey();
-				stypes.put(l, set.iterator().next());
-//				if(!safe.contains(l)) {
-//				}
-			}
-		}
-		
-//		for(Entry<Local, Type> e : stypes.entrySet()) {
-//			System.out.println(e.getKey() + "  ==  " + e.getValue());
-//		}
-		
-		// lvars then svars, ordered of course,
-		List<Local> wl = new ArrayList<>(stypes.keySet());
-//		System.out.println("safe: " + safe);
-		wl.sort(new Comparator<Local>() {
-			@Override
-			public int compare(Local o1, Local o2) {
-				boolean s1 = safe.contains(o1);
-				boolean s2 = safe.contains(o2);
-				
-				if (s1 && !s2) {
-					return -1;
-				} else if (!s1 && s2) {
-					return 1;
-				} else {
-					return o1.compareTo(o2);
-				}
-			}
-		});
-//		System.out.println("wl: " + wl);
-		
-		Map<Local, Local> remap = new HashMap<>();
-		int idx = min;
-		for(Local l : wl) {
-			Type type = stypes.get(l);
-			Local newL = get(idx, false);
-			if(l != newL) {
-				remap.put(l, newL);
-			}
-			idx += type.getSize();
-		}
-		remap(cfg, remap);
-		
-		return idx;
-	}
-	
-	public static void remap(ControlFlowGraph cfg, Map<? extends Local, ? extends Local> remap) {
-		for(BasicBlock b : cfg.vertices()) {
-			for(Stmt stmt : b) {
-				if(stmt.getOpcode() == Opcode.LOCAL_STORE) {
-					VarExpr v = ((CopyVarStmt) stmt).getVariable();
-					Local l = v.getLocal();
-					if(remap.containsKey(l)) {
-						Local l2 = remap.get(l);
-						v.setLocal(l2);
-					}
-				}
-				
-				for(Expr s : stmt.enumerateOnlyChildren()) {
-					if(s.getOpcode() == Opcode.LOCAL_LOAD) {
-						VarExpr v = (VarExpr) s;
-						Local l = v.getLocal();
-						if(remap.containsKey(l)) {
-							v.setLocal(remap.get(l));
-						}
-					}
-				}
-			}
-		}
-	}
-	
 	public static String key(int index, boolean stack) {
 		return (stack ? "s" : "l") + "var" + index;
 	}
