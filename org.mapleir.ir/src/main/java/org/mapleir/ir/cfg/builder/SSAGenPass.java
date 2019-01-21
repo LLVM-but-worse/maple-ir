@@ -37,9 +37,6 @@ import java.util.*;
 import java.util.Map.Entry;
 
 public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
-
-	private static boolean OPTIMISE = true;
-
 	private final BasicLocal svar0;
 	private final Map<VersionedLocal, Type> types;
 	private final Map<Local, Integer> counters;
@@ -60,8 +57,15 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 	
 	private Liveness<BasicBlock> liveness;
 
+	private final boolean optimise;
+
 	public SSAGenPass(ControlFlowGraphBuilder builder) {
+		this(builder, true);
+	}
+
+	public SSAGenPass(ControlFlowGraphBuilder builder, boolean optimise) {
 		super(builder);
+		this.optimise = optimise;
 
 		svar0 = builder.graph.getLocals().newLocal(0, true);
 		
@@ -342,7 +346,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		
 		unstackDefs(b);
 		
-		if(OPTIMISE) {
+		if(optimise) {
 			optimisePhis(b);
 		}
 	}
@@ -453,7 +457,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		
 		VersionedLocal ssaL = handler.get(index, subscript, isStack);
 		
-		if(OPTIMISE) {
+		if(optimise) {
 			makeValue(copy, ssaL);
 		}
 		
@@ -793,7 +797,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 
 		boolean exists = true;
 
-		if(OPTIMISE) {
+		if(optimise) {
 			if(latest.containsKey(ssaL)) {
 				/* Try to propagate a simple copy local
 				 * to its use site. It is possible that
@@ -905,7 +909,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		}
 
 		if(exists) {
-			if(OPTIMISE) {
+			if(optimise) {
 				/* If we removed the local load expression,
 				 * check to see if we need to update the
 				 * use-map.*/
@@ -1373,7 +1377,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		insertPhis();
 		rename();
 		
-		if(OPTIMISE) {
+		if(optimise) {
 			resolveShadowedLocals();
 			aggregateInitialisers();
 			

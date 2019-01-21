@@ -44,68 +44,6 @@ public class PassGroup implements IPass {
 
 	@Override
 	public PassResult accept(PassContext pcxt) {		
-		List<IPass> completed = new ArrayList<>();
-		Map<IPass, PassResult> lastResults = new HashMap<>();
-		IPass last = null;
-		
-		Throwable error = null;
-		
-		outer: for(;;) {
-			last = null;
-			completed.clear();
-			
-			if(name != null) {
-				System.out.printf("Running %s group.%n", name);
-			}
-			boolean redoRound = false;
-			for(int i=0; i < passes.size(); i++) {
-				IPass p = passes.get(i);
-				
-				PassResult lastResult = lastResults.get(p);
-				if(lastResult != null) {
-					if(!lastResult.shouldRepeat()) {
-						continue;
-					}
-				}
-				
-				if(Boot.logging) {
-					Boot.section0("...took %fs." + (i == 0 ? "%n" : ""), "Running " + p.getId());
-				} else {
-					System.out.println("Running " + p.getId());
-				}
-				PassContext newCxt = new PassContext(pcxt.getAnalysis(), last, new ArrayList<>(completed));
-				PassResult newResult;
-				try {
-					newResult = p.accept(newCxt);
-					lastResults.put(p, newResult);
-				} catch(Throwable t) {
-					error = t;
-					break outer;
-				}
-				
-				if(!newResult.shouldContinue()) {
-					error = newResult.getError();
-					break outer;
-				}
-				
-				redoRound |= (newResult.shouldRepeat() && newResult.shouldContinue());
-				
-				completed.add(p);
-				last = p;
-			}
-			
-			if(!redoRound) {
-				break;
-			}
-			
-			System.out.println();
-			System.out.println();
-		}
-		
-		if(error != null) {
-			return PassResult.with(pcxt, this).fatal(error).make();
-		} else {
-			return PassResult.with(pcxt, this).finished().make();
-		}
+		return null;
 	}
 }
