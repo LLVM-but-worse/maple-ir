@@ -2,6 +2,7 @@ package org.mapleir;
 
 import org.mapleir.context.IRCache;
 import org.mapleir.ir.algorithms.BoissinotDestructor;
+import org.mapleir.ir.algorithms.LocalsReallocator;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.codegen.ControlFlowGraphDumper;
 import org.mapleir.ir.utils.CFGUtils;
@@ -29,7 +30,7 @@ public class CleanBoot {
             BoissinotDestructor.leaveSSA(cfg);
 
             CFGUtils.easyDumpCFG(cfg, "pre-reaalloc");
-            cfg.getLocals().realloc(cfg);
+            LocalsReallocator.realloc(cfg);
             CFGUtils.easyDumpCFG(cfg, "post-reaalloc");
             System.out.println(cfg);
             cfg.verify();
