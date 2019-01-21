@@ -18,6 +18,7 @@ import org.mapleir.deob.passes.rename.FieldRenamerPass;
 import org.mapleir.deob.passes.rename.MethodRenamerPass;
 import org.mapleir.deob.util.RenamingHeuristic;
 import org.mapleir.ir.algorithms.BoissinotDestructor;
+import org.mapleir.ir.algorithms.LocalsReallocator;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.cfg.builder.ControlFlowGraphBuilder;
 import org.mapleir.ir.codegen.ControlFlowGraphDumper;
@@ -108,7 +109,7 @@ public class Boot2 {
 			BoissinotDestructor.leaveSSA(cfg);
 
 			 // CFGUtils.easyDumpCFG(cfg, "pre-reaalloc");
-			cfg.getLocals().realloc(cfg);
+			LocalsReallocator.realloc(cfg);
 			 // CFGUtils.easyDumpCFG(cfg, "post-reaalloc");
 			// System.out.println(cfg);
 			cfg.verify();
