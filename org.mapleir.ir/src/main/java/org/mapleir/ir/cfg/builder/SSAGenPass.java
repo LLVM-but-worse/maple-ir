@@ -857,8 +857,12 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 							if(shouldPropagate(ssaL, realVal)) {
 								newL = realVal;
 							} else {
-								shadowed.getNonNull(ssaL).add(realVal);
-								shadowed.getNonNull(realVal).add(ssaL);
+								// 1/21/2019: fix for propagation across multiple variables in a congruence class
+								// (i.e. replacing two variables with one spill later in resolveShadowedLocals)
+								merge(ssaL, realVal);
+								// This code was incorrect
+								// shadowed.getNonNull(ssaL).add(realVal);
+								// shadowed.getNonNull(realVal).add(ssaL);
 							}
 						}
 					}
@@ -1163,7 +1167,22 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 
 	private void resolveShadowedLocals() {
 		Set<VersionedLocal> visited = new HashSet<>();
-		
+
+		for(Entry<VersionedLocal, Set<VersionedLocal>> e : shadowed.entrySet()) {
+			Set<VersionedLocal> shouldEqual = new HashSet(e.getValue());
+			shouldEqual.add(e.getKey());
+			for (VersionedLocal ccMember : e.getValue()) {
+				Set<VersionedLocal> otherCc = new HashSet<>(shadowed.get(ccMember));
+				otherCc.add(ccMember);
+				if (!otherCc.equals(shouldEqual)) {
+					System.err.println(shadowed);
+					throw new IllegalStateException("Shadowed locals congruence classes are inconsistent!\n"
+							+ "Faulty local = " + e.getKey() + " vs " + ccMember);
+				}
+			}
+		}
+
+		// System.out.println(shadowed);
 		for(Entry<VersionedLocal, Set<VersionedLocal>> e : shadowed.entrySet()) {
 			
 			if(!visited.contains(e.getKey())) {
