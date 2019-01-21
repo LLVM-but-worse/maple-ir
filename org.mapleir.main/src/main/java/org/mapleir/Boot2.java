@@ -70,10 +70,12 @@ public class Boot2 {
 				.build();
 
 		for (ClassNode cn : cxt.getApplication().iterate()) {
-			 if (!cn.name.equals("qzh/hdx/i"))
-			 	continue;
+			 // if (!cn.name.equals("qzh/hdx/i"))
+			 // 	continue;
+			if (cn.name.hashCode() != -5913103)
+				continue;
 			for (MethodNode m : cn.methods) {
-				 if (!m.name.equals("m"))
+				 if (!m.name.equals("mapTypes"))
 				 	continue;
 				cxt.getIRCache().getFor(m);
 			}
