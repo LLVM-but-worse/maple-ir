@@ -254,19 +254,8 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 								 * psi(ephi) node. */
 								throw new IllegalStateException(x.getDisplayName());
 							}
-							
-							// TODO: actually handle.
-							/* Map<BasicBlock, Expression> vls = new HashMap<>();
-							for(FlowEdge<BasicBlock> fe : builder.graph.getReverseEdges(x)) {
-								vls.put(fe.src, new VarExpr(newl, null));
-							}
-							vls.put(x, catcher.getExpression().copy());
-							catcher.delete();
-							
-							PhiExpr phi = new PhiExceptionExpr(vls);
-							CopyPhiStmt assign = new CopyPhiStmt(new VarExpr(l, null), phi);
-							
-							x.add(0, assign); */
+
+							// this is no longer a problem as this is now handled in NaturalisationPass.
 							throw new UnsupportedOperationException(builder.method.toString());
 						}
 					}

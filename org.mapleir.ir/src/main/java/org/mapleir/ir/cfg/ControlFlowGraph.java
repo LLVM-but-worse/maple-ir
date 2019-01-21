@@ -38,6 +38,10 @@ public class ControlFlowGraph extends FlowGraph<BasicBlock, FlowEdge<BasicBlock>
 	private final LocalsPool locals;
 	private final JavaDesc javaDesc;
 
+	// used for assigning unique id's to basicblocks. ugly hack
+	// fyi, we start at one arbitrarily.
+	private int blockCounter = 1;
+
 	public ControlFlowGraph(LocalsPool locals, JavaDesc javaDesc) {
 		this.locals = locals;
 		this.javaDesc = javaDesc;
@@ -47,6 +51,10 @@ public class ControlFlowGraph extends FlowGraph<BasicBlock, FlowEdge<BasicBlock>
 		super(cfg);
 		locals = cfg.locals;
 		javaDesc = cfg.javaDesc;
+	}
+
+	public int makeBlockId() {
+		return blockCounter++;
 	}
 
     public Stream<CodeUnit> allExprStream() {
@@ -197,9 +205,9 @@ public class ControlFlowGraph extends FlowGraph<BasicBlock, FlowEdge<BasicBlock>
 		clear();
 		
 		// rename and add blocks
-		int label = 1;
+		blockCounter = 1;
 		for(BasicBlock b : order) {
-			b.setId(label++);
+			b.setId(makeBlockId());
 			addVertex(b);
 		}
 		

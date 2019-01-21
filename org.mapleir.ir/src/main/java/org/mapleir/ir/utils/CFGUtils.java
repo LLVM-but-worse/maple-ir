@@ -98,7 +98,7 @@ public class CFGUtils {
 						System.err.println(cfg);
 						throw new AssertionError("Very odd split case. please investigate");
 					}
-					cfg.addEdge(tce.clone(tce.src(), null));
+					cfg.addEdge(tce.clone(tce.src(), null)); // null = use ehandler for dst
 					cfg.removeEdge(tce);
 				}
 				if (tce.erange.getHandler() != newBlock) {
@@ -196,14 +196,6 @@ public class CFGUtils {
 			return true;
 		}
 		return false;
-	}
-
-	// Ideally, we want to cache this, but this isn't needed very often anyways.
-	@Deprecated
-	public static int getMaxId(ControlFlowGraph cfg) {
-		int result = cfg.vertices().stream().map(BasicBlock::getNumericId).reduce(Integer::max).orElse(0);
-		assert (result == cfg.size());
-		return result;
 	}
 
 	/**
