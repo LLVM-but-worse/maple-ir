@@ -73,14 +73,15 @@ public class Boot2 {
 		for (ClassNode cn : cxt.getApplication().iterate()) {
 			 // if (!cn.name.equals("qzh/hdx/i"))
 			 // 	continue;
-			if (cn.name.hashCode() != -5913103)
-				continue;
+			// if (cn.name.hashCode() != -5913103)
+			// 	continue;
 			for (MethodNode m : cn.methods) {
-				 if (!m.name.equals("mapTypes"))
-				 	continue;
+				 // if (!m.name.equals("mapTypes"))
+				 // 	continue;
 				cxt.getIRCache().getFor(m);
 			}
 		}
+		System.out.println("Generated " + cxt.getIRCache().size() + " cfgs");
 
 		// do passes
 		PassGroup masterGroup = new PassGroup("MasterController");
@@ -182,10 +183,10 @@ public class Boot2 {
 		RenamingHeuristic heuristic = RenamingHeuristic.NON_PRINTABLE;
 		return new IPass[] {
 //				new ConcreteStaticInvocationPass(),
-// 				new ClassRenamerPass(heuristic),
-// 				new MethodRenamerPass(heuristic),
-// 				new FieldRenamerPass(),
-//				new CallgraphPruningPass(),
+				new ClassRenamerPass(heuristic),
+				new MethodRenamerPass(heuristic),
+				new FieldRenamerPass(),
+				// new CallgraphPruningPass(),
 				
 				// new PassGroup("Interprocedural Optimisations")
 				// 	.add(new ConstantParameterPass())
