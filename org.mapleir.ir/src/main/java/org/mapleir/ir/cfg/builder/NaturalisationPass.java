@@ -4,8 +4,14 @@ import org.mapleir.flowgraph.ExceptionRange;
 import org.mapleir.flowgraph.edges.FlowEdge;
 import org.mapleir.flowgraph.edges.FlowEdges;
 import org.mapleir.flowgraph.edges.TryCatchEdge;
+import org.mapleir.flowgraph.edges.UnconditionalJumpEdge;
 import org.mapleir.ir.cfg.BasicBlock;
+import org.mapleir.ir.code.Stmt;
+import org.mapleir.ir.code.expr.CaughtExceptionExpr;
+import org.mapleir.ir.code.stmt.UnconditionalJumpStmt;
+import org.mapleir.ir.code.stmt.copy.CopyVarStmt;
 import org.mapleir.ir.locals.Local;
+import org.mapleir.ir.utils.CFGUtils;
 import org.mapleir.stdlib.collections.graph.algorithms.SimpleDfs;
 
 import java.util.*;
@@ -20,8 +26,106 @@ public class NaturalisationPass extends ControlFlowGraphBuilder.BuilderPass {
 	@Override
 	public void run() {
 		mergeImmediates();
+		resolveNaturalHandlerFlow();
 	}
-	
+
+	// Resolve natural flow into handlers by splitting handler edges up.
+	private int resolveNaturalHandlerFlow() {
+		int fixed = 0;
+		for(BasicBlock b : SimpleDfs.topoorder(builder.graph, builder.head)) {
+			boolean hasHandler = false, hasNatural = false;
+			for (FlowEdge<BasicBlock> e : builder.graph.getReverseEdges(b)) {
+				if (e instanceof TryCatchEdge)
+					hasHandler = true;
+				else
+					hasNatural = true;
+				if (hasHandler && hasNatural)
+					break;
+			}
+
+			if (!(hasHandler && hasNatural)) {
+				// control flow is not problematic.
+				continue;
+			}
+
+			/*
+			Before:
+			Block A:
+			    svar0 = null -- the stack heights should *never* be misaligned; svar0 will always have SOMETHING
+			    immediateEdge to H
+
+			Block H:
+			    svar0 = catch()
+			  	<do exception stuff>
+			  	return
+
+			Block B: handler to H
+			  	<do stuff>
+			  	return
+
+			We will "split" the handler edge by decapitating H and moving the catch() statement into a stub.
+
+			After:
+			Block A:
+				svar0 = null
+				immediateEdge to H
+
+			Block H:
+			  	<do exception stuff>
+				return
+
+			Block B: handler to H1
+				<do stuff>
+				return
+
+			Block H1:
+				svar0 = catch()
+				goto H
+			*/
+
+			assert (b.get(0) instanceof CopyVarStmt);
+			CopyVarStmt catchCopy = (CopyVarStmt) b.get(0);
+			assert (catchCopy.getExpression() instanceof CaughtExceptionExpr);
+
+			// decapitate, doesn't update edges
+			BasicBlock newHandlerHead = CFGUtils.splitBlockSimple(builder.graph, b, 1);
+			newHandlerHead.add(new UnconditionalJumpStmt(b));
+			builder.graph.addEdge(new UnconditionalJumpEdge<>(newHandlerHead, b));
+			// update assigns map
+			builder.assigns.get(catchCopy.getVariable().getLocal()).add(newHandlerHead);
+			search: { // ugly.
+				for (Stmt stmt : b) {
+					if (stmt instanceof CopyVarStmt) {
+						CopyVarStmt cvs = (CopyVarStmt) stmt;
+						if (cvs.getVariable().getLocal().equals(catchCopy.getVariable().getLocal())) {
+							break search; // there is another copy to svar0
+						}
+					}
+				}
+				// We just eliminated the only copy to svar0, remove from the assigns map.
+				builder.assigns.get(catchCopy.getVariable().getLocal()).remove(b);
+			}
+
+			// update ranges to point to new handler head
+			for(ExceptionRange<BasicBlock> er : builder.graph.getRanges()) {
+				if (er.getHandler().equals(b)) {
+					er.setHandler(newHandlerHead);
+				}
+			}
+
+			// update handler edges
+			for (FlowEdge<BasicBlock> e : builder.graph.getPredecessors(e -> e instanceof TryCatchEdge, b)) {
+				// redirect handler to point at new handler head
+				TryCatchEdge<BasicBlock> handlerEdge = (TryCatchEdge<BasicBlock>) e;
+				builder.graph.addEdge(handlerEdge.clone(handlerEdge.src(), null));
+				builder.graph.removeEdge(e);
+			}
+
+			fixed++;
+		}
+		return fixed;
+	}
+
 	int mergeImmediates() {
 		class MergePair {
 			final BasicBlock src;
