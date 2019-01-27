@@ -98,7 +98,7 @@ public class CFGUtils {
 						System.err.println(cfg);
 						throw new AssertionError("Very odd split case. please investigate");
 					}
-					cfg.addEdge(tce.clone(tce.src(), null));
+					cfg.addEdge(tce.clone(tce.src(), null)); // null = use ehandler for dst
 					cfg.removeEdge(tce);
 				}
 				if (tce.erange.getHandler() != newBlock) {
@@ -198,14 +198,6 @@ public class CFGUtils {
 		return false;
 	}
 
-	// Ideally, we want to cache this, but this isn't needed very often anyways.
-	@Deprecated
-	public static int getMaxId(ControlFlowGraph cfg) {
-		int result = cfg.vertices().stream().map(BasicBlock::getNumericId).reduce(Integer::max).orElse(0);
-		assert (result == cfg.size());
-		return result;
-	}
-
 	/**
 	 * Splits block up to index `to`, exclusively. Doesn't update edges, etc.
 	 * @return The new block, containing the split-off instructions
@@ -252,8 +244,7 @@ public class CFGUtils {
 
 	public static void blockToString(TabbedStringWriter sw, ControlFlowGraph cfg, BasicBlock b, int insn) {
 		// sw.print("===#Block " + b.getId() + "(size=" + (b.size()) + ")===");
-		sw.print(String.format("===#Block %s(size=%d, ident=%s, flags=%s)===", b.getDisplayName(), b.size(),
-				/*(b.getLabelNode() != null && b.getLabel() != null ? b.getLabel().hashCode() : "null")*/ "x", Integer.toBinaryString(b.getFlags())));
+		sw.print(String.format("===#Block %s(size=%d, flags=%s)===", b.getDisplayName(), b.size(), Integer.toBinaryString(b.getFlags())));
 		sw.tab();
 		
 		Iterator<Stmt> it = b.iterator();

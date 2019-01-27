@@ -11,7 +11,7 @@ import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 
-public class FieldStoreStmt extends Stmt implements IJavaDescUse {
+public class FieldStoreStmt extends Stmt implements IUsesJavaDesc {
 
 	private Expr instanceExpression;
 	private Expr valueExpression;
@@ -165,5 +165,10 @@ public class FieldStoreStmt extends Stmt implements IJavaDescUse {
 	@Override
 	public JavaDescUse.UseType getDataUseType() {
 		return JavaDescUse.UseType.WRITE;
+	}
+
+	@Override
+	public JavaDesc getDataUseLocation() {
+		return getBlock().getGraph().getJavaDesc();
 	}
 }

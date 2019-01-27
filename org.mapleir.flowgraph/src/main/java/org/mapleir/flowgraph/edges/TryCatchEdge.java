@@ -37,6 +37,7 @@ public class TryCatchEdge<N extends FastGraphVertex> extends AbstractFlowEdge<N>
 	}
 
 	@Override
+	// null = use ehandler for dst
 	public TryCatchEdge<N> clone(N src, N dst) {
 		return new TryCatchEdge<>(src, erange);
 	}

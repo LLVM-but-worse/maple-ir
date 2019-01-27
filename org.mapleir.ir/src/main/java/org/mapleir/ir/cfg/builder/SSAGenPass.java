@@ -37,9 +37,6 @@ import java.util.*;
 import java.util.Map.Entry;
 
 public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
-
-	private static boolean OPTIMISE = true;
-
 	private final BasicLocal svar0;
 	private final Map<VersionedLocal, Type> types;
 	private final Map<Local, Integer> counters;
@@ -60,8 +57,15 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 	
 	private Liveness<BasicBlock> liveness;
 
+	private final boolean optimise;
+
 	public SSAGenPass(ControlFlowGraphBuilder builder) {
+		this(builder, true);
+	}
+
+	public SSAGenPass(ControlFlowGraphBuilder builder, boolean optimise) {
 		super(builder);
+		this.optimise = optimise;
 
 		svar0 = builder.graph.getLocals().newLocal(0, true);
 		
@@ -254,19 +258,8 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 								 * psi(ephi) node. */
 								throw new IllegalStateException(x.getDisplayName());
 							}
-							
-							// TODO: actually handle.
-							/* Map<BasicBlock, Expression> vls = new HashMap<>();
-							for(FlowEdge<BasicBlock> fe : builder.graph.getReverseEdges(x)) {
-								vls.put(fe.src, new VarExpr(newl, null));
-							}
-							vls.put(x, catcher.getExpression().copy());
-							catcher.delete();
-							
-							PhiExpr phi = new PhiExceptionExpr(vls);
-							CopyPhiStmt assign = new CopyPhiStmt(new VarExpr(l, null), phi);
-							
-							x.add(0, assign); */
+
+							// this is no longer a problem as this is now handled in NaturalisationPass.
 							throw new UnsupportedOperationException(builder.method.toString());
 						}
 					}
@@ -353,7 +346,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		
 		unstackDefs(b);
 		
-		if(OPTIMISE) {
+		if(optimise) {
 			optimisePhis(b);
 		}
 	}
@@ -464,7 +457,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		
 		VersionedLocal ssaL = handler.get(index, subscript, isStack);
 		
-		if(OPTIMISE) {
+		if(optimise) {
 			makeValue(copy, ssaL);
 		}
 		
@@ -804,7 +797,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 
 		boolean exists = true;
 
-		if(OPTIMISE) {
+		if(optimise) {
 			if(latest.containsKey(ssaL)) {
 				/* Try to propagate a simple copy local
 				 * to its use site. It is possible that
@@ -868,8 +861,12 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 							if(shouldPropagate(ssaL, realVal)) {
 								newL = realVal;
 							} else {
-								shadowed.getNonNull(ssaL).add(realVal);
-								shadowed.getNonNull(realVal).add(ssaL);
+								// 1/21/2019: fix for propagation across multiple variables in a congruence class
+								// (i.e. replacing two variables with one spill later in resolveShadowedLocals)
+								merge(ssaL, realVal);
+								// This code was incorrect
+								// shadowed.getNonNull(ssaL).add(realVal);
+								// shadowed.getNonNull(realVal).add(ssaL);
 							}
 						}
 					}
@@ -912,7 +909,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		}
 
 		if(exists) {
-			if(OPTIMISE) {
+			if(optimise) {
 				/* If we removed the local load expression,
 				 * check to see if we need to update the
 				 * use-map.*/
@@ -1174,7 +1171,22 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 
 	private void resolveShadowedLocals() {
 		Set<VersionedLocal> visited = new HashSet<>();
-		
+
+		for(Entry<VersionedLocal, Set<VersionedLocal>> e : shadowed.entrySet()) {
+			Set<VersionedLocal> shouldEqual = new HashSet(e.getValue());
+			shouldEqual.add(e.getKey());
+			for (VersionedLocal ccMember : e.getValue()) {
+				Set<VersionedLocal> otherCc = new HashSet<>(shadowed.get(ccMember));
+				otherCc.add(ccMember);
+				if (!otherCc.equals(shouldEqual)) {
+					System.err.println(shadowed);
+					throw new IllegalStateException("Shadowed locals congruence classes are inconsistent!\n"
+							+ "Faulty local = " + e.getKey() + " vs " + ccMember);
+				}
+			}
+		}
+
+		// System.out.println(shadowed);
 		for(Entry<VersionedLocal, Set<VersionedLocal>> e : shadowed.entrySet()) {
 			
 			if(!visited.contains(e.getKey())) {
@@ -1365,7 +1377,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		insertPhis();
 		rename();
 		
-		if(OPTIMISE) {
+		if(optimise) {
 			resolveShadowedLocals();
 			aggregateInitialisers();
 			
