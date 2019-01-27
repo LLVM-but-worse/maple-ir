@@ -61,7 +61,7 @@ public class DataFlowDemoBoot {
 		ApplicationClassSource app = new ApplicationClassSource(appName, dl.getJarContents().getClassContents());
 //		
 // 		ApplicationClassSource app = new ApplicationClassSource("test", ClassHelper.parseClasses(CGExample.class));
-//		app.addLibraries(new InstalledRuntimeClassSource(app));
+//		app.addLibraries(new InstalledcoRuntimeClassSource(app));
 
 		File rtjar = new File("res/rt.jar");
 		File androidjar = new File("res/android.jar");
@@ -130,7 +130,7 @@ public class DataFlowDemoBoot {
             String name = parts2[0];
             String desc = parts2[1];
             JavaDesc.DescType type = JavaDesc.DescType.valueOf(parts2[2].toUpperCase());
-            cxt.getDataflowAnalysis().findAllRefs(new JavaDescSpecifier(owner, name, desc, type, null))
+            cxt.getDataflowAnalysis().findAllRefs(new JavaDescSpecifier(owner, name, desc, type))
                     .filter(cu -> cu.flowType == JavaDescUse.UseType.CALL)
                     .map(cu -> (InvocationExpr)cu.flowElement).forEach(ie -> {
                 System.out.println("xref-> " + ie.getBlock().getGraph().getJavaDesc());

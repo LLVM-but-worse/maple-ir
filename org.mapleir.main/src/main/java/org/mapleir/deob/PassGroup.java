@@ -47,27 +47,27 @@ public class PassGroup implements IPass {
 		List<IPass> completed = new ArrayList<>();
 		Map<IPass, PassResult> lastResults = new HashMap<>();
 		IPass last = null;
-		
+
 		Throwable error = null;
-		
+
 		outer: for(;;) {
 			last = null;
 			completed.clear();
-			
+
 			if(name != null) {
 				System.out.printf("Running %s group.%n", name);
 			}
 			boolean redoRound = false;
 			for(int i=0; i < passes.size(); i++) {
 				IPass p = passes.get(i);
-				
+
 				PassResult lastResult = lastResults.get(p);
 				if(lastResult != null) {
 					if(!lastResult.shouldRepeat()) {
 						continue;
 					}
 				}
-				
+
 				if(Boot.logging) {
 					Boot.section0("...took %fs." + (i == 0 ? "%n" : ""), "Running " + p.getId());
 				} else {
@@ -82,26 +82,26 @@ public class PassGroup implements IPass {
 					error = t;
 					break outer;
 				}
-				
+
 				if(!newResult.shouldContinue()) {
 					error = newResult.getError();
 					break outer;
 				}
-				
+
 				redoRound |= (newResult.shouldRepeat() && newResult.shouldContinue());
-				
+
 				completed.add(p);
 				last = p;
 			}
-			
+
 			if(!redoRound) {
 				break;
 			}
-			
+
 			System.out.println();
 			System.out.println();
 		}
-		
+
 		if(error != null) {
 			return PassResult.with(pcxt, this).fatal(error).make();
 		} else {

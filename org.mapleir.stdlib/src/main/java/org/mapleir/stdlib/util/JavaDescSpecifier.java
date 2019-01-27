@@ -5,10 +5,6 @@ public class JavaDescSpecifier {
     public final JavaDesc.DescType descType;
 
     public JavaDescSpecifier(String ownerRegex, String nameRegex, String descRegex, JavaDesc.DescType descType) {
-        this(ownerRegex, nameRegex, descRegex, descType, null);
-    }
-
-    public JavaDescSpecifier(String ownerRegex, String nameRegex, String descRegex, JavaDesc.DescType descType, Object extraData) {
         this.ownerRegex = ownerRegex;
         this.nameRegex = nameRegex;
         this.descRegex = descRegex;

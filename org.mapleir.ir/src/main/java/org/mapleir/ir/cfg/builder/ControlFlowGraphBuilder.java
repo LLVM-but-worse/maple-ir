@@ -3,6 +3,10 @@ package org.mapleir.ir.cfg.builder;
 import org.apache.log4j.Logger;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
+import org.mapleir.ir.code.CodeUnit;
+import org.mapleir.ir.code.Stmt;
+import org.mapleir.ir.code.expr.VarExpr;
+import org.mapleir.ir.code.stmt.copy.CopyVarStmt;
 import org.mapleir.ir.locals.Local;
 import org.mapleir.ir.locals.impl.StaticMethodLocalsPool;
 import org.mapleir.ir.locals.impl.VirtualMethodLocalsPool;
@@ -23,8 +27,14 @@ public class ControlFlowGraphBuilder {
 	protected final Set<Local> locals;
 	protected final NullPermeableHashMap<Local, Set<BasicBlock>> assigns;
 	protected BasicBlock head;
-	
+	protected final boolean optimise;
+
 	public ControlFlowGraphBuilder(MethodNode method) {
+		this(method, true);
+	}
+
+	public ControlFlowGraphBuilder(MethodNode method, boolean optimise) {
+		this.optimise = optimise;
 		this.method = method;
 		if(Modifier.isStatic(method.access)) {
 			graph = new ControlFlowGraph(new StaticMethodLocalsPool(), method.getJavaDesc());
@@ -50,7 +60,7 @@ public class ControlFlowGraphBuilder {
 				new GenerationPass(this),
 				new DeadBlocksPass(this),
 				new NaturalisationPass(this),
-				new SSAGenPass(this),
+				new SSAGenPass(this, optimise),
 		};
 	}
 	
@@ -61,7 +71,7 @@ public class ControlFlowGraphBuilder {
 		}
 		return graph;
 	}
-	
+
 	public static ControlFlowGraph build(MethodNode method) {
 		ControlFlowGraphBuilder builder = new ControlFlowGraphBuilder(method);
 		return builder.buildImpl();

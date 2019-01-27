@@ -29,7 +29,7 @@ public class BasicBlock implements FastGraphVertex, Collection<Stmt> {
 
 	public BasicBlock(ControlFlowGraph cfg) {
 		this.cfg = cfg;
-		this.id = cfg.size() + 1;
+		this.id = cfg.makeBlockId();
 		statements = new NotifiedList<>(
 				(s) -> s.setBlock(this),
 				(s) -> {
