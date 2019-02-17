@@ -26,6 +26,10 @@ import java.util.Map.Entry;
 
 import static org.mapleir.ir.code.Opcode.LOCAL_LOAD;
 
+/**
+ * An out-of-SSA implementation based on Sreedhar et al.'s method, described in the paper
+ * "Translating Out of Static Single Assignment Form".
+ */
 public class SreedharDestructor {
 
 	private final ControlFlowGraph cfg;

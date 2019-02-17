@@ -13,6 +13,13 @@ import org.mapleir.stdlib.collections.map.NullPermeableHashMap;
 import java.util.List;
 import java.util.Set;
 
+/**
+ * A fast dominance-based liveness analyser for SSA-form flow graphs.
+ * This class implements the algorithm described in the 2007 paper "Fast Liveness Checking
+ * for SSA-Form Programs" by Boissinot et al..
+ * @see <a href="https://hal.inria.fr/inria-00192219/file/fast_liveness.pdf">Fast
+ * Liveness Checking for SSA-Form Programs</a>
+ */
 public class DominanceLivenessAnalyser {
 
 	private final NullPermeableHashMap<BasicBlock, GenericBitSet<BasicBlock>> rv;

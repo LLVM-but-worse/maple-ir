@@ -27,6 +27,13 @@ import org.objectweb.asm.Type;
 import java.util.*;
 import java.util.Map.Entry;
 
+/**
+ * An out-of-SSA implementation based on the 2009 paper "Revisiting Out-of-SSA
+ * Translation for Correctness, CodeQuality, and Efficiency" by Boissinot et al..
+ *
+ * @see <a href="https://hal.inria.fr/inria-00349925v1/document">Revisiting
+ * Out-of-SSA Translation for Correctness, CodeQuality, and Efficiency</a>
+ */
 public class BoissinotDestructor {
 	// private boolean DO_VALUE_INTERFERENCE = true;
 	// private boolean DO_SHARE_COALESCE = true;

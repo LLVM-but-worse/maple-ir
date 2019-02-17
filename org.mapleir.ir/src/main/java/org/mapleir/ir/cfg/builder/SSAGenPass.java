@@ -36,6 +36,14 @@ import org.objectweb.asm.Type;
 import java.util.*;
 import java.util.Map.Entry;
 
+/**
+ * The compiler pass responsible for converting a non-SSA flow graph into a SSA-form flow graph.
+ * Also does constant and copy propagation and expression inlining if enabled.
+ * The input flowgraph *must* be naturalised; see {@link NaturalisationPass} for more details.
+ *
+ * No one really understands how this class works anymore. It works extremely well, but I swear
+ * debugging this is next to impossible. Good luck.
+ */
 public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 	private final BasicLocal svar0;
 	private final Map<VersionedLocal, Type> types;

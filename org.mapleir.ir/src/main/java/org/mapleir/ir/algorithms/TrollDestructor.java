@@ -32,6 +32,9 @@ import java.util.Map.Entry;
 
 import static org.mapleir.ir.code.Opcode.LOCAL_LOAD;
 
+/**
+ * A dank SSA destructor that translates out of SSA by literally evaluating phi statements, lol
+ */
 public class TrollDestructor {
 
 	private final ControlFlowGraph cfg;
