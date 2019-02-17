@@ -21,9 +21,15 @@ import org.mapleir.ir.locals.LocalsPool;
 import org.mapleir.stdlib.collections.bitset.GenericBitSet;
 import org.mapleir.stdlib.collections.map.NullPermeableHashMap;
 
+/**
+ * A simple fixed-point, worklist-based liveness analyser that supports both SSA and non-SSA flow graphs.
+ * If your flow graph is already in SSA, you should use {@link DominanceLivenessAnalyser} instead.
+ */
 public class SSABlockLivenessAnalyser implements Liveness<BasicBlock> {
 	private final NullPermeableHashMap<BasicBlock, GenericBitSet<Local>> use;
 	private final NullPermeableHashMap<BasicBlock, GenericBitSet<Local>> def;
+
+	// phi uses and phi defs must be handled specially because there are special semantics about the dataflow.
 	private final NullPermeableHashMap<BasicBlock, NullPermeableHashMap<BasicBlock, GenericBitSet<Local>>> phiUse;
 	private final NullPermeableHashMap<BasicBlock, GenericBitSet<Local>> phiDef;
 
@@ -105,14 +111,11 @@ public class SSABlockLivenessAnalyser implements Liveness<BasicBlock> {
 					BasicBlock exprSource = e.getKey();
 					Expr phiExpr = e.getValue();
 					GenericBitSet<Local> useSet = phiUse.get(b).getNonNull(exprSource);
-					if (phiExpr.getOpcode() == Opcode.LOCAL_LOAD) {
-						useSet.add(((VarExpr) phiExpr).getLocal());
-					} else
-						for (Expr child : phiExpr.enumerateOnlyChildren()) {
-							if (child.getOpcode() == Opcode.LOCAL_LOAD) {
-								useSet.add(((VarExpr) child).getLocal());
-							}
-						}
+                    for (Expr child : phiExpr.enumerateWithSelf()) {
+                        if (child.getOpcode() == Opcode.LOCAL_LOAD) {
+                            useSet.add(((VarExpr) child).getLocal());
+                        }
+                    }
 				}
 			} else {
 				if (opcode == Opcode.LOCAL_STORE) {
@@ -120,22 +123,8 @@ public class SSABlockLivenessAnalyser implements Liveness<BasicBlock> {
 					Local l = copy.getVariable().getLocal();
 					def.get(b).add(l);
 					use.get(b).remove(l);
-
-					Expr e = copy.getExpression();
-					/* We need to let svar0 be live in even if 
-					 * there is a catch() copy here as splitRanges 
-					 * relies on it. If we don't do this, svar0 will 
-					 * be considered to be dead into a handler block
-					 * even if it is technically live-in due to
-					 * natural flow. */
-					
-					// TODO: look into hasNaturalFlow before blindly
-					// adding it as live-in.
-					if (e.getOpcode() == Opcode.CATCH) {
-						if(hasNaturalPredecessors(cfg, b)) {
-							use.get(b).add(l);
-						}
-					}
+					// 2/17/19: we now no longer need treat handler edges differently, as
+					// NaturalisationPass should eliminate all natural flow into handlers.
 				}
 				for (Expr c : stmt.enumerateOnlyChildren()) {
 					if (c.getOpcode() == Opcode.LOCAL_LOAD) {
@@ -145,15 +134,6 @@ public class SSABlockLivenessAnalyser implements Liveness<BasicBlock> {
 				}
 			}
 		}
-	}
-	
-	private static boolean hasNaturalPredecessors(ControlFlowGraph cfg, BasicBlock b) {
-		for(FlowEdge<BasicBlock> e : cfg.getReverseEdges(b)) {
-			if(e.getType() != FlowEdges.TRYCATCH) {
-				return true;
-			}
-		}
-		return false;
 	}
 
 	@Override

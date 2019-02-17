@@ -260,7 +260,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 							}
 
 							// this is no longer a problem as this is now handled in NaturalisationPass.
-							throw new UnsupportedOperationException(builder.method.toString());
+							throw new UnsupportedOperationException("Natural flow into a handler block in " + builder.method.toString() + ". Did you run NaturalisationPass?");
 						}
 					}
 					
