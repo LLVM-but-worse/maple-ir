@@ -109,4 +109,4 @@ Contact: `ecx` or `bibl` [at] `mapleir.org`
 ## License
 Maple-IR is licensed under the GPLv3. For more information, please see [here](https://www.gnu.org/licenses/gpl-3.0.en.html).
 
-Copyright (c) 2018 Bibl and ecx86
+Copyright (c) 2019 Bibl and ecx86
