@@ -18,7 +18,7 @@ import java.io.FileOutputStream;
 public class CleanBoot {
 
     public static void main(String[] args) throws Exception {
-        ClassNode cn = ClassHelper.create(new FileInputStream(new File("res", "Bad.class")));
+        ClassNode cn = ClassHelper.create(new FileInputStream(new File("res", "BiteCode.class")));
         IRCache irFactory = new IRCache();
         for (MethodNode mn : cn.methods) {
             ControlFlowGraph cfg = irFactory.getNonNull(mn);

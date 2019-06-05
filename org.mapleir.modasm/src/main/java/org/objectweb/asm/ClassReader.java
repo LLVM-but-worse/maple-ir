@@ -141,6 +141,11 @@ public class ClassReader {
      */
     public final int header;
 
+    // maple-ir start //
+    public final int majorVersion;
+    public final int minorVersion;
+    // maple-ir end //
+
     // ------------------------------------------------------------------------
     // Constructors
     // ------------------------------------------------------------------------
@@ -168,7 +173,9 @@ public class ClassReader {
     public ClassReader(final byte[] b, final int off, final int len) {
         this.b = b;
         // checks the class version
-        if (readShort(off + 6) > Opcodes.V1_8) {
+        minorVersion = readUnsignedShort(off + 4);
+        majorVersion = readUnsignedShort(off + 6);
+        if (majorVersion > Opcodes.V1_8) {
             throw new IllegalArgumentException();
         }
         // parses the constant pool
@@ -1049,10 +1056,20 @@ public class ClassReader {
         // reads the header
         byte[] b = this.b;
         char[] c = context.buffer;
-        int maxStack = readUnsignedShort(u);
-        int maxLocals = readUnsignedShort(u + 2);
-        int codeLength = readInt(u + 4);
-        u += 8;
+        // maple-ir start //
+        int maxStack, maxLocals, codeLength;
+        if (majorVersion < 45 || (majorVersion == 45 && minorVersion < 3)) {
+            maxStack = readByte(u);
+            maxLocals = readByte(u + 1);
+            codeLength = readUnsignedShort(u + 2);
+            u += 4;
+        } else {
+            maxStack = readUnsignedShort(u);
+            maxLocals = readUnsignedShort(u + 2);
+            codeLength = readInt(u + 4);
+            u += 8;
+        }
+        // maple-ir end //
 
         // reads the bytecode to find the labels
         int codeStart = u;
