@@ -1,12 +1,6 @@
 package org.mapleir.asm;
 
 import org.mapleir.stdlib.collections.graph.FastGraphVertex;
-import org.mapleir.stdlib.util.IHasJavaDesc;
-import org.mapleir.stdlib.util.JavaDesc;
-import org.objectweb.asm.ClassReader;
-import org.objectweb.asm.ClassVisitor;
-import org.objectweb.asm.ClassWriter;
-
 import java.util.ArrayList;
 import java.util.List;
 

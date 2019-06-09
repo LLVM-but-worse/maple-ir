@@ -16,6 +16,11 @@ public class MethodNode implements FastGraphVertex, IHasJavaDesc {
         this.owner = owner;
     }
 
+   	@Override
+   	public String toString() {
+   		return (owner != null ? getOwner() : "null") + "." + getName() + getDesc();
+   	}
+
     @Override
     public String getDisplayName() {
         return node.name;
