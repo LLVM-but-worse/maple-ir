@@ -14,6 +14,6 @@ public class OpcodeFilter implements InstructionFilter {
 	public boolean accept(AbstractInsnNode t) {
 		if (opcode == -1)
 			return true;
-		return opcode == t.opcode();
+		return opcode == t.getOpcode();
 	}
 }

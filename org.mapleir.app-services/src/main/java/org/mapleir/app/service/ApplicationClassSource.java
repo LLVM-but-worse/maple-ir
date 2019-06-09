@@ -6,9 +6,9 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import org.mapleir.stdlib.collections.ClassHelper;
+import org.mapleir.asm.ClassHelper;
 import org.mapleir.stdlib.collections.itertools.ChainIterator;
-import org.objectweb.asm.tree.ClassNode;
+import org.mapleir.asm.ClassNode;
 
 public class ApplicationClassSource extends ClassSource {
 

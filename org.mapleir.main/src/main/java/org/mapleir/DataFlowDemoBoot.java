@@ -19,8 +19,8 @@ import org.mapleir.ir.code.expr.invoke.InvocationExpr;
 import org.mapleir.stdlib.util.JavaDesc;
 import org.mapleir.stdlib.util.JavaDescSpecifier;
 import org.mapleir.stdlib.util.JavaDescUse;
-import org.objectweb.asm.tree.ClassNode;
-import org.objectweb.asm.tree.MethodNode;
+import org.mapleir.asm.ClassNode;
+import org.mapleir.asm.MethodNode;
 import org.topdank.byteengineer.commons.data.JarInfo;
 import org.topdank.byteio.in.SingleJarDownloader;
 
@@ -89,7 +89,7 @@ public class DataFlowDemoBoot {
 		for (ClassNode cn : cxt.getApplication().iterate()) {
 //			 if (!cn.name.equals("android/support/v4/media/session/MediaSessionCompat$MediaSessionImplApi18"))
 //			 	continue;
-			for (MethodNode m : cn.methods) {
+			for (MethodNode m : cn.getMethods()) {
 //				 if (!m.name.equals("setRccState"))
 //				 	continue;
 				cxt.getIRCache().getFor(m);
@@ -187,8 +187,8 @@ public class DataFlowDemoBoot {
 		Set<MethodNode> set = new HashSet<>();
 		/* searches only app classes. */
 		for(ClassNode cn : source.iterate())  {
-			for(MethodNode m : cn.methods) {
-				if((m.name.length() > 2 && !m.name.equals("<init>")) || m.instructions.size() == 0) {
+			for(MethodNode m : cn.getMethods()) {
+				if((m.getName().length() > 2 && !m.getName().equals("<init>")) || m.node.instructions.size() == 0) {
 					set.add(m);
 				}
 			}

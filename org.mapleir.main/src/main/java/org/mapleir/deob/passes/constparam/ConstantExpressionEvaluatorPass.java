@@ -37,8 +37,8 @@ import org.mapleir.ir.locals.Local;
 import org.mapleir.ir.locals.LocalsPool;
 import org.mapleir.stdlib.collections.taint.TaintableSet;
 import org.objectweb.asm.Type;
-import org.objectweb.asm.tree.ClassNode;
-import org.objectweb.asm.tree.MethodNode;
+import org.mapleir.asm.ClassNode;
+import org.mapleir.asm.MethodNode;
 
 public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 	private ExpressionEvaluator evaluator;
@@ -62,7 +62,7 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 			int prevBranchesEval = branchesEvaluated;
 			
 			for(ClassNode cn : cxt.getApplication().iterate()) {
-				for(MethodNode m : cn.methods) {
+				for(MethodNode m : cn.getMethods()) {
 					processMethod(m, vis, cxt.getIRCache().getFor(m));
 				}
 			}
@@ -282,11 +282,11 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 		@Override
 		public void postVisitMethod(IPAnalysis analysis, MethodNode m) {
 			// Initialise possible value sets for parameters.
-			int pCount = Type.getArgumentTypes(m.desc).length;
+			int pCount = Type.getArgumentTypes(m.node.desc).length;
 			
 			ControlFlowGraph cfg = cxt.getIRCache().getFor(m);
 			
-			if(Modifier.isStatic(m.access)) {
+			if(Modifier.isStatic(m.node.access)) {
 				if(!constParams.containsKey(cfg)) {
 					List<TaintableSet<ConstantExpr>> l = new ArrayList<>();
 					constParams.put(cfg, l);
@@ -320,7 +320,7 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 				Expr e = params[i];
 				
 				if(e.getOpcode() == Opcode.CONST_LOAD) {
-					if(Modifier.isStatic(callee.access)) {
+					if(Modifier.isStatic(callee.node.access)) {
 						constParams.get(cxt.getIRCache().getFor(callee)).get(i).add((ConstantExpr) e);
 					} else {
 						/* only chain callsites *can* have this input */
@@ -330,7 +330,7 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 					}
 				} else {
 					/* callsites tainted */
-					if(Modifier.isStatic(callee.access)) {
+					if(Modifier.isStatic(callee.node.access)) {
 						constParams.get(cxt.getIRCache().getFor(callee)).get(i).taint();
 					} else {
 						/* only chain callsites *can* have this input */

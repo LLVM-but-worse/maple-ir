@@ -6,8 +6,9 @@ import java.io.IOException;
 import java.util.jar.JarEntry;
 import java.util.jar.JarOutputStream;
 
+import org.mapleir.asm.ClassHelper;
 import org.objectweb.asm.ClassWriter;
-import org.objectweb.asm.tree.ClassNode;
+import org.mapleir.asm.ClassNode;
 import org.topdank.byteengineer.commons.data.JarContents;
 import org.topdank.byteengineer.commons.data.JarResource;
 import org.topdank.byteio.util.Debug;
@@ -44,7 +45,7 @@ public class CompleteJarDumper implements JarDumper {
 		int classesDumped = 0;
 		int resourcesDumped = 0;
 		for (ClassNode cn : contents.getClassContents()) {
-			classesDumped += dumpClass(jos, cn.name, cn);
+			classesDumped += dumpClass(jos, cn.getName(), cn);
 		}
 		for (JarResource res : contents.getResourceContents()) {
 			resourcesDumped += dumpResource(jos, res.getName(), res.getData());
@@ -66,11 +67,9 @@ public class CompleteJarDumper implements JarDumper {
 	 */
 	@Override
 	public int dumpClass(JarOutputStream out, String name, ClassNode cn) throws IOException {
-		JarEntry entry = new JarEntry(cn.name + ".class");
+		JarEntry entry = new JarEntry(cn.getName() + ".class");
 		out.putNextEntry(entry);
-		ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_FRAMES);
-		cn.accept(writer);
-		out.write(writer.toByteArray());
+		out.write(ClassHelper.toByteArray(cn, ClassWriter.COMPUTE_FRAMES));
 		return 1;
 	}
 

@@ -41,7 +41,7 @@ public class InstructionSearcher implements Opcodes {
 		for(AbstractInsnNode ain : insns) {
 			//if (ain instanceof LineNumberNode || ain instanceof FrameNode || ain instanceof LabelNode)
 			//	continue;
-			if(ain.opcode() == -1)
+			if(ain.getOpcode() == -1)
 				continue;
 			if (pattern.accept(ain)) {
 				matches.add(pattern.getLastMatch());

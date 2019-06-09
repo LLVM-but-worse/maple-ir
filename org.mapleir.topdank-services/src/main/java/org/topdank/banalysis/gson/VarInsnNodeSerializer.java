@@ -31,7 +31,7 @@ public class VarInsnNodeSerializer implements JsonSerializer<VarInsnNode>, JsonD
     @Override
     public JsonElement serialize(VarInsnNode src, Type typeOfSrc, JsonSerializationContext context) {
     	JsonObject object = new JsonObject();
-        object.add("opcode", context.serialize(src.opcode()));
+        object.add("opcode", context.serialize(src.getOpcode()));
         object.add("var", context.serialize(src.var));
         return object;
     }

@@ -6,7 +6,7 @@ import java.util.Set;
 import org.mapleir.app.service.ApplicationClassSource;
 import org.mapleir.app.service.InvocationResolver;
 import org.mapleir.ir.code.expr.invoke.Invocation;
-import org.objectweb.asm.tree.MethodNode;
+import org.mapleir.asm.MethodNode;
 
 public abstract class CallTracer {
 
@@ -29,7 +29,7 @@ public abstract class CallTracer {
 			visited.add(m);
 			visitMethod(m);
 			
-			if(tree.isLibraryClass(m.owner.name)) {
+			if(tree.isLibraryClass(m.getOwner())) {
 				return;
 			}
 		}

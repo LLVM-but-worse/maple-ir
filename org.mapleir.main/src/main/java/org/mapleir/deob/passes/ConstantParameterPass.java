@@ -35,7 +35,7 @@ import org.mapleir.ir.locals.LocalsPool;
 import org.mapleir.ir.locals.impl.VersionedLocal;
 import org.mapleir.ir.utils.CFGUtils;
 import org.objectweb.asm.Type;
-import org.objectweb.asm.tree.MethodNode;
+import org.mapleir.asm.MethodNode;
 
 // TODO: Convert to use TaintableSet
 public class ConstantParameterPass implements IPass, Opcode {
@@ -57,7 +57,7 @@ public class ConstantParameterPass implements IPass, Opcode {
 		IPAnalysisVisitor vis = new IPAnalysisVisitor() {
 			@Override
 			public void postVisitMethod(IPAnalysis analysis, MethodNode m) {
-				int pCount = Type.getArgumentTypes(m.desc).length;
+				int pCount = Type.getArgumentTypes(m.getDesc()).length;
 				
 				/* init map entries */
 				if(!chainedNonConstant.containsKey(m)) {
@@ -72,7 +72,7 @@ public class ConstantParameterPass implements IPass, Opcode {
 					}
 				}
 				
-				if(Modifier.isStatic(m.access)) {
+				if(Modifier.isStatic(m.node.access)) {
 					if(!rawConstantParameters.containsKey(m)) {
 						List<Set<Object>> l = new ArrayList<>(pCount);
 						rawConstantParameters.put(m, l);
@@ -104,7 +104,7 @@ public class ConstantParameterPass implements IPass, Opcode {
 					Expr e = params[i];
 					
 					if(e.getOpcode() == Opcode.CONST_LOAD) {
-						if(Modifier.isStatic(callee.access)) {
+						if(Modifier.isStatic(callee.node.access)) {
 							rawConstantParameters.get(callee).get(i).add(((ConstantExpr) e).getConstant());
 						} else {
 							/* only chain callsites *can* have this input */
@@ -120,7 +120,7 @@ public class ConstantParameterPass implements IPass, Opcode {
 						}
 						
 						/* callsites tainted */
-						if(Modifier.isStatic(callee.access)) {
+						if(Modifier.isStatic(callee.node.access)) {
 							specificNonConstant.get(callee)[i] = true;
 						} else {
 							/* only chain callsites *can* have this input */
@@ -146,16 +146,16 @@ public class ConstantParameterPass implements IPass, Opcode {
 			
 			MethodNode m = en.getKey();
 
-			if(app.isLibraryClass(m.owner.name)) {
+			if(app.isLibraryClass(m.owner.getName())) {
 				it.remove();
 				continue;
 			}
 			
 			// TODO: MUST BE CONVERTED TO ACCOUNT FOR DIRECT SUPERS, NOT ALL
 			superFor: for(ClassNode cn : structures.getAllParents(m.owner)) {
-				if(app.isLibraryClass(cn.name)) {
+				if(app.isLibraryClass(cn.getName())) {
 					for(MethodNode m1 : cn.methods) {
-						if(resolver.areMethodsCongruent(m1, m, Modifier.isStatic(m.access))) {
+						if(resolver.areMethodsCongruent(m1, m, Modifier.isStatic(m.node.access))) {
 							it.remove();
 							break superFor;
 						}
@@ -258,8 +258,8 @@ public class ConstantParameterPass implements IPass, Opcode {
 					continue;
 				}
 				
-				Type[] params = Type.getArgumentTypes(m.desc);
-				Type ret = Type.getReturnType(m.desc);
+				Type[] params = Type.getArgumentTypes(m.getDesc());
+				Type ret = Type.getReturnType(m.getDesc());
 				String desc = buildDesc(params, ret, deadMap);
 				
 				Set<MethodNode> conflicts = new HashSet<>();
@@ -267,16 +267,16 @@ public class ConstantParameterPass implements IPass, Opcode {
 				for(MethodNode chm : chainMap.get(m)) {
 					remap.put(chm, desc);
 					
-					if(Modifier.isStatic(m.access)) {
-						MethodNode mm = resolver.resolveStaticCall(chm.owner.name, chm.name, desc);
+					if(Modifier.isStatic(m.node.access)) {
+						MethodNode mm = resolver.resolveStaticCall(chm.owner.getName(), chm.getName(), desc);
 						if(mm != null) {
 							conflicts.add(mm);
 						}
 					} else {
-						if(chm.name.equals("<init>")) {
-							conflicts.addAll(resolver.resolveVirtualCalls(chm.owner.name, "<init>", desc, false));
+						if(chm.getName().equals("<init>")) {
+							conflicts.addAll(resolver.resolveVirtualCalls(chm.owner.getName(), "<init>", desc, false));
 						} else {
-							conflicts.addAll(resolver.getHierarchyMethodChain(m.owner, m.name, desc, true));
+							conflicts.addAll(resolver.getHierarchyMethodChain(m.owner, m.getName(), desc, true));
 						}
 					}
 				}
@@ -301,7 +301,7 @@ public class ConstantParameterPass implements IPass, Opcode {
 		Map<MethodNode, String> methodNameRemap = new HashMap<>();
 		for(Set<MethodNode> set : mustRename) {
 			// MethodNode first = set.iterator().next();
-			// String newName = "rename_" + first.name;
+			// String newName = "rename_" + first.getName();
 			String newName = RenamingUtil.createName(k++);
 			System.out.printf(" renaming %s to %s%n", set, newName);
 			System.out.println("   recom " + computeChain(cxt, set.iterator().next()));
@@ -348,7 +348,7 @@ public class ConstantParameterPass implements IPass, Opcode {
 					boolean[] dead = filteredConstantParameters.get(key);
 					
 					for(MethodNode n : chain) {
-						n.desc = newDesc;
+						n.node.desc = newDesc;
 						
 						/* boolean[] dead = filteredConstantParameters.get(n);
 						boolean[] deadM = filteredConstantParameters.get(key);
@@ -564,9 +564,9 @@ public class ConstantParameterPass implements IPass, Opcode {
 		Set<MethodNode> chain = new HashSet<>();
 		chain.add(m);
 		
-		if(!Modifier.isStatic(m.access)) {
-			if(!m.name.equals("<init>")) {
-				chain.addAll(cxt.getInvocationResolver().getHierarchyMethodChain(m.owner, m.name, m.desc, true));
+		if(!Modifier.isStatic(m.node.access)) {
+			if(!m.getName().equals("<init>")) {
+				chain.addAll(cxt.getInvocationResolver().getHierarchyMethodChain(m.owner, m.getName(), m.getDesc(), true));
 			}
 		}
 		

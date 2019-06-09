@@ -3,7 +3,7 @@ package org.mapleir.app.service;
 import java.util.LinkedList;
 
 import org.objectweb.asm.Type;
-import org.objectweb.asm.tree.ClassNode;
+import org.mapleir.asm.ClassNode;
 
 public class ExtendedType {
 
@@ -60,16 +60,16 @@ public class ExtendedType {
 		while(!wl.isEmpty()) {
 			ClassNode cur = wl.removeFirst();
 			
-			ClassNode parent = source.findClassNode(cur.superName);
+			ClassNode parent = source.findClassNode(cur.node.superName);
 			if(parent != null) {
-				if(parent.name.equals(type.getInternalName())) {
+				if(parent.getName().equals(type.getInternalName())) {
 					return true;
 				}
 				
 				wl.addLast(parent);
 			}
 			
-			for(String siface : cur.interfaces) {
+			for(String siface : cur.node.interfaces) {
 				if(siface.equals(type.getInternalName())) {
 					return true;
 				}

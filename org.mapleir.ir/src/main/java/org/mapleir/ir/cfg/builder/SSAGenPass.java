@@ -975,7 +975,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 		Local l = handler.get(index, isStack);
 		Stack<Integer> stack = stacks.get(l);
 		if(stack == null || stack.isEmpty()) {
-			System.err.println(builder.method.owner.name + "#" + builder.method.name);
+			System.err.println(builder.method.getOwner() + "#" + builder.method.getName());
 			System.err.println(builder.graph);
 			System.err.println(stacks);
 			throw new NullPointerException(l.toString());

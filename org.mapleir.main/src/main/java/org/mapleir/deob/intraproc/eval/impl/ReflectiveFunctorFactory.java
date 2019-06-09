@@ -13,12 +13,12 @@ import org.mapleir.ir.code.stmt.ConditionalJumpStmt;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
-import org.objectweb.asm.tree.ClassNode;
+import org.mapleir.asm.ClassNode;
 import org.objectweb.asm.tree.InsnList;
 import org.objectweb.asm.tree.InsnNode;
 import org.objectweb.asm.tree.JumpInsnNode;
 import org.objectweb.asm.tree.LabelNode;
-import org.objectweb.asm.tree.MethodNode;
+import org.mapleir.asm.MethodNode;
 import org.objectweb.asm.tree.VarInsnNode;
 
 public class ReflectiveFunctorFactory implements EvaluationFactory {
@@ -75,7 +75,7 @@ public class ReflectiveFunctorFactory implements EvaluationFactory {
 			
 			branchReturn(insns, trueSuccessor);
 			
-			m.instructions = insns;
+			m.node.instructions = insns;
 		}
 		
 		return buildBridge(m);
@@ -112,7 +112,7 @@ public class ReflectiveFunctorFactory implements EvaluationFactory {
 			insns.add(new InsnNode(op));
 			insns.add(new InsnNode(Opcodes.IRETURN));
 			
-			m.instructions = insns;
+			m.node.instructions = insns;
 		}
 		
 		return buildBridge(m);
@@ -134,7 +134,7 @@ public class ReflectiveFunctorFactory implements EvaluationFactory {
 			insns.add(new VarInsnNode(TypeUtils.getVariableLoadOpcode(from), 0));
 			cast(insns, from, to);
 			insns.add(new InsnNode(TypeUtils.getReturnOpcode(to)));
-			m.instructions = insns;
+			m.node.instructions = insns;
 		}
 		
 		return buildBridge(m);
@@ -156,7 +156,7 @@ public class ReflectiveFunctorFactory implements EvaluationFactory {
 			insns.add(new VarInsnNode(TypeUtils.getVariableLoadOpcode(t), 0));
 			insns.add(new InsnNode(TypeUtils.getNegateOpcode(t)));
 			insns.add(new InsnNode(TypeUtils.getReturnOpcode(t)));
-			m.instructions = insns;
+			m.node.instructions = insns;
 		}
 		
 		return buildBridge(m);
@@ -232,7 +232,7 @@ public class ReflectiveFunctorFactory implements EvaluationFactory {
 			insns.add(new InsnNode(opcode));
 			insns.add(new InsnNode(TypeUtils.getReturnOpcode(rt)));
 			
-			m.instructions = insns;
+			m.node.instructions = insns;
 		}
 		
 		return buildBridge(m);
@@ -257,29 +257,29 @@ public class ReflectiveFunctorFactory implements EvaluationFactory {
 	
 	private MethodNode makeBase(String name, String desc) {
 		ClassNode owner = new ClassNode();
-		owner.version = Opcodes.V1_7;
-		owner.name = name;
-		owner.superName = "java/lang/Object";
-		owner.access = Opcodes.ACC_PUBLIC;
+		owner.node.version = Opcodes.V1_7;
+		owner.node.name = name;
+		owner.node.superName = "java/lang/Object";
+		owner.node.access = Opcodes.ACC_PUBLIC;
 		
-		MethodNode m = new MethodNode(owner, Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC, "eval", desc, null, null);
-		owner.methods.add(m);
+		MethodNode m = new MethodNode(new org.objectweb.asm.tree.MethodNode(Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC, "eval", desc, null, null), owner);
+		owner.addMethod(m);
 		return m;
 	}
 	
 	private <T> EvaluationFunctor<T> buildBridge(MethodNode m) {
 		ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
 		ClassNode owner = m.owner;
-		owner.accept(cw);
+		owner.node.accept(cw);
 		
 		byte[] bytes = cw.toByteArray();
-		Class<?> clazz = classLoader.make(owner.name, bytes);
+		Class<?> clazz = classLoader.make(owner.getName(), bytes);
 		
 		for(Method method : clazz.getDeclaredMethods()) {
 			if(method.getName().equals("eval")) {
 				EvaluationFunctor<T> f = new ReflectiveFunctor<>(method);
 				
-				cache.put(owner.name, f);
+				cache.put(owner.getName(), f);
 				return f;
 			}
 		}

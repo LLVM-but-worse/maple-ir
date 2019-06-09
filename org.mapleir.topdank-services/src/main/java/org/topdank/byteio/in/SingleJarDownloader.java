@@ -10,7 +10,7 @@ import java.util.Map;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
-import org.objectweb.asm.tree.ClassNode;
+import org.mapleir.asm.ClassNode;
 import org.topdank.byteengineer.commons.asm.ASMFactory;
 import org.topdank.byteengineer.commons.data.JarInfo;
 import org.topdank.byteengineer.commons.data.JarResource;
@@ -47,10 +47,10 @@ public class SingleJarDownloader<C extends ClassNode> extends AbstractJarDownloa
 			byte[] bytes = read(jarFile.getInputStream(entry));
 			if (entry.getName().endsWith(".class")) {
 				C cn = factory.create(bytes, entry.getName());
-				if(!map.containsKey(cn.name)) {
+				if(!map.containsKey(cn.getName())) {
 					contents.getClassContents().add(cn);
 				} else {
-					throw new IllegalStateException("duplicate: " + cn.name);
+					throw new IllegalStateException("duplicate: " + cn.getName());
 				}
 				
 				//if(cn.name.equals("org/xmlpull/v1/XmlPullParser")) {

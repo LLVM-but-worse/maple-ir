@@ -18,7 +18,7 @@ import org.objectweb.asm.Label;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.LabelNode;
-import org.objectweb.asm.tree.MethodNode;
+import org.mapleir.asm.MethodNode;
 import org.objectweb.asm.tree.TryCatchBlockNode;
 
 import java.util.*;
@@ -38,9 +38,9 @@ public class ControlFlowGraphDumper implements BytecodeFrontend {
 	
 	public void dump() {
 		// Clear methodnode
-		m.instructions.removeAll(true);
-		m.tryCatchBlocks.clear();
-		m.visitCode();
+		m.node.instructions.clear();
+		m.node.tryCatchBlocks.clear();
+		m.node.visitCode();
 
 		labels = new HashMap<>();
 		for (BasicBlock b : cfg.vertices()) {
@@ -58,13 +58,13 @@ public class ControlFlowGraphDumper implements BytecodeFrontend {
 
 		// Dump code
 		for (BasicBlock b : order) {
-			m.visitLabel(getLabel(b));
+			m.node.visitLabel(getLabel(b));
 			for (Stmt stmt : b) {
-				stmt.toCode(m, this);
+				stmt.toCode(m.node, this);
 			}
 		}
 		terminalLabel = new LabelNode();
-		m.visitLabel(terminalLabel.getLabel());
+		m.node.visitLabel(terminalLabel.getLabel());
 
 		// Dump ranges
 		for (ExceptionRange<BasicBlock> er : cfg.getRanges()) {
@@ -74,7 +74,7 @@ public class ControlFlowGraphDumper implements BytecodeFrontend {
 		// Sanity check
 		verifyRanges();
 		
-		m.visitEnd();
+		m.node.visitEnd();
 	}
 	
 	private void linearize() {
@@ -281,11 +281,11 @@ public class ControlFlowGraphDumper implements BytecodeFrontend {
 		for (;;) {
 			// check for endpoints
 			if (orderIdx + 1 == order.size()) { // end of method
-				m.visitTryCatchBlock(start, terminalLabel.getLabel(), handler, type.getInternalName());
+				m.node.visitTryCatchBlock(start, terminalLabel.getLabel(), handler, type.getInternalName());
 				break;
 			} else if (rangeIdx + 1 == range.size()) { // end of range
 				Label end = getLabel(order.get(orderIdx + 1));
-				m.visitTryCatchBlock(start, end, handler, type.getInternalName());
+				m.node.visitTryCatchBlock(start, end, handler, type.getInternalName());
 				break;
 			}
 			
@@ -295,7 +295,7 @@ public class ControlFlowGraphDumper implements BytecodeFrontend {
 			if (nextOrderIdx - orderIdx > 1) { // blocks in-between, end the handler and begin anew
 				System.err.println("[warn] Had to split up a range: " + m);
 				Label end = getLabel(order.get(orderIdx + 1));
-				m.visitTryCatchBlock(start, end, handler, type.getInternalName());
+				m.node.visitTryCatchBlock(start, end, handler, type.getInternalName());
 				start = getLabel(nextBlock);
 			}
 
@@ -307,10 +307,10 @@ public class ControlFlowGraphDumper implements BytecodeFrontend {
 	}
 	
 	private void verifyRanges() {
-		for (TryCatchBlockNode tc : m.tryCatchBlocks) {
+		for (TryCatchBlockNode tc : m.node.tryCatchBlocks) {
 			int start = -1, end = -1, handler = -1;
-			for (int i = 0; i < m.instructions.size(); i++) {
-				AbstractInsnNode ain = m.instructions.get(i);
+			for (int i = 0; i < m.node.instructions.size(); i++) {
+				AbstractInsnNode ain = m.node.instructions.get(i);
 				if (!(ain instanceof LabelNode))
 					continue;
 				Label l = ((LabelNode) ain).getLabel();

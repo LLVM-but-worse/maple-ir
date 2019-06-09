@@ -15,7 +15,7 @@ public class IntInstructionFilter implements InstructionFilter {
 	private ZeroCancelIntegerFilter numberFilter;
 	
 	public IntInstructionFilter(IntInsnNode iin) {
-		opcodeFilter = new OpcodeFilter(iin.opcode());
+		opcodeFilter = new OpcodeFilter(iin.getOpcode());
 		numberFilter = new ZeroCancelIntegerFilter(iin.operand);
 	}
 	

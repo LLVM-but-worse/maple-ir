@@ -2,7 +2,7 @@ package org.topdank.byteengineer.commons.data;
 
 import java.net.URL;
 
-import org.objectweb.asm.tree.ClassNode;
+import org.mapleir.asm.ClassNode;
 
 public class LocateableJarContents<C extends ClassNode> extends JarContents<C> {
 

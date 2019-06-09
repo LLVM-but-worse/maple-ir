@@ -22,8 +22,8 @@ import org.mapleir.ir.algorithms.LocalsReallocator;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.cfg.builder.ControlFlowGraphBuilder;
 import org.mapleir.ir.codegen.ControlFlowGraphDumper;
-import org.objectweb.asm.tree.ClassNode;
-import org.objectweb.asm.tree.MethodNode;
+import org.mapleir.asm.ClassNode;
+import org.mapleir.asm.MethodNode;
 import org.topdank.byteengineer.commons.data.JarInfo;
 import org.topdank.byteio.in.SingleJarDownloader;
 
@@ -75,7 +75,7 @@ public class Boot2 {
 			 // 	continue;
 			// if (cn.name.hashCode() != -5913103)
 			// 	continue;
-			for (MethodNode m : cn.methods) {
+			for (MethodNode m : cn.getMethods()) {
 				 // if (!m.name.equals("mapTypes"))
 				 // 	continue;
 				cxt.getIRCache().getFor(m);
@@ -210,8 +210,8 @@ public class Boot2 {
 		Set<MethodNode> set = new HashSet<>();
 		/* searches only app classes. */
 		for(ClassNode cn : source.iterate())  {
-			for(MethodNode m : cn.methods) {
-				if((m.name.length() > 2 && !m.name.equals("<init>")) || m.instructions.size() == 0) {
+			for(MethodNode m : cn.getMethods()) {
+				if((m.getName().length() > 2 && !m.getName().equals("<init>")) || m.node.instructions.size() == 0) {
 					set.add(m);
 				}
 			}

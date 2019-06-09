@@ -13,7 +13,7 @@ import org.mapleir.ir.code.expr.ArithmeticExpr;
 import org.mapleir.ir.code.expr.ArithmeticExpr.Operator;
 import org.mapleir.ir.code.stmt.ConditionalJumpStmt;
 import org.mapleir.ir.code.stmt.ConditionalJumpStmt.ComparisonType;
-import org.objectweb.asm.tree.MethodNode;
+import org.mapleir.asm.MethodNode;
 
 public class ConstantExpressionReorderPass implements IPass, Opcode {
 

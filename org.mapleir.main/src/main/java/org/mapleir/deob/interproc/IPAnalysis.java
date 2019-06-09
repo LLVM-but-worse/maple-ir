@@ -18,7 +18,7 @@ import org.mapleir.ir.code.expr.invoke.Invocation;
 import org.mapleir.ir.code.stmt.copy.CopyVarStmt;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
-import org.objectweb.asm.tree.MethodNode;
+import org.mapleir.asm.MethodNode;
 
 public class IPAnalysis extends IRCallTracer implements Opcode {
 	
@@ -102,15 +102,15 @@ public class IPAnalysis extends IRCallTracer implements Opcode {
 		}
 		
 		// Do not trace library calls
-		if(context.getApplication().isLibraryClass(m.owner.name)) {
+		if(context.getApplication().isLibraryClass(m.getOwner())) {
 			return;
 		}
 		
 		// Create a mapping between the actual variable table indices and the parameter
 		// indices in the method descriptor.
-		boolean isStatic = (m.access & Opcodes.ACC_STATIC) != 0;
+		boolean isStatic = (m.node.access & Opcodes.ACC_STATIC) != 0;
 		
-		int paramCount = Type.getArgumentTypes(m.desc).length;
+		int paramCount = Type.getArgumentTypes(m.getDesc()).length;
 		int off = (isStatic ? 0 : 1);
 		int synthCount = paramCount + off;
 		List<List<Expr>> lists = new ArrayList<>(synthCount);
@@ -165,7 +165,7 @@ public class IPAnalysis extends IRCallTracer implements Opcode {
 		}
 		
 		// Do not trace library calls.
-		if(context.getApplication().isLibraryClass(callee.owner.name)) {
+		if(context.getApplication().isLibraryClass(callee.getOwner())) {
 			return;
 		}
 		

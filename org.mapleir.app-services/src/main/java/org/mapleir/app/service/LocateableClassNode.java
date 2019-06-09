@@ -1,6 +1,6 @@
 package org.mapleir.app.service;
 
-import org.objectweb.asm.tree.ClassNode;
+import org.mapleir.asm.ClassNode;
 
 public class LocateableClassNode {
 
@@ -16,6 +16,6 @@ public class LocateableClassNode {
 	
 	@Override
 	public String toString() {
-		return String.format("%s from %s%s", node.name, source, isVMKlass ? "(vm)" : "");
+		return String.format("%s from %s%s", node.getName(), source, isVMKlass ? "(vm)" : "");
 	}
 }

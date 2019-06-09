@@ -127,10 +127,6 @@ public abstract class ASMPrinter<E> extends Printer<E> {
 
             if (i < (attrs.size() - 1)) {
                 Attribute next = attrs.get(i + 1);
-
-                if (attr.next != next) {
-                    throw new IllegalStateException();
-                }
             }
         }
 
@@ -169,8 +165,6 @@ public abstract class ASMPrinter<E> extends Printer<E> {
 
             Map<String, Object> map = new HashMap<>();
             map.put("type", attr.type);
-            // TODO: check
-            map.put("values", new String(attr.value));
             this.emitDirectiveValue(map);
             throw new UnsupportedOperationException("TODO");
         } else if (o instanceof Type) {

@@ -1,10 +1,9 @@
 package org.mapleir.app.service;
 
-import org.mapleir.stdlib.collections.ClassHelper;
+import org.mapleir.asm.ClassHelper;
 import org.objectweb.asm.ClassWriter;
-import org.objectweb.asm.commons.blocksplit.SplitMethodWriterDelegate;
-import org.objectweb.asm.tree.ClassNode;
-import org.objectweb.asm.tree.MethodNode;
+import org.mapleir.asm.ClassNode;
+import org.mapleir.asm.MethodNode;
 import org.topdank.byteengineer.commons.data.JarContents;
 import org.topdank.byteengineer.commons.data.JarResource;
 import org.topdank.byteio.out.JarDumper;
@@ -52,7 +51,7 @@ public class CompleteResolvingJarDumper implements JarDumper {
 		int classesDumped = 0;
 		int resourcesDumped = 0;
 		for (ClassNode cn : contents.getClassContents()) {
-			classesDumped += dumpClass(jos, cn.name, cn);
+			classesDumped += dumpClass(jos, cn.getName(), cn);
 		}
 		for (JarResource res : contents.getResourceContents()) {
 			resourcesDumped += dumpResource(jos, res.getName(), res.getData());
@@ -74,11 +73,11 @@ public class CompleteResolvingJarDumper implements JarDumper {
 	 */
 	@Override
 	public int dumpClass(JarOutputStream out, String name, ClassNode cn) throws IOException {
-		JarEntry entry = new JarEntry(cn.name + ".class");
+		JarEntry entry = new JarEntry(cn.getName() + ".class");
 		out.putNextEntry(entry);
 		ClassTree tree = source.getClassTree();
 		
-		ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_FRAMES, new SplitMethodWriterDelegate()) {
+		ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_FRAMES) {
 			// this method in ClassWriter uses the systemclassloader as
 			// a stream location to load the super class, however, most of
 			// the time the class is loaded/read and parsed by us so it
@@ -93,8 +92,13 @@ public class CompleteResolvingJarDumper implements JarDumper {
 		    	
 		    	if(ccn == null) {
 //		    		return "java/lang/Object";
-		    		ClassNode c = ClassHelper.create(type1);
-		    		if(c == null) {
+					ClassNode c;
+					try {
+						c = ClassHelper.create(type1);
+					} catch (IOException e) {
+						return "java/lang/Object";
+					}
+					if(c == null) {
 		    			return "java/lang/Object";
 		    		}
 		    		throw new UnsupportedOperationException(c.toString());
@@ -105,8 +109,13 @@ public class CompleteResolvingJarDumper implements JarDumper {
 		    	if(dcn == null) {
 
 //		    		return "java/lang/Object";
-		    		ClassNode c = ClassHelper.create(type2);
-		    		if(c == null) {
+					ClassNode c;
+					try {
+						c = ClassHelper.create(type2);
+					} catch (IOException e) {
+						return "java/lang/Object";
+					}
+					if(c == null) {
 		    			return "java/lang/Object";
 		    		}
 		    		throw new UnsupportedOperationException(c.toString());
@@ -123,33 +132,33 @@ public class CompleteResolvingJarDumper implements JarDumper {
 		        if(d.contains(ccn))
 		        	return type2;
 		        
-		        if(Modifier.isInterface(ccn.access) || Modifier.isInterface(dcn.access)) {
+		        if(Modifier.isInterface(ccn.node.access) || Modifier.isInterface(dcn.node.access)) {
 		        	// enums as well?
 		        	return "java/lang/Object";
 		        } else {
 		        	do {
-		        		ClassNode nccn = source.findClassNode(ccn.superName);
+		        		ClassNode nccn = source.findClassNode(ccn.node.superName);
 		        		if(nccn == null)
 		        			break;
 		        		ccn = nccn;
 		        		c = tree.getAllParents(ccn);
 		        	} while(!c.contains(dcn));
-		        	return ccn.name;
+		        	return ccn.getName();
 		        }
 		    }
 		};
 		
-		for(MethodNode m : cn.methods) {
-			if(m.instructions.size() > 10000) {
-				System.out.println("large method: " + m + " @" + m.instructions.size());
+		for(MethodNode m : cn.getMethods()) {
+			if(m.node.instructions.size() > 10000) {
+				System.out.println("large method: " + m + " @" + m.node.instructions.size());
 			}
 		}
 
 		try {
-			cn.accept(writer);
+			cn.node.accept(writer); // must use custom writer which overrides getCommonSuperclass
 			out.write(writer.toByteArray());
 		} catch (Exception e) {
-			System.err.println("Failed to write " + cn.name);
+			System.err.println("Failed to write " + cn.getName());
 			throw e;
 		}
 		return 1;

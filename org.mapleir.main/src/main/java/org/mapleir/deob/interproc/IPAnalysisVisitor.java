@@ -1,7 +1,7 @@
 package org.mapleir.deob.interproc;
 
 import org.mapleir.ir.code.expr.invoke.Invocation;
-import org.objectweb.asm.tree.MethodNode;
+import org.mapleir.asm.MethodNode;
 
 /**
  * Callbacks for pre/post order interprocedural callgraph searches.

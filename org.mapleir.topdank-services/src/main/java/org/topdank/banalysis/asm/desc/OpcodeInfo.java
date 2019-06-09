@@ -9,7 +9,7 @@ import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.ClassNode;
-import org.objectweb.asm.tree.FieldNode;
+import org.mapleir.asm.FieldNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.topdank.banalysis.filter.InstructionFilter;
 
@@ -42,8 +42,8 @@ public class OpcodeInfo implements Opcodes {
 				Object fO = fnIt.next();
 				FieldNode f = (FieldNode) fO;
 				try {
-					OPCODES.put((Integer) f.value, f.name);
-					OPCODE_NAMES.put(f.name, (Integer) f.value);
+					OPCODES.put((Integer) f.node.value, f.getName());
+					OPCODE_NAMES.put(f.getName(), (Integer) f.node.value);
 				} catch (Exception e) {
 				}
 			}
@@ -74,7 +74,7 @@ public class OpcodeInfo implements Opcodes {
 	public static final String opcodesToString(AbstractInsnNode[] ains) {
 		String[] ops = new String[ains.length];
 		for (int i = 0; i < ains.length; i++) {
-			ops[i] = OPCODES.get(ains[i].opcode());
+			ops[i] = OPCODES.get(ains[i].getOpcode());
 		}
 		return Arrays.toString(ops).replace("[", "").replace("]", "");
 	}

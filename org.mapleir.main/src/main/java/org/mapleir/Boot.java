@@ -20,8 +20,8 @@ import org.mapleir.ir.algorithms.LocalsReallocator;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.cfg.builder.ControlFlowGraphBuilder;
 import org.mapleir.ir.codegen.ControlFlowGraphDumper;
-import org.objectweb.asm.tree.ClassNode;
-import org.objectweb.asm.tree.MethodNode;
+import org.mapleir.asm.ClassNode;
+import org.mapleir.asm.MethodNode;
 import org.topdank.byteengineer.commons.data.JarInfo;
 import org.topdank.byteio.in.SingleJarDownloader;
 
@@ -86,10 +86,10 @@ public class Boot {
 		// }
 
 		for (ClassNode cn : cxt.getApplication().iterate()) {
-//			 if (!cn.name.equals("android/support/v4/media/session/MediaSessionCompat$MediaSessionImplApi18"))
+//			 if (!cn.getName().equals("android/support/v4/media/session/MediaSessionCompat$MediaSessionImplApi18"))
 //			 	continue;
-			for (MethodNode m : cn.methods) {
-//				 if (!m.name.equals("setRccState"))
+			for (MethodNode m : cn.getMethods()) {
+//				 if (!m.getName().equals("setRccState"))
 //				 	continue;
 				cxt.getIRCache().getFor(m);
 			}
@@ -114,7 +114,7 @@ public class Boot {
 		section("Retranslating SSA IR to standard flavour.");
 		for(Entry<MethodNode, ControlFlowGraph> e : cxt.getIRCache().entrySet()) {
 			MethodNode mn = e.getKey();
-			// if (!mn.name.equals("openFiles"))
+			// if (!mn.getName().equals("openFiles"))
 			// 	continue;
 			ControlFlowGraph cfg = e.getValue();
 
@@ -129,7 +129,7 @@ public class Boot {
 			 // CFGUtils.easyDumpCFG(cfg, "post-reaalloc");
 			// System.out.println(cfg);
 			cfg.verify();
-			 // System.out.println("Rewriting " + mn.name);
+			 // System.out.println("Rewriting " + mn.getName());
 			(new ControlFlowGraphDumper(cfg, mn)).dump();
 			 // System.out.println(InsnListUtils.insnListToString(mn.instructions));
 		}
@@ -227,8 +227,8 @@ public class Boot {
 		Set<MethodNode> set = new HashSet<>();
 		/* searches only app classes. */
 		for(ClassNode cn : source.iterate())  {
-			for(MethodNode m : cn.methods) {
-				if((m.name.length() > 2 && !m.name.equals("<init>")) || m.instructions.size() == 0) {
+			for(MethodNode m : cn.getMethods()) {
+				if((m.getName().length() > 2 && !m.getName().equals("<init>")) || m.node.instructions.size() == 0) {
 					set.add(m);
 				}
 			}

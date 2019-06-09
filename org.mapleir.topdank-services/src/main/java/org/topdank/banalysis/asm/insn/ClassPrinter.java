@@ -7,9 +7,9 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import org.objectweb.asm.Opcodes;
-import org.objectweb.asm.tree.ClassNode;
-import org.objectweb.asm.tree.FieldNode;
-import org.objectweb.asm.tree.MethodNode;
+import org.mapleir.asm.ClassNode;
+import org.mapleir.asm.FieldNode;
+import org.mapleir.asm.MethodNode;
 
 public class ClassPrinter {
 
@@ -30,11 +30,11 @@ public class ClassPrinter {
 	
 	public static String print(ClassNode cn){
 		StringBuilder sb = new StringBuilder();
-		printModifiers(sb, cn.access);
-		sb.append(cn.name).append(" extends ").append(cn.superName).append(" ");
-		if(cn.interfaces.size() > 0){
+		printModifiers(sb, cn.node.access);
+		sb.append(cn.getName()).append(" extends ").append(cn.node.superName).append(" ");
+		if(cn.node.interfaces.size() > 0){
 			sb.append("implements ");
-			Iterator<String> it = cn.interfaces.iterator();
+			Iterator<String> it = cn.node.interfaces.iterator();
 			while(it.hasNext()){
 				String intf = it.next();
 				sb.append(intf);
@@ -46,19 +46,19 @@ public class ClassPrinter {
 		
 		sb.append("{").append("\n");
 		sb.append("\n");
-		for(FieldNode f : cn.fields){
+		for(FieldNode f : cn.getFields()){
 			sb.append("    ");
-			printModifiers(sb, f.access);
-			sb.append(f.name).append(" ").append(f.desc).append("\n");
+			printModifiers(sb, f.node.access);
+			sb.append(f.getName()).append(" ").append(f.getDesc()).append("\n");
 		}
 		
 		sb.append("\n");
 		
-		for(MethodNode m : cn.methods){
+		for(MethodNode m : cn.getMethods()){
 			sb.append("    ");
-			printModifiers(sb, m.access);
-			sb.append(m.name).append(" ").append(m.desc).append(" {").append("\n");
-			for(String s : InstructionPrinter.getLines(m)){
+			printModifiers(sb, m.node.access);
+			sb.append(m.getName()).append(" ").append(m.getDesc()).append(" {").append("\n");
+			for(String s : InstructionPrinter.getLines(m.node)){
 				sb.append("       ").append(s).append("\n");
 			}
 			sb.append("    }").append("\n\n");

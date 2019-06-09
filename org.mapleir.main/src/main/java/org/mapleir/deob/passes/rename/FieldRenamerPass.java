@@ -19,9 +19,9 @@ import org.mapleir.ir.code.Opcode;
 import org.mapleir.ir.code.Stmt;
 import org.mapleir.ir.code.expr.FieldLoadExpr;
 import org.mapleir.ir.code.stmt.FieldStoreStmt;
-import org.objectweb.asm.tree.ClassNode;
-import org.objectweb.asm.tree.FieldNode;
-import org.objectweb.asm.tree.MethodNode;
+import org.mapleir.asm.ClassNode;
+import org.mapleir.asm.FieldNode;
+import org.mapleir.asm.MethodNode;
 
 public class FieldRenamerPass implements IPass {
 	
@@ -40,7 +40,7 @@ public class FieldRenamerPass implements IPass {
 		
 		for(ClassNode cn : source.iterate()) {
 //			totalFields += cn.fields.size();
-			for(FieldNode fn : cn.fields) {
+			for(FieldNode fn : cn.getFields()) {
 				remapped.put(fn, RenamingUtil.createName(i++));
 			}
 		}
@@ -48,7 +48,7 @@ public class FieldRenamerPass implements IPass {
 		InvocationResolver resolver = cxt.getInvocationResolver();
 		
 		for(ClassNode cn : source.iterate()) {
-			for(MethodNode m : cn.methods) {
+			for(MethodNode m : cn.getMethods()) {
 				ControlFlowGraph cfg = cxt.getIRCache().getFor(m);
 				
 				for(BasicBlock b : cfg.vertices()) {
@@ -62,8 +62,8 @@ public class FieldRenamerPass implements IPass {
 							if(f != null) {
 								if(remapped.containsKey(f)) {
 									fs.setName(remapped.get(f));
-								} else if(mustMark(source, f.owner.name)) {
-									System.err.println("  no remap for " + f + ", owner: " + f.owner.name);
+								} else if(mustMark(source, f.getOwner())) {
+									System.err.println("  no remap for " + f + ", owner: " + f.getOwner());
 								}
 							} else {
 								if(mustMark(source, fs.getOwner())) {
@@ -81,8 +81,8 @@ public class FieldRenamerPass implements IPass {
 								if(f != null) {
 									if(remapped.containsKey(f)) {
 										fl.setName(remapped.get(f));
-									} else if(mustMark(source, f.owner.name)) {
-										System.err.println("  no remap for " + f + ", owner: " + f.owner.name);
+									} else if(mustMark(source, f.getOwner())) {
+										System.err.println("  no remap for " + f + ", owner: " + f.getOwner());
 									}
 								} else {
 									if(mustMark(source, fl.getOwner())) {
@@ -97,7 +97,7 @@ public class FieldRenamerPass implements IPass {
 		}
 		
 		for(Entry<FieldNode, String> e : remapped.entrySet()) {
-			e.getKey().name = e.getValue();
+			e.getKey().node.name = e.getValue();
 		}
 		
 		System.out.printf("  Renamed %d fields.%n", remapped.size());

@@ -6,8 +6,8 @@ import java.util.Set;
 import org.mapleir.deob.IPass;
 import org.mapleir.deob.PassContext;
 import org.mapleir.deob.PassResult;
-import org.objectweb.asm.tree.ClassNode;
-import org.objectweb.asm.tree.MethodNode;
+import org.mapleir.asm.ClassNode;
+import org.mapleir.asm.MethodNode;
 
 public class CallgraphPruningPass implements IPass {
 
@@ -22,7 +22,7 @@ public class CallgraphPruningPass implements IPass {
 
 		Set<MethodNode> active = cxt.getAnalysis().getIRCache().getActiveMethods();
 		for(ClassNode cn : cxt.getAnalysis().getApplication().iterate()) {
-			ListIterator<MethodNode> lit = cn.methods.listIterator();
+			ListIterator<MethodNode> lit = cn.getMethods().listIterator();
 			while(lit.hasNext()) {
 				MethodNode m = lit.next();
 				if(!active.contains(m)) {

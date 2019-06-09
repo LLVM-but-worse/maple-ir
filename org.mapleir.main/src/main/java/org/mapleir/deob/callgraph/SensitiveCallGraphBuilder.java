@@ -8,7 +8,7 @@ import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.code.Stmt;
 import org.mapleir.ir.code.expr.invoke.Invocation;
 import org.mapleir.stdlib.collections.list.Worklist;
-import org.objectweb.asm.tree.MethodNode;
+import org.mapleir.asm.MethodNode;
 
 import java.util.Collection;
 import java.util.Set;

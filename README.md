@@ -77,7 +77,6 @@ Bytecode destruction is tricky in Java due to exception ranges. Furthermore, lin
 For more details, see the [whitepaper](./docs/maple-ir.pdf).
 
 ## Caveats
-- Since the project uses a fork of the ObjectWeb ASM framework, it's not compatible with other implementations. This should be addressed before you use Maple-IR as a library.
 - Interprocedural analysis has not been fully implemented (it's difficult).
 - Many of the IR passes weren't designed with `javac` in mind. This means, for example, `finally` blocks are processed correctly, although not neatly.
 
@@ -100,7 +99,7 @@ You can also get Maple-IR on [Jitpack](https://jitpack.io/#LLVM-but-worse/maple-
 ## Credits
  - [Bibl](https://github.com/TheBiblMan)
  - [ecx86](https://github.com/ecx86)
- - [ObjectWeb ASM framework](http://asm.ow2.org/index.html) (forked).
+ - [ObjectWeb ASM framework](http://asm.ow2.org/index.html)
 
 Contact: `ecx` or `bibl` [at] `mapleir.org`
 

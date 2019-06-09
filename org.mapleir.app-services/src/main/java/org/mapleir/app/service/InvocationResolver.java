@@ -2,9 +2,9 @@ package org.mapleir.app.service;
 
 import java.util.Set;
 
-import org.objectweb.asm.tree.ClassNode;
-import org.objectweb.asm.tree.FieldNode;
-import org.objectweb.asm.tree.MethodNode;
+import org.mapleir.asm.ClassNode;
+import org.mapleir.asm.MethodNode;
+import org.mapleir.asm.FieldNode;
 
 public interface InvocationResolver {
 
@@ -15,7 +15,7 @@ public interface InvocationResolver {
 	Set<MethodNode> resolveVirtualCalls(String owner, String name, String desc, boolean strict);
 
 	default Set<MethodNode> resolveVirtualCalls(MethodNode m, boolean strict) {
-		return resolveVirtualCalls(m.owner.name, m.name, m.desc, strict);
+		return resolveVirtualCalls(m.getOwner(), m.getName(), m.getDesc(), strict);
 	}
 	
 	FieldNode findStaticField(String owner, String name, String desc);

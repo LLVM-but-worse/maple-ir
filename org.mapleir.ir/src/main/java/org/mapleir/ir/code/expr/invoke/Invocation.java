@@ -4,7 +4,7 @@ import java.util.Set;
 
 import org.mapleir.app.service.InvocationResolver;
 import org.mapleir.ir.code.Expr;
-import org.objectweb.asm.tree.MethodNode;
+import org.mapleir.asm.MethodNode;
 
 /* Definitions:
  *   parameterExprs:= the Exprs that are actually passed to 

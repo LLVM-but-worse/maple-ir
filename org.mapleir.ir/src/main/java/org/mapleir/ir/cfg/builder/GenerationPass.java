@@ -1,5 +1,6 @@
 package org.mapleir.ir.cfg.builder;
 
+import org.mapleir.asm.MethodNode;
 import org.mapleir.flowgraph.ExceptionRange;
 import org.mapleir.flowgraph.edges.*;
 import org.mapleir.ir.TypeUtils;
@@ -88,7 +89,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		blockLabels = new HashMap<>();
 		labelMap = new HashMap<>();
 
-		insns = builder.method.instructions;
+		insns = builder.method.node.instructions;
 		
 		if(GenerationVerifier.VERIFY) {
 			verifier = new GenerationVerifier(builder);
@@ -129,7 +130,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 	private void init() {
 		entry(checkLabel());
 		
-		for(TryCatchBlockNode tc : builder.method.tryCatchBlocks) {
+		for(TryCatchBlockNode tc : builder.method.node.tryCatchBlocks) {
 			handler(tc);
 		}
 	}
@@ -187,10 +188,10 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 	}
 	
 	protected void defineInputs(MethodNode m, BasicBlock b) {
-		Type[] args = Type.getArgumentTypes(m.desc);
+		Type[] args = Type.getArgumentTypes(m.getDesc());
 		int index = 0;
-		if((m.access & Opcodes.ACC_STATIC) == 0) {
-			addEntry(index, Type.getType("L" + m.owner.name + ";"), b);
+		if((m.node.access & Opcodes.ACC_STATIC) == 0) {
+			addEntry(index, Type.getType("L" + m.getOwner() + ";"), b);
 			index++;
 		}
 		for(int i=0; i < args.length; i++) {
@@ -246,9 +247,9 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		finished.set(block, true);
 		while(codeIndex < insns.size() - 1) {
 			AbstractInsnNode ain = insns.get(++codeIndex);
-			int type = ain.type();
+			int type = ain.getType();
 			
-			if(ain.opcode() != -1) {
+			if(ain.getOpcode() != -1) {
 				process(block, ain);
 			}
 			
@@ -261,12 +262,12 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 				JumpInsnNode jin = (JumpInsnNode) ain;
 				BasicBlock target = resolveTarget(jin.label);
 				
-				if(jin.opcode() == JSR) {
+				if(jin.getOpcode() == JSR) {
 					throw new UnsupportedOperationException("jsr " + builder.method);
-				} else if(jin.opcode() == GOTO) {
+				} else if(jin.getOpcode() == GOTO) {
 					builder.graph.addEdge(new UnconditionalJumpEdge<>(block, target));
 				} else {
-					builder.graph.addEdge(new ConditionalJumpEdge<>(block, target, jin.opcode()));
+					builder.graph.addEdge(new ConditionalJumpEdge<>(block, target, jin.getOpcode()));
 					int nextIndex = codeIndex + 1;
 					AbstractInsnNode nextInsn = insns.get(nextIndex);
 					if(!(nextInsn instanceof LabelNode)) {
@@ -300,7 +301,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 				BasicBlock dflt = resolveTarget(tsin.dflt);
 				builder.graph.addEdge(new DefaultSwitchEdge<>(block, dflt));
 				break;
-			} else if(isExitOpcode(ain.opcode())) {
+			} else if(isExitOpcode(ain.getOpcode())) {
 				break;
 			}
 		}
@@ -334,7 +335,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 	}
 	
 	protected void process(BasicBlock b, AbstractInsnNode ain) {
-		int opcode = ain.opcode();
+		int opcode = ain.getOpcode();
 
 		// System.out.println("Executing " + Printer.OPCODES[opcode]);
 		// System.out.println(" PreStack: " + currentStack);
@@ -450,7 +451,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 			case FRETURN:
 			case DRETURN:
 			case ARETURN:
-				_return(Type.getReturnType(builder.method.desc));
+				_return(Type.getReturnType(builder.method.getDesc()));
 				break;
 			case IADD:
 			case LADD:
@@ -1507,7 +1508,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 //		writer.removeAll().add(new ControlFlowGraphDecorator().setFlags(ControlFlowGraphDecorator.OPT_DEEP)).setName("test9999").export();
 		
 		Map<String, ExceptionRange<BasicBlock>> ranges = new HashMap<>();
-		for(TryCatchBlockNode tc : builder.method.tryCatchBlocks) {
+		for(TryCatchBlockNode tc : builder.method.node.tryCatchBlocks) {
 			//System.out.printf("from %d to %d, handler:%d, type:%s.%n", insns.indexOf(tc.start), insns.indexOf(tc.end), insns.indexOf(tc.handler), tc.type);
 			//System.out.println(String.format("%s:%s:%s", blockLabels.get(tc.start), blockLabels.get(tc.end), blockLabels.get(tc.handler)));
 			if(tc.start == tc.end) {

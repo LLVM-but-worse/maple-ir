@@ -1,6 +1,6 @@
 package org.topdank.banalysis.filter.method;
 
-import org.objectweb.asm.tree.MethodNode;
+import org.mapleir.asm.MethodNode;
 import org.topdank.banalysis.filter.MethodFilter;
 
 import java.util.ArrayList;
@@ -20,6 +20,6 @@ public class MethodDescFilter implements MethodFilter {
 
     @Override
     public boolean accept(MethodNode methodNode) {
-        return descs.contains(methodNode.desc);
+        return descs.contains(methodNode.getDesc());
     }
 }

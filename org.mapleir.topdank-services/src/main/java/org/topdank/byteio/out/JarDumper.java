@@ -4,7 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.jar.JarOutputStream;
 
-import org.objectweb.asm.tree.ClassNode;
+import org.mapleir.asm.ClassNode;
 
 public abstract interface JarDumper {
 	

@@ -23,10 +23,10 @@ import org.mapleir.ir.code.stmt.ReturnStmt;
 import org.mapleir.ir.code.stmt.copy.AbstractCopyStmt;
 import org.mapleir.stdlib.collections.CollectionUtils;
 import org.objectweb.asm.Type;
-import org.objectweb.asm.tree.ClassNode;
-import org.objectweb.asm.tree.FieldNode;
+import org.mapleir.asm.ClassNode;
+import org.mapleir.asm.FieldNode;
 import org.objectweb.asm.tree.LocalVariableNode;
-import org.objectweb.asm.tree.MethodNode;
+import org.mapleir.asm.MethodNode;
 import org.objectweb.asm.tree.TryCatchBlockNode;
 
 public class ClassRenamerPass implements IPass {
@@ -81,89 +81,89 @@ public class ClassRenamerPass implements IPass {
 		} */
 		
 		for(ClassNode cn : classes) {
-			String className = RenamingUtil.getClassName(cn.name);
-			if (!heuristic.shouldRename(className, cn.access)) {
-				System.out.println("Heuristic bypass " + cn.name);
+			String className = RenamingUtil.getClassName(cn.getName());
+			if (!heuristic.shouldRename(className, cn.node.access)) {
+				System.out.println("Heuristic bypass " + cn.getName());
 			}
-			String newName = heuristic.shouldRename(className, cn.access) ? RenamingUtil.createName(n) : className;
-			String s = RenamingUtil.getPackage(cn.name) + newName;
+			String newName = heuristic.shouldRename(className, cn.node.access) ? RenamingUtil.createName(n) : className;
+			String s = RenamingUtil.getPackage(cn.getName()) + newName;
 			n += step;
-			remapping.put(cn.name, s);
-//			 System.out.println(cn.name + " -> " + s);
-			cn.name = s;
+			remapping.put(cn.getName(), s);
+//			 System.out.println(cn.getName() + " -> " + s);
+			cn.node.name = s;
 		}
 		
 		for(ClassNode cn : classes) {
-			cn.superName = remapping.getOrDefault(cn.superName, cn.superName);
+			cn.node.superName = remapping.getOrDefault(cn.node.superName, cn.node.superName);
 			
 			{
 				List<String> ifaces = new ArrayList<>();
-				for(int i=0; i < cn.interfaces.size(); i++) {
-					String s = cn.interfaces.get(i);
+				for(int i=0; i < cn.node.interfaces.size(); i++) {
+					String s = cn.node.interfaces.get(i);
 					ifaces.add(remapping.getOrDefault(s, s));
 				}
-				cn.interfaces = ifaces;
+				cn.node.interfaces = ifaces;
 			}
 			
-			unsupported(cn.signature);
+			unsupported(cn.node.signature);
 			// unsupported(cn.sourceFile);
 			// unsupported(cn.sourceDebug);
-			cn.outerClass = remapping.getOrDefault(cn.outerClass, cn.outerClass);
+			cn.node.outerClass = remapping.getOrDefault(cn.node.outerClass, cn.node.outerClass);
 //			unsupported(cn.outerMethod);
 //			unsupported(cn.outerMethodDesc);
 
-			unsupported(cn.visibleAnnotations);
-			unsupported(cn.invisibleAnnotations);
-			unsupported(cn.visibleTypeAnnotations);
-			unsupported(cn.invisibleTypeAnnotations);
+			unsupported(cn.node.visibleAnnotations);
+			unsupported(cn.node.invisibleAnnotations);
+			unsupported(cn.node.visibleTypeAnnotations);
+			unsupported(cn.node.invisibleTypeAnnotations);
 
-			unsupported(cn.attrs);
-			unsupported(cn.innerClasses);
+			unsupported(cn.node.attrs);
+			unsupported(cn.node.innerClasses);
 			
-			for(FieldNode f : cn.fields) {
-				unsupported(cn.signature);
+			for(FieldNode f : cn.getFields()) {
+				unsupported(cn.node.signature);
 				
 				{
-					Type type = Type.getType(f.desc);
+					Type type = Type.getType(f.node.desc);
 					String newType = resolveType(type, remapping);
 					
 					if(newType != null) {
-						f.desc = newType;
+						f.node.desc = newType;
 					}
 				}
 				
-				unsupported(f.visibleAnnotations);
-				unsupported(f.invisibleAnnotations);
-				unsupported(f.visibleTypeAnnotations);
-				unsupported(f.invisibleTypeAnnotations);
-				unsupported(f.attrs);
+				unsupported(f.node.visibleAnnotations);
+				unsupported(f.node.invisibleAnnotations);
+				unsupported(f.node.visibleTypeAnnotations);
+				unsupported(f.node.invisibleTypeAnnotations);
+				unsupported(f.node.attrs);
 			}
 			
-			for(MethodNode m : cn.methods) {
-				m.desc = resolveMethod(m.desc, remapping);
+			for(MethodNode m : cn.getMethods()) {
+				m.node.desc = resolveMethod(m.node.desc, remapping);
 				
-				unsupported(m.signature);
+				unsupported(m.node.signature);
 				
 				{
 					List<String> exceptions = new ArrayList<>();
-					for(int i=0; i < m.exceptions.size(); i++) {
-						String s = m.exceptions.get(i);
+					for(int i=0; i < m.node.exceptions.size(); i++) {
+						String s = m.node.exceptions.get(i);
 						exceptions.add(remapping.getOrDefault(s, s));
 					}
-					m.exceptions = exceptions;
+					m.node.exceptions = exceptions;
 				}
 				
-				unsupported(m.parameters);
-				unsupported(m.visibleAnnotations);
-				unsupported(m.invisibleAnnotations);
-				unsupported(m.visibleTypeAnnotations);
-				unsupported(m.invisibleTypeAnnotations);
-				unsupported(m.attrs);
-				unsupported(m.annotationDefault);
-				unsupported(m.visibleParameterAnnotations);
-				unsupported(m.invisibleParameterAnnotations);
+				unsupported(m.node.parameters);
+				unsupported(m.node.visibleAnnotations);
+				unsupported(m.node.invisibleAnnotations);
+				unsupported(m.node.visibleTypeAnnotations);
+				unsupported(m.node.invisibleTypeAnnotations);
+				unsupported(m.node.attrs);
+				unsupported(m.node.annotationDefault);
+				unsupported(m.node.visibleParameterAnnotations);
+				unsupported(m.node.invisibleParameterAnnotations);
 				
-				for(TryCatchBlockNode tcbn : m.tryCatchBlocks) {
+				for(TryCatchBlockNode tcbn : m.node.tryCatchBlocks) {
 					tcbn.type = remapping.getOrDefault(tcbn.type, tcbn.type);
 				}
 
@@ -183,9 +183,9 @@ public class ClassRenamerPass implements IPass {
 					er.setTypes(newTypeSet);
 				}
 
-				if(m.localVariables != null) {
-					m.localVariables.clear();
-					for(LocalVariableNode lvn : m.localVariables) {
+				if(m.node.localVariables != null) {
+					m.node.localVariables.clear();
+					for(LocalVariableNode lvn : m.node.localVariables) {
 						String newDesc = resolveType(Type.getType(lvn.desc), remapping);
 						if(newDesc != null) {
 							lvn.desc = newDesc;
@@ -195,8 +195,8 @@ public class ClassRenamerPass implements IPass {
 					}
 				}
 				
-				unsupported(m.visibleLocalVariableAnnotations);
-				unsupported(m.invisibleLocalVariableAnnotations);
+				unsupported(m.node.visibleLocalVariableAnnotations);
+				unsupported(m.node.invisibleLocalVariableAnnotations);
 				
 				for(BasicBlock b : cfg.vertices()) {
 					for(Stmt stmt : b) {

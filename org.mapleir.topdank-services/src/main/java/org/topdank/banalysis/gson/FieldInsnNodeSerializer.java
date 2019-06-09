@@ -37,7 +37,7 @@ public class FieldInsnNodeSerializer implements JsonSerializer<FieldInsnNode>, J
     @Override
     public JsonElement serialize(FieldInsnNode src, Type typeOfSrc, JsonSerializationContext context) {
         JsonObject jsonObject = new JsonObject();
-        jsonObject.add("opcode", context.serialize(src.opcode(), Integer.class));
+        jsonObject.add("opcode", context.serialize(src.getOpcode(), Integer.class));
         jsonObject.add("owner", context.serialize(src.owner, String.class));
         jsonObject.add("name", context.serialize(src.name, String.class));
         jsonObject.add("desc", context.serialize(src.desc, String.class));

@@ -5,8 +5,8 @@ import org.mapleir.ir.algorithms.LocalsReallocator;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.cfg.builder.ControlFlowGraphBuilder;
 import org.mapleir.stdlib.util.JavaClassCompiler;
-import org.objectweb.asm.tree.ClassNode;
-import org.objectweb.asm.tree.MethodNode;
+import org.mapleir.asm.ClassNode;
+import org.mapleir.asm.MethodNode;
 import org.topdank.byteengineer.commons.asm.ASMFactory;
 import org.topdank.byteengineer.commons.asm.DefaultASMFactory;
 
@@ -27,7 +27,7 @@ public class CompilationDemo {
 		} else {
 			ASMFactory cnFactory = new DefaultASMFactory();
 			ClassNode cn = cnFactory.create(bytes, className);
-			for(MethodNode mn : cn.methods) {
+			for(MethodNode mn : cn.getMethods()) {
 				System.out.println(mn.getJavaDesc());
 				ControlFlowGraphBuilder builder = new ControlFlowGraphBuilder(mn, false);
 				ControlFlowGraph cfg = builder.buildImpl();

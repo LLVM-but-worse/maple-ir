@@ -11,8 +11,8 @@ import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.code.Opcode;
 import org.mapleir.ir.code.Stmt;
 import org.mapleir.ir.code.expr.invoke.InvocationExpr;
-import org.objectweb.asm.tree.ClassNode;
-import org.objectweb.asm.tree.MethodNode;
+import org.mapleir.asm.ClassNode;
+import org.mapleir.asm.MethodNode;
 
 public class ConcreteStaticInvocationPass implements IPass {
 
@@ -24,7 +24,7 @@ public class ConcreteStaticInvocationPass implements IPass {
 		InvocationResolver resolver = cxt.getInvocationResolver();
 		
 		for(ClassNode cn : cxt.getApplication().iterate()) {
-			for(MethodNode mn : cn.methods) {
+			for(MethodNode mn : cn.getMethods()) {
 				ControlFlowGraph cfg = cxt.getIRCache().getFor(mn);
 				
 				for(BasicBlock b : cfg.vertices()) {
@@ -37,8 +37,8 @@ public class ConcreteStaticInvocationPass implements IPass {
 									MethodNode invoked = resolver.resolveStaticCall(invoke.getOwner(), invoke.getName(), invoke.getDesc());
 									
 									if(invoked != null) {
-										if(!invoked.owner.name.equals(invoke.getOwner())) {
-											invoke.setOwner(invoked.owner.name);
+										if(!invoked.getOwner().equals(invoke.getOwner())) {
+											invoke.setOwner(invoked.getOwner());
 											fixed++;
 										}
 									}

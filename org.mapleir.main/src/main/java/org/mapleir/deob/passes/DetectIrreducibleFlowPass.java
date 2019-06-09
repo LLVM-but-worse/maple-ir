@@ -8,7 +8,7 @@ import org.mapleir.deob.PassContext;
 import org.mapleir.deob.PassResult;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.stdlib.collections.graph.GraphUtils;
-import org.objectweb.asm.tree.MethodNode;
+import org.mapleir.asm.MethodNode;
 
 public class DetectIrreducibleFlowPass implements IPass {
 

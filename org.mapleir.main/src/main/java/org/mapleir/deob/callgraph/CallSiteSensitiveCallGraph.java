@@ -4,7 +4,7 @@ import org.mapleir.deob.callgraph.CallGraphNode.CallReceiverNode;
 import org.mapleir.deob.callgraph.CallGraphNode.CallSiteNode;
 import org.mapleir.ir.code.expr.invoke.Invocation;
 import org.mapleir.stdlib.collections.graph.FastDirectedGraph;
-import org.objectweb.asm.tree.MethodNode;
+import org.mapleir.asm.MethodNode;
 
 import java.util.HashMap;
 import java.util.LinkedHashSet;

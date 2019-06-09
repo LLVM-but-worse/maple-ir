@@ -13,9 +13,29 @@
   <name>modasm</name>
   <dependencies>
   	<dependency>
-  		<groupId>org.mapleir</groupId>
-  		<artifactId>stdlib</artifactId>
-  		<version>0.0.1-ALPHA</version>
+      <groupId>org.mapleir</groupId>
+      <artifactId>stdlib</artifactId>
+      <version>0.0.1-ALPHA</version>
   	</dependency>
+    <dependency>
+      <groupId>org.ow2.asm</groupId>
+      <artifactId>asm</artifactId>
+      <version>7.1</version>
+    </dependency>
+    <dependency>
+      <groupId>org.ow2.asm</groupId>
+      <artifactId>asm-tree</artifactId>
+      <version>7.1</version>
+    </dependency>
+    <dependency>
+      <groupId>org.ow2.asm</groupId>
+      <artifactId>asm-util</artifactId>
+      <version>7.1</version>
+    </dependency>
+    <dependency>
+      <groupId>org.ow2.asm</groupId>
+      <artifactId>asm-commons</artifactId>
+      <version>7.1</version>
+    </dependency>
   </dependencies>
 </project>

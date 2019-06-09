@@ -32,7 +32,7 @@ public class IntInsnNodeSerializer implements JsonSerializer<IntInsnNode>, JsonD
     @Override
     public JsonElement serialize(IntInsnNode src, Type typeOfSrc, JsonSerializationContext context) {
         JsonObject jsonObject = new JsonObject();
-        jsonObject.add("opcode", context.serialize(src.opcode(), Integer.class));
+        jsonObject.add("opcode", context.serialize(src.getOpcode(), Integer.class));
         jsonObject.add("operand", context.serialize(src.operand, Integer.class));
         return jsonObject;
     }

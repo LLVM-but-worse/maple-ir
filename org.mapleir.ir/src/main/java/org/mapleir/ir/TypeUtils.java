@@ -13,7 +13,7 @@ import org.mapleir.app.service.ApplicationClassSource;
 import org.mapleir.app.service.ClassTree;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
-import org.objectweb.asm.tree.ClassNode;
+import org.mapleir.asm.ClassNode;
 import org.objectweb.asm.util.Printer;
 
 public class TypeUtils {
@@ -681,7 +681,7 @@ public class TypeUtils {
 		
 		if(src == dst) {
 			return true;
-		} else if(dst.name.equals("java/lang/Object")) {
+		} else if(dst.getName().equals("java/lang/Object")) {
 			return true;
 		}
 		

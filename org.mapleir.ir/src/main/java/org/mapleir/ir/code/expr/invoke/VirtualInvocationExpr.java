@@ -5,7 +5,7 @@ import org.mapleir.ir.code.Expr;
 import org.mapleir.stdlib.collections.CollectionUtils;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
-import org.objectweb.asm.tree.MethodNode;
+import org.mapleir.asm.MethodNode;
 
 import java.util.HashSet;
 import java.util.Set;

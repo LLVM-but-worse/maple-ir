@@ -6,8 +6,8 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
-import org.mapleir.stdlib.collections.ClassHelper;
-import org.objectweb.asm.tree.ClassNode;
+import org.mapleir.asm.ClassHelper;
+import org.mapleir.asm.ClassNode;
 
 public abstract class ClassSource {
 
@@ -60,7 +60,7 @@ public abstract class ClassSource {
 		nodeMap.clear();
 		
 		for(ClassNode cn : cset) {
-			nodeMap.put(cn.name, cn);
+			nodeMap.put(cn.getName(), cn);
 		}
 	}
 	

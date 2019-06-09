@@ -1,4 +1,4 @@
-package org.mapleir.stdlib.util;
+package org.mapleir.asm;
 
 import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.InsnList;

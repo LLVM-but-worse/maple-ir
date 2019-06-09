@@ -22,8 +22,8 @@ import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.code.Opcode;
 import org.mapleir.ir.code.Stmt;
 import org.mapleir.ir.code.expr.invoke.InvocationExpr;
-import org.objectweb.asm.tree.ClassNode;
-import org.objectweb.asm.tree.MethodNode;
+import org.mapleir.asm.ClassNode;
+import org.mapleir.asm.MethodNode;
 
 public class MethodRenamerPass implements IPass {
 
@@ -44,7 +44,7 @@ public class MethodRenamerPass implements IPass {
 		int totalMethods = 0;
 		
 		for(ClassNode cn : source.iterate()) {
-			totalMethods += cn.methods.size();
+			totalMethods += cn.getMethods().size();
 		}
 		
 		int i = RenamingUtil.computeMinimum(totalMethods);
@@ -52,8 +52,8 @@ public class MethodRenamerPass implements IPass {
 		// Map<MethodNode, Set<MethodNode>> debugMap = new HashMap<>();
 		
 		for(ClassNode cn : source.iterate()) {
-			for(MethodNode m : cn.methods) {
-				if (!heuristic.shouldRename(m.name, m.access)) {
+			for(MethodNode m : cn.getMethods()) {
+				if (!heuristic.shouldRename(m.getName(), m.node.access)) {
 				// 	System.out.println("Heuristic bypass meth " + m.name);
 					continue;
 				}
@@ -61,16 +61,16 @@ public class MethodRenamerPass implements IPass {
 					continue;
 				}
 				
-				if(Modifier.isStatic(m.access)) {
-					if(!m.name.equals("<clinit>") && !SimpleApplicationContext.isMainMethod(m)) {
+				if(Modifier.isStatic(m.node.access)) {
+					if(!m.getName().equals("<clinit>") && !SimpleApplicationContext.isMainMethod(m)) {
 						String newName = RenamingUtil.createName(i++);
 						remapped.put(m, newName);
 					}
 				} else {
-					if(!m.name.equals("<init>")) {
+					if(!m.getName().equals("<init>")) {
 						// Set<ClassNode> classes = source.getStructures().dfsTree(m.owner, true, true, true);
 						// Set<MethodNode> methods = getVirtualMethods(cxt, classes, m.name, m.desc);
-						Set<MethodNode> methods = resolver.getHierarchyMethodChain(m.owner, m.name, m.desc, true);
+						Set<MethodNode> methods = resolver.getHierarchyMethodChain(m.owner, m.getName(), m.node.desc, true);
 						if(canRename(cxt, methods)) {
 							String newName = RenamingUtil.createName(i++);
 							
@@ -136,12 +136,12 @@ public class MethodRenamerPass implements IPass {
 		
 		for(ClassNode cn : source.iterate()) {
 			{
-				if(cn.outerMethod != null) {
-//					ClassNode owner = tree.getClass(cn.outerClass);
-					System.out.println("Outer: " + cn.outerClass + "." + cn.outerMethod + " " + cn.outerMethodDesc);
-					cn.outerClass = null;
-					cn.outerMethod = null;
-					cn.outerMethodDesc = null;
+				if(cn.node.outerMethod != null) {
+//					ClassNode owner = tree.getClass(cn.node.outerClass);
+					System.out.println("Outer: " + cn.node.outerClass + "." + cn.node.outerMethod + " " + cn.node.outerMethodDesc);
+					cn.node.outerClass = null;
+					cn.node.outerMethod = null;
+					cn.node.outerMethodDesc = null;
 					//					System.out.println(owner.name);
 //					do {
 //						for(MethodNode m : owner.methods) {
@@ -159,7 +159,7 @@ public class MethodRenamerPass implements IPass {
 			
 			Set<Expr> visited = new HashSet<>();
 			
-			for(MethodNode m : cn.methods) {
+			for(MethodNode m : cn.getMethods()) {
 				ControlFlowGraph cfg = cxt.getIRCache().getFor(m);
 				
 				for(BasicBlock b : cfg.vertices()) {
@@ -202,7 +202,7 @@ public class MethodRenamerPass implements IPass {
 											}*/
 											
 											if(invoke.getOwner().equals("hey")) {
-												for(MethodNode mm : cxt.getApplication().findClassNode(invoke.getOwner()).methods) {
+												for(MethodNode mm : cxt.getApplication().findClassNode(invoke.getOwner()).getMethods()) {
 													System.out.println(mm);
 												}
 												throw new UnsupportedOperationException();
@@ -236,7 +236,7 @@ public class MethodRenamerPass implements IPass {
 										if(remapped.containsKey(site)) {
 											invoke.setName(remapped.get(site));
 										} else {
-											if(warn && !site.name.equals("<init>") && canRename(cxt, sites)) {
+											if(warn && !site.getName().equals("<init>") && canRename(cxt, sites)) {
 												System.err.println("  invalid site(v): " + invoke + ", " + sites);
 											}
 										}
@@ -259,7 +259,7 @@ public class MethodRenamerPass implements IPass {
 		 * analysis above. */
 		for(Entry<MethodNode, String> e : remapped.entrySet()) {
 			// System.out.printf("%s -> %s%n", e.getKey(), e.getValue());
-			e.getKey().name = e.getValue();
+			e.getKey().node.name = e.getValue();
 		}
 	}
 	
@@ -270,7 +270,7 @@ public class MethodRenamerPass implements IPass {
 	
 	private static boolean canRename(AnalysisContext cxt, Set<MethodNode> methods) {
 		for(MethodNode m : methods) {
-			if(cxt.getApplication().isLibraryClass(m.owner.name)) {
+			if(cxt.getApplication().isLibraryClass(m.getOwner())) {
 				/* inherited from runtime class */
 				return false;
 			}

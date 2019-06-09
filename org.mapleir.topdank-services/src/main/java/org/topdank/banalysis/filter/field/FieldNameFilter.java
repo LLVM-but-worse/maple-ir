@@ -1,6 +1,6 @@
 package org.topdank.banalysis.filter.field;
 
-import org.objectweb.asm.tree.FieldNode;
+import org.mapleir.asm.FieldNode;
 import org.topdank.banalysis.filter.FieldFilter;
 
 import java.util.ArrayList;
@@ -20,6 +20,6 @@ public class FieldNameFilter implements FieldFilter {
 
     @Override
     public boolean accept(FieldNode fieldNode) {
-        return names.contains(fieldNode.name);
+        return names.contains(fieldNode.getName());
     }
 }

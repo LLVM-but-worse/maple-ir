@@ -11,12 +11,13 @@ import java.util.Set;
 
 import org.mapleir.app.service.ApplicationClassSource;
 import org.mapleir.app.service.ClassTree;
+import org.mapleir.asm.ClassHelper;
 import org.mapleir.ir.TypeUtils;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
-import org.objectweb.asm.tree.ClassNode;
-import org.objectweb.asm.tree.MethodNode;
+import org.mapleir.asm.ClassNode;
+import org.mapleir.asm.MethodNode;
 
 @Deprecated
 public class HierarchyMethods {
@@ -48,8 +49,8 @@ public class HierarchyMethods {
 		ClassNode eCn = app.findClassNode(eR.getInternalName());
 		ClassNode aCn = app.findClassNode(aR.getInternalName());
 		
-		System.err.println("eCn: " + eCn.name);
-		System.err.println("aCn: " + aCn.name);
+		System.err.println("eCn: " + eCn.getName());
+		System.err.println("aCn: " + aCn.getName());
 		System.err.println(app.getClassTree().getAllParents(aCn));
 		System.err.println("eCn parent of aCn?: " + app.getClassTree().getAllParents(aCn).contains(eCn));
 		System.err.println("aCn child of eCn?: " + app.getClassTree().getAllChildren(eCn).contains(aCn));
@@ -142,20 +143,20 @@ public class HierarchyMethods {
 		
 		Type[] expectedParams = Type.getArgumentTypes(desc);
 		
-		for(MethodNode m : cn.methods) {
+		for(MethodNode m : cn.getMethods()) {
 			// no bits set in m.access that aren't in allowedMask
 			// no bits unset in m.access that are in requiredMask
-			if(((m.access ^ allowedMask) & m.access) == 0 && ((m.access ^ requiredMask) & requiredMask) == 0) {
-				if (!Modifier.isStatic(allowedMask) && Modifier.isStatic(m.access))
+			if(((m.node.access ^ allowedMask) & m.node.access) == 0 && ((m.node.access ^ requiredMask) & requiredMask) == 0) {
+				if (!Modifier.isStatic(allowedMask) && Modifier.isStatic(m.node.access))
 					throw new IllegalStateException("B0i");
-				if (!Modifier.isAbstract(allowedMask) && Modifier.isAbstract(m.access))
+				if (!Modifier.isAbstract(allowedMask) && Modifier.isAbstract(m.node.access))
 					throw new IllegalStateException("B0i");
-				if (!isBridge(allowedMask) && isBridge(m.access))
+				if (!isBridge(allowedMask) && isBridge(m.node.access))
 					throw new IllegalStateException("B0i");
-				if (Modifier.isStatic(requiredMask) && !Modifier.isStatic(m.access))
+				if (Modifier.isStatic(requiredMask) && !Modifier.isStatic(m.node.access))
 					throw new IllegalStateException("B0i");
 
-				if (!m.name.equals(name) || !Arrays.equals(expectedParams, Type.getArgumentTypes(m.desc))) {
+				if (!m.getName().equals(name) || !Arrays.equals(expectedParams, Type.getArgumentTypes(m.getDesc()))) {
 					continue;
 				}
 
@@ -163,17 +164,17 @@ public class HierarchyMethods {
 					case ANY_TYPES:
 						break;
 					case CONGRUENT_TYPES:
-						if (!areTypesCongruent(Type.getReturnType(desc), Type.getReturnType(m.desc))) {
+						if (!areTypesCongruent(Type.getReturnType(desc), Type.getReturnType(m.getDesc()))) {
 							continue;
 						}
 						break;
 					case EXACT_TYPES:
-						if (!desc.equals(m.desc)) {
+						if (!desc.equals(m.getDesc())) {
 							continue;
 						}
 						break;
 					case LOOSELY_RELATED_TYPES:
-						if(!areTypesLooselyRelated(Type.getReturnType(desc), Type.getReturnType(m.desc))) {
+						if(!areTypesLooselyRelated(Type.getReturnType(desc), Type.getReturnType(m.getDesc()))) {
 							continue;
 						}
 						break;
@@ -182,14 +183,12 @@ public class HierarchyMethods {
 				// sanity check
 				if (returnTypes == EXACT_TYPES && !isBridge(allowedMask) && !findM.isEmpty()) {
 					System.err.println("==findM==");
-					debugCong(desc, findM.iterator().next().desc);
+					debugCong(desc, findM.iterator().next().getDesc());
 					System.err.println("==m==");
-					debugCong(desc, m.desc);
+					debugCong(desc, m.getDesc());
 					
 					{
-						ClassWriter cw = new ClassWriter(0);
-						cn.accept(cw);
-						byte[] bs = cw.toByteArray();
+						byte[] bs = ClassHelper.toByteArray(cn);
 						
 						try {
 							FileOutputStream fos = new FileOutputStream(new File("out/broken.class"));
@@ -201,7 +200,7 @@ public class HierarchyMethods {
 						
 					}
 					
-					throw new IllegalStateException(String.format("%s contains %s(br=%b) and %s(br=%b)", cn.name, findM, isBridge(findM.iterator().next().access), m, isBridge(m.access)));
+					throw new IllegalStateException(String.format("%s contains %s(br=%b) and %s(br=%b)", cn.getName(), findM, isBridge(findM.iterator().next().node.access), m, isBridge(m.node.access)));
 				}
 				findM.add(m);
 			}

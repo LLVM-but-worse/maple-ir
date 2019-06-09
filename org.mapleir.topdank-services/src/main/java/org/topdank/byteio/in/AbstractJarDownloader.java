@@ -2,7 +2,7 @@ package org.topdank.byteio.in;
 
 import java.io.IOException;
 
-import org.objectweb.asm.tree.ClassNode;
+import org.mapleir.asm.ClassNode;
 import org.topdank.byteengineer.commons.asm.ASMFactory;
 import org.topdank.byteengineer.commons.asm.DefaultASMFactory;
 import org.topdank.byteengineer.commons.data.LocateableJarContents;

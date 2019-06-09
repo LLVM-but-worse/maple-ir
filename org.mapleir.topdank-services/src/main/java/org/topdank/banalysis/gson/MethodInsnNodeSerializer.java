@@ -31,7 +31,7 @@ public class MethodInsnNodeSerializer implements JsonSerializer<MethodInsnNode>,
 	@Override
 	public JsonElement serialize(MethodInsnNode src, Type typeOfSrc, JsonSerializationContext context) {
 		JsonObject object = new JsonObject();
-		object.add("opcode", context.serialize(src.opcode()));
+		object.add("opcode", context.serialize(src.getOpcode()));
 		object.add("owner", context.serialize(src.owner));
 		object.add("name", context.serialize(src.name));
 		object.add("desc", context.serialize(src.desc));

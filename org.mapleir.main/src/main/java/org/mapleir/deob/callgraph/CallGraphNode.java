@@ -2,7 +2,7 @@ package org.mapleir.deob.callgraph;
 
 import org.mapleir.ir.code.Expr;
 import org.mapleir.stdlib.collections.graph.FastGraphVertex;
-import org.objectweb.asm.tree.MethodNode;
+import org.mapleir.asm.MethodNode;
 
 public abstract class CallGraphNode implements FastGraphVertex {
 
@@ -73,7 +73,7 @@ public abstract class CallGraphNode implements FastGraphVertex {
 
 		@Override
 		public String toString() {
-			return sourceMethod.owner + "." + sourceMethod.name + "@" + invoke.getBlock().indexOf(invoke.getRootParent()) + ":" + invoke.getParent().indexOf(invoke);
+			return sourceMethod.owner + "." + sourceMethod.getName() + "@" + invoke.getBlock().indexOf(invoke.getRootParent()) + ":" + invoke.getParent().indexOf(invoke);
 		}
 	}
 }

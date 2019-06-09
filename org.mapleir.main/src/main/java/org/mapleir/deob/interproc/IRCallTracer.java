@@ -8,7 +8,7 @@ import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.code.Stmt;
 import org.mapleir.ir.code.expr.invoke.Invocation;
-import org.objectweb.asm.tree.MethodNode;
+import org.mapleir.asm.MethodNode;
 
 /**
  * CallTracer which implements a DFS on the callgraph based on IR instructions.
@@ -29,7 +29,7 @@ public class IRCallTracer extends CallTracer {
 		ControlFlowGraph cfg = context.getIRCache().getFor(m);
 		if (cfg == null) {
 			throw new UnsupportedOperationException(
-					String.format("Cannot trace, no cfg for %s (%d)", m, m.instructions.size()));
+					String.format("Cannot trace, no cfg for %s (%d)", m, m.node.instructions.size()));
 		}
 
 		for (Stmt stmt : cfg.stmts()) {

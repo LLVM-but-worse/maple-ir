@@ -6,7 +6,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.objectweb.asm.tree.ClassNode;
+import org.mapleir.asm.ClassNode;
 
 /**
  * @author Bibl (don't ban me pls) <br>
@@ -32,7 +32,7 @@ public class ClassUtil {
 	public static Map<String, ClassNode> createMap(Collection<ClassNode> classes) {
 		Map<String, ClassNode> map = new HashMap<String, ClassNode>();
 		for (ClassNode cn : classes) {
-			map.put(cn.name, cn);
+			map.put(cn.getName(), cn);
 		}
 		return map;
 	}

@@ -11,7 +11,7 @@ import org.mapleir.stdlib.collections.graph.FastGraphEdgeImpl;
 import org.mapleir.stdlib.collections.graph.GraphUtils;
 import org.mapleir.stdlib.collections.graph.algorithms.SimpleDfs;
 import org.mapleir.stdlib.util.TabbedStringWriter;
-import org.objectweb.asm.tree.ClassNode;
+import org.mapleir.asm.ClassNode;
 
 /**
  * A graph to represent the inheritance tree.
@@ -173,18 +173,18 @@ public class ClassTree extends FastDirectedGraph<ClassNode, InheritanceEdge> {
 		
 		if(cn != rootNode) {
 			Set<InheritanceEdge> edges = new HashSet<>();
-			ClassNode sup = cn.superName != null ? requestClass0(cn.superName, cn.name) : rootNode;
+			ClassNode sup = cn.node.superName != null ? requestClass0(cn.node.superName, cn.getName()) : rootNode;
 			if(sup == null) {
-				LOGGER.error(String.format("No superclass %s for %s", cn.superName, cn.name));
+				LOGGER.error(String.format("No superclass %s for %s", cn.node.superName, cn.getName()));
 				removeVertex(cn);
 				return false;
 			}
 			edges.add(new ExtendsEdge(cn, sup));
 
-			for (String s : cn.interfaces) {
-				ClassNode iface = requestClass0(s, cn.name);
+			for (String s : cn.node.interfaces) {
+				ClassNode iface = requestClass0(s, cn.getName());
 				if(iface == null) {
-					LOGGER.error(String.format("No superinterface %s for %s", s, cn.name));
+					LOGGER.error(String.format("No superinterface %s for %s", s, cn.getName()));
 					removeVertex(cn);
 					return false;
 				}

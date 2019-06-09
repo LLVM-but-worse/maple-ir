@@ -4,8 +4,9 @@ import java.io.IOException;
 import java.util.HashSet;
 
 import org.apache.log4j.Logger;
+import org.mapleir.asm.ClassHelper;
 import org.objectweb.asm.ClassReader;
-import org.objectweb.asm.tree.ClassNode;
+import org.mapleir.asm.ClassNode;
 
 public class InstalledRuntimeClassSource extends LibraryClassSource {
 	protected final Logger LOGGER = Logger.getLogger(InstalledRuntimeClassSource.class);
@@ -57,15 +58,13 @@ public class InstalledRuntimeClassSource extends LibraryClassSource {
 
 		/* try to resolve the class from the runtime. */
 		try {
-			ClassReader cr = new ClassReader(name);
-			ClassNode cn = new ClassNode();
-			cr.accept(cn, ClassReader.SKIP_CODE);
+			ClassNode cn = ClassHelper.create(name, ClassReader.SKIP_CODE);
 			/* cache it. */
-			nodeMap.put(cn.name, cn);
+			nodeMap.put(cn.getName(), cn);
 			
 			ClassTree tree = parent._getClassTree();
 			if(tree == null) {
-				if(!cn.name.equals("java/lang/Object")) {
+				if(!cn.getName().equals("java/lang/Object")) {
 					LOGGER.error(String.format("Tried to load %s before initialisation", cn));
 					throw new IllegalStateException("Only Object may be loaded during tree initialisation.");
 				}

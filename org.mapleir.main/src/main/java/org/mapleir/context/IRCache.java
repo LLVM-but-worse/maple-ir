@@ -6,7 +6,7 @@ import org.mapleir.ir.code.CodeUnit;
 import org.mapleir.stdlib.collections.map.KeyedValueCreator;
 import org.mapleir.stdlib.collections.map.NullPermeableHashMap;
 import org.mapleir.stdlib.util.JavaDesc;
-import org.objectweb.asm.tree.MethodNode;
+import org.mapleir.asm.MethodNode;
 
 import java.util.Set;
 import java.util.stream.Stream;

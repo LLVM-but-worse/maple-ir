@@ -4,7 +4,7 @@ import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.objectweb.asm.tree.ClassNode;
+import org.mapleir.asm.ClassNode;
 import org.topdank.byteengineer.commons.asm.ASMFactory;
 import org.topdank.byteengineer.commons.asm.DefaultASMFactory;
 import org.topdank.byteengineer.commons.data.LocateableJarContents;
@@ -79,7 +79,7 @@ public class JarClassLoader extends ClassLoader {
 			ucp.addURL(url);
 		}
 		for (ClassNode cn : contents.getClassContents()) {
-			fastNodeCache.put(cn.name, cn);
+			fastNodeCache.put(cn.getName(), cn);
 		}
 	}
 
@@ -96,9 +96,9 @@ public class JarClassLoader extends ClassLoader {
 	 */
 	public Class<?> defineNode(ClassNode cn) {
 		byte[] bytes = factory.write(cn);
-		Class<?> c = defineClass(cn.name.replace("/", "."), bytes, 0, bytes.length);
-		cache(c, cn.name);
-		fastNodeCache.put(cn.name, cn);
+		Class<?> c = defineClass(cn.getName().replace("/", "."), bytes, 0, bytes.length);
+		cache(c, cn.getName());
+		fastNodeCache.put(cn.getName(), cn);
 		return c;
 	}
 

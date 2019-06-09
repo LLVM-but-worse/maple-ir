@@ -12,7 +12,7 @@ import org.mapleir.ir.locals.impl.StaticMethodLocalsPool;
 import org.mapleir.ir.locals.impl.VirtualMethodLocalsPool;
 import org.mapleir.ir.utils.CFGUtils;
 import org.mapleir.stdlib.collections.map.NullPermeableHashMap;
-import org.objectweb.asm.tree.MethodNode;
+import org.mapleir.asm.MethodNode;
 
 import java.lang.reflect.Modifier;
 import java.util.HashSet;
@@ -36,7 +36,7 @@ public class ControlFlowGraphBuilder {
 	public ControlFlowGraphBuilder(MethodNode method, boolean optimise) {
 		this.optimise = optimise;
 		this.method = method;
-		if(Modifier.isStatic(method.access)) {
+		if(Modifier.isStatic(method.node.access)) {
 			graph = new ControlFlowGraph(new StaticMethodLocalsPool(), method.getJavaDesc());
 		} else {
 			graph = new ControlFlowGraph(new VirtualMethodLocalsPool(), method.getJavaDesc());

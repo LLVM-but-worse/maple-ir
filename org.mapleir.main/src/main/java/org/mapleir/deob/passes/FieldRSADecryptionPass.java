@@ -16,9 +16,9 @@ import org.mapleir.ir.code.expr.ConstantExpr;
 import org.mapleir.ir.code.expr.FieldLoadExpr;
 import org.mapleir.ir.code.stmt.FieldStoreStmt;
 import org.mapleir.stdlib.collections.map.NullPermeableHashMap;
-import org.objectweb.asm.tree.ClassNode;
-import org.objectweb.asm.tree.FieldNode;
-import org.objectweb.asm.tree.MethodNode;
+import org.mapleir.asm.ClassNode;
+import org.mapleir.asm.FieldNode;
+import org.mapleir.asm.MethodNode;
 
 import java.lang.reflect.Modifier;
 import java.math.BigInteger;
@@ -66,15 +66,15 @@ public class FieldRSADecryptionPass implements IPass, Opcode {
 			return newKey;
 		}
 		
-		for(FieldNode fn : cn.fields) {
-			if(fn.name.equals(name) && fn.desc.equals(desc) && (Modifier.isStatic(fn.access) == isStatic)) {
-				String newKey = key(fn.owner.name, fn.name, fn.desc);
+		for(FieldNode fn : cn.getFields()) {
+			if(fn.getName().equals(name) && fn.getDesc().equals(desc) && (Modifier.isStatic(fn.node.access) == isStatic)) {
+				String newKey = key(cn.getName(), fn.getName(), fn.getDesc());
 				fieldLookupCache.put(oldKey, newKey);
 				return newKey;
 			}
 		}
 		
-		return lookupField0(cxt, oldKey, cn.superName, name, desc, isStatic);
+		return lookupField0(cxt, oldKey, cn.node.superName, name, desc, isStatic);
 	}
 	
 	@Override
@@ -232,7 +232,7 @@ public class FieldRSADecryptionPass implements IPass, Opcode {
 	
 	private void transform(AnalysisContext cxt) {
 		for(ClassNode cn : cxt.getApplication().iterate()) {
-			for(MethodNode m : cn.methods) {
+			for(MethodNode m : cn.getMethods()) {
 				ControlFlowGraph cfg = cxt.getIRCache().getFor(m);
 				
 				for(BasicBlock b : cfg.vertices()) {
@@ -300,7 +300,7 @@ public class FieldRSADecryptionPass implements IPass, Opcode {
 		}
 		
 //		for(ClassNode cn : cxt.getClassTree().getClasses().values()) {
-//			for(MethodNode m : cn.methods) {
+//			for(MethodNode m : cn.getMethods()) {
 //				ControlFlowGraph cfg = cxt.getCFGS().getIR(m);
 //				
 //				for(BasicBlock b : cfg.vertices()) {

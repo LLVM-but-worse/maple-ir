@@ -33,7 +33,7 @@ public class JumpInsnNodeSerializer implements JsonSerializer<JumpInsnNode>, Jso
     @Override
     public JsonElement serialize(JumpInsnNode src, Type typeOfSrc, JsonSerializationContext context) {
     	JsonObject object = new JsonObject();
-        object.add("opcode", context.serialize(src.opcode()));
+        object.add("opcode", context.serialize(src.getOpcode()));
         object.add("label", context.serialize(src.label));
         return object;
     }

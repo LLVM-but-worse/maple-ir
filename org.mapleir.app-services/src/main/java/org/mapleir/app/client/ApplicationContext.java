@@ -2,7 +2,7 @@ package org.mapleir.app.client;
 
 import java.util.Set;
 
-import org.objectweb.asm.tree.MethodNode;
+import org.mapleir.asm.MethodNode;
 
 public interface ApplicationContext {
 

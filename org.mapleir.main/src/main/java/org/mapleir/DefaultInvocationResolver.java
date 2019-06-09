@@ -5,9 +5,9 @@ import org.mapleir.app.service.ApplicationClassSource;
 import org.mapleir.app.service.InvocationResolver;
 import org.mapleir.stdlib.collections.map.NullPermeableHashMap;
 import org.objectweb.asm.Opcodes;
-import org.objectweb.asm.tree.ClassNode;
-import org.objectweb.asm.tree.FieldNode;
-import org.objectweb.asm.tree.MethodNode;
+import org.mapleir.asm.ClassNode;
+import org.mapleir.asm.FieldNode;
+import org.mapleir.asm.MethodNode;
 
 import java.lang.reflect.Modifier;
 import java.util.*;
@@ -87,9 +87,9 @@ public class DefaultInvocationResolver implements InvocationResolver {
 		/* if the super class is null it means we're at object and so
 		 * we don't even have to consider interfaces: as we stop
 		 * here */
-		if(c.superName != null) {
-			computeVTable(superKlass = app.findClassNode(c.superName));
-			for(String i : c.interfaces) {
+		if(c.node.superName != null) {
+			computeVTable(superKlass = app.findClassNode(c.node.superName));
+			for(String i : c.node.interfaces) {
 				computeVTable(app.findClassNode(i));
 			}
 		}
@@ -107,18 +107,18 @@ public class DefaultInvocationResolver implements InvocationResolver {
 		Map<Selector, MethodNode> thisMethodSet = new HashMap<>();
 		Map<Selector, MethodNode> thisAbstractSet = new HashMap<>();
 		
-		for(MethodNode m : c.methods) {
+		for(MethodNode m : c.getMethods()) {
 			/* we can easily resolve these as they come
 			 * so we don't even need them in the table. */
-			if(Modifier.isStatic(m.access)) {
+			if(Modifier.isStatic(m.node.access)) {
 				continue;
 			}
 			
 			/* immutable lookup key */
-			Selector s = new Selector(m.name, m.desc);
+			Selector s = new Selector(m.getName(), m.getDesc());
 			
 			/* store our local declarations. */
-			if(Modifier.isAbstract(m.access)) {
+			if(Modifier.isAbstract(m.node.access)) {
 				putOrThrow(thisAbstractSet, s, m);
 			} else {
 				putOrThrow(thisMethodSet, s, m);
@@ -127,8 +127,8 @@ public class DefaultInvocationResolver implements InvocationResolver {
 		
 		if(debugLevel >= 2) {
 			LOGGER.debug("Class: " + c);
-			LOGGER.debug("  super: " + c.superName);
-			LOGGER.debug("  interfaces: " + c.interfaces.toString());
+			LOGGER.debug("  super: " + c.node.superName);
+			LOGGER.debug("  interfaces: " + c.node.interfaces.toString());
 			LOGGER.debug(" implSet: ");
 			print(thisMethodSet);
 			LOGGER.debug(" absSet: " );
@@ -211,7 +211,7 @@ public class DefaultInvocationResolver implements InvocationResolver {
 				LOGGER.debug(" process interfaces:");
 			}
 			
-			for(String i : c.interfaces) {
+			for(String i : c.node.interfaces) {
 				if(debugLevel >= 2) {
 					LOGGER.debug("  " + i);
 				}
@@ -312,7 +312,7 @@ public class DefaultInvocationResolver implements InvocationResolver {
 							
 							boolean anyAbstract = false;
 							for(MethodNode m : contenders) {
-								anyAbstract |= Modifier.isAbstract(m.access);
+								anyAbstract |= Modifier.isAbstract(m.node.access);
 							}
 							
 							if(anyAbstract) {
@@ -336,10 +336,10 @@ public class DefaultInvocationResolver implements InvocationResolver {
 							 * declare the method because it can be implied but we can
 							 * insert a miranda to create a link in the vtable. */
 
-							if(c.isAbstract()) {
+							if(Modifier.isAbstract(c.node.access)) {
 								boolean allAbstract = true;
 								for(MethodNode m : contenders) {
-									allAbstract &= Modifier.isAbstract(m.access);
+									allAbstract &= Modifier.isAbstract(m.node.access);
 								}
 								
 								if(allAbstract) {
@@ -379,7 +379,7 @@ public class DefaultInvocationResolver implements InvocationResolver {
 				globalAVT.remove(selector);
 				globalCVT.remove(selector);
 				
-				if(resolve == null && !c.isAbstract()) {
+				if(resolve == null && !Modifier.isAbstract(c.node.access)) {
 					throw new IllegalStateException(String.format("Miranda %s in non abstract class %s", conflictingMethods, c));
 				}
 				
@@ -389,14 +389,14 @@ public class DefaultInvocationResolver implements InvocationResolver {
 				
 				if(resolve == null) {
 					// TODO: sigs?
-					resolve = new MethodNode(c, Opcodes.ACC_PUBLIC | Opcodes.ACC_ABSTRACT, selector.name, selector.desc, null, getExceptionClasses(conflictingMethods));
-					c.methods.add(resolve);
+					resolve = new MethodNode(new org.objectweb.asm.tree.MethodNode(Opcodes.ACC_PUBLIC | Opcodes.ACC_ABSTRACT, selector.name, selector.desc, null, getExceptionClasses(conflictingMethods)), c);
+					c.addMethod(resolve);
 					if(debugLevel >= 2) {
 						LOGGER.debug("  generated miranda " + resolve);
 					}
 				}
 				
-				if(Modifier.isAbstract(resolve.access)) {
+				if(Modifier.isAbstract(resolve.node.access)) {
 					globalAVT.put(selector, resolve);
 				} else {
 					globalCVT.put(selector, resolve);
@@ -426,7 +426,7 @@ public class DefaultInvocationResolver implements InvocationResolver {
 	private void validateTables() {
 		for(Map<Selector, MethodNode> map : concreteVTables.values()) {
 			for(MethodNode m : map.values()) {
-				if(Modifier.isAbstract(m.access)) {
+				if(Modifier.isAbstract(m.node.access)) {
 					throw new IllegalStateException();
 				}
 			}
@@ -435,12 +435,12 @@ public class DefaultInvocationResolver implements InvocationResolver {
 		for(Entry<ClassNode, Map<Selector, MethodNode>> e : abstractVTables.entrySet()) {
 			Map<Selector, MethodNode> map = e.getValue();
 			if(map.size() > 0) {
-				if(!e.getKey().isAbstract()) {
+				if(!Modifier.isAbstract(e.getKey().node.access)) {
 					throw new IllegalStateException();
 				}
 			}
 			for(MethodNode m : map.values()) {
-				if(!Modifier.isAbstract(m.access)) {
+				if(!Modifier.isAbstract(m.node.access)) {
 					throw new IllegalStateException();
 				}
 			}
@@ -505,14 +505,14 @@ public class DefaultInvocationResolver implements InvocationResolver {
 		if(col.size() == 0) {
 			throw new UnsupportedOperationException();
 		} else if(col.size() == 1) {
-			return col.iterator().next().exceptions.toArray(new String[0]);
+			return col.iterator().next().node.exceptions.toArray(new String[0]);
 		} else {
 			Set<String> set = new HashSet<>();
 			Iterator<MethodNode> it = col.iterator();
-			set.addAll(it.next().exceptions);
+			set.addAll(it.next().node.exceptions);
 			
 			while(it.hasNext()) {
-				List<String> lst = it.next().exceptions;
+				List<String> lst = it.next().node.exceptions;
 				
 				/*if(lst.size() != set.size() || (lst.size() != 0 && !lst.containsAll(set))) {
 					throw new IllegalStateException(String.format("set: %s, lst: %s for %s", set, lst, col));
@@ -554,13 +554,13 @@ public class DefaultInvocationResolver implements InvocationResolver {
 			
 			if(cm == null && am == null) {
 				if(strict) {
-					throw new NoSuchMethodError(receiver.name + "." + name + desc);
+					throw new NoSuchMethodError(receiver.getName() + "." + name + desc);
 				}
 			} else if(cm != null) {
 				return cm;
 			} else if(am != null) {
 				if(strict) {
-					throw new AbstractMethodError(receiver.name + "." + name + desc);
+					throw new AbstractMethodError(receiver.getName() + "." + name + desc);
 				} else {
 					return am;
 				}
@@ -581,13 +581,13 @@ public class DefaultInvocationResolver implements InvocationResolver {
 			return null;
 		}
 		
-		for(MethodNode mn : cn.methods) {
-			if(mn.name.equals(name) && mn.desc.equals(desc)) {
+		for(MethodNode mn : cn.getMethods()) {
+			if(mn.getName().equals(name) && mn.getDesc().equals(desc)) {
 				return mn;
 			}
 		}
 		
-		return resolveStaticCall(cn.superName, name, desc);
+		return resolveStaticCall(cn.node.superName, name, desc);
 	}
 
 	@Override
@@ -600,7 +600,7 @@ public class DefaultInvocationResolver implements InvocationResolver {
 		MethodNode mn = resolve(cn, "<init>", desc, true);
 		if(mn == null) {
 			return null;
-		} else if(!mn.owner.name.equals(owner)) {
+		} else if(!mn.owner.getName().equals(owner)) {
 			throw new UnsupportedOperationException(mn.toString());
 		} else {
 			return mn;
@@ -618,11 +618,11 @@ public class DefaultInvocationResolver implements InvocationResolver {
 		Set<MethodNode> result = new HashSet<>();
 		
 		for(ClassNode receiver : app.getClassTree().getAllChildren(cn)) {
-			if(!receiver.isAbstract()) {
+			if(!Modifier.isAbstract(receiver.node.access)) {
 				// use strict mode = false for incomplete analysis
 				MethodNode target = resolve(receiver, name, desc, true);
 				
-				if(target == null|| Modifier.isAbstract(target.access)) {
+				if(target == null|| Modifier.isAbstract(target.node.access)) {
 					throw new IllegalStateException(String.format("Could not find vtarget for %s.%s%s", owner, name, desc));
 				}
 				
@@ -654,8 +654,8 @@ public class DefaultInvocationResolver implements InvocationResolver {
 				Set<FieldNode> lvlSites = new HashSet<>();
 				
 				for(ClassNode c : lvl) {
-					for(FieldNode f : c.fields) {
-						if(Modifier.isStatic(f.access) && f.name.equals(name) && f.desc.equals(desc)) {
+					for(FieldNode f : c.getFields()) {
+						if(Modifier.isStatic(f.node.access) && f.getName().equals(name) && f.getDesc().equals(desc)) {
 							lvlSites.add(f);
 						}
 					}
@@ -672,12 +672,12 @@ public class DefaultInvocationResolver implements InvocationResolver {
 				
 				Set<ClassNode> newLvl = new HashSet<>();
 				for(ClassNode c : lvl) {
-					ClassNode sup = app.findClassNode(c.superName);
+					ClassNode sup = app.findClassNode(c.node.superName);
 					if(sup != null) {
 						newLvl.add(sup);
 					}
 					
-					for(String iface : c.interfaces) {
+					for(String iface : c.node.interfaces) {
 						ClassNode ifaceN = app.findClassNode(iface);
 						
 						if(ifaceN != null) {
@@ -706,13 +706,13 @@ public class DefaultInvocationResolver implements InvocationResolver {
 
 		if (cn != null) {
 			do {
-				for (FieldNode f : cn.fields) {
-					if (!Modifier.isStatic(f.access) && f.name.equals(name) && f.desc.equals(desc)) {
+				for (FieldNode f : cn.getFields()) {
+					if (!Modifier.isStatic(f.node.access) && f.getName().equals(name) && f.getDesc().equals(desc)) {
 						return f;
 					}
 				}
 
-				cn = app.findClassNode(cn.superName);
+				cn = app.findClassNode(cn.node.superName);
 			} while (cn != null);
 		}
 

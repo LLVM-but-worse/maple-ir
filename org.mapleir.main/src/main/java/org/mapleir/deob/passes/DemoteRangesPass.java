@@ -15,8 +15,8 @@ import org.mapleir.ir.utils.CFGUtils;
 import org.mapleir.stdlib.collections.graph.GraphUtils;
 import org.mapleir.stdlib.collections.graph.algorithms.TarjanSCC;
 import org.objectweb.asm.Type;
-import org.objectweb.asm.tree.ClassNode;
-import org.objectweb.asm.tree.MethodNode;
+import org.mapleir.asm.ClassNode;
+import org.mapleir.asm.MethodNode;
 
 import java.util.*;
 
@@ -29,7 +29,7 @@ public class DemoteRangesPass implements IPass {
 	public PassResult accept(PassContext pcxt) {
 		AnalysisContext cxt = pcxt.getAnalysis();
 		for(ClassNode cn : cxt.getApplication().iterate()) {
-			for(MethodNode m : cn.methods) {
+			for(MethodNode m : cn.getMethods()) {
 				ControlFlowGraph cfg = cxt.getIRCache().getFor(m);
 				if(cfg.getRanges().size() > 0) {
 					process(cxt.getApplication(), cfg, cxt.getExceptionAnalysis(cfg));
@@ -118,13 +118,13 @@ public class DemoteRangesPass implements IPass {
 						break;
 					}
 					
-					if(t.name.equals(net)) {
+					if(t.getName().equals(net)) {
 						return true;
 					} else {
 						// TODO: add flag for app support
 						// and if we don't have a class
 						// assume it does catch.
-						t = app.findClassNode(t.superName);
+						t = app.findClassNode(t.node.superName);
 					}
 				}
 			}

@@ -7,7 +7,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import org.objectweb.asm.tree.ClassNode;
+import org.mapleir.asm.ClassNode;
 
 public class JarContents<C extends ClassNode> {
 
@@ -99,10 +99,10 @@ public class JarContents<C extends ClassNode> {
 				Iterator<C> it = iterator();
 				while (it.hasNext()) {
 					C cn = it.next();
-					if (nodeMap.containsKey(cn.name)) {
+					if (nodeMap.containsKey(cn.getName())) {
 						it.remove();
 					} else {
-						nodeMap.put(cn.name, cn);
+						nodeMap.put(cn.getName(), cn);
 					}
 				}
 				lastMap = nodeMap;

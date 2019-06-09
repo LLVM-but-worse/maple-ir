@@ -15,8 +15,8 @@ import org.mapleir.ir.code.expr.VarExpr;
 import org.mapleir.ir.code.expr.invoke.InvocationExpr;
 import org.mapleir.ir.locals.Local;
 import org.mapleir.ir.utils.CFGUtils;
-import org.objectweb.asm.tree.ClassNode;
-import org.objectweb.asm.tree.MethodNode;
+import org.mapleir.asm.ClassNode;
+import org.mapleir.asm.MethodNode;
 
 import java.util.Set;
 
@@ -28,8 +28,8 @@ public class LiftConstructorCallsPass implements Opcode, IPass {
 		//int delta = 0;
 		
 		for(ClassNode cn : cxt.getApplication().iterate()) {
-			for(MethodNode m : cn.methods) {
-				if(m.name.equals("<init>")) {
+			for(MethodNode m : cn.getMethods()) {
+				if(m.getName().equals("<init>")) {
 					ControlFlowGraph cfg = cxt.getIRCache().getFor(m);
 					if(tryLift(m, cfg)) {
 						//delta++;
@@ -53,7 +53,7 @@ public class LiftConstructorCallsPass implements Opcode, IPass {
 					if(e.getOpcode() == INVOKE) {
 						InvocationExpr invoke = (InvocationExpr) e;
 						
-						if(invoke.getOwner().equals(m.owner.superName) && invoke.getName().equals("<init>")) {
+						if(invoke.getOwner().equals(m.owner.node.superName) && invoke.getName().equals("<init>")) {
 							assert(invoke.getCallType() != InvocationExpr.CallType.DYNAMIC);
 							assert (invoke.getCallType() == InvocationExpr.CallType.SPECIAL);
 							

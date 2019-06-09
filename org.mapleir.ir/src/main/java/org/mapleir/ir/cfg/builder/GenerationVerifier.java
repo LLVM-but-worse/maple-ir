@@ -579,7 +579,7 @@ public class GenerationVerifier {
 	List<VerifierRule> find_verify_matches() {
 		throwNoContext();
 		
-		int op = currentContext.insn.opcode();
+		int op = currentContext.insn.getOpcode();
 		ExpressionStack stack = currentContext.stack;
 		
 		List<VerifierRule> rules = vrules.get(op);
@@ -607,7 +607,7 @@ public class GenerationVerifier {
 	void confirm_rules(List<VerifierRule> rules) {
 		throwNoContext();
 		
-		int opcode = currentContext.insn.opcode();
+		int opcode = currentContext.insn.getOpcode();
 		ExpressionStack stack = currentContext.stack;
 		
 		List<VerifierRule> vr = vrules.get(opcode);
@@ -684,7 +684,7 @@ public class GenerationVerifier {
 			for(GenerationEvent e : events) {
 				msglog.append(e).append(System.lineSeparator());
 			}
-			return String.format("%s, b: #%s, stack: %s%n  Eventlog(%d):%s", Printer.OPCODES[insn.opcode()].toLowerCase(), block.getDisplayName(), stack, events.size(), msglog);
+			return String.format("%s, b: #%s, stack: %s%n  Eventlog(%d):%s", Printer.OPCODES[insn.getOpcode()].toLowerCase(), block.getDisplayName(), stack, events.size(), msglog);
 		}
 	}
 	
@@ -699,7 +699,7 @@ public class GenerationVerifier {
 		private final GenerationContext context;
 		
 		public VerifyException(ExceptionStage stage, GenerationContext context) {
-			super(String.format("error during %s / %s for %s%n%s", builder.method, stage, __vrules.get(context.insn.opcode()), context));
+			super(String.format("error during %s / %s for %s%n%s", builder.method, stage, __vrules.get(context.insn.getOpcode()), context));
 			this.stage = stage;
 			this.context = context;
 		}

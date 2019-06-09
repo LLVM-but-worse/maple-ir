@@ -19,8 +19,8 @@ import org.mapleir.ir.code.stmt.copy.AbstractCopyStmt;
 import org.mapleir.ir.locals.Local;
 import org.mapleir.ir.locals.LocalsPool;
 import org.mapleir.stdlib.collections.graph.algorithms.SimpleDfs;
-import org.objectweb.asm.tree.ClassNode;
-import org.objectweb.asm.tree.MethodNode;
+import org.mapleir.asm.ClassNode;
+import org.mapleir.asm.MethodNode;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -155,7 +155,7 @@ public class DeadCodeEliminationPass implements IPass {
 		deadLocals = 0;
 		
 		for (ClassNode cn : cxt.getApplication().iterate()) {
-			for (MethodNode m : cn.methods) {
+			for (MethodNode m : cn.getMethods()) {
 				ControlFlowGraph cfg = cxt.getIRCache().getFor(m);
 
 				/* dead blocks */

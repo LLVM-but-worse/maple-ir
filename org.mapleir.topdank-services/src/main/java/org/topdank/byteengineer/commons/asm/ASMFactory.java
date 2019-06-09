@@ -2,7 +2,7 @@ package org.topdank.byteengineer.commons.asm;
 
 import java.io.IOException;
 
-import org.objectweb.asm.tree.ClassNode;
+import org.mapleir.asm.ClassNode;
 
 public abstract interface ASMFactory<C extends ClassNode> {
 
