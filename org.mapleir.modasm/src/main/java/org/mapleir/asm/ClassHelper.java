@@ -81,6 +81,10 @@ public class ClassHelper {
 		}
 	}
 
+	public static ClassNode create(org.objectweb.asm.tree.ClassNode cn) {
+		return new ClassNode(cn);
+	}
+
 	public static ClassNode create(String name) throws IOException {
 		return create(name, ClassReader.SKIP_FRAMES | ClassReader.SKIP_DEBUG);
 	}
