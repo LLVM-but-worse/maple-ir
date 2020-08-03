@@ -97,7 +97,7 @@ mvn install
 You can also get Maple-IR on [Jitpack](https://jitpack.io/#LLVM-but-worse/maple-ir).
 
 ## Credits
- - [Bibl](https://github.com/)t81lal
+ - [Bibl](https://github.com/t81lal)
  - [ecx86](https://github.com/ecx86)
  - [ObjectWeb ASM framework](http://asm.ow2.org/index.html)
 
