@@ -98,7 +98,7 @@ You can also get Maple-IR on [Jitpack](https://jitpack.io/#LLVM-but-worse/maple-
 
 ## Credits
  - [Bibl](https://github.com/t81lal)
- - [ecx86](https://github.com/ecx86)
+ - [rcx](https://github.com/rcx)
  - [ObjectWeb ASM framework](http://asm.ow2.org/index.html)
 
 Contact: Please file an issue, I will do my best to respond as quickly as possible.
@@ -108,4 +108,4 @@ Contact: Please file an issue, I will do my best to respond as quickly as possib
 ## License
 Maple-IR is licensed under the GPLv3. For more information, please see [here](https://www.gnu.org/licenses/gpl-3.0.en.html).
 
-Copyright (c) 2020 Bibl and ecx86
+Copyright (c) 2020 Bibl and rcx
