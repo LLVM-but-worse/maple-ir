@@ -6,6 +6,7 @@ import org.mapleir.flowgraph.edges.SwitchEdge;
 import org.mapleir.flowgraph.edges.UnconditionalJumpEdge;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
+import org.mapleir.ir.code.CodeUnit;
 import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.code.Opcode;
 import org.mapleir.ir.code.Stmt;
@@ -14,441 +15,238 @@ import org.mapleir.ir.code.expr.PhiExpr;
 import org.mapleir.ir.code.expr.VarExpr;
 import org.mapleir.ir.code.stmt.SwitchStmt;
 import org.mapleir.ir.code.stmt.UnconditionalJumpStmt;
+import org.mapleir.ir.code.stmt.copy.AbstractCopyStmt;
 import org.mapleir.ir.code.stmt.copy.CopyPhiStmt;
 import org.mapleir.ir.code.stmt.copy.CopyVarStmt;
+import org.mapleir.ir.codegen.BytecodeFrontend;
 import org.mapleir.ir.locals.Local;
 import org.mapleir.ir.locals.LocalsPool;
-import org.mapleir.ir.locals.impl.BasicLocal;
+import org.mapleir.ir.locals.impl.VersionedLocal;
 import org.mapleir.ir.utils.CFGUtils;
-import org.mapleir.stdlib.collections.bitset.BitSetIndexer;
 import org.mapleir.stdlib.collections.bitset.GenericBitSet;
-import org.mapleir.stdlib.collections.bitset.IncrementalBitSetIndexer;
+import org.mapleir.stdlib.collections.graph.algorithms.SimpleDfs;
+import org.mapleir.stdlib.collections.map.ListCreator;
 import org.mapleir.stdlib.collections.map.NullPermeableHashMap;
-import org.mapleir.stdlib.collections.map.ValueCreator;
+import org.mapleir.stdlib.util.TabbedStringWriter;
+import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Type;
 
 import java.util.*;
 import java.util.Map.Entry;
 
-import static org.mapleir.ir.code.Opcode.LOCAL_LOAD;
-
 /**
  * A dank SSA destructor that translates out of SSA by literally evaluating phi statements, lol
+ * First we go to CSSA (based on Boissinot), then we EVALUATE PHIs, then we relabel all variables
+ *
+ * If you use this, it's gonna fuck up the stack map frames, so you have to use -noverify (lmao)
  */
+
+@SuppressWarnings("DuplicatedCode")
 public class TrollDestructor {
+	public static void leaveSSA(ControlFlowGraph cfg) {
+		new TrollDestructor(cfg);
+	}
 
 	private final ControlFlowGraph cfg;
 	private final LocalsPool locals;
-	private SSABlockLivenessAnalyser liveness;
-	private SSADefUseMap defuse;
+	private final BasicBlock entry;
 
-	private final NullPermeableHashMap<Local, GenericBitSet<Local>> interfere;
-	private final NullPermeableHashMap<Local, GenericBitSet<Local>> pccs;
-	private final PhiResBitSetFactory phiResSetCreator;
-	private final NullPermeableHashMap<PhiResource, GenericBitSet<PhiResource>> unresolvedNeighborsMap;
-	private final NullPermeableHashMap<BasicBlock, GenericBitSet<BasicBlock>> succsCache;
-	private final GenericBitSet<PhiResource> candidateResourceSet;
+	private final DominanceLivenessAnalyser resolver;
+	private final SimpleDfs<BasicBlock> dom_dfs;
+	private final SSADefUseMap defuse;
+
+	private final Map<Local, CongruenceClass> congruenceClasses;
+	private final Map<Local, Local> remap;
 
 	private TrollDestructor(ControlFlowGraph cfg) {
 		this.cfg = cfg;
 		locals = cfg.getLocals();
-		interfere = new NullPermeableHashMap<>(locals);
-		pccs = new NullPermeableHashMap<>(locals);
-		phiResSetCreator = new PhiResBitSetFactory();
-		unresolvedNeighborsMap = new NullPermeableHashMap<>(phiResSetCreator);
-		defuse = new SSADefUseMap(cfg);
-		defuse.compute();
-		succsCache = new NullPermeableHashMap<>(key -> {
-			GenericBitSet<BasicBlock> succs = cfg.createBitSet();
-			cfg.getEdges(key).stream().map(e -> e.dst()).forEach(succs::add);
-			return succs;
-		});
-		candidateResourceSet = phiResSetCreator.create();
+
+		congruenceClasses = new HashMap<>();
+		remap = new HashMap<>();
+
+		// 1. Insert copies to enter CSSA.
+		liftPhiOperands();
+
+		entry = CFGUtils.deleteUnreachableBlocks(cfg);
+
+		copyPhiOperands();
+
+		resolver = new DominanceLivenessAnalyser(cfg, entry, null);
+
+		dom_dfs = traverseDominatorTree();
+		defuse = createDuChains();
+		resolver.setDefuse(defuse);
+
+		coalescePhisStupidly();
+
+		remapLocals();
+		applyRemapping();
+
+		sequentialize();
 	}
 
-	public static void leaveSSA(ControlFlowGraph cfg) {
-		TrollDestructor dest = new TrollDestructor(cfg);
-		dest.init();
-		// dest.writer.setName("destruct-init").export();
-
-		dest.csaa_iii();
-		// dest.writer.setName("destruct-cssa").export();
-
-		// coalesce messes up the troll
-		// dest.coalesce();
-		// dest.writer.setName("destruct-coalesce").export();
-
-		dest.leaveSSA();
-		// dest.writer.setName("destruct-final").export();
-	}
-
-	// ============================================================================================================= //
-	// =============================================== Initialization ============================================== //
-	// ============================================================================================================= //
-	private void init() {
-		// init pccs
-		for (CopyPhiStmt copyPhi : defuse.phiDefs.values()) {
-			Local phiTarget = copyPhi.getVariable().getLocal();
-			pccs.getNonNull(phiTarget).add(phiTarget);
-//			System.out.println("Initphi " + phiTarget);
-			for (Entry<BasicBlock, Expr> phiEntry : copyPhi.getExpression().getArguments().entrySet()) {
-				if (phiEntry.getValue().getOpcode() != LOCAL_LOAD)
-					throw new IllegalArgumentException("Phi arg is not local; instead is " + phiEntry.getValue().getClass().getSimpleName());
-				Local phiSource = ((VarExpr) phiEntry.getValue()).getLocal();
-				pccs.getNonNull(phiSource).add(phiSource);
-//				System.out.println("Initphi " + phiSource);
-			}
-		}
-//		System.out.println();
-
-		// compute liveness
-		(liveness = new SSABlockLivenessAnalyser(cfg)).compute();
-//		writer.add("liveness", new LivenessDecorator<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>>().setLiveness(liveness));
-
-		buildInterference();
-	}
-
-	private void buildInterference() {
+	private void liftPhiOperands() {
 		for (BasicBlock b : cfg.vertices()) {
-			GenericBitSet<Local> in = liveness.in(b); // not a copy!
-			GenericBitSet<Local> out = liveness.out(b); // not a copy!
+			for (Stmt stmt : new ArrayList<>(b)) {
+				if (stmt.getOpcode() == Opcode.PHI_STORE) {
+					CopyPhiStmt copy = (CopyPhiStmt) stmt;
+					for (Entry<BasicBlock, Expr> e : copy.getExpression().getArguments().entrySet()) {
+						Expr expr = e.getValue();
+						int opcode = expr.getOpcode();
+						if (opcode == Opcode.CONST_LOAD || opcode == Opcode.CATCH) {
+							VersionedLocal vl = locals.makeLatestVersion(locals.get(0, false));
+							CopyVarStmt cvs = new CopyVarStmt(new VarExpr(vl, expr.getType()), expr);
+							e.setValue(new VarExpr(vl, expr.getType()));
 
-			// in interfere in
-			for (Local l : in)
-				interfere.getNonNull(l).addAll(in);
-
-			// out interfere out
-			for (Local l : out)
-				interfere.getNonNull(l).addAll(out);
-
-			// backwards traverse for dealing with variables that are defined and used in the same block
-			GenericBitSet<Local> intraLive = out.copy();
-			ListIterator<Stmt> it = b.listIterator(b.size());
-			while (it.hasPrevious()) {
-				Stmt stmt = it.previous();
-				if (stmt instanceof CopyVarStmt) {
-					CopyVarStmt copy = (CopyVarStmt) stmt;
-					Local defLocal = copy.getVariable().getLocal();
-					intraLive.remove(defLocal);
-				}
-				for (Expr child : stmt.enumerateOnlyChildren()) {
-					if (stmt.getOpcode() == LOCAL_LOAD) {
-						Local usedLocal = ((VarExpr) child).getLocal();
-						if (intraLive.add(usedLocal)) {
-							interfere.getNonNull(usedLocal).addAll(intraLive);
-							for (Local l : intraLive)
-								interfere.get(l).add(usedLocal);
+							insertEnd(e.getKey(), cvs);
+						} else if (opcode != Opcode.LOCAL_LOAD) {
+							throw new IllegalArgumentException("Non-variable expression in phi: " + copy);
 						}
 					}
 				}
 			}
 		}
-
-//		System.out.println("Interference:");
-//		for (Entry<Local, GenericBitSet<Local>> entry : interfere.entrySet())
-//			System.out.println("  " + entry.getKey() + " : " + entry.getValue());
-//		System.out.println();
 	}
 
-	// ============================================================================================================= //
-	// =================================================== CSSA ==================================================== //
-	// ============================================================================================================= //
-	private void csaa_iii() {
-		// iterate over each phi expression
-		for (Entry<Local, CopyPhiStmt> entry : defuse.phiDefs.entrySet()) {
-//			System.out.println("process phi " + entry.getValue());
-
-			Local phiTarget = entry.getKey(); // x0
-			CopyPhiStmt copy = entry.getValue();
-			BasicBlock defBlock = defuse.defs.get(phiTarget); // l0
-			PhiExpr phi = copy.getExpression();
-			candidateResourceSet.clear();
-			unresolvedNeighborsMap.clear();
-
-			// Initialize phiResources set for convenience
-			final GenericBitSet<PhiResource> phiResources = phiResSetCreator.create();
-			phiResources.add(new PhiResource(defBlock, phiTarget, true));
-			for (Entry<BasicBlock, Expr> phiEntry : phi.getArguments().entrySet())
-				phiResources.add(new PhiResource(phiEntry.getKey(), ((VarExpr) phiEntry.getValue()).getLocal(), false));
-
-			// Determine what copies are needed using the four cases.
-			handleInterference(phiResources);
-
-			// Process unresolved resources
-			resolveDeferred();
-
-//			System.out.println("  Cand: " + candidateResourceSet);
-			// Resolve the candidate resources
-			Type phiType = phi.getType();
-			for (PhiResource toResolve : candidateResourceSet) {
-				if (toResolve.isTarget)
-					resolvePhiTarget(toResolve, phiType);
-				else for (Entry<BasicBlock, Expr> phiArg : phi.getArguments().entrySet()) {
-					VarExpr phiVar = (VarExpr) phiArg.getValue();
-					if (phiVar.getLocal() == toResolve.local)
-						phiVar.setLocal(resolvePhiSource(toResolve.local, phiArg.getKey(), phiType));
-				}
-			}
-//			System.out.println("  interference: ");
-//			for (Entry<Local, GenericBitSet<Local>> entry2 : interfere.entrySet())
-//				System.out.println("    " + entry2.getKey() + " : " + entry2.getValue());
-//			System.out.println("  post-inserted: " + copy);
-
-			// Merge pccs for all locals in phi
-			final GenericBitSet<Local> phiLocals = locals.createBitSet();
-			phiLocals.add(copy.getVariable().getLocal());
-			for (Entry<BasicBlock, Expr> phiEntry : phi.getArguments().entrySet())
-				phiLocals.add(((VarExpr) phiEntry.getValue()).getLocal());
-			for (Local phiLocal : phiLocals)
-				pccs.put(phiLocal, phiLocals);
-
-			// Nullify singleton pccs
-			for (GenericBitSet<Local> pcc : pccs.values())
-				if (pcc.size() <= 1)
-					pcc.clear();
-
-//			System.out.println("  pccs:");
-//			for (Entry<Local, GenericBitSet<Local>> entry2 : pccs.entrySet())
-//				System.out.println("    " + entry2.getKey() + " : " + entry2.getValue());
-//			System.out.println();
-		}
-	}
-
-	// TODO: convert <BasicBlock, Local> into some sort of a phi resource struct
-	private void handleInterference(GenericBitSet<PhiResource> phiLocals) {
-		for (PhiResource resI : phiLocals) {
-			GenericBitSet<Local> liveOutI = liveness.out(resI.block);
-			GenericBitSet<Local> pccI = pccs.get(resI.local);
-			for (PhiResource resJ : phiLocals) {
-				GenericBitSet<Local> pccJ = pccs.get(resJ.local);
-				if (!intersects(pccI, pccJ))
-					continue;
-				GenericBitSet<Local> liveOutJ = liveness.out(resJ.block);
-
-				boolean piljEmpty = pccI.intersect(liveOutJ).isEmpty();
-				boolean pjliEmpty = pccJ.intersect(liveOutI).isEmpty();
-				if (piljEmpty ^ pjliEmpty) {
-					// case 1 and 2 - handle it asymetrically for the necessary local
-					candidateResourceSet.add(piljEmpty ? resJ : resI);
-				} else if (piljEmpty & pjliEmpty) {
-					// case 4 - reflexively update unresolvedNeighborsMap
-					unresolvedNeighborsMap.getNonNull(resI).add(resJ);
-					unresolvedNeighborsMap.getNonNull(resJ).add(resI);
-				} else {
-					// case 3 - handle it symetrically for both locals
-					candidateResourceSet.add(resI);
-					candidateResourceSet.add(resJ);
-				}
+	private void copyPhiOperands() {
+		for (BasicBlock b : cfg.vertices()) {
+			if (b != entry) {
+				copyPhiOperands(b);
 			}
 		}
 	}
 
-	private void resolveDeferred() {
-		while (!unresolvedNeighborsMap.isEmpty()) {
-			// Pick up resources in value of decreasing size
-			PhiResource largest = null;
-			int largestCount = 0;
-			for (Entry<PhiResource, GenericBitSet<PhiResource>> entry : unresolvedNeighborsMap.entrySet()) {
-				PhiResource x = entry.getKey();
-				GenericBitSet<PhiResource> neighbors = entry.getValue();
-				int size = neighbors.size();
-				if (size > largestCount) {
-					if (!candidateResourceSet.contains(x) && !neighbors.containsAll(candidateResourceSet)) {
-						largestCount = size;
-						largest = x;
-					}
-				}
-			}
+	private void copyPhiOperands(BasicBlock b) {
+		NullPermeableHashMap<BasicBlock, List<PhiRes>> wl = new NullPermeableHashMap<>(new ListCreator<>());
+		ParallelCopyVarStmt dst_copy = new ParallelCopyVarStmt();
 
-			if (largestCount > 0) {
-//				System.out.println("  Add " + largest + " by case 4");
-				candidateResourceSet.add(largest);
-				unresolvedNeighborsMap.remove(largest);
-			} else {
+		// given a phi: L0: x0 = phi(L1:x1, L2:x2)
+		// insert the copies:
+		// L0: x0 = x3 (at the end of L0)
+		// L1: x4 = x1
+		// L2: x5 = x2
+		// and change the phi to:
+		// x3 = phi(L1:x4, L2:x5)
+
+		for (Stmt stmt : b) {
+			// phis only appear at the start of a block.
+			if (stmt.getOpcode() != Opcode.PHI_STORE) {
 				break;
 			}
+
+			CopyPhiStmt copy = (CopyPhiStmt) stmt;
+			PhiExpr phi = copy.getExpression();
+
+			// for every xi arg of the phi from pred Li, add it to the worklist
+			// so that we can parallelise the copy when we insert it.
+			for (Entry<BasicBlock, Expr> e : phi.getArguments().entrySet()) {
+				BasicBlock h = e.getKey();
+				// these are validated in init().
+				VarExpr v = (VarExpr) e.getValue();
+				PhiRes r = new PhiRes(copy.getVariable().getLocal(), phi, h, v.getLocal(), v.getType());
+				wl.getNonNull(h).add(r);
+			}
+
+			// for each x0, where x0 is a phi copy target, create a new variable z0 for
+			// a copy x0 = z0 and replace the phi copy target to z0.
+			Local x0 = copy.getVariable().getLocal();
+			Local z0 = locals.makeLatestVersion(x0);
+			dst_copy.pairs.add(new CopyPair(x0, z0, copy.getVariable().getType())); // x0 = z0
+			copy.getVariable().setLocal(z0); // z0 = phi(...)
+		}
+
+		// resolve
+		if (dst_copy.pairs.size() > 0)
+			insertStart(b, dst_copy);
+
+		for (Entry<BasicBlock, List<PhiRes>> e : wl.entrySet()) {
+			BasicBlock p = e.getKey();
+			ParallelCopyVarStmt copy = new ParallelCopyVarStmt();
+
+			for (PhiRes r : e.getValue()) {
+				// for each xi source in a phi, create a new variable zi, and insert the copy
+				// zi = xi in the pred Li. then replace the phi arg from Li with zi.
+
+				Local xi = r.l;
+				Local zi = locals.makeLatestVersion(xi);
+				copy.pairs.add(new CopyPair(zi, xi, r.type));
+
+				// we consider phi args to be used in the pred instead of the block
+				// where the phi is, so we need to update the def/use maps here.
+				r.phi.setArgument(r.pred, new VarExpr(zi, r.type));
+			}
+
+			insertEnd(p, copy);
 		}
 	}
 
-	private boolean intersects(GenericBitSet<Local> pccI, GenericBitSet<Local> pccJ) {
-		for (Local yi : pccI)
-			for (Local yj : pccJ) // this right here is the reason mr. boissinot roasted you 10 years later
-				if (interfere.get(yi).contains(yj))
-					return true;
-		return false;
-	}
-
-	private void resolvePhiTarget(PhiResource res, Type phiType) {
-		Local spill = insertStart(res, phiType); // Insert spill copy
-
-		// Update liveness
-		GenericBitSet<Local> liveIn = liveness.in(res.block);
-		liveIn.remove(res.local);
-		liveIn.add(spill);
-
-		// Reflexively update interference
-		interfere.getNonNull(spill).addAll(liveIn);
-		for (Local l : liveIn)
-			interfere.get(l).add(spill);
-	}
-
-	// replace the phi target xi with xi' and place a temp copy xi = xi' after all phi statements.
-	private Local insertStart(PhiResource res, Type type) {
-		BasicBlock li = res.block;
-		Local xi = res.local;
-		if(li.isEmpty())
-			throw new IllegalStateException("Trying to resolve phi target interference in empty block " + li);
-
-		Local spill = locals.makeLatestVersion(xi);
-		int i;
-		for (i = 0; i < li.size() && li.get(i).getOpcode() == Opcode.PHI_STORE; i++) {
-			CopyPhiStmt copyPhi = (CopyPhiStmt) li.get(i);
-			VarExpr copyTarget = copyPhi.getVariable();
-			if (copyTarget.getLocal() == xi)
-				copyTarget.setLocal(spill);
+	private void insertStart(BasicBlock b, Stmt copy) {
+		if (b.isEmpty()) {
+			b.add(copy);
+		} else {
+			// insert after phi.
+			int i;
+			for (i = 0; i < b.size() && b.get(i).getOpcode() == Opcode.PHI_STORE; i++)
+				; // skipping ptr.
+			b.add(i, copy);
 		}
-		li.add(i, new CopyVarStmt(new VarExpr(xi, type), new VarExpr(spill, type)));
-		return spill;
 	}
 
-	private Local resolvePhiSource(Local xi, BasicBlock lk, Type phiType) {
-		// Insert spill copy
-		Local spill = insertEnd(xi, lk, phiType);
-
-		// Update liveness
-		GenericBitSet<Local> liveOut = liveness.out(lk);
-		liveOut.add(spill);
-		 // xi can be removed from liveOut iff it isn't live into any succ or used in any succ phi.
-		for (BasicBlock lj : succsCache.getNonNull(lk)) {
-			if (!liveness.in(lj).contains(xi)) removeFromOut: {
-				for (int i = 0; i < lj.size() && lj.get(i).getOpcode() == Opcode.PHI_STORE; i++)
-					if (((VarExpr) ((CopyPhiStmt) lj.get(i)).getExpression().getArguments().get(lk)).getLocal() == xi)
-						break removeFromOut;
-				liveOut.remove(xi); // poor man's for-else loop
+	private void insertEnd(BasicBlock b, Stmt copy) {
+		if (b.isEmpty()) {
+			b.add(copy);
+		} else {
+			int pos = b.size() - 1;
+			if (b.get(pos).canChangeFlow()) {
+				b.add(pos, copy);
+			} else {
+				b.add(copy);
 			}
 		}
-
-		// Reflexively update interference
-		interfere.getNonNull(spill).addAll(liveOut);
-		for (Local l : liveOut)
-			interfere.get(l).add(spill);
-
-		return spill;
 	}
 
-	private Local insertEnd(Local xi, BasicBlock lk, Type type) {
-		Local spill = locals.makeLatestVersion(xi);
-		CopyVarStmt newCopy = new CopyVarStmt(new VarExpr(spill, type), new VarExpr(xi, type));
-		if(lk.isEmpty())
-			lk.add(newCopy);
-		else if(!lk.get(lk.size() - 1).canChangeFlow())
-			lk.add(newCopy);
-		else
-			lk.add(lk.size() - 1, newCopy);
-		return spill;
+	private SimpleDfs<BasicBlock> traverseDominatorTree() {
+		return new SimpleDfs<>(resolver.domc.getDominatorTree(), entry, SimpleDfs.PRE | SimpleDfs.TOPO);
 	}
 
-	// ============================================================================================================= //
-	// ================================================== Coalescing =============================================== //
-	// ============================================================================================================= //
-	private void coalesce() {
-		for (BasicBlock b : cfg.vertices()) {
-			for (Iterator<Stmt> it = b.iterator(); it.hasNext(); ) {
-				Stmt stmt = it.next();
-				if (stmt instanceof CopyVarStmt) {
-					CopyVarStmt copy = (CopyVarStmt) stmt;
-//					System.out.println("check " + copy);
-					if (checkCoalesce(copy)) {
-//						System.out.println("  coalescing");
-						it.remove(); // Remove the copy
-
-						// Merge pccs
-						GenericBitSet<Local> pccX = pccs.get(copy.getVariable().getLocal());
-						Local localY = ((VarExpr) copy.getExpression()).getLocal();
-						GenericBitSet<Local> pccY = pccs.get(localY);
-						pccX.add(localY);
-						pccX.addAll(pccY);
-						for (Local l : pccY)
-							pccs.put(l, pccX);
+	private SSADefUseMap createDuChains() {
+		SSADefUseMap defuse = new SSADefUseMap(cfg) {
+			@Override
+			protected void build(BasicBlock b, Stmt stmt, Set<Local> usedLocals) {
+				if (stmt instanceof ParallelCopyVarStmt) {
+					ParallelCopyVarStmt copy = (ParallelCopyVarStmt) stmt;
+					for (CopyPair pair : copy.pairs) {
+						defs.put(pair.targ, b);
+						uses.getNonNull(pair.source).add(b);
 					}
+				} else {
+					super.build(b, stmt, usedLocals);
 				}
 			}
-		}
 
-//		System.out.println("post-coalsce pccs:");
-//		for (Entry<Local, GenericBitSet<Local>> entry : pccs.entrySet())
-//			System.out.println("  " + entry.getKey() + " : " + entry.getValue());
-//		System.out.println();
+			@Override
+			protected void buildIndex(BasicBlock b, Stmt stmt, int index, Set<Local> usedLocals) {
+				if (stmt instanceof ParallelCopyVarStmt) {
+					ParallelCopyVarStmt copy = (ParallelCopyVarStmt) stmt;
+					for (CopyPair pair : copy.pairs) {
+						defIndex.put(pair.targ, index);
+						lastUseIndex.getNonNull(pair.source).put(b, index);
+					}
+				} else {
+					super.buildIndex(b, stmt, index, usedLocals);
+				}
+				return;
+			}
+		};
+		defuse.computeWithIndices(dom_dfs.getPreOrder());
+		return defuse;
 	}
 
-	private boolean checkCoalesce(CopyVarStmt copy) {
-		// Only coalesce simple copies x=y.
-		if (copy.isSynthetic() || copy.getExpression().getOpcode() != LOCAL_LOAD)
-			return false;
-
-		Local localX = copy.getVariable().getLocal();
-		Local localY = ((VarExpr) copy.getExpression()).getLocal();
-		GenericBitSet<Local> pccX = pccs.getNonNull(localX), pccY = pccs.getNonNull(localY);
-
-		// Trivial case: Now that we are in CSSA, we can simply drop copies within the same pcc.
-		if (pccX == pccY)
-			return true;
-
-		boolean xEmpty = pccX.isEmpty(), yEmpty = pccY.isEmpty();
-		// Case 1 - If pcc[x] and pcc[y] are empty the copy can be removed regardless of interference.
-		if (xEmpty & yEmpty)
-			return true;
-
-		// Case 2 - If one of pcc[x] is not empty but pcc[y] is empty then the copy can removed if y does not
-		// interfere with any local in (pcc[x]-x).
-		else if (xEmpty ^ yEmpty) {
-			if (checkPccSingle(yEmpty ? pccX : pccY, yEmpty ? localX : localY, yEmpty ? localY : localX))
-				return false;
-		}
-
-		// Case 3 - If neither pcc[x] nor pcc[y] are empty, then the copy can be removed iff no local in pcc[y]
-		// interferes with any local in (pcc[x]-x) and not local in pcc[x] interferes with any local in (pcc[y]-y).
-		else if (checkPccDouble(pccX, localX, pccY, localY))
-			return false;
-
-		// No interference, copy can be removed
-		return true;
-	}
-
-	// Returns true if the copy cannot be removed.
-	private boolean checkPccSingle(GenericBitSet<Local> pccX, Local x, Local y) {
-//		System.out.println("  case 2");
-		GenericBitSet<Local> nonEmpty = pccX.copy();
-		nonEmpty.remove(x);
-		return interfere.getNonNull(y).containsAny(nonEmpty);
-	}
-
-	// Quadratic (lmao) coalesce check for coalesce case 3, returns true if the copy cannot be removed.
-	// But thanks to bitsets its linear time
-	private boolean checkPccDouble(GenericBitSet<Local> pccX, Local x, GenericBitSet<Local> pccY, Local y) {
-//		System.out.println("  case 3");
-		GenericBitSet<Local> pccYTrim = pccY.copy();
-		pccYTrim.remove(y);
-		for (Local lx : pccX)
-			if (interfere.getNonNull(lx).containsAny(pccYTrim))
-				return true;
-
-		GenericBitSet<Local> pccXTrim = pccX.copy();
-		pccXTrim.remove(x);
-		for (Local ly : pccY)
-			if (interfere.getNonNull(ly).containsAny(pccXTrim))
-				return true;
-
-		return false;
-	}
-
-	// ============================================================================================================= //
-	// ================================================== Leave SSA ================================================ //
-	// ============================================================================================================= //
-	private void leaveSSA() {
+	private void coalescePhisStupidly() {
 		// so, instead of opting for the sane algorithm of flattening pccs and dropping phis, we are going to
 		// literally evaluate the phi statements by checking which block we came from.
-		Local predLocal = locals.getNextFreeLocal(false);
+		Local predLocal = locals.makeLatestVersion(locals.getNextFreeLocal(false));
 		VarExpr predVar = new VarExpr(predLocal, Type.INT_TYPE);
 		for (BasicBlock b : cfg.vertices()) {
 			Stmt newCopy = new CopyVarStmt(predVar.copy(), new ConstantExpr(b.getNumericId()));
@@ -463,11 +261,11 @@ public class TrollDestructor {
 			for (ListIterator<Stmt> it = b.listIterator(); it.hasNext(); ) {
 				Stmt stmt = it.next();
 				if (stmt instanceof CopyPhiStmt) {
-					it.remove();
+					it.remove(); // delete
 					CopyPhiStmt phi = (CopyPhiStmt) stmt;
 					BasicBlock splitBlock = CFGUtils.splitBlock(cfg, b, it.previousIndex());
 					Set<FlowEdge<BasicBlock>> splitEdges = cfg.getEdges(splitBlock);
-					assert(splitEdges.size() == 1);
+					assert (splitEdges.size() == 1);
 					cfg.removeEdge(splitEdges.iterator().next());
 					LinkedHashMap<Integer, BasicBlock> dsts = new LinkedHashMap<>();
 					for (Entry<BasicBlock, Expr> phiArg : phi.getExpression().getArguments().entrySet()) {
@@ -488,11 +286,20 @@ public class TrollDestructor {
 			}
 		}
 
+		defuse.phiDefs.clear();
+	}
+
+	private void remapLocals() {
+		// ok NOW we remap to avoid that double remap issue
+		for (Entry<Local, CongruenceClass> e : congruenceClasses.entrySet()) {
+			remap.put(e.getKey(), e.getValue().first());
+		}
+
 		// Flatten pccs into one variable through remapping
 		// System.out.println("remap:");
 		Map<Local, Local> remap = new HashMap<>();
-		for (Entry<Local, GenericBitSet<Local>> entry : pccs.entrySet()) {
-			GenericBitSet<Local> pcc = entry.getValue();
+		for (Entry<Local, CongruenceClass> entry : congruenceClasses.entrySet()) {
+			CongruenceClass pcc = entry.getValue();
 			if (pcc.isEmpty())
 				continue;
 
@@ -500,92 +307,300 @@ public class TrollDestructor {
 			if (remap.containsKey(local))
 				continue;
 
-			BasicLocal newLocal = locals.get(locals.getMaxLocals() + 1, false);
+			Local newLocal = locals.get(locals.getMaxLocals() + 1, 0, false);
 			// System.out.println("  " + local + " -> " + newLocal);
 			remap.put(local, newLocal);
 			for (Local pccLocal : pcc) {
 				if (remap.containsKey(pccLocal))
 					continue;
-				newLocal = locals.get(locals.getMaxLocals() + 1, false);
+				newLocal = locals.get(locals.getMaxLocals() + 1, 0, false);
 				remap.put(pccLocal, newLocal);
 				// System.out.println("  " + pccLocal + " -> " + newLocal);
 			}
 		}
 		System.out.println();
+	}
 
-		for (BasicBlock b : new ArrayList<>(cfg.vertices())) {
-			for (Stmt stmt : b) {
-				// Apply remappings
-				if (stmt instanceof CopyVarStmt) {
-					VarExpr lhs = ((CopyVarStmt) stmt).getVariable();
-					Local copyTarget = lhs.getLocal();
-					lhs.setLocal(remap.getOrDefault(copyTarget, copyTarget));
-				}
-				for (Expr child : stmt.enumerateOnlyChildren()) {
-					if (child.getOpcode() == LOCAL_LOAD) {
-						VarExpr var = (VarExpr) child;
-						Local loadSource = var.getLocal();
-						var.setLocal(remap.getOrDefault(loadSource, loadSource));
+	// Flatten ccs so that each local in each cc is replaced with a new representative local.
+	private void applyRemapping() {
+		GenericBitSet<BasicBlock> processed = cfg.createBitSet();
+		GenericBitSet<BasicBlock> processed2 = cfg.createBitSet();
+		for (Local e : remap.keySet()) {
+			for (BasicBlock used : defuse.uses.getNonNull(e)) {
+				if (processed.contains(used))
+					continue;
+				processed.add(used);
+				for (Stmt stmt : used) {
+					for (Expr s : stmt.enumerateOnlyChildren()) {
+						if (s.getOpcode() == Opcode.LOCAL_LOAD) {
+							VarExpr v = (VarExpr) s;
+							v.setLocal(remap.getOrDefault(v.getLocal(), v.getLocal()));
+						}
 					}
 				}
 			}
-		}
+			BasicBlock b = defuse.defs.get(e);
+			if (processed2.contains(b))
+				continue;
+			processed2.add(b);
 
-//		System.out.println();
+			for (Iterator<Stmt> it = b.iterator(); it.hasNext();) {
+				Stmt stmt = it.next();
+				if (stmt instanceof ParallelCopyVarStmt) {
+					ParallelCopyVarStmt copy = (ParallelCopyVarStmt) stmt;
+					for (Iterator<CopyPair> it2 = copy.pairs.iterator(); it2.hasNext();) {
+						CopyPair p = it2.next();
+						p.source = remap.getOrDefault(p.source, p.source);
+						p.targ = remap.getOrDefault(p.targ, p.targ);
+						if (p.source == p.targ)
+							it2.remove();
+					}
+					if (copy.pairs.isEmpty())
+						it.remove();
+				} else if (stmt instanceof CopyVarStmt) {
+					AbstractCopyStmt copy = (AbstractCopyStmt) stmt;
+					VarExpr v = copy.getVariable();
+					v.setLocal(remap.getOrDefault(v.getLocal(), v.getLocal()));
+					if (!copy.isSynthetic() && copy.getExpression().getOpcode() == Opcode.LOCAL_LOAD)
+						if (((VarExpr) copy.getExpression()).getLocal() == v.getLocal())
+							it.remove();
+				} else if (stmt instanceof CopyPhiStmt) {
+					throw new IllegalArgumentException("Phi copy still in block?");
+				}
+			}
+		}
+		for (Local e : remap.keySet()) {
+			defuse.defs.remove(e);
+			defuse.uses.remove(e);
+		}
 	}
 
-	// ============================================================================================================= //
-	// =================================================== Structs ================================================= //
-	// ============================================================================================================= //
-	private class PhiResource {
-		BasicBlock block;
-		Local local;
-		boolean isTarget;
+	private void sequentialize() {
+		for (BasicBlock b : cfg.vertices())
+			sequentialize(b);
+	}
 
-		public PhiResource(BasicBlock block, Local local, boolean isTarget) {
-			this.local = local;
-			this.block = block;
-			this.isTarget = isTarget;
+	private void sequentialize(BasicBlock b) {
+		// TODO: just rebuild the instruction list
+		LinkedHashMap<ParallelCopyVarStmt, Integer> p = new LinkedHashMap<>();
+		for (int i = 0; i < b.size(); i++) {
+			Stmt stmt = b.get(i);
+			if (stmt instanceof ParallelCopyVarStmt)
+				p.put((ParallelCopyVarStmt) stmt, i);
 		}
 
-		@Override
-		public boolean equals(Object o) {
-			if (this == o)
-				return true;
-			if (o == null || getClass() != o.getClass())
-				return false;
-
-			PhiResource that = (PhiResource) o;
-
-			if (!local.equals(that.local))
-				return false;
-			return block.equals(that.block);
-
+		if (p.isEmpty())
+			return;
+		int indexOffset = 0;
+		Local spill = locals.makeLatestVersion(p.entrySet().iterator().next().getKey().pairs.get(0).targ);
+		for (Entry<ParallelCopyVarStmt, Integer> e : p.entrySet()) {
+			ParallelCopyVarStmt pcvs = e.getKey();
+			int index = e.getValue();
+			if (pcvs.pairs.size() == 0)
+				throw new IllegalArgumentException("pcvs is empty");
+			else if (pcvs.pairs.size() == 1) { // constant sequentialize for trivial parallel copies
+				CopyPair pair = pcvs.pairs.get(0);
+				CopyVarStmt newCopy = new CopyVarStmt(new VarExpr(pair.targ, pair.type),
+						new VarExpr(pair.source, pair.type));
+				b.set(index + indexOffset, newCopy);
+			} else {
+				List<CopyVarStmt> sequentialized = pcvs.sequentialize(spill);
+				b.remove(index + indexOffset--);
+				for (CopyVarStmt cvs : sequentialized) { // warning: O(N^2) operation
+					b.add(index + ++indexOffset, cvs);
+				}
+			}
 		}
+	}
 
-		@Override
-		public int hashCode() {
-			int result = local.hashCode();
-			result = 31 * result + block.hashCode();
-			return result;
+	private class PhiRes {
+		final Local target;
+		final PhiExpr phi;
+		final BasicBlock pred;
+		final Local l;
+		final Type type;
+
+		PhiRes(Local target, PhiExpr phi, BasicBlock src, Local l, Type type) {
+			this.target = target;
+			this.phi = phi;
+			pred = src;
+			this.l = l;
+			this.type = type;
 		}
 
 		@Override
 		public String toString() {
-			return block.getDisplayName() + ":" + local + (isTarget? "(targ)" : "");
+			return String.format("targ=%s, p=%s, l=%s(type=%s)", target, pred, l, type);
 		}
 	}
 
-	private class PhiResBitSetFactory implements ValueCreator<GenericBitSet<PhiResource>> {
-		private final BitSetIndexer<PhiResource> phiResIndexer;
+	private class CopyPair {
+		Local targ;
+		Local source;
+		Type type;
 
-		PhiResBitSetFactory() {
-			phiResIndexer = new IncrementalBitSetIndexer<>();
+		CopyPair(Local dst, Local src, Type type) {
+			targ = dst;
+			source = src;
+			this.type = type;
 		}
 
 		@Override
-		public GenericBitSet<PhiResource> create() {
-			return new GenericBitSet<>(phiResIndexer);
+		public String toString() {
+			return targ + " =P= " + source + " (" + type + ")";
 		}
 	}
+
+	private class ParallelCopyVarStmt extends Stmt {
+		public static final int PARALLEL_STORE = CLASS_RESERVED | CLASS_STORE | 0x1;
+		final List<CopyPair> pairs;
+
+		ParallelCopyVarStmt() {
+			super(PARALLEL_STORE);
+			pairs = new ArrayList<>();
+		}
+
+		ParallelCopyVarStmt(List<CopyPair> pairs) {
+			super(PARALLEL_STORE);
+			this.pairs = pairs;
+		}
+
+		@Override
+		public void onChildUpdated(int ptr) {
+		}
+
+		@Override
+		public void toString(TabbedStringWriter printer) {
+			printer.print("PARALLEL(");
+
+			for (Iterator<CopyPair> it = pairs.iterator(); it.hasNext();) {
+				CopyPair p = it.next();
+				printer.print(p.targ.toString());
+				// printer.print("(" + p.type + ")");
+
+				if (it.hasNext()) {
+					printer.print(", ");
+				}
+			}
+
+			printer.print(") = (");
+
+			for (Iterator<CopyPair> it = pairs.iterator(); it.hasNext();) {
+				CopyPair p = it.next();
+				printer.print(p.source.toString());
+				// printer.print("(" + p.type + ")");
+
+				if (it.hasNext()) {
+					printer.print(", ");
+				}
+			}
+
+			printer.print(")");
+		}
+
+		private List<CopyVarStmt> sequentialize(Local spill) {
+			Stack<Local> ready = new Stack<>();
+			Stack<Local> to_do = new Stack<>();
+			Map<Local, Local> loc = new HashMap<>();
+			Map<Local, Local> pred = new HashMap<>();
+			Map<Local, Type> types = new HashMap<>();
+			pred.put(spill, null);
+
+			for (CopyPair pair : pairs) { // initialization
+				loc.put(pair.targ, null);
+				loc.put(pair.source, null);
+				types.put(pair.targ, pair.type);
+				types.put(pair.source, pair.type);
+			}
+
+			for (CopyPair pair : pairs) {
+				loc.put(pair.source, pair.source); // needed and not copied yet
+				pred.put(pair.targ, pair.source); // unique predecessor
+				to_do.push(pair.targ); // copy into b to be done
+			}
+
+			for (CopyPair pair : pairs) {
+				if (!loc.containsKey(pair.targ))
+					throw new IllegalStateException("this shouldn't happen");
+				if (loc.get(pair.targ) == null) // b is not used and can be overwritten
+					ready.push(pair.targ);
+			}
+
+			List<CopyVarStmt> result = new ArrayList<>();
+			while (!to_do.isEmpty()) {
+				while (!ready.isEmpty()) {
+					Local b = ready.pop(); // pick a free location
+					Local a = pred.get(b); // available in c
+					Local c = loc.get(a);
+					if ((!types.containsKey(b) && b != spill) || (!types.containsKey(c) && c != spill))
+						throw new IllegalStateException("this shouldn't happen " + b + " " + c);
+
+					VarExpr varB = new VarExpr(b, types.get(b)); // generate the copy b = c
+					VarExpr varC = new VarExpr(c, types.get(b));
+					result.add(new CopyVarStmt(varB, varC));
+
+					loc.put(a, b);
+					if (a == c && pred.get(a) != null) {
+						if (!pred.containsKey(a))
+							throw new IllegalStateException("this shouldn't happen");
+						ready.push(a); // just copied, can be overwritten
+					}
+				}
+
+				Local b = to_do.pop();
+				if (b != loc.get(pred.get(b))) {
+					if (!types.containsKey(b))
+						throw new IllegalStateException("this shouldn't happen");
+					VarExpr varN = new VarExpr(spill, types.get(b)); // generate the copy n = b
+					VarExpr varB = new VarExpr(b, types.get(b));
+					result.add(new CopyVarStmt(varN, varB));
+					loc.put(b, spill);
+					ready.push(b);
+				}
+			}
+
+			return result;
+		}
+
+		@Override
+		public void toCode(MethodVisitor visitor, BytecodeFrontend assembler) {
+			throw new UnsupportedOperationException("Synthetic");
+		}
+
+		@Override
+		public boolean canChangeFlow() {
+			return false;
+		}
+
+		@Override
+		public ParallelCopyVarStmt copy() {
+			return new ParallelCopyVarStmt(new ArrayList<>(pairs));
+		}
+
+		@Override
+		public boolean equivalent(CodeUnit s) {
+			return s instanceof ParallelCopyVarStmt && ((ParallelCopyVarStmt) s).pairs.equals(pairs);
+		}
+	}
+
+	private class CongruenceClass extends TreeSet<Local> {
+		private static final long serialVersionUID = -4472334406997712498L;
+
+		CongruenceClass() {
+			super((o1, o2) -> {
+				if (o1 == o2)
+					return 0;
+				return ((defuse.defIndex.get(o1) - defuse.defIndex.get(o2))) >> 31 | 1;
+			});
+		}
+	}
+
+	// Used for dumping the dominator graph
+	// private static <N extends FastGraphVertex> void dumpGraph(FastDirectedGraph<N, FastGraphEdge<N>> g, String name) {
+    //     try {
+	// 		Exporter.fromGraph(GraphUtils.makeDotSkeleton(g)).export(new File("cfg testing", name + ".png"));
+	// 	} catch (IOException e) {
+	// 		e.printStackTrace();
+	// 	}
+    // }
 }

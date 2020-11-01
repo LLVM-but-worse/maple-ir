@@ -29,6 +29,7 @@ import static org.mapleir.ir.code.Opcode.LOCAL_LOAD;
 /**
  * An out-of-SSA implementation based on Sreedhar et al.'s method, described in the paper
  * "Translating Out of Static Single Assignment Form".
+ * I think this has a bug right now so don't use it lol
  */
 public class SreedharDestructor {
 

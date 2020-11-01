@@ -7,6 +7,7 @@ import org.mapleir.asm.MethodNode;
 import org.mapleir.context.IRCache;
 import org.mapleir.ir.algorithms.BoissinotDestructor;
 import org.mapleir.ir.algorithms.LocalsReallocator;
+import org.mapleir.ir.algorithms.TrollDestructor;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.codegen.ControlFlowGraphDumper;
 import org.objectweb.asm.ClassWriter;
@@ -34,7 +35,7 @@ public class CleanBoot {
             //     CFGUtils.easyDumpCFG(cfg, "pre-destruct");
             cfg.verify();
 
-            BoissinotDestructor.leaveSSA(cfg);
+            TrollDestructor.leaveSSA(cfg);
 
             // if (mn.getName().equals("merge"))
             //     CFGUtils.easyDumpCFG(cfg, "pre-reaalloc");
