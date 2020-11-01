@@ -195,7 +195,7 @@ public class ControlFlowGraph extends FlowGraph<BasicBlock, FlowEdge<BasicBlock>
 		if (order.size() != size())
 			throw new IllegalArgumentException("order is wrong length");
 		// copy edge sets
-		Map<BasicBlock, Set<FlowEdge<BasicBlock>>> edges = new LinkedHashMap<>();
+		Map<BasicBlock, Set<FlowEdge<BasicBlock>>> edges = new HashMap<>();
 		for(BasicBlock b : order) {
 			if (!containsVertex(b))
 				throw new IllegalArgumentException("order has missing vertex " + b);
@@ -402,15 +402,5 @@ public class ControlFlowGraph extends FlowGraph<BasicBlock, FlowEdge<BasicBlock>
 	@Override
 	public DotGraph makeDotGraph(IPropertyDictionary properties) {
 		return CFGExporterUtils.makeDotGraph(this, properties);
-	}
-
-	@Override
-	public Set<FlowEdge<BasicBlock>> getEdges(BasicBlock b) {
-		return super.getEdges(b).stream().sorted((e1, e2) -> e1.toString().compareTo(e2.toString())).collect(Collectors.toCollection(LinkedHashSet::new));
-	}
-
-	@Override
-	public Set<FlowEdge<BasicBlock>> getReverseEdges(BasicBlock b) {
-		return super.getReverseEdges(b).stream().sorted((e1, e2) -> e1.toString().compareTo(e2.toString())).collect(Collectors.toCollection(LinkedHashSet::new));
 	}
 }

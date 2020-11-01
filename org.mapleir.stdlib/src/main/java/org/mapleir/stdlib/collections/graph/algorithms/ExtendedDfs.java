@@ -32,15 +32,15 @@ public class ExtendedDfs<N extends FastGraphVertex> implements DepthFirstSearch<
 			return WHITE;
 		});
 		
-		parents = opt(PARENTS) ? new LinkedHashMap<>() : null;
+		parents = opt(PARENTS) ? new HashMap<>() : null;
 		preorder = opt(PRE) ? new ArrayList<>() : null;
 		postorder = opt(POST) || opt(TOPO) ? new ArrayList<>() : null;
 
 		if(opt(EDGES)) {
-			edges = new LinkedHashMap<>();
-			edges.put(TREE, new LinkedHashSet<>());
-			edges.put(BACK, new LinkedHashSet<>());
-			edges.put(FOR_CROSS, new LinkedHashSet<>());
+			edges = new HashMap<>();
+			edges.put(TREE, new HashSet<>());
+			edges.put(BACK, new HashSet<>());
+			edges.put(FOR_CROSS, new HashSet<>());
 		} else {
 			edges = null;
 		}

@@ -1,6 +1,5 @@
 package org.mapleir.ir.algorithms;
 
-import org.mapleir.dot4j.Exporter;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.CodeUnit;
@@ -18,10 +17,6 @@ import org.mapleir.ir.locals.LocalsPool;
 import org.mapleir.ir.locals.impl.VersionedLocal;
 import org.mapleir.ir.utils.CFGUtils;
 import org.mapleir.stdlib.collections.bitset.GenericBitSet;
-import org.mapleir.stdlib.collections.graph.FastDirectedGraph;
-import org.mapleir.stdlib.collections.graph.FastGraphEdge;
-import org.mapleir.stdlib.collections.graph.FastGraphVertex;
-import org.mapleir.stdlib.collections.graph.GraphUtils;
 import org.mapleir.stdlib.collections.graph.algorithms.SimpleDfs;
 import org.mapleir.stdlib.collections.map.ListCreator;
 import org.mapleir.stdlib.collections.map.NullPermeableHashMap;
@@ -29,8 +24,6 @@ import org.mapleir.stdlib.util.TabbedStringWriter;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Type;
 
-import java.io.File;
-import java.io.IOException;
 import java.util.*;
 import java.util.Map.Entry;
 
@@ -40,6 +33,9 @@ import java.util.Map.Entry;
  *
  * @see <a href="https://hal.inria.fr/inria-00349925v1/document">Revisiting
  * Out-of-SSA Translation for Correctness, CodeQuality, and Efficiency</a>
+ *
+ * Ref: Boissinot's PhD thesis: https://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.385.8510&rep=rep1&type=pdf
+ * Ref: Slides: https://compilers.cs.uni-saarland.de/ssasem/talks/Alain.Darte.pdf
  */
 public class BoissinotDestructor {
 	// private boolean DO_VALUE_INTERFERENCE = true;
@@ -64,14 +60,6 @@ public class BoissinotDestructor {
 	private final Map<Local, CongruenceClass> congruenceClasses;
 	private final Map<Local, Local> remap;
 
-	private static <N extends FastGraphVertex> void dumpGraph(FastDirectedGraph<N, FastGraphEdge<N>> g, String name) {
-        try {
-			Exporter.fromGraph(GraphUtils.makeDotSkeleton(g)).export(new File("cfg testing", name + ".png"));
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-    }
-
 	private BoissinotDestructor(ControlFlowGraph cfg) {
 		this.cfg = cfg;
 		locals = cfg.getLocals();
@@ -86,15 +74,13 @@ public class BoissinotDestructor {
 			vc.add(local);
 			return vc;
 		});
-		congruenceClasses = new LinkedHashMap<>();
-		equalAncIn = new LinkedHashMap<>();
-		equalAncOut = new LinkedHashMap<>();
-		remap = new LinkedHashMap<>();
+		congruenceClasses = new HashMap<>();
+		equalAncIn = new HashMap<>();
+		equalAncOut = new HashMap<>();
+		remap = new HashMap<>();
 
 		// 1. Insert copies to enter CSSA.
 		liftPhiOperands();
-		// System.out.println("CSSA:");
-		// System.out.println(cfg);
 
 		entry = CFGUtils.deleteUnreachableBlocks(cfg);
 
@@ -102,34 +88,16 @@ public class BoissinotDestructor {
 		resolver = new DominanceLivenessAnalyser(cfg, entry, null);
 
 		copyPhiOperands();
-		// System.out.println("Copy phis:");
-		// System.out.println(cfg);
 		
 		dom_dfs = traverseDominatorTree();
-		// System.out.println("dom tree " + resolver.domc.getDominatorTree());
-		System.out.println("dom pre " + dom_dfs.getPreOrder());
-		System.out.println("dom post " + dom_dfs.getPostOrder());
-		// dumpGraph(resolver.domc.getDominatorTree(), "domtree");
-		System.out.println();
 		defuse = createDuChains();
-		// System.out.println("defs " + defuse.defs);
-		// System.out.println("uses " + defuse.uses);
-		// System.out.println("phiDefs " + defuse.phiDefs);
-		// System.out.println("phiUses " + defuse.phiUses);
-		// System.out.println("lastUseIndex " + defuse.lastUseIndex);
 		// this is bad.
 		resolver.setDefuse(defuse);
 
 		computeValueInterference();
-		System.out.println("Value interference: " + values);
 
-		// CFGUtils.easyDumpCFG(cfg, "pre-coalesce-phis");
 		coalescePhis();
-		System.out.println("pccs: " + congruenceClasses);
-		System.out.println("Coalesce phis cfg: " + cfg);
-		// CFGUtils.easyDumpCFG(cfg, "pre-coalesce-copies");
 		coalesceCopies();
-		System.out.println("Coalesce copys cfg: " + cfg);
 		
 		remapLocals();
 		applyRemapping();
@@ -138,7 +106,7 @@ public class BoissinotDestructor {
 	}
 
 	private void liftPhiOperands() {
-		for (BasicBlock b : cfg.verticesInOrder()) {
+		for (BasicBlock b : cfg.vertices()) {
 			for (Stmt stmt : new ArrayList<>(b)) {
 				if (stmt.getOpcode() == Opcode.PHI_STORE) {
 					CopyPhiStmt copy = (CopyPhiStmt) stmt;
@@ -161,7 +129,7 @@ public class BoissinotDestructor {
 	}
 
 	private void copyPhiOperands() {
-		for (BasicBlock b : cfg.verticesInOrder()) {
+		for (BasicBlock b : cfg.vertices()) {
 			if (b != entry) {
 				copyPhiOperands(b);
 			}
@@ -203,7 +171,6 @@ public class BoissinotDestructor {
 			// a copy x0 = z0 and replace the phi copy target to z0.
 			Local x0 = copy.getVariable().getLocal();
 			Local z0 = locals.makeLatestVersion(x0);
-			// System.out.println("Fuck the shit up " + x0 + " " + z0 + " " +copy.getVariable().getType());
 			dst_copy.pairs.add(new CopyPair(x0, z0, copy.getVariable().getType())); // x0 = z0
 			copy.getVariable().setLocal(z0); // z0 = phi(...)
 		}
@@ -222,7 +189,6 @@ public class BoissinotDestructor {
 
 				Local xi = r.l;
 				Local zi = locals.makeLatestVersion(xi);
-				// System.out.println("Fuck the shit up 2 " + zi + " " + xi + " " + r.type);
 				copy.pairs.add(new CopyPair(zi, xi, r.type));
 
 				// we consider phi args to be used in the pred instead of the block
@@ -298,7 +264,7 @@ public class BoissinotDestructor {
 
 	private void computeValueInterference() {
 		List<BasicBlock> topoorder = dom_dfs.getTopoOrder();
-		assert (topoorder.size() >= cfg.verticesInOrder().size());
+		assert (topoorder.size() >= cfg.vertices().size());
 		
 		for (BasicBlock bl : topoorder) {
 			for (Stmt stmt : bl) {
@@ -352,8 +318,6 @@ public class BoissinotDestructor {
 				pcc.add(argL);
 				congruenceClasses.put(argL, pcc);
 			}
-			// because we are in CSSA now, by definition we know that the PCC will be free of intersecting live ranges (interferences).
-			// thanks to our inserted parallel copies from earlier.
 
 			// is b is null, this phi copy has block equal to `null`, i.e. it has already
 			// been removed from its block, and thus, already has been processed, so we can skip it.
@@ -379,7 +343,7 @@ public class BoissinotDestructor {
 	private void coalesceCopies() {
 		// now for each copy check if lhs and rhs congruence classes do not interfere.
 		// if they do not interfere merge the conClasses and those two vars can be coalesced. delete the copy.
-		assert (dom_dfs.getPreOrder().size() >= cfg.verticesInOrder().size());
+		assert (dom_dfs.getPreOrder().size() >= cfg.vertices().size());
 		for (BasicBlock b : dom_dfs.getPreOrder()) {
 			for (Iterator<Stmt> it = b.iterator(); it.hasNext();) {
 				Stmt stmt = it.next();
@@ -390,12 +354,12 @@ public class BoissinotDestructor {
 						Local rhs = ((VarExpr) copy.getExpression()).getLocal();
 						if (!isReservedRegister((VersionedLocal) rhs)) {
 							if (tryCoalesceCopyValue(lhs, rhs)) {
-								 System.out.println("COPYKILL(1) " + lhs + " == " + rhs);
+//								 System.out.println("COPYKILL(1) " + lhs + " == " + rhs);
 								it.remove();
 							}
 
 							if (tryCoalesceCopySharing(lhs, rhs)) {
-								 System.out.println("SHAREKILL(1) " + lhs + " == " + rhs);
+//								 System.out.println("SHAREKILL(1) " + lhs + " == " + rhs);
 								it.remove();
 							}
 						}
@@ -410,14 +374,14 @@ public class BoissinotDestructor {
 						
 						if(!isReservedRegister((VersionedLocal) rhs)) {
 							if (tryCoalesceCopyValue(lhs, rhs)) {
-								System.out.println("COPYKILL(2) " + lhs + " == " + rhs);
+								// System.out.println("COPYKILL(2) " + lhs + " == " + rhs);
 								pairIter.remove();
 							}
 
-							// if (tryCoalesceCopySharing(lhs, rhs)) {
-							// 	System.out.println("SHAREKILL(2) " + lhs + " == " + rhs);
-							// 	pairIter.remove();
-							// }
+							if (tryCoalesceCopySharing(lhs, rhs)) {
+								// System.out.println("SHAREKILL(2) " + lhs + " == " + rhs);
+								pairIter.remove();
+							}
 						}
 					}
 					if (copy.pairs.isEmpty())
@@ -433,32 +397,32 @@ public class BoissinotDestructor {
 
 	// Process the copy a = b. Returns true if a and b can be coalesced via value.
 	private boolean tryCoalesceCopyValue(Local a, Local b) {
-		System.out.println("Enter COPY");
+		// System.out.println("Enter COPY");
 		CongruenceClass conClassA = getCongruenceClass(a);
 		CongruenceClass conClassB = getCongruenceClass(b);
 
-		System.out.println(" A: " + conClassA);
-		System.out.println(" B: " + conClassB);
+		// System.out.println(" A: " + conClassA);
+		// System.out.println(" B: " + conClassB);
 
-		System.out.println(" same=" + (conClassA == conClassB));
+		// System.out.println(" same=" + (conClassA == conClassB));
 		if (conClassA == conClassB)
 			return true;
 
 		if (conClassA.size() == 1 && conClassB.size() == 1) {
 			boolean r = checkInterfereSingle(conClassA, conClassB);
-			System.out.println(" single=" + r);
+			// System.out.println(" single=" + r);
 			return r;
 		}
 
 		boolean r2 = checkInterfere(conClassA, conClassB);
-		System.out.println(" both=" + r2);
+		// System.out.println(" both=" + r2);
 		if (r2) {
 			return false;
 		}
 
 		// merge congruence classes
 		merge(conClassA, conClassB);
-		System.out.println("Exit COPY");
+		// System.out.println("Exit COPY");
 		return true;
 	}
 
@@ -499,7 +463,6 @@ public class BoissinotDestructor {
 
 	// if they are in the same pcvs they will have the same index.
 	private boolean checkPreDomOrder(Local x, Local y) {
-		System.out.println("compare order: " + x + "=" + defuse.defIndex.get(x) + " vs " + y + "=" + defuse.defIndex.get(y));
 		return defuse.defIndex.get(x) < defuse.defIndex.get(y);
 	}
 
@@ -574,13 +537,14 @@ public class BoissinotDestructor {
 			b = c;
 		}
 
-		System.out.println(" a,b=" + a + ", " + b);
+		// System.out.println(" a,b=" + a + ", " + b);
 		// if (!DO_VALUE_INTERFERENCE) {
 		// boolean r1 = intersect(a, b);
 		// System.out.println(" intersect=" + r1);
 		// return r1;
 		// }
-		System.out.println(" s valA,valB: " + values.getNonNull(a) + ", " + values.getNonNull(b));
+		// System.out.println(" s valA,valB: " + values.getNonNull(a) + ", " +
+		// values.getNonNull(b));
 
 		if (intersect(a, b) && values.getNonNull(a) != values.getNonNull(b)) {
 			return true;
@@ -606,89 +570,63 @@ public class BoissinotDestructor {
 	}
 
 	private boolean checkInterfere(CongruenceClass red, CongruenceClass blue) {
-		System.out.println("Enter interfere: " + red + " vs " + blue);
-		Stack<Local> dom = new Stack<>();
-		Stack<Boolean> domClasses = new Stack<>();
-		int nr = 0, nb = 0;
-		Local ir = red.first(), ib = blue.first();
+		// System.out.println("Enter interfere: " + red + " vs " + blue);
+		Stack<Local> dom = new Stack<>(); // dominator tree traversal stack
+		Stack<Integer> domClasses = new Stack<>(); // 0=red, 1=blue
+		int nr = 0, nb = 0; // from the paper
+		Local ir = red.first(), ib = blue.first(); // iteration pointers
 		Local lr = red.last(), lb = blue.last(); // end sentinels
 		boolean redHasNext = true, blueHasNext = true;
-		// equalAncOut.put(ir, null); // these have no parents so we have to manually init them
-		// equalAncOut.put(ib, null);
-		int index_red  = 0, index_blue = 0;
+		equalAncOut.put(ir, null); // these have no parents so we have to manually init them
+		equalAncOut.put(ib, null);
 		do {
-			System.out.println("\n");
-			System.out.println("ir, ib, lr, lb: " + ir + " " + ib + " " + lr + " " + lb);
-			System.out.println("dom: " + dom);
-			System.out.println("equalAncIn: " + equalAncIn);
-			System.out.println("equalAncOut: " + equalAncOut);
+			// System.out.println("\n ir, ib, lr, lb: " + ir + " " + ib + " " + lr + " " + lb);
+			// System.out.println(" dom: " + dom);
 			Local current;
-			boolean currentClass;
-			// Choose first of ir, ib
-			if (!(index_blue < blue.size()) || ((index_red < red.size()) && checkPreDomOrder(ir, ib))) {
-				System.out.println("Red case");
-				current = ir; // current = red[ir++]
-				currentClass = true;
+			int currentClass;
+			if (!blueHasNext || (redHasNext && checkPreDomOrder(ir, ib))) {
+				// current = red[ir++] (Red case)
+				current = ir;
+				currentClass = 0;
 				nr++;
-				// if (redHasNext = ir != lr) {
-					index_red++;
+				if (redHasNext = ir != lr)
 					ir = red.higher(ir);
-					System.out.println("case 1.5");
-				// }
 			} else {
-				System.out.println("Blue case");
-				current = ib; // current = blue[ib++]
-				currentClass = false;
+				// current = blue[ib++] (Blue case)
+				current = ib;
+				currentClass = 1;
 				nb++;
-				// if (blueHasNext = ib != lb) {
+				if (blueHasNext = ib != lb)
 					ib = blue.higher(ib);
-					index_blue++;
-					System.out.println("case 2.5");
-				// }
 			}
 
-			// if (!dom.isEmpty()) {
-				System.out.println("dom not empty");
-				Local parent;
-				boolean parentClass;
-				while (!dom.isEmpty() && !dominates(dom.peek(), current)) {
-					parent = dom.pop();
-					parentClass = domClasses.pop();
-					if (parentClass) {
-						nr--;
-						System.out.println("nr--");
-					} else {
-						nb--;
-						System.out.println("nb--");
-					}
-				}
-
-				System.out.println("ok dom = " + dom);
-				if (!dom.isEmpty() && interference(current, dom.peek(), currentClass == domClasses.peek())) {
-					System.out.println("Exit interfere: true");
-					return true;
-				}
-			// }
+			while (!dom.isEmpty() && !dominates(dom.peek(), current)) {
+				if (domClasses.peek() == 0)
+					nr--;
+				else if (domClasses.peek() == 1)
+					nb--;
+				else
+					assert false;
+				dom.pop();
+				domClasses.pop();
+			}
+			if (!dom.isEmpty() && interference(current, dom.peek(), currentClass == domClasses.peek())) {
+				return true;
+			}
 			dom.push(current);
 			domClasses.push(currentClass);
-			System.out.println("push: " + current);
-		// } while ((redHasNext && nb > 0) || (blueHasNext && nr > 0) || (redHasNext && blueHasNext));
-		} while (index_red < red.size() || index_blue < blue.size());
+		} while ((redHasNext && nb > 0) || (blueHasNext && nr > 0) || (redHasNext && blueHasNext));
 
-		System.out.println("Exit interfere: false");
 		return false;
 	}
 
 	private boolean interference(Local a, Local b, boolean sameConClass) {
-		System.out.println("Check interference: " + a + " " + b + " " + sameConClass);
-		// equalAncOut.put(a, null);
+		// System.out.println("Check interference: " + a + " " + b + " " + sameConClass);
+		equalAncOut.put(a, null);
 		if (sameConClass) {
 			b = equalAncOut.get(b);
-			System.out.println("b = " + b);
 		}
-
 		if (b == null) {
-			System.out.println("Check interference: return false because b is null");
 			return false;
 		}
 		if (dominates(a, b))
@@ -696,26 +634,19 @@ public class BoissinotDestructor {
 
 		Local tmp = b;
 		while (tmp != null && !intersect(a, tmp)) {
-			System.out.println("tmp loop gogo tmp=" + tmp);
 			tmp = equalAncIn.get(tmp);
-			System.out.println("ok now tmp=" + tmp);
 		}
-		System.out.println("Finished tmp loop. tmp=" + tmp);
 		if (values.getNonNull(a) != values.getNonNull(b)) {
 			// chain_intersect
-			System.out.println("Check interference: values = " + values.getNonNull(a) + " " + values.getNonNull(b));
-			System.out.println("Check interference: return " + (tmp != null));
 			return tmp != null;
 		} else {
 			// update_equal_anc_out
 			equalAncOut.put(a, tmp);
-			System.out.println("Check interference: return false because values are compatible. Yeet " + a + "=" + tmp);
 			return false;
 		}
 	}
 
 	private boolean intersect(Local a, Local b) {
-		System.out.println("Check intersect: " + a + " " + b);
 		if (a == b) {
 			for (Entry<Local, CongruenceClass> e : congruenceClasses.entrySet()) {
 				System.err.println(e.getKey() + " in " + e.getValue());
@@ -728,28 +659,22 @@ public class BoissinotDestructor {
 
 		BasicBlock defA = defuse.defs.get(a);
 		// if it's liveOut it definitely intersects
-		if (resolver.isLiveOut(defA, b)) {
-			System.out.println("Intersect true (" + b + "liveOut at " + defA + ")");
+		if (resolver.isLiveOut(defA, b))
 			return true;
-		}
 		// defA == defB or liveIn to intersect{
-		if (!resolver.isLiveIn(defA, b) && defA != defuse.defs.get(b)) {
-			System.out.println("Intersect false (liveIn)");
+		if (!resolver.isLiveIn(defA, b) && defA != defuse.defs.get(b))
 			return false;
-		}
 		// ambiguous case. we need to check if use(dom) occurs after def(def), n that case it interferes. otherwise no
 		int domUseIndex = defuse.lastUseIndex.getNonNull(b).getOrDefault(defA, -1);
 		if (domUseIndex == -1) {
-			System.out.println("Intersect false (ambiguous case)");
 			return false;
 		}
 		int defDefIndex = defuse.defIndex.get(a);
-		System.out.println("Intersect " + (domUseIndex > defDefIndex) + " (fancy case)");
 		return domUseIndex > defDefIndex;
 	}
 
 	private void merge(CongruenceClass conClassA, CongruenceClass conClassB) {
-		System.out.println("Merge class " + conClassA + " <- " + conClassB);
+		// System.out.println("Merge class " + conClassA + " <- " + conClassB);
 		conClassA.addAll(conClassB);
 		for (Local l : conClassB)
 			congruenceClasses.put(l, conClassA);
@@ -760,12 +685,12 @@ public class BoissinotDestructor {
 			if (in != null && out != null)
 				equalAncIn.put(l, checkPreDomOrder(in, out) ? out : in); // the MAXIMUM
 			else if (in != null || out != null)
-				equalAncIn.put(l, in != null ? in : out != null ? out : null);
+				equalAncIn.put(l, in != null ? in : out);
 		}
 	}
 
 	private void sequentialize() {
-		for (BasicBlock b : cfg.verticesInOrder())
+		for (BasicBlock b : cfg.vertices())
 			sequentialize(b);
 	}
 
@@ -890,9 +815,9 @@ public class BoissinotDestructor {
 		private List<CopyVarStmt> sequentialize(Local spill) {
 			Stack<Local> ready = new Stack<>();
 			Stack<Local> to_do = new Stack<>();
-			Map<Local, Local> loc = new LinkedHashMap<>();
-			Map<Local, Local> pred = new LinkedHashMap<>();
-			Map<Local, Type> types = new LinkedHashMap<>();
+			Map<Local, Local> loc = new HashMap<>();
+			Map<Local, Local> pred = new HashMap<>();
+			Map<Local, Type> types = new HashMap<>();
 			pred.put(spill, null);
 
 			for (CopyPair pair : pairs) { // initialization
@@ -976,14 +901,20 @@ public class BoissinotDestructor {
 		private static final long serialVersionUID = -4472334406997712498L;
 
 		CongruenceClass() {
-			super(new Comparator<Local>() {
-				@Override
-				public int compare(Local o1, Local o2) {
-					if (o1 == o2)
-						return 0;
-					return ((defuse.defIndex.get(o1) - defuse.defIndex.get(o2))) >> 31 | 1;
-				}
+			super((o1, o2) -> {
+				if (o1 == o2)
+					return 0;
+				return ((defuse.defIndex.get(o1) - defuse.defIndex.get(o2))) >> 31 | 1;
 			});
 		}
 	}
+
+	// Used for dumping the dominator graph
+	// private static <N extends FastGraphVertex> void dumpGraph(FastDirectedGraph<N, FastGraphEdge<N>> g, String name) {
+    //     try {
+	// 		Exporter.fromGraph(GraphUtils.makeDotSkeleton(g)).export(new File("cfg testing", name + ".png"));
+	// 	} catch (IOException e) {
+	// 		e.printStackTrace();
+	// 	}
+    // }
 }

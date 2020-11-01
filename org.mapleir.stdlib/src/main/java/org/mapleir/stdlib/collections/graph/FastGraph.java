@@ -4,8 +4,11 @@ import org.mapleir.dot4j.model.DotGraph;
 import org.mapleir.propertyframework.api.IPropertyDictionary;
 import org.mapleir.propertyframework.util.PropertyHelper;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 
 public interface FastGraph<N extends FastGraphVertex, E extends FastGraphEdge<N>> {
 
@@ -40,7 +43,7 @@ public interface FastGraph<N extends FastGraphVertex, E extends FastGraphEdge<N>
 	}
 
 	default Map<N, Set<E>> createMap() {
-		return new LinkedHashMap<>();
+		return new HashMap<>();
 	}
 	
 	default Map<N, Set<E>> createMap(Map<N, Set<E>> map) {

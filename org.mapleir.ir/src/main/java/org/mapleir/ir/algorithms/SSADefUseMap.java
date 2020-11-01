@@ -13,8 +13,8 @@ import org.mapleir.ir.locals.Local;
 import org.mapleir.stdlib.collections.bitset.GenericBitSet;
 import org.mapleir.stdlib.collections.map.NullPermeableHashMap;
 
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -28,18 +28,18 @@ public class SSADefUseMap implements Opcode {
 	public final Map<Local, CopyPhiStmt> phiDefs;
 	public final NullPermeableHashMap<BasicBlock, GenericBitSet<Local>> phiUses;
 
-	public final NullPermeableHashMap<Local, LinkedHashMap<BasicBlock, Integer>> lastUseIndex;
-	public final LinkedHashMap<Local, Integer> defIndex;
+	public final NullPermeableHashMap<Local, HashMap<BasicBlock, Integer>> lastUseIndex;
+	public final HashMap<Local, Integer> defIndex;
 
 	public SSADefUseMap(ControlFlowGraph cfg) {
 		this.cfg = cfg;
-		defs = new LinkedHashMap<>();
+		defs = new HashMap<>();
 		uses = new NullPermeableHashMap<>(cfg);
-		phiDefs = new LinkedHashMap<>();
+		phiDefs = new HashMap<>();
 		phiUses = new NullPermeableHashMap<>(cfg.getLocals());
 
-		lastUseIndex = new NullPermeableHashMap<>(LinkedHashMap::new);
-		defIndex = new LinkedHashMap<>();
+		lastUseIndex = new NullPermeableHashMap<>(HashMap::new);
+		defIndex = new HashMap<>();
 	}
 
 	public void compute() {
@@ -47,8 +47,8 @@ public class SSADefUseMap implements Opcode {
 		uses.clear();
 		phiDefs.clear();
 		phiUses.clear();
-		Set<Local> usedLocals = new LinkedHashSet<>();
-		for(BasicBlock b : cfg.verticesInOrder()) {
+		Set<Local> usedLocals = new HashSet<>();
+		for(BasicBlock b : cfg.vertices()) {
 			for(Stmt stmt : b) {
 				phiUses.getNonNull(b);
 
@@ -70,7 +70,7 @@ public class SSADefUseMap implements Opcode {
 		lastUseIndex.clear();
 		defIndex.clear();
 		int index = 0;
-		Set<Local> usedLocals = new LinkedHashSet<>();
+		Set<Local> usedLocals = new HashSet<>();
 		for (BasicBlock b : preorder) {
 			for (Stmt stmt : b) {
 				phiUses.getNonNull(b);
