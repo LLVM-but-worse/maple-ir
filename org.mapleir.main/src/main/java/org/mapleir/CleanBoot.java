@@ -5,11 +5,14 @@ import org.mapleir.asm.ClassNode;
 import org.mapleir.asm.InsnListUtils;
 import org.mapleir.asm.MethodNode;
 import org.mapleir.context.IRCache;
+import org.mapleir.flowgraph.ExceptionRange;
 import org.mapleir.ir.algorithms.BoissinotDestructor;
 import org.mapleir.ir.algorithms.LocalsReallocator;
 import org.mapleir.ir.algorithms.TrollDestructor;
+import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.codegen.ControlFlowGraphDumper;
+import org.mapleir.ir.utils.CFGUtils;
 import org.objectweb.asm.ClassWriter;
 
 import java.io.File;
@@ -22,8 +25,8 @@ public class CleanBoot {
         ClassNode cn = ClassHelper.create(new FileInputStream(new File("MemeIn.class")));
         IRCache irFactory = new IRCache();
         for (MethodNode mn : cn.getMethods()) {
-            // if (!mn.getName().equals("merge"))
-            //     continue;
+            if (!mn.getName().equals("merge"))
+                continue;
             // if (mn.getName().equals("merge"))
             //     System.out.println(InsnListUtils.insnListToString(mn.node.instructions));
 
@@ -45,9 +48,14 @@ public class CleanBoot {
             // System.out.println(cfg);
             cfg.verify();
             System.out.println("Rewriting " + mn.getName());
+
+            ExceptionRange<BasicBlock> fakeRange = new ExceptionRange<>();
+            fakeRange.addVertices(cfg.vertices());
+            cfg.getRanges().add(fakeRange);
+
             (new ControlFlowGraphDumper(cfg, mn)).dump();
 
-            System.out.println(InsnListUtils.insnListToString(mn.node.instructions));
+            // System.out.println(InsnListUtils.insnListToString(mn.node.instructions));
         }
         new FileOutputStream(new File("Meme.class")).write(ClassHelper.toByteArray(cn, ClassWriter.COMPUTE_FRAMES));
     }

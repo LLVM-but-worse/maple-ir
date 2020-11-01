@@ -10,6 +10,7 @@ import org.mapleir.ir.code.CodeUnit;
 import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.code.Opcode;
 import org.mapleir.ir.code.Stmt;
+import org.mapleir.ir.code.expr.ArithmeticExpr;
 import org.mapleir.ir.code.expr.ConstantExpr;
 import org.mapleir.ir.code.expr.PhiExpr;
 import org.mapleir.ir.code.expr.VarExpr;
@@ -244,44 +245,80 @@ public class TrollDestructor {
 	}
 
 	private void coalescePhisStupidly() {
+		Random random = new Random();
+
 		// so, instead of opting for the sane algorithm of flattening pccs and dropping phis, we are going to
 		// literally evaluate the phi statements by checking which block we came from.
 		Local predLocal = locals.makeLatestVersion(locals.getNextFreeLocal(false));
 		VarExpr predVar = new VarExpr(predLocal, Type.INT_TYPE);
+		Map<BasicBlock, Integer> dispatchSrcKeys = new HashMap<>();
+
 		for (BasicBlock b : cfg.vertices()) {
-			Stmt newCopy = new CopyVarStmt(predVar.copy(), new ConstantExpr(b.getNumericId()));
+			int dispatchSrcKey = b.hashCode() + random.nextInt();
+			dispatchSrcKeys.put(b, dispatchSrcKey);
+			Stmt newCopy = new CopyVarStmt(predVar.copy(), new ConstantExpr(dispatchSrcKey));
 			if(b.get(b.size() - 1).canChangeFlow())
 				b.add(b.size() - 1, newCopy);
 			else
 				b.add(newCopy);
 		}
 
+		BasicBlock phiDispatchBlock = new BasicBlock(cfg);
+		cfg.addVertex(phiDispatchBlock);
+
+		LinkedHashMap<Integer, BasicBlock> dispatcherDsts = new LinkedHashMap<>();
+		phiDispatchBlock.add(new SwitchStmt(predVar.copy(), dispatcherDsts, phiDispatchBlock));
+		cfg.addEdge(new DefaultSwitchEdge<>(phiDispatchBlock, phiDispatchBlock));
+
 		// expand phis into switches based on predecessor (LOL)
 		for (BasicBlock b : new ArrayList<>(cfg.vertices())) {
+			NullPermeableHashMap<BasicBlock, Integer> dispatchDstKeys = new NullPermeableHashMap<>(dispatchSrcKeys::get);
+
 			for (ListIterator<Stmt> it = b.listIterator(); it.hasNext(); ) {
 				Stmt stmt = it.next();
 				if (stmt instanceof CopyPhiStmt) {
 					it.remove(); // delete
 					CopyPhiStmt phi = (CopyPhiStmt) stmt;
+
+					// split off the top to insert our call to the dispatcher
 					BasicBlock splitBlock = CFGUtils.splitBlock(cfg, b, it.previousIndex());
 					Set<FlowEdge<BasicBlock>> splitEdges = cfg.getEdges(splitBlock);
 					assert (splitEdges.size() == 1);
 					cfg.removeEdge(splitEdges.iterator().next());
-					LinkedHashMap<Integer, BasicBlock> dsts = new LinkedHashMap<>();
+					int phiStmtKey = random.nextInt();
+					// This calculation is implemented in code below. It's a shitty lfsr
+					Expr dynamicDispatchKeyExpr =
+						new ArithmeticExpr(
+								new ArithmeticExpr(
+										new ConstantExpr(5),
+										predVar.copy(),
+										ArithmeticExpr.Operator.SHL
+								),
+								new ConstantExpr(phiStmtKey),
+								ArithmeticExpr.Operator.XOR
+						);
+					splitBlock.add(new CopyVarStmt(predVar.copy(), dynamicDispatchKeyExpr));
+					splitBlock.add(new UnconditionalJumpStmt(phiDispatchBlock));
+					cfg.addEdge(new UnconditionalJumpEdge<>(splitBlock, phiDispatchBlock));
+
 					for (Entry<BasicBlock, Expr> phiArg : phi.getExpression().getArguments().entrySet()) {
+						// make a stub block to do the copy implementing that phi expr
 						BasicBlock stubBlock = new BasicBlock(cfg);
 						// i don't think it's necessary to copy phi arg expression since we
 						// are just reassigning it to a different block. tricky!
 						stubBlock.add(new CopyVarStmt(phi.getVariable().copy(), phiArg.getValue()));
 						stubBlock.add(new UnconditionalJumpStmt(b));
 						cfg.addEdge(new UnconditionalJumpEdge<>(stubBlock, b));
-						int predId = phiArg.getKey().getNumericId();
-						dsts.put(predId, stubBlock);
-						cfg.addEdge(new SwitchEdge<>(splitBlock, stubBlock, predId));
-					}
 
-					splitBlock.add(new SwitchStmt(predVar.copy(), dsts, splitBlock));
-					cfg.addEdge(new DefaultSwitchEdge<>(splitBlock, splitBlock));
+						// Calculation for the dynamic IR above
+						int dispatchDstKey = (dispatchDstKeys.getNonNull(phiArg.getKey()) << 5) ^ phiStmtKey;
+						dispatchDstKeys.put(phiArg.getKey(), dispatchDstKey);
+						System.out.printf("block = %s, phi_src = %s, stub_block = %s, split_block = %s, id = 0x%08x\n", b, phiArg.getKey(), stubBlock, splitBlock, dispatchDstKey);
+						assert !dispatcherDsts.containsKey(dispatchDstKey);
+
+						dispatcherDsts.put(dispatchDstKey, stubBlock);
+						cfg.addEdge(new SwitchEdge<>(phiDispatchBlock, stubBlock, dispatchDstKey));
+					}
 				} else break;
 			}
 		}
