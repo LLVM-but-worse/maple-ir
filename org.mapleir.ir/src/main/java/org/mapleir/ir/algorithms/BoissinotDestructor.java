@@ -121,12 +121,13 @@ public class BoissinotDestructor {
 		resolver.setDefuse(defuse);
 
 		computeValueInterference();
-		// System.out.println("Value interference: " + values);
+		System.out.println("Value interference: " + values);
 
+		// CFGUtils.easyDumpCFG(cfg, "pre-coalesce-phis");
 		coalescePhis();
 		System.out.println("pccs: " + congruenceClasses);
 		System.out.println("Coalesce phis cfg: " + cfg);
-		CFGUtils.easyDumpCFG(cfg, "pre-coalesce-copies");
+		// CFGUtils.easyDumpCFG(cfg, "pre-coalesce-copies");
 		coalesceCopies();
 		System.out.println("Coalesce copys cfg: " + cfg);
 		
@@ -337,7 +338,7 @@ public class BoissinotDestructor {
 			Local l = e.getKey();
 			BasicBlock b = e.getValue().getBlock();
 
-			// since we are now in csaa, phi locals never interfere and are in the same congruence class.
+			// since we are now in cssa, phi locals never interfere and are in the same congruence class.
 			// therefore we can coalesce them all together and drop phis. with this, we leave cssa.
 			PhiExpr phi = e.getValue().getExpression();
 
@@ -351,6 +352,8 @@ public class BoissinotDestructor {
 				pcc.add(argL);
 				congruenceClasses.put(argL, pcc);
 			}
+			// because we are in CSSA now, by definition we know that the PCC will be free of intersecting live ranges (interferences).
+			// thanks to our inserted parallel copies from earlier.
 
 			// is b is null, this phi copy has block equal to `null`, i.e. it has already
 			// been removed from its block, and thus, already has been processed, so we can skip it.
@@ -589,6 +592,19 @@ public class BoissinotDestructor {
 		}
 	}
 
+	// returns true if a's def dominates b's def
+	private boolean dominates(Local a, Local b) {
+		BasicBlock defA = defuse.defs.get(a);
+		BasicBlock defB = defuse.defs.get(b);
+		if (defA != defB) {
+			// typical case (between blocks)
+			return resolver.domc.getDominates(defA).contains(defB);
+		} else {
+			// special case (same basic block, rely on statement ordering within block)
+			return checkPreDomOrder(a, b);
+		}
+	}
+
 	private boolean checkInterfere(CongruenceClass red, CongruenceClass blue) {
 		System.out.println("Enter interfere: " + red + " vs " + blue);
 		Stack<Local> dom = new Stack<>();
@@ -635,7 +651,7 @@ public class BoissinotDestructor {
 				System.out.println("dom not empty");
 				Local parent;
 				boolean parentClass;
-				while (!dom.isEmpty() && !checkPreDomOrder(dom.peek(), current)) {
+				while (!dom.isEmpty() && !dominates(dom.peek(), current)) {
 					parent = dom.pop();
 					parentClass = domClasses.pop();
 					if (parentClass) {
@@ -647,6 +663,7 @@ public class BoissinotDestructor {
 					}
 				}
 
+				System.out.println("ok dom = " + dom);
 				if (!dom.isEmpty() && interference(current, dom.peek(), currentClass == domClasses.peek())) {
 					System.out.println("Exit interfere: true");
 					return true;
@@ -665,6 +682,18 @@ public class BoissinotDestructor {
 	private boolean interference(Local a, Local b, boolean sameConClass) {
 		System.out.println("Check interference: " + a + " " + b + " " + sameConClass);
 		// equalAncOut.put(a, null);
+		if (sameConClass) {
+			b = equalAncOut.get(b);
+			System.out.println("b = " + b);
+		}
+
+		if (b == null) {
+			System.out.println("Check interference: return false because b is null");
+			return false;
+		}
+		if (dominates(a, b))
+			throw new IllegalArgumentException("b should dom a");
+
 		Local tmp = b;
 		while (tmp != null && !intersect(a, tmp)) {
 			System.out.println("tmp loop gogo tmp=" + tmp);
@@ -676,8 +705,7 @@ public class BoissinotDestructor {
 			// chain_intersect
 			System.out.println("Check interference: values = " + values.getNonNull(a) + " " + values.getNonNull(b));
 			System.out.println("Check interference: return " + (tmp != null));
-			// return tmp != null;
-			return true;
+			return tmp != null;
 		} else {
 			// update_equal_anc_out
 			equalAncOut.put(a, tmp);
@@ -695,7 +723,7 @@ public class BoissinotDestructor {
 			throw new IllegalArgumentException("me too thanks: " + a);
 		}
 		
-		if (checkPreDomOrder(a, b))
+		if (dominates(a, b))
 			throw new IllegalArgumentException("b should dom a");
 
 		BasicBlock defA = defuse.defs.get(a);
@@ -721,6 +749,7 @@ public class BoissinotDestructor {
 	}
 
 	private void merge(CongruenceClass conClassA, CongruenceClass conClassB) {
+		System.out.println("Merge class " + conClassA + " <- " + conClassB);
 		conClassA.addAll(conClassB);
 		for (Local l : conClassB)
 			congruenceClasses.put(l, conClassA);
@@ -950,12 +979,9 @@ public class BoissinotDestructor {
 			super(new Comparator<Local>() {
 				@Override
 				public int compare(Local o1, Local o2) {
-					int result;
 					if (o1 == o2)
-						result = 0;
-					result = ((defuse.defIndex.get(o1) - defuse.defIndex.get(o2))) >> 31 | 1;
-					System.out.println("Compare " + o1 + " " + o2 + " = " + result);
-					return result;
+						return 0;
+					return ((defuse.defIndex.get(o1) - defuse.defIndex.get(o2))) >> 31 | 1;
 				}
 			});
 		}
