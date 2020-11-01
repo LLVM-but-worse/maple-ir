@@ -84,13 +84,13 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		finished = builder.graph.createBitSet();
 		queue = new LinkedList<>();
 		stacks = builder.graph.createBitSet();
-		marks = new HashSet<>();
-		inputStacks = new HashMap<>();
-		blockLabels = new HashMap<>();
-		labelMap = new HashMap<>();
+		marks = new LinkedHashSet<>();
+		inputStacks = new LinkedHashMap<>();
+		blockLabels = new LinkedHashMap<>();
+		labelMap = new LinkedHashMap<>();
 
 		insns = builder.method.node.instructions;
-		
+
 		if(GenerationVerifier.VERIFY) {
 			verifier = new GenerationVerifier(builder);
 		} else {
@@ -106,7 +106,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		builder.graph.addVertex(b);
 		return b;
 	}
-	
+
 	protected BasicBlock resolveTarget(LabelNode label) {
 		BasicBlock block = blockLabels.get(label);
 		if(block == null) {
@@ -114,22 +114,22 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		}
 		return block;
 	}
-	
+
 	protected void setInputStack(BasicBlock b, ExpressionStack s) {
 		if(inputStacks.containsKey(b)) {
 			throw new UnsupportedOperationException(b.getDisplayName() + " already has inputstack: " + inputStacks.get(b) + " vs. " + s);
 		}
-		
+
 		inputStacks.put(b, s);
 	}
-	
+
 	protected ExpressionStack getInputStackFor(BasicBlock b) {
 		return inputStacks.get(b);
 	}
-	
+
 	private void init() {
 		entry(checkLabel());
-		
+
 		for(TryCatchBlockNode tc : builder.method.node.tryCatchBlocks) {
 			handler(tc);
 		}
@@ -148,7 +148,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		}
 		return (LabelNode) first;
 	}
-	
+
 	protected void entry(LabelNode firstLabel) {
 		// make a synthetic entry block in case the first block is a jump target or something stupid like that
 		LabelNode l = new LabelNode();
@@ -159,7 +159,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		setInputStack(entry, new ExpressionStack(16));
 		defineInputs(builder.method, entry);
 	}
-	
+
 	protected void handler(TryCatchBlockNode tc) {
 		LabelNode label = tc.handler;
 		BasicBlock handler = resolveTarget(label);
@@ -170,23 +170,23 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 //			System.err.println("Double handler: " + handler.getId() + " " + tc);
 			return;
 		}
-		
+
 		ExpressionStack stack = new ExpressionStack(16);
 		setInputStack(handler, stack);
-		
+
 		CaughtExceptionExpr expr = new CaughtExceptionExpr(tc.type);
 		Type type = expr.getType();
 		VarExpr var = _var_expr(0, type, true);
 		CopyVarStmt stmt = copy(var, expr, handler);
 		handler.add(stmt);
-		
+
 		stack.push(load_stack(0, type));
-		
+
 		queue(label);
-		
+
 		stacks.set(handler, true);
 	}
-	
+
 	protected void defineInputs(MethodNode m, BasicBlock b) {
 		Type[] args = Type.getArgumentTypes(m.getDesc());
 		int index = 0;
@@ -200,37 +200,37 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 			index += arg.getSize();
 		}
 	}
-	
+
 	private void addEntry(int index, Type type, BasicBlock b) {
 		VarExpr var = _var_expr(index, type, false);
 		CopyVarStmt stmt = selfDefine(var);
 		builder.assigns.getNonNull(var.getLocal()).add(b);
 		b.add(stmt);
 	}
-	
+
 	protected CopyVarStmt selfDefine(VarExpr var) {
 		return new CopyVarStmt(var, var, true);
 	}
-	
+
 	protected void queue(LabelNode label) {
 		if(!queue.contains(label)) {
 			queue.addLast(label);
 		}
 	}
-	
+
 	protected void preprocess(BasicBlock b) {
 		ExpressionStack stack = getInputStackFor(b).copy();
 		stacks.set(b, true);
-		
+
 		currentBlock = b;
 		currentStack = stack;
 		saved = false;
 	}
-	
+
 	protected void process(LabelNode label) {
 		/* it may not be properly initialised yet, however. */
 		BasicBlock block = blockLabels.get(label);
-		
+
 		/* if it is, we don't need to process it. */
 		if(block != null && finished.contains(block)) {
 			return;
@@ -239,20 +239,20 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		} else {
 			// i.e. not finished.
 		}
-		
+
 		preprocess(block);
-		
+
 		/* populate instructions. */
 		int codeIndex = insns.indexOf(label);
 		finished.set(block, true);
 		while(codeIndex < insns.size() - 1) {
 			AbstractInsnNode ain = insns.get(++codeIndex);
 			int type = ain.getType();
-			
+
 			if(ain.getOpcode() != -1) {
 				process(block, ain);
 			}
-			
+
 			if(type == LABEL) {
 				// split into new block
 				BasicBlock immediate = resolveTarget((LabelNode) ain);
@@ -261,7 +261,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 			} else if(type == JUMP_INSN) {
 				JumpInsnNode jin = (JumpInsnNode) ain;
 				BasicBlock target = resolveTarget(jin.label);
-				
+
 				if(jin.getOpcode() == JSR) {
 					throw new UnsupportedOperationException("jsr " + builder.method);
 				} else if(jin.getOpcode() == GOTO) {
@@ -275,7 +275,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 						insns.insert(ain, newLabel);
 						nextInsn = newLabel;
 					}
-					
+
 					// create immediate successor reference if it's not already done
 					BasicBlock immediate = resolveTarget((LabelNode) nextInsn);
 					builder.graph.addEdge(new ImmediateEdge<>(block, immediate));
@@ -283,12 +283,12 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 				break;
 			} else if(type == LOOKUPSWITCH_INSN) {
 				LookupSwitchInsnNode lsin = (LookupSwitchInsnNode) ain;
-				
+
 				for(int i=0; i < lsin.keys.size(); i++) {
 					BasicBlock target = resolveTarget(lsin.labels.get(i));
 					builder.graph.addEdge(new SwitchEdge<>(block, target, lsin.keys.get(i)));
 				}
-				
+
 				BasicBlock dflt = resolveTarget(lsin.dflt);
 				builder.graph.addEdge(new DefaultSwitchEdge<>(block, dflt));
 				break;
@@ -305,7 +305,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 				break;
 			}
 		}
-		
+
 		// TODO: check if it should have an immediate.
 		BasicBlock im = block.cfg.getImmediate(block);
 		if (im != null/* && !queue.contains(im)*/) {
@@ -315,7 +315,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 			// System.out.println("  Pos: " + currentStack);
 		}
 	}
-	
+
 	static boolean isExitOpcode(int opcode) {
 		switch(opcode) {
 			case Opcodes.RET:
@@ -333,20 +333,20 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 			}
 		}
 	}
-	
+
 	protected void process(BasicBlock b, AbstractInsnNode ain) {
 		int opcode = ain.getOpcode();
 
 		// System.out.println("Executing " + Printer.OPCODES[opcode]);
 		// System.out.println(" PreStack: " + currentStack);
-		
+
 		List<GenerationVerifier.VerifierRule> possibleRules = null;
-		
+
 		if(GenerationVerifier.VERIFY) {
 			verifier.newContext(currentStack, ain, b);
 			possibleRules = verifier.find_verify_matches();
 		}
-		
+
 		switch (opcode) {
 			case -1: {
 				if (ain instanceof LabelNode)
@@ -403,7 +403,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 			case NEWARRAY: {
 				save_stack(false);
 				_new_array(
-					new Expr[] { pop() }, 
+					new Expr[] { pop() },
 					TypeUtils.getPrimitiveArrayType(((IntInsnNode) ain).operand)
 				);
 				break;
@@ -438,14 +438,14 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 			case ATHROW:
 				_throw();
 				break;
-				
+
 			case MONITORENTER:
 				_monitor(MonitorMode.ENTER);
 				break;
 			case MONITOREXIT:
 				_monitor(MonitorMode.EXIT);
 				break;
-				
+
 			case IRETURN:
 			case LRETURN:
 			case FRETURN:
@@ -473,34 +473,34 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 			case LREM:
 			case FREM:
 			case DREM:
-			
+
 			case ISHL:
 			case LSHL:
 			case ISHR:
 			case LSHR:
 			case IUSHR:
 			case LUSHR:
-			
+
 			case IAND:
 			case LAND:
-				
+
 			case IOR:
 			case LOR:
-				
+
 			case IXOR:
 			case LXOR:
 				_arithmetic(Operator.resolve(opcode));
 				break;
-			
+
 			case INEG:
 			case DNEG:
 				_neg();
 				break;
-				
+
 			case ARRAYLENGTH:
 				_arraylength();
 				break;
-				
+
 			case IALOAD:
 			case LALOAD:
 			case FALOAD:
@@ -511,7 +511,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 			case SALOAD:
 				_load_array(ArrayType.resolve(opcode));
 				break;
-				
+
 			case IASTORE:
 			case LASTORE:
 			case FASTORE:
@@ -522,14 +522,14 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 			case SASTORE:
 				_store_array(ArrayType.resolve(opcode));
 				break;
-				
+
 			case POP:
 				_pop(1);
 				break;
 			case POP2:
 				_pop(2);
 				break;
-				
+
 			case DUP:
 				_dup();
 				break;
@@ -549,11 +549,11 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 			case DUP2_X2:
 				_dup2_x2();
 				break;
-				
+
 			case SWAP:
 				_swap();
 				break;
-				
+
 			case I2L:
 			case I2F:
 			case I2D:
@@ -589,7 +589,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 					typeName = "L" + typeName + ";";
 				_new(Type.getType(typeName));
 				break;
-				
+
 			case INVOKEDYNAMIC:
 				InvokeDynamicInsnNode dy = (InvokeDynamicInsnNode) ain;
 				_dynamic_call(dy.bsm, dy.bsmArgs, dy.desc, dy.name);
@@ -601,7 +601,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 				MethodInsnNode min = (MethodInsnNode) ain;
 				_call(opcode, min.owner, min.name, min.desc);
 				break;
-				
+
 			case ILOAD:
 			case LLOAD:
 			case FLOAD:
@@ -609,7 +609,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 			case ALOAD:
 				_load(((VarInsnNode) ain).var, TypeUtils.getLoadType(opcode));
 				break;
-				
+
 			case ISTORE:
 			case LSTORE:
 			case FSTORE:
@@ -617,12 +617,12 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 			case ASTORE:
 				_store(((VarInsnNode) ain).var, TypeUtils.getStoreType(opcode));
 				break;
-				
+
 			case IINC:
 				IincInsnNode iinc = (IincInsnNode) ain;
 				_inc(iinc.var, iinc.incr);
 				break;
-				
+
 			case PUTFIELD:
 			case PUTSTATIC: {
 				FieldInsnNode fin = (FieldInsnNode) ain;
@@ -634,7 +634,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 				FieldInsnNode fin = (FieldInsnNode) ain;
 				_load_field(opcode, fin.owner, fin.name, fin.desc);
 				break;
-				
+
 			case TABLESWITCH: {
 				TableSwitchInsnNode tsin = (TableSwitchInsnNode) ain;
 				LinkedHashMap<Integer, BasicBlock> targets = new LinkedHashMap<>();
@@ -645,7 +645,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 				_switch(targets, resolveTarget(tsin.dflt));
 				break;
 			}
-			
+
 			case LOOKUPSWITCH: {
 				LookupSwitchInsnNode lsin = (LookupSwitchInsnNode) ain;
 				LinkedHashMap<Integer, BasicBlock> targets = new LinkedHashMap<>();
@@ -657,7 +657,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 				_switch(targets, resolveTarget(lsin.dflt));
 				break;
 			}
-			
+
 			case GOTO:
 				_jump_uncond(resolveTarget(((JumpInsnNode) ain).label));
 				break;
@@ -665,7 +665,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 			case IFNONNULL:
 				_jump_null(resolveTarget(((JumpInsnNode) ain).label), opcode == IFNONNULL);
 				break;
-				
+
 			case IF_ICMPEQ:
 			case IF_ICMPNE:
 			case IF_ICMPLT:
@@ -676,7 +676,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 			case IF_ACMPNE:
 				_jump_cmp(resolveTarget(((JumpInsnNode) ain).label), ComparisonType.getType(opcode));
 				break;
-				
+
 			case IFEQ:
 			case IFNE:
 			case IFLT:
@@ -686,14 +686,14 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 				_jump_cmp0(resolveTarget(((JumpInsnNode) ain).label), ComparisonType.getType(opcode));
 				break;
 		}
-		
+
 		if(GenerationVerifier.VERIFY) {
 			if(possibleRules != null) {
 				verifier.confirm_rules(possibleRules);
 			}
 		}
 	}
-	
+
 	protected void _nop() {
 
 	}
@@ -746,17 +746,17 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		Type type = assign_stack(index, e);
 		push(load_stack(index, type));
 	}
-	
+
 	protected void _neg() {
 		save_stack(false);
 		push(new NegationExpr(pop()));
 	}
-	
+
 	protected void _arraylength() {
 		save_stack(false);
 		push(new ArrayLengthExpr(pop()));
 	}
-	
+
 	protected void _load_array(ArrayType type) {
 		save_stack(false);
 		// prestack: var1, var0 (height = 2)
@@ -769,7 +769,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 //		assign_stack(height - 2, new ArrayLoadExpr(array, index, type));
 //		push(load_stack(height - 2, type.getType()));
 	}
-	
+
 	protected void _store_array(ArrayType type) {
 		save_stack(false);
 		Expr value = pop();
@@ -777,7 +777,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		Expr array = pop();
 		addStmt(new ArrayStoreStmt(array, index, value, type));
 	}
-	
+
 	protected void _pop(int amt) {
 		for(int i=0; i < amt; ) {
 			Expr top = pop();
@@ -785,7 +785,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 			i += top.getType().getSize();
 		}
 	}
-	
+
 	protected void _dup() {
 		// prestack: var0 (height = 1)
 		// poststack: var1, var0
@@ -793,7 +793,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		currentStack.assertHeights(DUP_HEIGHTS);
 		int baseHeight = currentStack.height();
 		save_stack(false);
-		
+
 		Expr var0 = pop();
 
 		Type var1Type = assign_stack(baseHeight, var0); // var1 = var0
@@ -970,7 +970,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		Type topType = peek().getType();
 		int baseHeight = currentStack.height();
 		save_stack(false);
-		
+
 		if(topType.getSize() == 2) {
 			Type bottomType = currentStack.peek(1).getType();
 			if (bottomType.getSize() == 2) {
@@ -1086,7 +1086,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 			}
 		}
 	}
-	
+
 	protected void _swap() {
 		// prestack: var1, var0 (height = 2)
 		// poststack: var1, var0
@@ -1109,7 +1109,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		push(load_stack(baseHeight - 2, var0Type)); // push var0
 		push(load_stack(baseHeight - 1, var1Type)); // push var1
 	}
-	
+
 	protected void _cast(Type type) {
 		save_stack(false);
 		Expr e = new CastExpr(pop(), type);
@@ -1117,7 +1117,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		assign_stack(index, e);
 		push(load_stack(index, type));
 	}
-	
+
 	protected void _instanceof(Type type) {
 		save_stack(false);
 		InstanceofExpr e = new InstanceofExpr(pop(), type);
@@ -1125,7 +1125,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		assign_stack(index, e);
 		push(load_stack(index, Type.BOOLEAN_TYPE));
 	}
-	
+
 	protected void _new(Type type) {
 		save_stack(false);
 		int index = currentStack.height();
@@ -1133,29 +1133,29 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		assign_stack(index, e);
 		push(load_stack(index, type));
 	}
-	
+
 	protected void _new_array(Expr[] bounds, Type type) {
 		int index = currentStack.height();
 		NewArrayExpr e = new NewArrayExpr(bounds, type);
 		assign_stack(index, e);
 		push(load_stack(index, type));
 	}
-	
+
 	protected void _dynamic_call(Handle bsm, Object[] bsmArgs, String bootstrapDesc, String boundName) {
 		save_stack(false);
-		// these are the additional bound variables passed into the boostrap method (typically metafactory) 
+		// these are the additional bound variables passed into the boostrap method (typically metafactory)
 		Expr[] boundArgs = new Expr[Type.getArgumentTypes(bootstrapDesc).length];
 		for(int i = boundArgs.length - 1; i >= 0; i--) {
 			boundArgs[i] = pop();
 		}
-		
+
 		// copy the bsm and bsm args
 		Handle bsmCopy = new Handle(bsm.getTag(), bsm.getOwner(), bsm.getName(), bsm.getDesc());
 		Handle provider = new Handle(bsm.getTag(), bsm.getOwner(), bsm.getName(), bsm.getDesc());
 		Object[] bsmArgsCopy = new Object[bsmArgs.length];
 		System.arraycopy(bsmArgs, 0, bsmArgsCopy, 0, bsmArgsCopy.length);
 		DynamicInvocationExpr expr = new DynamicInvocationExpr(bsmCopy, bsmArgsCopy, bootstrapDesc, boundArgs, boundName);
-		
+
 		if(expr.getType() == Type.VOID_TYPE) {
 			addStmt(new PopStmt(expr));
 		} else {
@@ -1163,10 +1163,10 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 			Type type = assign_stack(index, expr);
 			push(load_stack(index, type));
 		}
-		
+
 		// TODO: redo vm lambdas as static resolution calls/concrete calls.
 	}
-	
+
 	protected void _call(int op, String owner, String name, String desc) {
 		save_stack(false);
 		int argLen = Type.getArgumentTypes(desc).length + (op == INVOKESTATIC ? 0 : 1);
@@ -1195,17 +1195,17 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 			push(load_stack(index, type));
 		}
 	}
-	
+
 	protected void _switch(LinkedHashMap<Integer, BasicBlock> targets, BasicBlock dflt) {
 		save_stack(false);
 		Expr expr = pop();
-		
+
 		for (Entry<Integer, BasicBlock> e : targets.entrySet()) {
 			update_target_stack(currentBlock, e.getValue(), currentStack);
 		}
-		
+
 		update_target_stack(currentBlock, dflt, currentStack);
-		
+
 		addStmt(new SwitchStmt(expr, targets, dflt));
 	}
 
@@ -1222,7 +1222,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 			throw new UnsupportedOperationException(Printer.OPCODES[opcode] + " " + owner + "." + name + "   " + desc);
 		}
 	}
-	
+
 	protected void _load_field(int opcode, String owner, String name, String desc) {
 		save_stack(false);
 		if(opcode == GETFIELD || opcode == GETSTATIC) {
@@ -1238,7 +1238,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 			throw new UnsupportedOperationException(Printer.OPCODES[opcode] + " " + owner + "." + name + "   " + desc);
 		}
 	}
-	
+
 	protected void _store(int index, Type type) {
 		save_stack(false);
 		Expr expr = pop();
@@ -1259,22 +1259,22 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		VarExpr var = _var_expr(index, Type.INT_TYPE, false);
 		addStmt(copy(var, inc));
 	}
-	
+
 	protected CopyVarStmt copy(VarExpr v, Expr e) {
 		return copy(v, e, currentBlock);
 	}
-	
+
 	protected CopyVarStmt copy(VarExpr v, Expr e, BasicBlock b) {
 		builder.assigns.getNonNull(v.getLocal()).add(b);
 		return new CopyVarStmt(v.getParent() != null? v.copy() : v, e.getParent() != null? e.copy() : e);
 	}
-	
+
 	protected VarExpr _var_expr(int index, Type type, boolean isStack) {
 		Local l = builder.graph.getLocals().get(index, isStack);
 		builder.locals.add(l);
 		return new VarExpr(l, type);
 	}
-	
+
 	// var[index] = expr
 	protected Type assign_stack(int index, Expr expr) {
 		if(expr.getOpcode() == Opcode.LOCAL_LOAD) {
@@ -1289,23 +1289,23 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		addStmt(stmt);
 		return type;
 	}
-	
+
 	protected Expr load_stack(int index, Type type) {
 		return _var_expr(index, type, true);
 	}
-	
+
 	protected void _jump_cmp(BasicBlock target, ComparisonType type, Expr left, Expr right) {
 		update_target_stack(currentBlock, target, currentStack);
 		addStmt(new ConditionalJumpStmt(left, right, target, type));
 	}
-	
+
 	protected void _jump_cmp(BasicBlock target, ComparisonType type) {
 		save_stack(false);
 		Expr right = pop();
 		Expr left = pop();
 		_jump_cmp(target, type, left, right);
 	}
-	
+
 	protected void _jump_cmp0(BasicBlock target, ComparisonType type) {
 		save_stack(false);
 		Expr left = pop();
@@ -1318,7 +1318,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		Expr left = pop();
 		ConstantExpr right = new ConstantExpr(null, TypeUtils.OBJECT_TYPE);
 		ComparisonType type = invert ? ComparisonType.NE : ComparisonType.EQ;
-		
+
 		_jump_cmp(target, type, left, right);
 	}
 
@@ -1326,7 +1326,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		update_target_stack(currentBlock, target, currentStack);
 		addStmt(new UnconditionalJumpStmt(target));
 	}
-	
+
 	protected Expr _pop(Expr e) {
 		if(e.getParent() != null) {
 			return e.copy();
@@ -1334,11 +1334,11 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 			return e;
 		}
 	}
-	
+
 	protected Expr pop() {
 		return _pop(currentStack.pop());
 	}
-	
+
 	protected Expr peek() {
 		return currentStack.peek();
 	}
@@ -1346,32 +1346,32 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 	protected void push(Expr e) {
 		currentStack.push(e);
 	}
-	
+
 	protected void addStmt(Stmt stmt) {
 		if(GenerationVerifier.VERIFY) {
 			verifier.addEvent(new GenerationVerifier.GenerationMessageEvent(" adding " + stmt));
 		}
 		currentBlock.add(stmt);
 	}
-	
+
 	protected void save_stack() {
 		save_stack(true);
 	}
-	
+
 	protected void save_stack(boolean check) {
 		// System.out.println("Saving " + currentBlock.getId());
 		if (!currentBlock.isEmpty() && currentBlock.get(currentBlock.size() - 1).canChangeFlow()) {
 			throw new IllegalStateException("Flow instruction already added to block; cannot save stack: "  + currentBlock.getDisplayName());
 		}
-		
+
 		// System.out.println("\n   Befor: " + currentStack);
 		// System.out.println("     With size: " + currentStack.size());
 		// System.out.println("     With height: " + currentStack.height());
-		
+
 		ExpressionStack copy = currentStack.copy();
 		int len = currentStack.size();
 		currentStack.clear();
-		
+
 		int height = 0;
 		for(int i=len-1; i >= 0; i--) {
 			// peek(0) = top
@@ -1379,11 +1379,11 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 
 			int index = height;
 			Expr expr = copy.peek(i);
-			
+
 			if(expr.getParent() != null) {
 				expr = expr.copy();
 			}
-			
+
 			// System.out.println("    Pop: " + expr + ":" + expr.getType());
 			// System.out.println("    Idx: " + index);
 			Type type = assign_stack(index, expr);
@@ -1392,14 +1392,14 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 			// System.out.println("    tlen: " + type.getSize());
 
 			currentStack.push(e);
-			
+
 			height += type.getSize();
 		}
-		
+
 		if(check) {
 			saved = true;
 		}
-		
+
 		//System.out.println("   After: " + currentStack + "\n");
 	}
 
@@ -1425,7 +1425,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		}
 		return true;
 	}
-	
+
 	private void update_target_stack(BasicBlock b, BasicBlock target, ExpressionStack stack) {
 		if(stacks.contains(b) && !saved) {
 			save_stack();
@@ -1446,18 +1446,18 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 			// if the targets input stack is finalised and
 			// the new stack cannot merge into it, then there
 			// is an error in the bytecode (verifier error).
-			
+
 			// BasicDotConfiguration<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> config = new BasicDotConfiguration<>(DotConfiguration.GraphType.DIRECTED);
 			// DotWriter<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> writer = new DotWriter<>(config, builder.graph);
 			// writer.removeAll().add(new ControlFlowGraphDecorator().setFlags(ControlFlowGraphDecorator.OPT_DEEP)).setName("6996").export();
-			
+
 			System.err.println("Current: " + stack + " in " + b.getDisplayName());
 			System.err.println("Target : " + getInputStackFor(target) + " in " + target.getDisplayName());
 			System.err.println(builder.graph);
 			throw new IllegalStateException("Stack coherency mismatch into #" + target.getDisplayName());
 		}
 	}
-	
+
 	private List<BasicBlock> range(List<BasicBlock> gblocks, int start, int end) {
 		if(start > end) {
 			throw new IllegalArgumentException("start > end: " + start + " > " + end);
@@ -1476,13 +1476,13 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 				endBlock = b;
 				endIndex = blockIndex;
 			}
-			
+
 			if(startBlock != null && endBlock != null) {
 				break;
 			}
 			blockIndex++;
 		}
-		
+
 		if(startBlock == null || endBlock == null) {
 			throw new UnsupportedOperationException("start or end null, " + start + " " + end);
 		} else if(startIndex > endIndex) {
@@ -1497,17 +1497,17 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 			}
 			blocks.add(block);
 		}
-		
+
 		return blocks;
 	}
-	
+
 	private void makeRanges(List<BasicBlock> order) {
 //		System.out.println(builder.graph);
 //		BasicDotConfiguration<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> config = new BasicDotConfiguration<>(DotConfiguration.GraphType.DIRECTED);
 //		DotWriter<ControlFlowGraph, BasicBlock, FlowEdge<BasicBlock>> writer = new DotWriter<>(config, builder.graph);
 //		writer.removeAll().add(new ControlFlowGraphDecorator().setFlags(ControlFlowGraphDecorator.OPT_DEEP)).setName("test9999").export();
-		
-		Map<String, ExceptionRange<BasicBlock>> ranges = new HashMap<>();
+
+		Map<String, ExceptionRange<BasicBlock>> ranges = new LinkedHashMap<>();
 		for(TryCatchBlockNode tc : builder.method.node.tryCatchBlocks) {
 			//System.out.printf("from %d to %d, handler:%d, type:%s.%n", insns.indexOf(tc.start), insns.indexOf(tc.end), insns.indexOf(tc.handler), tc.type);
 			//System.out.println(String.format("%s:%s:%s", blockLabels.get(tc.start), blockLabels.get(tc.end), blockLabels.get(tc.handler)));

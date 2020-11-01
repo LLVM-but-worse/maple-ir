@@ -1,8 +1,8 @@
 package org.mapleir.stdlib.collections.graph.algorithms;
 
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -58,14 +58,14 @@ public class LT79Dom<N extends FastGraphVertex, E extends FastGraphEdge<N>> {
 		this.graph = graph;
 		this.root = root;
 		
-		semi = new HashMap<>();
-		vertex = new HashMap<>();
+		semi = new LinkedHashMap<>();
+		vertex = new LinkedHashMap<>();
 		postOrder = new ArrayList<>();
-		parent = new HashMap<>();
-		idoms = new HashMap<>();
+		parent = new LinkedHashMap<>();
+		idoms = new LinkedHashMap<>();
 		bucket = new NullPermeableHashMap<>(new SetCreator<>());
-		ancestor = new HashMap<>();
-		label = new HashMap<>();
+		ancestor = new LinkedHashMap<>();
+		label = new LinkedHashMap<>();
 		
 		treeDescendants = new NullPermeableHashMap<>(new SetCreator<>());
 		treeSuccessors = new NullPermeableHashMap<>(new SetCreator<>());
@@ -248,12 +248,12 @@ public class LT79Dom<N extends FastGraphVertex, E extends FastGraphEdge<N>> {
 	}
 	
 	private void iteratedFrontier(N n) {
-		Set<N> res = new HashSet<>();
-		Set<N> workingSet = new HashSet<>();
+		Set<N> res = new LinkedHashSet<>();
+		Set<N> workingSet = new LinkedHashSet<>();
 		workingSet.add(n);
 		
 		do {
-			Set<N> newWorkingSet = new HashSet<>();
+			Set<N> newWorkingSet = new LinkedHashSet<>();
 			for(N n1 : workingSet) {
 				for(N n2 : frontiers.get(n1)) {
 					if(!res.contains(n2)) {
@@ -292,7 +292,7 @@ public class LT79Dom<N extends FastGraphVertex, E extends FastGraphEdge<N>> {
 	}
 	
 	public Set<N> getDominates(N v) {
-		return new HashSet<>(treeDescendants.getNonNull(v));
+		return new LinkedHashSet<>(treeDescendants.getNonNull(v));
 	}
 	
 	public N getImmediateDominator(N v) {
@@ -301,7 +301,7 @@ public class LT79Dom<N extends FastGraphVertex, E extends FastGraphEdge<N>> {
 	
 	public Set<N> getDominanceFrontier(N v) {
 		if(computeFrontiers) {
-			return new HashSet<>(frontiers.getNonNull(v));
+			return new LinkedHashSet<>(frontiers.getNonNull(v));
 		} else {
 			throw new UnsupportedOperationException();
 		}
@@ -309,7 +309,7 @@ public class LT79Dom<N extends FastGraphVertex, E extends FastGraphEdge<N>> {
 	
 	public Set<N> getIteratedDominanceFrontier(N v) {
 		if(computeFrontiers) {
-			return new HashSet<>(iteratedFrontiers.getNonNull(v));
+			return new LinkedHashSet<>(iteratedFrontiers.getNonNull(v));
 		} else {
 			throw new UnsupportedOperationException();
 		}

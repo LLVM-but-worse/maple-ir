@@ -42,4 +42,9 @@ public class FastGraphEdgeImpl<N extends FastGraphVertex> implements FastGraphEd
 		// remember, we can't assume the numeric id remains constant!
 		return Objects.hash(src, dst);
 	}
+
+	@Override
+	public String toString() {
+		return String.format("#%s -> #%s", src.getDisplayName(), dst.getDisplayName());
+	}
 }

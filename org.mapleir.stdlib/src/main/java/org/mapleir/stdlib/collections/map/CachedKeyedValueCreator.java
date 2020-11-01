@@ -1,13 +1,14 @@
 package org.mapleir.stdlib.collections.map;
 
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 public abstract class CachedKeyedValueCreator<K, V> implements KeyedValueCreator<K, V> {
 	private final Map<K, V> map = makeMapImpl();
 	
 	protected Map<K, V> makeMapImpl() {
-		return new HashMap<>();
+		return new LinkedHashMap<>();
 	}
 	
 	public Map<K, V> getMap() {

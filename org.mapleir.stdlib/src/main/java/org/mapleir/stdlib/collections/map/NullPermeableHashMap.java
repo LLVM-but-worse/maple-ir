@@ -1,8 +1,9 @@
 package org.mapleir.stdlib.collections.map;
 
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 
-public class NullPermeableHashMap<K, V> extends HashMap<K, V> {
+public class NullPermeableHashMap<K, V> extends LinkedHashMap<K, V> {
 
 	private static final long serialVersionUID = 1L;
 

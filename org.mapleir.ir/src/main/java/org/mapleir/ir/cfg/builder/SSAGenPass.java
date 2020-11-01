@@ -273,7 +273,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 					}
 					
 					if(builder.graph.getReverseEdges(x).size() > 1) {
-						Map<BasicBlock, Expr> vls = new HashMap<>();
+						Map<BasicBlock, Expr> vls = new LinkedHashMap<>();
 						for(FlowEdge<BasicBlock> fe : builder.graph.getReverseEdges(x)) {
 							vls.put(fe.src(), new VarExpr(newl, null));
 						}
@@ -985,7 +985,7 @@ public class SSAGenPass extends ControlFlowGraphBuilder.BuilderPass {
 	}
 	
 	private void aggregateInitialisers() {
-		for(BasicBlock b : builder.graph.vertices()) {
+		for(BasicBlock b : builder.graph.verticesInOrder()) {
 			for(Stmt stmt : new ArrayList<>(b)) {
 				if (stmt.getOpcode() == Opcode.POP) {
 					PopStmt pop = (PopStmt) stmt;
