@@ -33,6 +33,9 @@ import java.util.Map.Entry;
  *
  * @see <a href="https://hal.inria.fr/inria-00349925v1/document">Revisiting
  * Out-of-SSA Translation for Correctness, CodeQuality, and Efficiency</a>
+ *
+ * Ref: Boissinot's PhD thesis: https://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.385.8510&rep=rep1&type=pdf
+ * Ref: Slides: https://compilers.cs.uni-saarland.de/ssasem/talks/Alain.Darte.pdf
  */
 public class BoissinotDestructor {
 	// private boolean DO_VALUE_INTERFERENCE = true;
@@ -83,7 +86,7 @@ public class BoissinotDestructor {
 
 		// compute the dominance here after we have lifted non variable phi operands.
 		resolver = new DominanceLivenessAnalyser(cfg, entry, null);
-		
+
 		copyPhiOperands();
 		
 		dom_dfs = traverseDominatorTree();
@@ -301,7 +304,7 @@ public class BoissinotDestructor {
 			Local l = e.getKey();
 			BasicBlock b = e.getValue().getBlock();
 
-			// since we are now in csaa, phi locals never interfere and are in the same congruence class.
+			// since we are now in cssa, phi locals never interfere and are in the same congruence class.
 			// therefore we can coalesce them all together and drop phis. with this, we leave cssa.
 			PhiExpr phi = e.getValue().getExpression();
 
@@ -553,46 +556,62 @@ public class BoissinotDestructor {
 		}
 	}
 
+	// returns true if a's def dominates b's def
+	private boolean dominates(Local a, Local b) {
+		BasicBlock defA = defuse.defs.get(a);
+		BasicBlock defB = defuse.defs.get(b);
+		if (defA != defB) {
+			// typical case (between blocks)
+			return resolver.domc.getDominates(defA).contains(defB);
+		} else {
+			// special case (same basic block, rely on statement ordering within block)
+			return checkPreDomOrder(a, b);
+		}
+	}
+
 	private boolean checkInterfere(CongruenceClass red, CongruenceClass blue) {
-		Stack<Local> dom = new Stack<>();
-		Stack<Boolean> domClasses = new Stack<>();
-		int nr = 0, nb = 0;
-		Local ir = red.first(), ib = blue.first();
+		// System.out.println("Enter interfere: " + red + " vs " + blue);
+		Stack<Local> dom = new Stack<>(); // dominator tree traversal stack
+		Stack<Integer> domClasses = new Stack<>(); // 0=red, 1=blue
+		int nr = 0, nb = 0; // from the paper
+		Local ir = red.first(), ib = blue.first(); // iteration pointers
 		Local lr = red.last(), lb = blue.last(); // end sentinels
 		boolean redHasNext = true, blueHasNext = true;
 		equalAncOut.put(ir, null); // these have no parents so we have to manually init them
 		equalAncOut.put(ib, null);
 		do {
+			// System.out.println("\n ir, ib, lr, lb: " + ir + " " + ib + " " + lr + " " + lb);
+			// System.out.println(" dom: " + dom);
 			Local current;
-			boolean currentClass;
+			int currentClass;
 			if (!blueHasNext || (redHasNext && checkPreDomOrder(ir, ib))) {
-				current = ir; // current = red[ir++]
-				currentClass = true;
+				// current = red[ir++] (Red case)
+				current = ir;
+				currentClass = 0;
 				nr++;
 				if (redHasNext = ir != lr)
 					ir = red.higher(ir);
 			} else {
-				current = ib; // current = blue[ib++]
-				currentClass = false;
+				// current = blue[ib++] (Blue case)
+				current = ib;
+				currentClass = 1;
 				nb++;
 				if (blueHasNext = ib != lb)
 					ib = blue.higher(ib);
 			}
 
-			if (!dom.isEmpty()) {
-				Local parent;
-				boolean parentClass;
-				do {
-					parent = dom.pop();
-					parentClass = domClasses.pop();
-					if (parentClass)
-						nr--;
-					else
-						nb--;
-				} while (!dom.isEmpty() && !checkPreDomOrder(parent, current));
-
-				if (interference(current, parent, currentClass == parentClass))
-					return true;
+			while (!dom.isEmpty() && !dominates(dom.peek(), current)) {
+				if (domClasses.peek() == 0)
+					nr--;
+				else if (domClasses.peek() == 1)
+					nb--;
+				else
+					assert false;
+				dom.pop();
+				domClasses.pop();
+			}
+			if (!dom.isEmpty() && interference(current, dom.peek(), currentClass == domClasses.peek())) {
+				return true;
 			}
 			dom.push(current);
 			domClasses.push(currentClass);
@@ -602,18 +621,26 @@ public class BoissinotDestructor {
 	}
 
 	private boolean interference(Local a, Local b, boolean sameConClass) {
+		// System.out.println("Check interference: " + a + " " + b + " " + sameConClass);
 		equalAncOut.put(a, null);
 		if (sameConClass) {
 			b = equalAncOut.get(b);
 		}
+		if (b == null) {
+			return false;
+		}
+		if (dominates(a, b))
+			throw new IllegalArgumentException("b should dom a");
 
 		Local tmp = b;
 		while (tmp != null && !intersect(a, tmp)) {
 			tmp = equalAncIn.get(tmp);
 		}
 		if (values.getNonNull(a) != values.getNonNull(b)) {
+			// chain_intersect
 			return tmp != null;
 		} else {
+			// update_equal_anc_out
 			equalAncOut.put(a, tmp);
 			return false;
 		}
@@ -627,7 +654,7 @@ public class BoissinotDestructor {
 			throw new IllegalArgumentException("me too thanks: " + a);
 		}
 		
-		if (checkPreDomOrder(a, b))
+		if (dominates(a, b))
 			throw new IllegalArgumentException("b should dom a");
 
 		BasicBlock defA = defuse.defs.get(a);
@@ -647,6 +674,7 @@ public class BoissinotDestructor {
 	}
 
 	private void merge(CongruenceClass conClassA, CongruenceClass conClassB) {
+		// System.out.println("Merge class " + conClassA + " <- " + conClassB);
 		conClassA.addAll(conClassB);
 		for (Local l : conClassB)
 			congruenceClasses.put(l, conClassA);
@@ -655,9 +683,9 @@ public class BoissinotDestructor {
 			Local in = equalAncIn.get(l);
 			Local out = equalAncOut.get(l);
 			if (in != null && out != null)
-				equalAncIn.put(l, checkPreDomOrder(in, out) ? in : out);
-			else
-				equalAncIn.put(l, in != null ? in : out != null ? out : null);
+				equalAncIn.put(l, checkPreDomOrder(in, out) ? out : in); // the MAXIMUM
+			else if (in != null || out != null)
+				equalAncIn.put(l, in != null ? in : out);
 		}
 	}
 
@@ -873,14 +901,20 @@ public class BoissinotDestructor {
 		private static final long serialVersionUID = -4472334406997712498L;
 
 		CongruenceClass() {
-			super(new Comparator<Local>() {
-				@Override
-				public int compare(Local o1, Local o2) {
-					if (o1 == o2)
-						return 0;
-					return ((defuse.defIndex.get(o1) - defuse.defIndex.get(o2))) >> 31 | 1;
-				}
+			super((o1, o2) -> {
+				if (o1 == o2)
+					return 0;
+				return ((defuse.defIndex.get(o1) - defuse.defIndex.get(o2))) >> 31 | 1;
 			});
 		}
 	}
+
+	// Used for dumping the dominator graph
+	// private static <N extends FastGraphVertex> void dumpGraph(FastDirectedGraph<N, FastGraphEdge<N>> g, String name) {
+    //     try {
+	// 		Exporter.fromGraph(GraphUtils.makeDotSkeleton(g)).export(new File("cfg testing", name + ".png"));
+	// 	} catch (IOException e) {
+	// 		e.printStackTrace();
+	// 	}
+    // }
 }
