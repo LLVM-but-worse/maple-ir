@@ -51,14 +51,20 @@ public class Boot2 {
 
 		// Load input jar
 		//  File f = locateRevFile(135);
-		File f = new File("res/JetbrainsCrack-4.2-release-enc.jar");
+		// Load input jar
+		//  File f = locateRevFile(135);
+		File f = new File(args[0]);
 
 		SingleJarDownloader<ClassNode> dl = new SingleJarDownloader<>(new JarInfo(f));
 		dl.download();
 		String appName = f.getName().substring(0, f.getName().length() - 4);
 		ApplicationClassSource app = new ApplicationClassSource(appName, dl.getJarContents().getClassContents());
+//
+// 		ApplicationClassSource app = new ApplicationClassSource("test", ClassHelper.parseClasses(CGExample.class));
+//		app.addLibraries(new InstalledRuntimeClassSource(app));
 
-		File rtjar = new File("res/rt.jar");
+		File rtjar = new File(System.getProperty("java.home"), "lib/rt.jar");
+		//File androidjar = new File("res/android.jar");
 		app.addLibraries(rt(app, rtjar));
 
 		IRCache irFactory = new IRCache(ControlFlowGraphBuilder::build);
