@@ -34,8 +34,8 @@ import java.util.Map.Entry;
  * @see <a href="https://hal.inria.fr/inria-00349925v1/document">Revisiting
  * Out-of-SSA Translation for Correctness, CodeQuality, and Efficiency</a>
  *
- * Ref: Boissinot's PhD thesis: https://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.385.8510&rep=rep1&type=pdf
- * Ref: Slides: https://compilers.cs.uni-saarland.de/ssasem/talks/Alain.Darte.pdf
+ * @see <a href="https://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.385.8510&rep=rep1&type=pdf">Boissinot's PhD thesis</a>
+ * @see <a href="https://compilers.cs.uni-saarland.de/ssasem/talks/Alain.Darte.pdf">Slides</a>
  */
 public class BoissinotDestructor {
 	// private boolean DO_VALUE_INTERFERENCE = true;
