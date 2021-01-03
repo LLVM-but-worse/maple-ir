@@ -274,6 +274,7 @@ public class BoissinotDestructor {
 					Expr e = copy.getExpression();
 					Local b = copy.getVariable().getLocal();
 
+					// Expression has to be a VarExpr
 					if (!copy.isSynthetic() && e.getOpcode() == Opcode.LOCAL_LOAD) {
 						LinkedHashSet<Local> vc = values.get(((VarExpr) e).getLocal());
 						vc.add(b);

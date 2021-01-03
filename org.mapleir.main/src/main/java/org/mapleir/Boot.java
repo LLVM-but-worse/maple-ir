@@ -228,14 +228,14 @@ public class Boot {
 
 				new PassGroup("Interprocedural Optimisations")
 						.add(
-						new CallgraphPruningPass(),
+						/*new CallgraphPruningPass(),
 						new ConcreteStaticInvocationPass(),
 						new ConstantExpressionReorderPass(),
 						//new ConstantParameterPass(),
 						new DeadCodeEliminationPass(),
 						//new DemoteRangesPass(), // Not done
 						new DetectIrreducibleFlowPass(),
-						new LiftConstructorCallsPass()
+						new LiftConstructorCallsPass()*/
 				),
 				//new ConstantExpressionEvaluatorPass(),
 
