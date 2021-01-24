@@ -40,7 +40,7 @@ public class DynamicInvocationExpr extends InvocationExpr {
 		this.bootstrapMethod = bootstrapMethod;
 		this.bootstrapArgs = bootstrapArgs;
 		this.boundName = boundName;
-		assert(Type.getArgumentTypes(bootstrapDesc).length == args.length); // I hope this tells me when this fucks up, because this is not a matter of if, but when.
+		assert(Type.getArgumentTypes(bootstrapDesc).length == args.length) : "You fucked up"; // I hope this tells me when this fucks up, because this is not a matter of if, but when.
 		
 		for(int i = 0; i < args.length; i++) {
 			writeAt(args[i], i);
@@ -54,7 +54,11 @@ public class DynamicInvocationExpr extends InvocationExpr {
 	public Object[] getBootstrapArgs() {
 		return bootstrapArgs;
 	}
-	
+
+	public void setBootstrapArgs(Object[] bootstrapArgs) {
+		this.bootstrapArgs = bootstrapArgs;
+	}
+
 	public String getBoundName() {
 		return boundName;
 	}

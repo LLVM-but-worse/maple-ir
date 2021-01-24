@@ -207,6 +207,10 @@ public abstract class InvocationExpr extends Invocation implements IUsesJavaDesc
 		return args;
 	}
 
+	public void setArgumentExprs(Expr[] args) {
+		this.args = args;
+	}
+
 	// @Override
 	// public Set<MethodNode> resolveTargets(InvocationResolver res) {		
 	// 	String owner = getOwner();
@@ -223,6 +227,9 @@ public abstract class InvocationExpr extends Invocation implements IUsesJavaDesc
 	// 		}
 	// 	}
 	// }
+
+
+
 
 	@Override
 	public JavaDesc.DescType getDescType() {

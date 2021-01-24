@@ -121,6 +121,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		}
 		
 		inputStacks.put(b, s);
+		b.setStack(s);
 	}
 	
 	protected ExpressionStack getInputStackFor(BasicBlock b) {

@@ -1,6 +1,8 @@
 package org.mapleir.asm;
 
 import org.mapleir.stdlib.collections.graph.FastGraphVertex;
+import org.objectweb.asm.Opcodes;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -53,5 +55,17 @@ public class ClassNode implements FastGraphVertex {
     @Override
     public int getNumericId() {
         return numericId;
+    }
+
+    public boolean isEnum() {
+        return (node.access & Opcodes.ACC_ENUM) != 0;
+    }
+
+    public boolean isStatic() {
+        return (node.access & Opcodes.ACC_STATIC) != 0;
+    }
+
+    public boolean isSynthetic() {
+        return (node.access & Opcodes.ACC_SYNTHETIC) != 0;
     }
 }

@@ -3,6 +3,7 @@ package org.mapleir.asm;
 import org.mapleir.stdlib.collections.graph.FastGraphVertex;
 import org.mapleir.stdlib.util.IHasJavaDesc;
 import org.mapleir.stdlib.util.JavaDesc;
+import org.objectweb.asm.Opcodes;
 
 public class MethodNode implements FastGraphVertex, IHasJavaDesc {
     private static int ID_COUNTER = 1;
@@ -55,4 +56,10 @@ public class MethodNode implements FastGraphVertex, IHasJavaDesc {
     public JavaDesc getJavaDesc() {
 	    return new JavaDesc(owner.getName(), getName(), getDesc(), JavaDesc.DescType.METHOD);
     }
+
+    public boolean isStatic() {
+        return (node.access & Opcodes.ACC_STATIC) != 0;
+    }
+
+
 }
