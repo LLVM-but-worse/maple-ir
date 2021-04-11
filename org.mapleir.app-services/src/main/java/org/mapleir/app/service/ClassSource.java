@@ -71,4 +71,8 @@ public abstract class ClassSource {
 	public Iterator<ClassNode> iterator() {
 		return nodeMap.values().iterator();
 	}
+
+	public int size() {
+		return nodeMap.size();
+	}
 }

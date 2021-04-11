@@ -901,11 +901,15 @@ public class BoissinotDestructor {
 	private class CongruenceClass extends TreeSet<Local> {
 		private static final long serialVersionUID = -4472334406997712498L;
 
-		CongruenceClass() {
-			super((o1, o2) -> {
-				if (o1 == o2)
-					return 0;
-				return ((defuse.defIndex.get(o1) - defuse.defIndex.get(o2))) >> 31 | 1;
+		protected CongruenceClass() {
+			super(new Comparator<Local>() {
+				@Override
+				public int compare(Local o1, Local o2) {
+					if (o1 == o2)
+						return 0;
+					return ((BoissinotDestructor.this.defuse.defIndex.get(o1) - BoissinotDestructor.
+							this.defuse.defIndex.get(o2))) >> 31 | 1;
+				}
 			});
 		}
 	}

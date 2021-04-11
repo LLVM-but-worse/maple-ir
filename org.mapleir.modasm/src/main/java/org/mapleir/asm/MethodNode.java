@@ -61,5 +61,11 @@ public class MethodNode implements FastGraphVertex, IHasJavaDesc {
         return (node.access & Opcodes.ACC_STATIC) != 0;
     }
 
+    public boolean isAbstract() {
+        return (node.access & Opcodes.ACC_ABSTRACT) != 0;
+    }
 
+    public boolean isNative() {
+        return (node.access & Opcodes.ACC_NATIVE) != 0;
+    }
 }
