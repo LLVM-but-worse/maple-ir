@@ -73,6 +73,7 @@
         <configuration>
           <!-- If you want the build to *just work*. -->
           <!-- <doclint>none</doclint> -->
+          <javadocExecutable>${java.home}/bin/javadoc</javadocExecutable>
         </configuration>
         <executions>
           <execution>

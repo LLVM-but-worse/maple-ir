@@ -16,6 +16,11 @@
       <version>2.8.5</version>
     </dependency>
     <dependency>
+      <groupId>org.danilopianini</groupId>
+      <artifactId>urlclassloader-util</artifactId>
+      <version>0.1.1</version>
+    </dependency>
+    <dependency>
       <groupId>org.mapleir</groupId>
       <artifactId>modasm</artifactId>
       <version>0.0.1-ALPHA</version>
