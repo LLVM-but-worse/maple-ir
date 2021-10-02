@@ -42,6 +42,12 @@ public class ControlFlowGraphBuilder {
 			graph = new ControlFlowGraph(new VirtualMethodLocalsPool(), method.getJavaDesc());
 		}
 		locals = new HashSet<>();
+
+		// Reserved self reference local
+		if (!method.isStatic()) {
+			locals.add(graph.getLocals().get(0, false));
+		}
+
 		assigns = new NullPermeableHashMap<>(HashSet::new);
 	}
 	

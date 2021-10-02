@@ -2,8 +2,10 @@ package org.mapleir.ir.locals;
 
 public abstract class Local implements Comparable<Local> {
 
+import org.objectweb.asm.Type;
+	private Type type;
 	private final boolean stack;
-	private final int index;
+	private int index;
 	private boolean tempLocal;
 	
 	public Local(int index) {
@@ -52,6 +54,12 @@ public abstract class Local implements Comparable<Local> {
 		return !isStack() || isTempLocal();
 	}
 
+	public void setIndex(int index) {
+		this.index = index;
+	}
+	public void setType(Type type) {
+		this.type = type;
+	}
 	@Override
 	public int compareTo(Local o) {
 		if(stack && !o.stack) {

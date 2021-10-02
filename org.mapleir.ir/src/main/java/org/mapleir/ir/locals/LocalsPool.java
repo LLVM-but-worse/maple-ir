@@ -65,6 +65,9 @@ public abstract class LocalsPool implements ValueCreator<GenericBitSet<Local>> {
 	public GenericBitSet<Local> create() {
 		return createBitSet();
 	}
+	public Map<String, Local> getCache() {
+		return cache;
+	}
 	// end factory
 
 	public BasicLocal asSimpleLocal(Local l) {
