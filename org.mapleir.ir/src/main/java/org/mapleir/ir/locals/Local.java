@@ -1,8 +1,9 @@
 package org.mapleir.ir.locals;
 
+import org.objectweb.asm.Type;
+
 public abstract class Local implements Comparable<Local> {
 
-import org.objectweb.asm.Type;
 	private Type type;
 	private final boolean stack;
 	private int index;
