@@ -1,5 +1,6 @@
 package org.mapleir.ir.codegen;
 
+import com.google.common.collect.Streams;
 import org.mapleir.flowgraph.ExceptionRange;
 import org.mapleir.flowgraph.edges.FlowEdge;
 import org.mapleir.flowgraph.edges.FlowEdges;
@@ -8,8 +9,13 @@ import org.mapleir.flowgraph.edges.UnconditionalJumpEdge;
 import org.mapleir.ir.TypeUtils;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
+import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.code.Stmt;
+import org.mapleir.ir.code.expr.CastExpr;
+import org.mapleir.ir.code.expr.VarExpr;
 import org.mapleir.ir.code.stmt.UnconditionalJumpStmt;
+import org.mapleir.ir.code.stmt.copy.CopyVarStmt;
+import org.mapleir.ir.locals.Local;
 import org.mapleir.stdlib.collections.graph.*;
 import org.mapleir.stdlib.collections.graph.algorithms.SimpleDfs;
 import org.mapleir.stdlib.collections.graph.algorithms.TarjanSCC;
@@ -22,6 +28,7 @@ import org.mapleir.asm.MethodNode;
 import org.objectweb.asm.tree.TryCatchBlockNode;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class ControlFlowGraphDumper implements BytecodeFrontend {
 	private final ControlFlowGraph cfg;
@@ -258,6 +265,7 @@ public class ControlFlowGraphDumper implements BytecodeFrontend {
 		if (typeSet.size() != 1) {
 			// TODO: find base exception
 			type = TypeUtils.THROWABLE;
+			System.err.println("[fatal] No compatible exception at " + m + " : " + Arrays.toString(typeSet.toArray()));
 		} else {
 			type = typeSet.iterator().next();
 		}

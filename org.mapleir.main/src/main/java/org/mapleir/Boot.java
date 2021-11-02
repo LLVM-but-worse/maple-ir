@@ -52,7 +52,6 @@ public class Boot {
 	}
 
 	public static void main(String[] args) throws Exception {
-
 		sections = new LinkedList<>();
 		logging = true;
 
