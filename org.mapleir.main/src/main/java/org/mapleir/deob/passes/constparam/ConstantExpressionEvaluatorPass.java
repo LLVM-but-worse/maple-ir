@@ -271,7 +271,7 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 	/**
 	 * Stores information regarding constant parameters encountered during call tracing.
 	 */
-	private class IPConstAnalysisVisitor implements IPAnalysisVisitor {
+	public class IPConstAnalysisVisitor implements IPAnalysisVisitor {
 		final AnalysisContext cxt;
 		final Map<ControlFlowGraph, List<TaintableSet<ConstantExpr>>> constParams = new HashMap<>();
 		
