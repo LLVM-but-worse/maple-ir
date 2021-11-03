@@ -78,7 +78,7 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 		return PassResult.with(pcxt, this).finished(exprsEvaluated).make();
 	}
 	
-	private void processMethod(MethodNode m, IPConstAnalysisVisitor vis, ControlFlowGraph cfg) {
+	public void processMethod(MethodNode m, IPConstAnalysisVisitor vis, ControlFlowGraph cfg) {
 		for(BasicBlock b : new HashSet<>(cfg.vertices())) {
 			for(int i=0; i < b.size(); i++) {
 				Stmt stmt = b.get(i);

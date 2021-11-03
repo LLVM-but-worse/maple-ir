@@ -28,9 +28,9 @@ import java.util.Iterator;
 import java.util.List;
 
 public class DeadCodeEliminationPass implements IPass {
-	int deadBlocks = 0;
-	int immediateJumps = 0;
-	int deadLocals = 0;
+	public int deadBlocks = 0;
+	public int immediateJumps = 0;
+	public int deadLocals = 0;
 	
 	public void process(ControlFlowGraph cfg) {
 		LocalsPool lp = cfg.getLocals();
