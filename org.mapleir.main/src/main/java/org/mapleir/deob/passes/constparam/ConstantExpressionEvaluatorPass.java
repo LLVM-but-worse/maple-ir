@@ -223,7 +223,7 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 	/**
 	 * Provides values of locals based on constant parameter information from call trace (IPConstAnalysisVisitor)
 	 */
-	private class SemiConstantLocalValueResolver implements LocalValueResolver {
+	public static class SemiConstantLocalValueResolver implements LocalValueResolver {
 		
 		private final IPConstAnalysisVisitor vis;
 		
@@ -271,7 +271,7 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 	/**
 	 * Stores information regarding constant parameters encountered during call tracing.
 	 */
-	public class IPConstAnalysisVisitor implements IPAnalysisVisitor {
+	public static class IPConstAnalysisVisitor implements IPAnalysisVisitor {
 		final AnalysisContext cxt;
 		final Map<ControlFlowGraph, List<TaintableSet<ConstantExpr>>> constParams = new HashMap<>();
 		
