@@ -42,10 +42,20 @@ public class IRCallTracer extends CallTracer {
 	}
 
 	private void traceInvocation(MethodNode m, Invocation invoke) {
-		Set<MethodNode> targets = invoke.resolveTargets(resolver);
+		Set<MethodNode> targets;
+
+		try {
+			targets = invoke.resolveTargets(resolver);
+		} catch (Throwable e) {
+			LOGGER.warn(String.format("can't resolve call to %s.%s %s%s%s", invoke.getOwner(),
+					invoke.getName(), invoke.getDesc(), invoke.isStatic() ? "(static)" : "", invoke.isDynamic() ? "(dynamic)" : ""));
+			LOGGER.warn(String.format("   call from %s", m));
+			return;
+		}
 
 		if (targets.size() != 0) {
 			for (MethodNode vtarg : targets) {
+
 				trace(vtarg);
 				processedInvocation(m, vtarg, invoke);
 			}

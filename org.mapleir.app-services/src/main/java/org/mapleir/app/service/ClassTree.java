@@ -28,7 +28,10 @@ public class ClassTree extends FastDirectedGraph<ClassNode, InheritanceEdge> {
 	private final ApplicationClassSource source;
 	private final ClassNode rootNode;
 	private final boolean allowPhantomClasses;
-	
+
+	private final Map<ClassNode, List<ClassNode>> parentCache = new HashMap<>();
+	private final Map<ClassNode, List<ClassNode>> childCache = new HashMap<>();
+
 	public ClassTree(ApplicationClassSource source) {
 		this(source, ALLOW_PHANTOM_CLASSES);
 	}
@@ -101,7 +104,15 @@ public class ClassTree extends FastDirectedGraph<ClassNode, InheritanceEdge> {
 		if(!containsVertex(cn)) {
 			return new ArrayList<>();
 		}
-		return SimpleDfs.topoorder(this, cn, false);
+
+		List<ClassNode> classNodes = parentCache.get(cn);
+
+		if (classNodes == null) {
+			classNodes = SimpleDfs.topoorder(this, cn, false);
+			parentCache.put(cn, classNodes);
+		}
+
+		return classNodes;
 	}
 
 	// returns a postorder traversal of the graph starting from cn following edges in opposite direction.
@@ -109,7 +120,15 @@ public class ClassTree extends FastDirectedGraph<ClassNode, InheritanceEdge> {
 		if(!containsVertex(cn)) {
 			return new ArrayList<>();
 		}
-		return SimpleDfs.postorder(this, cn, true);
+
+		List<ClassNode> classNodes = childCache.get(cn);
+
+		if (classNodes == null) {
+			classNodes = SimpleDfs.postorder(this, cn, true);
+			childCache.put(cn, classNodes);
+		}
+
+		return classNodes;
 	}
 	
 	/**
