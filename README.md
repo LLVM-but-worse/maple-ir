@@ -108,4 +108,4 @@ Contact: Please file an issue, I will do my best to respond as quickly as possib
 ## License
 Maple-IR is licensed under the GPLv3. For more information, please see [here](https://www.gnu.org/licenses/gpl-3.0.en.html).
 
-Copyright (c) 2020 Bibl and rcx
+Copyright (c) 2022 Bibl and rcx
