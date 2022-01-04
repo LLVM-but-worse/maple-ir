@@ -1,6 +1,5 @@
 package org.mapleir;
 
-import org.apache.log4j.Logger;
 import org.mapleir.app.client.SimpleApplicationContext;
 import org.mapleir.app.service.ApplicationClassSource;
 import org.mapleir.app.service.CompleteResolvingJarDumper;
@@ -24,6 +23,8 @@ import org.mapleir.ir.cfg.builder.ControlFlowGraphBuilder;
 import org.mapleir.ir.codegen.ControlFlowGraphDumper;
 import org.mapleir.asm.ClassNode;
 import org.mapleir.asm.MethodNode;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.topdank.byteengineer.commons.data.JarInfo;
 import org.topdank.byteio.in.SingleJarDownloader;
 
@@ -34,7 +35,7 @@ import java.util.jar.JarOutputStream;
 
 public class Boot2 {
 	
-	private static final Logger LOGGER = Logger.getLogger(Boot2.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(Boot2.class);
 	
 	public static boolean logging = false;
 

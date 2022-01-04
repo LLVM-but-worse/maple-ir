@@ -2,20 +2,21 @@ package org.mapleir.deob.interproc;
 
 import java.util.Set;
 
-import org.apache.log4j.Logger;
 import org.mapleir.context.AnalysisContext;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.code.Stmt;
 import org.mapleir.ir.code.expr.invoke.Invocation;
 import org.mapleir.asm.MethodNode;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * CallTracer which implements a DFS on the callgraph based on IR instructions.
  */
 public class IRCallTracer extends CallTracer {
 
-	private static final Logger LOGGER = Logger.getLogger(IRCallTracer.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(IRCallTracer.class);
 
 	protected final AnalysisContext context;
 
