@@ -3,12 +3,12 @@
   <groupId>org.mapleir</groupId>
   <artifactId>service-framework-impl</artifactId>
   <version>0.0.1-SNAPSHOT</version>
-  <name>Service provider impl</name>
+  <name>MapleIR-service-provider-impl</name>
 
   <parent>
   	<groupId>org.mapleir</groupId>
   	<artifactId>parent</artifactId>
-  	<version>0.0.1-ALPHA</version>
+  	<version>1.0.0-SNAPSHOT</version>
   	<relativePath>../org.mapleir.parent</relativePath>
   </parent>
   <dependencies>

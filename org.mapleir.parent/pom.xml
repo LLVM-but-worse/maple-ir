@@ -4,10 +4,10 @@
 
   <groupId>org.mapleir</groupId>
   <artifactId>parent</artifactId>
-  <version>0.0.1-ALPHA</version>
+  <version>1.0.0-SNAPSHOT</version>
   <packaging>pom</packaging>
 
-  <name>parent</name>
+  <name>MapleIR-parent</name>
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>

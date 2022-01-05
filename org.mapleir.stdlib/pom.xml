@@ -5,18 +5,18 @@
   <parent>
     <groupId>org.mapleir</groupId>
     <artifactId>parent</artifactId>
-    <version>0.0.1-ALPHA</version>
+    <version>1.0.0-SNAPSHOT</version>
     <relativePath>../org.mapleir.parent</relativePath>
   </parent>
   
   <groupId>org.mapleir</groupId>
   <artifactId>stdlib</artifactId>
-  <name>stdlib</name>
+  <name>MapleIR-stdlib</name>
   <dependencies>
   	<dependency>
   		<groupId>org.mapleir</groupId>
   		<artifactId>dot4j</artifactId>
-  		<version>0.0.1-ALPHA</version>
+  		<version>1.0.0-SNAPSHOT</version>
   	</dependency>
   	<dependency>
   		<groupId>org.mapleir</groupId>
