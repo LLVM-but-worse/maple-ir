@@ -28,10 +28,7 @@ public class ClassTree extends FastDirectedGraph<ClassNode, InheritanceEdge> {
 	private final ApplicationClassSource source;
 	private final ClassNode rootNode;
 	private final boolean allowPhantomClasses;
-
-	private final Map<ClassNode, List<ClassNode>> parentCache = new HashMap<>();
-	private final Map<ClassNode, List<ClassNode>> childCache = new HashMap<>();
-
+	
 	public ClassTree(ApplicationClassSource source) {
 		this(source, ALLOW_PHANTOM_CLASSES);
 	}
@@ -104,15 +101,7 @@ public class ClassTree extends FastDirectedGraph<ClassNode, InheritanceEdge> {
 		if(!containsVertex(cn)) {
 			return new ArrayList<>();
 		}
-
-		List<ClassNode> classNodes = parentCache.get(cn);
-
-		if (classNodes == null) {
-			classNodes = SimpleDfs.topoorder(this, cn, false);
-			parentCache.put(cn, classNodes);
-		}
-
-		return classNodes;
+		return SimpleDfs.topoorder(this, cn, false);
 	}
 
 	// returns a postorder traversal of the graph starting from cn following edges in opposite direction.
@@ -120,15 +109,7 @@ public class ClassTree extends FastDirectedGraph<ClassNode, InheritanceEdge> {
 		if(!containsVertex(cn)) {
 			return new ArrayList<>();
 		}
-
-		List<ClassNode> classNodes = childCache.get(cn);
-
-		if (classNodes == null) {
-			classNodes = SimpleDfs.postorder(this, cn, true);
-			childCache.put(cn, classNodes);
-		}
-
-		return classNodes;
+		return SimpleDfs.postorder(this, cn, true);
 	}
 	
 	/**
@@ -142,8 +123,14 @@ public class ClassTree extends FastDirectedGraph<ClassNode, InheritanceEdge> {
 		while (!queue.isEmpty()) {
 			ClassNode next = queue.remove();
 			if (results.add(next) && next != rootNode) {
-				queue.addAll(getAllParents(next));
 				queue.addAll(getAllChildren(next));
+			}
+		}
+		queue.add(cn);
+		while (!queue.isEmpty()) {
+			ClassNode next = queue.remove();
+			if (results.add(next) && next != rootNode) {
+				queue.addAll(getAllParents(next));
 			}
 		}
 		return results;
