@@ -11,31 +11,34 @@
   <groupId>org.mapleir</groupId>
   <artifactId>modasm</artifactId>
   <name>MapleIR-modasm</name>
+  <properties>
+    <asm.version>9.2</asm.version>
+  </properties>
   <dependencies>
   	<dependency>
       <groupId>org.mapleir</groupId>
       <artifactId>stdlib</artifactId>
-      <version>0.0.1-ALPHA</version>
+      <version>1.0.0-SNAPSHOT</version>
   	</dependency>
     <dependency>
       <groupId>org.ow2.asm</groupId>
       <artifactId>asm</artifactId>
-      <version>9.0</version>
+      <version>${asm.version}</version>
     </dependency>
     <dependency>
       <groupId>org.ow2.asm</groupId>
       <artifactId>asm-tree</artifactId>
-      <version>9.0</version>
+      <version>${asm.version}</version>
     </dependency>
     <dependency>
       <groupId>org.ow2.asm</groupId>
       <artifactId>asm-util</artifactId>
-      <version>9.0</version>
+      <version>${asm.version}</version>
     </dependency>
     <dependency>
       <groupId>org.ow2.asm</groupId>
       <artifactId>asm-commons</artifactId>
-      <version>9.0</version>
+      <version>${asm.version}</version>
     </dependency>
   </dependencies>
 </project>
