@@ -1,6 +1,5 @@
 package org.mapleir.ir.cfg;
 
-import com.google.common.collect.Streams;
 import org.mapleir.dot4j.model.DotGraph;
 import org.mapleir.flowgraph.ExceptionRange;
 import org.mapleir.flowgraph.FlowGraph;
@@ -30,6 +29,7 @@ import java.util.Map.Entry;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import static org.mapleir.ir.code.Opcode.PHI_STORE;
 
@@ -58,7 +58,8 @@ public class ControlFlowGraph extends FlowGraph<BasicBlock, FlowEdge<BasicBlock>
 	}
 
     public Stream<CodeUnit> allExprStream() {
-   		return vertices().stream().flatMap(Collection::stream).map(Stmt::enumerateWithSelf).flatMap(Streams::stream);
+   		return vertices().stream().flatMap(Collection::stream).map(Stmt::enumerateWithSelf)
+				.flatMap(codeUnits -> StreamSupport.stream(codeUnits.spliterator(), false));
    	}
 
     /**

@@ -10,9 +10,6 @@ import org.mapleir.stdlib.collections.graph.util.OrderedNode;
 import org.mapleir.stdlib.collections.graph.util.OrderedNode.ODirectedGraph;
 import org.mapleir.stdlib.collections.graph.util.OrderedNode.OGraph;
 
-import com.google.common.base.Predicates;
-import com.google.common.collect.Iterators;
-
 import junit.framework.TestCase;
 
 
@@ -60,8 +57,8 @@ public class DfsTest extends TestCase {
 			OrderedNode node = nodes.get(i);
 			visited.add(node);
 			OrderedNode prev = nodes.get(i - 1);
-			if (!Iterators.all(g.getSuccessors(prev).iterator(), Predicates.in(visited)))
-				assertTrue("unvisited pred", Iterators.contains(g.getPredecessors(node).iterator(), prev));
+			if (g.getSuccessors(prev).anyMatch(x -> !visited.contains(x)))
+				assertTrue("unvisited pred", g.getPredecessors(node).anyMatch(prev::equals));
 		}
 	}
 
@@ -70,7 +67,7 @@ public class DfsTest extends TestCase {
 		assertEquals("missing nodes", new HashSet<>(nodes), g.vertices());
 		for (OrderedNode node : nodes) {
 			visited.add(node);
-			assertTrue("unvisited pred", Iterators.all(g.getPredecessors(node).iterator(), Predicates.in(visited)));
+			assertTrue("unvisited pred", g.getPredecessors(node).allMatch(visited::contains));
 		}
 	}
 	
