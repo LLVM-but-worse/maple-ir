@@ -35,7 +35,7 @@ public class ConstantExpressionReorderPass implements IPass, Opcode {
 		return PassResult.with(pcxt, this).finished(delta).make();
 	}
 	
-	private int transform(ControlFlowGraph ir) {
+	public int transform(ControlFlowGraph ir) {
 		int i = 0;
 		
 		for(BasicBlock b : ir.vertices()) {

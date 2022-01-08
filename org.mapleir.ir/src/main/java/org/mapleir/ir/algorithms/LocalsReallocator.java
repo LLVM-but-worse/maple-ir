@@ -109,7 +109,9 @@ public class LocalsReallocator {
                 } else if (!s1 && s2) {
                     return 1;
                 } else {
-                    return o1.compareTo(o2);
+                    VersionedLocal vo1 = o1 instanceof VersionedLocal ? (VersionedLocal) o1 : cfg.getLocals().get(o1.getIndex(), 0);
+                    VersionedLocal vo2 = o2 instanceof VersionedLocal ? (VersionedLocal) o2 : cfg.getLocals().get(o2.getIndex(), 0);
+                    return vo1.compareTo(vo2);
                 }
             }
         });

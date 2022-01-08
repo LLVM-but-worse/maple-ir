@@ -1,5 +1,6 @@
 package org.mapleir.ir.cfg;
 
+import org.mapleir.ir.code.ExpressionStack;
 import org.mapleir.ir.code.Stmt;
 import org.mapleir.stdlib.collections.graph.FastGraphVertex;
 import org.mapleir.stdlib.collections.list.NotifiedList;
@@ -22,6 +23,7 @@ public class BasicBlock implements FastGraphVertex, Collection<Stmt> {
 	private int id;
 	public final ControlFlowGraph cfg;
 	private final NotifiedList<Stmt> statements;
+	private ExpressionStack stack;
 	private int flags = 0;
 
 	// for debugging purposes. the number of times the label was changed
@@ -213,6 +215,14 @@ public class BasicBlock implements FastGraphVertex, Collection<Stmt> {
 	@Override
 	public void clear() {
 		statements.clear();
+	}
+
+	public ExpressionStack getStack() {
+		return stack;
+	}
+
+	public void setStack(ExpressionStack stack) {
+		this.stack = stack;
 	}
 
 	@Override

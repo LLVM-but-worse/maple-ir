@@ -3,11 +3,11 @@
   <parent>
     <groupId>org.mapleir</groupId>
     <artifactId>parent</artifactId>
-    <version>0.0.1-ALPHA</version>
+    <version>1.0.0-SNAPSHOT</version>
     <relativePath>../org.mapleir.parent</relativePath>
   </parent>
   <groupId>org.mapleir</groupId>
-  <name>topdank-services</name>
+  <name>MapleIR-topdank-services</name>
   <artifactId>topdank-services</artifactId>
   <dependencies>
     <dependency>
@@ -16,9 +16,14 @@
       <version>2.8.5</version>
     </dependency>
     <dependency>
+      <groupId>org.danilopianini</groupId>
+      <artifactId>urlclassloader-util</artifactId>
+      <version>0.1.1</version>
+    </dependency>
+    <dependency>
       <groupId>org.mapleir</groupId>
       <artifactId>modasm</artifactId>
-      <version>0.0.1-ALPHA</version>
+      <version>1.0.0-SNAPSHOT</version>
     </dependency>
   </dependencies>
 </project>

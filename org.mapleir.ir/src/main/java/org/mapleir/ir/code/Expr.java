@@ -64,7 +64,7 @@ public abstract class Expr extends CodeUnit {
 		}
 	}
 	
-	protected void setParent(CodeUnit parent) {
+	public void setParent(CodeUnit parent) {
 		this.parent = parent;
 		if(parent != null) {
 			setBlock(parent.getBlock());

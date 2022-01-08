@@ -13,6 +13,8 @@ import org.mapleir.deob.PassContext;
 import org.mapleir.deob.PassGroup;
 import org.mapleir.deob.PassResult;
 import org.mapleir.deob.dataflow.LiveDataFlowAnalysisImpl;
+import org.mapleir.deob.passes.*;
+import org.mapleir.deob.passes.constparam.ConstantExpressionEvaluatorPass;
 import org.mapleir.deob.passes.rename.ClassRenamerPass;
 import org.mapleir.deob.util.RenamingHeuristic;
 import org.mapleir.ir.algorithms.BoissinotDestructor;
@@ -26,6 +28,9 @@ import org.topdank.byteengineer.commons.data.JarInfo;
 import org.topdank.byteio.in.SingleJarDownloader;
 
 import java.io.*;
+import java.lang.management.ManagementFactory;
+import java.net.URI;
+import java.net.URL;
 import java.util.*;
 import java.util.Map.Entry;
 import java.util.jar.JarOutputStream;
@@ -47,13 +52,12 @@ public class Boot {
 	}
 
 	public static void main(String[] args) throws Exception {
-
 		sections = new LinkedList<>();
 		logging = true;
 
 		// Load input jar
 		//  File f = locateRevFile(135);
-		File f = new File("res/salesforce.jar");
+		File f = new File(args[0]);
 
 		section("Preparing to run on " + f.getAbsolutePath());
 		SingleJarDownloader<ClassNode> dl = new SingleJarDownloader<>(new JarInfo(f));
@@ -64,9 +68,9 @@ public class Boot {
 // 		ApplicationClassSource app = new ApplicationClassSource("test", ClassHelper.parseClasses(CGExample.class));
 //		app.addLibraries(new InstalledRuntimeClassSource(app));
 
-		File rtjar = new File("res/rt.jar");
-		File androidjar = new File("res/android.jar");
-		app.addLibraries(rt(app, rtjar), rt(app, androidjar));
+		File rtjar = new File(System.getProperty("java.home"), "lib/rt.jar");
+		//File androidjar = new File("res/android.jar");
+		app.addLibraries(rt(app, rtjar));
 		section("Initialising context.");
 
 
@@ -108,7 +112,12 @@ public class Boot {
 		for(Entry<MethodNode, ControlFlowGraph> e : cxt.getIRCache().entrySet()) {
 			MethodNode mn = e.getKey();
 			ControlFlowGraph cfg = e.getValue();
-			cfg.verify();
+			try {
+				cfg.verify();
+			} catch (Exception ex){
+				ex.printStackTrace();
+			}
+
 		}
 
 		section("Retranslating SSA IR to standard flavour.");
@@ -120,7 +129,11 @@ public class Boot {
 
 			// System.out.println(cfg);
 			//  CFGUtils.easyDumpCFG(cfg, "pre-destruct");
-			cfg.verify();
+			try {
+				cfg.verify();
+			} catch (Exception ex){
+				ex.printStackTrace();
+			}
 
 			BoissinotDestructor.leaveSSA(cfg);
 
@@ -128,7 +141,11 @@ public class Boot {
 			LocalsReallocator.realloc(cfg);
 			 // CFGUtils.easyDumpCFG(cfg, "post-reaalloc");
 			// System.out.println(cfg);
-			cfg.verify();
+			try {
+				cfg.verify();
+			} catch (Exception ex){
+				ex.printStackTrace();
+			}
 			 // System.out.println("Rewriting " + mn.getName());
 			(new ControlFlowGraphDumper(cfg, mn)).dump();
 			 // System.out.println(InsnListUtils.insnListToString(mn.instructions));
@@ -199,22 +216,34 @@ public class Boot {
 	private static IPass[] getTransformationPasses() {
 		RenamingHeuristic heuristic = RenamingHeuristic.RENAME_ALL;
 		return new IPass[] {
-//				new ConcreteStaticInvocationPass(),
+				// Const param
+
+				// Rename
 //				new ClassRenamerPass(heuristic),
 //				new MethodRenamerPass(heuristic),
 //				new FieldRenamerPass(),
-//				new CallgraphPruningPass(),
 
-				// new PassGroup("Interprocedural Optimisations")
-				// 	.add(new ConstantParameterPass())
-				// new LiftConstructorCallsPass(),
-//				 new DemoteRangesPass(),
+				// Default
 
-				// new ConstantExpressionReorderPass(),
+				new PassGroup("Interprocedural Optimisations")
+						.add(
+						/*new CallgraphPruningPass(),
+						new ConcreteStaticInvocationPass(),
+						new ConstantExpressionReorderPass(),
+						//new ConstantParameterPass(),
+						new DeadCodeEliminationPass(),
+						//new DemoteRangesPass(), // Not done
+						new DetectIrreducibleFlowPass(),
+						new LiftConstructorCallsPass()*/
+				),
+				//new ConstantExpressionEvaluatorPass(),
+
+
+
 				// new FieldRSADecryptionPass(),
-				// new ConstantParameterPass(),
-//				new ConstantExpressionEvaluatorPass(),
-// 				new DeadCodeEliminationPass()
+
+
+
 
 		};
 	}

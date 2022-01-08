@@ -5,6 +5,8 @@
 .idea/*
 *.iml
 
+# MacOS
+*.DS_Store
 
 # Maven output
 */target/*

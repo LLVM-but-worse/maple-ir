@@ -34,8 +34,8 @@ import java.util.Map.Entry;
  * @see <a href="https://hal.inria.fr/inria-00349925v1/document">Revisiting
  * Out-of-SSA Translation for Correctness, CodeQuality, and Efficiency</a>
  *
- * Ref: Boissinot's PhD thesis: https://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.385.8510&rep=rep1&type=pdf
- * Ref: Slides: https://compilers.cs.uni-saarland.de/ssasem/talks/Alain.Darte.pdf
+ * @see <a href="https://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.385.8510&rep=rep1&type=pdf">Boissinot's PhD thesis</a>
+ * @see <a href="https://compilers.cs.uni-saarland.de/ssasem/talks/Alain.Darte.pdf">Slides</a>
  */
 public class BoissinotDestructor {
 	// private boolean DO_VALUE_INTERFERENCE = true;
@@ -274,6 +274,7 @@ public class BoissinotDestructor {
 					Expr e = copy.getExpression();
 					Local b = copy.getVariable().getLocal();
 
+					// Expression has to be a VarExpr
 					if (!copy.isSynthetic() && e.getOpcode() == Opcode.LOCAL_LOAD) {
 						LinkedHashSet<Local> vc = values.get(((VarExpr) e).getLocal());
 						vc.add(b);
@@ -900,11 +901,15 @@ public class BoissinotDestructor {
 	private class CongruenceClass extends TreeSet<Local> {
 		private static final long serialVersionUID = -4472334406997712498L;
 
-		CongruenceClass() {
-			super((o1, o2) -> {
-				if (o1 == o2)
-					return 0;
-				return ((defuse.defIndex.get(o1) - defuse.defIndex.get(o2))) >> 31 | 1;
+		protected CongruenceClass() {
+			super(new Comparator<Local>() {
+				@Override
+				public int compare(Local o1, Local o2) {
+					if (o1 == o2)
+						return 0;
+					return ((BoissinotDestructor.this.defuse.defIndex.get(o1) - BoissinotDestructor.
+							this.defuse.defIndex.get(o2))) >> 31 | 1;
+				}
 			});
 		}
 	}

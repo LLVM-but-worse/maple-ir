@@ -121,6 +121,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		}
 		
 		inputStacks.put(b, s);
+		b.setStack(s);
 	}
 	
 	protected ExpressionStack getInputStackFor(BasicBlock b) {
@@ -1271,6 +1272,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 	
 	protected VarExpr _var_expr(int index, Type type, boolean isStack) {
 		Local l = builder.graph.getLocals().get(index, isStack);
+		l.setType(type);
 		builder.locals.add(l);
 		return new VarExpr(l, type);
 	}

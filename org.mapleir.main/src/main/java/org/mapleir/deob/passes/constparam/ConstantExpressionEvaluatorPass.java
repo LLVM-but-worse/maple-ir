@@ -78,7 +78,7 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 		return PassResult.with(pcxt, this).finished(exprsEvaluated).make();
 	}
 	
-	private void processMethod(MethodNode m, IPConstAnalysisVisitor vis, ControlFlowGraph cfg) {
+	public void processMethod(MethodNode m, IPConstAnalysisVisitor vis, ControlFlowGraph cfg) {
 		for(BasicBlock b : new HashSet<>(cfg.vertices())) {
 			for(int i=0; i < b.size(); i++) {
 				Stmt stmt = b.get(i);
@@ -223,7 +223,7 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 	/**
 	 * Provides values of locals based on constant parameter information from call trace (IPConstAnalysisVisitor)
 	 */
-	private class SemiConstantLocalValueResolver implements LocalValueResolver {
+	public static class SemiConstantLocalValueResolver implements LocalValueResolver {
 		
 		private final IPConstAnalysisVisitor vis;
 		
@@ -271,7 +271,7 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 	/**
 	 * Stores information regarding constant parameters encountered during call tracing.
 	 */
-	private class IPConstAnalysisVisitor implements IPAnalysisVisitor {
+	public static class IPConstAnalysisVisitor implements IPAnalysisVisitor {
 		final AnalysisContext cxt;
 		final Map<ControlFlowGraph, List<TaintableSet<ConstantExpr>>> constParams = new HashMap<>();
 		

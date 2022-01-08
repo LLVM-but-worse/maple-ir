@@ -77,7 +77,35 @@ public class CompleteResolvingJarDumper implements JarDumper {
 		out.putNextEntry(entry);
 		ClassTree tree = source.getClassTree();
 		
-		ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_FRAMES) {
+
+		
+		for(MethodNode m : cn.getMethods()) {
+			if(m.node.instructions.size() > 10000) {
+				System.out.println("large method: " + m + " @" + m.node.instructions.size());
+			}
+		}
+
+		try {
+			try {
+				ClassWriter writer = this.buildClassWriter(tree, ClassWriter.COMPUTE_FRAMES);
+				cn.node.accept(writer); // must use custom writer which overrides getCommonSuperclass
+				out.write(writer.toByteArray());
+			} catch (Exception e) {
+				ClassWriter writer = this.buildClassWriter(tree, ClassWriter.COMPUTE_MAXS);
+				cn.node.accept(writer); // must use custom writer which overrides getCommonSuperclass
+				out.write(writer.toByteArray());
+				System.err.println("Failed to write " + cn.getName() + "! Writing with COMPUTE_MAXS, " +
+						"which may cause runtime abnormalities");
+			}
+		} catch (Exception e) {
+			System.err.println("Failed to write " + cn.getName() + "! Skipping class...");
+		}
+
+		return 1;
+	}
+
+	public ClassWriter buildClassWriter(ClassTree tree, int flags) {
+		return new ClassWriter(flags) {
 			// this method in ClassWriter uses the systemclassloader as
 			// a stream location to load the super class, however, most of
 			// the time the class is loaded/read and parsed by us so it
@@ -85,12 +113,12 @@ public class CompleteResolvingJarDumper implements JarDumper {
 			// we may not even want it to be loaded/resolved and we can
 			// bypass this by implementing the hierarchy scanning algorithm
 			// with ClassNodes rather than Classes.
-		    @Override
+			@Override
 			protected String getCommonSuperClass(String type1, String type2) {
-		    	ClassNode ccn = source.findClassNode(type1);
-		    	ClassNode dcn = source.findClassNode(type2);
-		    	
-		    	if(ccn == null) {
+				ClassNode ccn = source.findClassNode(type1);
+				ClassNode dcn = source.findClassNode(type2);
+
+				if(ccn == null) {
 //		    		return "java/lang/Object";
 					ClassNode c;
 					try {
@@ -99,14 +127,14 @@ public class CompleteResolvingJarDumper implements JarDumper {
 						return "java/lang/Object";
 					}
 					if(c == null) {
-		    			return "java/lang/Object";
-		    		}
-		    		throw new UnsupportedOperationException(c.toString());
-		    		// classTree.build(c);
-		    		// return getCommonSuperClass(type1, type2);
-		    	}
-		    	
-		    	if(dcn == null) {
+						return "java/lang/Object";
+					}
+					throw new UnsupportedOperationException(c.toString());
+					// classTree.build(c);
+					// return getCommonSuperClass(type1, type2);
+				}
+
+				if(dcn == null) {
 
 //		    		return "java/lang/Object";
 					ClassNode c;
@@ -116,52 +144,37 @@ public class CompleteResolvingJarDumper implements JarDumper {
 						return "java/lang/Object";
 					}
 					if(c == null) {
-		    			return "java/lang/Object";
-		    		}
-		    		throw new UnsupportedOperationException(c.toString());
-		    		// classTree.build(c);
-		    		// return getCommonSuperClass(type1, type2);
-		    	}
-		    	
-		    	Collection<ClassNode> c = tree.getAllParents(ccn);
-		    	Collection<ClassNode> d = tree.getAllParents(dcn);
-		        
-		        if(c.contains(dcn))
-		        	return type1;
-		        
-		        if(d.contains(ccn))
-		        	return type2;
-		        
-		        if(Modifier.isInterface(ccn.node.access) || Modifier.isInterface(dcn.node.access)) {
-		        	// enums as well?
-		        	return "java/lang/Object";
-		        } else {
-		        	do {
-		        		ClassNode nccn = source.findClassNode(ccn.node.superName);
-		        		if(nccn == null)
-		        			break;
-		        		ccn = nccn;
-		        		c = tree.getAllParents(ccn);
-		        	} while(!c.contains(dcn));
-		        	return ccn.getName();
-		        }
-		    }
-		};
-		
-		for(MethodNode m : cn.getMethods()) {
-			if(m.node.instructions.size() > 10000) {
-				System.out.println("large method: " + m + " @" + m.node.instructions.size());
-			}
-		}
+						return "java/lang/Object";
+					}
+					throw new UnsupportedOperationException(c.toString());
+					// classTree.build(c);
+					// return getCommonSuperClass(type1, type2);
+				}
 
-		try {
-			cn.node.accept(writer); // must use custom writer which overrides getCommonSuperclass
-			out.write(writer.toByteArray());
-		} catch (Exception e) {
-			System.err.println("Failed to write " + cn.getName());
-			throw e;
-		}
-		return 1;
+				Collection<ClassNode> c = tree.getAllParents(ccn);
+				Collection<ClassNode> d = tree.getAllParents(dcn);
+
+				if(c.contains(dcn))
+					return type1;
+
+				if(d.contains(ccn))
+					return type2;
+
+				if(Modifier.isInterface(ccn.node.access) || Modifier.isInterface(dcn.node.access)) {
+					// enums as well?
+					return "java/lang/Object";
+				} else {
+					do {
+						ClassNode nccn = source.findClassNode(ccn.node.superName);
+						if(nccn == null)
+							break;
+						ccn = nccn;
+						c = tree.getAllParents(ccn);
+					} while(!c.contains(dcn));
+					return ccn.getName();
+				}
+			}
+		};
 	}
 
 	/**

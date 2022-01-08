@@ -1,5 +1,6 @@
 package org.mapleir.ir.code.expr.invoke;
 
+import org.apache.log4j.Logger;
 import org.mapleir.app.service.InvocationResolver;
 import org.mapleir.ir.code.CodeUnit;
 import org.mapleir.ir.code.Expr;
@@ -40,7 +41,7 @@ public class DynamicInvocationExpr extends InvocationExpr {
 		this.bootstrapMethod = bootstrapMethod;
 		this.bootstrapArgs = bootstrapArgs;
 		this.boundName = boundName;
-		assert(Type.getArgumentTypes(bootstrapDesc).length == args.length); // I hope this tells me when this fucks up, because this is not a matter of if, but when.
+		assert(Type.getArgumentTypes(bootstrapDesc).length == args.length) : "You fucked up"; // I hope this tells me when this fucks up, because this is not a matter of if, but when.
 		
 		for(int i = 0; i < args.length; i++) {
 			writeAt(args[i], i);
@@ -54,7 +55,11 @@ public class DynamicInvocationExpr extends InvocationExpr {
 	public Object[] getBootstrapArgs() {
 		return bootstrapArgs;
 	}
-	
+
+	public void setBootstrapArgs(Object[] bootstrapArgs) {
+		this.bootstrapArgs = bootstrapArgs;
+	}
+
 	public String getBoundName() {
 		return boundName;
 	}
@@ -155,7 +160,10 @@ public class DynamicInvocationExpr extends InvocationExpr {
 			case Opcodes.H_INVOKESTATIC:
 				return StaticInvocationExpr.resolveStaticCall(res, boundFunc.getOwner(), boundFunc.getName(), boundFunc.getDesc());
 			case Opcodes.H_INVOKESPECIAL:
-				assert(boundFunc.getName().equals("<init>"));
+				if (!boundFunc.getName().equals("<init>")) {
+					Logger.getLogger(this.getClass()).warn("Lambda function invocation of type H_INVOKESPECIAL is linking against " + boundFunc.getName());
+				}
+				//assert(boundFunc.getName().equals("<init>"));
 				return VirtualInvocationExpr.resolveSpecialInvocation(res, boundFunc.getOwner(), boundFunc.getDesc());
 			case Opcodes.H_INVOKEINTERFACE:
 			case Opcodes.H_INVOKEVIRTUAL:

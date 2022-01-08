@@ -1,15 +1,15 @@
 package org.topdank.byteengineer.commons.classloader;
 
 import java.net.URL;
+import java.net.URLClassLoader;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.danilopianini.urlclassloader.URLClassLoaderUtil;
 import org.mapleir.asm.ClassNode;
 import org.topdank.byteengineer.commons.asm.ASMFactory;
 import org.topdank.byteengineer.commons.asm.DefaultASMFactory;
 import org.topdank.byteengineer.commons.data.LocateableJarContents;
-
-import sun.misc.URLClassPath;
 
 /**
  * Specific {@link ClassLoader} for loading things from external JarFiles, caching loaded classes as it goes along. <br>
@@ -23,7 +23,7 @@ public class JarClassLoader extends ClassLoader {
 
 	private Map<String, ClassNode> fastNodeCache;
 	private Map<String, Class<?>> cache;
-	private URLClassPath ucp;
+	private ClassLoader ucp;
 
 	public JarClassLoader(LocateableJarContents<ClassNode> contents) {
 		this(contents, null, new DefaultASMFactory());
@@ -51,7 +51,7 @@ public class JarClassLoader extends ClassLoader {
 
 		cache = new HashMap<>();
 		fastNodeCache = new HashMap<>();
-		ucp = new URLClassPath(new URL[0]);
+		ucp = new URLClassLoader(new URL[0]);
 		add(contents);
 
 		StackTraceElement e = creator(false);
@@ -76,7 +76,7 @@ public class JarClassLoader extends ClassLoader {
 
 	public void add(LocateableJarContents<ClassNode> contents) {
 		for (URL url : contents.getJarUrls()) {
-			ucp.addURL(url);
+			URLClassLoaderUtil.addLast(url, ucp);
 		}
 		for (ClassNode cn : contents.getClassContents()) {
 			fastNodeCache.put(cn.getName(), cn);
@@ -85,7 +85,7 @@ public class JarClassLoader extends ClassLoader {
 
 	@Override
 	public URL findResource(String name) {
-		return ucp.findResource(name, true);
+		return ucp.getResource(name);
 	}
 
 	/**

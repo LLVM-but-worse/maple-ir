@@ -1,5 +1,8 @@
 package org.mapleir.ir.code;
 
+import java.util.Arrays;
+import java.util.Objects;
+
 // top(0) -> bottom(size() - 1)
 public class ExpressionStack {
 
@@ -100,6 +103,22 @@ public class ExpressionStack {
 			count += peek(i).getType().getSize();
 		}
 		return count;
+	}
+
+	@Override
+	public boolean equals(Object o) {
+		if (this == o) return true;
+		if (!(o instanceof ExpressionStack)) return false;
+		ExpressionStack that = (ExpressionStack) o;
+		return size == that.size &&
+				Arrays.equals(stack, that.stack);
+	}
+
+	@Override
+	public int hashCode() {
+		int result = Objects.hash(size);
+		result = 31 * result + Arrays.hashCode(stack);
+		return result;
 	}
 
 	@Override
