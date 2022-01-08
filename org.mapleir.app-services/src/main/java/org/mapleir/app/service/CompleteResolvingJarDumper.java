@@ -124,12 +124,14 @@ public class CompleteResolvingJarDumper implements JarDumper {
 					try {
 						c = ClassHelper.create(type1);
 					} catch (IOException e) {
+						e.printStackTrace();
 						return "java/lang/Object";
 					}
 					if(c == null) {
 						return "java/lang/Object";
 					}
-					throw new UnsupportedOperationException(c.toString());
+
+					tree.addVertex(ccn = c);
 					// classTree.build(c);
 					// return getCommonSuperClass(type1, type2);
 				}
@@ -141,13 +143,15 @@ public class CompleteResolvingJarDumper implements JarDumper {
 					try {
 						c = ClassHelper.create(type2);
 					} catch (IOException e) {
+						e.printStackTrace();
 						return "java/lang/Object";
 					}
 					if(c == null) {
 						return "java/lang/Object";
 					}
-					throw new UnsupportedOperationException(c.toString());
-					// classTree.build(c);
+
+					tree.addVertex(dcn = c);
+					// classTree.build(c)
 					// return getCommonSuperClass(type1, type2);
 				}
 
