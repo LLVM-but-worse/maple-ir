@@ -100,6 +100,15 @@
           <descriptorRefs>
             <descriptorRef>jar-with-dependencies</descriptorRef>
           </descriptorRefs>
+            <archive>
+                <manifest>
+                    <mainClass>org.mapleir.Main</mainClass>
+                </manifest>
+                <manifestEntries>
+                    <Main-Class>org.mapleir.Main</Main-Class>
+                    <Built-By>maple-ir</Built-By>
+                </manifestEntries>
+            </archive>
         </configuration>
         <executions>
           <execution>
