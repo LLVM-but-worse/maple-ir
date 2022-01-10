@@ -3,6 +3,7 @@ package org.mapleir.cli.cmd;
 import org.apache.log4j.Logger;
 import org.mapleir.Boot;
 import org.mapleir.DefaultInvocationResolver;
+import org.mapleir.Main;
 import org.mapleir.app.client.SimpleApplicationContext;
 import org.mapleir.app.service.ApplicationClassSource;
 import org.mapleir.app.service.CompleteResolvingJarDumper;
@@ -64,6 +65,8 @@ public class RunCommand implements Callable<Integer> {
 
     @Override
     public Integer call() throws Exception {
+
+
         if (input == null) {
             logger.print("Fatal! Failed to find input jar!");
             return 1;

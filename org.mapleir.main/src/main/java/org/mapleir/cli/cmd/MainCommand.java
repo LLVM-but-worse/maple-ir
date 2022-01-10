@@ -18,9 +18,8 @@ public class MainCommand implements Callable<Integer> {
 
     @Override
     public Integer call() throws Exception {
-        LOGGER.info(
-                "Maple-IR | Copyright (c) 2022 Bibl and rcx \n"
-                + "java -jar maple.jar run <args> | Run deobfuscation\n"
+        System.out.println(
+                "java -jar maple.jar run <args> | Run deobfuscation\n"
                 + "java -jar maple.jar version    | View version\n"
         );
         return 0;

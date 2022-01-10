@@ -19,8 +19,7 @@ public class VersionCommand implements Callable<Integer> {
     @Override
     public Integer call() throws Exception {
         LOGGER.info(
-                "Maple-IR | Copyright (c) 2022 Bibl and rcx \n"
-                + "Running Maple-IR v" + Main.VERSION + "!"
+                "Running Maple-IR v" + Main.VERSION + "!"
         );
         return 0;
     }
