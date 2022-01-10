@@ -3,11 +3,12 @@
   <parent>
     <groupId>org.mapleir</groupId>
     <artifactId>parent</artifactId>
-    <version>0.0.1-ALPHA</version>
+    <version>1.0.0-SNAPSHOT</version>
     <relativePath>../org.mapleir.parent</relativePath>
   </parent>
   <groupId>org.mapleir</groupId>
   <artifactId>main</artifactId>
+  <name>MapleIR-main</name>
   <dependencies>
   	<dependency>
   		<groupId>com.google.guava</groupId>
@@ -19,25 +20,30 @@
   		<artifactId>junit</artifactId>
   		<version>4.12</version>
   	</dependency>
-  	<dependency>
+      <dependency>
+          <groupId>info.picocli</groupId>
+          <artifactId>picocli</artifactId>
+          <version>4.6.2</version>
+      </dependency>
+      <dependency>
   		<groupId>org.mapleir</groupId>
   		<artifactId>modasm</artifactId>
-  		<version>0.0.1-ALPHA</version>
+  		<version>1.0.0-SNAPSHOT</version>
   	</dependency>
   	<dependency>
   		<groupId>org.mapleir</groupId>
   		<artifactId>ir</artifactId>
-  		<version>0.0.1-ALPHA</version>
+  		<version>1.0.0-SNAPSHOT</version>
   	</dependency>
   	<dependency>
   		<groupId>org.mapleir</groupId>
   		<artifactId>app-services</artifactId>
-  		<version>0.0.1-ALPHA</version>
+  		<version>1.0.0-SNAPSHOT</version>
   	</dependency>
   	<dependency>
   		<groupId>org.mapleir</groupId>
   		<artifactId>topdank-services</artifactId>
-  		<version>0.0.1-ALPHA</version>
+  		<version>1.0.0-SNAPSHOT</version>
   	</dependency>
   	<dependency>
   		<groupId>org.mapleir</groupId>
@@ -52,7 +58,7 @@
   	<dependency>
   		<groupId>org.mapleir</groupId>
   		<artifactId>ir.printer</artifactId>
-  		<version>0.0.1-ALPHA</version>
+  		<version>1.0.0-SNAPSHOT</version>
   	</dependency>
   </dependencies>
 
@@ -69,6 +75,11 @@
               <goal>shade</goal>
             </goals>
             <configuration>
+              <transformers>
+                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                  <mainClass>org.mapleir.Main</mainClass>
+                </transformer>
+              </transformers>
               <artifactSet>
                 <includes>
                   <include>org.mapleir</include>
@@ -89,6 +100,15 @@
           <descriptorRefs>
             <descriptorRef>jar-with-dependencies</descriptorRef>
           </descriptorRefs>
+            <archive>
+                <manifest>
+                    <mainClass>org.mapleir.Main</mainClass>
+                </manifest>
+                <manifestEntries>
+                    <Main-Class>org.mapleir.Main</Main-Class>
+                    <Built-By>maple-ir</Built-By>
+                </manifestEntries>
+            </archive>
         </configuration>
         <executions>
           <execution>
@@ -100,15 +120,18 @@
           </execution>
         </executions>
       </plugin>
-
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-jar-plugin</artifactId>
         <version>3.0.2</version>
         <configuration>
           <archive>
+            <manifest>
+              <mainClass>org.mapleir.Main</mainClass>
+            </manifest>
             <manifestEntries>
-              <Built-By>maple-ir</Built-By>
+                <Main-Class>org.mapleir.Main</Main-Class>
+                <Built-By>maple-ir</Built-By>
             </manifestEntries>
           </archive>
         </configuration>
