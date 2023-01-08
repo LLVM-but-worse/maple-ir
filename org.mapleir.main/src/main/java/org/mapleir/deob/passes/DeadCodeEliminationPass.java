@@ -145,6 +145,9 @@ public class DeadCodeEliminationPass implements IPass {
 			
 			// for now
 		} while (c);
+
+		// avoid verification failure. renumber all basic blocks
+		cfg.relabel(cfg.verticesInOrder());
 	}
 
 	@Override
