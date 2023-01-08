@@ -1142,10 +1142,10 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		push(load_stack(index, type));
 	}
 	
-	protected void _dynamic_call(Handle bsm, Object[] bsmArgs, String bootstrapDesc, String boundName) {
+	protected void _dynamic_call(Handle bsm, Object[] bsmArgs, String resolvedCalleeDesc, String boundName) {
 		save_stack(false);
 		// these are the additional bound variables passed into the boostrap method (typically metafactory) 
-		Expr[] boundArgs = new Expr[Type.getArgumentTypes(bootstrapDesc).length];
+		Expr[] boundArgs = new Expr[Type.getArgumentTypes(resolvedCalleeDesc).length];
 		for(int i = boundArgs.length - 1; i >= 0; i--) {
 			boundArgs[i] = pop();
 		}
@@ -1155,7 +1155,7 @@ public class GenerationPass extends ControlFlowGraphBuilder.BuilderPass {
 		Handle provider = new Handle(bsm.getTag(), bsm.getOwner(), bsm.getName(), bsm.getDesc());
 		Object[] bsmArgsCopy = new Object[bsmArgs.length];
 		System.arraycopy(bsmArgs, 0, bsmArgsCopy, 0, bsmArgsCopy.length);
-		DynamicInvocationExpr expr = new DynamicInvocationExpr(bsmCopy, bsmArgsCopy, bootstrapDesc, boundArgs, boundName);
+		DynamicInvocationExpr expr = new DynamicInvocationExpr(bsmCopy, bsmArgsCopy, resolvedCalleeDesc, boundArgs, boundName);
 		
 		if(expr.getType() == Type.VOID_TYPE) {
 			addStmt(new PopStmt(expr));

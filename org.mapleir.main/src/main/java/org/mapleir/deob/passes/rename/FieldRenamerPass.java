@@ -41,7 +41,7 @@ public class FieldRenamerPass implements IPass {
 		for(ClassNode cn : source.iterate()) {
 //			totalFields += cn.fields.size();
 			for(FieldNode fn : cn.getFields()) {
-				remapped.put(fn, RenamingUtil.createName(i++));
+				remapped.put(fn, "f_" + RenamingUtil.createName(i++));
 			}
 		}
 		

@@ -1,11 +1,9 @@
 package org.mapleir.deob.passes.rename;
 
 import java.lang.reflect.Modifier;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.mapleir.app.client.SimpleApplicationContext;
 import org.mapleir.app.service.ApplicationClassSource;
@@ -21,14 +19,18 @@ import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.code.Opcode;
 import org.mapleir.ir.code.Stmt;
+import org.mapleir.ir.code.expr.invoke.DynamicInvocationExpr;
 import org.mapleir.ir.code.expr.invoke.InvocationExpr;
 import org.mapleir.asm.ClassNode;
 import org.mapleir.asm.MethodNode;
+import org.objectweb.asm.Handle;
 
 public class MethodRenamerPass implements IPass {
 
 	private final RenamingHeuristic heuristic;
-	
+	public final Map<MethodNode, String> remapped = new HashMap<>();
+	public final Map<MethodNode, String> oldNames = new HashMap<>();
+
 	public MethodRenamerPass(RenamingHeuristic heuristic) {
 		this.heuristic = heuristic;
 	}
@@ -38,8 +40,6 @@ public class MethodRenamerPass implements IPass {
 		AnalysisContext cxt = pcxt.getAnalysis();
 		ApplicationClassSource source = cxt.getApplication();
 		InvocationResolver resolver = cxt.getInvocationResolver();
-		
-		Map<MethodNode, String> remapped = new HashMap<>();
 
 		int totalMethods = 0;
 		
@@ -47,7 +47,7 @@ public class MethodRenamerPass implements IPass {
 			totalMethods += cn.getMethods().size();
 		}
 		
-		int i = RenamingUtil.computeMinimum(totalMethods);
+		int i = RenamingUtil.computeMinimum(totalMethods) + RenamingUtil.numeric("aaaaa");
 		
 		// Map<MethodNode, Set<MethodNode>> debugMap = new HashMap<>();
 		
@@ -63,8 +63,9 @@ public class MethodRenamerPass implements IPass {
 				
 				if(Modifier.isStatic(m.node.access)) {
 					if(!m.getName().equals("<clinit>") && !SimpleApplicationContext.isMainMethod(m)) {
-						String newName = RenamingUtil.createName(i++);
+						String newName = "m_" + RenamingUtil.createName(i++);
 						remapped.put(m, newName);
+						oldNames.put(m, m.getName());
 					}
 				} else {
 					if(!m.getName().equals("<init>")) {
@@ -72,11 +73,11 @@ public class MethodRenamerPass implements IPass {
 						// Set<MethodNode> methods = getVirtualMethods(cxt, classes, m.name, m.desc);
 						Set<MethodNode> methods = resolver.getHierarchyMethodChain(m.owner, m.getName(), m.node.desc, true);
 						if(canRename(cxt, methods)) {
-							String newName = RenamingUtil.createName(i++);
+							String newName = "m_" + RenamingUtil.createName(i++);
 							
 							for(MethodNode o : methods) {
 								// Set<MethodNode> s2 = InvocationResolver.getHierarchyMethodChain(cxt, o.owner, o.name, m.desc, true);
-								
+
 								/*if(!methods.equals(s2)) {
 									System.err.printf("m: %s%n", m);
 									System.err.printf("o: %s%n", o);
@@ -90,7 +91,7 @@ public class MethodRenamerPass implements IPass {
 									}
 									throw new IllegalStateException();
 								}*/
-								
+
 								/*if(remapped.containsKey(o)) {
 									System.err.printf("m: %s%n", m);
 									System.err.printf("o: %s%n", o);
@@ -111,8 +112,9 @@ public class MethodRenamerPass implements IPass {
 									throw new IllegalStateException();
 								}*/
 								remapped.put(o, newName);
+								oldNames.put(m, m.getName());
 							}
-							
+
 							/*for(MethodNode hm : methods) {
 								debugMap.put(hm, methods);
 							}*/
@@ -123,16 +125,33 @@ public class MethodRenamerPass implements IPass {
 				}
 			}
 		}
-		
-		rename(cxt, remapped, true);
+
+		remapped.forEach((key, value) -> System.out.println(key + " --> " + value));
+		oldNames.putAll(rename(cxt, remapped, true));
 		System.out.printf("  Remapped %d/%d methods.%n", remapped.size(), totalMethods);
 
 		return PassResult.with(pcxt, this).finished().make();
 	}
-	
-	public static void rename(AnalysisContext cxt, Map<MethodNode, String> remapped, boolean warn) {
+
+	public static MethodNode stupidlyFindMethodNodeByName(Map<MethodNode, String> oldNames, String name) {
+		Set<MethodNode> c = oldNames.entrySet().stream().filter(e -> e.getValue().equals(name)).map(Entry::getKey).collect(Collectors.toUnmodifiableSet());
+		if (c.size() > 1) {
+			throw new RuntimeException("expected 1 matching method for " + name + " , but found " + c.size());
+		}
+		if (c.isEmpty()) {
+			return null;
+		}
+		return c.iterator().next();
+	}
+
+	public static Map<MethodNode, String> rename(AnalysisContext cxt, Map<MethodNode, String> remapped, boolean warn) {
 		ApplicationClassSource source = cxt.getApplication();
 		InvocationResolver resolver = cxt.getInvocationResolver();
+
+		Map<MethodNode, String> oldNames = new HashMap<>();
+		for(Entry<MethodNode, String> e : remapped.entrySet()) {
+			oldNames.put(e.getKey(), e.getKey().node.name);
+		}
 		
 		for(ClassNode cn : source.iterate()) {
 			{
@@ -168,9 +187,7 @@ public class MethodRenamerPass implements IPass {
 							
 							if(e.getOpcode() == Opcode.INVOKE) {
 								InvocationExpr invoke = (InvocationExpr) e;
-								if (invoke.isDynamic())
-									throw new UnsupportedOperationException();
-								
+
 								if(visited.contains(invoke)) {
 									throw new RuntimeException(invoke.toString());
 								}
@@ -180,8 +197,38 @@ public class MethodRenamerPass implements IPass {
 									System.err.println("  ignore array object invoke: " + invoke + ", owner: " + invoke.getOwner());
 									continue;
 								}
-								
-								if(invoke.isStatic()) {
+
+								if (invoke.isDynamic()) {
+									DynamicInvocationExpr die = (DynamicInvocationExpr) invoke;
+									// Resolved call target
+									String oldBoundName = die.getBoundName();
+									// try proper resolution ("proper" being just shitty heuristics)
+									for (MethodNode targetMn : die.resolveTargets(resolver)) {
+										if (remapped.containsKey(targetMn)) {
+											die.setBoundName(remapped.get(targetMn));
+										}
+									}
+									// uhhhhhhhhhh this is not good. this is just a textual comparison and does not properly resolve the call!!!!!!!
+									// but because the call resolution is, in theory, dynamically defined, there is no way to properly resolve it statically!
+									// we can write heuristics for common cases, like LambdaMetafactory (see DynamicInvocationExpression.resolveTargets),
+									// but there's no good way to deal with this problem!
+									// This is the same problem as not being able to fix reflective references!
+									MethodNode targetMn;
+									targetMn = stupidlyFindMethodNodeByName(oldNames, die.getBoundName());
+									if (targetMn != null) {
+										assert targetMn.getDesc().equals(die.getDesc());
+										die.setBoundName(remapped.get(targetMn));
+									}
+
+									// Bootstrap method
+									String oldName = die.getName();
+									// are all bootstrap methods static? I don't know
+									targetMn = resolver.resolveStaticCall(die.getBootstrapOwner(), die.getBootstrapName(), die.getBootstrapDesc());
+									if (targetMn != null) {
+										die.setName(remapped.get(targetMn));
+									}
+									System.err.println("Renamed invokedynamic: " + oldBoundName + " -> " + die.getBoundName() + " , " + oldName + " -> " + die.getName());
+								} else if(invoke.isStatic()) {
 									MethodNode site = resolver.resolveStaticCall(invoke.getOwner(), invoke.getName(), invoke.getDesc());
 									
 									if(site != null) {
@@ -195,18 +242,6 @@ public class MethodRenamerPass implements IPass {
 									} else {
 										if(mustMark(source, invoke.getOwner())) {
 											System.err.printf("  can't resolve(s) %s ; %s.%s %s%n", invoke, invoke.getOwner(), invoke.getName(), invoke.getDesc());
-
-											/*if(m.toString().equals("hey.IIiIiiIiII()Lime;")) {
-												System.out.println("MethodRenamerPass.accept() " + newName);
-												throw new UnsupportedOperationException();
-											}*/
-											
-											if(invoke.getOwner().equals("hey")) {
-												for(MethodNode mm : cxt.getApplication().findClassNode(invoke.getOwner()).getMethods()) {
-													System.out.println(mm);
-												}
-												throw new UnsupportedOperationException();
-											}
 										}
 									}
 								} else {
@@ -224,14 +259,14 @@ public class MethodRenamerPass implements IPass {
 											anyContains |= remapped.containsKey(s);
 											allContains &= remapped.containsKey(s);
 										}
-										
+
 										if(anyContains && !allContains) {
 											System.err.println("mismatch: ");
 											// System.err.println(classes);
 											System.err.println(sites);
 											throw new RuntimeException();
 										}
-										
+
 										MethodNode site = sites.iterator().next();
 										if(remapped.containsKey(site)) {
 											invoke.setName(remapped.get(site));
@@ -258,9 +293,11 @@ public class MethodRenamerPass implements IPass {
 		 * them using the old names during the invocation 
 		 * analysis above. */
 		for(Entry<MethodNode, String> e : remapped.entrySet()) {
-			// System.out.printf("%s -> %s%n", e.getKey(), e.getValue());
+			System.out.printf("%s -> %s%n", e.getKey(), e.getValue());
 			e.getKey().node.name = e.getValue();
 		}
+
+		return oldNames;
 	}
 	
 	private static boolean mustMark(ApplicationClassSource tree, String owner) {
@@ -277,23 +314,4 @@ public class MethodRenamerPass implements IPass {
 		}
 		return true;
 	}
-	
-	/*public static MethodNode findClassMethod(ClassNode cn, String name, String desc) {
-		MethodNode findM = null;
-		
-		for(MethodNode m : cn.methods) {
-			if(!Modifier.isStatic(m.access)) {
-				if(m.name.equals(name) && m.desc.equals(desc)) {
-					
-					if(findM != null) {
-						throw new IllegalStateException(String.format("%s contains %s and %s", cn.name, findM, m));
-					}
-					
-					findM = m;
-				}
-			}
-		}
-		
-		return findM;
-	}*/
 }
