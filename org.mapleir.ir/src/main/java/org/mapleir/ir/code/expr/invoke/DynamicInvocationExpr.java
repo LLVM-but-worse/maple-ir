@@ -105,7 +105,7 @@ public class DynamicInvocationExpr extends InvocationExpr {
 
 	/**
 	 * The descriptor of the bootstrapper method (given the 3 bootstrapArgs parameters implicitly passed).
-	 * This is key, since it tells you how it affects the stack!
+	 * These aren't supplied on the stack! The arguments on the stack go to the resolved callee!
 	 * Ex: (LTest;I)Ljava/util/function/Consumer;
 	 */
 	public String getBootstrapDesc() {
