@@ -1,6 +1,5 @@
 package org.mapleir;
 
-import org.apache.log4j.Logger;
 import org.mapleir.app.client.SimpleApplicationContext;
 import org.mapleir.app.service.ApplicationClassSource;
 import org.mapleir.app.service.LibraryClassSource;
@@ -21,6 +20,8 @@ import org.mapleir.stdlib.util.JavaDescSpecifier;
 import org.mapleir.stdlib.util.JavaDescUse;
 import org.mapleir.asm.ClassNode;
 import org.mapleir.asm.MethodNode;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.topdank.byteengineer.commons.data.JarInfo;
 import org.topdank.byteio.in.SingleJarDownloader;
 
@@ -31,7 +32,7 @@ import java.util.Map.Entry;
 
 public class DataFlowDemoBoot {
 
-	private static final Logger LOGGER = Logger.getLogger(DataFlowDemoBoot.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(DataFlowDemoBoot.class);
 
 	public static boolean logging = false;
 	private static long timer;

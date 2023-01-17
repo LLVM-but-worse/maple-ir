@@ -5,7 +5,6 @@ import java.lang.reflect.Modifier;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.apache.log4j.Logger;
 import org.mapleir.app.service.ClassTree.InheritanceEdge;
 import org.mapleir.asm.ClassHelper;
 import org.mapleir.stdlib.collections.graph.FastDirectedGraph;
@@ -15,6 +14,8 @@ import org.mapleir.stdlib.collections.graph.GraphUtils;
 import org.mapleir.stdlib.collections.graph.algorithms.SimpleDfs;
 import org.mapleir.stdlib.util.TabbedStringWriter;
 import org.mapleir.asm.ClassNode;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A graph to represent the inheritance tree.
@@ -25,7 +26,7 @@ import org.mapleir.asm.ClassNode;
 // edge = (c, super)
 // so a dfs goes through edges towards the root
 public class ClassTree extends FastDirectedGraph<ClassNode, InheritanceEdge> {
-	private static final Logger LOGGER = Logger.getLogger(ClassTree.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(ClassTree.class);
 	private static final boolean ALLOW_PHANTOM_CLASSES = true;
 
 	private final ApplicationClassSource source;

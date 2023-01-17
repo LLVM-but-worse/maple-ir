@@ -1,6 +1,5 @@
 package org.mapleir;
 
-import org.apache.log4j.Logger;
 import org.mapleir.app.service.ApplicationClassSource;
 import org.mapleir.app.service.InvocationResolver;
 import org.mapleir.stdlib.collections.map.NullPermeableHashMap;
@@ -8,6 +7,8 @@ import org.objectweb.asm.Opcodes;
 import org.mapleir.asm.ClassNode;
 import org.mapleir.asm.FieldNode;
 import org.mapleir.asm.MethodNode;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.Modifier;
 import java.util.*;
@@ -15,7 +16,7 @@ import java.util.Map.Entry;
 
 public class DefaultInvocationResolver implements InvocationResolver {
 	
-	private static final Logger LOGGER = Logger.getLogger(DefaultInvocationResolver.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(DefaultInvocationResolver.class);
 	
 	/* trick for no IDE warning */
 	private static int __debug_level() { return 0; }

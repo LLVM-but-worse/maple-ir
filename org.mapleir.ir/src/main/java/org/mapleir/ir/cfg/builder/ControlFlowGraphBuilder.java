@@ -1,16 +1,10 @@
 package org.mapleir.ir.cfg.builder;
 
-import org.apache.log4j.Logger;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
-import org.mapleir.ir.code.CodeUnit;
-import org.mapleir.ir.code.Stmt;
-import org.mapleir.ir.code.expr.VarExpr;
-import org.mapleir.ir.code.stmt.copy.CopyVarStmt;
 import org.mapleir.ir.locals.Local;
 import org.mapleir.ir.locals.impl.StaticMethodLocalsPool;
 import org.mapleir.ir.locals.impl.VirtualMethodLocalsPool;
-import org.mapleir.ir.utils.CFGUtils;
 import org.mapleir.stdlib.collections.map.NullPermeableHashMap;
 import org.mapleir.asm.MethodNode;
 
@@ -20,8 +14,6 @@ import java.util.Set;
 
 public class ControlFlowGraphBuilder {
 
-	private static final Logger LOGGER = Logger.getLogger(ControlFlowGraph.class);
-	
 	protected final MethodNode method;
 	protected final ControlFlowGraph graph;
 	protected final Set<Local> locals;

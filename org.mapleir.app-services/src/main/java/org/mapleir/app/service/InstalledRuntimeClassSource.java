@@ -3,13 +3,14 @@ package org.mapleir.app.service;
 import java.io.IOException;
 import java.util.HashSet;
 
-import org.apache.log4j.Logger;
 import org.mapleir.asm.ClassHelper;
 import org.objectweb.asm.ClassReader;
 import org.mapleir.asm.ClassNode;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class InstalledRuntimeClassSource extends LibraryClassSource {
-	protected final Logger LOGGER = Logger.getLogger(InstalledRuntimeClassSource.class);
+	protected final Logger LOGGER = LoggerFactory.getLogger(InstalledRuntimeClassSource.class);
 
 	private final HashSet<String> notContains;
 	
@@ -77,8 +78,7 @@ public class InstalledRuntimeClassSource extends LibraryClassSource {
 			LocateableClassNode node = new LocateableClassNode(this, cn, true);
 			return node;
 		} catch(IOException e) {
-			LOGGER.error(String.format("Could not load class from calling classloader: %s", name));
-			LOGGER.error(e);
+			LOGGER.error(String.format("Could not load class from calling classloader: %s", name), e);
 			notContains.add(name);
 			return null;
 		}
