@@ -129,7 +129,7 @@ public class ClassTree extends FastDirectedGraph<ClassNode, InheritanceEdge> {
 				queue.addAll(getAllChildren(next));
 			}
 		}
-		queue.add(cn);
+		queue.addAll(results);
 		while (!queue.isEmpty()) {
 			ClassNode next = queue.remove();
 			if (results.add(next) && next != rootNode) {
