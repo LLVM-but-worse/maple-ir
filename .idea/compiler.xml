@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CompilerConfiguration">
+    <annotationProcessing>
+      <profile name="Gradle Imported" enabled="true">
+        <outputRelativeToContentRoot value="true" />
+        <processorPath useClasspath="false">
+          <entry name="$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.projectlombok/lombok/1.18.36/5a30490a6e14977d97d9c73c924c1f1b5311ea95/lombok-1.18.36.jar" />
+        </processorPath>
+        <module name="dev.skidfuscator.community.skidfuscator-master.main" />
+        <module name="skidfuscator-master.dot4j.main" />
+        <module name="skidfuscator-master.property-framework.main" />
+        <module name="skidfuscator-master.service-util.main" />
+        <module name="skidfuscator-master.service-framework-impl.main" />
+        <module name="skidfuscator-master.service-framework-api.main" />
+        <module name="skidfuscator-master.main.main" />
+        <module name="skidfuscator-master.ir.printer.main" />
+        <module name="skidfuscator-master.topdank-services.main" />
+        <module name="skidfuscator-master.modasm.main" />
+        <module name="skidfuscator-master.flowgraph.main" />
+        <module name="skidfuscator-master.ir.main" />
+        <module name="skidfuscator-master.stdlib.main" />
+        <module name="skidfuscator-master.app-services.main" />
+      </profile>
+    </annotationProcessing>
+    <bytecodeTargetLevel target="17" />
+  </component>
+</project>
