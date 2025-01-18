@@ -7,20 +7,20 @@
         <processorPath useClasspath="false">
           <entry name="$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.projectlombok/lombok/1.18.36/5a30490a6e14977d97d9c73c924c1f1b5311ea95/lombok-1.18.36.jar" />
         </processorPath>
-        <module name="dev.skidfuscator.community.skidfuscator-master.main" />
-        <module name="skidfuscator-master.dot4j.main" />
-        <module name="skidfuscator-master.property-framework.main" />
-        <module name="skidfuscator-master.service-util.main" />
-        <module name="skidfuscator-master.service-framework-impl.main" />
-        <module name="skidfuscator-master.service-framework-api.main" />
-        <module name="skidfuscator-master.main.main" />
-        <module name="skidfuscator-master.ir.printer.main" />
-        <module name="skidfuscator-master.topdank-services.main" />
-        <module name="skidfuscator-master.modasm.main" />
-        <module name="skidfuscator-master.flowgraph.main" />
-        <module name="skidfuscator-master.ir.main" />
-        <module name="skidfuscator-master.stdlib.main" />
-        <module name="skidfuscator-master.app-services.main" />
+        <module name="mapleir-main.modasm.main" />
+        <module name="mapleir-main.stdlib.main" />
+        <module name="dev.skidfuscator.community.mapleir-main.main" />
+        <module name="mapleir-main.app-services.main" />
+        <module name="mapleir-main.topdank-services.main" />
+        <module name="mapleir-main.ir.printer.main" />
+        <module name="mapleir-main.dot4j.main" />
+        <module name="mapleir-main.flowgraph.main" />
+        <module name="mapleir-main.service-framework-api.main" />
+        <module name="mapleir-main.main.main" />
+        <module name="mapleir-main.service-framework-impl.main" />
+        <module name="mapleir-main.service-util.main" />
+        <module name="mapleir-main.property-framework.main" />
+        <module name="mapleir-main.ir.main" />
       </profile>
     </annotationProcessing>
     <bytecodeTargetLevel target="17" />

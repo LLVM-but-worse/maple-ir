@@ -4,7 +4,7 @@
  * This project uses @Incubating APIs which are subject to change.
  */
 
-rootProject.name = 'skidfuscator-master'
+rootProject.name = 'mapleir-main'
 
 void initMaple() {
     include(':modasm')
