@@ -92,6 +92,7 @@ allprojects{
             maven(MavenPublication) {
                 from(components.java)
                 artifact(tasks["jar"])
+                groupId(System.getenv("GROUP"))
             }
         }
     }
