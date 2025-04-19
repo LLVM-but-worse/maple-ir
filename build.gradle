@@ -1,3 +1,6 @@
+plugins{
+    id 'maven-publish'
+}
 import org.gradle.api.JavaVersion
 import org.gradle.api.tasks.compile.JavaCompile
 
@@ -76,4 +79,20 @@ dependencies {
 
 test {
     useJUnitPlatform()
+}
+
+
+allprojects{
+    apply plugin: 'maven-publish'
+        publishing{
+        repositories{
+            mavenLocal()
+        }
+                publications {
+            maven(MavenPublication) {
+                from(components.java)
+                artifact(tasks["jar"])
+            }
+        }
+    }
 }
