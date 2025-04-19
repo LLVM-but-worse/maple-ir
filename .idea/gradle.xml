@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="GradleSettings">
+    <option name="linkedExternalProjectsSettings">
+      <GradleProjectSettings>
+        <option name="externalProjectPath" value="$PROJECT_DIR$" />
+        <option name="modules">
+          <set>
+            <option value="$PROJECT_DIR$" />
+            <option value="$PROJECT_DIR$/org.mapleir.parent/org.mapleir.app-services" />
+            <option value="$PROJECT_DIR$/org.mapleir.parent/org.mapleir.dot4j" />
+            <option value="$PROJECT_DIR$/org.mapleir.parent/org.mapleir.flowgraph" />
+            <option value="$PROJECT_DIR$/org.mapleir.parent/org.mapleir.ir" />
+            <option value="$PROJECT_DIR$/org.mapleir.parent/org.mapleir.ir.printer" />
+            <option value="$PROJECT_DIR$/org.mapleir.parent/org.mapleir.main" />
+            <option value="$PROJECT_DIR$/org.mapleir.parent/org.mapleir.modasm" />
+            <option value="$PROJECT_DIR$/org.mapleir.parent/org.mapleir.property-framework" />
+            <option value="$PROJECT_DIR$/org.mapleir.parent/org.mapleir.service-framework.api" />
+            <option value="$PROJECT_DIR$/org.mapleir.parent/org.mapleir.service-framework.impl" />
+            <option value="$PROJECT_DIR$/org.mapleir.parent/org.mapleir.service-util" />
+            <option value="$PROJECT_DIR$/org.mapleir.parent/org.mapleir.stdlib" />
+            <option value="$PROJECT_DIR$/org.mapleir.parent/org.mapleir.topdank-services" />
+          </set>
+        </option>
+      </GradleProjectSettings>
+    </option>
+  </component>
+</project>
