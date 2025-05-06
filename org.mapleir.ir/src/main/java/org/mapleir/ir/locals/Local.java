@@ -8,6 +8,11 @@ public abstract class Local implements Comparable<Local> {
 	private final boolean stack;
 	private int index;
 	private boolean tempLocal;
+
+	/**
+	 * Bitfield for boolean state information of this unit.
+	 */
+	protected int flags;
 	
 	public Local(int index) {
 		this(index, false);
@@ -61,6 +66,23 @@ public abstract class Local implements Comparable<Local> {
 	public void setType(Type type) {
 		this.type = type;
 	}
+
+	public Type getType() {
+		return type;
+	}
+
+	public void setFlag(int flag, boolean val) {
+		if(val) {
+			flags |= flag;
+		} else {
+			flags ^= flag;
+		}
+	}
+
+	public boolean isFlagSet(int f) {
+		return ((flags & f) != 0);
+	}
+
 	@Override
 	public int compareTo(Local o) {
 		if(stack && !o.stack) {

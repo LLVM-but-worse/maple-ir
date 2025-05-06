@@ -1,19 +1,20 @@
 package org.mapleir.ir.cfg;
 
 import com.google.common.collect.Streams;
+import org.mapleir.asm.MethodNode;
 import org.mapleir.dot4j.model.DotGraph;
 import org.mapleir.flowgraph.ExceptionRange;
 import org.mapleir.flowgraph.FlowGraph;
-import org.mapleir.flowgraph.edges.FlowEdge;
-import org.mapleir.flowgraph.edges.FlowEdges;
-import org.mapleir.flowgraph.edges.ImmediateEdge;
-import org.mapleir.flowgraph.edges.TryCatchEdge;
+import org.mapleir.flowgraph.edges.*;
 import org.mapleir.ir.code.CodeUnit;
 import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.code.Opcode;
 import org.mapleir.ir.code.Stmt;
 import org.mapleir.ir.code.expr.PhiExpr;
 import org.mapleir.ir.code.expr.VarExpr;
+import org.mapleir.ir.code.stmt.ConditionalJumpStmt;
+import org.mapleir.ir.code.stmt.SwitchStmt;
+import org.mapleir.ir.code.stmt.UnconditionalJumpStmt;
 import org.mapleir.ir.code.stmt.copy.CopyPhiStmt;
 import org.mapleir.ir.locals.LocalsPool;
 import org.mapleir.ir.locals.impl.VersionedLocal;
@@ -36,20 +37,23 @@ import static org.mapleir.ir.code.Opcode.PHI_STORE;
 public class ControlFlowGraph extends FlowGraph<BasicBlock, FlowEdge<BasicBlock>> implements IHasJavaDesc {
 	
 	private final LocalsPool locals;
+	private final MethodNode methodNode;
 	private final JavaDesc javaDesc;
 
 	// used for assigning unique id's to basicblocks. ugly hack
 	// fyi, we start at one arbitrarily.
 	private int blockCounter = 1;
 
-	public ControlFlowGraph(LocalsPool locals, JavaDesc javaDesc) {
+	public ControlFlowGraph(LocalsPool locals, MethodNode methodNode) {
 		this.locals = locals;
-		this.javaDesc = javaDesc;
+		this.methodNode = methodNode;
+		this.javaDesc = methodNode.getJavaDesc();
 	}
 	
 	public ControlFlowGraph(ControlFlowGraph cfg) {
 		super(cfg);
 		locals = cfg.locals;
+		methodNode = cfg.methodNode;
 		javaDesc = cfg.javaDesc;
 	}
 
@@ -57,9 +61,27 @@ public class ControlFlowGraph extends FlowGraph<BasicBlock, FlowEdge<BasicBlock>
 		return blockCounter++;
 	}
 
-    public Stream<CodeUnit> allExprStream() {
-   		return vertices().stream().flatMap(Collection::stream).map(Stmt::enumerateWithSelf).flatMap(Streams::stream);
+	public Stream<CodeUnit> traverse() {
+		return vertices().stream().flatMap(Collection::stream)
+				.map(Stmt::traverse)
+				.flatMap(Streams::stream);
+	}
+
+    public Stream<CodeUnit> allImplicitStream() {
+   		return vertices()
+				.stream()
+				.flatMap(Collection::stream)
+				.map(Stmt::traverseExplicit)
+				.flatMap(Streams::stream);
    	}
+
+	public Stream<CodeUnit> allExprStream() {
+		return vertices()
+				.stream()
+				.flatMap(Collection::stream)
+				.map(Stmt::enumerateWithSelf)
+				.flatMap(Streams::stream);
+	}
 
     /**
 	 * Properly removes the edge, and cleans up phi uses in fe.dst of phi arguments from fe.src.
@@ -128,8 +150,8 @@ public class ControlFlowGraph extends FlowGraph<BasicBlock, FlowEdge<BasicBlock>
 				locals.uses.get((VersionedLocal) var.getLocal()).add(var);
 			}
 		}
-		
-		parent.writeAt(to, parent.indexOf(from));
+
+		parent.overwrite(from, to);
 	}
 
 	@Override
@@ -175,6 +197,10 @@ public class ControlFlowGraph extends FlowGraph<BasicBlock, FlowEdge<BasicBlock>
 	@Override
 	public JavaDesc.DescType getDescType() {
 		return JavaDesc.DescType.METHOD;
+	}
+
+	public MethodNode getMethodNode() {
+		return methodNode;
 	}
 
 	@Override
@@ -235,7 +261,7 @@ public class ControlFlowGraph extends FlowGraph<BasicBlock, FlowEdge<BasicBlock>
 				maxId = b.getNumericId();
 
 			if (getReverseEdges(b).size() == 0 && !getEntries().contains(b)) {
-				throw new IllegalStateException("dead incoming: " + b);
+				throw new IllegalStateException("dead incoming: " + CFGUtils.printBlock(b));
 			}
 
 			for (FlowEdge<BasicBlock> fe : getEdges(b)) {
@@ -306,6 +332,94 @@ public class ControlFlowGraph extends FlowGraph<BasicBlock, FlowEdge<BasicBlock>
 		}
 	}
 
+	public void recomputeEdges() {
+		final List<ImmediateEdge<BasicBlock>> immediateEdges = new ArrayList<>();
+
+		for (BasicBlock vertex : vertices()) {
+			final ImmediateEdge<BasicBlock> immediate = getImmediateEdge(vertex);
+
+			if (immediate == null)
+				continue;
+
+			immediateEdges.add(immediate);
+		}
+
+		for (BasicBlock vertex : vertices()) {
+			final ImmediateEdge<BasicBlock> immediate = getIncomingImmediateEdge(vertex);
+
+			if (immediate == null)
+				continue;
+
+			assert immediateEdges.contains(immediate) : "Failed to find incoming immediate!";
+		}
+
+		// Clear all edges
+		for (Set<FlowEdge<BasicBlock>> value : map.values()) {
+			value.clear();
+		}
+		for (Set<FlowEdge<BasicBlock>> value : reverseMap.values()) {
+			value.clear();
+		}
+
+		// Add all immediates
+		for (ImmediateEdge<BasicBlock> immediateEdge : immediateEdges) {
+			addEdge(immediateEdge);
+		}
+
+		// Add all call based edges
+		for (BasicBlock vertex : vertices()) {
+			vertex.forEach(stmt -> {
+				if (stmt instanceof UnconditionalJumpStmt) {
+					final UnconditionalJumpStmt jmp = (UnconditionalJumpStmt) stmt;
+
+					final UnconditionalJumpEdge<BasicBlock> edge = new UnconditionalJumpEdge<>(
+							vertex,
+							jmp.getTarget()
+					);
+
+					jmp.setEdge(edge);
+					addEdge(edge);
+				} else if (stmt instanceof ConditionalJumpStmt) {
+					final ConditionalJumpStmt jmp = (ConditionalJumpStmt) stmt;
+
+					final ConditionalJumpEdge<BasicBlock> edge = new ConditionalJumpEdge<>(
+							vertex,
+							jmp.getTrueSuccessor(),
+							jmp.toOpcode()
+					);
+
+					jmp.setEdge(edge);
+					addEdge(edge);
+				} else if (stmt instanceof SwitchStmt) {
+					final SwitchStmt jmp = (SwitchStmt) stmt;
+
+					final DefaultSwitchEdge<BasicBlock> edge = new DefaultSwitchEdge<>(
+							vertex,
+							jmp.getDefaultTarget()
+					);
+					addEdge(edge);
+
+					jmp.getTargets().entrySet().forEach(e -> {
+						addEdge(new SwitchEdge<>(
+								vertex,
+								e.getValue(),
+								e.getKey()
+						));
+					});
+				}
+			});
+		}
+
+		for (ExceptionRange<BasicBlock> range : ranges) {
+			for (BasicBlock node : range.getNodes()) {
+				addEdge(new TryCatchEdge<>(
+						node,
+						range
+				));
+			}
+		}
+	}
+
 	public Set<FlowEdge<BasicBlock>> getPredecessors(Predicate<? super FlowEdge<BasicBlock>> e, BasicBlock b) {
 		Stream<FlowEdge<BasicBlock>> s = getReverseEdges(b).stream();
 		s = s.filter(e);
@@ -369,6 +483,16 @@ public class ControlFlowGraph extends FlowGraph<BasicBlock, FlowEdge<BasicBlock>
 	public List<BasicBlock> getJumpEdges(BasicBlock b) {
 		List<BasicBlock> jes = new ArrayList<>();
 		for (FlowEdge<BasicBlock> e : getEdges(b)) {
+			if (!(e instanceof ImmediateEdge)) {
+				jes.add(e.dst());
+			}
+		}
+		return jes;
+	}
+
+	public List<BasicBlock> getJumpReverseEdges(BasicBlock b) {
+		List<BasicBlock> jes = new ArrayList<>();
+		for (FlowEdge<BasicBlock> e : getReverseEdges(b)) {
 			if (!(e instanceof ImmediateEdge)) {
 				jes.add(e.dst());
 			}

@@ -1,10 +1,6 @@
 package org.mapleir.app.service;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import org.mapleir.asm.ClassHelper;
 import org.mapleir.stdlib.collections.itertools.ChainIterator;
@@ -14,16 +10,18 @@ public class ApplicationClassSource extends ClassSource {
 
 	private final String name;
 	private final List<LibraryClassSource> libraries;
-	private ClassTree classTree;
+	protected ClassTree classTree;
+	protected boolean phantom;
 	
-	public ApplicationClassSource(String name, Collection<ClassNode> classes) {
-		this(name, ClassHelper.convertToMap(classes));
+	public ApplicationClassSource(String name, boolean phantom, Collection<ClassNode> classes) {
+		this(name, phantom, ClassHelper.convertToMap(classes));
 	}
 	
-	public ApplicationClassSource(String name, Map<String, ClassNode> nodeMap) {
+	public ApplicationClassSource(String name, boolean phantom, Map<String, ClassNode> nodeMap) {
 		super(nodeMap);
 		this.name = (name == null ? "unknown" : name);
-		libraries = new ArrayList<>();
+		this.phantom = phantom;
+		libraries = new LinkedList<>();
 	}
 	
 	public List<LibraryClassSource> getLibraries() {
@@ -36,7 +34,7 @@ public class ApplicationClassSource extends ClassSource {
 	
 	public ClassTree getClassTree() {
 		if (classTree == null) {
-			classTree = new ClassTree(this);
+			classTree = new ClassTree(this, phantom);
 			classTree.init();
 		}
 		return classTree;
@@ -58,14 +56,16 @@ public class ApplicationClassSource extends ClassSource {
 				libraries.add(cs);
 			}
 		}
+
+		libraries.sort(Comparator.comparingInt(LibraryClassSource::getPriority));
+		Collections.reverse(libraries);
 	}
 	
 	public ClassNode findClassNode(String name) {
 		LocateableClassNode n = findClass(name);
 		
 		if(n != null) {
-			ClassNode cn = n.node;
-			return cn;
+			return n.node;
 		} else {
 			return null;
 		}
@@ -84,11 +84,18 @@ public class ApplicationClassSource extends ClassSource {
 		} else {
 			for(LibraryClassSource cs : libraries) {
 				if(cs.contains(name)) {
-					return cs.findClass0(name);
+					return cs.findClass(name);
 				}
 			}
 			return null;
 		}
+	}
+
+	@Override
+	public void add(ClassNode node) {
+		super.add(node);
+
+		classTree.addVertex(node);
 	}
 
 	public boolean isLibraryClass(String name) {

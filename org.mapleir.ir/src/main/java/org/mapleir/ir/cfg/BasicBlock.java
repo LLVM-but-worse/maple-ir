@@ -1,7 +1,9 @@
 package org.mapleir.ir.cfg;
 
+import org.mapleir.ir.code.ExpressionPool;
 import org.mapleir.ir.code.ExpressionStack;
 import org.mapleir.ir.code.Stmt;
+import org.mapleir.ir.code.TypeStack;
 import org.mapleir.stdlib.collections.graph.FastGraphVertex;
 import org.mapleir.stdlib.collections.list.NotifiedList;
 
@@ -23,7 +25,8 @@ public class BasicBlock implements FastGraphVertex, Collection<Stmt> {
 	private int id;
 	public final ControlFlowGraph cfg;
 	private final NotifiedList<Stmt> statements;
-	private ExpressionStack stack;
+	private TypeStack stack;
+	private ExpressionPool pool;
 	private int flags = 0;
 
 	// for debugging purposes. the number of times the label was changed
@@ -191,7 +194,7 @@ public class BasicBlock implements FastGraphVertex, Collection<Stmt> {
 		return statements.isEmpty();
 	}
 
-	public int indexOf(Object o) {
+	public int indexOf(Stmt o) {
 		return statements.indexOf(o);
 	}
 
@@ -207,6 +210,11 @@ public class BasicBlock implements FastGraphVertex, Collection<Stmt> {
 		return statements.set(index, stmt);
 	}
 
+	public void replace(final Stmt o, final Stmt n) {
+		statements.add(indexOf(o), n);
+		statements.remove(o);
+	}
+
 	@Override
 	public int size() {
 		return statements.size();
@@ -217,12 +225,20 @@ public class BasicBlock implements FastGraphVertex, Collection<Stmt> {
 		statements.clear();
 	}
 
-	public ExpressionStack getStack() {
+	public TypeStack getStack() {
 		return stack;
 	}
 
-	public void setStack(ExpressionStack stack) {
+	public void setStack(TypeStack stack) {
 		this.stack = stack;
+	}
+
+	public ExpressionPool getPool() {
+		return pool;
+	}
+
+	public void setPool(ExpressionPool pool) {
+		this.pool = pool;
 	}
 
 	@Override

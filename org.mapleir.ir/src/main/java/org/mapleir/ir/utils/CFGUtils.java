@@ -5,6 +5,7 @@ import org.mapleir.flowgraph.ExceptionRange;
 import org.mapleir.flowgraph.edges.*;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
+import org.mapleir.ir.cfg.SSAFactory;
 import org.mapleir.ir.code.Opcode;
 import org.mapleir.ir.code.Stmt;
 import org.mapleir.ir.code.stmt.ConditionalJumpStmt;
@@ -29,13 +30,13 @@ public class CFGUtils {
 	 * Updates edges and ranges nicely.
 	 * @return the newly created block containing the instructions before `to`
 	 */
-	public static BasicBlock splitBlock(ControlFlowGraph cfg, BasicBlock b, int to) {
-		return splitBlock(cfg, b, to, false);
+	public static BasicBlock splitBlock(SSAFactory factory, ControlFlowGraph cfg, BasicBlock b, int to) {
+		return splitBlock(factory, cfg, b, to, false);
 	}
 
 	// Please don't call me, call splitBlock(ControlFlowGraph, BasicBlock, int) instead.
 	@Deprecated
-	public static BasicBlock splitBlock(ControlFlowGraph cfg, BasicBlock b, int to, boolean ssagencheck) {
+	public static BasicBlock splitBlock(SSAFactory factory, ControlFlowGraph cfg, BasicBlock b, int to, boolean ssagencheck) {
 		/* eg. split the block as follows:
 		 *
 		 *  NAME:
@@ -74,7 +75,7 @@ public class CFGUtils {
 		 */
 
 		// split block
-		BasicBlock newBlock = splitBlockSimple(cfg, b, to);
+		BasicBlock newBlock = splitBlockSimpleFactory(factory, cfg, b, to);
 
 		// redo ranges
 		for(ExceptionRange<BasicBlock> er : cfg.getRanges()) {
@@ -118,7 +119,7 @@ public class CFGUtils {
 				int op = last.getOpcode();
 				if (e instanceof ConditionalJumpEdge) {
 					if (op != Opcode.COND_JUMP)
-						throw new IllegalArgumentException("wrong flow instruction");
+						throw new IllegalArgumentException("wrong flow instruction: Got " + Opcode.opname(op) + " Expected: COND_JUMP");
 					ConditionalJumpStmt j = (ConditionalJumpStmt) last;
 //					assertTarget(last, j.getTrueSuccessor(), b);
 					if (j.getTrueSuccessor() == b)
@@ -206,6 +207,67 @@ public class CFGUtils {
 		BasicBlock newBlock = new BasicBlock(cfg);
 		cfg.addVertex(newBlock);
 		b.transferUpto(newBlock, to);
+		return newBlock;
+	}
+
+	/**
+	 * Splits block up to index `to`, exclusively. Doesn't update edges, etc.
+	 * @return The new block, containing the split-off instructions
+	 */
+	public static BasicBlock splitBlockSimpleFactory(SSAFactory factory, ControlFlowGraph cfg, BasicBlock b, int to) {
+		BasicBlock newBlock = factory.block().cfg(cfg).build();
+		cfg.addVertex(newBlock);
+		b.transferUpto(newBlock, to);
+		return newBlock;
+	}
+
+	/**
+	 * Splits block up to index `to`, exclusively. Doesn't update edges, etc.
+	 * @return The new block, containing the split-off instructions
+	 */
+	public static BasicBlock splitBlockReverseFactory(SSAFactory factory, ControlFlowGraph cfg, BasicBlock b, int to) {
+		//System.out.println("Old block: \n" + printBlock(b));
+		BasicBlock newBlock = factory.block().cfg(cfg).build();
+		cfg.addVertex(newBlock);
+
+		final int size = b.size() - to;
+
+		for (int i = 0; i < size; i++) {
+			Stmt s = b.remove(b.size() - 1);
+
+			newBlock.add(0, s);
+			assert (s.getBlock() == newBlock);
+		}
+
+
+		if (cfg.getImmediateEdge(b) != null) {
+			final ImmediateEdge<BasicBlock> dest = cfg.getImmediateEdge(b);
+			cfg.removeEdge(dest);
+
+			cfg.addEdge(new ImmediateEdge<>(
+					newBlock,
+					dest.dst()
+			));
+		}
+
+		cfg.addEdge(new ImmediateEdge<>(
+				b,
+				newBlock
+		));
+
+		for (ExceptionRange<BasicBlock> protectingRange : cfg.getProtectingRanges(b)) {
+			protectingRange.addVertex(newBlock);
+			cfg.addEdge(new TryCatchEdge<>(
+					newBlock,
+					protectingRange
+			));
+		}
+
+		//System.out.println("New old block: \n" + printBlock(b));
+		//System.out.println("New block: \n" + printBlock(newBlock));
+
+		//cfg.recomputeEdges();
+
 		return newBlock;
 	}
 

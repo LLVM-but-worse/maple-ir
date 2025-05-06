@@ -1,0 +1,10 @@
+plugins {
+    id 'java'
+}
+
+dependencies {
+    implementation project(':service-framework-api')
+    implementation project(':service-framework-impl')
+}
+
+description = 'MapleIR-service-util'

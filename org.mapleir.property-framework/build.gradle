@@ -1,0 +1,9 @@
+plugins {
+    id 'java'
+}
+
+dependencies {
+    api 'com.google.guava:guava:31.1-jre'
+}
+
+description = 'MapleIR-property-framework'

@@ -31,7 +31,11 @@ public class VirtualInvocationExpr extends InvocationExpr {
 		return getCallType() == CallType.INTERFACE;
 	}
 
-	private static int resolveASMOpcode(CallType t) {
+	public boolean isSpecialCall() {
+		return getCallType() == CallType.SPECIAL;
+	}
+
+	public static int resolveASMOpcode(CallType t) {
 		switch (t) {
 		case SPECIAL:
 			return Opcodes.INVOKESPECIAL;
@@ -46,12 +50,16 @@ public class VirtualInvocationExpr extends InvocationExpr {
 
 	public static CallType resolveCallType(int asmOpcode) {
 		switch (asmOpcode) {
-		case Opcodes.INVOKEVIRTUAL:
-			return CallType.VIRTUAL;
-		case Opcodes.INVOKESPECIAL:
-			return CallType.SPECIAL;
-		case Opcodes.INVOKEINTERFACE:
-			return CallType.INTERFACE;
+			case Opcodes.INVOKEVIRTUAL:
+				return CallType.VIRTUAL;
+			case Opcodes.INVOKESPECIAL:
+				return CallType.SPECIAL;
+			case Opcodes.INVOKEINTERFACE:
+				return CallType.INTERFACE;
+			case Opcodes.INVOKESTATIC:
+				return CallType.STATIC;
+			case Opcodes.INVOKEDYNAMIC:
+				return CallType.DYNAMIC;
 		default:
 			throw new IllegalArgumentException(String.valueOf(asmOpcode));
 		}

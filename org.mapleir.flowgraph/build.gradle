@@ -1,0 +1,11 @@
+plugins {
+    id 'java'
+}
+
+dependencies {
+    implementation project(':stdlib')
+    implementation project(':modasm')
+    testImplementation project(':stdlib')
+}
+
+description = 'MapleIR-flowgraph'

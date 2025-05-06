@@ -18,6 +18,7 @@ import org.mapleir.ir.code.expr.VarExpr;
 import org.mapleir.ir.code.stmt.copy.AbstractCopyStmt;
 import org.mapleir.ir.locals.Local;
 import org.mapleir.ir.locals.LocalsPool;
+import org.mapleir.ir.locals.impl.VersionedLocal;
 import org.mapleir.stdlib.collections.graph.algorithms.SimpleDfs;
 import org.mapleir.asm.ClassNode;
 import org.mapleir.asm.MethodNode;
@@ -116,9 +117,11 @@ public class DeadCodeEliminationPass implements IPass {
 							
 							Local l = copy.getVariable().getLocal();
 							LocalsPool pool = cfg.getLocals();
+
+							if (!(l instanceof VersionedLocal) || pool == null || pool.uses.get(l) == null)
+								continue;
 							// System.out.println("copy: "+ copy);
 							if(!ConstraintUtil.isUncopyable(copy.getExpression()) && pool.uses.get(l).size() == 0) {
-								
 								for(Expr e : copy.getExpression().enumerateWithSelf()) {
 									if(e.getOpcode() == Opcode.LOCAL_LOAD) {
 										VarExpr v = (VarExpr) e;
@@ -145,9 +148,6 @@ public class DeadCodeEliminationPass implements IPass {
 			
 			// for now
 		} while (c);
-
-		// avoid verification failure. renumber all basic blocks
-		cfg.relabel(cfg.verticesInOrder());
 	}
 
 	@Override

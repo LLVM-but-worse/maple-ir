@@ -4,20 +4,36 @@ import org.mapleir.stdlib.collections.graph.FastGraphVertex;
 import org.objectweb.asm.Opcodes;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class ClassNode implements FastGraphVertex {
     private static int ID_COUNTER = 1;
    	private final int numericId = ID_COUNTER++;
 
-    public final org.objectweb.asm.tree.ClassNode node;
+    public org.objectweb.asm.tree.ClassNode node;
     private final List<MethodNode> methods;
     private final List<FieldNode> fields;
+    private boolean synth;
 
     public ClassNode() {
         this.node = new org.objectweb.asm.tree.ClassNode();
         methods = new ArrayList<>();
         fields = new ArrayList<>();
+    }
+
+    protected ClassNode(org.objectweb.asm.tree.ClassNode node, boolean compute) {
+        this.node = node;
+
+        methods = new ArrayList<>(node.methods.size());
+        fields = new ArrayList<>(node.fields.size());
+
+        if (compute) {
+            for (org.objectweb.asm.tree.MethodNode mn : node.methods)
+                methods.add(new MethodNode(mn, this));
+            for (org.objectweb.asm.tree.FieldNode fn : node.fields)
+                fields.add(new FieldNode(fn, this));
+        }
     }
 
     ClassNode(org.objectweb.asm.tree.ClassNode node) {
@@ -65,7 +81,70 @@ public class ClassNode implements FastGraphVertex {
         return (node.access & Opcodes.ACC_STATIC) != 0;
     }
 
+    public boolean isPublic() {
+        return (node.access & Opcodes.ACC_PUBLIC) != 0;
+    }
+
+    public boolean isProtected() {
+        return (node.access & Opcodes.ACC_PROTECTED) != 0;
+    }
+
+    public boolean isAbstract() {
+        return (node.access & Opcodes.ACC_ABSTRACT) != 0;
+    }
+
+    public boolean isFinal() {
+        return (node.access & Opcodes.ACC_FINAL) != 0;
+    }
+
+    public boolean isPrivate() {
+        return (node.access & Opcodes.ACC_PRIVATE) != 0;
+    }
+
     public boolean isSynthetic() {
         return (node.access & Opcodes.ACC_SYNTHETIC) != 0;
+    }
+
+    public boolean isInterface() {
+        return (node.access & Opcodes.ACC_INTERFACE) != 0;
+    }
+
+    public boolean isAnnotation() {
+        return (node.access & Opcodes.ACC_ANNOTATION) != 0;
+    }
+
+    public boolean isNative() {
+        return (node.access & Opcodes.ACC_NATIVE) != 0;
+    }
+
+    public boolean isAnnoyingVersion() {
+        return (node.version & 0xFFFF) < Opcodes.V1_8;
+    }
+
+    public boolean isVirtual() {
+        return synth;
+    }
+
+    public void setVirtual(boolean synth) {
+        this.synth = synth;
+    }
+
+    public String getSuperName() {
+        return node.superName;
+    }
+
+    public List<String> getInterfaces() {
+        return node.interfaces;
+    }
+
+    public String getPackageName() {
+        return node.name.substring(0, node.name.lastIndexOf('/'));
+    }
+
+    @Override
+    public String toString() {
+        return "ClassNode{" +
+                "node=" + node +
+                '}';
     }
 }

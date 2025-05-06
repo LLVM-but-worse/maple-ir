@@ -2,6 +2,8 @@ package org.mapleir.ir.code.expr;
 
 import static org.objectweb.asm.Opcodes.*;
 
+import lombok.Getter;
+import lombok.Setter;
 import org.mapleir.ir.code.CodeUnit;
 import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.codegen.BytecodeFrontend;
@@ -11,6 +13,9 @@ import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.util.Printer;
 
+import java.util.List;
+
+@Getter @Setter
 public class ComparisonExpr extends Expr {
 
 	public enum ValueComparisonType {
@@ -43,38 +48,36 @@ public class ComparisonExpr extends Expr {
 
 	private Expr left;
 	private Expr right;
-	private ValueComparisonType type;
+	private ValueComparisonType comparisonType;
 
 	public ComparisonExpr(Expr left, Expr right, ValueComparisonType type) {
 		super(COMPARE);
-		this.type = type;
-		setLeft(left);
-		setRight(right);
-	}
-
-	public Expr getLeft() {
-		return left;
+		this.comparisonType = type;
+		this.setLeft(left);
+		this.setRight(right);
 	}
 
 	public void setLeft(Expr left) {
-		writeAt(left, 0);
-	}
+		if (this.left != null) {
+			this.left.unlink();
+		}
 
-	public Expr getRight() {
-		return right;
+		this.left = left;
+		this.left.setParent(this);
 	}
 
 	public void setRight(Expr right) {
-		writeAt(right, 1);
-	}
+		if (this.right != null) {
+			this.right.unlink();
+		}
 
-	public void setType(ValueComparisonType type) {
-		this.type = type;
+		this.right = right;
+		this.right.setParent(this);
 	}
 
 	@Override
 	public Expr copy() {
-		return new ComparisonExpr(left.copy(), right.copy(), type);
+		return new ComparisonExpr(left.copy(), right.copy(), comparisonType);
 	}
 
 	@Override
@@ -82,15 +85,10 @@ public class ComparisonExpr extends Expr {
 		return Type.INT_TYPE;
 	}
 
+	@Deprecated
 	@Override
 	public void onChildUpdated(int ptr) {
-		if (ptr == 0) {
-			left = read(0);
-		} else if (ptr == 1) {
-			right = read(1);
-		} else {
-			raiseChildOutOfBounds(ptr);
-		}
+		throw new UnsupportedOperationException("Deprecated");
 	}
 	
 	@Override
@@ -120,9 +118,9 @@ public class ComparisonExpr extends Expr {
 		if (left.getType() == Type.LONG_TYPE || right.getType() == Type.LONG_TYPE) {
 			visitor.visitInsn(Opcodes.LCMP);
 		} else if (left.getType() == Type.FLOAT_TYPE || right.getType() == Type.FLOAT_TYPE) {
-			visitor.visitInsn(type == ValueComparisonType.GT ? Opcodes.FCMPG : Opcodes.FCMPL);
+			visitor.visitInsn(comparisonType == ValueComparisonType.GT ? Opcodes.FCMPG : Opcodes.FCMPL);
 		} else if (left.getType() == Type.DOUBLE_TYPE || right.getType() == Type.DOUBLE_TYPE) {
-			visitor.visitInsn(type == ValueComparisonType.GT ? Opcodes.DCMPG : Opcodes.DCMPL);
+			visitor.visitInsn(comparisonType == ValueComparisonType.GT ? Opcodes.DCMPG : Opcodes.DCMPL);
 		} else {
 			throw new IllegalArgumentException();
 		}
@@ -133,16 +131,28 @@ public class ComparisonExpr extends Expr {
 		return false;
 	}
 
-	public ValueComparisonType getComparisonType() {
-		return type;
+	@Override
+	public void overwrite(Expr previous, Expr newest) {
+		if (left == previous) {
+			this.setLeft(newest);
+		} else if (right == previous) {
+			this.setRight(newest);
+		} else {
+			super.overwrite(previous, newest);
+		}
 	}
 
 	@Override
 	public boolean equivalent(CodeUnit s) {
 		if(s instanceof ComparisonExpr) {
 			ComparisonExpr comp = (ComparisonExpr) s;
-			return type == comp.type && left.equivalent(comp.left) && right.equals(comp.right);
+			return comparisonType == comp.comparisonType && left.equivalent(comp.left) && right.equals(comp.right);
 		}
 		return false;
+	}
+
+	@Override
+	public List<CodeUnit> children() {
+		return List.of(left, right);
 	}
 }

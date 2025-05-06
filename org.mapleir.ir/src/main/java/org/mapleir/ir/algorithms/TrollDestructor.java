@@ -6,6 +6,7 @@ import org.mapleir.flowgraph.edges.SwitchEdge;
 import org.mapleir.flowgraph.edges.UnconditionalJumpEdge;
 import org.mapleir.ir.cfg.BasicBlock;
 import org.mapleir.ir.cfg.ControlFlowGraph;
+import org.mapleir.ir.cfg.DefaultBlockFactory;
 import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.code.Opcode;
 import org.mapleir.ir.code.Stmt;
@@ -465,7 +466,7 @@ public class TrollDestructor {
 				if (stmt instanceof CopyPhiStmt) {
 					it.remove();
 					CopyPhiStmt phi = (CopyPhiStmt) stmt;
-					BasicBlock splitBlock = CFGUtils.splitBlock(cfg, b, it.previousIndex());
+					BasicBlock splitBlock = CFGUtils.splitBlock(DefaultBlockFactory.INSTANCE, cfg, b, it.previousIndex());
 					Set<FlowEdge<BasicBlock>> splitEdges = cfg.getEdges(splitBlock);
 					assert(splitEdges.size() == 1);
 					cfg.removeEdge(splitEdges.iterator().next());
@@ -475,8 +476,9 @@ public class TrollDestructor {
 						// i don't think it's necessary to copy phi arg expression since we
 						// are just reassigning it to a different block. tricky!
 						stubBlock.add(new CopyVarStmt(phi.getVariable().copy(), phiArg.getValue()));
-						stubBlock.add(new UnconditionalJumpStmt(b));
-						cfg.addEdge(new UnconditionalJumpEdge<>(stubBlock, b));
+						final UnconditionalJumpEdge<BasicBlock> edge = new UnconditionalJumpEdge<>(stubBlock, b);
+						stubBlock.add(new UnconditionalJumpStmt(b, edge));
+						cfg.addEdge(edge);
 						int predId = phiArg.getKey().getNumericId();
 						dsts.put(predId, stubBlock);
 						cfg.addEdge(new SwitchEdge<>(splitBlock, stubBlock, predId));

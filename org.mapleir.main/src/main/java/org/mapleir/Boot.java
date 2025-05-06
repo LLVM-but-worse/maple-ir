@@ -24,6 +24,7 @@ import org.mapleir.ir.cfg.builder.ControlFlowGraphBuilder;
 import org.mapleir.ir.codegen.ControlFlowGraphDumper;
 import org.mapleir.asm.ClassNode;
 import org.mapleir.asm.MethodNode;
+import org.topdank.byteengineer.commons.data.JarClassData;
 import org.topdank.byteengineer.commons.data.JarInfo;
 import org.topdank.byteio.in.SingleJarDownloader;
 
@@ -34,12 +35,13 @@ import java.net.URL;
 import java.util.*;
 import java.util.Map.Entry;
 import java.util.jar.JarOutputStream;
+import java.util.stream.Collectors;
 
 public class Boot {
 
 	private static final Logger LOGGER = Logger.getLogger(Boot.class);
 
-	public static boolean logging = false;
+	public static boolean logging = true;
 	private static long timer;
 	private static Deque<String> sections;
 
@@ -48,7 +50,7 @@ public class Boot {
 		SingleJarDownloader<ClassNode> dl = new SingleJarDownloader<>(new JarInfo(rtjar));
 		dl.download();
 
-		return new LibraryClassSource(app, dl.getJarContents().getClassContents());
+		return null; //new LibraryClassSource(app, dl.getJarContents().getClassContents());
 	}
 
 	public static void main(String[] args) throws Exception {
@@ -63,7 +65,11 @@ public class Boot {
 		SingleJarDownloader<ClassNode> dl = new SingleJarDownloader<>(new JarInfo(f));
 		dl.download();
 		String appName = f.getName().substring(0, f.getName().length() - 4);
-		ApplicationClassSource app = new ApplicationClassSource(appName, dl.getJarContents().getClassContents());
+		ApplicationClassSource app = new ApplicationClassSource(
+				appName,
+				false,
+				dl.getJarContents().getClassContents().stream().map(JarClassData::getClassNode).collect(Collectors.toList())
+		);
 //
 // 		ApplicationClassSource app = new ApplicationClassSource("test", ClassHelper.parseClasses(CGExample.class));
 //		app.addLibraries(new InstalledRuntimeClassSource(app));
@@ -102,9 +108,7 @@ public class Boot {
 
 		// do passes
 		PassGroup masterGroup = new PassGroup("MasterController");
-		for (IPass p : getTransformationPasses()) {
-			masterGroup.add(p);
-		}
+		masterGroup.add(getTransformationPasses());
 		run(cxt, masterGroup);
 		section0("...done transforming in %fs.%n", "Preparing to transform.");
 
@@ -137,6 +141,8 @@ public class Boot {
 
 			BoissinotDestructor.leaveSSA(cfg);
 
+
+
 			 // CFGUtils.easyDumpCFG(cfg, "pre-reaalloc");
 			LocalsReallocator.realloc(cfg);
 			 // CFGUtils.easyDumpCFG(cfg, "post-reaalloc");
@@ -152,7 +158,7 @@ public class Boot {
 		}
 
 		section("Rewriting jar.");
-		dumpJar(app, dl, masterGroup, "out/rewritten.jar");
+		dumpJar(app, dl, masterGroup, args[0] + "-out.jar");
 
 		section("Finished.");
 	}
@@ -224,27 +230,16 @@ public class Boot {
 //				new FieldRenamerPass(),
 
 				// Default
-
-				new PassGroup("Interprocedural Optimisations")
-						.add(
-						/*new CallgraphPruningPass(),
-						new ConcreteStaticInvocationPass(),
-						new ConstantExpressionReorderPass(),
-						//new ConstantParameterPass(),
-						new DeadCodeEliminationPass(),
-						//new DemoteRangesPass(), // Not done
-						new DetectIrreducibleFlowPass(),
-						new LiftConstructorCallsPass()*/
-				),
-				//new ConstantExpressionEvaluatorPass(),
-
-
-
-				// new FieldRSADecryptionPass(),
-
-
-
-
+				//new CallgraphPruningPass(),
+				//new ConcreteStaticInvocationPass(),
+				//new ConstantExpressionReorderPass(),
+				//new ConstantParameterPass(),
+				//new DeadCodeEliminationPass(),
+				//new DemoteRangesPass(), // Not done
+				//new DetectIrreducibleFlowPass(),
+				//new LiftConstructorCallsPass()
+				new ConstantExpressionEvaluatorPass(),
+				//new DeadBlockRemoverPass()
 		};
 	}
 

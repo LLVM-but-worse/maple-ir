@@ -1,5 +1,7 @@
 package org.mapleir.ir.code.stmt;
 
+import lombok.Getter;
+import lombok.Setter;
 import org.mapleir.ir.TypeUtils;
 import org.mapleir.ir.TypeUtils.ArrayType;
 import org.mapleir.ir.code.CodeUnit;
@@ -11,64 +13,57 @@ import org.mapleir.stdlib.util.TabbedStringWriter;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Type;
 
-public class ArrayStoreStmt extends Stmt {
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
-	private Expr arrayExpression;
-	private Expr indexExpression;
-	private Expr valueExpression;
-	private ArrayType type;
+@Getter @Setter
+public class ArrayStoreStmt extends Stmt {
+	// TODO: Add validation
+	protected Expr arrayExpression;
+	protected Expr indexExpression;
+	protected Expr valueExpression;
+	protected ArrayType arrayType;
 
 	public ArrayStoreStmt(Expr arrayExpression, Expr indexExpression, Expr valueExpression, ArrayType type) {
 		super(ARRAY_STORE);
-		this.type = type;
-		setArrayExpression(arrayExpression);
-		setIndexExpression(indexExpression);
-		setValueExpression(valueExpression);
-	}
-
-	public Expr getArrayExpression() {
-		return arrayExpression;
+		this.setArrayType(type);
+		this.setArrayExpression(arrayExpression);
+		this.setIndexExpression(indexExpression);
+		this.setValueExpression(valueExpression);
 	}
 
 	public void setArrayExpression(Expr arrayExpression) {
-		writeAt(arrayExpression, 0);
-	}
+		if (this.arrayExpression != null) {
+			this.arrayExpression.unlink();
+		}
 
-	public Expr getIndexExpression() {
-		return indexExpression;
+		this.arrayExpression = arrayExpression;
+		this.arrayExpression.setParent(this);
 	}
 
 	public void setIndexExpression(Expr indexExpression) {
-		writeAt(indexExpression, 1);
-	}
+		if (this.indexExpression != null) {
+			this.indexExpression.unlink();
+		}
 
-	public Expr getValueExpression() {
-		return valueExpression;
+		this.indexExpression = indexExpression;
+		this.indexExpression.setParent(this);
 	}
 
 	public void setValueExpression(Expr valueExpression) {
-		writeAt(valueExpression, 2);
+		if (this.valueExpression != null) {
+			this.valueExpression.unlink();
+		}
+
+		this.valueExpression = valueExpression;
+		this.valueExpression.setParent(this);
 	}
 
-	public ArrayType getArrayType() {
-		return type;
-	}
-
-	public void setArrayType(ArrayType type) {
-		this.type = type;
-	}
-
+	@Deprecated
 	@Override
 	public void onChildUpdated(int ptr) {
-		if (ptr == 0) {
-			arrayExpression = read(0);
-		} else if (ptr == 1) {
-			indexExpression = read(1);
-		} else if (ptr == 2) {
-			valueExpression = read(2);
-		} else {
-			raiseChildOutOfBounds(ptr);
-		}
+		throw new UnsupportedOperationException("Deprecated");
 	}
 
 	@Override
@@ -96,15 +91,15 @@ public class ArrayStoreStmt extends Stmt {
 		for (int i = 0; i < iCast.length; i++)
 			visitor.visitInsn(iCast[i]);
 		valueExpression.toCode(visitor, assembler);
-		if (TypeUtils.isPrimitive(type.getType())) {
+		if (TypeUtils.isPrimitive(arrayType.getType())) {
 //			System.out.println(this);
 //			System.out.println(valueExpression.getType() + " -> " + type.getType());
-			int[] vCast = TypeUtils.getPrimitiveCastOpcodes(valueExpression.getType(), type.getType());
+			int[] vCast = TypeUtils.getPrimitiveCastOpcodes(valueExpression.getType(), arrayType.getType());
 //			System.out.println("vcast: " + Arrays.toString(vCast));
 			for (int i = 0; i < vCast.length; i++)
 				visitor.visitInsn(vCast[i]);
 		}
-		visitor.visitInsn(type.getStoreOpcode());
+		visitor.visitInsn(arrayType.getStoreOpcode());
 	}
 
 	@Override
@@ -113,8 +108,24 @@ public class ArrayStoreStmt extends Stmt {
 	}
 
 	@Override
+	public void overwrite(Expr previous, Expr newest) {
+		if (valueExpression == previous) {
+			this.setValueExpression(newest);
+			return;
+		} else if (indexExpression == previous) {
+			this.setIndexExpression(newest);
+			return;
+		} else if (arrayExpression == previous) {
+			this.setArrayExpression(newest);
+			return;
+		}
+
+		super.overwrite(previous, newest);
+	}
+
+	@Override
 	public ArrayStoreStmt copy() {
-		return new ArrayStoreStmt(arrayExpression.copy(), indexExpression.copy(), valueExpression.copy(), type);
+		return new ArrayStoreStmt(arrayExpression.copy(), indexExpression.copy(), valueExpression.copy(), arrayType);
 	}
 
 	@Override
@@ -123,8 +134,14 @@ public class ArrayStoreStmt extends Stmt {
 			ArrayStoreStmt store = (ArrayStoreStmt) s;
 			return arrayExpression.equivalent(store.arrayExpression)
 					&& indexExpression.equivalent(store.indexExpression)
-					&& valueExpression.equivalent(store.valueExpression) && type.equals(store.type);
+					&& valueExpression.equivalent(store.valueExpression)
+					&& arrayType.equals(store.arrayType);
 		}
 		return false;
+	}
+
+	@Override
+	public List<CodeUnit> children() {
+		return List.of(valueExpression, arrayExpression, indexExpression);
 	}
 }

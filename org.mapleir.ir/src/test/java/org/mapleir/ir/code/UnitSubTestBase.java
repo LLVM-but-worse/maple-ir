@@ -1,9 +1,10 @@
 package org.mapleir.ir.code;
 
+import junit.framework.TestCase;
+
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 
-import junit.framework.TestCase;
 
 public abstract class UnitSubTestBase extends TestCase {
 

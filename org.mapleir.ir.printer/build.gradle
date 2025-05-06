@@ -1,0 +1,10 @@
+plugins {
+    id 'java'
+}
+
+dependencies {
+    api project(':ir')
+    api project(':property-framework')
+}
+
+description = 'MapleIR-ir.printer'

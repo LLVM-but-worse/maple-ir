@@ -1,5 +1,7 @@
 package org.mapleir.ir.code.expr;
 
+import lombok.Getter;
+import lombok.Setter;
 import org.mapleir.ir.code.CodeUnit;
 import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.codegen.BytecodeFrontend;
@@ -8,13 +10,17 @@ import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 
-public class AllocObjectExpr extends Expr {
+import java.util.Collections;
+import java.util.List;
 
+@Getter @Setter
+public class AllocObjectExpr extends Expr {
+	// TODO: Add validation
 	private Type type;
 
 	public AllocObjectExpr(Type type) {
 		super(ALLOC_OBJ);
-		this.type = type;
+		this.setType(type);
 	}
 
 	@Override
@@ -25,10 +31,6 @@ public class AllocObjectExpr extends Expr {
 	@Override
 	public Type getType() {
 		return type;
-	}
-	
-	public void setType(Type type) {
-		this.type = type;
 	}
 
 	@Override
@@ -49,6 +51,14 @@ public class AllocObjectExpr extends Expr {
 	@Override
 	public void toCode(MethodVisitor visitor, BytecodeFrontend assembler) {
 		visitor.visitTypeInsn(Opcodes.NEW, type.getInternalName());		
+	}
+
+	@Override
+	public void overwrite(Expr previous, Expr newest) {
+		throw new IllegalArgumentException(String.format(
+				"Cannot overwrite %s with %s in %s",
+				previous, newest, this
+		));
 	}
 
 	@Override

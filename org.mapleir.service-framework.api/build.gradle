@@ -1,0 +1,9 @@
+plugins {
+    id 'java'
+}
+
+dependencies {
+    api project(':property-framework')
+}
+
+description = 'MapleIR-service-provider-api'
