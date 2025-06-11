@@ -1,6 +1,6 @@
 plugins {
     id 'java-library'
-    id 'com.github.johnrengelman.shadow' version '7.1.2'
+    id("com.gradleup.shadow") version "8.3.6"
 }
 
 allprojects {
@@ -17,13 +17,14 @@ allprojects {
     }
 
     apply plugin: 'java-library'
-    apply plugin: 'com.github.johnrengelman.shadow'
+    apply plugin: 'com.gradleup.shadow'
     apply plugin: 'maven-publish'
 
     sourceCompatibility = JavaVersion.VERSION_17
     targetCompatibility = JavaVersion.VERSION_17
 
     group 'org.mapleir'
+    version '2.25.2'
 
     dependencies {
         compileOnly 'org.projectlombok:lombok:1.18.36'
@@ -32,17 +33,34 @@ allprojects {
         boolean isSdk = project.name.contains("sdk");
         // exempt for sdk
         if (!isSdk) {
-            implementation 'systems.manifold:manifold-ext-rt:2025.1.9'
+            implementation 'systems.manifold:manifold-ext-rt:2025.1.10'
 
-            annotationProcessor group: 'systems.manifold', name: 'manifold-ext', version: '2025.1.9'
-            testAnnotationProcessor group: 'systems.manifold', name: 'manifold-ext', version: '2025.1.9'
-            annotationProcessor 'systems.manifold:manifold-preprocessor:2025.1.9'
-            testAnnotationProcessor 'systems.manifold:manifold-preprocessor:2025.1.9'
+            annotationProcessor group: 'systems.manifold', name: 'manifold-ext', version: '2025.1.10'
+            testAnnotationProcessor group: 'systems.manifold', name: 'manifold-ext', version: '2025.1.10'
+            annotationProcessor 'systems.manifold:manifold-preprocessor:2025.1.10'
+            testAnnotationProcessor 'systems.manifold:manifold-preprocessor:2025.1.10'
         }
 
         shadowJar {
             archiveClassifier.set('')
             archiveVersion.set('')
+        }
+
+        // Add explicit dependencies between shadowJar tasks based on project dependencies
+        afterEvaluate {
+            if (project != rootProject) {
+                def projectDeps = configurations.runtimeClasspath.getAllDependencies()
+                    .findAll { it instanceof ProjectDependency }
+                    .collect { it.dependencyProject }
+
+                if (!projectDeps.isEmpty()) {
+                    tasks.named('shadowJar').configure {
+                        projectDeps.each { dep ->
+                            dependsOn(dep.tasks.named('shadowJar'))
+                        }
+                    }
+                }
+            }
         }
 
         publishing {

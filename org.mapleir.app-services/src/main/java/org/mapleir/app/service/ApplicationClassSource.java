@@ -12,7 +12,7 @@ public class ApplicationClassSource extends ClassSource {
 	private final List<LibraryClassSource> libraries;
 	protected ClassTree classTree;
 	protected boolean phantom;
-	
+
 	public ApplicationClassSource(String name, boolean phantom, Collection<ClassNode> classes) {
 		this(name, phantom, ClassHelper.convertToMap(classes));
 	}

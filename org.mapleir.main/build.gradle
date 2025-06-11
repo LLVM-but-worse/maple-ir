@@ -2,6 +2,10 @@ plugins {
     id 'java'
 }
 
+
+description = 'MapleIR-main'
+version = '1.0.0'
+
 dependencies {
     api project(':modasm')
     api project(':ir')
@@ -12,4 +16,12 @@ dependencies {
     api project(':ir.printer')
 }
 
-description = 'MapleIR-main'
+jar {
+    manifest {
+        attributes(
+            'Main-Class': 'org.mapleir.Main',
+            'Implementation-Title': 'MapleIR',
+            'Implementation-Version': version,
+        )
+    }
+}
