@@ -1,5 +1,7 @@
 package org.mapleir.ir.code.stmt;
 
+import lombok.Getter;
+import lombok.Setter;
 import org.mapleir.ir.code.CodeUnit;
 import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.code.Stmt;
@@ -8,6 +10,9 @@ import org.mapleir.stdlib.util.TabbedStringWriter;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
+import java.util.List;
+
+@Getter @Setter
 public class MonitorStmt extends Stmt {
 
 	public enum MonitorMode {
@@ -20,28 +25,22 @@ public class MonitorStmt extends Stmt {
 	public MonitorStmt(Expr expression, MonitorMode mode) {
 		super(MONITOR);
 		this.mode = mode;
-		setExpression(expression);
+		this.setExpression(expression);
 	}
 
 	public void setExpression(Expr expression) {
-		writeAt(expression, 0);
+		if (this.expression != null) {
+			this.expression.unlink();
+		}
+
+		this.expression = expression;
+		this.expression.setParent(this);
 	}
 
-	public Expr getExpression() {
-		return expression;
-	}
-
-	public MonitorMode getMode() {
-		return mode;
-	}
-
+	@Deprecated
 	@Override
 	public void onChildUpdated(int ptr) {
-		if(ptr == 0) {
-			expression = read(0);
-		} else {
-			raiseChildOutOfBounds(ptr);
-		}
+		throw new UnsupportedOperationException("Deprecated");
 	}
 
 	@Override
@@ -65,6 +64,16 @@ public class MonitorStmt extends Stmt {
 	}
 
 	@Override
+	public void overwrite(Expr previous, Expr newest) {
+		if (expression.equivalent(previous)) {
+			this.setExpression(newest);
+			return;
+		}
+
+		super.overwrite(previous, newest);
+	}
+
+	@Override
 	public MonitorStmt copy() {
 		return new MonitorStmt(expression.copy(), mode);
 	}
@@ -76,5 +85,10 @@ public class MonitorStmt extends Stmt {
 			return mode == mon.mode && expression.equivalent(mon.expression);
 		}
 		return false;
+	}
+
+	@Override
+	public List<CodeUnit> children() {
+		return List.of(expression);
 	}
 }

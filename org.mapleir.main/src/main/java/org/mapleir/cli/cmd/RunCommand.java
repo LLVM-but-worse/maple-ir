@@ -27,6 +27,7 @@ import org.mapleir.ir.algorithms.LocalsReallocator;
 import org.mapleir.ir.cfg.ControlFlowGraph;
 import org.mapleir.ir.cfg.builder.ControlFlowGraphBuilder;
 import org.mapleir.ir.codegen.ControlFlowGraphDumper;
+import org.topdank.byteengineer.commons.data.JarClassData;
 import org.topdank.byteengineer.commons.data.JarInfo;
 import org.topdank.byteio.in.SingleJarDownloader;
 import picocli.CommandLine;
@@ -35,6 +36,7 @@ import java.io.*;
 import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.jar.JarOutputStream;
+import java.util.stream.Collectors;
 
 @CommandLine.Command(
         name = "run",
@@ -77,7 +79,13 @@ public class RunCommand implements Callable<Integer> {
         SingleJarDownloader<ClassNode> dl = new SingleJarDownloader<>(new JarInfo(input));
         dl.download();
         String appName = input.getName().substring(0, input.getName().length() - 4);
-        ApplicationClassSource app = new ApplicationClassSource(appName, dl.getJarContents().getClassContents());
+        ApplicationClassSource app = new ApplicationClassSource(
+                appName,
+                false,
+                dl.getJarContents().getClassContents().stream()
+                        .map(JarClassData::getClassNode)
+                        .collect(Collectors.toSet())
+        );
 
         if (output == null) {
             output = new File(appName + "-out.jar");
@@ -159,7 +167,10 @@ public class RunCommand implements Callable<Integer> {
         SingleJarDownloader<ClassNode> dl = new SingleJarDownloader<>(new JarInfo(rtjar));
         dl.download();
 
-        return new LibraryClassSource(app, dl.getJarContents().getClassContents());
+        return new LibraryClassSource(dl.getJarContents().getClassContents().stream()
+                .map(e -> e.getClassNode()).collect(Collectors.toSet()),
+                app,
+                1);
     }
 
     private void dumpJar(ApplicationClassSource app, SingleJarDownloader<ClassNode> dl, PassGroup masterGroup, String outputFile) throws IOException {

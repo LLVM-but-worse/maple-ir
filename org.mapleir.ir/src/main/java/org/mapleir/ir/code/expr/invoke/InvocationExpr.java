@@ -1,16 +1,38 @@
 package org.mapleir.ir.code.expr.invoke;
 
+import lombok.Getter;
+import lombok.Setter;
 import org.mapleir.ir.TypeUtils;
 import org.mapleir.ir.code.CodeUnit;
 import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.codegen.BytecodeFrontend;
 import org.mapleir.stdlib.util.*;
 import org.objectweb.asm.MethodVisitor;
+import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 
+import java.lang.reflect.Array;
+import java.util.*;
+import java.util.stream.Collectors;
+
+@Getter @Setter
 public abstract class InvocationExpr extends Invocation implements IUsesJavaDesc {
 	public enum CallType {
-		STATIC, SPECIAL, VIRTUAL, INTERFACE, DYNAMIC
+		STATIC(Opcodes.INVOKESTATIC),
+		SPECIAL(Opcodes.INVOKESPECIAL),
+		VIRTUAL(Opcodes.INVOKEVIRTUAL),
+		INTERFACE(Opcodes.INVOKEINTERFACE),
+		DYNAMIC(Opcodes.INVOKEDYNAMIC);
+
+		private final int opcode;
+
+		CallType(int opcode) {
+			this.opcode = opcode;
+		}
+
+		public int getOpcode() {
+			return opcode;
+		}
 	}
 	
 	private CallType callType;
@@ -21,54 +43,27 @@ public abstract class InvocationExpr extends Invocation implements IUsesJavaDesc
 
 	public InvocationExpr(CallType callType, Expr[] args, String owner, String name, String desc) {
 		super(INVOKE);
-		
-		this.callType = callType;
-		this.args = args;
-		this.owner = owner;
-		this.name = name;
-		this.desc = desc;
-		
+
+		this.setCallType(callType);
+		this.setArgumentExprs(args);
+		this.setOwner(owner);
+		this.setName(name);
+		this.setDesc(desc);
+	}
+
+	@Override
+	public int indexOf(Expr s) {
+		final Expr[] args = getArgumentExprs();
 		for (int i = 0; i < args.length; i++) {
-			writeAt(args[i], i);
+			if (args[i].equivalent(s)) {
+				return i;
+			}
 		}
+
+		return -1;
 	}
 
-	public final CallType getCallType() {
-		return callType;
-	}
-
-	public void setCallType(CallType callType) {
-		this.callType = callType;
-	}
-
-	@Override
-	public final String getOwner() {
-		return owner;
-	}
-
-	public void setOwner(String owner) {
-		this.owner = owner;
-	}
-
-	@Override
-	public final String getName() {
-		return name;
-	}
-
-	public void setName(String name) {
-		this.name = name;
-	}
-
-	@Override
-	public final String getDesc() {
-		return desc;
-	}
-
-	public void setDesc(String desc) {
-		this.desc = desc;
-	}
-
-	protected Expr[] copyArgs() {
+	public Expr[] copyArgs() {
 		Expr[] arguments = new Expr[args.length];
 		for (int i = 0; i < arguments.length; i++) {
 			arguments[i] = args[i].copy();
@@ -90,13 +85,7 @@ public abstract class InvocationExpr extends Invocation implements IUsesJavaDesc
 
 	@Override
 	public void onChildUpdated(int index) {
-		Expr argument = read(index);
-		if (index < 0 || (index) >= args.length) {
-			throw new ArrayIndexOutOfBoundsException();
-		}
-		
-		args[index] = argument;
-		writeAt(argument, index);
+		throw new IllegalStateException("Deprecated");
 	}
 	
 	@Override
@@ -125,7 +114,11 @@ public abstract class InvocationExpr extends Invocation implements IUsesJavaDesc
 		printer.print('(');
 		Expr[] printedArgs = getPrintedArgs();
 		for (int i = 0; i < printedArgs.length; i++) {
-			printedArgs[i].toString(printer);
+			if (printedArgs[i] == null) {
+				printer.print("null");
+			} else {
+				printedArgs[i].toString(printer);
+			}
 			if ((i + 1) < printedArgs.length) {
 				printer.print(", ");
 			}
@@ -146,17 +139,40 @@ public abstract class InvocationExpr extends Invocation implements IUsesJavaDesc
 			System.arraycopy(bck, 0, argTypes, 1, bck.length);
 			argTypes[0] = Type.getType("L" + owner + ";");
 		}
-		
-		for (int i = 0; i < args.length; i++) {
-			args[i].toCode(visitor, assembler);
-			if (TypeUtils.isPrimitive(args[i].getType())) {
-				int[] cast = TypeUtils.getPrimitiveCastOpcodes(args[i].getType(), argTypes[i]);
-				for (int a = 0; a < cast.length; a++) {
-					visitor.visitInsn(cast[a]);
+
+		try {
+			for (int i = 0; i < args.length; i++) {
+				args[i].toCode(visitor, assembler);
+				if (callType != CallType.DYNAMIC && TypeUtils.isPrimitive(args[i].getType())) {
+					assert i < args.length : String.format(
+							"Failed on class %s to match args (%s)",
+							this.getClass().getName(),
+							Arrays.toString(args)
+					);
+
+					assert i < argTypes.length : String.format(
+							"Failed on class %s to match argTypes (%s)\ndesc: %s\n\n  \\-->%s",
+							this.getClass().getName(),
+							Arrays.toString(argTypes),
+							desc,
+							Arrays.stream(args).map(CodeUnit::toString).collect(Collectors.joining("\n  \\-->"))
+					);
+					int[] cast = TypeUtils.getPrimitiveCastOpcodes(args[i].getType(), argTypes[i]);
+					for (int a = 0; a < cast.length; a++) {
+						visitor.visitInsn(cast[a]);
+					}
 				}
 			}
+		} catch (ArrayIndexOutOfBoundsException e) {
+			throw new IllegalStateException(String.format("Failed to write class %s to match argTypes (%s)\ndesc: %s\n\n  \\-->%s",
+					this.getClass().getName(),
+					Arrays.toString(argTypes),
+					desc,
+					Arrays.stream(args).map(CodeUnit::toString).collect(Collectors.joining("\n  \\-->"))),
+					e
+			);
 		}
-		
+
 		generateCallCode(visitor);
 	}
 
@@ -186,6 +202,21 @@ public abstract class InvocationExpr extends Invocation implements IUsesJavaDesc
 	}
 
 	@Override
+	public Set<Expr> _enumerate() {
+		Set<Expr> set = new HashSet<>();
+
+		for (Expr arg : args) {
+			set.add(arg);
+
+			if (arg == null)
+				continue;
+
+			set.addAll(arg._enumerate());
+		}
+		return set;
+	}
+
+	@Override
 	public Expr getPhysicalReceiver() {
 		if(isStatic()) {
 			return null;
@@ -208,7 +239,35 @@ public abstract class InvocationExpr extends Invocation implements IUsesJavaDesc
 	}
 
 	public void setArgumentExprs(Expr[] args) {
+		if (this.args != null) {
+			for (Expr arg : this.args) {
+				arg.unlink();
+			}
+		}
+
 		this.args = args;
+
+		for (Expr arg : args) {
+			arg.setParent(this);
+		}
+	}
+
+	@Override
+	public void overwrite(Expr previous, Expr newest) {
+		int index = -1;
+		for (int i = 0; i < this.args.length; i++) {
+			if (this.args[i] == previous) {
+				index = i;
+				break;
+			}
+		}
+
+		if (index == -1)
+			super.overwrite(previous, newest);;
+
+		this.args[index].unlink();
+		this.args[index] = newest;
+		this.args[index].setParent(this);
 	}
 
 	// @Override
@@ -228,9 +287,6 @@ public abstract class InvocationExpr extends Invocation implements IUsesJavaDesc
 	// 	}
 	// }
 
-
-
-
 	@Override
 	public JavaDesc.DescType getDescType() {
 		return JavaDesc.DescType.METHOD;
@@ -244,5 +300,10 @@ public abstract class InvocationExpr extends Invocation implements IUsesJavaDesc
 	@Override
 	public JavaDesc getDataUseLocation() {
 		return getBlock().getGraph().getJavaDesc();
+	}
+
+	@Override
+	public List<CodeUnit> children() {
+		return List.of(args);
 	}
 }

@@ -25,7 +25,7 @@ public class NaturalisationPass extends ControlFlowGraphBuilder.BuilderPass {
 
 	@Override
 	public void run() {
-		mergeImmediates();
+		//mergeImmediates();
 		resolveNaturalHandlerFlow();
 	}
 
@@ -88,9 +88,15 @@ public class NaturalisationPass extends ControlFlowGraphBuilder.BuilderPass {
 			assert (catchCopy.getExpression() instanceof CaughtExceptionExpr);
 
 			// decapitate, doesn't update edges
-			BasicBlock newHandlerHead = CFGUtils.splitBlockSimple(builder.graph, b, 1);
-			newHandlerHead.add(new UnconditionalJumpStmt(b));
-			builder.graph.addEdge(new UnconditionalJumpEdge<>(newHandlerHead, b));
+			BasicBlock newHandlerHead = CFGUtils.splitBlockSimpleFactory(builder.factory, builder.graph, b, 1);
+			final UnconditionalJumpEdge<BasicBlock> edge = new UnconditionalJumpEdge<>(newHandlerHead, b);
+			newHandlerHead.add(
+					builder.factory.unconditional_jump_stmt()
+							.target(b)
+							.edge(edge)
+							.build()
+			);
+			builder.graph.addEdge(edge);
 			// update assigns map
 			builder.assigns.get(catchCopy.getVariable().getLocal()).add(newHandlerHead);
 			search: { // ugly.
@@ -149,6 +155,19 @@ public class NaturalisationPass extends ControlFlowGraphBuilder.BuilderPass {
 				continue;
 			}
 			Set<FlowEdge<BasicBlock>> inSuccs = in.cfg.getSuccessors(e -> !(e instanceof TryCatchEdge), in);
+			/*
+			 * In a nutshell, to be able to properly merge two blocks, we're looking for this
+			 * exact scenario:
+			 *
+			 *   B.. B..
+			 *    \ /      <-- No matters. We don't really care
+			 *    BX1 (in)
+			 *     |       <-- CRITICAL! Must only be ONE edge which is a successor and
+			 *     v           only one reverse edge for the successor
+			 *    BX2 (b)
+			 *    / \      <-- We don't really care from here on out
+			 *   B.. B.;
+			 */
 			if(inSuccs.size() != 1 || builder.graph.getReverseEdges(b).size() != 1) {
 				continue;
 			}

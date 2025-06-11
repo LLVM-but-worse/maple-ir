@@ -63,6 +63,10 @@ public abstract class ClassSource {
 			nodeMap.put(cn.getName(), cn);
 		}
 	}
+
+	public void add(ClassNode node) {
+		nodeMap.put(node.getName(), node);
+	}
 	
 	public Iterable<ClassNode> iterate() {
 		return this::iterator;

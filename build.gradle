@@ -1,0 +1,133 @@
+plugins {
+    id 'java-library'
+    id("com.gradleup.shadow") version "8.3.6"
+}
+
+allprojects {
+    repositories {
+        mavenCentral()
+        mavenLocal()
+        maven {
+            url 'https://repo.cleanroommc.com/releases/'
+        }
+        maven {
+            url 'https://jitpack.io'
+        }
+        maven { url 'https://oss.sonatype.org/content/repositories/snapshots/' }
+    }
+
+    apply plugin: 'java-library'
+    apply plugin: 'com.gradleup.shadow'
+    apply plugin: 'maven-publish'
+
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+
+    group 'org.mapleir'
+    version '2.25.2'
+
+    dependencies {
+        compileOnly 'org.projectlombok:lombok:1.18.36'
+        annotationProcessor 'org.projectlombok:lombok:1.18.36'
+
+        boolean isSdk = project.name.contains("sdk");
+        // exempt for sdk
+        if (!isSdk) {
+            implementation 'systems.manifold:manifold-ext-rt:2025.1.10'
+
+            annotationProcessor group: 'systems.manifold', name: 'manifold-ext', version: '2025.1.10'
+            testAnnotationProcessor group: 'systems.manifold', name: 'manifold-ext', version: '2025.1.10'
+            annotationProcessor 'systems.manifold:manifold-preprocessor:2025.1.10'
+            testAnnotationProcessor 'systems.manifold:manifold-preprocessor:2025.1.10'
+        }
+
+        shadowJar {
+            archiveClassifier.set('')
+            archiveVersion.set('')
+        }
+
+        // Add explicit dependencies between shadowJar tasks based on project dependencies
+        afterEvaluate {
+            if (project != rootProject) {
+                def projectDeps = configurations.runtimeClasspath.getAllDependencies()
+                    .findAll { it instanceof ProjectDependency }
+                    .collect { it.dependencyProject }
+
+                if (!projectDeps.isEmpty()) {
+                    tasks.named('shadowJar').configure {
+                        projectDeps.each { dep ->
+                            dependsOn(dep.tasks.named('shadowJar'))
+                        }
+                    }
+                }
+            }
+        }
+
+        publishing {
+            publications {
+                shadow(MavenPublication) { publication ->
+                    project.shadow.component(publication)
+                }
+            }
+        }
+
+        compileJava {
+            options.encoding = "UTF-8" // Will fail on the non-ascii comments if not set
+        }
+
+        tasks.withType(JavaCompile).configureEach {
+            if (sourceCompatibility == JavaVersion.VERSION_17) {
+                options.compilerArgs += [
+                        '--add-exports', 'java.base/jdk.internal.reflect=ALL-UNNAMED',
+                        '--add-exports', 'java.base/jdk.internal.util=ALL-UNNAMED',
+                        '--add-exports', 'java.base/sun.io.ch=ALL-UNNAMED'
+                ]
+            }
+        }
+        tasks.withType(Test).configureEach {
+            if (sourceCompatibility == JavaVersion.VERSION_17) {
+                jvmArgs += [
+                        '--add-exports', 'java.base/jdk.internal.reflect=ALL-UNNAMED',
+                        '--add-exports', 'java.base/jdk.internal.util=ALL-UNNAMED',
+                        '--add-exports', 'java.base/sun.io.ch=ALL-UNNAMED'
+                ]
+            }
+        }
+
+        if (!isSdk) {
+            if (JavaVersion.current() != JavaVersion.VERSION_1_8 &&
+                    sourceSets.main.allJava.files.any { it.name == "module-info.java" }) {
+                tasks.withType(JavaCompile) {
+                    // if you DO define a module-info.java file:
+                    options.compilerArgs += ['-Xplugin:Manifold', '--module-path', it.classpath.asPath]
+                }
+            } else {
+                tasks.withType(JavaCompile) {
+                    // If you DO NOT define a module-info.java file:
+                    options.compilerArgs += ['-Xplugin:Manifold']
+                }
+            }
+        }
+
+        ext {
+            asm = 'org.ow2.asm:asm:9.8'
+            asm_commons = 'org.ow2.asm:asm-commons:9.8'
+            asm_tree = 'org.ow2.asm:asm-tree:9.8'
+            cafedude = 'com.github.Col-E:CAFED00D:2.1.1'
+            slf4j_api = 'org.slf4j:slf4j-api:1.7.36'
+            jlinker = 'com.github.xxDark:jlinker:1.0.7'
+        }
+    }
+}
+
+group 'org.mapleir'
+version '2.25.2'
+
+dependencies {
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.9.0'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.9.0'
+}
+
+test {
+    useJUnitPlatform()
+}

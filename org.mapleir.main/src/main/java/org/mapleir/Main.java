@@ -5,6 +5,11 @@ import org.mapleir.cli.cmd.RunCommand;
 import org.mapleir.cli.cmd.VersionCommand;
 import picocli.CommandLine;
 
+/**
+ * @author Ghast
+ * @since 27/11/2020
+ * mapleir © 2020
+ */
 public class Main {
     public static final String VERSION = Main.class.getPackage().getImplementationVersion();
     public static final String LOGO = "" +

@@ -1,32 +1,37 @@
 package org.mapleir.app.service;
 
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 import org.mapleir.asm.ClassHelper;
 import org.mapleir.asm.ClassNode;
 
 public class LibraryClassSource extends ClassSource {
 
-	protected final ApplicationClassSource parent;
-	
-	protected LibraryClassSource(ApplicationClassSource parent) {
-		this(parent, new HashMap<>());
-	}
-		
-	public LibraryClassSource(ApplicationClassSource parent, Collection<ClassNode> classes) {
-		this(parent, ClassHelper.convertToMap(classes));
-	}
-	
-	public LibraryClassSource(ApplicationClassSource parent, Map<String, ClassNode> nodeMap) {
-		super(nodeMap);
-		
+	protected ApplicationClassSource parent;
+	protected final int priority;
+
+	public LibraryClassSource(Collection<ClassNode> classes, ApplicationClassSource parent, int priority) {
+		super(classes);
 		this.parent = parent;
+		this.priority = priority;
 	}
-	
+
+	public LibraryClassSource(Map<String, ClassNode> nodeMap, ApplicationClassSource parent, int priority) {
+		super(nodeMap);
+		this.parent = parent;
+		this.priority = priority;
+	}
+
+	public LibraryClassSource(ApplicationClassSource parent, int priority) {
+		this(Collections.emptySet(), parent, priority);
+	}
+
+	public ApplicationClassSource getParent() {
+		return parent;
+	}
+
 	/* public lookup method, polls parent first (which can
-	 * call it's children to look for the */
+	 * call its children to look for the */
 	@Override
 	public LocateableClassNode findClass(String name) {
 		if(name == null) {
@@ -34,14 +39,52 @@ public class LibraryClassSource extends ClassSource {
 		}
 		
 		if(parent != null) {
-			return parent.findClass(name);
+			return parent.findClass0(name);
 		} else {
 			throwNoParent();
 			return null;
 		}
 	}
-	
+
+	@Override
+	protected LocateableClassNode findClass0(String name) {
+		if(name == null) {
+			return null;
+		}
+
+		if(parent != null) {
+			return parent.findClass0(name);
+		} else {
+			throwNoParent();
+			return null;
+		}
+	}
+
+	@Override
+	public boolean contains(String name) {
+		return parent.contains(name);
+	}
+
 	public boolean isIterable() {
 		return true;
+	}
+
+	public int getPriority() {
+		return priority;
+	}
+
+	@Override
+	public int size() {
+		return parent.size();
+	}
+
+	@Override
+	public Iterable<ClassNode> iterate() {
+		return parent.iterate();
+	}
+
+	@Override
+	public Iterator<ClassNode> iterator() {
+		return parent.iterator();
 	}
 }

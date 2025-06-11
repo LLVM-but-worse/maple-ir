@@ -24,6 +24,7 @@ import org.mapleir.ir.cfg.builder.ControlFlowGraphBuilder;
 import org.mapleir.ir.codegen.ControlFlowGraphDumper;
 import org.mapleir.asm.ClassNode;
 import org.mapleir.asm.MethodNode;
+import org.topdank.byteengineer.commons.data.JarClassData;
 import org.topdank.byteengineer.commons.data.JarInfo;
 import org.topdank.byteio.in.SingleJarDownloader;
 
@@ -31,6 +32,7 @@ import java.io.*;
 import java.util.*;
 import java.util.Map.Entry;
 import java.util.jar.JarOutputStream;
+import java.util.stream.Collectors;
 
 public class Boot2 {
 	
@@ -42,7 +44,7 @@ public class Boot2 {
 		SingleJarDownloader<ClassNode> dl = new SingleJarDownloader<>(new JarInfo(rtjar));
 		dl.download();
 
-		return new LibraryClassSource(app, dl.getJarContents().getClassContents());
+		return null; //new LibraryClassSource(app, dl.getJarContents().getClassContents());
 	}
 
 	public static void main(String[] args) throws Exception {
@@ -58,7 +60,11 @@ public class Boot2 {
 		SingleJarDownloader<ClassNode> dl = new SingleJarDownloader<>(new JarInfo(f));
 		dl.download();
 		String appName = f.getName().substring(0, f.getName().length() - 4);
-		ApplicationClassSource app = new ApplicationClassSource(appName, dl.getJarContents().getClassContents());
+		ApplicationClassSource app = new ApplicationClassSource(
+				appName,
+				false,
+				dl.getJarContents().getClassContents().stream().map(JarClassData::getClassNode).collect(Collectors.toList())
+		);
 //
 // 		ApplicationClassSource app = new ApplicationClassSource("test", ClassHelper.parseClasses(CGExample.class));
 //		app.addLibraries(new InstalledRuntimeClassSource(app));

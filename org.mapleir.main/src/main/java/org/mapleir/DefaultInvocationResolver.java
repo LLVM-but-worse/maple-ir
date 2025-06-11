@@ -544,34 +544,30 @@ public class DefaultInvocationResolver implements InvocationResolver {
 		Selector selector = new Selector(name, desc);
 		
 		if(!hasVisited(receiver)) {
-			if(app.getClassTree().getChildren(receiver).size() > 0) {
-				throw new UnsupportedOperationException(String.format("No table for %s", receiver));
-			}
-			computeVTable(receiver);
-
-		}
-
-		Map<Selector, MethodNode> cvtable = concreteVTables.get(receiver);
-		Map<Selector, MethodNode> avtable = abstractVTables.get(receiver);
-
-		MethodNode cm = cvtable.get(selector);
-		MethodNode am = avtable.get(selector);
-
-		if(cm == null && am == null) {
-			if(strict) {
-				throw new NoSuchMethodError(receiver.getName() + "." + name + desc);
-			}
-		} else if(cm != null) {
-			return cm;
-		} else if(am != null) {
-			if(strict) {
-				throw new AbstractMethodError(receiver.getName() + "." + name + desc);
-			} else {
-				return am;
-			}
+			throw new UnsupportedOperationException(String.format("No table for %s", receiver));
 		} else {
-			if(strict) {
-				throw new IllegalStateException(String.format("Multiple target sites %s and %s", cm, am));
+			Map<Selector, MethodNode> cvtable = concreteVTables.get(receiver);
+			Map<Selector, MethodNode> avtable = abstractVTables.get(receiver);
+			
+			MethodNode cm = cvtable.get(selector);
+			MethodNode am = avtable.get(selector);
+			
+			if(cm == null && am == null) {
+				if(strict) {
+					throw new NoSuchMethodError(receiver.getName() + "." + name + desc);
+				}
+			} else if(cm != null) {
+				return cm;
+			} else if(am != null) {
+				if(strict) {
+					throw new AbstractMethodError(receiver.getName() + "." + name + desc);
+				} else {
+					return am;
+				}
+			} else {
+				if(strict) {
+					throw new IllegalStateException(String.format("Multiple target sites %s and %s", cm, am));
+				}
 			}
 		}
 		

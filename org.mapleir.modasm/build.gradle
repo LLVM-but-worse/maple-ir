@@ -1,0 +1,13 @@
+plugins {
+    id 'java'
+}
+
+dependencies {
+    api project(':stdlib')
+    api 'org.ow2.asm:asm:9.8'
+    api 'org.ow2.asm:asm-tree:9.8'
+    api 'org.ow2.asm:asm-util:9.8'
+    api 'org.ow2.asm:asm-commons:9.8'
+}
+
+description = 'MapleIR-modasm'

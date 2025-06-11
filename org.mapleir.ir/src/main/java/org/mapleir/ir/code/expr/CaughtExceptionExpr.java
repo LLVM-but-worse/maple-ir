@@ -1,5 +1,7 @@
 package org.mapleir.ir.code.expr;
 
+import lombok.Getter;
+import lombok.Setter;
 import org.mapleir.ir.code.CodeUnit;
 import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.codegen.BytecodeFrontend;
@@ -7,13 +9,18 @@ import org.mapleir.stdlib.util.TabbedStringWriter;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Type;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+@Getter @Setter
 public class CaughtExceptionExpr extends Expr {
 
 	private Type type;
 	
-	private CaughtExceptionExpr(Type type) {
+	public CaughtExceptionExpr(Type type) {
 		super(CATCH);
-		this.type = type;
+		this.setType(type);
 	}
 
 	public CaughtExceptionExpr(String type) {
@@ -30,19 +37,11 @@ public class CaughtExceptionExpr extends Expr {
 	public Expr copy() {
 		return new CaughtExceptionExpr(type);
 	}
-	
-	public void setType(Type type) {
-		this.type = type;
-	}
 
-	@Override
-	public Type getType() {
-		return type;
-	}
-
+	@Deprecated
 	@Override
 	public void onChildUpdated(int ptr) {
-		raiseChildOutOfBounds(ptr);
+		throw new UnsupportedOperationException("Deprecated");
 	}
 
 	@Override
@@ -58,6 +57,14 @@ public class CaughtExceptionExpr extends Expr {
 	@Override
 	public boolean canChangeFlow() {
 		return false;
+	}
+
+	@Override
+	public void overwrite(Expr previous, Expr newest) {
+		throw new IllegalArgumentException(String.format(
+				"Cannot overwrite %s with %s in %s",
+				previous, newest, this
+		));
 	}
 
 	@Override

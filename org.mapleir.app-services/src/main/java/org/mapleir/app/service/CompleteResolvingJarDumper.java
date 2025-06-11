@@ -4,6 +4,7 @@ import org.mapleir.asm.ClassHelper;
 import org.objectweb.asm.ClassWriter;
 import org.mapleir.asm.ClassNode;
 import org.mapleir.asm.MethodNode;
+import org.topdank.byteengineer.commons.data.JarClassData;
 import org.topdank.byteengineer.commons.data.JarContents;
 import org.topdank.byteengineer.commons.data.JarResource;
 import org.topdank.byteio.out.JarDumper;
@@ -25,14 +26,14 @@ import java.util.jar.JarOutputStream;
  */
 public class CompleteResolvingJarDumper implements JarDumper {
 
-	private final JarContents<?> contents;
+	private final JarContents contents;
 	private final ApplicationClassSource source;
 	/**
 	 * Creates a new JarDumper.
 	 *
 	 * @param contents Contents of jar.
 	 */
-	public CompleteResolvingJarDumper(JarContents<ClassNode> contents, ApplicationClassSource source) {
+	public CompleteResolvingJarDumper(JarContents contents, ApplicationClassSource source) {
 		this.contents = contents;
 		this.source = source;
 	}
@@ -50,8 +51,8 @@ public class CompleteResolvingJarDumper implements JarDumper {
 		JarOutputStream jos = new JarOutputStream(new FileOutputStream(file));
 		int classesDumped = 0;
 		int resourcesDumped = 0;
-		for (ClassNode cn : contents.getClassContents()) {
-			classesDumped += dumpClass(jos, cn.getName(), cn);
+		for (JarClassData cn : contents.getClassContents()) {
+			classesDumped += dumpClass(jos, cn);
 		}
 		for (JarResource res : contents.getResourceContents()) {
 			resourcesDumped += dumpResource(jos, res.getName(), res.getData());
@@ -66,13 +67,13 @@ public class CompleteResolvingJarDumper implements JarDumper {
 	 * Writes the {@link ClassNode} to the Jar.
 	 *
 	 * @param out The {@link JarOutputStream}.
-	 * @param cn The ClassNode.
-	 * @param name The entry name.
+	 * @param classData The {@link JarClassData}
 	 * @throws IOException If there is a write error.
 	 * @return The amount of things dumped, 1 or if you're not dumping it 0.
 	 */
 	@Override
-	public int dumpClass(JarOutputStream out, String name, ClassNode cn) throws IOException {
+	public int dumpClass(JarOutputStream out, JarClassData classData) throws IOException {
+		ClassNode cn = classData.getClassNode();
 		JarEntry entry = new JarEntry(cn.getName() + ".class");
 		out.putNextEntry(entry);
 		ClassTree tree = source.getClassTree();
@@ -99,6 +100,7 @@ public class CompleteResolvingJarDumper implements JarDumper {
 			}
 		} catch (Exception e) {
 			System.err.println("Failed to write " + cn.getName() + "! Skipping class...");
+			e.printStackTrace();
 		}
 
 		return 1;
@@ -124,14 +126,12 @@ public class CompleteResolvingJarDumper implements JarDumper {
 					try {
 						c = ClassHelper.create(type1);
 					} catch (IOException e) {
-						e.printStackTrace();
 						return "java/lang/Object";
 					}
 					if(c == null) {
 						return "java/lang/Object";
 					}
-
-					tree.addVertex(ccn = c);
+					throw new UnsupportedOperationException(c.toString());
 					// classTree.build(c);
 					// return getCommonSuperClass(type1, type2);
 				}
@@ -143,15 +143,13 @@ public class CompleteResolvingJarDumper implements JarDumper {
 					try {
 						c = ClassHelper.create(type2);
 					} catch (IOException e) {
-						e.printStackTrace();
 						return "java/lang/Object";
 					}
 					if(c == null) {
 						return "java/lang/Object";
 					}
-
-					tree.addVertex(dcn = c);
-					// classTree.build(c)
+					throw new UnsupportedOperationException(c.toString());
+					// classTree.build(c);
 					// return getCommonSuperClass(type1, type2);
 				}
 

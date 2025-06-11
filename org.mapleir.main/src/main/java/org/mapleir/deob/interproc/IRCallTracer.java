@@ -50,7 +50,6 @@ public class IRCallTracer extends CallTracer {
 			LOGGER.warn(String.format("can't resolve call to %s.%s %s%s%s", invoke.getOwner(),
 					invoke.getName(), invoke.getDesc(), invoke.isStatic() ? "(static)" : "", invoke.isDynamic() ? "(dynamic)" : ""));
 			LOGGER.warn(String.format("   call from %s", m));
-			LOGGER.warn(e.toString());
 			return;
 		}
 

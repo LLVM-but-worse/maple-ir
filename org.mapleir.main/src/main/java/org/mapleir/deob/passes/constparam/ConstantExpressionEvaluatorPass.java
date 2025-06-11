@@ -145,9 +145,9 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 			}
 			
 			// create new jump and update cfg
-			UnconditionalJumpStmt newJump = new UnconditionalJumpStmt(cond.getTrueSuccessor());
-			b.set(insnIndex, newJump);
 			UnconditionalJumpEdge<BasicBlock> uje = new UnconditionalJumpEdge<>(b, cond.getTrueSuccessor());
+			UnconditionalJumpStmt newJump = new UnconditionalJumpStmt(cond.getTrueSuccessor(), uje);
+			b.set(insnIndex, newJump);
 			cfg.addEdge(uje);
 		} else { // always false, keep immediate (fallthrough) and remove the conditional branch.
 			// remove statement amd uses in d/u map
@@ -196,7 +196,7 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 			
 			if(lSet.isEmpty() || rSet.isEmpty()) {
 				
-				System.err.println("oim interested m89");
+				/*System.err.println("oim interested m89");
 				System.err.println("Empty:");
 				System.err.println(cfg);
 				System.err.println("inputs:");
@@ -206,10 +206,10 @@ public class ConstantExpressionEvaluatorPass implements IPass, Opcode {
 				}
 				System.err.println(l + " -> " + lSet);
 				System.err.println(r + " -> " + rSet);
-				System.err.println(cfg);
+				System.err.println(cfg);*/
 
-				System.exit(1);
-				throw new RuntimeException();
+
+				return null;
 			}
 			
 			Boolean result = evaluator.evaluatePrimitiveConditional(cond, lSet, rSet);

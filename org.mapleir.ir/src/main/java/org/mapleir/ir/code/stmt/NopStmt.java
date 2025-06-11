@@ -5,15 +5,20 @@ import org.mapleir.ir.code.Stmt;
 import org.mapleir.ir.codegen.BytecodeFrontend;
 import org.mapleir.stdlib.util.TabbedStringWriter;
 import org.objectweb.asm.MethodVisitor;
+import org.objectweb.asm.Opcodes;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class NopStmt extends Stmt {
 	public NopStmt() {
 		super(NOP);
 	}
 
+	@Deprecated
 	@Override
 	public void onChildUpdated(int ptr) {
-		raiseChildOutOfBounds(ptr);
+		throw new UnsupportedOperationException("Deprecated");
 	}
 
 	@Override
@@ -23,6 +28,7 @@ public class NopStmt extends Stmt {
 
 	@Override
 	public void toCode(MethodVisitor visitor, BytecodeFrontend assembler) {
+		visitor.visitInsn(Opcodes.NOP);
 	}
 
 	@Override

@@ -1,5 +1,7 @@
 package org.mapleir.ir.code.expr;
 
+import lombok.Getter;
+import lombok.Setter;
 import org.mapleir.ir.code.CodeUnit;
 import org.mapleir.ir.code.Expr;
 import org.mapleir.ir.codegen.BytecodeFrontend;
@@ -8,21 +10,28 @@ import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+@Getter @Setter
 public class ArrayLengthExpr extends Expr {
 
+	// TODO: Add validation
 	private Expr expression;
 
 	public ArrayLengthExpr(Expr expression) {
 		super(ARRAY_LEN);
-		setExpression(expression);
-	}
-
-	public Expr getExpression() {
-		return expression;
+		this.setExpression(expression);
 	}
 
 	public void setExpression(Expr expression) {
-		writeAt(expression, 0);
+		if (this.expression != null) {
+			this.expression.unlink();
+		}
+
+		this.expression = expression;
+		this.expression.setParent(this);
 	}
 
 	@Override
@@ -35,13 +44,10 @@ public class ArrayLengthExpr extends Expr {
 		return Type.INT_TYPE;
 	}
 
+	@Deprecated
 	@Override
 	public void onChildUpdated(int ptr) {
-		if(ptr == 0) {
-			expression = read(0);
-		} else {
-			raiseChildOutOfBounds(ptr);
-		}
+		throw new UnsupportedOperationException("Deprecated");
 	}
 
 	@Override
@@ -73,7 +79,24 @@ public class ArrayLengthExpr extends Expr {
 	}
 
 	@Override
+	public void overwrite(Expr previous, Expr newest) {
+		if (expression == previous) {
+			this.setExpression(newest);
+		} else {
+			throw new IllegalArgumentException(String.format(
+					"Cannot overwrite %s with %s in %s",
+					previous, newest, this
+			));
+		}
+	}
+
+	@Override
 	public boolean equivalent(CodeUnit s) {
 		return (s instanceof ArrayLengthExpr) && expression.equivalent(((ArrayLengthExpr)s).expression);
+	}
+
+	@Override
+	public List<CodeUnit> children() {
+		return List.of(expression);
 	}
 }

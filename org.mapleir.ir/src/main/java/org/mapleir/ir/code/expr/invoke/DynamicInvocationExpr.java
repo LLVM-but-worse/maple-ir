@@ -1,5 +1,7 @@
 package org.mapleir.ir.code.expr.invoke;
 
+import lombok.Getter;
+import lombok.Setter;
 import org.apache.log4j.Logger;
 import org.mapleir.app.service.InvocationResolver;
 import org.mapleir.ir.code.CodeUnit;
@@ -15,17 +17,7 @@ import org.mapleir.asm.MethodNode;
 import java.util.HashSet;
 import java.util.Set;
 
-/**
- * IMPORTANT:
- * - getDesc() refers to the desc of the ACTUAL CALLEE.
- * - getArgumentExprs() refers to the args of the ACTUAL CALLEE. getBoundArgs() is an alias.
- * - getBoundName() refers to the name of the ACTUAL CALLEE (i think).
- *
- * - getBootstrapDesc() refers to the desc of the BOOTSTRAP METHOD.
- * - getBootstrapArgs() refers to the args of the BOOTSTRAP METHOD.
- * - getName() refers to the name of the BOOTSTRAP METHOD.
- * - getOwner() refers to the owner of the BOOTSTRAP METHOD.
- */
+@Getter @Setter
 public class DynamicInvocationExpr extends InvocationExpr {
 
 	/**
@@ -45,89 +37,34 @@ public class DynamicInvocationExpr extends InvocationExpr {
 	 * Ex: accept (for Consumer), run (for Runnable)
 	 */
 	private String boundName;
+	
+	public DynamicInvocationExpr(Handle bootstrapMethod, Object[] bootstrapArgs, String bootstrapDesc, Expr[] args, String boundName) {
+		super(CallType.DYNAMIC, args, bootstrapMethod.getOwner(), bootstrapMethod.getName(), bootstrapDesc);
 
-	public DynamicInvocationExpr(Handle bootstrapMethod, Object[] bootstrapArgs, String resolvedCallDesc, Expr[] args, String boundName) {
-		super(CallType.DYNAMIC, args, bootstrapMethod.getOwner(), bootstrapMethod.getName(), resolvedCallDesc);
-
-		this.boundName = boundName;
-
-		this.bootstrapMethod = bootstrapMethod;
-		this.bootstrapArgs = bootstrapArgs;
-
-		// I hope this tells me when this fucks up, because this is not a matter of if, but when.
-		assert(Type.getArgumentTypes(resolvedCallDesc).length == args.length) : "You fucked up";
-		assert(Type.getArgumentTypes(bootstrapMethod.getDesc()).length - 3 == bootstrapArgs.length) : "You fucked up";
-
-		for(int i = 0; i < args.length; i++) {
-			writeAt(args[i], i);
-		}
-	}
-
-	// Getter/setters pertaining to the ACTUAL RESOLVED CALLEE.
-
-	public String getBoundName() {
-		return boundName;
-	}
-
-	public void setBoundName(String boundName) {
-		this.boundName = boundName;
-	}
-
-	/**
-	 * The value of the bound args. These are passed to the RESOLVED CALLEE.
-	 * Ex: {lvar0, 0}
-	 *
-	 * Equivalent to getArgumentExprs(), but included for clarity.
-	 */
-	public Expr[] getBoundArgs() {
-		return getArgumentExprs();
-	}
-
-	// Getters/setters pertaining to the BOOTSTRAP METHOD.
-
-	public Object[] getBootstrapArgs() {
-		return bootstrapArgs;
-	}
-
-	public void setBootstrapArgs(Object[] bootstrapArgs) {
-		this.bootstrapArgs = bootstrapArgs;
-	}
-
-	// Equivalent to getOwner(), but included for clarity
-	public String getBootstrapOwner() {
-		return bootstrapMethod.getOwner();
-	}
-
-	// Equivalent to getName(), but included for clarity
-	public String getBootstrapName() {
-		return bootstrapMethod.getName();
+		this.setBootstrapMethod(bootstrapMethod);
+		this.setBootstrapArgs(bootstrapArgs);
+		this.setBoundName(boundName);
 	}
 
 	/**
 	 * The descriptor of the bootstrapper method (given the 3 bootstrapArgs parameters implicitly passed).
-	 * These aren't supplied on the stack! The arguments on the stack go to the resolved callee!
+	 * This is key, since it tells you how it affects the stack!
 	 * Ex: (LTest;I)Ljava/util/function/Consumer;
 	 */
 	public String getBootstrapDesc() {
-		return bootstrapMethod.getDesc();
+		return getDesc();
 	}
-
-	@Override
-	public void setOwner(String owner) {
-		super.setOwner(owner);
-		bootstrapMethod = new Handle(bootstrapMethod.getTag(), owner, bootstrapMethod.getName(), bootstrapMethod.getDesc());
+	
+	/**
+	 * The value of the bound args.
+	 * Ex: {lvar0, 0}
+	 */
+	public Expr[] getBoundArgs() {
+		return getArgumentExprs();
 	}
-
-	@Override
-	public void setName(String name) {
-		super.setName(name);
-		bootstrapMethod = new Handle(bootstrapMethod.getTag(), bootstrapMethod.getOwner(), name, bootstrapMethod.getDesc());
-	}
-
-	// Other functions
-
+	
 	public Type getProvidedFuncType() {
-		return Type.getMethodType(getDesc()).getReturnType();
+		return Type.getMethodType(getBootstrapDesc()).getReturnType();
 	}
 
 	@Override
@@ -135,7 +72,7 @@ public class DynamicInvocationExpr extends InvocationExpr {
 		Handle bsmHandleCopy = new Handle(bootstrapMethod.getTag(), bootstrapMethod.getOwner(), bootstrapMethod.getName(), bootstrapMethod.getDesc());
 		Object[] bsmArgsCopy = new Object[bootstrapArgs.length];
 		System.arraycopy(bootstrapArgs, 0, bsmArgsCopy, 0, bsmArgsCopy.length);
-		return new DynamicInvocationExpr(bsmHandleCopy, bsmArgsCopy, getDesc(), copyArgs(), boundName);
+		return new DynamicInvocationExpr(bsmHandleCopy, bsmArgsCopy, getBootstrapDesc(), copyArgs(), boundName);
 	}
 	
 	@Override
@@ -161,7 +98,7 @@ public class DynamicInvocationExpr extends InvocationExpr {
 		super.toString(printer);
 		printer.print(")");
 	}
-
+	
 	@Override
 	public Expr[] getPrintedArgs() {
 		Expr[] result = new Expr[bootstrapArgs.length + getArgumentExprs().length];
@@ -173,7 +110,7 @@ public class DynamicInvocationExpr extends InvocationExpr {
 
 	@Override
 	protected void generateCallCode(MethodVisitor visitor) {
-		visitor.visitInvokeDynamicInsn(boundName, getDesc(), bootstrapMethod, bootstrapArgs);
+		visitor.visitInvokeDynamicInsn(boundName, getBootstrapDesc(), bootstrapMethod, bootstrapArgs);
 	}
 
 	@Override
@@ -193,11 +130,11 @@ public class DynamicInvocationExpr extends InvocationExpr {
 				return false;
 		return true;
 	}
-
+	
 	@Override
 	public Set<MethodNode> resolveTargets(InvocationResolver res) {
 		// this is probably like 99% of all the invokedynamics
-		if (bootstrapMethod.getOwner().equals("java/lang/invoke/LambdaMetafactory")
+		if (bootstrapMethod.getOwner().equals("java/lang/invoke/LambdaMetafactory") 
 				&& bootstrapMethod.getName().equals("metafactory")) {
 			assert (bootstrapArgs.length == 3 && bootstrapArgs[1] instanceof Handle);
 			Handle boundFunc = (Handle) bootstrapArgs[1];
