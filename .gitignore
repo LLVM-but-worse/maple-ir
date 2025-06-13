@@ -61,18 +61,6 @@ org.mapleir.main/dot/
 
 *.DS_Store
 
-obfuscator/src/test/resources/test-out.jar
-
-obfuscator/src/test/resources/test-bozar.jar
-
-dev.skidfuscator.obfuscator/obfuscator/src/test/resources/test-out.jar
-
-# Maven files that shouldn't be pushed.
-dev.skidfuscator.obfuscator/client/dependency-reduced-pom.xml
-dev.skidfuscator.obfuscator/commons/dependency-reduced-pom.xml
-dev.skidfuscator.obfuscator/obfuscator/dependency-reduced-pom.xml
-mappings/*
-
 *.jar
 **/dependency-reduced-pom.xml
 
@@ -110,10 +98,8 @@ gradle-app.setting
 # virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
 hs_err_pid*
 
-
 ### Gradle ###
 .gradle
 /build/
 
 */.DS_Store
-*/mappings/
